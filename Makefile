@@ -1,40 +1,49 @@
-# Define variables for paths and libraries
-DECTALK_INCLUDE = /opt/dectalk/include
-DECTALK_LIB = /opt/dectalk/lib
-HOMEBREW_INCLUDE = /opt/homebrew/include
-HOMEBREW_LIB = /opt/homebrew/lib
-
-# Define the libraries
-LIBS = -ltts -luv -lportaudio -lsndfile
-RPATH = -Wl,-rpath,$(DECTALK_LIB)
-
-# Define the target executable
-TARGET = omnivox
-
-# Declare phony targets
-.PHONY: all run clean
+.PHONY: all build test clean run dev check lint fmt doc
 
 # Default target
-all: $(TARGET)
+all: build
 
-$(TARGET): omnivox.c
-	gcc $^ -o $@ \
-		-I$(DECTALK_INCLUDE) \
-		-L$(DECTALK_LIB) \
-		-I$(HOMEBREW_INCLUDE) \
-		-L$(HOMEBREW_LIB) \
-		$(LIBS) \
-		$(RPATH) \
-		-Wall -Wextra -Wpedantic -Werror -Wshadow -Wformat=2 -Wfloat-equal -Wundef -Wconversion \
-		-std=c11 -D_FORTIFY_SOURCE=2
+# Build release binary
+build:
+	cargo build --release
 
-# Run the executable
-run: $(TARGET)
-	./$(TARGET)
+# Build debug binary
+dev:
+	cargo build
 
-# Clean build artifacts and .wav files
+# Run tests
+test:
+	cargo test
+
+# Run with debug output
+run:
+	cargo run
+
+# Check code without building
+check:
+	cargo check
+
+# Lint with clippy
+lint:
+	cargo clippy -- -D warnings
+
+# Format code
+fmt:
+	cargo fmt
+
+# Generate documentation
+doc:
+	cargo doc --no-deps --open
+
+# Clean build artifacts
 clean:
-	rm -f $(TARGET) *.wav
+	cargo clean
+	rm -f *.wav *.pcm
 
+# Watch and rebuild on changes (requires cargo-watch)
 watch:
-	find *.c | entr -r make 
+	cargo watch -x build
+
+# Install from source
+install:
+	cargo install --path omnivox-cli

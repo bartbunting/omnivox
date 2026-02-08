@@ -1,2 +1,29 @@
+# Rust
+target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# Build artifacts
+*.wav
+*.pcm
+*.aiff
 omnivox
-.wav$
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# CMake (legacy)
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+
+# Dictionary files (legacy)
+dic/
