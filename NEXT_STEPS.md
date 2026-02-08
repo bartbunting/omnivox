@@ -1,183 +1,91 @@
 # Next Steps for Omnivox
 
-## What We've Accomplished
+## Immediate: Windows SAPI TTS Backend
 
-### Planning & Documentation ✓
-- **GOALS.md** - Complete project vision and requirements
-  - Cross-platform TTS with native OS libraries + eSpeak-ng fallback
-  - Mandatory audio processing pipeline (trim, pan, volume, effects)
-  - Performance-first design (latency < 100ms)
-  - Intra-sentence voice switching
-  - Full Emacspeak protocol support
-  - Implementation language: Rust
+### 1. Create Windows TTS Engine
 
-- **ARCHITECTURE.md** - Detailed technical design
-  - Component architecture diagram
-  - Core types and traits
-  - Concurrency model (Tokio)
-  - Platform-specific TTS abstractions
-  - Audio pipeline design
-  - Performance optimization strategies
-
-- **ROADMAP.md** - 21-week development plan
-  - Phase 1-4: Foundation + Linux TTS + Core effects + Full protocol
-  - Phase 5-7: macOS, Windows, eSpeak-ng support
-  - Phase 8-9: Multi-device routing + Sox effects
-  - Phase 10-12: Polish, testing, release
-
-### Clean Slate ✓
-- Removed experimental C code (omnivox.c)
-- Cleaned up legacy build artifacts (CMake, dictionaries, .wav files)
-- Updated .gitignore for Rust project
-- Created Rust-focused Makefile
-
-## Immediate Next Steps
-
-### 1. Initialize Rust Project
-
-```bash
-cd /Users/rmelton/projects/robertmeta/omnivox
-
-# Create Cargo workspace
-cargo new --lib omnivox-core
-cargo new --lib omnivox-tts
-cargo new --bin omnivox-cli
-
-# Create workspace Cargo.toml
-cat > Cargo.toml << 'EOF'
-[workspace]
-members = [
-    "omnivox-core",
-    "omnivox-tts",
-    "omnivox-cli",
-]
-
-[workspace.dependencies]
-tokio = { version = "1", features = ["full"] }
-cpal = "0.15"
-thiserror = "1"
-EOF
-```
-
-### 2. Implement Command Parser (Phase 1)
-
-Start in `omnivox-core/src/lib.rs`:
+Create `omnivox-tts/src/windows.rs` implementing `TtsEngine`:
 
 ```rust
-// Command parsing
-pub mod command;
-pub mod queue;
-pub mod state;
+#[cfg(target_os = "windows")]
+pub struct WindowsTtsEngine { ... }
 
-pub use command::{Command, CommandId, ParseError};
-pub use queue::{CommandQueue, QueueItem};
-pub use state::{TtsState, AudioRouting, ChannelMode};
-```
-
-Create `omnivox-core/src/command.rs` with:
-- `parse_command()` function
-- Regex pattern for Emacspeak protocol
-- Unit tests
-
-### 3. Write First Tests
-
-Create test cases for command parsing:
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_queue_command() {
-        let cmd = parse_command("q {Hello World}").unwrap();
-        assert_eq!(cmd.id, CommandId::Queue);
-        assert_eq!(cmd.args, Some("Hello World".to_string()));
-    }
-
-    #[test]
-    fn parse_dispatch_command() {
-        let cmd = parse_command("d").unwrap();
-        assert_eq!(cmd.id, CommandId::Dispatch);
-        assert!(cmd.args.is_none());
-    }
+#[cfg(target_os = "windows")]
+impl TtsEngine for WindowsTtsEngine {
+    fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError>;
+    fn stop(&self);
+    fn is_speaking(&self) -> bool;
+    fn available_voices(&self) -> Vec<VoiceInfo>;
+    fn voice_info(&self, identifier: &str) -> Option<VoiceInfo>;
 }
 ```
 
-### 4. Set Up Development Environment
+**Approach options:**
 
-Install Rust tools:
-```bash
-# Clippy for linting
-rustup component add clippy
+- **windows-rs crate** with SAPI COM interface (ISpVoice)
+- **windows-rs** with Windows.Media.SpeechSynthesis (UWP API)
+- Key: Must synthesize to memory buffer, not direct audio output
 
-# Rustfmt for formatting
-rustup component add rustfmt
+**SAPI buffer capture pattern:**
 
-# Cargo-watch for auto-rebuild
-cargo install cargo-watch
+1. Create `ISpVoice` COM object
+2. Create `ISpStream` backed by memory (`IStream` or `HGLOBAL`)
+3. Set the stream as output: `ISpVoice::SetOutput(stream)`
+4. Call `ISpVoice::Speak(text, SPF_IS_NOT_XML)`
+5. Read PCM data from the memory stream
+6. Convert to f32 stereo @ 44100Hz AudioBuffer
+
+**Files to modify:**
+
+- `omnivox-tts/src/windows.rs` - New file, main implementation
+- `omnivox-tts/src/lib.rs` - Add `pub mod windows;` behind `#[cfg(target_os = "windows")]`
+- `omnivox-tts/Cargo.toml` - Add `windows` dependency behind `[target.'cfg(windows)'.dependencies]`
+- `omnivox-tts/build.rs` - May need Windows-specific build steps
+- `omnivox-cli/src/main.rs` - Add Windows branch in `create_engine()` function
+
+### 2. Wire into CLI
+
+In `omnivox-cli/src/main.rs`, the `create_engine()` function currently has:
+
+```rust
+fn create_engine() -> Result<Box<dyn TtsEngine>> {
+    let forced = std::env::var("OMNIVOX_ENGINE").unwrap_or_default();
+    if forced != "espeak" {
+        #[cfg(target_os = "macos")]
+        { /* try MacOsTtsEngine */ }
+    }
+    // fallback to EspeakTtsEngine
+}
 ```
 
-### 5. Create CLAUDE.md for Omnivox
+Add a `#[cfg(target_os = "windows")]` block to try `WindowsTtsEngine` before espeak-ng fallback.
 
-Document the Rust project structure and development workflow for future Claude Code sessions.
+### 3. Test on Windows
 
-## Questions to Resolve
+- Build: `cargo build --release`
+- Test speech: `echo "tts_say {Hello world}" | target\release\omnivox.exe`
+- Test espeak-ng fallback: `set OMNIVOX_ENGINE=espeak && echo "tts_say {Hello}" | target\release\omnivox.exe`
+- List voices: `target\release\list-voices.exe`
+- Run tests: `cargo test`
 
-Before starting implementation:
+## After Windows
 
-1. **Audio Library Choice:**
-   - Start with `cpal` for cross-platform output?
-   - Or investigate platform-specific APIs first?
+### Linux Speech Dispatcher Backend
 
-2. **TTS Bindings Approach:**
-   - For macOS: Use `objc2` or `cacao` for AVSpeechSynthesizer?
-   - For Linux: Use `libspeechd` or direct D-Bus?
-   - For Windows: Use `windows-rs` for SAPI?
+- Create `omnivox-tts/src/linux.rs` implementing `TtsEngine`
+- Use `speech-dispatcher` or `ssip-client` crate for Speech Dispatcher
+- Or use libspeechd C bindings via FFI
+- espeak-ng already works as fallback on Linux
 
-3. **Development Priority:**
-   - Start with Linux (easiest) or macOS (existing SwiftMac as reference)?
+### Additional Features (Lower Priority)
 
-4. **Testing Strategy:**
-   - Run tests against actual Emacspeak?
-   - Or create mock Emacspeak command sequences?
+- Network mode (-p flag for TCP listener)
+- Multi-device audio routing
+- Sox-style effects (reverb, echo, chorus)
+- Language switching tables
+- Caps beep (currently using pitch raise)
+- Unify the two AudioBuffer types (omnivox-tts vs omnivox-audio)
 
-## Recommended First Session Plan
+## Reference
 
-1. Initialize Cargo workspace (30 min)
-2. Implement command parser (2 hours)
-3. Write comprehensive parser tests (1 hour)
-4. Implement basic queue system (1 hour)
-5. Set up CI/CD skeleton (30 min)
-
-**Goal:** Have a working command parser that can recognize all Emacspeak commands.
-
-## Resources
-
-### Rust Crates to Investigate
-- **Audio:** `cpal`, `rodio`, `dasp`
-- **Async:** `tokio`, `async-std`
-- **Platform bindings:** `objc2`, `windows-rs`, `nix`
-- **TTS:** Research existing crates or FFI approach
-- **DSP:** `rubato`, `biquad`, custom implementations
-
-### SwiftMac Reference Points
-- `main.swift`: Command processing loop
-- `statestore.swift`: State management pattern
-- Protocol command mapping around line 522-553
-
-### Emacspeak Protocol Reference
-- `emacspeak/servers/tts-lib.tcl`: Common protocol functions
-- `emacspeak/servers/espeak`: Full implementation example
-- `emacspeak/servers/mac`: Python implementation with sox effects
-
-## Success Criteria for Phase 1
-
-By end of Week 2, we should have:
-- ✓ Cargo workspace set up
-- ✓ Command parser with 100% test coverage
-- ✓ Queue system implemented
-- ✓ State management (TtsState struct)
-- ✓ Basic stdin command loop
-- ✓ All commands recognized (even if not implemented)
-
-This creates the foundation for Phase 2 (TTS integration).
+See CLAUDE.md for full architecture details and implementation patterns.

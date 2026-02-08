@@ -2,11 +2,14 @@
 //!
 //! Cross-platform text-to-speech server implementing the Emacspeak protocol.
 //! Uses a buffer-based audio pipeline: TTS/tone/file -> pipeline -> output.
+//!
+//! Audio is played on three concurrent streams (speech, tones, sounds).
+//! Items within each stream serialize; different streams overlap.
 
 use anyhow::Result;
 use omnivox_audio::{
-    AudioBuffer, AudioFileLoader, AudioOutput, AudioPipeline, ChannelRouter, SilenceTrimmer,
-    ToneGenerator, VolumeAdjust,
+    AudioBuffer, AudioFileLoader, AudioPipeline, AudioStreams, ChannelRouter, SilenceTrimmer,
+    StreamType, ToneGenerator, VolumeAdjust,
 };
 use omnivox_core::{
     parse_command,
@@ -18,10 +21,14 @@ use omnivox_tts::espeak::EspeakTtsEngine;
 use omnivox_tts::macos::MacOsTtsEngine;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead};
-use std::path::Path;
 use tracing::{debug, error, info, warn};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Maximum queued items per audio stream before overflow drops old items.
+const SPEECH_MAX_DEPTH: usize = 10;
+const TONE_MAX_DEPTH: usize = 3;
+const SOUND_MAX_DEPTH: usize = 5;
 
 /// Convert a TTS AudioBuffer (omnivox_tts::AudioBuffer) to the pipeline
 /// AudioBuffer (omnivox_audio::AudioBuffer). The TTS engine already outputs
@@ -218,23 +225,21 @@ async fn main() -> Result<()> {
     let voices = engine.available_voices();
     info!("Found {} voices", voices.len());
 
-    let output = AudioOutput::new().map_err(|e| anyhow::anyhow!("Audio output init failed: {}", e))?;
+    let streams = AudioStreams::new(SPEECH_MAX_DEPTH, TONE_MAX_DEPTH, SOUND_MAX_DEPTH)
+        .map_err(|e| anyhow::anyhow!("Audio streams init failed: {}", e))?;
     let loader = AudioFileLoader::with_cache();
 
     let mut state = TtsState::default();
     let mut queue = CommandQueue::new();
-    let mut current_playback: Option<omnivox_audio::output::PlaybackHandle> = None;
 
-    // Speak version
+    // Speak version (non-blocking -- server is ready for commands immediately)
     let settings = TtsSettings::default();
     let version_text = format!("Omnivox version {}", VERSION.replace('.', " dot "));
     if let Ok(tts_buf) = engine.synthesize(&version_text, &settings) {
         let mut buf = tts_buffer_to_audio_buffer(tts_buf);
         let pipeline = build_speech_pipeline(&state);
         let _ = pipeline.process(&mut buf);
-        if let Ok(handle) = output.play(&buf) {
-            handle.wait();
-        }
+        let _ = streams.queue(StreamType::Speech, &buf);
     }
 
     info!("Ready to accept commands from stdin");
@@ -259,9 +264,8 @@ async fn main() -> Result<()> {
                     &mut state,
                     &mut queue,
                     engine.as_ref(),
-                    &output,
+                    &streams,
                     &loader,
-                    &mut current_playback,
                 )
                 .await
                 {
@@ -284,9 +288,8 @@ async fn process_command(
     state: &mut TtsState,
     queue: &mut CommandQueue,
     engine: &dyn TtsEngine,
-    output: &AudioOutput,
+    streams: &AudioStreams,
     loader: &AudioFileLoader,
-    current_playback: &mut Option<omnivox_audio::output::PlaybackHandle>,
 ) -> Result<()> {
     match command.id {
         // Queue commands
@@ -342,15 +345,13 @@ async fn process_command(
         CommandId::Dispatch => {
             debug!("Dispatching queue ({} items)", queue.len());
             let items = queue.dispatch();
-            process_queue_items(items, state, engine, output, loader, current_playback).await?;
+            process_queue_items(items, state, engine, streams, loader).await?;
         }
 
         // Immediate commands
         CommandId::Stop => {
-            debug!("Stopping speech");
-            if let Some(handle) = current_playback.take() {
-                handle.stop();
-            }
+            debug!("Stopping all audio");
+            streams.stop_all();
             engine.stop();
             queue.clear();
         }
@@ -358,6 +359,9 @@ async fn process_command(
         CommandId::Letter => {
             if let Some(letter) = command.args {
                 debug!("Speaking letter: {}", letter);
+                // Letters interrupt current speech
+                streams.stop(StreamType::Speech);
+
                 let old_rate = state.speech_rate;
                 let old_pitch = state.pitch_multiplier;
 
@@ -365,14 +369,11 @@ async fn process_command(
 
                 if letter.chars().next().map_or(false, |c| c.is_uppercase()) {
                     if state.allcaps_beep {
-                        // Play a short beep for capital letters
-                        let tone_buf = ToneGenerator::generate(440.0, 10, state.tone_volume);
-                        let mut buf = tone_buf;
+                        // Play a short beep for capital letters (on tone stream, concurrent)
+                        let mut tone_buf = ToneGenerator::generate(440.0, 10, state.tone_volume);
                         let pipeline = build_tone_pipeline(state);
-                        let _ = pipeline.process(&mut buf);
-                        if let Ok(handle) = output.play(&buf) {
-                            handle.wait();
-                        }
+                        let _ = pipeline.process(&mut tone_buf);
+                        let _ = streams.queue(StreamType::Tone, &tone_buf);
                     } else {
                         state.pitch_multiplier = 1.5;
                     }
@@ -389,9 +390,7 @@ async fn process_command(
                     let mut buf = tts_buffer_to_audio_buffer(tts_buf);
                     let pipeline = build_speech_pipeline(state);
                     let _ = pipeline.process(&mut buf);
-                    if let Ok(handle) = output.play(&buf) {
-                        handle.wait();
-                    }
+                    let _ = streams.queue(StreamType::Speech, &buf);
                 }
 
                 state.speech_rate = old_rate;
@@ -403,9 +402,8 @@ async fn process_command(
             if let Some(text) = command.args {
                 let processed_text = preprocess_text(&text, state);
                 debug!("Speaking immediately: {}", processed_text);
-                if let Some(handle) = current_playback.take() {
-                    handle.stop();
-                }
+                // Immediate speech interrupts current speech stream
+                streams.stop(StreamType::Speech);
                 engine.stop();
                 let settings = TtsSettings {
                     voice: state.current_voice.clone(),
@@ -417,9 +415,7 @@ async fn process_command(
                     let mut buf = tts_buffer_to_audio_buffer(tts_buf);
                     let pipeline = build_speech_pipeline(state);
                     let _ = pipeline.process(&mut buf);
-                    if let Ok(handle) = output.play(&buf) {
-                        handle.wait();
-                    }
+                    let _ = streams.queue(StreamType::Speech, &buf);
                 }
             }
         }
@@ -428,16 +424,12 @@ async fn process_command(
             if let Some(path) = command.args {
                 let expanded = expand_tilde(&path);
                 debug!("Playing sound immediately: {}", expanded.display());
-                if let Some(handle) = current_playback.take() {
-                    handle.stop();
-                }
+                // Sounds play concurrently on the sound stream
                 match loader.load(&expanded) {
                     Ok(mut buf) => {
                         let pipeline = build_sound_pipeline(state);
                         let _ = pipeline.process(&mut buf);
-                        if let Ok(handle) = output.play(&buf) {
-                            handle.wait();
-                        }
+                        let _ = streams.queue(StreamType::Sound, &buf);
                     }
                     Err(e) => {
                         warn!("Failed to load audio file {}: {}", expanded.display(), e);
@@ -454,9 +446,7 @@ async fn process_command(
                 let mut buf = tts_buffer_to_audio_buffer(tts_buf);
                 let pipeline = build_speech_pipeline(state);
                 let _ = pipeline.process(&mut buf);
-                if let Ok(handle) = output.play(&buf) {
-                    handle.wait();
-                }
+                let _ = streams.queue(StreamType::Speech, &buf);
             }
         }
 
@@ -565,9 +555,7 @@ async fn process_command(
 
         CommandId::TtsReset => {
             debug!("Resetting state");
-            if let Some(handle) = current_playback.take() {
-                handle.stop();
-            }
+            streams.stop_all();
             engine.stop();
             state.reset();
             queue.clear();
@@ -586,14 +574,16 @@ async fn process_command(
     Ok(())
 }
 
-/// Process queue items after dispatch
+/// Process queue items after dispatch.
+///
+/// Speech items serialize on the speech stream. Tones and audio icons play
+/// concurrently on their own streams. No waiting between items.
 async fn process_queue_items(
     items: Vec<QueueItem>,
     state: &mut TtsState,
     engine: &dyn TtsEngine,
-    output: &AudioOutput,
+    streams: &AudioStreams,
     loader: &AudioFileLoader,
-    current_playback: &mut Option<omnivox_audio::output::PlaybackHandle>,
 ) -> Result<()> {
     for item in items {
         match item {
@@ -615,12 +605,8 @@ async fn process_queue_items(
                         if let Err(e) = pipeline.process(&mut buf) {
                             warn!("Pipeline error: {}", e);
                         }
-                        match output.play(&buf) {
-                            Ok(handle) => {
-                                handle.wait();
-                                *current_playback = None;
-                            }
-                            Err(e) => warn!("Playback error: {}", e),
+                        if let Err(e) = streams.queue(StreamType::Speech, &buf) {
+                            warn!("Speech queue error: {}", e);
                         }
                     }
                     Err(e) => warn!("Synthesis error: {}", e),
@@ -649,11 +635,8 @@ async fn process_queue_items(
                 if let Err(e) = pipeline.process(&mut buf) {
                     warn!("Pipeline error: {}", e);
                 }
-                match output.play(&buf) {
-                    Ok(handle) => {
-                        handle.wait();
-                    }
-                    Err(e) => warn!("Playback error: {}", e),
+                if let Err(e) = streams.queue(StreamType::Tone, &buf) {
+                    warn!("Tone queue error: {}", e);
                 }
             }
 
@@ -661,11 +644,9 @@ async fn process_queue_items(
                 debug!("Silence for {}ms", duration);
                 let duration_secs = duration as f32 / 1000.0;
                 let buf = AudioBuffer::silence(duration_secs);
-                match output.play(&buf) {
-                    Ok(handle) => {
-                        handle.wait();
-                    }
-                    Err(e) => warn!("Playback error: {}", e),
+                // Silence is part of the speech stream
+                if let Err(e) = streams.queue(StreamType::Speech, &buf) {
+                    warn!("Silence queue error: {}", e);
                 }
             }
 
@@ -677,11 +658,8 @@ async fn process_queue_items(
                         if let Err(e) = pipeline.process(&mut buf) {
                             warn!("Pipeline error: {}", e);
                         }
-                        match output.play(&buf) {
-                            Ok(handle) => {
-                                handle.wait();
-                            }
-                            Err(e) => warn!("Playback error: {}", e),
+                        if let Err(e) = streams.queue(StreamType::Sound, &buf) {
+                            warn!("Sound queue error: {}", e);
                         }
                     }
                     Err(e) => {

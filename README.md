@@ -6,6 +6,7 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 
 - **Cross-platform TTS**: macOS (AVSpeechSynthesizer), Linux (espeak-ng), Windows (espeak-ng)
 - **Audio pipeline**: All audio goes through a configurable effects pipeline (silence trimming, volume control, channel routing)
+- **Concurrent streams**: Speech, tones, and audio icons play on independent streams with backlog limits (no blocking between stream types)
 - **Tone generation**: Pure-Rust sine wave generator with fade envelopes
 - **Audio icon playback**: OGG Vorbis and WAV file loading with caching
 - **Full Emacspeak protocol**: Command parsing, queue dispatch, voice switching, state management

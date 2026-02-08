@@ -2,478 +2,221 @@
 
 ## Overview
 
-Rust-based cross-platform Emacspeak speech server with mandatory audio processing pipeline.
+Rust-based cross-platform Emacspeak speech server with mandatory audio processing pipeline. All audio is captured to buffers, processed through effects, then played via rodio.
 
-## High-Level Architecture
+## Crate Structure
 
 ```
-┌─────────────────┐
-│  Emacspeak CLI  │
-└────────┬────────┘
-         │ stdin/TCP
-         ▼
-┌─────────────────────────────────────────┐
-│        Command Parser & Router          │
-│  (Parse Emacspeak protocol commands)    │
-└────────┬────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│         Command Queue System            │
-│   • Speech queue                        │
-│   • Code queue (voice changes, etc)     │
-│   • Tone queue                          │
-│   • Audio icon queue                    │
-└────────┬────────────────────────────────┘
-         │ on dispatch 'd'
-         ▼
-┌─────────────────────────────────────────┐
-│      TTS Engine (Platform-Specific)     │
-│   macOS: AVSpeechSynthesizer           │
-│   Linux: Speech Dispatcher             │
-│   Windows: SAPI                         │
-│   Fallback: eSpeak-ng                  │
-└────────┬────────────────────────────────┘
-         │ PCM audio buffers
-         ▼
-┌─────────────────────────────────────────┐
-│      Audio Processing Pipeline          │
-│   1. Silence Trimming (critical)        │
-│   2. Channel Panning (left/right/both)  │
-│   3. Volume Control (per type)          │
-│   4. Effects (echo/reverb - Phase 2)    │
-└────────┬────────────────────────────────┘
-         │ processed PCM
-         ▼
-┌─────────────────────────────────────────┐
-│        Audio Output (cpal)              │
-│   • Multi-device routing                │
-│   • Async playback                      │
-└─────────────────────────────────────────┘
+omnivox/
+├── Cargo.toml              # Workspace root
+├── omnivox-core/           # Command parsing, queue, state (platform-agnostic)
+├── omnivox-tts/            # TTS trait + backends (macOS, espeak-ng, future: Windows, Linux)
+├── omnivox-audio/          # Buffer, pipeline, effects, tone gen, file loader, rodio output
+└── omnivox-cli/            # Main binary + list-voices utility
 ```
 
-## Core Components
+## Data Flow
 
-### 1. Command Parser
+```
+stdin (Emacspeak protocol)
+    │
+    ▼
+┌──────────────────────────────┐
+│  Command Parser (omnivox-core)│
+│  parse_command() → Command    │
+└──────────┬───────────────────┘
+           │
+           ▼
+┌──────────────────────────────┐
+│  Command Queue (omnivox-core) │
+│  QueueItem: Speech, Code,     │
+│  Tone, Silence, AudioIcon     │
+└──────────┬───────────────────┘
+           │ on dispatch 'd'
+           ▼
+┌──────────────────────────────────────────────────────┐
+│  Three Input Sources → Common Buffer Format           │
+│                                                       │
+│  TTS Engine (omnivox-tts)                            │
+│    ├─ macOS: AVSpeechSynthesizer.write(toBuffer)     │
+│    ├─ espeak-ng: AUDIO_OUTPUT_RETRIEVAL mode         │
+│    └─ (future: SAPI, Speech Dispatcher)              │
+│                                                       │
+│  Tone Generator (omnivox-audio)                      │
+│    └─ Pure Rust sine wave + fade envelopes           │
+│                                                       │
+│  Audio File Loader (omnivox-audio)                   │
+│    └─ OGG/WAV via rodio decoder, LRU cache           │
+│                                                       │
+│  All output: stereo f32 @ 44100Hz AudioBuffer        │
+└──────────┬───────────────────────────────────────────┘
+           │
+           ▼
+┌──────────────────────────────┐
+│  Effects Pipeline             │
+│  Vec<Box<dyn AudioEffect>>   │
+│                               │
+│  SilenceTrimmer (speech only) │
+│  VolumeAdjust                 │
+│  ChannelRouter (L/R/Both)     │
+└──────────┬───────────────────┘
+           │
+           ▼
+┌──────────────────────────────────────────┐
+│  AudioStreams (3 concurrent rodio Sinks)  │
+│                                           │
+│  Speech Sink  (max depth 10, serialized)  │
+│  Tone Sink    (max depth 3, serialized)   │
+│  Sound Sink   (max depth 5, serialized)   │
+│                                           │
+│  Different streams play concurrently      │
+│  Overflow drops old items, keeps current  │
+│  rodio auto-mixes all sinks together      │
+└──────────────────────────────────────────┘
+```
 
-**Responsibility:** Parse Emacspeak protocol commands from stdin/TCP
+## Key Types
 
-**Implementation:**
-- Regex-based parser (similar to SwiftMac's `isolateCmdAndParams`)
-- Support three command formats:
-  - ID only: `s`, `d`, `version`
-  - Block args: `q {text}`, `c {codes}`
-  - Space args: `t 440 50`, `tts_set_speech_rate 225`
+### omnivox-core
 
-**Key Functions:**
 ```rust
-struct Command {
-    id: CommandId,
-    args: Option<String>,
-}
-
-enum CommandId {
-    Queue,        // q
-    Code,         // c
-    Dispatch,     // d
-    Stop,         // s
-    Letter,       // l
-    Tone,         // t
-    // ... etc
-}
-
+// Command parser
+enum CommandId { Queue, Code, Dispatch, Stop, Letter, Tone, ... } // 27 commands
+struct Command { id: CommandId, args: Option<String> }
 fn parse_command(line: &str) -> Result<Command, ParseError>
+
+// Queue
+enum QueueItem { Speech(String), Code(String), Tone{freq,dur}, Silence{dur}, AudioIcon{path} }
+struct CommandQueue { items: VecDeque<QueueItem> }
+
+// State
+struct TtsState { voice, pitch, rate, volume, punctuation_level, split_caps, ... }
+enum ChannelMode { Left, Right, Both }
+enum PunctuationLevel { None, Some, All }
 ```
 
-### 2. State Store
-
-**Responsibility:** Thread-safe application state (like SwiftMac's StateStore actor)
-
-**Implementation:**
-- Use `tokio::sync::RwLock` or similar
-- Or use actor pattern with message passing
-
-**State:**
-```rust
-struct TtsState {
-    // Voice settings
-    current_voice: String,
-    pitch_multiplier: f32,
-    speech_rate: f32,
-
-    // Punctuation
-    punctuation_level: PunctuationLevel, // None, Some, All
-    split_caps: bool,
-    allcaps_beep: bool,
-
-    // Volume controls
-    voice_volume: f32,
-    tone_volume: f32,
-    sound_volume: f32,
-
-    // Character rate
-    character_scale: f32,
-
-    // Delays
-    pre_delay: Duration,
-    post_delay: Duration,
-    next_pre_delay: Duration,
-
-    // Audio routing
-    speech_routing: AudioRouting,
-    notification_routing: AudioRouting,
-    tone_routing: AudioRouting,
-    sound_routing: AudioRouting,
-}
-
-struct AudioRouting {
-    device_id: u32,  // 0 = system default
-    channel_mode: ChannelMode,  // Left, Right, Both
-}
-```
-
-### 3. Command Queue System
-
-**Responsibility:** Queue commands for sequential processing
-
-**Implementation:**
-- Separate queues for different command types
-- Process in FIFO order on dispatch
+### omnivox-tts
 
 ```rust
-struct CommandQueue {
-    speech_queue: VecDeque<SpeechItem>,
-    code_queue: VecDeque<CodeItem>,
-    tone_queue: VecDeque<ToneItem>,
-    audio_queue: VecDeque<AudioItem>,
-}
-
-enum QueueItem {
-    Speech(String),
-    Code(String),  // Voice changes, pitch adjustments
-    Tone { frequency: u32, duration: u32 },
-    Silence { duration: u32 },
-    AudioIcon { path: PathBuf },
-}
-
-impl CommandQueue {
-    fn enqueue(&mut self, item: QueueItem);
-    fn dispatch(&mut self) -> Vec<QueueItem>;
-    fn clear(&mut self);
-}
-```
-
-### 4. TTS Engine Abstraction
-
-**Responsibility:** Platform-agnostic TTS interface
-
-**Implementation:**
-```rust
+// TTS engine trait - all backends implement this
 trait TtsEngine: Send + Sync {
-    /// Synthesize text to PCM audio buffer
-    async fn synthesize(&self, text: &str, settings: &TtsSettings)
-        -> Result<AudioBuffer, TtsError>;
-
-    /// List available voices
+    fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError>;
+    fn stop(&self);
+    fn is_speaking(&self) -> bool;
     fn available_voices(&self) -> Vec<VoiceInfo>;
-
-    /// Set current voice
-    fn set_voice(&mut self, voice: &str) -> Result<(), TtsError>;
-
-    /// Stop current synthesis
-    fn stop(&mut self);
+    fn voice_info(&self, identifier: &str) -> Option<VoiceInfo>;
 }
 
-struct TtsSettings {
-    voice: String,
-    rate: f32,
-    pitch: f32,
-    volume: f32,
-}
+// AudioBuffer (TTS output format)
+struct AudioBuffer { samples: Vec<f32>, sample_rate: u32, channels: u16 }
+// Helpers: empty(), from_i16(), to_stereo(), resample(), to_standard_format()
 
-struct AudioBuffer {
-    samples: Vec<f32>,  // Interleaved PCM samples
-    sample_rate: u32,
-    channels: u16,
-}
-
-struct VoiceInfo {
-    identifier: String,
-    name: String,
-    language: String,
-    quality: VoiceQuality,  // Compact, Enhanced, Premium
-}
+// Constants
+const STANDARD_SAMPLE_RATE: u32 = 44100;
+const STANDARD_CHANNELS: u16 = 2;
 ```
 
-**Platform Implementations:**
-- `MacOsTtsEngine` - FFI to AVSpeechSynthesizer
-- `LinuxTtsEngine` - Speech Dispatcher client
-- `WindowsTtsEngine` - SAPI bindings
-- `EspeakEngine` - Embedded eSpeak-ng fallback
+### omnivox-audio
 
-### 5. Audio Processing Pipeline
-
-**Responsibility:** Apply effects to PCM audio buffers
-
-**Implementation:**
 ```rust
-struct AudioPipeline {
-    effects: Vec<Box<dyn AudioEffect>>,
-}
+// Canonical audio buffer
+struct AudioBuffer { samples: Vec<f32>, sample_rate: u32, channels: u16 }
+const SAMPLE_RATE: u32 = 44100;
+const CHANNELS: u16 = 2;
 
+// Effects pipeline
 trait AudioEffect: Send + Sync {
-    fn process(&self, buffer: &mut AudioBuffer) -> Result<(), EffectError>;
+    fn process(&self, buffer: &mut AudioBuffer) -> Result<(), AudioError>;
+    fn name(&self) -> &str;
 }
+struct AudioPipeline { effects: Vec<Box<dyn AudioEffect>> }
 
-// Core effects (Phase 1)
-struct SilenceTrimmingEffect {
-    threshold: f32,
-}
+// Built-in effects
+struct SilenceTrimmer { threshold: f32 }  // Default threshold 0.005
+struct VolumeAdjust { scale: f32 }        // Clamps to [-1.0, 1.0]
+struct ChannelRouter { mode: ChannelMode } // Left/Right/Both
 
-struct PanningEffect {
-    mode: ChannelMode,  // Left, Right, Both
-}
+// Tone generator
+ToneGenerator::generate(freq_hz: f32, duration_ms: u32, volume: f32) -> AudioBuffer
 
-struct VolumeEffect {
-    gain: f32,
-}
+// File loader
+AudioFileLoader::load(path) -> Result<AudioBuffer>  // OGG/WAV, optional LRU cache
 
-// Advanced effects (Phase 2)
-struct ReverbEffect {
-    room_size: f32,
-    damping: f32,
-}
+// Concurrent output streams
+AudioStreams::new(speech_max, tone_max, sound_max) -> Result<Self>
+AudioStreams::queue(stream, buffer) -> Result<bool>   // overflow drops old items
+AudioStreams::stop(stream)                            // clear + resume
+AudioStreams::stop_all()
+AudioStreams::is_playing(stream) -> bool
+AudioStreams::pending(stream) -> usize
+enum StreamType { Speech, Tone, Sound }
 
-struct EchoEffect {
-    delay_ms: u32,
-    decay: f32,
-}
-
-impl AudioPipeline {
-    fn process(&self, buffer: AudioBuffer) -> Result<AudioBuffer, EffectError> {
-        let mut buf = buffer;
-        for effect in &self.effects {
-            effect.process(&mut buf)?;
-        }
-        Ok(buf)
-    }
-}
+// Single-shot output (used by tests)
+AudioOutput::new() -> Result<Self>  // wraps rodio
+AudioOutput::play(buffer) -> Result<PlaybackHandle>
 ```
 
-### 6. Audio Output System
+## macOS ObjC Bridge
 
-**Responsibility:** Route processed audio to devices
+The macOS TTS uses an Objective-C bridge (`macos_bridge.m`) because Rust's `block` crate produces blocks incompatible with AVSpeechSynthesizer's callback API.
 
-**Implementation:**
-```rust
-use cpal::{Device, Stream, StreamConfig};
-
-struct AudioOutput {
-    device: Device,
-    stream: Stream,
-    routing: AudioRouting,
-}
-
-impl AudioOutput {
-    fn new(device_id: u32, routing: AudioRouting) -> Result<Self, AudioError>;
-
-    async fn play(&mut self, buffer: AudioBuffer) -> Result<(), AudioError>;
-
-    fn stop(&mut self);
-}
-
-// Multi-device support
-struct MultiDeviceOutput {
-    speech_output: AudioOutput,
-    notification_output: Option<AudioOutput>,
-    tone_output: Option<AudioOutput>,
-    sound_output: Option<AudioOutput>,
-}
+```
+omnivox-tts/src/macos_bridge.m  (compiled by cc crate via build.rs)
+    │
+    ├─ omnivox_synthesize(text, lang, name, rate, pitch, vol) → SynthResult
+    │    Uses writeUtterance:toBufferCallback: with NSRunLoop pumping
+    │    Returns malloc'd float buffer (freed by omnivox_free_samples)
+    │
+    ├─ omnivox_stop() → stops persistent singleton synthesizer
+    ├─ omnivox_is_speaking() → bool
+    ├─ omnivox_list_voices() → VoiceList (identifier, name, language)
+    └─ omnivox_free_voice_list() / omnivox_free_samples() → memory cleanup
 ```
 
-### 7. Tone Generator
+The bridge uses a persistent singleton AVSpeechSynthesizer (via dispatch_once) so that `stop()` can interrupt in-progress synthesis.
 
-**Responsibility:** Generate pure tone beeps
+Completion detection uses a two-phase approach: wait for the explicit completion signal (frameLength==0 callback), with a 200ms idle timeout fallback for macOS versions that don't send it.
 
-**Implementation:**
-```rust
-struct ToneGenerator;
+## espeak-ng Integration
 
-impl ToneGenerator {
-    fn generate(frequency: u32, duration_ms: u32, sample_rate: u32)
-        -> AudioBuffer {
-        let num_samples = (sample_rate * duration_ms) / 1000;
-        let mut samples = Vec::with_capacity(num_samples as usize);
+espeak-ng is compiled from source via `espeak-rs-sys` crate (with `compile-espeak-intonations` feature). Uses `AUDIO_OUTPUT_RETRIEVAL` mode with `espeak_SetSynthCallback` for buffer capture.
 
-        for i in 0..num_samples {
-            let t = i as f32 / sample_rate as f32;
-            let sample = (2.0 * PI * frequency as f32 * t).sin();
-            samples.push(sample);
-        }
+Key details:
 
-        AudioBuffer {
-            samples,
-            sample_rate,
-            channels: 1,
-        }
-    }
-}
-```
+- Global mutex serialization (espeak-ng has global mutable state)
+- Multi-tier data directory discovery (build dir → system paths → fallback)
+- Parameter mapping: rate 0-1→80-450wpm, pitch 0.5-2.0→0-99, volume 0-1→0-200
 
-## Concurrency Model
+## Engine Selection
 
-**Runtime:** Tokio async runtime
+The CLI selects the TTS engine at startup:
 
-**Key Async Boundaries:**
-- Command reading (stdin/TCP)
-- TTS synthesis (may block on native APIs)
-- Audio playback (cpal streams)
+1. If `OMNIVOX_ENGINE=espeak`, use espeak-ng directly
+2. On macOS: try AVSpeechSynthesizer first, fall back to espeak-ng
+3. On other platforms: use espeak-ng (until native backends are added)
 
-**Actor-like Pattern:**
-```rust
-// Main command processor
-async fn process_commands(
-    rx: mpsc::Receiver<Command>,
-    state: Arc<RwLock<TtsState>>,
-    queue: Arc<Mutex<CommandQueue>>,
-    tts_engine: Arc<Mutex<dyn TtsEngine>>,
-    audio_output: Arc<Mutex<AudioOutput>>,
-) {
-    while let Some(cmd) = rx.recv().await {
-        match cmd.id {
-            CommandId::Queue => {
-                queue.lock().await.enqueue(QueueItem::Speech(cmd.args));
-            }
-            CommandId::Dispatch => {
-                let items = queue.lock().await.dispatch();
-                process_queue(items, &state, &tts_engine, &audio_output).await;
-            }
-            // ... handle other commands
-        }
-    }
-}
-```
+## Text Preprocessing
+
+Before synthesis, text goes through:
+
+1. **Punctuation replacement** (none/some/all levels) - converts punctuation characters to spoken words
+2. **Split caps** - inserts spaces before uppercase in camelCase
+
+## Concurrency
+
+- Synchronous stdin command loop (no async needed for protocol)
+- TTS synthesis is synchronous (blocking)
+- Audio playback is async (rodio handles internally)
+- espeak-ng uses global mutex for thread safety
+- macOS ObjC bridge manages its own NSRunLoop for callback delivery
 
 ## Error Handling
 
-**Strategy:** Fail gracefully, log errors, continue operation
+Fail gracefully, log errors, continue operation. A failed synthesis skips the utterance rather than crashing.
 
-```rust
-#[derive(Debug, thiserror::Error)]
-enum OmnivoxError {
-    #[error("TTS engine error: {0}")]
-    Tts(#[from] TtsError),
+## Build System
 
-    #[error("Audio output error: {0}")]
-    Audio(#[from] AudioError),
-
-    #[error("Command parse error: {0}")]
-    Parse(#[from] ParseError),
-
-    #[error("Effect processing error: {0}")]
-    Effect(#[from] EffectError),
-}
-
-// Log and continue on non-fatal errors
-if let Err(e) = synthesize_and_play(text).await {
-    eprintln!("Error: {}", e);
-    // Don't crash, just skip this utterance
-}
-```
-
-## Performance Optimizations
-
-### Small Chunks
-Split text into ~15 word chunks for faster initial audio output:
-```rust
-fn chunk_text(text: &str, max_words: usize) -> Vec<String> {
-    let words: Vec<&str> = text.split_whitespace().collect();
-    words.chunks(max_words)
-        .map(|chunk| chunk.join(" "))
-        .collect()
-}
-```
-
-### Aggressive Silence Trimming
-```rust
-fn trim_silence(buffer: &AudioBuffer, threshold: f32) -> AudioBuffer {
-    let start = buffer.samples.iter()
-        .position(|&s| s.abs() > threshold)
-        .unwrap_or(0);
-
-    let end = buffer.samples.iter().rposition(|&s| s.abs() > threshold)
-        .unwrap_or(buffer.samples.len());
-
-    AudioBuffer {
-        samples: buffer.samples[start..=end].to_vec(),
-        sample_rate: buffer.sample_rate,
-        channels: buffer.channels,
-    }
-}
-```
-
-### Streaming Effects
-Apply effects in-place during buffer processing to avoid copies:
-```rust
-impl PanningEffect {
-    fn process(&self, buffer: &mut AudioBuffer) -> Result<(), EffectError> {
-        match self.mode {
-            ChannelMode::Left => {
-                // Zero out right channel
-                for i in (1..buffer.samples.len()).step_by(2) {
-                    buffer.samples[i] = 0.0;
-                }
-            }
-            ChannelMode::Right => {
-                // Zero out left channel
-                for i in (0..buffer.samples.len()).step_by(2) {
-                    buffer.samples[i] = 0.0;
-                }
-            }
-            ChannelMode::Both => {
-                // No-op
-            }
-        }
-        Ok(())
-    }
-}
-```
-
-## Testing Strategy
-
-### Unit Tests
-- Command parser
-- State management
-- Audio effects (input/output validation)
-- Tone generation
-
-### Integration Tests
-- Full command sequences
-- Queue processing
-- Multi-device routing
-
-### Platform Tests
-- TTS engine on each platform
-- Audio output on each platform
-
-## Build & Distribution
-
-### Cargo Workspace
-```toml
-[workspace]
-members = [
-    "omnivox-core",      # Core logic
-    "omnivox-tts-macos", # macOS TTS
-    "omnivox-tts-linux", # Linux TTS
-    "omnivox-tts-windows", # Windows TTS
-    "omnivox-tts-espeak", # eSpeak fallback
-]
-```
-
-### Cross-Compilation
-- Use `cross` for building Linux/Windows from macOS
-- GitHub Actions for CI on all platforms
-
-### Deployment
-- Single binary per platform
-- Drop-in replacement in `$EMACSPEAK_DIR/servers/omnivox`
+- `Makefile` wraps cargo commands
+- `build.rs` in omnivox-tts compiles ObjC bridge (macOS) and discovers espeak-ng data paths
+- All platform-specific code uses `#[cfg(target_os = "...")]` guards
+- Stub implementations provided for non-native platforms
