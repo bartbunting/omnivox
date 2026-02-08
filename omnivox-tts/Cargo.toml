@@ -13,11 +13,5 @@ once_cell.workspace = true
 # espeak-ng (always compiled in as cross-platform fallback)
 espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"] }
 
-# macOS TTS
-[target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.26"
-objc = "0.2"
-block = "0.1"
-
 [build-dependencies]
 cc = "1"

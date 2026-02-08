@@ -5,7 +5,7 @@
 //! by build.rs and linked in statically.
 
 use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo, VoiceQuality};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 #[cfg(target_os = "macos")]
 #[repr(C)]

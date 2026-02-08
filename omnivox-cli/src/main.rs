@@ -118,6 +118,20 @@ fn apply_punctuation(text: &str, level: PunctuationLevel) -> String {
     result
 }
 
+/// Expand ~ to the user's home directory in paths.
+fn expand_tilde(path: &str) -> std::path::PathBuf {
+    if let Some(rest) = path.strip_prefix("~/") {
+        if let Some(home) = std::env::var_os("HOME") {
+            return std::path::PathBuf::from(home).join(rest);
+        }
+    } else if path == "~" {
+        if let Some(home) = std::env::var_os("HOME") {
+            return std::path::PathBuf::from(home);
+        }
+    }
+    std::path::PathBuf::from(path)
+}
+
 /// Process text before synthesis: apply punctuation and split caps.
 fn preprocess_text(text: &str, state: &TtsState) -> String {
     let mut processed = apply_punctuation(text, state.punctuation_level);
@@ -316,9 +330,10 @@ async fn process_command(
 
         CommandId::AudioIcon => {
             if let Some(path) = command.args {
-                debug!("Queuing audio icon: {}", path);
+                let expanded = expand_tilde(&path);
+                debug!("Queuing audio icon: {}", expanded.display());
                 queue.enqueue(QueueItem::AudioIcon {
-                    path: path.into(),
+                    path: expanded,
                 });
             }
         }
@@ -411,11 +426,12 @@ async fn process_command(
 
         CommandId::PlaySound => {
             if let Some(path) = command.args {
-                debug!("Playing sound immediately: {}", path);
+                let expanded = expand_tilde(&path);
+                debug!("Playing sound immediately: {}", expanded.display());
                 if let Some(handle) = current_playback.take() {
                     handle.stop();
                 }
-                match loader.load(Path::new(&path)) {
+                match loader.load(&expanded) {
                     Ok(mut buf) => {
                         let pipeline = build_sound_pipeline(state);
                         let _ = pipeline.process(&mut buf);
@@ -424,7 +440,7 @@ async fn process_command(
                         }
                     }
                     Err(e) => {
-                        warn!("Failed to load audio file {}: {}", path, e);
+                        warn!("Failed to load audio file {}: {}", expanded.display(), e);
                     }
                 }
             }
