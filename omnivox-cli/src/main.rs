@@ -8,7 +8,11 @@ use omnivox_audio::{
     AudioBuffer, AudioFileLoader, AudioOutput, AudioPipeline, ChannelRouter, SilenceTrimmer,
     ToneGenerator, VolumeAdjust,
 };
-use omnivox_core::{parse_command, Command, CommandId, CommandQueue, QueueItem, TtsState};
+use omnivox_core::{
+    parse_command,
+    state::PunctuationLevel,
+    Command, CommandId, CommandQueue, QueueItem, TtsState,
+};
 use omnivox_tts::espeak::EspeakTtsEngine;
 #[cfg(target_os = "macos")]
 use omnivox_tts::macos::MacOsTtsEngine;
@@ -27,6 +31,100 @@ fn tts_buffer_to_audio_buffer(tts_buf: omnivox_tts::AudioBuffer) -> AudioBuffer 
         return AudioBuffer::empty();
     }
     AudioBuffer::new(tts_buf.samples)
+}
+
+/// Replace punctuation characters with their spoken names based on the
+/// current punctuation level.
+///
+/// - None: only $ and %
+/// - Some: $, #, -, ", (, ), *, ;, :, <, >, \, /, +, =, ~, `, !, ^
+/// - All: all of the above plus @, _, ', ., ,
+fn apply_punctuation(text: &str, level: PunctuationLevel) -> String {
+    let mut result = String::with_capacity(text.len());
+
+    for ch in text.chars() {
+        let replacement = match level {
+            PunctuationLevel::None => match ch {
+                '$' => Some(" dollar "),
+                '%' => Some(" percent "),
+                _ => None,
+            },
+            PunctuationLevel::Some => match ch {
+                '$' => Some(" dollar "),
+                '%' => Some(" percent "),
+                '#' => Some(" pound "),
+                '-' => Some(" dash "),
+                '"' => Some(" quote "),
+                '(' => Some(" left paren "),
+                ')' => Some(" right paren "),
+                '*' => Some(" star "),
+                ';' => Some(" semicolon "),
+                ':' => Some(" colon "),
+                '<' => Some(" less than "),
+                '>' => Some(" greater than "),
+                '\\' => Some(" backslash "),
+                '/' => Some(" slash "),
+                '+' => Some(" plus "),
+                '=' => Some(" equals "),
+                '~' => Some(" tilde "),
+                '`' => Some(" backquote "),
+                '!' => Some(" bang "),
+                '^' => Some(" caret "),
+                _ => None,
+            },
+            PunctuationLevel::All => match ch {
+                '$' => Some(" dollar "),
+                '%' => Some(" percent "),
+                '#' => Some(" pound "),
+                '-' => Some(" dash "),
+                '"' => Some(" quote "),
+                '(' => Some(" left paren "),
+                ')' => Some(" right paren "),
+                '*' => Some(" star "),
+                ';' => Some(" semicolon "),
+                ':' => Some(" colon "),
+                '<' => Some(" less than "),
+                '>' => Some(" greater than "),
+                '\\' => Some(" backslash "),
+                '/' => Some(" slash "),
+                '+' => Some(" plus "),
+                '=' => Some(" equals "),
+                '~' => Some(" tilde "),
+                '`' => Some(" backquote "),
+                '!' => Some(" bang "),
+                '^' => Some(" caret "),
+                '@' => Some(" at "),
+                '_' => Some(" underline "),
+                '\'' => Some(" apostrophe "),
+                '.' => Some(" dot "),
+                ',' => Some(" comma "),
+                '&' => Some(" ampersand "),
+                '|' => Some(" pipe "),
+                '[' => Some(" left bracket "),
+                ']' => Some(" right bracket "),
+                '{' => Some(" left brace "),
+                '}' => Some(" right brace "),
+                '?' => Some(" question "),
+                _ => None,
+            },
+        };
+
+        match replacement {
+            Some(spoken) => result.push_str(spoken),
+            None => result.push(ch),
+        }
+    }
+
+    result
+}
+
+/// Process text before synthesis: apply punctuation and split caps.
+fn preprocess_text(text: &str, state: &TtsState) -> String {
+    let mut processed = apply_punctuation(text, state.punctuation_level);
+    if state.split_caps {
+        processed = insert_space_before_uppercase(&processed);
+    }
+    processed
 }
 
 /// Build a pipeline for speech audio based on current TTS state.
@@ -288,7 +386,8 @@ async fn process_command(
 
         CommandId::TtsSay => {
             if let Some(text) = command.args {
-                debug!("Speaking immediately: {}", text);
+                let processed_text = preprocess_text(&text, state);
+                debug!("Speaking immediately: {}", processed_text);
                 if let Some(handle) = current_playback.take() {
                     handle.stop();
                 }
@@ -299,7 +398,7 @@ async fn process_command(
                     pitch: state.pitch_multiplier,
                     volume: state.voice_volume,
                 };
-                if let Ok(tts_buf) = engine.synthesize(&text, &settings) {
+                if let Ok(tts_buf) = engine.synthesize(&processed_text, &settings) {
                     let mut buf = tts_buffer_to_audio_buffer(tts_buf);
                     let pipeline = build_speech_pipeline(state);
                     let _ = pipeline.process(&mut buf);
@@ -490,11 +589,7 @@ async fn process_queue_items(
                     volume: state.voice_volume,
                 };
 
-                let processed_text = if state.split_caps {
-                    insert_space_before_uppercase(&text)
-                } else {
-                    text
-                };
+                let processed_text = preprocess_text(&text, state);
 
                 debug!("Speaking queued text: {}", processed_text);
                 match engine.synthesize(&processed_text, &settings) {
@@ -687,5 +782,54 @@ mod tests {
         let state = TtsState::default();
         let pipeline = build_sound_pipeline(&state);
         assert_eq!(pipeline.len(), 2); // volume + router
+    }
+
+    #[test]
+    fn test_apply_punctuation_none() {
+        assert_eq!(apply_punctuation("price is $5", PunctuationLevel::None), "price is  dollar 5");
+        assert_eq!(apply_punctuation("100%", PunctuationLevel::None), "100 percent ");
+        // Other punctuation passes through
+        assert_eq!(apply_punctuation("hello!", PunctuationLevel::None), "hello!");
+        assert_eq!(apply_punctuation("a@b.com", PunctuationLevel::None), "a@b.com");
+    }
+
+    #[test]
+    fn test_apply_punctuation_some() {
+        assert_eq!(apply_punctuation("$5", PunctuationLevel::Some), " dollar 5");
+        assert_eq!(apply_punctuation("a+b=c", PunctuationLevel::Some), "a plus b equals c");
+        assert_eq!(apply_punctuation("(hi)", PunctuationLevel::Some), " left paren hi right paren ");
+        assert_eq!(apply_punctuation("a/b", PunctuationLevel::Some), "a slash b");
+        // @, _, . not spoken in Some mode
+        assert_eq!(apply_punctuation("a@b.c", PunctuationLevel::Some), "a@b.c");
+    }
+
+    #[test]
+    fn test_apply_punctuation_all() {
+        assert_eq!(apply_punctuation("a@b", PunctuationLevel::All), "a at b");
+        assert_eq!(apply_punctuation("a.b", PunctuationLevel::All), "a dot b");
+        assert_eq!(apply_punctuation("a,b", PunctuationLevel::All), "a comma b");
+        assert_eq!(apply_punctuation("a_b", PunctuationLevel::All), "a underline b");
+        assert_eq!(apply_punctuation("a'b", PunctuationLevel::All), "a apostrophe b");
+        assert_eq!(apply_punctuation("a[0]", PunctuationLevel::All), "a left bracket 0 right bracket ");
+        assert_eq!(apply_punctuation("a{b}", PunctuationLevel::All), "a left brace b right brace ");
+        assert_eq!(apply_punctuation("why?", PunctuationLevel::All), "why question ");
+        assert_eq!(apply_punctuation("a|b", PunctuationLevel::All), "a pipe b");
+        assert_eq!(apply_punctuation("a&b", PunctuationLevel::All), "a ampersand b");
+    }
+
+    #[test]
+    fn test_apply_punctuation_plain_text() {
+        // Plain text should pass through unchanged at all levels
+        assert_eq!(apply_punctuation("hello world", PunctuationLevel::None), "hello world");
+        assert_eq!(apply_punctuation("hello world", PunctuationLevel::Some), "hello world");
+        assert_eq!(apply_punctuation("hello world", PunctuationLevel::All), "hello world");
+    }
+
+    #[test]
+    fn test_preprocess_text() {
+        let mut state = TtsState::default();
+        state.punctuation_level = PunctuationLevel::Some;
+        state.split_caps = true;
+        assert_eq!(preprocess_text("helloWorld+1", &state), "hello World plus 1");
     }
 }

@@ -1,8 +1,19 @@
 // Objective-C bridge for AVSpeechSynthesizer buffer capture.
-// Exposes a C function that synthesizes text and returns PCM float data.
+// Uses a persistent synthesizer so stop() can interrupt ongoing speech.
 
 #import <AVFoundation/AVFoundation.h>
 #import <Foundation/Foundation.h>
+
+// Persistent synthesizer instance
+static AVSpeechSynthesizer *_sharedSynth = nil;
+static dispatch_once_t _synthOnce;
+
+static AVSpeechSynthesizer *sharedSynthesizer(void) {
+    dispatch_once(&_synthOnce, ^{
+        _sharedSynth = [[AVSpeechSynthesizer alloc] init];
+    });
+    return _sharedSynth;
+}
 
 // Result struct returned to Rust
 typedef struct {
@@ -23,7 +34,16 @@ SynthResult omnivox_synthesize(
     SynthResult result = {NULL, 0, 0, 0};
 
     @autoreleasepool {
-        AVSpeechSynthesizer *synth = [[AVSpeechSynthesizer alloc] init];
+        AVSpeechSynthesizer *synth = sharedSynthesizer();
+
+        // Stop any ongoing speech first
+        if (synth.isSpeaking) {
+            [synth stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
+            // Brief pause to let it settle
+            [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                     beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+        }
+
         NSString *nsText = [NSString stringWithUTF8String:text];
         AVSpeechUtterance *utterance = [AVSpeechUtterance speechUtteranceWithString:nsText];
 
@@ -31,7 +51,6 @@ SynthResult omnivox_synthesize(
         if (voice_lang != NULL) {
             NSString *lang = [NSString stringWithUTF8String:voice_lang];
             if (voice_name != NULL) {
-                // Find voice by language + name
                 NSString *name = [NSString stringWithUTF8String:voice_name];
                 NSArray<AVSpeechSynthesisVoice *> *voices = [AVSpeechSynthesisVoice speechVoices];
                 for (AVSpeechSynthesisVoice *v in voices) {
@@ -54,6 +73,7 @@ SynthResult omnivox_synthesize(
         __block uint32_t sampleRate = 0;
         __block uint16_t channelCount = 0;
         __block BOOL synthesisComplete = NO;
+        __block uint32_t chunksReceived = 0;
 
         [synth writeUtterance:utterance toBufferCallback:^(AVAudioBuffer * _Nonnull buffer) {
             AVAudioPCMBuffer *pcm = (AVAudioPCMBuffer *)buffer;
@@ -66,7 +86,6 @@ SynthResult omnivox_synthesize(
             sampleRate = (uint32_t)pcm.format.sampleRate;
             channelCount = (uint16_t)pcm.format.channelCount;
 
-            // Get float channel data and interleave
             const float * const *floatData = pcm.floatChannelData;
             if (floatData == NULL) return;
 
@@ -76,17 +95,33 @@ SynthResult omnivox_synthesize(
                     [audioData appendBytes:&sample length:sizeof(float)];
                 }
             }
+            chunksReceived++;
         }];
 
-        // Pump RunLoop until done or timeout (30s)
+        // Pump RunLoop until done or timeout
+        // Use a two-phase approach: wait for callbacks, then wait for completion signal
         NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:30.0];
-        while (!synthesisComplete && [[NSDate date] compare:deadline] == NSOrderedAscending) {
+        uint32_t lastChunkCount = 0;
+        NSDate *lastChunkTime = [NSDate date];
+
+        while ([[NSDate date] compare:deadline] == NSOrderedAscending) {
             [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                                      beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+
+            if (synthesisComplete) break;
+
+            // If we've received chunks but no new ones for 200ms, consider it done
+            // (some macOS versions don't send frameLength==0 completion signal)
+            if (chunksReceived > 0) {
+                if (chunksReceived != lastChunkCount) {
+                    lastChunkCount = chunksReceived;
+                    lastChunkTime = [NSDate date];
+                } else if ([[NSDate date] timeIntervalSinceDate:lastChunkTime] > 0.2) {
+                    break;
+                }
+            }
         }
 
-        // If we got no completion signal but have data, consider it done
-        // (some macOS versions don't send frameLength==0)
         if (audioData.length > 0) {
             uint32_t totalSamples = (uint32_t)(audioData.length / sizeof(float));
             result.samples = (float *)malloc(audioData.length);
@@ -98,6 +133,17 @@ SynthResult omnivox_synthesize(
     }
 
     return result;
+}
+
+void omnivox_stop(void) {
+    AVSpeechSynthesizer *synth = sharedSynthesizer();
+    if (synth.isSpeaking) {
+        [synth stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
+    }
+}
+
+BOOL omnivox_is_speaking(void) {
+    return sharedSynthesizer().isSpeaking;
 }
 
 void omnivox_free_samples(float *samples) {

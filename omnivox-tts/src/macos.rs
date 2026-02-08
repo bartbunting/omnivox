@@ -43,6 +43,8 @@ extern "C" {
     ) -> SynthResult;
 
     fn omnivox_free_samples(samples: *mut f32);
+    fn omnivox_stop();
+    fn omnivox_is_speaking() -> bool;
     fn omnivox_list_voices() -> VoiceList;
     fn omnivox_free_voice_list(list: VoiceList);
 }
@@ -142,11 +144,12 @@ impl TtsEngine for MacOsTtsEngine {
     }
 
     fn stop(&self) {
-        debug!("Stop requested (bridge engine creates new synthesizer per call)");
+        debug!("Stopping speech");
+        unsafe { omnivox_stop() };
     }
 
     fn is_speaking(&self) -> bool {
-        false
+        unsafe { omnivox_is_speaking() }
     }
 
     fn available_voices(&self) -> Vec<VoiceInfo> {
