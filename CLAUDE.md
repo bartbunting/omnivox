@@ -9,7 +9,7 @@ Omnivox is a cross-platform Emacspeak speech server written in Rust. It is a dro
 4-crate Cargo workspace:
 
 - **omnivox-core** - Command parsing (27 Emacspeak protocol commands), queue management, state types. Pure Rust, no platform dependencies.
-- **omnivox-tts** - TTS engine trait + backends. `TtsEngine::synthesize()` returns an `AudioBuffer`. Backends: macOS AVSpeechSynthesizer (via ObjC bridge), espeak-ng (via espeak-rs-sys). espeak-ng is always compiled in as cross-platform fallback.
+- **omnivox-tts** - TTS engine trait + backends. `TtsEngine::synthesize()` returns an `AudioBuffer`. Backends: macOS AVSpeechSynthesizer (via ObjC bridge), Windows WinRT SpeechSynthesizer (via windows-rs), espeak-ng (via espeak-rs-sys). espeak-ng is always compiled in as cross-platform fallback.
 - **omnivox-audio** - Audio buffer (stereo f32 @ 44100Hz canonical format), effects pipeline (`AudioEffect` trait), tone generator, OGG/WAV file loader with LRU cache, rodio-based output.
 - **omnivox-cli** - Main binary wiring everything together. Reads Emacspeak protocol from stdin, dispatches to TTS/tone/audio-icon sources, runs through pipeline, plays via rodio.
 
@@ -46,7 +46,7 @@ Each stream has a max backlog depth. On overflow, old items are dropped to keep 
 ```bash
 make build     # Release build
 make dev       # Debug build
-make test      # Run all tests (161 tests)
+make test      # Run all tests (168 tests)
 make lint      # Clippy
 make fmt       # Format
 make install   # Install to ~/.cargo/bin
@@ -55,12 +55,12 @@ make clean     # Clean build artifacts
 
 ## Testing
 
-163 tests total, all passing:
+168 tests total, all passing:
 
 - omnivox-audio: 60 unit + 31 integration = 91
 - omnivox-core: 34 unit + 1 doc = 35
-- omnivox-tts: 24 unit (includes 2 Windows SAPI mapping tests)
-- omnivox-cli: 13 unit
+- omnivox-tts: 26 unit (includes WinRT mapping + WAV header tests)
+- omnivox-cli: 16 unit
 
 Run: `cargo test`
 
@@ -86,7 +86,7 @@ echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 |----------|-----------|-----------|--------|
 | macOS | AVSpeechSynthesizer (ObjC bridge) | Compiled in | Working |
 | Linux | Not yet (Speech Dispatcher planned) | Compiled in | espeak-ng works |
-| Windows | SAPI via windows-rs COM | Compiled in | Working |
+| Windows | WinRT SpeechSynthesizer (via windows-rs) | Compiled in | Working |
 
 ## Current State (as of 2026-02-08)
 
@@ -94,7 +94,7 @@ echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 
 - Full Emacspeak protocol (27 commands)
 - macOS native TTS via AVSpeechSynthesizer buffer capture (ObjC bridge)
-- Windows native TTS via SAPI (ISpVoice COM, buffer capture to ISpStream)
+- Windows native TTS via WinRT SpeechSynthesizer (windows-rs, WAV stream capture)
 - espeak-ng TTS (always compiled in, cross-platform)
 - Audio pipeline: silence trimming, volume adjust, channel routing
 - Tone generation (pure Rust sine wave with fade envelopes)
@@ -112,12 +112,16 @@ echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 - **Sox-style effects** (reverb, echo, chorus)
 - **Language switching tables**
 
+### Evaluated and Rejected
+
+- **Piper neural TTS** - Evaluated as an optional backend for high-quality offline neural voices via ONNX Runtime. The `piper-rs` crate (v0.1.9) has a broken dependency chain: it pins `ndarray 0.16` but its `ort` dependency resolves to a version requiring `ndarray 0.17`, causing compile failures. The alternative `piper-tts-rust` crate is English-only and uses a limited g2p model. Piper integration should be revisited if/when the Rust crate ecosystem stabilizes.
+
 ## Key Files
 
 - `omnivox-tts/src/lib.rs` - TtsEngine trait definition (line 196). New backends must implement `synthesize() -> Result<AudioBuffer, TtsError>`.
 - `omnivox-tts/src/espeak.rs` - espeak-ng backend (cross-platform fallback).
 - `omnivox-tts/src/macos.rs` - macOS AVSpeechSynthesizer backend (ObjC bridge).
-- `omnivox-tts/src/windows.rs` - Windows SAPI backend (ISpVoice COM via windows-rs).
+- `omnivox-tts/src/windows.rs` - Windows WinRT backend (SpeechSynthesizer via windows-rs).
 - `omnivox-cli/src/main.rs` - Main binary. `create_engine()` selects platform-native engine with espeak-ng fallback.
 
 ## Dependencies
@@ -125,7 +129,7 @@ echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 Key workspace dependencies (Cargo.toml):
 
 - tokio, thiserror, anyhow, tracing, tracing-subscriber, regex, once_cell
-- omnivox-tts: espeak-rs-sys (with compile-espeak-intonations), cc (build), windows v0.58 (Windows-only, SAPI COM)
+- omnivox-tts: espeak-rs-sys (with compile-espeak-intonations), cc (build), windows v0.58 (Windows-only, WinRT SpeechSynthesizer)
 - omnivox-audio: rodio (vorbis + wav features)
 - omnivox-cli: all workspace crates + tokio
 

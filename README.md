@@ -4,7 +4,7 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 
 ## Features
 
-- **Cross-platform TTS**: macOS (AVSpeechSynthesizer), Linux (espeak-ng), Windows (espeak-ng)
+- **Cross-platform TTS**: macOS (AVSpeechSynthesizer), Windows (WinRT SpeechSynthesizer), Linux (espeak-ng), with espeak-ng as universal fallback
 - **Audio pipeline**: All audio goes through a configurable effects pipeline (silence trimming, volume control, channel routing)
 - **Concurrent streams**: Speech, tones, and audio icons play on independent streams with backlog limits (no blocking between stream types)
 - **Tone generation**: Pure-Rust sine wave generator with fade envelopes
@@ -152,7 +152,7 @@ Set the default voice in Emacs:
 The project is organized as a Cargo workspace:
 
 - **omnivox-core** - Command parsing, queue management, state types
-- **omnivox-tts** - TTS engine trait and backends (macOS AVSpeechSynthesizer, espeak-ng)
+- **omnivox-tts** - TTS engine trait and backends (macOS AVSpeechSynthesizer, Windows WinRT, espeak-ng)
 - **omnivox-audio** - Audio buffer, effects pipeline, tone generator, file loader, playback
 - **omnivox-cli** - Main binary wiring everything together
 
@@ -167,6 +167,10 @@ Source (TTS / Tone / File) -> AudioBuffer -> Pipeline -> AudioOutput
                                     VolumeAdjust
                                     ChannelRouter
 ```
+
+## Neural TTS (Piper)
+
+Piper neural TTS was evaluated as an optional backend for higher-quality offline voices. The available Rust crates (`piper-rs`, `piper-tts-rust`) have unstable dependency chains that prevent reliable compilation. This integration should be revisited when the Rust Piper ecosystem matures.
 
 ## Emacspeak Protocol
 
