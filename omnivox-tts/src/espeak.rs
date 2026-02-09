@@ -8,7 +8,7 @@ use once_cell::sync::OnceCell;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_int, c_short, c_void};
 use std::sync::Mutex;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Global espeak-ng initialization guard.
 /// espeak-ng uses global state internally, so we need a mutex to serialize access.

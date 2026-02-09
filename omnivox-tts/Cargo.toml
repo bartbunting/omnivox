@@ -13,5 +13,13 @@ once_cell.workspace = true
 # espeak-ng (always compiled in as cross-platform fallback)
 espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"] }
 
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Media_SpeechSynthesis",
+    "Foundation",
+    "Foundation_Collections",
+    "Storage_Streams",
+] }
+
 [build-dependencies]
 cc = "1"

@@ -28,7 +28,7 @@ fn main() {
     // espeak-rs-sys data is at: target/debug/build/espeak-rs-sys-HASH/out/share/espeak-ng-data
     if let Some(build_dir) = PathBuf::from(&out_dir)
         .ancestors()
-        .find(|p| p.file_name().map_or(false, |n| n == "build"))
+        .find(|p| p.file_name().is_some_and(|n| n == "build"))
     {
         // Search for espeak-ng-data in the build directory
         if let Ok(entries) = std::fs::read_dir(build_dir) {
@@ -36,7 +36,7 @@ fn main() {
                 let path = entry.path();
                 if path
                     .file_name()
-                    .map_or(false, |n| n.to_string_lossy().starts_with("espeak-rs-sys-"))
+                    .is_some_and(|n| n.to_string_lossy().starts_with("espeak-rs-sys-"))
                 {
                     let data_path = path.join("out").join("share");
                     let phontab = data_path.join("espeak-ng-data").join("phontab");

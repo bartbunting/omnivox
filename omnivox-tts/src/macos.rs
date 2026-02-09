@@ -4,7 +4,10 @@
 //! AVSpeechSynthesizer.write(_:toBufferCallback:). The bridge is compiled
 //! by build.rs and linked in statically.
 
-use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo, VoiceQuality};
+use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo};
+#[cfg(target_os = "macos")]
+use crate::VoiceQuality;
+#[cfg(target_os = "macos")]
 use tracing::{debug, info};
 
 #[cfg(target_os = "macos")]

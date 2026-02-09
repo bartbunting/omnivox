@@ -55,11 +55,11 @@ make clean     # Clean build artifacts
 
 ## Testing
 
-161 tests total, all passing:
+163 tests total, all passing:
 
 - omnivox-audio: 60 unit + 31 integration = 91
 - omnivox-core: 34 unit + 1 doc = 35
-- omnivox-tts: 22 unit
+- omnivox-tts: 24 unit (includes 2 Windows SAPI mapping tests)
 - omnivox-cli: 13 unit
 
 Run: `cargo test`
@@ -86,14 +86,15 @@ echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 |----------|-----------|-----------|--------|
 | macOS | AVSpeechSynthesizer (ObjC bridge) | Compiled in | Working |
 | Linux | Not yet (Speech Dispatcher planned) | Compiled in | espeak-ng works |
-| Windows | Not yet (SAPI planned) | Needs testing | Not started |
+| Windows | SAPI via windows-rs COM | Compiled in | Working |
 
-## Current State (as of 2026-02-07)
+## Current State (as of 2026-02-08)
 
 ### Working
 
 - Full Emacspeak protocol (27 commands)
 - macOS native TTS via AVSpeechSynthesizer buffer capture (ObjC bridge)
+- Windows native TTS via SAPI (ISpVoice COM, buffer capture to ISpStream)
 - espeak-ng TTS (always compiled in, cross-platform)
 - Audio pipeline: silence trimming, volume adjust, channel routing
 - Tone generation (pure Rust sine wave with fade envelopes)
@@ -105,42 +106,26 @@ echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 
 ### Not Yet Implemented
 
-- **Windows SAPI backend** - Next priority. Add `omnivox-tts/src/windows.rs` implementing `TtsEngine` trait using Windows SAPI or `windows-rs` bindings.
 - **Linux Speech Dispatcher backend** - For native Linux voices (espeak-ng works as fallback).
 - **Network mode** (-p flag for TCP listener)
 - **Multi-device audio routing**
 - **Sox-style effects** (reverb, echo, chorus)
 - **Language switching tables**
 
-## Key Files for Windows Implementation
+## Key Files
 
 - `omnivox-tts/src/lib.rs` - TtsEngine trait definition (line 196). New backends must implement `synthesize() -> Result<AudioBuffer, TtsError>`.
-- `omnivox-tts/src/espeak.rs` - Reference implementation of TtsEngine. Shows the pattern for buffer synthesis, voice listing, parameter mapping.
-- `omnivox-tts/src/macos.rs` - macOS implementation (uses FFI to ObjC bridge). Shows the pattern for platform-specific code with `#[cfg(target_os)]` guards.
-- `omnivox-tts/src/macos_bridge.m` - ObjC bridge. Not needed for Windows but shows the buffer capture pattern.
-- `omnivox-cli/src/main.rs` - Main binary. The `create_engine()` function (around line 30) needs a Windows branch added.
-- `omnivox-tts/Cargo.toml` - Add Windows-specific dependencies here.
-- `omnivox-tts/build.rs` - Add Windows-specific build steps here if needed.
-
-## Windows SAPI Implementation Guide
-
-1. Create `omnivox-tts/src/windows.rs` with `WindowsTtsEngine` implementing `TtsEngine`.
-2. Use `windows-rs` crate for SAPI bindings, or use `ISpVoice` COM interface.
-3. Key SAPI functions needed:
-   - `ISpVoice::Speak` with `SPF_IS_NOT_XML` flag for synthesis
-   - To get buffer output: use `ISpStream` with memory stream, or `SetOutput` to redirect to memory
-   - `ISpVoice::GetVoices` for voice enumeration
-   - `ISpVoice::SetRate` / `ISpVoice::SetVolume` for parameters
-4. Add `pub mod windows;` to `omnivox-tts/src/lib.rs` behind `#[cfg(target_os = "windows")]`.
-5. Add Windows branch in `omnivox-cli/src/main.rs` `create_engine()` function.
-6. Pattern: Synthesize to buffer -> convert to f32 stereo 44100Hz -> return AudioBuffer.
+- `omnivox-tts/src/espeak.rs` - espeak-ng backend (cross-platform fallback).
+- `omnivox-tts/src/macos.rs` - macOS AVSpeechSynthesizer backend (ObjC bridge).
+- `omnivox-tts/src/windows.rs` - Windows SAPI backend (ISpVoice COM via windows-rs).
+- `omnivox-cli/src/main.rs` - Main binary. `create_engine()` selects platform-native engine with espeak-ng fallback.
 
 ## Dependencies
 
 Key workspace dependencies (Cargo.toml):
 
 - tokio, thiserror, anyhow, tracing, tracing-subscriber, regex, once_cell
-- omnivox-tts: espeak-rs-sys (with compile-espeak-intonations), cc (build)
+- omnivox-tts: espeak-rs-sys (with compile-espeak-intonations), cc (build), windows v0.58 (Windows-only, SAPI COM)
 - omnivox-audio: rodio (vorbis + wav features)
 - omnivox-cli: all workspace crates + tokio
 

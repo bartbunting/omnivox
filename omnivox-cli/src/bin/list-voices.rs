@@ -3,6 +3,8 @@
 use omnivox_tts::espeak::EspeakTtsEngine;
 #[cfg(target_os = "macos")]
 use omnivox_tts::macos::MacOsTtsEngine;
+#[cfg(target_os = "windows")]
+use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::TtsEngine;
 
 fn main() {
@@ -16,7 +18,16 @@ fn main() {
                 ),
             }
         }
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        {
+            match WindowsTtsEngine::new() {
+                Ok(e) => Box::new(e),
+                Err(_) => Box::new(
+                    EspeakTtsEngine::new().expect("Failed to create TTS engine"),
+                ),
+            }
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         {
             Box::new(EspeakTtsEngine::new().expect("Failed to create TTS engine"))
         }

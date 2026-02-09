@@ -27,7 +27,7 @@ impl AudioBuffer {
     /// Panics if the number of samples is odd (not a multiple of 2).
     pub fn new(samples: Vec<f32>) -> Self {
         assert!(
-            samples.len() % CHANNELS as usize == 0,
+            samples.len().is_multiple_of(CHANNELS as usize),
             "Sample count must be even for stereo interleaved data"
         );
         Self { samples }

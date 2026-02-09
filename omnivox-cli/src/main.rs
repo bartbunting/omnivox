@@ -19,6 +19,8 @@ use omnivox_core::{
 use omnivox_tts::espeak::EspeakTtsEngine;
 #[cfg(target_os = "macos")]
 use omnivox_tts::macos::MacOsTtsEngine;
+#[cfg(target_os = "windows")]
+use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead};
 use tracing::{debug, error, info, warn};
@@ -125,14 +127,19 @@ fn apply_punctuation(text: &str, level: PunctuationLevel) -> String {
     result
 }
 
+/// Get the user's home directory, checking platform-appropriate env vars.
+fn home_dir() -> Option<std::ffi::OsString> {
+    std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))
+}
+
 /// Expand ~ to the user's home directory in paths.
 fn expand_tilde(path: &str) -> std::path::PathBuf {
     if let Some(rest) = path.strip_prefix("~/") {
-        if let Some(home) = std::env::var_os("HOME") {
+        if let Some(home) = home_dir() {
             return std::path::PathBuf::from(home).join(rest);
         }
     } else if path == "~" {
-        if let Some(home) = std::env::var_os("HOME") {
+        if let Some(home) = home_dir() {
             return std::path::PathBuf::from(home);
         }
     }
@@ -180,9 +187,13 @@ fn build_sound_pipeline(state: &TtsState) -> AudioPipeline {
 }
 
 /// Create the best available TTS engine: platform-native first, espeak-ng fallback.
-/// Set OMNIVOX_ENGINE=espeak to force espeak-ng, or OMNIVOX_ENGINE=native for platform default.
-fn create_engine() -> Result<Box<dyn TtsEngine>> {
-    let forced = std::env::var("OMNIVOX_ENGINE").unwrap_or_default();
+/// `engine_name` overrides env var OMNIVOX_ENGINE. Values: "espeak", "native", or empty for auto.
+fn create_engine(engine_name: &str) -> Result<Box<dyn TtsEngine>> {
+    let forced = if engine_name.is_empty() {
+        std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
+    } else {
+        engine_name.to_string()
+    };
 
     if forced != "espeak" {
         #[cfg(target_os = "macos")]
@@ -194,6 +205,19 @@ fn create_engine() -> Result<Box<dyn TtsEngine>> {
                 }
                 Err(e) => {
                     warn!("macOS TTS not available: {}, falling back to espeak-ng", e);
+                }
+            }
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            match WindowsTtsEngine::new() {
+                Ok(engine) => {
+                    info!("Using Windows WinRT engine");
+                    return Ok(Box::new(engine));
+                }
+                Err(e) => {
+                    warn!("Windows WinRT not available: {}, falling back to espeak-ng", e);
                 }
             }
         }
@@ -210,8 +234,254 @@ fn create_engine() -> Result<Box<dyn TtsEngine>> {
     }
 }
 
+/// Return the name of the platform-native engine for display purposes.
+fn native_engine_name() -> &'static str {
+    #[cfg(target_os = "macos")]
+    { "macos (AVSpeechSynthesizer)" }
+    #[cfg(target_os = "windows")]
+    { "winrt (Windows SpeechSynthesizer)" }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    { "none (espeak-ng is the only backend)" }
+}
+
+/// Print help text and exit.
+fn print_help() {
+    let native = native_engine_name();
+    println!("Omnivox v{} - Cross-platform Emacspeak speech server", VERSION);
+    println!();
+    println!("USAGE:");
+    println!("    omnivox [OPTIONS]");
+    println!();
+    println!("OPTIONS:");
+    println!("    --help           Show this help message");
+    println!("    --version        Show version number");
+    println!("    --check          Run diagnostic self-test");
+    println!("    --list-voices    List available TTS voices");
+    println!("    --engine NAME    Select TTS engine: native, espeak");
+    println!();
+    println!("ENGINES:");
+    println!("    native    Platform-native TTS: {}", native);
+    println!("    espeak    espeak-ng (cross-platform, always available)");
+    println!();
+    println!("Without options, starts the Emacspeak protocol server on stdin.");
+    println!();
+    println!("ENVIRONMENT:");
+    println!("    OMNIVOX_ENGINE    Set to 'espeak' to force espeak-ng engine");
+    println!();
+    println!("EMACSPEAK SETUP:");
+    println!("    (setq dtk-program \"omnivox\")");
+    println!("    Ensure omnivox is in your PATH or in emacspeak/servers/");
+}
+
+/// Print version and exit.
+fn print_version() {
+    println!("omnivox {}", VERSION);
+}
+
+/// List all available voices, grouped by language.
+fn cmd_list_voices(engine: &dyn TtsEngine) {
+    let voices = engine.available_voices();
+    println!("Found {} voices:\n", voices.len());
+
+    let mut by_lang: std::collections::BTreeMap<String, Vec<_>> = std::collections::BTreeMap::new();
+    for voice in voices {
+        by_lang.entry(voice.language.clone()).or_default().push(voice);
+    }
+    for (lang, voices) in by_lang {
+        println!("{} ({} voices):", lang, voices.len());
+        for voice in voices {
+            println!("  {:?} - {} [{}]", voice.quality, voice.name, voice.identifier);
+        }
+        println!();
+    }
+}
+
+/// Run diagnostic self-test: check engine, voices, synthesis, tones, and audio output.
+fn cmd_check(engine_name: &str) {
+    println!("Omnivox v{} diagnostic check", VERSION);
+    println!("=============================\n");
+
+    // Platform
+    println!("[platform]");
+    println!("  OS: {}", std::env::consts::OS);
+    println!("  Arch: {}", std::env::consts::ARCH);
+    println!("  Native engine: {}", native_engine_name());
+    println!();
+
+    // Home directory
+    println!("[home]");
+    match home_dir() {
+        Some(h) => println!("  Home: {}", std::path::Path::new(&h).display()),
+        None => println!("  WARNING: Could not determine home directory (HOME/USERPROFILE not set)"),
+    }
+    println!();
+
+    // Engine
+    println!("[engine]");
+    let engine: Box<dyn TtsEngine> = match create_engine(engine_name) {
+        Ok(e) => {
+            println!("  Status: OK");
+            e
+        }
+        Err(e) => {
+            println!("  Status: FAILED - {}", e);
+            println!("\nDiagnostic check failed: no TTS engine available.");
+            std::process::exit(1);
+        }
+    };
+
+    // Voices
+    let voices = engine.available_voices();
+    println!("  Voices: {}", voices.len());
+    if voices.is_empty() {
+        println!("  WARNING: No voices found");
+    } else {
+        for v in &voices {
+            println!("    - {} ({}) [{:?}]", v.name, v.language, v.quality);
+        }
+    }
+    println!();
+
+    // Synthesis test
+    println!("[synthesis]");
+    let settings = TtsSettings::default();
+    match engine.synthesize("test", &settings) {
+        Ok(buf) => {
+            if buf.is_empty() {
+                println!("  Status: WARNING - synthesized empty buffer");
+            } else {
+                println!(
+                    "  Status: OK - {} samples, {}Hz, {} channels",
+                    buf.samples.len(),
+                    buf.sample_rate,
+                    buf.channels
+                );
+            }
+        }
+        Err(e) => {
+            println!("  Status: FAILED - {}", e);
+        }
+    }
+    println!();
+
+    // Audio output test
+    println!("[audio output]");
+    match AudioStreams::new(SPEECH_MAX_DEPTH, TONE_MAX_DEPTH, SOUND_MAX_DEPTH) {
+        Ok(streams) => {
+            println!("  Audio device: OK");
+
+            // Play a short test tone
+            let tone_buf = ToneGenerator::generate(440.0, 200, 0.5);
+            match streams.queue(StreamType::Tone, &tone_buf) {
+                Ok(_) => println!("  Test tone (440Hz): playing..."),
+                Err(e) => println!("  Test tone: FAILED - {}", e),
+            }
+
+            // Synthesize and play test speech
+            match engine.synthesize("Omnivox is ready.", &settings) {
+                Ok(tts_buf) => {
+                    let buf = tts_buffer_to_audio_buffer(tts_buf);
+                    match streams.queue(StreamType::Speech, &buf) {
+                        Ok(_) => println!("  Test speech: playing..."),
+                        Err(e) => println!("  Test speech: FAILED - {}", e),
+                    }
+                }
+                Err(e) => println!("  Test speech: FAILED - {}", e),
+            }
+
+            // Wait for audio to finish
+            std::thread::sleep(std::time::Duration::from_secs(3));
+            println!("  Playback: complete");
+        }
+        Err(e) => {
+            println!("  Audio device: FAILED - {}", e);
+            println!("  No audio output available. Check your sound device.");
+        }
+    }
+    println!();
+
+    // Sound file loading test
+    println!("[sound files]");
+    let loader = AudioFileLoader::with_cache();
+    let test_paths = [
+        "test-sounds/button.ogg",
+        "test-sounds/complete.ogg",
+    ];
+    for path in &test_paths {
+        let full = std::path::Path::new(path);
+        if full.exists() {
+            match loader.load(full) {
+                Ok(buf) => println!("  {}: OK ({} samples)", path, buf.samples.len()),
+                Err(e) => println!("  {}: FAILED - {}", path, e),
+            }
+        }
+    }
+
+    println!();
+    println!("Diagnostic check complete. If you heard a tone and speech, everything is working.");
+}
+
+/// Parse CLI arguments. Returns (engine_name, action) where action is
+/// "server" (default), "help", "version", "check", or "list-voices".
+fn parse_args() -> (String, String) {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut engine = String::new();
+    let mut action = String::from("server");
+
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--help" | "-h" => action = String::from("help"),
+            "--version" | "-V" => action = String::from("version"),
+            "--check" => action = String::from("check"),
+            "--list-voices" => action = String::from("list-voices"),
+            "--engine" => {
+                i += 1;
+                if i < args.len() {
+                    engine = args[i].clone();
+                } else {
+                    eprintln!("Error: --engine requires a value (native, espeak)");
+                    std::process::exit(1);
+                }
+            }
+            other => {
+                eprintln!("Unknown option: {}", other);
+                eprintln!("Try 'omnivox --help' for usage.");
+                std::process::exit(1);
+            }
+        }
+        i += 1;
+    }
+
+    (engine, action)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let (engine_name, action) = parse_args();
+
+    // Handle non-server actions before initializing tracing (they print to stdout)
+    match action.as_str() {
+        "help" => {
+            print_help();
+            return Ok(());
+        }
+        "version" => {
+            print_version();
+            return Ok(());
+        }
+        "check" => {
+            cmd_check(&engine_name);
+            return Ok(());
+        }
+        "list-voices" => {
+            let engine = create_engine(&engine_name)?;
+            cmd_list_voices(engine.as_ref());
+            return Ok(());
+        }
+        _ => {} // "server" - continue below
+    }
+
     tracing_subscriber::fmt()
         .with_target(false)
         .with_level(true)
@@ -219,7 +489,7 @@ async fn main() -> Result<()> {
 
     info!("Omnivox v{} starting", VERSION);
 
-    let engine = create_engine()?;
+    let engine = create_engine(&engine_name)?;
     info!("TTS engine initialized");
 
     let voices = engine.available_voices();
@@ -367,7 +637,7 @@ async fn process_command(
 
                 state.speech_rate = state.character_rate();
 
-                if letter.chars().next().map_or(false, |c| c.is_uppercase()) {
+                if letter.chars().next().is_some_and(|c| c.is_uppercase()) {
                     if state.allcaps_beep {
                         // Play a short beep for capital letters (on tone stream, concurrent)
                         let mut tone_buf = ToneGenerator::generate(440.0, 10, state.tone_volume);
@@ -676,16 +946,10 @@ async fn process_queue_items(
 /// Insert space before uppercase letters (for split caps)
 fn insert_space_before_uppercase(input: &str) -> String {
     let mut result = String::with_capacity(input.len() * 2);
-    let mut prev_was_lower = false;
 
     for c in input.chars() {
-        if c.is_uppercase() {
-            if !result.is_empty() && (prev_was_lower || !prev_was_lower) {
-                result.push(' ');
-            }
-            prev_was_lower = false;
-        } else {
-            prev_was_lower = c.is_lowercase();
+        if c.is_uppercase() && !result.is_empty() {
+            result.push(' ');
         }
         result.push(c);
     }
@@ -817,6 +1081,26 @@ mod tests {
         assert_eq!(apply_punctuation("hello world", PunctuationLevel::None), "hello world");
         assert_eq!(apply_punctuation("hello world", PunctuationLevel::Some), "hello world");
         assert_eq!(apply_punctuation("hello world", PunctuationLevel::All), "hello world");
+    }
+
+    #[test]
+    fn test_expand_tilde() {
+        // Should return path as-is when no tilde
+        assert_eq!(expand_tilde("/foo/bar"), std::path::PathBuf::from("/foo/bar"));
+        assert_eq!(expand_tilde("relative/path"), std::path::PathBuf::from("relative/path"));
+    }
+
+    #[test]
+    fn test_home_dir() {
+        // home_dir should return something on all platforms we support
+        assert!(home_dir().is_some());
+    }
+
+    #[test]
+    fn test_parse_args_defaults() {
+        // Can't easily test parse_args since it reads std::env::args,
+        // but we can test the engine name logic
+        assert!(!native_engine_name().is_empty());
     }
 
     #[test]

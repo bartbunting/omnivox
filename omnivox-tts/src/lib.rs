@@ -6,6 +6,7 @@ use thiserror::Error;
 
 pub mod espeak;
 pub mod macos;
+pub mod windows;
 
 /// TTS engine errors
 #[derive(Debug, Error)]
