@@ -154,10 +154,23 @@ See [ENV-VARS.md](ENV-VARS.md) for complete documentation.
 
 ```elisp
 (setq dtk-program "omnivox")
-(setq emacspeak-speech-server "omnivox")
 ```
 
-Ensure `~/.cargo/bin` is in PATH, or symlink into emacspeak/servers/.
+Ensure `~/.cargo/bin` is in PATH, or symlink/copy into emacspeak/servers/.
+
+### Windows-Specific Setup
+
+Windows requires additional steps beyond macOS/Linux:
+
+1. **HOME env var**: Emacs on Windows resolves `~` to `%APPDATA%` by default, not `%USERPROFILE%`. Set `HOME=C:\Users\<username>` as a system environment variable (`setx HOME C:\Users\<username>`) so Emacs finds `~/.emacs.d/init.el` and `~/.emacspeak/`.
+2. **Copy binary to servers dir**: Emacspeak's `dtk-make-process` does `(expand-file-name dtk-program emacspeak-servers-directory)` to find the server binary. On Windows, symlinks require admin, so copy `omnivox.exe` into `~/.emacspeak/servers/`. Must re-copy after each rebuild.
+3. **Generate emacspeak-loaddefs.el**: Fresh emacspeak clones on Windows lack this file (normally built by `make`). Generate with: `emacs --batch -l ./emacspeak-preamble.el -l ./emacspeak-autoload.el -f emacspeak-auto-generate-autoloads` from the `~/.emacspeak/lisp/` directory.
+4. **LIBCLANG_PATH**: Required for espeak-ng compilation. Set `LIBCLANG_PATH=C:\\LLVM\\bin` before building.
+5. **Speech rate**: WinRT default speech rate may be fast. Users should lower it via Emacspeak's `dtk-speech-rate` or `tts_set_speech_rate`.
+
+### Known Bug: `;;` Text Dropping
+
+- **Text after `;;` skipped until next quote**: When text contains `;;` (e.g. Lisp comments), omnivox drops text after the semicolons until the next quote character. This is an omnivox parsing/handling bug -- other speech servers handle this correctly. Needs investigation in the command parser or text processing pipeline.
 
 ### Dual-Server Notification Mode
 

@@ -77,7 +77,7 @@ This installs the `omnivox` and `list-voices` binaries to `~/.cargo/bin/`.
 
 ## Emacspeak Integration
 
-### Setup
+### Setup (macOS / Linux)
 
 1. Build and install omnivox:
 
@@ -93,14 +93,59 @@ This installs the `omnivox` and `list-voices` binaries to `~/.cargo/bin/`.
 
    ```elisp
    (setq dtk-program "omnivox")
-   (setq emacspeak-speech-server "omnivox")
    ```
 
 4. Start Emacspeak as usual. Omnivox will be used as the speech server.
 
+### Setup (Windows)
+
+Windows requires extra steps because Emacspeak looks for speech servers in its `servers/` directory and Emacs may resolve `~` to `%APPDATA%` rather than `%USERPROFILE%`.
+
+1. **Set HOME environment variable** so Emacs finds your config:
+
+   ```powershell
+   setx HOME C:\Users\YourUsername
+   ```
+
+2. **Build and install omnivox** (requires LIBCLANG_PATH for espeak-ng build):
+
+   ```bash
+   export LIBCLANG_PATH="C:\\LLVM\\bin"
+   cd /path/to/omnivox
+   cargo build --release
+   cargo install --path omnivox-cli
+   ```
+
+3. **Copy omnivox into Emacspeak's servers directory** (symlinks require admin on Windows):
+
+   ```bash
+   cp ~/.cargo/bin/omnivox.exe ~/.emacspeak/servers/omnivox.exe
+   ```
+
+   You must re-copy after rebuilding omnivox.
+
+4. **Generate emacspeak-loaddefs.el** if it doesn't exist (required on fresh clones):
+
+   ```bash
+   cd ~/.emacspeak/lisp
+   emacs --batch -l ./emacspeak-preamble.el -l ./emacspeak-autoload.el \
+     -f emacspeak-auto-generate-autoloads
+   ```
+
+5. **Configure Emacs** with volume environment variables:
+
+   ```elisp
+   (setq dtk-program "omnivox")
+   (setenv "OMNIVOX_VOICE_VOLUME" "1.0")
+   (setenv "OMNIVOX_TONE_VOLUME" "0.1")
+   (setenv "OMNIVOX_SOUND_VOLUME" "0.1")
+   ```
+
+6. Start Emacspeak. The default speech rate on Windows may be fast; use `tts_set_speech_rate` or `tts_sync_state` to adjust.
+
 ### Alternative: Place Binary in Emacspeak Servers Directory
 
-Instead of relying on PATH, you can symlink or copy the binary into Emacspeak's servers directory:
+On macOS/Linux, instead of relying on PATH, you can symlink or copy the binary into Emacspeak's servers directory:
 
 ```bash
 ln -s ~/.cargo/bin/omnivox /path/to/emacspeak/servers/omnivox
@@ -126,6 +171,13 @@ list-voices
 - **espeak-ng errors on Linux**: Install `espeak-ng` and `espeak-ng-data` packages.
 - **Slow startup**: First run compiles espeak-ng data; subsequent starts are faster.
 - **Wrong voice**: Use `tts_set_voice` command or configure in Emacs with `dtk-default-voice`.
+- **Windows: "Cannot open load file: emacspeak-loaddefs"**: Run the `emacs --batch` command in step 4 of the Windows setup to generate the loaddefs file.
+- **Windows: Emacs not loading init.el**: Check `M-: (expand-file-name "~")` in Emacs. If it points to `%APPDATA%` instead of your home directory, set the `HOME` environment variable (step 1 of Windows setup).
+- **Windows: Speech too fast**: The WinRT speech rate default may be fast. Set a lower rate via `tts_set_speech_rate` in Emacspeak or configure with `dtk-speech-rate`.
+
+### Known Issues
+
+- **Text after `;;` may be skipped**: When text contains `;;` (e.g. Lisp comments), omnivox may drop text after the semicolons until the next quote character. This is an omnivox parsing bug, not an Emacspeak issue (other speech servers handle this correctly). Investigation and fix pending.
 
 ## Voice Configuration
 
