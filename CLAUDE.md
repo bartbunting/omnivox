@@ -23,6 +23,7 @@ Omnivox is a cross-platform Emacspeak speech server written in Rust. It is a dro
 - **AudioEffect trait** with `Vec<Box<dyn AudioEffect>>` pipeline for extensible processing.
 - **rodio** for cross-platform audio output and OGG/WAV decoding.
 - **OMNIVOX_ENGINE=espeak** environment variable to force espeak-ng on macOS.
+- **OMNIVOX_AUDIO_TARGET** environment variable for channel routing (left/right/both). Used by Emacspeak for dual-server notification mode.
 
 ### Audio Pipeline Flow
 
@@ -142,6 +143,13 @@ There are two `AudioBuffer` types (technical debt):
 
 Both are stereo f32 @ 44100Hz but are separate types. The CLI converts between them via `tts_buffer_to_audio_buffer()` in main.rs. A future cleanup could unify these.
 
+## Environment Variables
+
+See [ENV-VARS.md](ENV-VARS.md) for complete documentation.
+
+- **OMNIVOX_ENGINE** - Set to `espeak` to force espeak-ng engine
+- **OMNIVOX_AUDIO_TARGET** - Set to `left`, `right`, or `both` for channel routing. Read at startup in main.rs, passed to `ChannelRouter` effect. Used by Emacspeak for dual-server notification mode (notification server gets `OMNIVOX_AUDIO_TARGET=left`, main server uses both channels).
+
 ## Emacspeak Integration
 
 ```elisp
@@ -150,3 +158,12 @@ Both are stereo f32 @ 44100Hz but are separate types. The CLI converts between t
 ```
 
 Ensure `~/.cargo/bin` is in PATH, or symlink into emacspeak/servers/.
+
+### Dual-Server Notification Mode
+
+When Emacspeak's `dtk-set-notification-mode` is enabled, it spawns two omnivox processes:
+
+1. Main process - Uses both channels for primary speech
+2. Notification process - Emacspeak sets `OMNIVOX_AUDIO_TARGET=left` for this process
+
+This enables concurrent notifications (e.g., "50 percent" in left ear) while main content continues in both ears.

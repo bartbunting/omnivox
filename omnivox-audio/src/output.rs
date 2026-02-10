@@ -103,6 +103,7 @@ impl AudioStreams {
 
         let source = BufferSource::new(buffer.samples.clone());
         sink.append(source);
+        sink.play(); // Ensure sink is playing (might be paused on first use)
         Ok(true)
     }
 

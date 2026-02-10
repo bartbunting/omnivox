@@ -13,7 +13,7 @@ use omnivox_audio::{
 };
 use omnivox_core::{
     parse_command,
-    state::PunctuationLevel,
+    state::{ChannelMode, PunctuationLevel},
     Command, CommandId, CommandQueue, QueueItem, TtsState,
 };
 use omnivox_tts::espeak::EspeakTtsEngine;
@@ -28,9 +28,10 @@ use tracing::{debug, error, info, warn};
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Maximum queued items per audio stream before overflow drops old items.
-const SPEECH_MAX_DEPTH: usize = 10;
-const TONE_MAX_DEPTH: usize = 3;
-const SOUND_MAX_DEPTH: usize = 5;
+/// Low values improve responsiveness for accessibility - old speech drops quickly.
+const SPEECH_MAX_DEPTH: usize = 2;  // Was 10 - reduced for faster response
+const TONE_MAX_DEPTH: usize = 2;     // Was 3 - keep tones responsive too
+const SOUND_MAX_DEPTH: usize = 3;    // Was 5 - icons should be immediate
 
 /// Convert a TTS AudioBuffer (omnivox_tts::AudioBuffer) to the pipeline
 /// AudioBuffer (omnivox_audio::AudioBuffer). The TTS engine already outputs
@@ -153,6 +154,59 @@ fn preprocess_text(text: &str, state: &TtsState) -> String {
         processed = insert_space_before_uppercase(&processed);
     }
     processed
+}
+
+/// Apply OMNIVOX_AUDIO_TARGET environment variable to TTS state channel routing.
+/// Valid values: "left", "right", "both" (default if not set or invalid).
+fn apply_audio_target_env(state: &mut TtsState) {
+    if let Ok(target) = std::env::var("OMNIVOX_AUDIO_TARGET") {
+        if let Some(channel_mode) = ChannelMode::parse(&target) {
+            info!("Setting audio target from env: {}", target);
+            state.speech_routing.channel_mode = channel_mode;
+            state.notification_routing.channel_mode = channel_mode;
+            state.tone_routing.channel_mode = channel_mode;
+            state.sound_routing.channel_mode = channel_mode;
+        } else {
+            warn!("Invalid OMNIVOX_AUDIO_TARGET value: {}", target);
+        }
+    }
+}
+
+/// Apply volume environment variables to TTS state.
+/// Valid values: 0.0 to 1.0 (1.0 = 100% volume).
+fn apply_volume_env(state: &mut TtsState) {
+    if let Ok(vol) = std::env::var("OMNIVOX_VOICE_VOLUME") {
+        if let Ok(v) = vol.parse::<f32>() {
+            if (0.0..=1.0).contains(&v) {
+                info!("Setting voice volume from env: {}", v);
+                state.voice_volume = v;
+            } else {
+                warn!("Invalid OMNIVOX_VOICE_VOLUME value: {} (must be 0.0-1.0)", vol);
+            }
+        }
+    }
+
+    if let Ok(vol) = std::env::var("OMNIVOX_TONE_VOLUME") {
+        if let Ok(v) = vol.parse::<f32>() {
+            if (0.0..=1.0).contains(&v) {
+                info!("Setting tone volume from env: {}", v);
+                state.tone_volume = v;
+            } else {
+                warn!("Invalid OMNIVOX_TONE_VOLUME value: {} (must be 0.0-1.0)", vol);
+            }
+        }
+    }
+
+    if let Ok(vol) = std::env::var("OMNIVOX_SOUND_VOLUME") {
+        if let Ok(v) = vol.parse::<f32>() {
+            if (0.0..=1.0).contains(&v) {
+                info!("Setting sound volume from env: {}", v);
+                state.sound_volume = v;
+            } else {
+                warn!("Invalid OMNIVOX_SOUND_VOLUME value: {} (must be 0.0-1.0)", vol);
+            }
+        }
+    }
 }
 
 /// Build a pipeline for speech audio based on current TTS state.
@@ -500,6 +554,8 @@ async fn main() -> Result<()> {
     let loader = AudioFileLoader::with_cache();
 
     let mut state = TtsState::default();
+    apply_audio_target_env(&mut state);
+    apply_volume_env(&mut state);
     let mut queue = CommandQueue::new();
 
     // Speak version (non-blocking -- server is ready for commands immediately)
@@ -653,7 +709,7 @@ async fn process_command(
                     voice: state.current_voice.clone(),
                     rate: state.speech_rate,
                     pitch: state.pitch_multiplier,
-                    volume: state.voice_volume,
+                    volume: 1.0, // Volume applied in pipeline, not here
                 };
 
                 if let Ok(tts_buf) = engine.synthesize(&letter.to_lowercase(), &settings) {
@@ -679,7 +735,7 @@ async fn process_command(
                     voice: state.current_voice.clone(),
                     rate: state.speech_rate,
                     pitch: state.pitch_multiplier,
-                    volume: state.voice_volume,
+                    volume: 1.0, // Volume applied in pipeline, not here
                 };
                 if let Ok(tts_buf) = engine.synthesize(&processed_text, &settings) {
                     let mut buf = tts_buffer_to_audio_buffer(tts_buf);
@@ -862,7 +918,7 @@ async fn process_queue_items(
                     voice: state.current_voice.clone(),
                     rate: state.speech_rate,
                     pitch: state.pitch_multiplier,
-                    volume: state.voice_volume,
+                    volume: 1.0, // Volume applied in pipeline, not here
                 };
 
                 let processed_text = preprocess_text(&text, state);

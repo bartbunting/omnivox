@@ -147,6 +147,25 @@ Set the default voice in Emacs:
 (setq dtk-default-voice "en")
 ```
 
+## Environment Variables
+
+Omnivox recognizes environment variables for engine selection and audio routing. See [ENV-VARS.md](ENV-VARS.md) for complete documentation.
+
+### Quick Reference
+
+- **OMNIVOX_ENGINE**: Set to `espeak` to force espeak-ng on platforms with native TTS
+- **OMNIVOX_AUDIO_TARGET**: Set to `left`, `right`, or `both` for channel routing (used by Emacspeak for dual-server notification mode)
+
+Example:
+
+```bash
+# Force espeak-ng engine
+OMNIVOX_ENGINE=espeak omnivox
+
+# Test left-channel routing
+echo "tts_say {Left ear only}" | OMNIVOX_AUDIO_TARGET=left omnivox
+```
+
 ## Architecture
 
 The project is organized as a Cargo workspace:
