@@ -28,10 +28,11 @@ use tracing::{debug, error, info, warn};
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Maximum queued items per audio stream before overflow drops old items.
-/// Low values improve responsiveness for accessibility - old speech drops quickly.
-const SPEECH_MAX_DEPTH: usize = 2;  // Was 10 - reduced for faster response
-const TONE_MAX_DEPTH: usize = 2;     // Was 3 - keep tones responsive too
-const SOUND_MAX_DEPTH: usize = 3;    // Was 5 - icons should be immediate
+/// For queued speech (q/d commands), we want to play everything the user queued.
+/// Depth limit only applies to prevent infinite backlog on rapid continuous input.
+const SPEECH_MAX_DEPTH: usize = 100;  // High limit - process all queued text
+const TONE_MAX_DEPTH: usize = 10;     // Multiple beeps should queue up
+const SOUND_MAX_DEPTH: usize = 10;    // Multiple audio icons can queue
 
 /// Convert a TTS AudioBuffer (omnivox_tts::AudioBuffer) to the pipeline
 /// AudioBuffer (omnivox_audio::AudioBuffer). The TTS engine already outputs
@@ -41,6 +42,25 @@ fn tts_buffer_to_audio_buffer(tts_buf: omnivox_tts::AudioBuffer) -> AudioBuffer 
         return AudioBuffer::empty();
     }
     AudioBuffer::new(tts_buf.samples)
+}
+
+/// Split text into small chunks (typically 15 words) to ensure single-buffer
+/// utterances from the TTS engine. This enables aggressive silence trimming
+/// and predictable audio pipeline behavior.
+///
+/// For text with <= max_words, returns a single-element vector.
+/// For longer text, splits on whitespace into chunks of max_words each.
+fn chunk_text(text: &str, max_words: usize) -> Vec<String> {
+    let words: Vec<&str> = text.split_whitespace().collect();
+
+    if words.len() <= max_words {
+        return vec![text.to_string()];
+    }
+
+    words
+        .chunks(max_words)
+        .map(|chunk| chunk.join(" "))
+        .collect()
 }
 
 /// Replace punctuation characters with their spoken names based on the
@@ -737,11 +757,16 @@ async fn process_command(
                     pitch: state.pitch_multiplier,
                     volume: 1.0, // Volume applied in pipeline, not here
                 };
-                if let Ok(tts_buf) = engine.synthesize(&processed_text, &settings) {
-                    let mut buf = tts_buffer_to_audio_buffer(tts_buf);
-                    let pipeline = build_speech_pipeline(state);
-                    let _ = pipeline.process(&mut buf);
-                    let _ = streams.queue(StreamType::Speech, &buf);
+                // Chunk text for single-buffer utterances (enables aggressive trimming)
+                let chunks = chunk_text(&processed_text, 15);
+                debug!("Split text into {} chunks", chunks.len());
+                for chunk in chunks {
+                    if let Ok(tts_buf) = engine.synthesize(&chunk, &settings) {
+                        let mut buf = tts_buffer_to_audio_buffer(tts_buf);
+                        let pipeline = build_speech_pipeline(state);
+                        let _ = pipeline.process(&mut buf);
+                        let _ = streams.queue(StreamType::Speech, &buf);
+                    }
                 }
             }
         }
@@ -924,18 +949,23 @@ async fn process_queue_items(
                 let processed_text = preprocess_text(&text, state);
 
                 debug!("Speaking queued text: {}", processed_text);
-                match engine.synthesize(&processed_text, &settings) {
-                    Ok(tts_buf) => {
-                        let mut buf = tts_buffer_to_audio_buffer(tts_buf);
-                        let pipeline = build_speech_pipeline(state);
-                        if let Err(e) = pipeline.process(&mut buf) {
-                            warn!("Pipeline error: {}", e);
+                // Chunk text for single-buffer utterances (enables aggressive trimming)
+                let chunks = chunk_text(&processed_text, 15);
+                debug!("Split queued text into {} chunks", chunks.len());
+                for chunk in chunks {
+                    match engine.synthesize(&chunk, &settings) {
+                        Ok(tts_buf) => {
+                            let mut buf = tts_buffer_to_audio_buffer(tts_buf);
+                            let pipeline = build_speech_pipeline(state);
+                            if let Err(e) = pipeline.process(&mut buf) {
+                                warn!("Pipeline error: {}", e);
+                            }
+                            if let Err(e) = streams.queue(StreamType::Speech, &buf) {
+                                warn!("Speech queue error: {}", e);
+                            }
                         }
-                        if let Err(e) = streams.queue(StreamType::Speech, &buf) {
-                            warn!("Speech queue error: {}", e);
-                        }
+                        Err(e) => warn!("Synthesis error for chunk: {}", e),
                     }
-                    Err(e) => warn!("Synthesis error: {}", e),
                 }
             }
 
@@ -1150,6 +1180,61 @@ mod tests {
     fn test_home_dir() {
         // home_dir should return something on all platforms we support
         assert!(home_dir().is_some());
+    }
+
+    #[test]
+    fn test_chunk_text_short() {
+        // Text with <= 15 words should not be chunked
+        let text = "This is a short sentence with only eight words.";
+        let chunks = chunk_text(text, 15);
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0], text);
+    }
+
+    #[test]
+    fn test_chunk_text_exact_boundary() {
+        // Exactly 15 words should not be chunked
+        let text = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen";
+        let chunks = chunk_text(text, 15);
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0], text);
+    }
+
+    #[test]
+    fn test_chunk_text_long() {
+        // 20 words should chunk into 15 + 5
+        let text = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty";
+        let chunks = chunk_text(text, 15);
+        assert_eq!(chunks.len(), 2);
+        assert_eq!(chunks[0], "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen");
+        assert_eq!(chunks[1], "sixteen seventeen eighteen nineteen twenty");
+    }
+
+    #[test]
+    fn test_chunk_text_empty() {
+        let text = "";
+        let chunks = chunk_text(text, 15);
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0], "");
+    }
+
+    #[test]
+    fn test_chunk_text_single_word() {
+        let text = "hello";
+        let chunks = chunk_text(text, 15);
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0], "hello");
+    }
+
+    #[test]
+    fn test_chunk_text_whitespace_handling() {
+        // Whitespace is normalized during splitting and rejoining for long text
+        let text = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen";
+        let chunks = chunk_text(text, 15);
+        assert_eq!(chunks.len(), 2);
+        // Each chunk should have single spaces between words
+        assert_eq!(chunks[0], "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen");
+        assert_eq!(chunks[1], "sixteen");
     }
 
     #[test]
