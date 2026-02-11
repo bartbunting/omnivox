@@ -89,13 +89,34 @@ This installs the `omnivox` and `list-voices` binaries to `~/.cargo/bin/`.
 
 2. Ensure `~/.cargo/bin` is in your PATH.
 
-3. Add to your Emacs configuration:
+3. **Register omnivox with Emacspeak** (required for audio icon support):
+
+   ```bash
+   # Create symlink in emacspeak servers directory
+   ln -sf ~/.cargo/bin/omnivox ~/.emacspeak/servers/omnivox
+   ln -sf ~/.cargo/bin/omnivox ~/.emacspeak/servers/log-omnivox
+
+   # Add omnivox to .servers file (tells Emacspeak it handles audio natively)
+   echo "omnivox" >> ~/.emacspeak/servers/.servers
+   echo "log-omnivox" >> ~/.emacspeak/servers/.servers
+   ```
+
+   **Why this matters**: Without being in `.servers`, Emacspeak uses external `play` commands for audio icons, bypassing omnivox's volume control entirely.
+
+4. Add to your Emacs configuration:
 
    ```elisp
+   ;; Set environment variables BEFORE loading emacspeak
+   (when (eq system-type 'darwin)
+     (setenv "OMNIVOX_VOICE_VOLUME" "1.0")
+     (setenv "OMNIVOX_TONE_VOLUME" "0.1")
+     (setenv "OMNIVOX_SOUND_VOLUME" "0.1"))
+
+   ;; Configure omnivox as TTS server
    (setq dtk-program "omnivox")
    ```
 
-4. Start Emacspeak as usual. Omnivox will be used as the speech server.
+5. Start Emacspeak as usual. Omnivox will be used as the speech server with proper volume control.
 
 ### Setup (Windows)
 
