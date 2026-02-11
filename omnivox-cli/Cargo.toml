@@ -9,10 +9,6 @@ license.workspace = true
 name = "omnivox"
 path = "src/main.rs"
 
-[[bin]]
-name = "list-voices"
-path = "src/bin/list-voices.rs"
-
 [dependencies]
 omnivox-core = { path = "../omnivox-core" }
 omnivox-tts = { path = "../omnivox-tts" }
