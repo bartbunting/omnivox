@@ -22,7 +22,7 @@ use omnivox_tts::macos::MacOsTtsEngine;
 #[cfg(target_os = "windows")]
 use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::{TtsEngine, TtsSettings};
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write as IoWrite};
 use tracing::{debug, error, info, warn};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -495,6 +495,213 @@ fn cmd_check(engine_name: &str) {
     println!("Diagnostic check complete. If you heard a tone and speech, everything is working.");
 }
 
+/// Write f32 PCM samples to a WAV file (IEEE float format).
+fn write_wav(path: &str, samples: &[f32], sample_rate: u32, channels: u16) -> Result<()> {
+    let bytes_per_sample: u32 = 4;
+    let data_size = samples.len() as u32 * bytes_per_sample;
+    let mut f = std::fs::File::create(path)?;
+
+    // RIFF header
+    f.write_all(b"RIFF")?;
+    f.write_all(&(36 + data_size).to_le_bytes())?;
+    f.write_all(b"WAVE")?;
+
+    // fmt subchunk
+    f.write_all(b"fmt ")?;
+    f.write_all(&16u32.to_le_bytes())?;        // subchunk size
+    f.write_all(&3u16.to_le_bytes())?;          // IEEE float
+    f.write_all(&channels.to_le_bytes())?;
+    f.write_all(&sample_rate.to_le_bytes())?;
+    let byte_rate = sample_rate * channels as u32 * bytes_per_sample;
+    f.write_all(&byte_rate.to_le_bytes())?;
+    let block_align = channels * bytes_per_sample as u16;
+    f.write_all(&block_align.to_le_bytes())?;
+    f.write_all(&32u16.to_le_bytes())?;         // bits per sample
+
+    // data subchunk
+    f.write_all(b"data")?;
+    f.write_all(&data_size.to_le_bytes())?;
+    for &s in samples {
+        f.write_all(&s.to_le_bytes())?;
+    }
+
+    Ok(())
+}
+
+/// Dump TTS output to WAV files for debugging/comparison.
+/// Saves raw TTS output and pipeline-processed output.
+fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
+    let engine = match create_engine(engine_name) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("Failed to create TTS engine: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let settings = TtsSettings {
+        voice: voice.to_string(),
+        rate: 0.5,
+        pitch: 1.0,
+        volume: 1.0,
+    };
+
+    println!("Voice: {}", voice);
+    println!("Text: {}", text);
+    println!("Rate: {}, Pitch: {}, Volume: {}", settings.rate, settings.pitch, settings.volume);
+
+    // Synthesize - this calls to_standard_format() internally (mono→stereo, resample to 44100)
+    let tts_buf = match engine.synthesize(text, &settings) {
+        Ok(buf) => buf,
+        Err(e) => {
+            eprintln!("Synthesis failed: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    if tts_buf.is_empty() {
+        eprintln!("Synthesis produced empty buffer");
+        std::process::exit(1);
+    }
+
+    println!(
+        "TTS output: {} samples, {}Hz, {}ch, {:.2}s",
+        tts_buf.samples.len(),
+        tts_buf.sample_rate,
+        tts_buf.channels,
+        tts_buf.duration()
+    );
+
+    // Save raw TTS output (after resampling to 44100, before pipeline effects)
+    let raw_path = output.replace(".wav", "_raw.wav");
+    if let Err(e) = write_wav(&raw_path, &tts_buf.samples, tts_buf.sample_rate, tts_buf.channels) {
+        eprintln!("Failed to write raw WAV: {}", e);
+    } else {
+        println!("Saved raw (post-resample, pre-pipeline): {}", raw_path);
+    }
+
+    // Convert to pipeline buffer and process
+    let mut buf = tts_buffer_to_audio_buffer(tts_buf);
+    let state = TtsState::default();
+    let pipeline = build_speech_pipeline(&state);
+    if let Err(e) = pipeline.process(&mut buf) {
+        eprintln!("Pipeline processing failed: {}", e);
+    }
+
+    println!(
+        "Pipeline output: {} samples, {:.2}s",
+        buf.samples.len(),
+        buf.samples.len() as f32 / (44100.0 * 2.0)
+    );
+
+    // Save processed output
+    if let Err(e) = write_wav(output, &buf.samples, 44100, 2) {
+        eprintln!("Failed to write processed WAV: {}", e);
+    } else {
+        println!("Saved processed (post-pipeline): {}", output);
+    }
+
+    println!("\nDone. Compare with reference WAVs from tools/tts_reference.swift");
+}
+
+/// Play a WAV file through rodio (same playback path as normal speech).
+fn cmd_play_wav(path: &str) {
+    // Read the WAV file
+    let data = match std::fs::read(path) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("Failed to read {}: {}", path, e);
+            std::process::exit(1);
+        }
+    };
+
+    // Parse WAV header
+    if data.len() < 44 || &data[0..4] != b"RIFF" || &data[8..12] != b"WAVE" {
+        eprintln!("Not a valid WAV file");
+        std::process::exit(1);
+    }
+
+    // Find fmt and data chunks
+    let mut offset = 12;
+    let mut audio_format: u16 = 0;
+    let mut channels: u16 = 0;
+    let mut sample_rate: u32 = 0;
+    let mut bits_per_sample: u16 = 0;
+    let mut pcm_data: &[u8] = &[];
+
+    while offset + 8 <= data.len() {
+        let chunk_id = &data[offset..offset + 4];
+        let chunk_size = u32::from_le_bytes([
+            data[offset + 4], data[offset + 5], data[offset + 6], data[offset + 7],
+        ]) as usize;
+        offset += 8;
+
+        if chunk_id == b"fmt " && chunk_size >= 16 {
+            audio_format = u16::from_le_bytes([data[offset], data[offset + 1]]);
+            channels = u16::from_le_bytes([data[offset + 2], data[offset + 3]]);
+            sample_rate = u32::from_le_bytes([
+                data[offset + 4], data[offset + 5], data[offset + 6], data[offset + 7],
+            ]);
+            bits_per_sample = u16::from_le_bytes([data[offset + 14], data[offset + 15]]);
+        } else if chunk_id == b"data" {
+            pcm_data = &data[offset..offset + chunk_size.min(data.len() - offset)];
+        }
+        offset += chunk_size;
+    }
+
+    println!("Playing: {}", path);
+    println!("Format: {}Hz, {}ch, {}bit, format={}", sample_rate, channels, bits_per_sample, audio_format);
+
+    // Convert to f32 samples
+    let samples: Vec<f32> = if audio_format == 3 && bits_per_sample == 32 {
+        // IEEE float
+        pcm_data.chunks_exact(4)
+            .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+            .collect()
+    } else if audio_format == 1 && bits_per_sample == 16 {
+        // PCM 16-bit
+        pcm_data.chunks_exact(2)
+            .map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0)
+            .collect()
+    } else {
+        eprintln!("Unsupported format: audio_format={}, bits={}", audio_format, bits_per_sample);
+        std::process::exit(1);
+    };
+
+    let duration_secs = samples.len() as f32 / (sample_rate as f32 * channels as f32);
+    println!("Duration: {:.2}s ({} samples)", duration_secs, samples.len());
+
+    // Convert to stereo 44100 if needed (same as omnivox pipeline)
+    let final_samples = if sample_rate == 44100 && channels == 2 {
+        samples
+    } else {
+        let tts_buf = omnivox_tts::AudioBuffer::new(samples, sample_rate, channels);
+        let standard = tts_buf.to_standard_format();
+        standard.samples
+    };
+
+    // Play through rodio - same path as omnivox speech
+    let buf = AudioBuffer::new(final_samples);
+    let streams = match AudioStreams::new(SPEECH_MAX_DEPTH, TONE_MAX_DEPTH, SOUND_MAX_DEPTH) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Failed to open audio device: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    println!("Playing through rodio...");
+    if let Err(e) = streams.queue(StreamType::Speech, &buf) {
+        eprintln!("Playback error: {}", e);
+        std::process::exit(1);
+    }
+
+    // Wait for playback
+    let wait = std::time::Duration::from_secs_f32(duration_secs + 0.5);
+    std::thread::sleep(wait);
+    println!("Done.");
+}
+
 /// Parse CLI arguments. Returns (engine_name, action) where action is
 /// "server" (default), "help", "version", "check", or "list-voices".
 fn parse_args() -> (String, String) {
@@ -509,6 +716,8 @@ fn parse_args() -> (String, String) {
             "--version" | "-V" => action = String::from("version"),
             "--check" => action = String::from("check"),
             "--list-voices" => action = String::from("list-voices"),
+            "--dump-wav" => action = String::from("dump-wav"),
+            "--play-wav" => action = String::from("play-wav"),
             "--engine" => {
                 i += 1;
                 if i < args.len() {
@@ -519,6 +728,10 @@ fn parse_args() -> (String, String) {
                 }
             }
             other => {
+                if action == "dump-wav" || action == "play-wav" {
+                    // Remaining args handled in main
+                    break;
+                }
                 eprintln!("Unknown option: {}", other);
                 eprintln!("Try 'omnivox --help' for usage.");
                 std::process::exit(1);
@@ -551,6 +764,38 @@ async fn main() -> Result<()> {
         "list-voices" => {
             let engine = create_engine(&engine_name)?;
             cmd_list_voices(engine.as_ref());
+            return Ok(());
+        }
+        "play-wav" => {
+            let remaining: Vec<String> = std::env::args().collect();
+            let idx = remaining.iter().position(|a| a == "--play-wav").unwrap_or(0);
+            if idx + 1 >= remaining.len() {
+                eprintln!("Usage: omnivox --play-wav <file.wav>");
+                std::process::exit(1);
+            }
+            cmd_play_wav(&remaining[idx + 1]);
+            return Ok(());
+        }
+        "dump-wav" => {
+            // Parse remaining args: voice output [text...]
+            let remaining: Vec<String> = std::env::args().collect();
+            // Find --dump-wav position and grab args after it
+            let dump_idx = remaining.iter().position(|a| a == "--dump-wav").unwrap_or(0);
+            let dump_args: Vec<&str> = remaining[dump_idx + 1..].iter().map(|s| s.as_str()).collect();
+            if dump_args.len() < 2 {
+                eprintln!("Usage: omnivox --dump-wav <voice> <output.wav> [text...]");
+                eprintln!("  voice: e.g. 'en-US:Alex', 'en-US:Samantha (Enhanced)', 'en-US'");
+                eprintln!("  Example: omnivox --dump-wav 'en-US:Alex' alex.wav Hello world");
+                std::process::exit(1);
+            }
+            let voice = dump_args[0];
+            let output = dump_args[1];
+            let text = if dump_args.len() > 2 {
+                dump_args[2..].join(" ")
+            } else {
+                "The quick brown fox jumps over the lazy dog".to_string()
+            };
+            cmd_dump_wav(&engine_name, voice, output, &text);
             return Ok(());
         }
         _ => {} // "server" - continue below

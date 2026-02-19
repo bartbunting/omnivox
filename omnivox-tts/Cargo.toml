@@ -9,6 +9,7 @@ license.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 once_cell.workspace = true
+rubato = "0.16"
 
 # espeak-ng (always compiled in as cross-platform fallback)
 espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"] }

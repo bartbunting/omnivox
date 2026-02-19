@@ -2,6 +2,7 @@
 //!
 //! Platform-agnostic TTS trait and implementations for different platforms.
 
+use rubato::{Resampler, SincFixedIn, SincInterpolationParameters, SincInterpolationType, WindowFunction};
 use thiserror::Error;
 
 pub mod espeak;
@@ -99,7 +100,7 @@ impl AudioBuffer {
         Self::new(stereo, self.sample_rate, 2)
     }
 
-    /// Resample to a target sample rate using linear interpolation
+    /// Resample to a target sample rate using sinc interpolation (rubato).
     pub fn resample(&self, target_rate: u32) -> Self {
         if self.sample_rate == target_rate {
             return self.clone();
@@ -115,23 +116,38 @@ impl AudioBuffer {
         }
 
         let ratio = target_rate as f64 / self.sample_rate as f64;
-        let new_frame_count = (frame_count as f64 * ratio) as usize;
-        let mut resampled = Vec::with_capacity(new_frame_count * channels);
 
-        for i in 0..new_frame_count {
-            let src_pos = i as f64 / ratio;
-            let src_idx = src_pos as usize;
-            let frac = src_pos - src_idx as f64;
+        let params = SincInterpolationParameters {
+            sinc_len: 256,
+            f_cutoff: 0.95,
+            interpolation: SincInterpolationType::Linear,
+            oversampling_factor: 256,
+            window: WindowFunction::BlackmanHarris2,
+        };
 
+        let mut resampler =
+            SincFixedIn::<f32>::new(ratio, 2.0, params, frame_count, channels)
+                .expect("Failed to create resampler");
+
+        // Deinterleave into per-channel vecs
+        let mut channel_data: Vec<Vec<f32>> = vec![Vec::with_capacity(frame_count); channels];
+        for frame in 0..frame_count {
             for ch in 0..channels {
-                let s0 = self.samples[src_idx * channels + ch];
-                let s1 = if src_idx + 1 < frame_count {
-                    self.samples[(src_idx + 1) * channels + ch]
-                } else {
-                    s0
-                };
-                let interpolated = s0 as f64 * (1.0 - frac) + s1 as f64 * frac;
-                resampled.push(interpolated as f32);
+                channel_data[ch].push(self.samples[frame * channels + ch]);
+            }
+        }
+
+        // Process entire buffer at once
+        let output_channels = resampler
+            .process(&channel_data, None)
+            .expect("Resampling failed");
+
+        // Re-interleave
+        let out_frames = output_channels[0].len();
+        let mut resampled = Vec::with_capacity(out_frames * channels);
+        for frame in 0..out_frames {
+            for ch in 0..channels {
+                resampled.push(output_channels[ch][frame]);
             }
         }
 
@@ -293,21 +309,26 @@ mod tests {
     #[test]
     fn test_resample_upsampling() {
         // 22050 -> 44100 should roughly double the sample count
-        let samples: Vec<f32> = (0..100).map(|i| (i as f32) / 100.0).collect();
+        // Use a larger buffer so sinc filter padding is proportionally small
+        let samples: Vec<f32> = (0..4410).map(|i| (i as f32 * 0.1).sin()).collect();
         let buf = AudioBuffer::new(samples, 22050, 1);
         let resampled = buf.resample(44100);
         assert_eq!(resampled.sample_rate, 44100);
-        assert!(resampled.samples.len() >= 190 && resampled.samples.len() <= 210);
+        let len = resampled.samples.len();
+        // Sinc resampler adds ~sinc_len/2 filter delay, so output may differ slightly
+        assert!(len >= 8000 && len <= 9200, "expected ~8820 samples, got {}", len);
     }
 
     #[test]
     fn test_resample_downsampling() {
         // 44100 -> 22050 should roughly halve the sample count
-        let samples: Vec<f32> = (0..200).map(|i| (i as f32) / 200.0).collect();
+        // Use a larger buffer so sinc filter padding is proportionally small
+        let samples: Vec<f32> = (0..8820).map(|i| (i as f32 * 0.1).sin()).collect();
         let buf = AudioBuffer::new(samples, 44100, 1);
         let resampled = buf.resample(22050);
         assert_eq!(resampled.sample_rate, 22050);
-        assert!(resampled.samples.len() >= 90 && resampled.samples.len() <= 110);
+        let len = resampled.samples.len();
+        assert!(len >= 4000 && len <= 4800, "expected ~4410 samples, got {}", len);
     }
 
     #[test]
