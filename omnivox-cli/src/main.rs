@@ -332,6 +332,10 @@ fn print_help() {
     println!("    --check          Run diagnostic self-test");
     println!("    --list-voices    List available TTS voices");
     println!("    --engine NAME    Select TTS engine: native, espeak");
+    println!("    --dump-wav VOICE OUTPUT [TEXT]");
+    println!("                     Save TTS output to WAV files for analysis");
+    println!("                     Saves both raw (pre-pipeline) and processed versions");
+    println!("    --play-wav FILE  Play a WAV file through the rodio audio path");
     println!();
     println!("ENGINES:");
     println!("    native    Platform-native TTS: {}", native);

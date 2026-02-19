@@ -21,6 +21,7 @@ Omnivox is a cross-platform Emacspeak speech server written in Rust. It is a dro
 - **ObjC bridge** for macOS: `macos_bridge.m` compiled via `cc` crate in build.rs. This was necessary because Rust `block` crate produces blocks incompatible with AVSpeechSynthesizer's `writeUtterance:toBufferCallback:`.
 - **Persistent singleton AVSpeechSynthesizer** in the ObjC bridge for stop() support.
 - **AudioEffect trait** with `Vec<Box<dyn AudioEffect>>` pipeline for extensible processing.
+- **rubato** sinc resampler (256-tap BlackmanHarris2 window) for 22050Hz→44100Hz upsampling. Replaced naive linear interpolation which caused audible wobble.
 - **rodio** for cross-platform audio output and OGG/WAV decoding.
 - **OMNIVOX_ENGINE=espeak** environment variable to force espeak-ng on macOS.
 - **OMNIVOX_AUDIO_TARGET** environment variable for channel routing (left/right/both). Used by Emacspeak for dual-server notification mode.
@@ -64,6 +65,35 @@ make clean     # Clean build artifacts
 - omnivox-cli: 16 unit
 
 Run: `cargo test`
+
+## Audio Debug Tools
+
+### CLI Flags
+
+```bash
+# Dump TTS output to WAV files (raw + pipeline-processed)
+omnivox --dump-wav 'en-US:Alex' alex.wav Hello world
+
+# Play a WAV file through the rodio audio path (same as normal speech)
+omnivox --play-wav alex.wav
+```
+
+`--dump-wav` saves two files: `<name>_raw.wav` (post-resample, pre-pipeline) and `<name>.wav` (post-pipeline with silence trimming, volume, channel routing). Useful for isolating whether an audio issue is in synthesis, resampling, or the effects pipeline.
+
+`--play-wav` plays a WAV through the same rodio sink path as normal speech. Useful for A/B testing against `afplay` to isolate rodio playback issues.
+
+### tools/ Directory
+
+- **tools/tts_reference.swift** - Generate reference WAV files using AVSpeechSynthesizer directly (bypassing omnivox). Uses the same API and parameters as omnivox's ObjC bridge. Produces both raw (native sample rate) and resampled (44100Hz) versions.
+- **tools/compare_wavs.py** - Numerically compare two WAV files: RMS difference, correlation, SNR, per-segment analysis, and amplitude modulation detection.
+
+```bash
+# Generate reference WAV
+swift tools/tts_reference.swift "Alex" ref_alex.wav "Hello world"
+
+# Compare omnivox output vs reference
+python3 tools/compare_wavs.py omnivox.wav reference.wav
+```
 
 ## Manual Testing
 
@@ -130,7 +160,7 @@ echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 Key workspace dependencies (Cargo.toml):
 
 - tokio, thiserror, anyhow, tracing, tracing-subscriber, regex, once_cell
-- omnivox-tts: espeak-rs-sys (with compile-espeak-intonations), cc (build), windows v0.58 (Windows-only, WinRT SpeechSynthesizer)
+- omnivox-tts: espeak-rs-sys (with compile-espeak-intonations), rubato (sinc resampler), cc (build), windows v0.58 (Windows-only, WinRT SpeechSynthesizer)
 - omnivox-audio: rodio (vorbis + wav features)
 - omnivox-cli: all workspace crates + tokio
 
