@@ -1,112 +1,278 @@
 #!/bin/bash
-# Comprehensive test of omnivox features
-# Requires: built binary at ./target/release/omnivox
+# Comprehensive audio test of omnivox: protocol commands, all engines,
+# speech rates, and channel routing.
+#
+# Usage:
+#   ./test-all-features.sh              # use installed omnivox binary
+#   OMNIVOX_BIN=./target/release/omnivox ./test-all-features.sh
+#   PIPER_MODEL=/path/to/model.onnx ./test-all-features.sh
 
-set -e
+OMNIVOX="${OMNIVOX_BIN:-omnivox}"
+PIPER_MODEL="${PIPER_MODEL:-$HOME/piper-models/en_US-lessac-medium.onnx}"
 
-OMNIVOX="./target/release/omnivox"
-
-if [ ! -f "$OMNIVOX" ]; then
-    echo "Binary not found. Run 'make build' first."
+# Resolve to absolute path if given as relative
+if [[ "$OMNIVOX" != omnivox && ! -f "$OMNIVOX" ]]; then
+    echo "Binary not found: $OMNIVOX"
+    echo "Run 'make build' or 'make build-piper', or set OMNIVOX_BIN."
     exit 1
 fi
 
-echo "=== Testing Omnivox Features ==="
+# Detect whether piper is available
+HAS_PIPER=false
+if [ -f "$PIPER_MODEL" ]; then
+    HAS_PIPER=true
+fi
+
+pass=0
+fail=0
+
+# ---------------------------------------------------------------------------
+# Helper: run a protocol session, print result.
+#
+#   run_test LABEL WAIT_SECS [ENV=VAL ...] <<'EOF'
+#   protocol commands...
+#   EOF
+#
+# WAIT_SECS: how long to sleep inside the pipe to keep stdin open while
+#            audio plays.  Must be long enough for synthesis + playback.
+# ---------------------------------------------------------------------------
+run_test() {
+    local label="$1"
+    local wait="$2"
+    shift 2
+    local env_args=("$@")
+
+    printf "  %-55s" "$label"
+
+    local input
+    input="$(cat)"
+
+    if (printf "%s\n" "$input"; sleep "$wait") | \
+        env "${env_args[@]}" timeout $((wait + 5)) "$OMNIVOX" 2>/dev/null
+    then
+        echo " OK"
+        ((pass++))
+    else
+        echo " FAIL (exit $?)"
+        ((fail++))
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Section 1: Protocol command coverage (native engine)
+# ---------------------------------------------------------------------------
+echo "=== Section 1: Protocol Commands (native engine) ==="
 echo ""
 
-echo "Test 1: Version announcement"
-echo "version" | timeout 3 "$OMNIVOX" 2>/dev/null || true
-sleep 1
+run_test "1.1  tts_say basic" 4 <<'EOF'
+tts_say {Testing basic speech functionality.}
+EOF
 
-echo ""
-echo "Test 2: Basic speech"
-echo "tts_say {Testing basic speech functionality}" | timeout 5 "$OMNIVOX" 2>/dev/null || true
-sleep 1
-
-echo ""
-echo "Test 3: Queue and dispatch"
-cat << 'EOF' | timeout 8 "$OMNIVOX" 2>/dev/null || true
+run_test "1.2  Queue and dispatch" 6 <<'EOF'
 q {First sentence.}
 q {Second sentence.}
 q {Third sentence.}
 d
 EOF
-sleep 1
 
-echo ""
-echo "Test 4: Voice switching"
-cat << 'EOF' | timeout 8 "$OMNIVOX" 2>/dev/null || true
-c [{voice en-US:Samantha}]
-q {Hello, I am Samantha.}
-c [{voice en-US:Alex}]
-q {And I am Alex.}
-d
+run_test "1.3  tts_say with inline pitch" 4 <<'EOF'
+tts_say {[[pitch 1.4]] High pitch. [[pitch 0.7]] Low pitch.}
 EOF
-sleep 1
 
-echo ""
-echo "Test 5: Split caps"
-cat << 'EOF' | timeout 4 "$OMNIVOX" 2>/dev/null || true
-tts_split_caps 1
-tts_say {CamelCaseText}
-EOF
-sleep 1
-
-echo ""
-echo "Test 6: Speech rate control"
-cat << 'EOF' | timeout 8 "$OMNIVOX" 2>/dev/null || true
-tts_set_speech_rate 0.3
-tts_say {Speaking slowly.}
-tts_set_speech_rate 0.7
-tts_say {Speaking quickly.}
-EOF
-sleep 1
-
-echo ""
-echo "Test 7: Pitch control"
-cat << 'EOF' | timeout 8 "$OMNIVOX" 2>/dev/null || true
-tts_set_pitch_multiplier 0.8
-tts_say {Low pitch voice.}
-tts_set_pitch_multiplier 1.5
-tts_say {High pitch voice.}
-EOF
-sleep 1
-
-echo ""
-echo "Test 8: Letter speaking"
-cat << 'EOF' | timeout 5 "$OMNIVOX" 2>/dev/null || true
+run_test "1.4  Letter speaking" 4 <<'EOF'
 l A
-l b
+l B
 l C
 EOF
-sleep 1
 
-echo ""
-echo "Test 9: Tone generation"
-cat << 'EOF' | timeout 5 "$OMNIVOX" 2>/dev/null || true
-t 440 100
+run_test "1.5  Tone generation" 4 <<'EOF'
+t 440 200
 d
-t 880 100
+t 880 200
+d
+t 1320 200
 d
 EOF
-sleep 1
 
-echo ""
-echo "Test 10: Punctuation levels"
-cat << 'EOF' | timeout 8 "$OMNIVOX" 2>/dev/null || true
+run_test "1.6  Punctuation: all" 4 <<'EOF'
 tts_set_punctuations all
-tts_say {Hello, world! How are you?}
+tts_say {Hello, world! Cost: $5.00. Ready?}
+EOF
+
+run_test "1.7  Punctuation: none" 4 <<'EOF'
 tts_set_punctuations none
-tts_say {Hello, world! How are you?}
+tts_say {Hello, world! Cost: $5.00. Ready?}
 EOF
-sleep 1
+
+run_test "1.8  Split caps" 4 <<'EOF'
+tts_split_caps 1
+tts_say {CamelCaseIdentifier}
+EOF
+
+run_test "1.9  Stop command" 3 <<'EOF'
+tts_say {This is a long sentence that should be interrupted before it finishes.}
+s
+tts_say {Stop worked.}
+EOF
+
+# ---------------------------------------------------------------------------
+# Section 2: Engine comparison — same text on all three engines
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Section 2: Engine Comparison ==="
+echo ""
+
+run_test "2.1  Native engine" 5 <<'EOF'
+tts_say {This is the native platform voice speaking at normal speed.}
+EOF
+
+run_test "2.2  Espeak-ng engine" 5 \
+    OMNIVOX_ENGINE=espeak <<'EOF'
+tts_say {This is the espeak engine speaking at normal speed.}
+EOF
+
+if $HAS_PIPER; then
+    run_test "2.3  Piper neural engine" 8 \
+        OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" <<'EOF'
+tts_say {This is the piper neural voice speaking at normal speed.}
+EOF
+else
+    echo "  2.3  Piper neural engine                                SKIPPED (no model at $PIPER_MODEL)"
+fi
+
+# ---------------------------------------------------------------------------
+# Section 3: Speech rate tests — slow / normal / fast per engine
+#
+# Rate scale: 0-100 integer, where 50 = normal, lower = faster, higher = slower.
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Section 3: Speech Rate Tests ==="
+echo ""
+
+echo "  --- Native ---"
+run_test "3.1  Native slow   (rate 75)" 6 <<'EOF'
+tts_set_speech_rate 75
+tts_say {This is native speech at a slow rate. Notice the pace.}
+EOF
+
+run_test "3.2  Native normal (rate 50)" 5 <<'EOF'
+tts_set_speech_rate 50
+tts_say {This is native speech at normal speed. Notice the pace.}
+EOF
+
+run_test "3.3  Native fast   (rate 25)" 4 <<'EOF'
+tts_set_speech_rate 25
+tts_say {This is native speech at a fast rate. Notice the pace.}
+EOF
 
 echo ""
-echo "Test 11: espeak-ng engine"
-cat << 'EOF' | OMNIVOX_ENGINE=espeak timeout 5 "$OMNIVOX" 2>/dev/null || true
-tts_say {This is the espeak engine speaking.}
+echo "  --- Espeak ---"
+run_test "3.4  Espeak slow   (rate 75)" 6 \
+    OMNIVOX_ENGINE=espeak <<'EOF'
+tts_set_speech_rate 75
+tts_say {This is espeak at a slow rate. Notice the pace.}
 EOF
-sleep 1
+
+run_test "3.5  Espeak normal (rate 50)" 5 \
+    OMNIVOX_ENGINE=espeak <<'EOF'
+tts_set_speech_rate 50
+tts_say {This is espeak at normal speed. Notice the pace.}
+EOF
+
+run_test "3.6  Espeak fast   (rate 25)" 4 \
+    OMNIVOX_ENGINE=espeak <<'EOF'
+tts_set_speech_rate 25
+tts_say {This is espeak at a fast rate. Notice the pace.}
+EOF
+
+if $HAS_PIPER; then
+    echo ""
+    echo "  --- Piper ---"
+    run_test "3.7  Piper slow   (rate 75)" 10 \
+        OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" <<'EOF'
+tts_set_speech_rate 75
+tts_say {This is piper at a slow rate. Notice the pace.}
+EOF
+
+    run_test "3.8  Piper normal (rate 50)" 9 \
+        OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" <<'EOF'
+tts_set_speech_rate 50
+tts_say {This is piper at normal speed. Notice the pace.}
+EOF
+
+    run_test "3.9  Piper fast   (rate 25)" 8 \
+        OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" <<'EOF'
+tts_set_speech_rate 25
+tts_say {This is piper at a fast rate. Notice the pace.}
+EOF
+else
+    echo "  3.7-3.9  Piper rate tests                               SKIPPED"
+fi
+
+# ---------------------------------------------------------------------------
+# Section 4: Channel routing — left / right / both
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Section 4: Channel Routing ==="
+echo ""
+
+echo "  --- Native ---"
+run_test "4.1  Native left channel" 4 \
+    OMNIVOX_AUDIO_TARGET=left <<'EOF'
+tts_say {Left ear only. Left ear only.}
+EOF
+
+run_test "4.2  Native right channel" 4 \
+    OMNIVOX_AUDIO_TARGET=right <<'EOF'
+tts_say {Right ear only. Right ear only.}
+EOF
+
+run_test "4.3  Native both channels" 4 \
+    OMNIVOX_AUDIO_TARGET=both <<'EOF'
+tts_say {Both ears. Both ears.}
+EOF
 
 echo ""
-echo "=== All tests complete ==="
+echo "  --- Espeak ---"
+run_test "4.4  Espeak left channel" 4 \
+    OMNIVOX_ENGINE=espeak OMNIVOX_AUDIO_TARGET=left <<'EOF'
+tts_say {Left ear only. Left ear only.}
+EOF
+
+run_test "4.5  Espeak right channel" 4 \
+    OMNIVOX_ENGINE=espeak OMNIVOX_AUDIO_TARGET=right <<'EOF'
+tts_say {Right ear only. Right ear only.}
+EOF
+
+run_test "4.6  Espeak both channels" 4 \
+    OMNIVOX_ENGINE=espeak OMNIVOX_AUDIO_TARGET=both <<'EOF'
+tts_say {Both ears. Both ears.}
+EOF
+
+if $HAS_PIPER; then
+    echo ""
+    echo "  --- Piper ---"
+    run_test "4.7  Piper left channel" 8 \
+        OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" OMNIVOX_AUDIO_TARGET=left <<'EOF'
+tts_say {Left ear only. Left ear only.}
+EOF
+
+    run_test "4.8  Piper right channel" 8 \
+        OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" OMNIVOX_AUDIO_TARGET=right <<'EOF'
+tts_say {Right ear only. Right ear only.}
+EOF
+
+    run_test "4.9  Piper both channels" 8 \
+        OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" OMNIVOX_AUDIO_TARGET=both <<'EOF'
+tts_say {Both ears. Both ears.}
+EOF
+else
+    echo "  4.7-4.9  Piper channel tests                            SKIPPED"
+fi
+
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Results: $pass passed, $fail failed ==="
+[ "$fail" -eq 0 ]
