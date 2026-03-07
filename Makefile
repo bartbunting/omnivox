@@ -47,3 +47,11 @@ watch:
 # Install binary to ~/.cargo/bin
 install:
 	cargo install --path omnivox-cli
+
+# Build with piper neural TTS support (requires cmake + network on first run)
+build-piper:
+	cargo build --release --features piper -p omnivox-cli
+
+# Install piper-enabled binary to ~/.cargo/bin
+install-piper:
+	cargo install --path omnivox-cli --features piper

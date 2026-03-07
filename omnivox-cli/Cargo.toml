@@ -5,6 +5,11 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[features]
+# Opt-in piper neural TTS backend (propagates to omnivox-tts).
+# Requires cmake, a C++17 compiler, and network access on first build.
+piper = ["omnivox-tts/piper"]
+
 [[bin]]
 name = "omnivox"
 path = "src/main.rs"

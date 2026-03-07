@@ -5,6 +5,11 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[features]
+# Opt-in piper neural TTS backend. Requires cmake, a C++17 compiler, and
+# network access on first build to download onnxruntime + piper-phonemize.
+piper = ["omnivox-piper-sys"]
+
 [dependencies]
 thiserror.workspace = true
 tracing.workspace = true
@@ -13,6 +18,9 @@ rubato = "0.16"
 
 # espeak-ng (always compiled in as cross-platform fallback)
 espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"] }
+
+# piper neural TTS (optional — enabled with --features piper)
+omnivox-piper-sys = { path = "../omnivox-piper-sys", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [

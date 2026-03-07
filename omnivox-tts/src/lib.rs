@@ -8,6 +8,8 @@ use thiserror::Error;
 pub mod espeak;
 pub mod macos;
 pub mod windows;
+#[cfg(feature = "piper")]
+pub mod piper;
 
 /// TTS engine errors
 #[derive(Debug, Error)]

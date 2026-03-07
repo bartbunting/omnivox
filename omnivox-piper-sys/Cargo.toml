@@ -1,0 +1,15 @@
+[package]
+name = "omnivox-piper-sys"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+# Declares this crate owns the "piper" native library — prevents duplicate linking.
+links = "piper"
+
+[lib]
+name = "omnivox_piper_sys"
+
+[build-dependencies]
+cc = "1"
+bindgen = "0.69"

@@ -31,6 +31,8 @@ use omnivox_core::{
 use omnivox_tts::espeak::EspeakTtsEngine;
 #[cfg(target_os = "macos")]
 use omnivox_tts::macos::MacOsTtsEngine;
+#[cfg(feature = "piper")]
+use omnivox_tts::piper::PiperTtsEngine;
 #[cfg(target_os = "windows")]
 use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::{TtsEngine, TtsSettings};
@@ -294,14 +296,51 @@ fn build_sound_pipeline(state: &TtsState) -> AudioPipeline {
 // Engine creation
 // ---------------------------------------------------------------------------
 
-fn create_engine(engine_name: &str) -> Result<Arc<dyn TtsEngine>> {
+fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Arc<dyn TtsEngine>> {
     let forced = if engine_name.is_empty() {
         std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
     } else {
         engine_name.to_string()
     };
 
-    if forced != "espeak" {
+    // Explicit piper selection
+    if forced == "piper" {
+        #[cfg(feature = "piper")]
+        {
+            // CLI flag takes precedence over env var
+            let model = _piper_model
+                .map(str::to_string)
+                .or_else(|| std::env::var("OMNIVOX_PIPER_MODEL").ok());
+
+            match model {
+                Some(ref path) => match PiperTtsEngine::new(path) {
+                    Ok(engine) => {
+                        info!("Using piper neural TTS engine: {}", path);
+                        return Ok(Arc::new(engine));
+                    }
+                    Err(e) => {
+                        warn!("Piper TTS not available: {}, falling back to espeak-ng", e);
+                    }
+                },
+                None => {
+                    warn!(
+                        "OMNIVOX_ENGINE=piper but no model path given. \
+                         Set OMNIVOX_PIPER_MODEL or use --piper-model. \
+                         Falling back to espeak-ng."
+                    );
+                }
+            }
+        }
+        #[cfg(not(feature = "piper"))]
+        {
+            warn!(
+                "OMNIVOX_ENGINE=piper but omnivox was built without piper support. \
+                 Rebuild with --features piper. Falling back to espeak-ng."
+            );
+        }
+    }
+
+    if forced != "espeak" && forced != "piper" {
         #[cfg(target_os = "macos")]
         {
             match MacOsTtsEngine::new() {
@@ -366,7 +405,7 @@ fn print_help() {
     println!("    --check          Run diagnostic self-test");
     println!("    --list-voices    List available TTS voices");
     println!("    --list-voices-alist  List voices as Emacs-readable alist");
-    println!("    --engine NAME    Select TTS engine: native, espeak");
+    println!("    --engine NAME    Select TTS engine: native, espeak, piper");
     println!("    --voice ID       Set default voice (e.g. en-US:Alex)");
     println!("    --rate FLOAT     Speech rate 0.0-1.0 (0.5 = normal)");
     println!("    --pitch FLOAT    Pitch multiplier 0.5-2.0 (1.0 = normal)");
@@ -374,6 +413,7 @@ fn print_help() {
     println!("    --tone-volume F  Tone volume 0.0-1.0");
     println!("    --sound-volume F Sound/icon volume 0.0-1.0");
     println!("    --audio-target T Channel routing (left, right, both)");
+    println!("    --piper-model P  Path to a piper .onnx model file (use with --engine piper)");
     println!("    --dump-wav VOICE OUTPUT [TEXT]");
     println!("                     Save TTS output to WAV files for analysis");
     println!("    --play-wav FILE  Play a WAV file through the rodio audio path");
@@ -381,11 +421,13 @@ fn print_help() {
     println!("ENGINES:");
     println!("    native    Platform-native TTS: {}", native);
     println!("    espeak    espeak-ng (cross-platform, always available)");
+    println!("    piper     Piper neural TTS (build with --features piper; requires --piper-model)");
     println!();
     println!("Without options, starts the Emacspeak protocol server on stdin.");
     println!();
     println!("ENVIRONMENT (for Emacspeak integration only):");
     println!("    OMNIVOX_ENGINE         Same as --engine");
+    println!("    OMNIVOX_PIPER_MODEL    Path to piper .onnx model (same as --piper-model)");
     println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (set by Emacspeak notification mode)");
     println!();
     println!("EMACSPEAK SETUP:");
@@ -452,7 +494,7 @@ fn cmd_check(engine_name: &str) {
     println!();
 
     println!("[engine]");
-    let engine: Arc<dyn TtsEngine> = match create_engine(engine_name) {
+    let engine: Arc<dyn TtsEngine> = match create_engine(engine_name, None) {
         Ok(e) => {
             println!("  Status: OK");
             e
@@ -583,7 +625,7 @@ fn write_wav(path: &str, samples: &[f32], sample_rate: u32, channels: u16) -> Re
 }
 
 fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
-    let engine = match create_engine(engine_name) {
+    let engine = match create_engine(engine_name, None) {
         Ok(e) => e,
         Err(e) => {
             eprintln!("Failed to create TTS engine: {}", e);
@@ -754,6 +796,9 @@ struct CliArgs {
     tone_volume: Option<f32>,
     sound_volume: Option<f32>,
     audio_target: Option<String>,
+    /// Path to a piper .onnx model file (used when --engine piper).
+    /// Overrides OMNIVOX_PIPER_MODEL env var.
+    piper_model: Option<String>,
 }
 
 fn parse_float_flag(flag: &str, args: &[String], i: &mut usize) -> f32 {
@@ -791,6 +836,7 @@ fn parse_args() -> CliArgs {
         tone_volume: None,
         sound_volume: None,
         audio_target: None,
+        piper_model: None,
     };
 
     let mut i = 0;
@@ -811,6 +857,7 @@ fn parse_args() -> CliArgs {
             "--tone-volume" => cli.tone_volume = Some(parse_float_flag("--tone-volume", &args, &mut i)),
             "--sound-volume" => cli.sound_volume = Some(parse_float_flag("--sound-volume", &args, &mut i)),
             "--audio-target" => cli.audio_target = Some(parse_string_flag("--audio-target", &args, &mut i)),
+            "--piper-model" => cli.piper_model = Some(parse_string_flag("--piper-model", &args, &mut i)),
             other => {
                 if cli.action == "dump-wav" || cli.action == "play-wav" {
                     break;
@@ -1492,12 +1539,12 @@ fn main() -> Result<()> {
             return Ok(());
         }
         "list-voices" => {
-            let engine = create_engine(&cli.engine)?;
+            let engine = create_engine(&cli.engine, cli.piper_model.as_deref())?;
             cmd_list_voices(engine.as_ref());
             return Ok(());
         }
         "list-voices-alist" => {
-            let engine = create_engine(&cli.engine)?;
+            let engine = create_engine(&cli.engine, cli.piper_model.as_deref())?;
             cmd_list_voices_alist(engine.as_ref());
             return Ok(());
         }
@@ -1541,7 +1588,7 @@ fn main() -> Result<()> {
 
     info!("Omnivox v{} starting", VERSION);
 
-    let engine = create_engine(&cli.engine)?;
+    let engine = create_engine(&cli.engine, cli.piper_model.as_deref())?;
     info!("TTS engine initialized");
 
     let voices = engine.available_voices();

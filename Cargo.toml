@@ -5,6 +5,19 @@ members = [
     "omnivox-tts",
     "omnivox-audio",
     "omnivox-cli",
+    "omnivox-piper-sys",
+]
+# Normal builds (cargo build / make build) only compile these crates.
+# omnivox-piper-sys is excluded because its build requires cmake + network
+# access to download onnxruntime on first use. Build it explicitly with:
+#   cargo build -p omnivox-piper-sys
+# or via the piper feature:
+#   cargo build --features piper -p omnivox-cli
+default-members = [
+    "omnivox-core",
+    "omnivox-tts",
+    "omnivox-audio",
+    "omnivox-cli",
 ]
 
 [workspace.dependencies]
@@ -21,3 +34,5 @@ version = "1.1.0"
 edition = "2021"
 authors = ["Robert Melton <rmelton@users.noreply.github.com>"]
 license = "MIT"
+
+
