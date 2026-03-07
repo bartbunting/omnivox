@@ -16,81 +16,103 @@ fn run(cmd: &mut Command) {
     assert!(status.success(), "command failed: {:?}", cmd);
 }
 
-/// Clone or update piper source tree.
+/// Clone piper source tree if not already present.
+/// We only need the source files, not the piper cmake build system.
 fn ensure_piper_source(piper_dir: &Path) {
-    if piper_dir.join("CMakeLists.txt").exists() {
+    // Check for piper.hpp as the definitive marker that the source is present.
+    if piper_dir.join("src").join("cpp").join("piper.hpp").exists() {
         return;
     }
     println!("cargo:warning=Cloning piper source (first build only)...");
     run(Command::new("git").args([
         "clone",
         "--depth=1",
-        "--recurse-submodules",
         "https://github.com/rhasspy/piper",
         piper_dir.to_str().unwrap(),
     ]));
 }
 
-/// Run cmake to configure and build piper (downloads onnxruntime + piper-phonemize).
-fn cmake_build(piper_dir: &Path, build_dir: &Path) -> PathBuf {
+/// Run our CMakeLists.txt (in manifest_dir) which downloads deps and builds
+/// libpiper_bridge.a.  The cmake source is manifest_dir itself (our custom
+/// CMakeLists.txt lives there); deps and outputs go into build_dir.
+fn cmake_build(manifest_dir: &Path, build_dir: &Path) {
     std::fs::create_dir_all(build_dir).unwrap();
 
-    // Configure
+    // Configure — source is manifest_dir (our CMakeLists.txt)
     let mut cfg = Command::new("cmake");
-    cfg.arg(piper_dir.join("src/cpp"))
+    cfg.arg(manifest_dir)
         .arg(format!("-B{}", build_dir.display()))
         .arg("-DCMAKE_BUILD_TYPE=Release")
-        .arg("-DBUILD_SHARED_LIBS=OFF")  // static piper + piper-phonemize
-        .arg("-DPIPER_PHONEMIZE_DIR=")   // let cmake fetch it
         .current_dir(build_dir);
-
-    // On macOS silence the pcaudio warning
-    if cfg!(target_os = "macos") {
-        cfg.arg("-DUSE_LIBPCAUDIO=OFF");
-    }
 
     run(&mut cfg);
 
-    // Build
+    // Build (--parallel lets cmake use all cores)
     let mut build = Command::new("cmake");
-    build.args(["--build", build_dir.to_str().unwrap(),
-                "--config", "Release",
-                "--parallel"]);
+    build.args([
+        "--build", build_dir.to_str().unwrap(),
+        "--config", "Release",
+        "--parallel",
+    ]);
     run(&mut build);
 
-    build_dir.to_path_buf()
+    // Install libpiper_bridge.a into build_dir/install/lib
+    let mut install = Command::new("cmake");
+    install.args([
+        "--install", build_dir.to_str().unwrap(),
+        "--config", "Release",
+    ]);
+    run(&mut install);
 }
 
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    let piper_src  = manifest_dir.join("piper");
-    let build_dir  = out_dir.join("piper-build");
+    let piper_src = manifest_dir.join("piper");
+    let build_dir = out_dir.join("piper-build");
+    // Our CMakeLists.txt installs everything (libs + headers) here.
+    let install_dir = build_dir.join("install");
 
-    // --- Source ------------------------------------------------------------
+    // --- Clone piper source if needed ------------------------------------
     ensure_piper_source(&piper_src);
 
-    // --- CMake build -------------------------------------------------------
-    cmake_build(&piper_src, &build_dir);
+    // --- CMake build ------------------------------------------------------
+    // Builds libpiper_bridge.a and all deps (fmt, spdlog, piper-phonemize).
+    cmake_build(&manifest_dir, &build_dir);
 
-    // After cmake builds, onnxruntime pre-built lives under:
-    //   build_dir/piper_phonemize-prefix/  (or similar FetchContent location)
-    // and piper-phonemize static lib is somewhere under build_dir.
-    // We discover the lib search paths by globbing.
+    // --- Link paths -------------------------------------------------------
+    let lib_dir = install_dir.join("lib");
 
-    // Search paths for static libs
-    for entry in walkdir_libs(&build_dir) {
-        println!("cargo:rustc-link-search={}", entry.display());
+    // Add the install lib directory to the linker search path.
+    println!("cargo:rustc-link-search={}", lib_dir.display());
+
+    // piper_bridge.a is also left in build_dir by cmake before install.
+    println!("cargo:rustc-link-search={}", build_dir.display());
+
+    // Walk for any additional .a files (spdlog builds into a sub-dir).
+    for dir in walkdir_libs(&build_dir) {
+        println!("cargo:rustc-link-search={}", dir.display());
     }
 
-    // Link order matters: piper depends on piper_phonemize, which depends on
-    // espeak-ng and onnxruntime.
-    println!("cargo:rustc-link-lib=static=piper");
-    println!("cargo:rustc-link-lib=static=piper_phonemize");
-    println!("cargo:rustc-link-lib=static=espeak-ng");
-    // onnxruntime from piper-phonemize's fetch — dynamic
+    // Static libs (built from source by cmake)
+    println!("cargo:rustc-link-lib=static=piper_bridge");
+    println!("cargo:rustc-link-lib=static=fmt");
+    println!("cargo:rustc-link-lib=static=spdlog");
+
+    // piper-phonemize, espeak-ng, and onnxruntime are built as dynamic libs
+    // on macOS (and Linux). They are loaded at runtime from install/lib/.
+    println!("cargo:rustc-link-lib=dylib=piper_phonemize");
     println!("cargo:rustc-link-lib=dylib=onnxruntime");
+    // espeak-ng is a transitive dep of piper_phonemize; link it explicitly
+    // so the linker finds the right copy (not espeak-rs-sys's static copy).
+    println!("cargo:rustc-link-lib=dylib=espeak-ng");
+
+    // Expose the lib dir path via the DEP_ mechanism so the final binary's
+    // build script (omnivox-cli/build.rs) can embed the rpath.
+    // cargo:rustc-link-arg in a lib build script does NOT propagate to the
+    // final binary — only cargo:rustc-link-lib and cargo:rustc-link-search do.
+    println!("cargo:RPATH={}", lib_dir.display());
 
     // Platform C++ stdlib
     if cfg!(target_os = "macos") {
@@ -99,28 +121,12 @@ fn main() {
         println!("cargo:rustc-link-lib=stdc++");
     }
 
-    // --- Compile C++ bridge ------------------------------------------------
-    // piper-phonemize installs headers into its own prefix dir.
-    let phonemize_include = find_dir(&build_dir, "piper-phonemize");
-    let ort_include       = find_dir(&build_dir, "onnxruntime");
+    // --- Bindgen (no cc::Build needed — piper.cpp is compiled by cmake) ---
+    // We still need include paths for bindgen to parse piper_bridge.h.
+    let include_dir = install_dir.join("include");
 
-    let mut bridge = cc::Build::new();
-    bridge
-        .cpp(true)
-        .std("c++17")
-        .file(manifest_dir.join("piper_bridge.cpp"))
-        .include(manifest_dir.join("piper/src/cpp"));
-    if let Some(ref p) = phonemize_include {
-        bridge.include(p);
-    }
-    if let Some(ref p) = ort_include {
-        bridge.include(p);
-    }
-    bridge.compile("piper_bridge");
-
-    // Emit the espeak-ng data path bundled with piper-phonemize so that
-    // the Rust TTS engine can find it at runtime without user configuration.
-    if let Some(data_path) = find_piper_espeak_data(&build_dir) {
+    // Emit the espeak-ng data path so the Rust engine can find it at runtime.
+    if let Some(data_path) = find_piper_espeak_data(&install_dir) {
         println!(
             "cargo:rustc-env=PIPER_ESPEAK_DATA_DIR={}",
             data_path.display()
@@ -130,13 +136,18 @@ fn main() {
     }
 
     // --- Bindgen -----------------------------------------------------------
-    let bindings = bindgen::Builder::default()
+    let mut builder = bindgen::Builder::default()
         .header(manifest_dir.join("wrapper.h").to_str().unwrap())
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .allowlist_function("piper_.*")
-        .allowlist_type("PiperState")
-        .generate()
-        .expect("bindgen failed");
+        .allowlist_type("PiperState");
+
+    // Add include paths so bindgen can resolve stdint.h etc.
+    if include_dir.exists() {
+        builder = builder.clang_arg(format!("-I{}", include_dir.display()));
+    }
+
+    let bindings = builder.generate().expect("bindgen failed");
 
     bindings
         .write_to_file(out_dir.join("bindings.rs"))
@@ -163,38 +174,13 @@ fn collect_lib_dirs(dir: &Path, out: &mut Vec<PathBuf>) {
         if path.is_dir() {
             collect_lib_dirs(&path, out);
         } else if let Some(ext) = path.extension() {
-            if ext == "a" || ext == "lib" {
+            if matches!(ext.to_str(), Some("a" | "lib" | "dylib" | "so")) {
                 if let Some(parent) = path.parent() {
                     out.push(parent.to_path_buf());
                 }
             }
         }
     }
-}
-
-/// Find the first directory under `root` whose name contains `needle`.
-fn find_dir(root: &Path, needle: &str) -> Option<PathBuf> {
-    find_dir_inner(root, needle)
-}
-
-fn find_dir_inner(dir: &Path, needle: &str) -> Option<PathBuf> {
-    let Ok(entries) = std::fs::read_dir(dir) else { return None };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            if path.file_name()
-                   .and_then(|n| n.to_str())
-                   .map(|n| n.contains(needle))
-                   .unwrap_or(false)
-            {
-                return Some(path);
-            }
-            if let Some(found) = find_dir_inner(&path, needle) {
-                return Some(found);
-            }
-        }
-    }
-    None
 }
 
 /// Locate the espeak-ng-data directory installed by piper-phonemize.

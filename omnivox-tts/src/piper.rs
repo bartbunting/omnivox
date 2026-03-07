@@ -25,9 +25,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tracing::{debug, info, warn};
 
-/// espeak-ng data path embedded at build time by omnivox-piper-sys/build.rs.
-/// Empty string if not found during build (runtime paths are tried instead).
-const PIPER_ESPEAK_DATA_DIR: &str = env!("PIPER_ESPEAK_DATA_DIR");
+/// espeak-ng data path discovered at build time by omnivox-piper-sys/build.rs.
+/// Exposed as a pub const in the sys crate so we can reference it here.
+use omnivox_piper_sys::PIPER_ESPEAK_DATA_DIR;
 
 /// Piper neural TTS engine.
 ///
@@ -40,7 +40,8 @@ pub struct PiperTtsEngine {
     state: Mutex<*mut omnivox_piper_sys::PiperState>,
     /// Display name derived from the model filename.
     voice_name: String,
-    /// The model path, kept for voice listing.
+    /// The model path, kept for voice listing (language extraction etc.).
+    #[allow(dead_code)]
     model_path: PathBuf,
 }
 

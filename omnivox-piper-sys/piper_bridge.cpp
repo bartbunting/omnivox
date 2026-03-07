@@ -3,12 +3,46 @@
  */
 
 #include "piper_bridge.h"
-#include "piper/src/cpp/piper.hpp"
+// piper.hpp is on the include path via cmake target_include_directories
+#include "piper.hpp"
 
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <stdexcept>
 #include <vector>
+
+#ifdef __APPLE__
+#include <dlfcn.h>
+// AUDIO_OUTPUT_SYNCHRONOUS = 2 (from espeak-ng/speak_lib.h)
+static const int ESPEAK_AUDIO_OUTPUT_SYNCHRONOUS = 2;
+
+// On macOS the binary statically links libespeak-ng.a (from espeak-rs-sys)
+// AND loads libespeak-ng.dylib at runtime (as a transitive dep of
+// piper_phonemize.dylib).  These are TWO separate espeak-ng instances with
+// separate global state.  piper::initialize() calls espeak_Initialize() on
+// the STATIC instance; piper_phonemize.dylib's espeak_SetVoiceByName() goes
+// to the DYNAMIC instance (two-level namespace binding).  If the dynamic
+// instance is never initialized, SetVoiceByName fails with "Failed to set
+// eSpeak-ng voice".
+//
+// Fix: open the piper espeak dylib by its install path (baked in at build
+// time) and call its espeak_Initialize directly.
+static void init_dynamic_espeak(const char *data_path) {
+    using EspeakInitFn = int (*)(int, int, const char *, int);
+    // PIPER_LIB_DIR is defined by cmake to the install/lib directory.
+    void *lib = dlopen(PIPER_LIB_DIR "/libespeak-ng.1.dylib",
+                       RTLD_NOW | RTLD_LOCAL);
+    if (!lib) return;
+    auto fn = reinterpret_cast<EspeakInitFn>(dlsym(lib, "espeak_Initialize"));
+    if (fn) {
+        fn(ESPEAK_AUDIO_OUTPUT_SYNCHRONOUS, 0, data_path, 0);
+    }
+    // dlclose decrements our ref-count; the lib stays loaded because it is
+    // also a required LOAD_DYLIB of the binary itself.
+    dlclose(lib);
+}
+#endif // __APPLE__
 
 struct PiperState {
     piper::PiperConfig config;
@@ -30,6 +64,13 @@ PiperState *piper_init(const char *espeak_data_path) {
         delete state;
         return nullptr;
     }
+#ifdef __APPLE__
+    // Initialize the dynamic espeak-ng instance used by piper_phonemize.dylib.
+    // piper::initialize() already called espeak_Initialize on the static
+    // libespeak-ng.a; we must also call it on the dynamic .dylib so that
+    // piper_phonemize's two-level-namespace-bound espeak calls succeed.
+    init_dynamic_espeak(espeak_data_path);
+#endif
     return state;
 }
 
@@ -47,6 +88,8 @@ int piper_load_voice(PiperState *state,
                          /*useCuda=*/false);
         state->voice_loaded = true;
         return 0;
+    } catch (const std::exception &e) {
+        return 1;
     } catch (...) {
         return 1;
     }
@@ -78,6 +121,8 @@ int16_t *piper_synthesize(PiperState *state,
                            audio_buffer,
                            result,
                            nullptr /* no streaming callback */);
+    } catch (const std::exception &e) {
+        return nullptr;
     } catch (...) {
         return nullptr;
     }

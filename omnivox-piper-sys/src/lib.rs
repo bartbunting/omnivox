@@ -16,4 +16,8 @@
 #![allow(dead_code)]
 #![allow(clippy::all)]
 
+/// espeak-ng data directory discovered at build time (parent of espeak-ng-data/).
+/// Empty string if not found during build; runtime fallback paths will be tried.
+pub const PIPER_ESPEAK_DATA_DIR: &str = env!("PIPER_ESPEAK_DATA_DIR");
+
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
