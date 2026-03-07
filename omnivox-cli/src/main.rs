@@ -1500,10 +1500,12 @@ fn handle_command(
 
 fn insert_space_before_uppercase(input: &str) -> String {
     let mut result = String::with_capacity(input.len() * 2);
+    let mut prev_lower = false;
     for c in input.chars() {
-        if c.is_uppercase() && !result.is_empty() {
+        if c.is_uppercase() && prev_lower {
             result.push(' ');
         }
+        prev_lower = c.is_lowercase();
         result.push(c);
     }
     result
@@ -1667,8 +1669,13 @@ mod tests {
 
     #[test]
     fn test_insert_space_before_uppercase() {
+        // CamelCase: split at lowercase→uppercase transition
         assert_eq!(insert_space_before_uppercase("helloWorld"), "hello World");
-        assert_eq!(insert_space_before_uppercase("HTTPServer"), "H T T P Server");
+        assert_eq!(insert_space_before_uppercase("CamelCaseIdentifier"), "Camel Case Identifier");
+        // Acronyms: no split between adjacent uppercase letters (uppercase→uppercase)
+        assert_eq!(insert_space_before_uppercase("HTTPServer"), "HTTPServer");
+        assert_eq!(insert_space_before_uppercase("isHTTPMethod"), "is HTTPMethod");
+        // No uppercase: unchanged
         assert_eq!(insert_space_before_uppercase("lowercase"), "lowercase");
     }
 

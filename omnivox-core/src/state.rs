@@ -119,7 +119,7 @@ impl Default for TtsState {
             pitch_multiplier: 1.0,
             speech_rate: 0.5,
             punctuation_level: PunctuationLevel::All,
-            split_caps: false,
+            split_caps: true,
             allcaps_beep: false,
             voice_volume: 1.0,
             tone_volume: 1.0,
@@ -171,7 +171,7 @@ mod tests {
         assert_eq!(state.pitch_multiplier, 1.0);
         assert_eq!(state.speech_rate, 0.5);
         assert_eq!(state.punctuation_level, PunctuationLevel::All);
-        assert!(!state.split_caps);
+        assert!(state.split_caps);
         assert!(!state.allcaps_beep);
     }
 
