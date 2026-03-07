@@ -74,7 +74,7 @@ PiperState *piper_init(const char *espeak_data_path) {
     // piper's log messages don't pollute the protocol stream (or corrupt
     // --list-voices-alist output).
     spdlog::set_default_logger(std::make_shared<spdlog::logger>(
-        "piper", std::make_shared<spdlog::sinks::stderr_color_sink_mt>()));
+        "omnivox_piper", std::make_shared<spdlog::sinks::stderr_color_sink_mt>()));
 
     auto *state = new (std::nothrow) PiperState();
     if (!state) return nullptr;

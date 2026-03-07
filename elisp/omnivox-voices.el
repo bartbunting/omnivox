@@ -145,7 +145,7 @@ Returns a list of (ID NAME LANGUAGE QUALITY) entries."
                        (format "%s --list-voices-alist 2>/dev/null" exe)))
                  ;; Find the start of the alist in case piper/ONNX printed
                  ;; anything to stdout before our output.
-                 (start (string-match "(" raw)))
+                 (start (string-search "(" raw)))
             (when start
               (car (read-from-string raw start))))
         (error nil)))))
@@ -196,7 +196,10 @@ lower is faster, higher is slower."
   :type 'integer
   :set #'(lambda (sym val)
            (set-default sym val)
-           (when (string-match "omnivox\\'" dtk-program)
+           (when (and (string-match "omnivox\\'" dtk-program)
+                      (boundp 'dtk-speaker-process)
+                      (process-live-p dtk-speaker-process))
+             (setq dtk-speech-rate val)
              (setq-default dtk-speech-rate val)
              (omnivox--send (format "tts_set_speech_rate %s" val)))))
 
@@ -328,6 +331,7 @@ Float from 0.0 (silent) to 1.0 (full)."
   "Set Omnivox speech rate to RATE (0-100, 50 = normal speed)."
   (interactive "nSpeech rate (0-100): ")
   (cl-declare (special dtk-speech-rate))
+  (set-default 'omnivox-speech-rate rate)
   (setq dtk-speech-rate rate)
   (setq-default dtk-speech-rate rate)
   (omnivox--send (format "tts_set_speech_rate %s" rate))
