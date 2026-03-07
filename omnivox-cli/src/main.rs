@@ -548,6 +548,11 @@ fn cmd_check(engine_name: &str) {
     println!("Diagnostic check complete. If you heard a tone and speech, everything is working.");
 }
 
+// WAV format constants
+const WAV_FMT_CHUNK_SIZE: u32 = 16;
+const WAV_FORMAT_IEEE_FLOAT: u16 = 3;
+const WAV_BITS_PER_SAMPLE: u16 = 32;
+
 fn write_wav(path: &str, samples: &[f32], sample_rate: u32, channels: u16) -> Result<()> {
     let bytes_per_sample: u32 = 4;
     let data_size = samples.len() as u32 * bytes_per_sample;
@@ -558,15 +563,15 @@ fn write_wav(path: &str, samples: &[f32], sample_rate: u32, channels: u16) -> Re
     f.write_all(b"WAVE")?;
 
     f.write_all(b"fmt ")?;
-    f.write_all(&16u32.to_le_bytes())?;
-    f.write_all(&3u16.to_le_bytes())?;
+    f.write_all(&WAV_FMT_CHUNK_SIZE.to_le_bytes())?;
+    f.write_all(&WAV_FORMAT_IEEE_FLOAT.to_le_bytes())?;
     f.write_all(&channels.to_le_bytes())?;
     f.write_all(&sample_rate.to_le_bytes())?;
     let byte_rate = sample_rate * channels as u32 * bytes_per_sample;
     f.write_all(&byte_rate.to_le_bytes())?;
     let block_align = channels * bytes_per_sample as u16;
     f.write_all(&block_align.to_le_bytes())?;
-    f.write_all(&32u16.to_le_bytes())?;
+    f.write_all(&WAV_BITS_PER_SAMPLE.to_le_bytes())?;
 
     f.write_all(b"data")?;
     f.write_all(&data_size.to_le_bytes())?;
@@ -977,10 +982,8 @@ fn process_batch(
                     debug!("Voice switch: {}", voice);
                     state.current_voice = voice;
                 }
-                if let Some(pitch_str) = extract_pitch(&codes) {
-                    if let Ok(pitch) = pitch_str.parse::<f32>() {
-                        state.pitch_multiplier = pitch;
-                    }
+                if let Some(pitch) = extract_pitch(&codes) {
+                    state.pitch_multiplier = pitch;
                 }
             }
 
@@ -1084,7 +1087,7 @@ fn synthesis_worker(
                     pitch: letter_state.pitch_multiplier,
                     volume: 1.0,
                 };
-                synthesize_chunk(&text.to_lowercase(), &settings, &letter_state, true, true, &ctx);
+                synthesize_chunk(&text.to_ascii_lowercase(), &settings, &letter_state, true, true, &ctx);
             }
 
             SynthRequest::PlaySound { path, state, gen } => {
@@ -1456,16 +1459,16 @@ fn insert_space_before_uppercase(input: &str) -> String {
     result
 }
 
-fn extract_voice(codes: &str) -> Option<String> {
-    VOICE_RE.captures(codes)
-        .and_then(|caps| caps.get(1))
-        .map(|m| m.as_str().to_string())
+fn extract_regex_group(re: &regex::Regex, text: &str) -> Option<String> {
+    re.captures(text).and_then(|c| c.get(1)).map(|m| m.as_str().to_string())
 }
 
-fn extract_pitch(codes: &str) -> Option<String> {
-    PITCH_RE.captures(codes)
-        .and_then(|caps| caps.get(1))
-        .map(|m| m.as_str().to_string())
+fn extract_voice(codes: &str) -> Option<String> {
+    extract_regex_group(&VOICE_RE, codes)
+}
+
+fn extract_pitch(codes: &str) -> Option<f32> {
+    extract_regex_group(&PITCH_RE, codes).and_then(|s| s.parse().ok())
 }
 
 // ---------------------------------------------------------------------------
@@ -1634,8 +1637,8 @@ mod tests {
 
     #[test]
     fn test_extract_pitch() {
-        assert_eq!(extract_pitch("[[pitch 1.5]]"), Some("1.5".to_string()));
-        assert_eq!(extract_pitch("[[pitch 0.8]]"), Some("0.8".to_string()));
+        assert_eq!(extract_pitch("[[pitch 1.5]]"), Some(1.5f32));
+        assert_eq!(extract_pitch("[[pitch 0.8]]"), Some(0.8f32));
         assert_eq!(extract_pitch("no pitch here"), None);
     }
 
