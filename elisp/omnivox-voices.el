@@ -141,9 +141,13 @@ Returns a list of (ID NAME LANGUAGE QUALITY) entries."
   (let ((exe (omnivox--find-executable)))
     (when exe
       (condition-case nil
-          (car (read-from-string
-                (shell-command-to-string
-                 (format "%s --list-voices-alist 2>/dev/null" exe))))
+          (let* ((raw (shell-command-to-string
+                       (format "%s --list-voices-alist 2>/dev/null" exe)))
+                 ;; Find the start of the alist in case piper/ONNX printed
+                 ;; anything to stdout before our output.
+                 (start (string-match "(" raw)))
+            (when start
+              (car (read-from-string raw start))))
         (error nil)))))
 
 ;;;###autoload
@@ -184,19 +188,19 @@ Returns a list of (ID NAME LANGUAGE QUALITY) entries."
 
 ;;;  Customizations:
 
-(defcustom omnivox-default-speech-rate 60
+(defcustom omnivox-speech-rate 60
   "Default speech rate for Omnivox.
-Value is an integer on a 0-100 scale where 50 is normal speed.
-Omnivox internally divides by 100 to get the 0.0-1.0 float
-for AVSpeechSynthesizer."
+Value is an integer on a 0-100 scale where 50 is normal speed,
+lower is faster, higher is slower."
   :group 'omnivox
   :type 'integer
   :set #'(lambda (sym val)
            (set-default sym val)
            (when (string-match "omnivox\\'" dtk-program)
-             (setq-default dtk-speech-rate val))))
+             (setq-default dtk-speech-rate val)
+             (omnivox--send (format "tts_set_speech_rate %s" val)))))
 
-(defcustom omnivox-default-voice-id ""
+(defcustom omnivox-voice-id ""
   "Default voice for Omnivox.
 Value is a voice ID like \"en-US:Alex\".  Empty string means use server default.
 Use `omnivox-select-voice' to interactively choose from available voices."
@@ -210,7 +214,7 @@ Use `omnivox-select-voice' to interactively choose from available voices."
                       (process-live-p dtk-speaker-process))
              (omnivox--send (format "tts_set_voice %s" val)))))
 
-(defcustom omnivox-default-pitch 1.0
+(defcustom omnivox-pitch 1.0
   "Default pitch multiplier for Omnivox.
 1.0 is normal pitch.  Range 0.5 (low) to 2.0 (high)."
   :group 'omnivox
@@ -222,7 +226,7 @@ Use `omnivox-select-voice' to interactively choose from available voices."
                       (process-live-p dtk-speaker-process))
              (omnivox--send (format "tts_set_pitch_multiplier %s" val)))))
 
-(defcustom omnivox-default-voice-volume 1.0
+(defcustom omnivox-voice-volume 1.0
   "Default voice volume for Omnivox.
 Float from 0.0 (silent) to 1.0 (full)."
   :group 'omnivox
@@ -234,7 +238,7 @@ Float from 0.0 (silent) to 1.0 (full)."
                       (process-live-p dtk-speaker-process))
              (omnivox--send (format "tts_set_voice_volume %s" val)))))
 
-(defcustom omnivox-default-tone-volume 0.1
+(defcustom omnivox-tone-volume 0.1
   "Default tone volume for Omnivox.
 Float from 0.0 (silent) to 1.0 (full)."
   :group 'omnivox
@@ -246,7 +250,7 @@ Float from 0.0 (silent) to 1.0 (full)."
                       (process-live-p dtk-speaker-process))
              (omnivox--send (format "tts_set_tone_volume %s" val)))))
 
-(defcustom omnivox-default-sound-volume 0.5
+(defcustom omnivox-sound-volume 0.5
   "Default sound/audio-icon volume for Omnivox.
 Float from 0.0 (silent) to 1.0 (full)."
   :group 'omnivox
@@ -288,7 +292,7 @@ Float from 0.0 (silent) to 1.0 (full)."
          (voice-id (cdr (assoc choice candidates))))
     (when voice-id
       (omnivox--send (format "tts_set_voice %s" voice-id))
-      (setq omnivox-default-voice-id voice-id)
+      (setq omnivox-voice-id voice-id)
       (message "Voice set to %s" voice-id))))
 
 ;;;###autoload
@@ -320,23 +324,59 @@ Float from 0.0 (silent) to 1.0 (full)."
   (message "Sound volume set to %s" vol))
 
 ;;;###autoload
+(defun omnivox-set-rate (rate)
+  "Set Omnivox speech rate to RATE (0-100, 50 = normal speed)."
+  (interactive "nSpeech rate (0-100): ")
+  (cl-declare (special dtk-speech-rate))
+  (setq dtk-speech-rate rate)
+  (setq-default dtk-speech-rate rate)
+  (omnivox--send (format "tts_set_speech_rate %s" rate))
+  (message "Rate set to %s" rate))
+
+;;;###autoload
+(defun omnivox-faster ()
+  "Increase Omnivox speech rate by one step."
+  (interactive)
+  (cl-declare (special dtk-speech-rate dtk-speech-rate-step))
+  (omnivox-set-rate (- dtk-speech-rate dtk-speech-rate-step)))
+
+;;;###autoload
+(defun omnivox-slower ()
+  "Decrease Omnivox speech rate by one step."
+  (interactive)
+  (cl-declare (special dtk-speech-rate dtk-speech-rate-step))
+  (omnivox-set-rate (+ dtk-speech-rate dtk-speech-rate-step)))
+
+;;;###autoload
+(defun omnivox-stop ()
+  "Stop Omnivox speech immediately."
+  (interactive)
+  (dtk-stop))
+
+;;;###autoload
+(defun omnivox-speak-line ()
+  "Speak the current line via Omnivox."
+  (interactive)
+  (dtk-speak-line))
+
+;;;###autoload
 (defun omnivox-status ()
   "Show current Omnivox settings."
   (interactive)
   (cl-declare (special dtk-speech-rate))
   (message "Voice: %s | Rate: %s | Pitch: %s | Volumes: voice=%s tone=%s sound=%s"
-           (if (string-empty-p omnivox-default-voice-id) "default" omnivox-default-voice-id)
+           (if (string-empty-p omnivox-voice-id) "default" omnivox-voice-id)
            dtk-speech-rate
-           omnivox-default-pitch
-           omnivox-default-voice-volume
-           omnivox-default-tone-volume
-           omnivox-default-sound-volume))
+           omnivox-pitch
+           omnivox-voice-volume
+           omnivox-tone-volume
+           omnivox-sound-volume))
 
 ;;;   voice table
 
-(defvar omnivox-default-voice-string "[[pitch 1]]"
+(defvar omnivox-voice-string "[[pitch 1]]"
   "Default Omnivox tag for the default voice.
-Resets pitch to normal.  The actual voice is set via `omnivox-default-voice-id'.")
+Resets pitch to normal.  The actual voice is set via `omnivox-voice-id'.")
 
 (defvar omnivox-voice-table (make-hash-table)
   "Association between symbols and strings to set Omnivox voices.
@@ -356,7 +396,7 @@ COMMAND-STRING to the TTS engine."
    ((listp name)
     (mapconcat #'omnivox-get-voice-command name " "))
    (t (or (gethash name omnivox-voice-table)
-          omnivox-default-voice-string))))
+          omnivox-voice-string))))
 
 (defun omnivox-get-voice-command (name)
   "Retrieve command string for voice NAME."
@@ -370,7 +410,7 @@ COMMAND-STRING to the TTS engine."
 ;;;  voice definitions
 
 ;; the predefined voices:
-(omnivox-define-voice 'paul omnivox-default-voice-string)
+(omnivox-define-voice 'paul omnivox-voice-string)
 
 ;;;   Mapping css parameters to tts codes
 
@@ -517,10 +557,10 @@ via protocol commands."
   ;; buffers created before configure-tts keep the old default (100).
   ;; Omnivox uses 0-100 integer scale (divided by 100 server-side).
   (cl-declare (special dtk-speech-rate dtk-speech-rate-base dtk-speech-rate-step))
-  (setq tts-default-speech-rate omnivox-default-speech-rate)
-  (set-default 'tts-default-speech-rate omnivox-default-speech-rate)
-  (setq dtk-speech-rate omnivox-default-speech-rate)
-  (setq-default dtk-speech-rate omnivox-default-speech-rate)
+  (setq tts-default-speech-rate omnivox-speech-rate)
+  (set-default 'tts-default-speech-rate omnivox-speech-rate)
+  (setq dtk-speech-rate omnivox-speech-rate)
+  (setq-default dtk-speech-rate omnivox-speech-rate)
   (setq dtk-speech-rate-base 20)
   (setq dtk-speech-rate-step 5)
   (dtk-unicode-update-untouched-charsets
@@ -530,13 +570,13 @@ via protocol commands."
   ;; Send settings to the running omnivox process via protocol commands.
   ;; The process was already started by dtk-make-process before voice-setup
   ;; called us, so protocol commands are the reliable way to configure it.
-  (omnivox--send (format "tts_set_speech_rate %s" omnivox-default-speech-rate))
-  (omnivox--send (format "tts_set_pitch_multiplier %s" omnivox-default-pitch))
-  (omnivox--send (format "tts_set_voice_volume %s" omnivox-default-voice-volume))
-  (omnivox--send (format "tts_set_tone_volume %s" omnivox-default-tone-volume))
-  (omnivox--send (format "tts_set_sound_volume %s" omnivox-default-sound-volume))
-  (unless (string-empty-p omnivox-default-voice-id)
-    (omnivox--send (format "tts_set_voice %s" omnivox-default-voice-id)))
+  (omnivox--send (format "tts_set_speech_rate %s" omnivox-speech-rate))
+  (omnivox--send (format "tts_set_pitch_multiplier %s" omnivox-pitch))
+  (omnivox--send (format "tts_set_voice_volume %s" omnivox-voice-volume))
+  (omnivox--send (format "tts_set_tone_volume %s" omnivox-tone-volume))
+  (omnivox--send (format "tts_set_sound_volume %s" omnivox-sound-volume))
+  (unless (string-empty-p omnivox-voice-id)
+    (omnivox--send (format "tts_set_voice %s" omnivox-voice-id)))
   ;; Query available voices
   (omnivox-refresh-voices))
 

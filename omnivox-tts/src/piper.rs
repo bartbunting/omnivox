@@ -155,15 +155,17 @@ impl PiperTtsEngine {
 
     /// Map TtsSettings.rate (0.0..1.0, 0.5=normal) to piper length_scale.
     ///
-    /// piper length_scale: 1.0 = normal speed, < 1.0 = faster, > 1.0 = slower.
+    /// Rate convention (matches espeak/macOS): 0.0=slow, 0.5=normal, 1.0=fast.
+    /// piper length_scale: 1.0=normal, <1.0=faster, >1.0=slower (inverse of rate).
+    /// Mapping: 0.0 -> 2.0 (slowest), 0.5 -> 1.0 (normal), 1.0 -> 0.5 (fastest).
     fn map_rate_to_length_scale(rate: f32) -> f32 {
         let rate = rate.clamp(0.0, 1.0);
-        if rate <= 0.5 {
-            // 0.0 -> 0.5 (fast), 0.5 -> 1.0 (normal)
-            0.5 + rate
+        if rate >= 0.5 {
+            // 0.5 -> 1.0 (normal), 1.0 -> 0.5 (fastest)
+            1.5 - rate
         } else {
-            // 0.5 -> 1.0 (normal), 1.0 -> 2.0 (slow)
-            1.0 + (rate - 0.5) * 2.0
+            // 0.0 -> 2.0 (slowest), 0.5 -> 1.0 (normal)
+            1.0 + (0.5 - rate) * 2.0
         }
     }
 }
@@ -371,12 +373,15 @@ mod tests {
 
     #[test]
     fn test_rate_mapping() {
-        assert!((PiperTtsEngine::map_rate_to_length_scale(0.0) - 0.5).abs() < 0.001);
+        // rate 0.0 (slow) -> length_scale 2.0 (slowest/longest)
+        assert!((PiperTtsEngine::map_rate_to_length_scale(0.0) - 2.0).abs() < 0.001);
+        // rate 0.5 (normal) -> length_scale 1.0 (normal)
         assert!((PiperTtsEngine::map_rate_to_length_scale(0.5) - 1.0).abs() < 0.001);
-        assert!((PiperTtsEngine::map_rate_to_length_scale(1.0) - 2.0).abs() < 0.001);
+        // rate 1.0 (fast) -> length_scale 0.5 (fastest/shortest)
+        assert!((PiperTtsEngine::map_rate_to_length_scale(1.0) - 0.5).abs() < 0.001);
         // Clamping
-        assert!((PiperTtsEngine::map_rate_to_length_scale(-1.0) - 0.5).abs() < 0.001);
-        assert!((PiperTtsEngine::map_rate_to_length_scale(2.0) - 2.0).abs() < 0.001);
+        assert!((PiperTtsEngine::map_rate_to_length_scale(-1.0) - 2.0).abs() < 0.001);
+        assert!((PiperTtsEngine::map_rate_to_length_scale(2.0) - 0.5).abs() < 0.001);
     }
 
     #[test]

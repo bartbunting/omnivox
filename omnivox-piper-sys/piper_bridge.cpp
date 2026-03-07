@@ -5,6 +5,9 @@
 #include "piper_bridge.h"
 // piper.hpp is on the include path via cmake target_include_directories
 #include "piper.hpp"
+// spdlog is on the include path via cmake target_include_directories
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -66,6 +69,13 @@ extern "C" {
 
 PiperState *piper_init(const char *espeak_data_path) {
     if (!espeak_data_path) return nullptr;
+
+    // Piper uses spdlog which defaults to stdout. Redirect to stderr so
+    // piper's log messages don't pollute the protocol stream (or corrupt
+    // --list-voices-alist output).
+    spdlog::set_default_logger(std::make_shared<spdlog::logger>(
+        "piper", std::make_shared<spdlog::sinks::stderr_color_sink_mt>()));
+
     auto *state = new (std::nothrow) PiperState();
     if (!state) return nullptr;
     state->config.eSpeakDataPath = std::string(espeak_data_path);
