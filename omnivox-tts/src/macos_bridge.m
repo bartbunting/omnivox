@@ -1,5 +1,11 @@
 // Objective-C bridge for AVSpeechSynthesizer buffer capture.
 // Uses a persistent synthesizer so stop() can interrupt ongoing speech.
+//
+// Threading: AVSpeechSynthesizer.writeUtterance:toBufferCallback: requires a
+// thread with a live Cocoa RunLoop. Raw POSIX threads (std::thread in Rust)
+// don't qualify. All synthesis is dispatched through a private serial GCD
+// queue whose worker thread is a proper Cocoa-managed thread with a RunLoop.
+// Callers block via a semaphore until synthesis completes.
 
 #import <AVFoundation/AVFoundation.h>
 #import <Foundation/Foundation.h>
@@ -15,6 +21,18 @@ static AVSpeechSynthesizer *sharedSynthesizer(void) {
     return _sharedSynth;
 }
 
+// Serial queue for all synthesis work.
+// GCD-managed threads have proper Cocoa RunLoops; std::thread workers do not.
+static dispatch_queue_t _synthQueue = nil;
+static dispatch_once_t _queueOnce;
+
+static dispatch_queue_t synthQueue(void) {
+    dispatch_once(&_queueOnce, ^{
+        _synthQueue = dispatch_queue_create("com.omnivox.synthesis", DISPATCH_QUEUE_SERIAL);
+    });
+    return _synthQueue;
+}
+
 // Result struct returned to Rust
 typedef struct {
     float *samples;
@@ -23,10 +41,12 @@ typedef struct {
     uint16_t channels;
 } SynthResult;
 
-SynthResult omnivox_synthesize(
-    const char *text,
-    const char *voice_lang,
-    const char *voice_name,
+// Core synthesis — must be called on a GCD thread (synthQueue) so the RunLoop
+// pump picks up AVSpeechSynthesizer callbacks.
+static SynthResult do_synthesize(
+    NSString *nsText,
+    NSString *lang,
+    NSString *name,
     float rate,
     float pitch,
     float volume
@@ -39,19 +59,15 @@ SynthResult omnivox_synthesize(
         // Stop any ongoing speech first
         if (synth.isSpeaking) {
             [synth stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
-            // Brief pause to let it settle
             [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                                      beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
         }
 
-        NSString *nsText = [NSString stringWithUTF8String:text];
         AVSpeechUtterance *utterance = [AVSpeechUtterance speechUtteranceWithString:nsText];
 
         // Set voice
-        if (voice_lang != NULL) {
-            NSString *lang = [NSString stringWithUTF8String:voice_lang];
-            if (voice_name != NULL) {
-                NSString *name = [NSString stringWithUTF8String:voice_name];
+        if (lang != nil) {
+            if (name != nil) {
                 NSArray<AVSpeechSynthesisVoice *> *voices = [AVSpeechSynthesisVoice speechVoices];
                 for (AVSpeechSynthesisVoice *v in voices) {
                     if ([v.language isEqualToString:lang] && [v.name isEqualToString:name]) {
@@ -86,7 +102,7 @@ SynthResult omnivox_synthesize(
             sampleRate = (uint32_t)pcm.format.sampleRate;
             channelCount = (uint16_t)pcm.format.channelCount;
 
-            const float * const *floatData = pcm.floatChannelData;
+            float * const *floatData = pcm.floatChannelData;
             if (floatData == NULL) return;
 
             for (uint32_t frame = 0; frame < pcm.frameLength; frame++) {
@@ -98,8 +114,8 @@ SynthResult omnivox_synthesize(
             chunksReceived++;
         }];
 
-        // Pump RunLoop until done or timeout
-        // Use a two-phase approach: wait for callbacks, then wait for completion signal
+        // Pump this thread's RunLoop until callbacks arrive and synthesis finishes.
+        // On a GCD thread the RunLoop is properly initialized, so this works.
         NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:30.0];
         uint32_t lastChunkCount = 0;
         NSDate *lastChunkTime = [NSDate date];
@@ -110,8 +126,8 @@ SynthResult omnivox_synthesize(
 
             if (synthesisComplete) break;
 
-            // If we've received chunks but no new ones for 200ms, consider it done
-            // (some macOS versions don't send frameLength==0 completion signal)
+            // If chunks have stopped arriving for 200ms, consider synthesis done.
+            // (Some macOS versions omit the frameLength==0 completion signal.)
             if (chunksReceived > 0) {
                 if (chunksReceived != lastChunkCount) {
                     lastChunkCount = chunksReceived;
@@ -135,11 +151,55 @@ SynthResult omnivox_synthesize(
     return result;
 }
 
+SynthResult omnivox_synthesize(
+    const char *text,
+    const char *voice_lang,
+    const char *voice_name,
+    float rate,
+    float pitch,
+    float volume
+) {
+    // Convert C strings to NSStrings on the calling thread before dispatching.
+    NSString *nsText     = [NSString stringWithUTF8String:text];
+    NSString *nsLang     = voice_lang ? [NSString stringWithUTF8String:voice_lang] : nil;
+    NSString *nsName     = voice_name ? [NSString stringWithUTF8String:voice_name] : nil;
+
+    __block SynthResult result = {NULL, 0, 0, 0};
+    dispatch_semaphore_t done = dispatch_semaphore_create(0);
+
+    dispatch_async(synthQueue(), ^{
+        result = do_synthesize(nsText, nsLang, nsName, rate, pitch, volume);
+        dispatch_semaphore_signal(done);
+    });
+
+    dispatch_semaphore_wait(done, DISPATCH_TIME_FOREVER);
+    return result;
+}
+
 void omnivox_stop(void) {
     AVSpeechSynthesizer *synth = sharedSynthesizer();
     if (synth.isSpeaking) {
         [synth stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
     }
+}
+
+// Run the main NSRunLoop until omnivox_stop_main_runloop() is called.
+// AVSpeechSynthesizer.writeUtterance:toBufferCallback: internally dispatches
+// work via the main queue; the main thread must be running its RunLoop for
+// those dispatches to be processed. Call this from main() after spawning the
+// reader thread, so synthesis (on the worker thread) doesn't deadlock.
+static volatile BOOL _runloopShouldStop = NO;
+
+void omnivox_run_main_runloop(void) {
+    while (!_runloopShouldStop) {
+        [[NSRunLoop mainRunLoop] runMode:NSDefaultRunLoopMode
+                             beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
+    }
+}
+
+void omnivox_stop_main_runloop(void) {
+    _runloopShouldStop = YES;
+    CFRunLoopStop(CFRunLoopGetMain());
 }
 
 BOOL omnivox_is_speaking(void) {

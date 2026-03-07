@@ -11,6 +11,7 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 - **Audio icon playback**: OGG Vorbis and WAV file loading with caching
 - **Full Emacspeak protocol**: Command parsing, queue dispatch, voice switching, state management
 - **Engine fallback**: Tries platform-native TTS first, falls back to espeak-ng
+- **Self-registering Emacs module**: `omnivox-voices.el` hooks into emacspeak via advice -- no need to modify emacspeak files
 
 ## Prerequisites
 
@@ -23,6 +24,13 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 ### macOS
 
 No additional dependencies. AVSpeechSynthesizer is built in, and espeak-ng is compiled from source automatically.
+
+**Recommended Emacs build**: [emacs-plus](https://github.com/d12frosted/homebrew-emacs-plus) via Homebrew provides a well-maintained macOS-native Emacs with accessibility support:
+
+```bash
+brew tap d12frosted/emacs-plus
+brew install emacs-plus --with-native-comp
+```
 
 ### Linux
 
@@ -46,13 +54,13 @@ Install CMake and a C compiler (MSVC or MinGW). espeak-ng is compiled from sourc
 ## Building
 
 ```bash
-# Build release binaries
+# Build release binary
 make build
 
-# Build debug binaries
+# Build debug binary
 make dev
 
-# Run tests
+# Run tests (170 tests)
 make test
 
 # Run clippy lints
@@ -62,18 +70,13 @@ make lint
 make fmt
 ```
 
-The release build produces two binaries:
-
-- `omnivox` - The speech server
-- `list-voices` - Utility to list available TTS voices
-
 ## Installation
 
 ```bash
 make install
 ```
 
-This installs the `omnivox` and `list-voices` binaries to `~/.cargo/bin/`.
+This installs the `omnivox` binary to `~/.cargo/bin/`.
 
 ## Emacspeak Integration
 
@@ -103,20 +106,32 @@ This installs the `omnivox` and `list-voices` binaries to `~/.cargo/bin/`.
 
    **Why this matters**: Without being in `.servers`, Emacspeak uses external `play` commands for audio icons, bypassing omnivox's volume control entirely.
 
-4. Add to your Emacs configuration:
+4. Add to your Emacs init.el (**before** emacspeak loads):
 
    ```elisp
-   ;; Set environment variables BEFORE loading emacspeak
-   (when (eq system-type 'darwin)
-     (setenv "OMNIVOX_VOICE_VOLUME" "1.0")
-     (setenv "OMNIVOX_TONE_VOLUME" "0.1")
-     (setenv "OMNIVOX_SOUND_VOLUME" "0.1"))
+   ;; Load omnivox voice module (self-registering, no emacspeak file edits needed)
+   (add-to-list 'load-path "/path/to/omnivox/elisp")
+   (require 'omnivox-voices)
 
-   ;; Configure omnivox as TTS server
+   ;; Override defaults as needed (M-x customize-group RET omnivox RET for all options)
+   (setq omnivox-default-voice-id "en-US:Alex")
+   (setq omnivox-default-speech-rate 60)  ;; 0-100, 50 = normal (use dtk-set-rate to adjust at runtime)
+   (setq omnivox-default-voice-volume 1.0)
+   (setq omnivox-default-tone-volume 0.1)
+   (setq omnivox-default-sound-volume 0.5)
+
+   ;; macOS: prevent accessibility permission prompts that interfere with TTS
+   (when (eq system-type 'darwin)
+     (setq mac-ignore-accessibility t))
+
+   ;; Then load emacspeak with omnivox as the TTS server
    (setq dtk-program "omnivox")
+   (require 'emacspeak-setup)
    ```
 
-5. Start Emacspeak as usual. Omnivox will be used as the speech server with proper volume control.
+   **Note on `mac-ignore-accessibility`**: On macOS, Emacs may request accessibility permissions which can interfere with omnivox's TTS output. Setting `mac-ignore-accessibility` to `t` prevents this. This is specific to emacs-plus and NS-port builds of Emacs.
+
+5. Start Emacspeak as usual. Omnivox will be used as the speech server.
 
 ### Setup (Windows)
 
@@ -153,91 +168,85 @@ Windows requires extra steps because Emacspeak looks for speech servers in its `
      -f emacspeak-auto-generate-autoloads
    ```
 
-5. **Configure Emacs** with volume environment variables:
+5. **Configure Emacs** (same as macOS/Linux, see step 4 above).
 
-   ```elisp
-   (setq dtk-program "omnivox")
-   (setenv "OMNIVOX_VOICE_VOLUME" "1.0")
-   (setenv "OMNIVOX_TONE_VOLUME" "0.1")
-   (setenv "OMNIVOX_SOUND_VOLUME" "0.1")
-   ```
-
-6. Start Emacspeak. The default speech rate on Windows may be fast; use `tts_set_speech_rate` or `tts_sync_state` to adjust.
-
-### Alternative: Place Binary in Emacspeak Servers Directory
-
-On macOS/Linux, instead of relying on PATH, you can symlink or copy the binary into Emacspeak's servers directory:
-
-```bash
-ln -s ~/.cargo/bin/omnivox /path/to/emacspeak/servers/omnivox
-```
-
-Then set `dtk-program` to `"omnivox"` as above.
+6. Start Emacspeak. The default speech rate on Windows may be fast; adjust via `omnivox-set-rate` or customize `omnivox-default-speech-rate`.
 
 ### Testing
 
-After configuration, start Emacs with Emacspeak. You should hear "Omnivox version 0 dot 1 dot 0" on startup. If not, check:
+After configuration, start Emacs with Emacspeak. You should hear "Omnivox version 1 dot 0 dot 0" on startup. If not, check:
 
 ```bash
 # Verify the binary runs
 omnivox <<< "version"
 
 # List available voices
-list-voices
+omnivox --list-voices
+
+# Run diagnostic self-test
+omnivox --check
 ```
 
 ### Troubleshooting
 
-- **No speech output**: Ensure your audio device is working. Try `list-voices` to verify TTS engine initialization.
+- **No speech output**: Ensure your audio device is working. Try `omnivox --check` to verify TTS engine initialization.
+- **macOS: Speech interrupted or accessibility prompts**: Add `(setq mac-ignore-accessibility t)` to your init.el before emacspeak loads. This prevents macOS accessibility permission dialogs from interfering with TTS.
 - **espeak-ng errors on Linux**: Install `espeak-ng` and `espeak-ng-data` packages.
 - **Slow startup**: First run compiles espeak-ng data; subsequent starts are faster.
-- **Wrong voice**: Use `tts_set_voice` command or configure in Emacs with `dtk-default-voice`.
+- **Wrong voice**: Use `omnivox-select-voice` in Emacs to interactively pick a voice.
 - **Windows: "Cannot open load file: emacspeak-loaddefs"**: Run the `emacs --batch` command in step 4 of the Windows setup to generate the loaddefs file.
 - **Windows: Emacs not loading init.el**: Check `M-: (expand-file-name "~")` in Emacs. If it points to `%APPDATA%` instead of your home directory, set the `HOME` environment variable (step 1 of Windows setup).
-- **Windows: Speech too fast**: The WinRT speech rate default may be fast. Set a lower rate via `tts_set_speech_rate` in Emacspeak or configure with `dtk-speech-rate`.
+- **Windows: Speech too fast**: Set a lower rate via `omnivox-set-rate` or customize `omnivox-default-speech-rate`.
 
 ### Known Issues
 
 - **Text after `;;` may be skipped**: When text contains `;;` (e.g. Lisp comments), omnivox may drop text after the semicolons until the next quote character. This is an omnivox parsing bug, not an Emacspeak issue (other speech servers handle this correctly). Investigation and fix pending.
 
-## Voice Configuration
+## Configuration
 
-List available voices:
+See [ENV-VARS.md](ENV-VARS.md) for full CLI flags, environment variables, and Emacs customization reference.
+
+### CLI Flags
 
 ```bash
-list-voices
+omnivox --voice "en-US:Alex" --rate 0.6 --pitch 1.0
+omnivox --voice-volume 1.0 --tone-volume 0.1 --sound-volume 0.5
+omnivox --engine espeak        # Force espeak-ng
+omnivox --audio-target left    # Left channel only
+omnivox --list-voices          # List available voices
+omnivox --check                # Diagnostic self-test
 ```
 
-Output groups voices by language and shows quality level (Compact, Enhanced, Premium).
+### Emacs Customization
 
-Set the default voice in Emacs:
+All settings are in the `omnivox` customization group:
 
-```elisp
-;; macOS example
-(setq dtk-default-voice "en-US:Samantha")
-
-;; espeak-ng example
-(setq dtk-default-voice "en")
+```
+M-x customize-group RET omnivox RET
 ```
 
-## Environment Variables
+Interactive commands:
 
-Omnivox recognizes environment variables for engine selection and audio routing. See [ENV-VARS.md](ENV-VARS.md) for complete documentation.
+| Command | Description |
+|---------|-------------|
+| `dtk-set-rate` | Set speech rate (standard Emacspeak command) |
+| `omnivox-select-voice` | Choose voice with completion from server's list |
+| `omnivox-set-pitch` | Set pitch multiplier (0.5-2.0) |
+| `omnivox-set-voice-volume` | Set voice volume (0.0-1.0) |
+| `omnivox-set-tone-volume` | Set tone volume (0.0-1.0) |
+| `omnivox-set-sound-volume` | Set sound/icon volume (0.0-1.0) |
+| `omnivox-list-voices` | Display all available voices in a buffer |
+| `omnivox-refresh-voices` | Re-query voices from the server |
+| `omnivox-status` | Show current settings |
 
-### Quick Reference
+### Environment Variables
+
+Only two environment variables are recognized (for Emacspeak integration):
 
 - **OMNIVOX_ENGINE**: Set to `espeak` to force espeak-ng on platforms with native TTS
 - **OMNIVOX_AUDIO_TARGET**: Set to `left`, `right`, or `both` for channel routing (used by Emacspeak for dual-server notification mode)
 
-Example:
-
-```bash
-# Force espeak-ng engine
-OMNIVOX_ENGINE=espeak omnivox
-
-# Test left-channel routing
-echo "tts_say {Left ear only}" | OMNIVOX_AUDIO_TARGET=left omnivox
-```
+All other settings use CLI flags (terminal) or protocol commands via Emacs defcustoms.
 
 ## Architecture
 
@@ -247,6 +256,7 @@ The project is organized as a Cargo workspace:
 - **omnivox-tts** - TTS engine trait and backends (macOS AVSpeechSynthesizer, Windows WinRT, espeak-ng)
 - **omnivox-audio** - Audio buffer, effects pipeline, tone generator, file loader, playback
 - **omnivox-cli** - Main binary wiring everything together
+- **elisp/** - Emacs voice module (`omnivox-voices.el`)
 
 ### Audio Pipeline
 
@@ -259,10 +269,6 @@ Source (TTS / Tone / File) -> AudioBuffer -> Pipeline -> AudioOutput
                                     VolumeAdjust
                                     ChannelRouter
 ```
-
-## Neural TTS (Piper)
-
-Piper neural TTS was evaluated as an optional backend for higher-quality offline voices. The available Rust crates (`piper-rs`, `piper-tts-rust`) have unstable dependency chains that prevent reliable compilation. This integration should be revisited when the Rust Piper ecosystem matures.
 
 ## Emacspeak Protocol
 
@@ -282,6 +288,10 @@ Omnivox implements the standard Emacspeak speech server protocol:
 | `tts_say {text}` | Speak immediately |
 | `tts_set_speech_rate N` | Set speech rate |
 | `tts_set_voice name` | Set voice |
+| `tts_set_pitch_multiplier N` | Set pitch multiplier |
+| `tts_set_voice_volume N` | Set voice volume |
+| `tts_set_tone_volume N` | Set tone volume |
+| `tts_set_sound_volume N` | Set sound volume |
 | `tts_sync_state punct split_caps allcaps_beep rate` | Sync state |
 | `tts_reset` | Reset all state |
 | `tts_exit` | Shut down |

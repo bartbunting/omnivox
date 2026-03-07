@@ -176,7 +176,7 @@ omnivox implementation matches swiftmac architecture:
 
 Potential enhancements (not required for MVP):
 
-- Make chunk size configurable via `OMNIVOX_CHUNK_SIZE` env var
+- Make chunk size configurable via `--chunk-size` CLI flag
 - Smart chunking on sentence/clause boundaries (not just word count)
 - Benchmark synthesis overhead for typical Emacspeak workloads
 - Add integration test comparing chunked vs. non-chunked audio output

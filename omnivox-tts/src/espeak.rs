@@ -309,12 +309,13 @@ impl TtsEngine for EspeakTtsEngine {
 
     fn stop(&self) {
         debug!("espeak-ng: stopping synthesis");
-        if let Some(state) = ESPEAK_LOCK.get() {
-            if let Ok(_guard) = state.lock() {
-                unsafe {
-                    espeak_rs_sys::espeak_Cancel();
-                }
-            }
+        // espeak_Cancel() is designed to be called from any thread to interrupt
+        // ongoing synthesis. We must NOT acquire ESPEAK_LOCK here because
+        // synthesize() holds it for the entire duration -- acquiring it in stop()
+        // would deadlock when called from the reader thread while the worker is
+        // synthesizing.
+        unsafe {
+            espeak_rs_sys::espeak_Cancel();
         }
     }
 

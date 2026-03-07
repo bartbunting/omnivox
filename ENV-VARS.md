@@ -1,40 +1,41 @@
-# Omnivox Environment Variables
+# Omnivox Configuration
 
-Complete list of all environment variables recognized by omnivox.
+Omnivox is configured through CLI flags (for terminal use) and Emacs
+defcustoms with protocol commands (for Emacspeak use).
 
-## Engine Selection
+## CLI Flags
+
+```
+omnivox [OPTIONS]
+
+OPTIONS:
+    --help                Show help message
+    --version             Show version number
+    --check               Run diagnostic self-test
+    --list-voices         List available TTS voices
+    --list-voices-alist   List voices as Emacs-readable alist
+    --engine NAME         TTS engine: native, espeak
+    --voice ID            Default voice (e.g. en-US:Alex)
+    --rate FLOAT          Speech rate 0.0-1.0 (0.5 = normal)
+    --pitch FLOAT         Pitch multiplier 0.5-2.0 (1.0 = normal)
+    --voice-volume F      Voice volume 0.0-1.0
+    --tone-volume F       Tone volume 0.0-1.0
+    --sound-volume F      Sound/icon volume 0.0-1.0
+    --audio-target T      Channel routing: left, right, both
+```
+
+Without options, starts the Emacspeak protocol server on stdin.
+
+## Environment Variables
+
+Only two environment variables are recognized, both for Emacspeak integration:
 
 **OMNIVOX_ENGINE**
 
-- Values: `espeak` or empty
+- Values: `espeak`, `native`, or empty
 - Default: empty (use platform-native TTS)
 - Forces espeak-ng engine on platforms with native TTS (macOS/Windows)
-- Example: `(setenv "OMNIVOX_ENGINE" "espeak")`
-
-## Volume Controls
-
-**OMNIVOX_VOICE_VOLUME**
-
-- Range: 0.0 to 1.0 (1.0 = 100%)
-- Default: 1.0
-- Controls speech synthesis volume
-- Example: `(setenv "OMNIVOX_VOICE_VOLUME" "0.8")`
-
-**OMNIVOX_TONE_VOLUME**
-
-- Range: 0.0 to 1.0
-- Default: 1.0
-- Controls generated tone volume (beeps)
-- Example: `(setenv "OMNIVOX_TONE_VOLUME" "0.1")`
-
-**OMNIVOX_SOUND_VOLUME**
-
-- Range: 0.0 to 1.0
-- Default: 1.0
-- Controls audio icon/sound file volume
-- Example: `(setenv "OMNIVOX_SOUND_VOLUME" "0.1")`
-
-## Channel Routing
+- Equivalent to `--engine`
 
 **OMNIVOX_AUDIO_TARGET**
 
@@ -42,55 +43,74 @@ Complete list of all environment variables recognized by omnivox.
 - Default: empty (both channels)
 - Controls channel routing for all audio output
 - Used by Emacspeak for dual-server notification mode
-- Example: `(setenv "OMNIVOX_AUDIO_TARGET" "left")`
+- Normally set automatically by Emacspeak, not manually
+- Equivalent to `--audio-target`
 
-When Emacspeak runs in dual-server mode, it spawns two omnivox processes:
+## Emacs Customization
 
-1. **Main speech process**:
-   - No OMNIVOX_AUDIO_TARGET set (uses both channels)
-   - Handles primary speech output
+All settings are in the `omnivox` customization group:
 
-2. **Notification process**:
-   - OMNIVOX_AUDIO_TARGET set to `left` by Emacspeak
-   - Handles notifications, audio icons, and status updates
-   - Allows notifications to play in left ear while main content continues in both ears
-
-## How Emacspeak Uses These
-
-When `dtk-set-notification-mode` is enabled in Emacspeak, it spawns two omnivox processes:
-
-```elisp
-;; Main process (no special env vars)
-(start-process "omnivox-main" ...)
-
-;; Notification process
-(let ((process-environment (cons "OMNIVOX_AUDIO_TARGET=left" process-environment)))
-  (start-process "omnivox-notification" ...))
+```
+M-x customize-group RET omnivox RET
 ```
 
-This enables concurrent audio streams. For example, while reading a long document (both channels), notification messages like "50 percent" play in the left channel without interrupting the main content.
+Settings are sent to the running omnivox process via protocol commands.
+Changes take effect immediately.
 
-## Complete Example
+| Defcustom | Default | Description |
+|-----------|---------|-------------|
+| `omnivox-default-voice-id` | "" | Voice ID (e.g. "en-US:Alex") |
+| `omnivox-default-speech-rate` | 0.6 | Speech rate (0.0-1.0) |
+| `omnivox-default-pitch` | 1.0 | Pitch multiplier (0.5-2.0) |
+| `omnivox-default-voice-volume` | 1.0 | Voice volume (0.0-1.0) |
+| `omnivox-default-tone-volume` | 0.1 | Tone/beep volume (0.0-1.0) |
+| `omnivox-default-sound-volume` | 0.5 | Audio icon volume (0.0-1.0) |
+
+### Interactive Commands
+
+| Command | Description |
+|---------|-------------|
+| `omnivox-select-voice` | Choose voice with completion from server's list |
+| `omnivox-set-rate` | Set speech rate (0.0-1.0) |
+| `omnivox-set-pitch` | Set pitch multiplier (0.5-2.0) |
+| `omnivox-set-voice-volume` | Set voice volume (0.0-1.0) |
+| `omnivox-set-tone-volume` | Set tone volume (0.0-1.0) |
+| `omnivox-set-sound-volume` | Set sound/icon volume (0.0-1.0) |
+| `omnivox-list-voices` | Display all available voices in a buffer |
+| `omnivox-refresh-voices` | Re-query voices from the server |
+| `omnivox-status` | Show current settings |
+
+### Minimal init.el Example
 
 ```elisp
-;; Volume settings
-(setenv "OMNIVOX_VOICE_VOLUME" "1.0")   ; Full volume for speech
-(setenv "OMNIVOX_TONE_VOLUME" "0.1")    ; Quiet tones (10%)
-(setenv "OMNIVOX_SOUND_VOLUME" "0.1")   ; Quiet audio icons (10%)
+;; Load omnivox voice module (before emacspeak)
+(add-to-list 'load-path "/path/to/omnivox/elisp")
+(require 'omnivox-voices)
+;; Override only what you need:
+(setq omnivox-default-voice-id "en-US:Alex")
+(setq omnivox-default-speech-rate 0.6)
 
-;; Force espeak-ng engine (useful for testing or if native TTS has issues)
-(setenv "OMNIVOX_ENGINE" "espeak")
-
-;; Note: Don't set OMNIVOX_AUDIO_TARGET manually
-;; Emacspeak sets it automatically when spawning the notification process
+;; Load emacspeak
+(setq dtk-program "omnivox")
+(require 'emacspeak-setup)
 ```
+
+## Dual-Server Notification Mode
+
+When `tts-notification-device` is set to `left` (or `right`), Emacspeak
+spawns two omnivox processes:
+
+1. **Main process** - Both channels, handles primary speech
+2. **Notification process** - Left channel only, handles notifications
+
+This allows notifications to play in one ear while main content continues.
+Emacspeak sets `OMNIVOX_AUDIO_TARGET` automatically for the notification
+process.
 
 ## Technical Details
 
-The `OMNIVOX_AUDIO_TARGET` environment variable is read once at startup in `omnivox-cli/src/main.rs`. It configures the `ChannelRouter` audio effect in the pipeline:
-
-- `left` - Routes all audio to left channel (right channel silent)
-- `right` - Routes all audio to right channel (left channel silent)
-- `both` or empty - Normal stereo output
-
-This routing applies to all audio sources: TTS speech, generated tones, and audio icon files.
+CLI flags are parsed in `omnivox-cli/src/main.rs` via `parse_args()` and
+applied to the TTS state via `apply_cli_flags()`.  The `ChannelRouter`
+audio effect handles channel routing, and volumes are applied in the audio
+pipeline.  Emacs sends runtime changes via protocol commands (e.g.
+`tts_set_speech_rate`, `tts_set_voice_volume`).

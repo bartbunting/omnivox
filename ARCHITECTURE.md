@@ -10,9 +10,10 @@ Rust-based cross-platform Emacspeak speech server with mandatory audio processin
 omnivox/
 ├── Cargo.toml              # Workspace root
 ├── omnivox-core/           # Command parsing, queue, state (platform-agnostic)
-├── omnivox-tts/            # TTS trait + backends (macOS, espeak-ng, future: Windows, Linux)
+├── omnivox-tts/            # TTS trait + backends (macOS, Windows WinRT, espeak-ng)
 ├── omnivox-audio/          # Buffer, pipeline, effects, tone gen, file loader, rodio output
-└── omnivox-cli/            # Main binary + list-voices utility
+├── omnivox-cli/            # Main binary
+└── elisp/                  # Emacs voice module (omnivox-voices.el)
 ```
 
 ## Data Flow
@@ -65,9 +66,9 @@ stdin (Emacspeak protocol)
 ┌──────────────────────────────────────────┐
 │  AudioStreams (3 concurrent rodio Sinks)  │
 │                                           │
-│  Speech Sink  (max depth 10, serialized)  │
-│  Tone Sink    (max depth 3, serialized)   │
-│  Sound Sink   (max depth 5, serialized)   │
+│  Speech Sink  (max depth 100, serialized) │
+│  Tone Sink    (max depth 10, serialized)  │
+│  Sound Sink   (max depth 10, serialized)  │
 │                                           │
 │  Different streams play concurrently      │
 │  Overflow drops old items, keeps current  │

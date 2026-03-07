@@ -12,30 +12,49 @@ use omnivox_core::ChannelMode;
 /// Removes leading and trailing silence from an AudioBuffer.
 ///
 /// Samples with absolute amplitude below the threshold are considered silent.
-/// A small amount of padding is preserved to prevent harsh cuts.
+/// Separate leading/trailing padding allows fine control at chunk and voice
+/// boundaries: interior segments within a dispatch batch use zero padding for
+/// seamless joins, while batch edges preserve padding for natural spacing.
 pub struct SilenceTrimmer {
     /// Amplitude threshold below which samples are considered silence
     pub threshold: f32,
-    /// Minimum padding to preserve at start/end in seconds
-    pub padding_secs: f32,
+    /// Padding to preserve before first audible frame, in seconds
+    pub leading_padding_secs: f32,
+    /// Padding to preserve after last audible frame, in seconds
+    pub trailing_padding_secs: f32,
 }
 
 impl SilenceTrimmer {
     /// Create a new SilenceTrimmer with default settings.
     ///
-    /// Default threshold: 0.01, default padding: 5ms.
+    /// Default threshold: 0.01, default padding: 5ms on both sides.
     pub fn new() -> Self {
         Self {
             threshold: 0.01,
-            padding_secs: 0.005, // 5ms
+            leading_padding_secs: 0.005,
+            trailing_padding_secs: 0.005,
         }
     }
 
-    /// Create a SilenceTrimmer with custom threshold and padding.
+    /// Create a SilenceTrimmer with symmetric padding on both sides.
     pub fn with_settings(threshold: f32, padding_secs: f32) -> Self {
         Self {
             threshold,
-            padding_secs,
+            leading_padding_secs: padding_secs,
+            trailing_padding_secs: padding_secs,
+        }
+    }
+
+    /// Create a SilenceTrimmer with independent leading and trailing padding.
+    pub fn with_asymmetric_padding(
+        threshold: f32,
+        leading_padding_secs: f32,
+        trailing_padding_secs: f32,
+    ) -> Self {
+        Self {
+            threshold,
+            leading_padding_secs,
+            trailing_padding_secs,
         }
     }
 }
@@ -53,7 +72,8 @@ impl AudioEffect for SilenceTrimmer {
         }
 
         let frame_count = buffer.frame_count();
-        let padding_frames = (self.padding_secs * SAMPLE_RATE as f32) as usize;
+        let leading_frames = (self.leading_padding_secs * SAMPLE_RATE as f32) as usize;
+        let trailing_frames = (self.trailing_padding_secs * SAMPLE_RATE as f32) as usize;
 
         // Find first non-silent frame
         let mut first_sound = 0;
@@ -79,8 +99,8 @@ impl AudioEffect for SilenceTrimmer {
         }
 
         // Apply padding (but don't go beyond buffer bounds)
-        let start_frame = first_sound.saturating_sub(padding_frames);
-        let end_frame = (last_sound + padding_frames + 1).min(frame_count);
+        let start_frame = first_sound.saturating_sub(leading_frames);
+        let end_frame = (last_sound + trailing_frames + 1).min(frame_count);
 
         // Only trim if there's actually silence to remove
         if start_frame > 0 || end_frame < frame_count {

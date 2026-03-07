@@ -44,6 +44,6 @@ clean:
 watch:
 	cargo watch -x build
 
-# Install from source
+# Install binary to ~/.cargo/bin
 install:
 	cargo install --path omnivox-cli

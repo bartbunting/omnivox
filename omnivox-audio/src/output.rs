@@ -2,6 +2,13 @@
 //!
 //! Wraps rodio for audio playback. Provides both single-shot playback
 //! (`AudioOutput`) and concurrent multi-stream playback (`AudioStreams`).
+//!
+//! The key type for multi-threaded use is `AudioControl` -- a `Send + Sync`
+//! handle to the three audio sinks. `AudioStreams` owns the `OutputStream`
+//! drop guard (which is `!Send` on some platforms) and should stay on the
+//! thread where it was created. `AudioControl` can be cloned via
+//! `AudioStreams::control()` and sent to other threads (e.g. a synthesis
+//! worker) to queue or stop audio independently.
 
 use crate::AudioError;
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
@@ -21,61 +28,26 @@ pub enum StreamType {
     Sound,
 }
 
-/// Concurrent audio streams with per-stream serialization and backlog limits.
+/// Thread-safe handle to the three audio sinks.
 ///
-/// Three independent rodio Sinks share one output device. Items appended to
-/// the same Sink play sequentially; different Sinks play concurrently (rodio
-/// mixes them automatically). When a stream's backlog exceeds its max depth,
-/// the oldest items are dropped to keep audio feedback current.
-pub struct AudioStreams {
-    _stream: OutputStream,
-    _stream_handle: OutputStreamHandle,
-    speech_sink: Sink,
-    tone_sink: Sink,
-    sound_sink: Sink,
-    speech_max_depth: usize,
-    tone_max_depth: usize,
-    sound_max_depth: usize,
+/// Both the reader thread (for `stop_all` on `s` command) and the synthesis
+/// worker thread (for queuing synthesized audio) hold an `Arc<AudioControl>`.
+/// `Sink` is `Send + Sync` in rodio, so this type is automatically `Send + Sync`.
+pub struct AudioControl {
+    speech_sink: Arc<Sink>,
+    tone_sink: Arc<Sink>,
+    sound_sink: Arc<Sink>,
+    speech_max: usize,
+    tone_max: usize,
+    sound_max: usize,
 }
 
-impl AudioStreams {
-    /// Create three audio streams on the default output device.
-    ///
-    /// Each stream has an independent backlog limit. When the limit is reached,
-    /// the stream is cleared and only the new item plays (stay current, don't
-    /// play catch-up).
-    pub fn new(
-        speech_max_depth: usize,
-        tone_max_depth: usize,
-        sound_max_depth: usize,
-    ) -> Result<Self, AudioError> {
-        let (stream, stream_handle) = OutputStream::try_default()
-            .map_err(|e| AudioError::DeviceNotFound(format!("default device: {}", e)))?;
-
-        let speech_sink = Sink::try_new(&stream_handle)
-            .map_err(|e| AudioError::PlaybackError(format!("speech sink: {}", e)))?;
-        let tone_sink = Sink::try_new(&stream_handle)
-            .map_err(|e| AudioError::PlaybackError(format!("tone sink: {}", e)))?;
-        let sound_sink = Sink::try_new(&stream_handle)
-            .map_err(|e| AudioError::PlaybackError(format!("sound sink: {}", e)))?;
-
-        Ok(Self {
-            _stream: stream,
-            _stream_handle: stream_handle,
-            speech_sink,
-            tone_sink,
-            sound_sink,
-            speech_max_depth,
-            tone_max_depth,
-            sound_max_depth,
-        })
-    }
-
-    fn sink_and_max(&self, stream: StreamType) -> (&Sink, usize) {
+impl AudioControl {
+    fn sink_and_max(&self, stream: StreamType) -> (&Arc<Sink>, usize) {
         match stream {
-            StreamType::Speech => (&self.speech_sink, self.speech_max_depth),
-            StreamType::Tone => (&self.tone_sink, self.tone_max_depth),
-            StreamType::Sound => (&self.sound_sink, self.sound_max_depth),
+            StreamType::Speech => (&self.speech_sink, self.speech_max),
+            StreamType::Tone => (&self.tone_sink, self.tone_max),
+            StreamType::Sound => (&self.sound_sink, self.sound_max),
         }
     }
 
@@ -98,12 +70,12 @@ impl AudioStreams {
                 max_depth
             );
             sink.clear();
-            sink.play(); // clear() pauses; resume for new items
+            sink.play();
         }
 
         let source = BufferSource::new(buffer.samples.clone());
         sink.append(source);
-        sink.play(); // Ensure sink is playing (might be paused on first use)
+        sink.play();
         Ok(true)
     }
 
@@ -111,7 +83,7 @@ impl AudioStreams {
     pub fn stop(&self, stream: StreamType) {
         let (sink, _) = self.sink_and_max(stream);
         sink.clear();
-        sink.play(); // clear() pauses; resume so new items can play
+        sink.play();
     }
 
     /// Stop all streams immediately.
@@ -131,6 +103,110 @@ impl AudioStreams {
     pub fn pending(&self, stream: StreamType) -> usize {
         let (sink, _) = self.sink_and_max(stream);
         sink.len()
+    }
+
+    /// Block until all three streams have finished playing.
+    ///
+    /// Call this after all synthesis is done (worker thread joined) to ensure
+    /// all queued audio plays out before the `OutputStream` is dropped.
+    pub fn drain(&self) {
+        self.speech_sink.sleep_until_end();
+        self.tone_sink.sleep_until_end();
+        self.sound_sink.sleep_until_end();
+    }
+}
+
+/// Concurrent audio streams with per-stream serialization and backlog limits.
+///
+/// Owns the `OutputStream` drop guard and delegates all audio operations to an
+/// inner `Arc<AudioControl>`. Call `control()` to get a shareable handle for
+/// use from other threads (e.g. synthesis worker thread).
+pub struct AudioStreams {
+    _stream: OutputStream,
+    _stream_handle: OutputStreamHandle,
+    control: Arc<AudioControl>,
+}
+
+impl AudioStreams {
+    /// Create three audio streams on the default output device.
+    ///
+    /// Each stream has an independent backlog limit. When the limit is reached,
+    /// the stream is cleared and only the new item plays (stay current, don't
+    /// play catch-up).
+    pub fn new(
+        speech_max_depth: usize,
+        tone_max_depth: usize,
+        sound_max_depth: usize,
+    ) -> Result<Self, AudioError> {
+        let (stream, stream_handle) = OutputStream::try_default()
+            .map_err(|e| AudioError::DeviceNotFound(format!("default device: {}", e)))?;
+
+        let speech_sink = Arc::new(
+            Sink::try_new(&stream_handle)
+                .map_err(|e| AudioError::PlaybackError(format!("speech sink: {}", e)))?,
+        );
+        let tone_sink = Arc::new(
+            Sink::try_new(&stream_handle)
+                .map_err(|e| AudioError::PlaybackError(format!("tone sink: {}", e)))?,
+        );
+        let sound_sink = Arc::new(
+            Sink::try_new(&stream_handle)
+                .map_err(|e| AudioError::PlaybackError(format!("sound sink: {}", e)))?,
+        );
+
+        let control = Arc::new(AudioControl {
+            speech_sink,
+            tone_sink,
+            sound_sink,
+            speech_max: speech_max_depth,
+            tone_max: tone_max_depth,
+            sound_max: sound_max_depth,
+        });
+
+        Ok(Self {
+            _stream: stream,
+            _stream_handle: stream_handle,
+            control,
+        })
+    }
+
+    /// Get a thread-safe handle to the audio controls.
+    ///
+    /// The returned `Arc<AudioControl>` is `Send + Sync` and can be cloned and
+    /// sent to the synthesis worker thread. The `AudioStreams` (and its
+    /// `OutputStream` drop guard) must remain alive for audio to work.
+    pub fn control(&self) -> Arc<AudioControl> {
+        self.control.clone()
+    }
+
+    /// Queue an audio buffer on the given stream.
+    pub fn queue(&self, stream: StreamType, buffer: &AudioBuffer) -> Result<bool, AudioError> {
+        self.control.queue(stream, buffer)
+    }
+
+    /// Stop a specific stream, clearing all queued and playing audio.
+    pub fn stop(&self, stream: StreamType) {
+        self.control.stop(stream)
+    }
+
+    /// Stop all streams immediately.
+    pub fn stop_all(&self) {
+        self.control.stop_all()
+    }
+
+    /// Check if a stream is currently playing audio.
+    pub fn is_playing(&self, stream: StreamType) -> bool {
+        self.control.is_playing(stream)
+    }
+
+    /// Get the number of items pending on a stream (including currently playing).
+    pub fn pending(&self, stream: StreamType) -> usize {
+        self.control.pending(stream)
+    }
+
+    /// Block until all streams have finished playing.
+    pub fn drain(&self) {
+        self.control.drain();
     }
 }
 

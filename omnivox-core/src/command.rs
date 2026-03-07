@@ -299,4 +299,32 @@ mod tests {
         assert_eq!(cmd.id, CommandId::Letter);
         assert_eq!(cmd.args, Some("A".to_string()));
     }
+
+    // Regression tests for ;; text (Lisp comment style)
+    #[test]
+    fn test_parse_semicolons_in_block_arg() {
+        // Parser must preserve full text including ;; and everything after
+        let cmd = parse_command(r#"q {hello ;; this is a comment}"#).unwrap();
+        assert_eq!(cmd.args, Some("hello ;; this is a comment".to_string()));
+    }
+
+    #[test]
+    fn test_parse_semicolons_with_quote_after() {
+        // The reported bug: text after ;; was dropped until the next quote char
+        let cmd = parse_command(r#"q {foo ;; bar "baz" }"#).unwrap();
+        // Full text must be preserved
+        let args = cmd.args.unwrap();
+        assert!(args.contains(";;"), "semicolons must be preserved: {args}");
+        assert!(args.contains("bar"), "text after ;; must be preserved: {args}");
+        assert!(args.contains("baz"), "quoted text must be preserved: {args}");
+    }
+
+    #[test]
+    fn test_parse_dtk_speak_format() {
+        // dtk-speak.el sends: (format "q {%s }\n" text) -- trailing space before }
+        let cmd = parse_command(r#"q {(setq x 1) ;; set x to 1 }"#).unwrap();
+        let args = cmd.args.unwrap();
+        assert!(args.contains(";;"), "semicolons preserved in dtk format: {args}");
+        assert!(args.contains("set x to 1"), "comment text preserved: {args}");
+    }
 }

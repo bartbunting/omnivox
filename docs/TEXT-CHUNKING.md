@@ -154,6 +154,6 @@ Look for debug logs indicating chunking (future enhancement).
 
 ## Future Work
 
-- Make chunk size configurable via environment variable (`OMNIVOX_CHUNK_SIZE`)?
+- Make chunk size configurable via `--chunk-size` CLI flag?
 - Smarter chunking on sentence/clause boundaries instead of word count?
 - Benchmark synthesis overhead for typical Emacspeak workloads

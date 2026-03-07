@@ -50,6 +50,27 @@ extern "C" {
     fn omnivox_is_speaking() -> bool;
     fn omnivox_list_voices() -> VoiceList;
     fn omnivox_free_voice_list(list: VoiceList);
+    fn omnivox_run_main_runloop();
+    fn omnivox_stop_main_runloop();
+}
+
+/// Block the calling thread running the main NSRunLoop.
+///
+/// AVSpeechSynthesizer's `writeUtterance:toBufferCallback:` internally
+/// dispatches work via the main GCD queue; if the main thread is blocked on
+/// raw I/O instead of running a RunLoop, synthesis deadlocks. Call this from
+/// `main()` after spawning the reader/server on a background thread.
+///
+/// Returns when `stop_main_runloop()` is called from another thread.
+#[cfg(target_os = "macos")]
+pub fn run_main_runloop() {
+    unsafe { omnivox_run_main_runloop() }
+}
+
+/// Unblock a thread that is in `run_main_runloop()`.
+#[cfg(target_os = "macos")]
+pub fn stop_main_runloop() {
+    unsafe { omnivox_stop_main_runloop() }
 }
 
 /// macOS TTS engine using AVSpeechSynthesizer via ObjC bridge

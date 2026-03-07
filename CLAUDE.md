@@ -25,6 +25,12 @@ Omnivox is a cross-platform Emacspeak speech server written in Rust. It is a dro
 - **rodio** for cross-platform audio output and OGG/WAV decoding.
 - **OMNIVOX_ENGINE=espeak** environment variable to force espeak-ng on macOS.
 - **OMNIVOX_AUDIO_TARGET** environment variable for channel routing (left/right/both). Used by Emacspeak for dual-server notification mode.
+- **Three-thread model (macOS)**: `main()` runs the NSRunLoop on the main thread (required by AVSpeechSynthesizer). A reader thread processes stdin. A synthesis worker thread receives `SynthRequest` via `mpsc::channel`, synthesizes chunks, checks generation counter, queues audio. On non-macOS, reader runs on main thread (two-thread model). Stop commands (`s`) take effect in microseconds.
+- **macOS RunLoop requirement**: `AVSpeechSynthesizer.writeUtterance:toBufferCallback:` internally dispatches via the main GCD queue. If the main thread blocks on raw I/O instead of running a NSRunLoop, synthesis deadlocks. Fixed by spawning the reader on a background thread and calling `[[NSRunLoop mainRunLoop] run]` on main. `omnivox_run_main_runloop()` / `omnivox_stop_main_runloop()` in `macos_bridge.m` manage the lifecycle.
+- **Generation counter** (`Arc<AtomicU64>`): incremented on every stop/interrupt. Worker checks `gen_counter.load() != request_gen` before and after each `engine.synthesize()` call; stale results are discarded without queuing.
+- **`AudioControl`** (`Arc<Sink>` fields, `Send+Sync`): split from `AudioStreams` so sinks can be shared with the worker thread. `AudioStreams` (owns `!Send OutputStream`) stays on main thread; worker holds `Arc<AudioControl>`.
+- **espeak `stop()` no-lock**: `espeak_Cancel()` called without acquiring `ESPEAK_LOCK` — avoids deadlock when reader calls `stop()` while worker holds the lock in `synthesize()`.
+- **`engine.stop()` only on hard stop**: `interrupt()` takes a `stop_engine: bool` parameter. `TtsSay` and `Letter` pass `false` — the generation counter already discards stale results, and cross-thread `[synth stopSpeakingAtBoundary:immediate]` corrupts AVSpeechSynthesizer state. Only the `s` (Stop) and reset commands pass `true`.
 
 ### Audio Pipeline Flow
 
@@ -48,20 +54,20 @@ Each stream has a max backlog depth. On overflow, old items are dropped to keep 
 ```bash
 make build     # Release build
 make dev       # Debug build
-make test      # Run all tests (168 tests)
+make test      # Run all tests (170 tests)
 make lint      # Clippy
 make fmt       # Format
-make install   # Install to ~/.cargo/bin
+make install   # Install binary to ~/.cargo/bin
 make clean     # Clean build artifacts
 ```
 
 ## Testing
 
-168 tests total, all passing:
+173 tests total, all passing:
 
 - omnivox-audio: 60 unit + 31 integration = 91
-- omnivox-core: 34 unit + 1 doc = 35
-- omnivox-tts: 26 unit (includes WinRT mapping + WAV header tests)
+- omnivox-core: 37 unit + 1 doc = 38 (includes `;;` regression tests)
+- omnivox-tts: 22 unit (includes WinRT mapping + WAV header tests)
 - omnivox-cli: 16 unit
 
 Run: `cargo test`
@@ -98,17 +104,19 @@ python3 tools/compare_wavs.py omnivox.wav reference.wav
 ## Manual Testing
 
 ```bash
-# Basic speech
-echo "tts_say {Hello world}" | ./target/release/omnivox
+# Basic speech — IMPORTANT: use printf+sleep, NOT echo.
+# echo closes stdin immediately, dropping the OutputStream before audio plays.
+# The sleep keeps stdin open long enough for audio to finish.
+(printf 'tts_say {Hello world}\n'; sleep 5) | ./target/release/omnivox
 
 # espeak-ng engine
-echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
+(printf 'tts_say {Hello world}\n'; sleep 5) | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 
 # List voices
-./target/release/list-voices
+omnivox --list-voices
 
-# Full feature test script
-./test-all-features.sh
+# Diagnostic self-test
+omnivox --check
 ```
 
 ## Platform Status
@@ -119,7 +127,7 @@ echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 | Linux | Not yet (Speech Dispatcher planned) | Compiled in | espeak-ng works |
 | Windows | WinRT SpeechSynthesizer (via windows-rs) | Compiled in | Working |
 
-## Current State (as of 2026-02-08)
+## Current State (as of 2026-02-18)
 
 ### Working
 
@@ -149,20 +157,21 @@ echo "tts_say {Hello world}" | OMNIVOX_ENGINE=espeak ./target/release/omnivox
 
 ## Key Files
 
-- `omnivox-tts/src/lib.rs` - TtsEngine trait definition (line 196). New backends must implement `synthesize() -> Result<AudioBuffer, TtsError>`.
+- `omnivox-tts/src/lib.rs` - TtsEngine trait definition. New backends must implement `synthesize() -> Result<AudioBuffer, TtsError>`.
 - `omnivox-tts/src/espeak.rs` - espeak-ng backend (cross-platform fallback).
 - `omnivox-tts/src/macos.rs` - macOS AVSpeechSynthesizer backend (ObjC bridge).
 - `omnivox-tts/src/windows.rs` - Windows WinRT backend (SpeechSynthesizer via windows-rs).
-- `omnivox-cli/src/main.rs` - Main binary. `create_engine()` selects platform-native engine with espeak-ng fallback.
+- `omnivox-cli/src/main.rs` - Main binary. Two-thread architecture: `run_server()` is the reader loop; `synthesis_worker()` runs on a spawned thread receiving `SynthRequest` via mpsc channel. `create_engine()` returns `Arc<dyn TtsEngine>`. `SynthCtx` groups worker context to reduce argument counts. `interrupt()` handles stop/preempt from reader thread.
+- `elisp/omnivox-voices.el` - Emacs voice module. Self-registering via advice on `voice-setup` and `dtk-speak`. Provides defcustoms, interactive commands, and voice querying.
 
 ## Dependencies
 
 Key workspace dependencies (Cargo.toml):
 
-- tokio, thiserror, anyhow, tracing, tracing-subscriber, regex, once_cell
+- thiserror, anyhow, tracing, tracing-subscriber, regex, once_cell
 - omnivox-tts: espeak-rs-sys (with compile-espeak-intonations), rubato (sinc resampler), cc (build), windows v0.58 (Windows-only, WinRT SpeechSynthesizer)
 - omnivox-audio: rodio (vorbis + wav features)
-- omnivox-cli: all workspace crates + tokio
+- omnivox-cli: all workspace crates (no tokio — pure std threads)
 
 ## Dual AudioBuffer Types
 
@@ -182,25 +191,37 @@ See [ENV-VARS.md](ENV-VARS.md) for complete documentation.
 
 ## Emacspeak Integration
 
+`elisp/omnivox-voices.el` is a self-registering Emacs module. It hooks into emacspeak via `advice-add` on `voice-setup` and `dtk-speak` — no emacspeak source files need modification.
+
+Setup in init.el (before emacspeak loads):
+
 ```elisp
+(add-to-list 'load-path "/path/to/omnivox/elisp")
+(require 'omnivox-voices)
+(setq omnivox-default-voice-id "en-US:Alex")
+(setq omnivox-default-speech-rate 0.6)
 (setq dtk-program "omnivox")
+(require 'emacspeak-setup)
 ```
 
-Ensure `~/.cargo/bin` is in PATH, or symlink/copy into emacspeak/servers/.
+Ensure omnivox binary is in PATH or symlinked into emacspeak/servers/.
+
+### How Self-Registration Works
+
+- `with-eval-after-load 'voice-setup` adds `:around` advice on `voice-setup` to dispatch to `omnivox-configure-tts` when `dtk-program` matches "omnivox"
+- `with-eval-after-load 'dtk-speak` adds "omnivox" to `tts-multi-engines` and advises `dtk-notify-initialize` to set `OMNIVOX_AUDIO_TARGET`
 
 ### Windows-Specific Setup
 
-Windows requires additional steps beyond macOS/Linux:
+1. **HOME env var**: Set `HOME=C:\Users\<username>` so Emacs finds `~/.emacs.d/init.el`
+2. **Copy binary**: Copy `omnivox.exe` into `~/.emacspeak/servers/` (symlinks require admin on Windows)
+3. **Generate emacspeak-loaddefs.el**: `emacs --batch -l ./emacspeak-preamble.el -l ./emacspeak-autoload.el -f emacspeak-auto-generate-autoloads` from `~/.emacspeak/lisp/`
+4. **LIBCLANG_PATH**: Set `LIBCLANG_PATH=C:\\LLVM\\bin` before building
 
-1. **HOME env var**: Emacs on Windows resolves `~` to `%APPDATA%` by default, not `%USERPROFILE%`. Set `HOME=C:\Users\<username>` as a system environment variable (`setx HOME C:\Users\<username>`) so Emacs finds `~/.emacs.d/init.el` and `~/.emacspeak/`.
-2. **Copy binary to servers dir**: Emacspeak's `dtk-make-process` does `(expand-file-name dtk-program emacspeak-servers-directory)` to find the server binary. On Windows, symlinks require admin, so copy `omnivox.exe` into `~/.emacspeak/servers/`. Must re-copy after each rebuild.
-3. **Generate emacspeak-loaddefs.el**: Fresh emacspeak clones on Windows lack this file (normally built by `make`). Generate with: `emacs --batch -l ./emacspeak-preamble.el -l ./emacspeak-autoload.el -f emacspeak-auto-generate-autoloads` from the `~/.emacspeak/lisp/` directory.
-4. **LIBCLANG_PATH**: Required for espeak-ng compilation. Set `LIBCLANG_PATH=C:\\LLVM\\bin` before building.
-5. **Speech rate**: WinRT default speech rate may be fast. Users should lower it via Emacspeak's `dtk-speech-rate` or `tts_set_speech_rate`.
+### `;;` Text Handling
 
-### Known Bug: `;;` Text Dropping
-
-- **Text after `;;` skipped until next quote**: When text contains `;;` (e.g. Lisp comments), omnivox drops text after the semicolons until the next quote character. This is an omnivox parsing/handling bug -- other speech servers handle this correctly. Needs investigation in the command parser or text processing pipeline.
+- **Parser is correct** — regression tests in `omnivox-core/src/command.rs` (`test_parse_semicolons_*`, `test_parse_dtk_speak_format`) confirm the regex preserves all text including `;;` and content after it.
+- **If text after `;;` appears silently dropped**: the bug would be in the TTS engine layer (macOS ObjC bridge or espeak-ng), not the parser or chunker. Both `apply_punctuation` and `chunk_text` preserve all tokens. Investigate with `omnivox --dump-wav` to inspect synthesized audio before/after the pipeline.
 
 ### Dual-Server Notification Mode
 

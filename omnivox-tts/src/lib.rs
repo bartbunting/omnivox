@@ -131,10 +131,8 @@ impl AudioBuffer {
 
         // Deinterleave into per-channel vecs
         let mut channel_data: Vec<Vec<f32>> = vec![Vec::with_capacity(frame_count); channels];
-        for frame in 0..frame_count {
-            for ch in 0..channels {
-                channel_data[ch].push(self.samples[frame * channels + ch]);
-            }
+        for (i, &sample) in self.samples.iter().enumerate() {
+            channel_data[i % channels].push(sample);
         }
 
         // Process entire buffer at once
@@ -146,8 +144,8 @@ impl AudioBuffer {
         let out_frames = output_channels[0].len();
         let mut resampled = Vec::with_capacity(out_frames * channels);
         for frame in 0..out_frames {
-            for ch in 0..channels {
-                resampled.push(output_channels[ch][frame]);
+            for ch_data in &output_channels {
+                resampled.push(ch_data[frame]);
             }
         }
 
