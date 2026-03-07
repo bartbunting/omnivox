@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -31,13 +32,24 @@ static const int ESPEAK_AUDIO_OUTPUT_SYNCHRONOUS = 2;
 static void init_dynamic_espeak(const char *data_path) {
     using EspeakInitFn = int (*)(int, int, const char *, int);
     // PIPER_LIB_DIR is defined by cmake to the install/lib directory.
-    void *lib = dlopen(PIPER_LIB_DIR "/libespeak-ng.1.dylib",
-                       RTLD_NOW | RTLD_LOCAL);
-    if (!lib) return;
-    auto fn = reinterpret_cast<EspeakInitFn>(dlsym(lib, "espeak_Initialize"));
-    if (fn) {
-        fn(ESPEAK_AUDIO_OUTPUT_SYNCHRONOUS, 0, data_path, 0);
+    // Try the versioned name first, then the versionless symlink as fallback.
+    void *lib = dlopen(PIPER_LIB_DIR "/libespeak-ng.1.dylib", RTLD_NOW | RTLD_LOCAL);
+    if (!lib) {
+        lib = dlopen(PIPER_LIB_DIR "/libespeak-ng.dylib", RTLD_NOW | RTLD_LOCAL);
     }
+    if (!lib) {
+        std::cerr << "[piper_bridge] warning: could not open piper espeak-ng dylib: "
+                  << dlerror() << std::endl;
+        return;
+    }
+    auto fn = reinterpret_cast<EspeakInitFn>(dlsym(lib, "espeak_Initialize"));
+    if (!fn) {
+        std::cerr << "[piper_bridge] warning: espeak_Initialize not found in dylib"
+                  << std::endl;
+        dlclose(lib);
+        return;
+    }
+    fn(ESPEAK_AUDIO_OUTPUT_SYNCHRONOUS, 0, data_path, 0);
     // dlclose decrements our ref-count; the lib stays loaded because it is
     // also a required LOAD_DYLIB of the binary itself.
     dlclose(lib);
@@ -88,7 +100,7 @@ int piper_load_voice(PiperState *state,
                          /*useCuda=*/false);
         state->voice_loaded = true;
         return 0;
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
         return 1;
     } catch (...) {
         return 1;
@@ -121,7 +133,7 @@ int16_t *piper_synthesize(PiperState *state,
                            audio_buffer,
                            result,
                            nullptr /* no streaming callback */);
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
         return nullptr;
     } catch (...) {
         return nullptr;
