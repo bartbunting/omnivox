@@ -153,16 +153,22 @@ impl PiperTtsEngine {
         Self::new(&model)
     }
 
-    /// Map TtsSettings.rate (0.0..1.0, 0.5=normal) to piper length_scale.
+    /// Map TtsSettings.rate (0.0..2.0, 0.5=normal) to piper length_scale.
     ///
-    /// Rate convention (matches espeak/macOS): 0.0=slow, 0.5=normal, 1.0=fast.
+    /// Rate convention: 0.0=slowest, 0.5=normal, 1.0=fast (2x), 2.0=very fast (~10x).
     /// piper length_scale: 1.0=normal, <1.0=faster, >1.0=slower (inverse of rate).
-    /// Mapping: 0.0 -> 2.0 (slowest), 0.5 -> 1.0 (normal), 1.0 -> 0.5 (fastest).
+    ///
+    /// Mapping:
+    ///   rate 0.0 -> length_scale 2.0  (slowest)
+    ///   rate 0.5 -> length_scale 1.0  (normal)
+    ///   rate 1.0 -> length_scale 0.5  (2x speed)
+    ///   rate 1.5 -> length_scale 0.1  (clamped floor, ~10x speed)
+    ///   rate 2.0 -> length_scale 0.1  (same floor)
     fn map_rate_to_length_scale(rate: f32) -> f32 {
-        let rate = rate.clamp(0.0, 1.0);
+        let rate = rate.clamp(0.0, 2.0);
         if rate >= 0.5 {
-            // 0.5 -> 1.0 (normal), 1.0 -> 0.5 (fastest)
-            1.5 - rate
+            // Linear: 0.5 -> 1.0 (normal), 1.0 -> 0.5 (2x fast), 1.5+ -> 0.1 floor
+            (1.5 - rate).max(0.1)
         } else {
             // 0.0 -> 2.0 (slowest), 0.5 -> 1.0 (normal)
             1.0 + (0.5 - rate) * 2.0
@@ -377,11 +383,14 @@ mod tests {
         assert!((PiperTtsEngine::map_rate_to_length_scale(0.0) - 2.0).abs() < 0.001);
         // rate 0.5 (normal) -> length_scale 1.0 (normal)
         assert!((PiperTtsEngine::map_rate_to_length_scale(0.5) - 1.0).abs() < 0.001);
-        // rate 1.0 (fast) -> length_scale 0.5 (fastest/shortest)
+        // rate 1.0 (fast) -> length_scale 0.5 (2x speed)
         assert!((PiperTtsEngine::map_rate_to_length_scale(1.0) - 0.5).abs() < 0.001);
+        // rate 1.5 (very fast) -> length_scale 0.1 (floor)
+        assert!((PiperTtsEngine::map_rate_to_length_scale(1.5) - 0.1).abs() < 0.001);
+        // rate 2.0 -> floor
+        assert!((PiperTtsEngine::map_rate_to_length_scale(2.0) - 0.1).abs() < 0.001);
         // Clamping
         assert!((PiperTtsEngine::map_rate_to_length_scale(-1.0) - 2.0).abs() < 0.001);
-        assert!((PiperTtsEngine::map_rate_to_length_scale(2.0) - 0.5).abs() < 0.001);
     }
 
     #[test]

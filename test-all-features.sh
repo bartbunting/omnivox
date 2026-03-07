@@ -75,8 +75,13 @@ q {Third sentence.}
 d
 EOF
 
-run_test "1.3  tts_say with inline pitch" 4 <<'EOF'
-tts_say {[[pitch 1.4]] High pitch. [[pitch 0.7]] Low pitch.}
+run_test "1.3  Pitch control via queue" 8 <<'EOF'
+c [[pitch 1.5]]
+q {High pitch.}
+d
+c [[pitch 0.7]]
+q {Low pitch.}
+d
 EOF
 
 run_test "1.4  Letter speaking" 4 <<'EOF'
@@ -150,8 +155,8 @@ echo "=== Section 3: Speech Rate Tests ==="
 echo ""
 
 echo "  --- Native ---"
-run_test "3.1  Native slow   (rate 75)" 6 <<'EOF'
-tts_set_speech_rate 75
+run_test "3.1  Native slow   (rate 25)" 6 <<'EOF'
+tts_set_speech_rate 25
 tts_say {This is native speech at a slow rate. Notice the pace.}
 EOF
 
@@ -160,16 +165,16 @@ tts_set_speech_rate 50
 tts_say {This is native speech at normal speed. Notice the pace.}
 EOF
 
-run_test "3.3  Native fast   (rate 25)" 4 <<'EOF'
-tts_set_speech_rate 25
+run_test "3.3  Native fast   (rate 75)" 4 <<'EOF'
+tts_set_speech_rate 75
 tts_say {This is native speech at a fast rate. Notice the pace.}
 EOF
 
 echo ""
 echo "  --- Espeak ---"
-run_test "3.4  Espeak slow   (rate 75)" 6 \
+run_test "3.4  Espeak slow   (rate 25)" 6 \
     OMNIVOX_ENGINE=espeak <<'EOF'
-tts_set_speech_rate 75
+tts_set_speech_rate 25
 tts_say {This is espeak at a slow rate. Notice the pace.}
 EOF
 
@@ -179,34 +184,46 @@ tts_set_speech_rate 50
 tts_say {This is espeak at normal speed. Notice the pace.}
 EOF
 
-run_test "3.6  Espeak fast   (rate 25)" 4 \
+run_test "3.6  Espeak fast   (rate 75)" 4 \
     OMNIVOX_ENGINE=espeak <<'EOF'
-tts_set_speech_rate 25
+tts_set_speech_rate 75
 tts_say {This is espeak at a fast rate. Notice the pace.}
 EOF
 
 if $HAS_PIPER; then
     echo ""
     echo "  --- Piper ---"
-    run_test "3.7  Piper slow   (rate 75)" 10 \
+    run_test "3.7  Piper slow      (rate 25)" 10 \
         OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" <<'EOF'
-tts_set_speech_rate 75
+tts_set_speech_rate 25
 tts_say {This is piper at a slow rate. Notice the pace.}
 EOF
 
-    run_test "3.8  Piper normal (rate 50)" 9 \
+    run_test "3.8  Piper normal    (rate 50)" 9 \
         OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" <<'EOF'
 tts_set_speech_rate 50
 tts_say {This is piper at normal speed. Notice the pace.}
 EOF
 
-    run_test "3.9  Piper fast   (rate 25)" 8 \
+    run_test "3.9  Piper fast      (rate 75)" 8 \
         OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" <<'EOF'
-tts_set_speech_rate 25
+tts_set_speech_rate 75
 tts_say {This is piper at a fast rate. Notice the pace.}
 EOF
+
+    run_test "3.10 Piper very fast (rate 120)" 7 \
+        OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" <<'EOF'
+tts_set_speech_rate 120
+tts_say {Piper above one hundred. Notice the pace.}
+EOF
+
+    run_test "3.11 Piper max fast  (rate 150)" 6 \
+        OMNIVOX_ENGINE=piper "OMNIVOX_PIPER_MODEL=$PIPER_MODEL" <<'EOF'
+tts_set_speech_rate 150
+tts_say {Piper at one fifty. Very fast.}
+EOF
 else
-    echo "  3.7-3.9  Piper rate tests                               SKIPPED"
+    echo "  3.7-3.11 Piper rate tests                              SKIPPED"
 fi
 
 # ---------------------------------------------------------------------------

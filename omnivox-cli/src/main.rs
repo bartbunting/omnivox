@@ -249,8 +249,11 @@ fn apply_audio_target_env(state: &mut TtsState) {
 }
 
 fn normalize_rate(rate: f32) -> f32 {
+    // Integer scale (>1.0) is divided by 100 to get a float.
+    // Upper bound is 2.0 (rate 200) so engines that support it (piper) can
+    // go above 2x speed. Engines that don't (espeak, native) clamp internally.
     let r = if rate > 1.0 { rate / 100.0 } else { rate };
-    r.clamp(0.0, 1.0)
+    r.clamp(0.0, 2.0)
 }
 
 fn rate_scaled_padding(rate: f32) -> f32 {
@@ -1747,12 +1750,15 @@ mod tests {
     fn test_normalize_rate_integer_scale() {
         assert!((normalize_rate(50.0) - 0.5).abs() < 0.001);
         assert!((normalize_rate(100.0) - 1.0).abs() < 0.001);
+        // Extended range: rate 150 and 200 allowed for piper
+        assert!((normalize_rate(150.0) - 1.5).abs() < 0.001);
+        assert!((normalize_rate(200.0) - 2.0).abs() < 0.001);
     }
 
     #[test]
     fn test_normalize_rate_clamp() {
         assert_eq!(normalize_rate(-1.0), 0.0);
-        assert!((normalize_rate(200.0) - 1.0).abs() < 0.001);
+        assert!((normalize_rate(300.0) - 2.0).abs() < 0.001);
     }
 
     #[test]
