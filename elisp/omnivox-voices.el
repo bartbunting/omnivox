@@ -84,23 +84,10 @@ the original dispatcher.  Otherwise delegate to ORIG-FN."
 
 (with-eval-after-load 'dtk-speak
   (cl-declare (special tts-multi-engines))
-  ;; Register omnivox as a multi-capable engine
-  (cl-pushnew "omnivox" tts-multi-engines :test #'string=)
-  ;; Advise notification initialization to set OMNIVOX_AUDIO_TARGET
-  (advice-add 'dtk-notify-initialize :around #'omnivox--notify-advice))
-
-(defun omnivox--notify-advice (orig-fn)
-  "Advice around `dtk-notify-initialize' to set OMNIVOX_AUDIO_TARGET.
-Binds the env var alongside the other engine-specific audio target
-variables that emacspeak already handles."
-  (cl-declare (special tts-notification-device))
-  (let ((process-environment
-         (cons (format "OMNIVOX_AUDIO_TARGET=%s"
-                       (or (and (boundp 'tts-notification-device)
-                                tts-notification-device)
-                           ""))
-               process-environment)))
-    (funcall orig-fn)))
+  ;; Register omnivox as a multi-capable engine so tts-multistream-p returns t.
+  ;; Emacspeak's dtk-notify-initialize already sets OMNIVOX_AUDIO_TARGET from
+  ;; tts-notification-device — no additional advice needed.
+  (cl-pushnew "omnivox" tts-multi-engines :test #'string=))
 
 ;;;  Customization group:
 
@@ -187,6 +174,16 @@ Returns a list of (ID NAME LANGUAGE QUALITY) entries."
             (insert (format "  %-30s  %s  %s\n" id name quality))))))))
 
 ;;;  Customizations:
+
+(defcustom omnivox-notification-channel "left"
+  "Audio channel for the omnivox notification TTS server.
+This value is passed as OMNIVOX_AUDIO_TARGET when the notification
+server process is spawned.  Emacspeak routes notification speech
+(buffer position announcements, etc.) through a second omnivox
+process on this channel, leaving the main speech on both channels.
+Typical values: \"left\", \"right\", \"both\"."
+  :group 'omnivox
+  :type '(choice (const "left") (const "right") (const "both")))
 
 (defcustom omnivox-speech-rate 60
   "Default speech rate for Omnivox.
@@ -550,8 +547,13 @@ and TABLE gives the values along that dimension."
 Sends defcustom settings to the already-running omnivox process
 via protocol commands."
   (cl-declare (special tts-default-speech-rate
-                       tts-default-voice))
+                       tts-default-voice
+                       tts-notification-device))
   (setq tts-default-voice 'paul)
+  ;; Tell emacspeak this engine supports a second notification stream.
+  ;; dtk-notify-initialize reads tts-notification-device and passes it as
+  ;; OMNIVOX_AUDIO_TARGET to the second process automatically.
+  (setq tts-notification-device omnivox-notification-channel)
   (fset 'tts-voice-defined-p 'omnivox-voice-defined-p)
   (fset 'tts-get-voice-command 'omnivox-get-voice-command)
   (fset 'tts-define-voice-from-acss 'omnivox-define-voice-from-acss)
@@ -582,6 +584,12 @@ via protocol commands."
   (unless (string-empty-p omnivox-voice-id)
     (omnivox--send (format "tts_set_voice %s" omnivox-voice-id)))
   ;; Query available voices
-  (omnivox-refresh-voices))
+  (omnivox-refresh-voices)
+  ;; Start the notification server.  dtk-initialize already ran before
+  ;; voice-setup called us, so tts-multistream-p missed its window.
+  ;; Call dtk-notify-initialize directly; it is idempotent (kills any old
+  ;; notify process first).
+  (when (fboundp 'dtk-notify-initialize)
+    (dtk-notify-initialize)))
 
 (provide 'omnivox-voices)
