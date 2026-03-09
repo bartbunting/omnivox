@@ -3,7 +3,7 @@
 use anyhow::Result;
 use omnivox_audio::{AudioControl, AudioFileLoader, StreamType, ToneGenerator};
 use omnivox_core::{
-    parse_command, state::PunctuationLevel, Command, CommandId, QueueItem, TtsState,
+    parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
 };
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead};
@@ -407,6 +407,28 @@ fn handle_command(
             }
         }
 
+        CommandId::TtsSetSpeechChannel => {
+            if let Some(target) = command.args {
+                if let Some(mode) = ChannelMode::parse(&target) {
+                    state.speech_routing.channel_mode = mode;
+                    debug!("Speech channel: {}", target);
+                } else {
+                    warn!("Invalid tts_set_speech_channel value: {}", target);
+                }
+            }
+        }
+
+        CommandId::TtsSetNotificationChannel => {
+            if let Some(target) = command.args {
+                if let Some(mode) = ChannelMode::parse(&target) {
+                    state.notification_routing.channel_mode = mode;
+                    debug!("Notification channel: {}", target);
+                } else {
+                    warn!("Invalid tts_set_notification_channel value: {}", target);
+                }
+            }
+        }
+
         CommandId::TtsReset => {
             debug!("Reset");
             interrupt(current_gen, gen_counter, control, engine.as_ref(), false, true);
@@ -419,8 +441,8 @@ fn handle_command(
             std::process::exit(0);
         }
 
-        _ => {
-            debug!("Command not yet implemented: {:?}", command.id);
+        CommandId::SetLang | CommandId::SetNextLang | CommandId::SetPreviousLang | CommandId::SetPreferredLang => {
+            debug!("Language switching not yet implemented: {:?} {:?}", command.id, command.args);
         }
     }
 }
