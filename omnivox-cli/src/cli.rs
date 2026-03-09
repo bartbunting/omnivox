@@ -410,7 +410,7 @@ pub fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
             }
 
             let mut buf: AudioBuffer = tts_buffer_to_audio_buffer(tts_buf);
-            let pipeline = build_speech_pipeline(&state, true, true);
+            let pipeline = build_speech_pipeline(&state, true);
             if let Err(e) = pipeline.process(&mut buf) {
                 eprintln!("Pipeline error: {}", e);
             }

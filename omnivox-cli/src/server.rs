@@ -70,7 +70,7 @@ pub fn synthesis_worker(
                 let chunks = chunk_text(&processed, 15);
                 let count = chunks.len();
                 for (i, chunk) in chunks.into_iter().enumerate() {
-                    if !synthesize_chunk(&chunk, &settings, &state, i == 0, i == count - 1, &ctx) {
+                    if !synthesize_chunk(&chunk, &settings, &state, i == count - 1, &ctx) {
                         break;
                     }
                 }
@@ -101,7 +101,7 @@ pub fn synthesis_worker(
                     pitch: letter_state.pitch_multiplier,
                     volume: 1.0,
                 };
-                synthesize_chunk(&text.to_ascii_lowercase(), &settings, &letter_state, true, true, &ctx);
+                synthesize_chunk(&text.to_ascii_lowercase(), &settings, &letter_state, true, &ctx);
             }
 
             SynthRequest::PlaySound { path, state, gen } => {

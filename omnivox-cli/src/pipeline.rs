@@ -27,14 +27,12 @@ pub fn tts_buffer_to_audio_buffer(tts_buf: omnivox_tts::AudioBuffer) -> AudioBuf
 // Pipeline builders
 // ---------------------------------------------------------------------------
 
-pub fn build_speech_pipeline(state: &TtsState, is_first: bool, is_last: bool) -> AudioPipeline {
-    let padding = rate_scaled_padding(state.speech_rate);
-    let leading = if is_first { padding } else { 0.0 };
-    let trailing = if is_last { padding } else { 0.0 };
+pub fn build_speech_pipeline(state: &TtsState, is_last: bool) -> AudioPipeline {
+    let trailing = if is_last { rate_scaled_padding(state.speech_rate) } else { 0.0 };
 
     let mut pipeline = AudioPipeline::new();
     pipeline.push(Box::new(SilenceTrimmer::with_asymmetric_padding(
-        0.01, leading, trailing,
+        0.01, 0.0, trailing,
     )));
     pipeline.push(Box::new(VolumeAdjust::new(state.voice_volume)));
     pipeline.push(Box::new(ChannelRouter::new(state.speech_routing.channel_mode)));
@@ -89,7 +87,6 @@ pub fn synthesize_chunk(
     chunk: &str,
     settings: &TtsSettings,
     state: &TtsState,
-    is_first: bool,
     is_last: bool,
     ctx: &SynthCtx,
 ) -> bool {
@@ -103,7 +100,7 @@ pub fn synthesize_chunk(
                 return false;
             }
             let mut buf = tts_buffer_to_audio_buffer(tts_buf);
-            let pipeline = build_speech_pipeline(state, is_first, is_last);
+            let pipeline = build_speech_pipeline(state, is_last);
             if let Err(e) = pipeline.process(&mut buf) {
                 warn!("Pipeline error: {}", e);
             }
@@ -130,7 +127,7 @@ pub fn process_batch(
         return;
     }
 
-    // Pre-count speech chunks so we know first/last positions for padding.
+    // Pre-count total speech chunks to identify the last one for trailing padding.
     let total_speech_chunks: usize = items
         .iter()
         .map(|item| match item {
@@ -157,9 +154,8 @@ pub fn process_batch(
                 let processed = preprocess_text(&text, &state);
                 let chunks = chunk_text(&processed, 15);
                 for chunk in chunks {
-                    let is_first = speech_chunk_index == 0;
                     let is_last = speech_chunk_index == total_speech_chunks - 1;
-                    if !synthesize_chunk(&chunk, &settings, &state, is_first, is_last, ctx) {
+                    if !synthesize_chunk(&chunk, &settings, &state, is_last, ctx) {
                         return;
                     }
                     speech_chunk_index += 1;
