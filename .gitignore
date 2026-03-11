@@ -25,5 +25,8 @@ cmake-build-*/
 CMakeCache.txt
 CMakeFiles/
 
+# Piper source clone (pulled by omnivox-piper-sys/build.rs during piper feature build)
+omnivox-piper-sys/piper/
+
 # Dictionary files (legacy)
 dic/
