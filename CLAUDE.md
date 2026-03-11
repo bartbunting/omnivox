@@ -155,6 +155,39 @@ omnivox --check
 
 - **Piper neural TTS** - Evaluated as an optional backend for high-quality offline neural voices via ONNX Runtime. The `piper-rs` crate (v0.1.9) has a broken dependency chain: it pins `ndarray 0.16` but its `ort` dependency resolves to a version requiring `ndarray 0.17`, causing compile failures. The alternative `piper-tts-rust` crate is English-only and uses a limited g2p model. Piper integration should be revisited if/when the Rust crate ecosystem stabilizes.
 
+## Troubleshooting: Unexpected espeak-ng Voice
+
+espeak-ng is **always compiled in** as an unconditional fallback. If omnivox starts
+speaking with a robotic espeak-ng voice when you expect native macOS/Windows TTS,
+this is almost always a **configuration problem**, not a compile failure.
+
+### Diagnosis
+
+Run `omnivox --check` — the `[engine]` section shows which engine was actually selected
+and will print any warnings that caused a fallback.
+
+Common causes and fixes:
+
+- **`OMNIVOX_ENGINE=piper` (or `espeak`) set in Emacs init.el** — If `OMNIVOX_ENGINE`
+  is set to a value that fails (e.g. `piper` without a `--features piper` build, or
+  `piper` with a missing/bad model path), omnivox silently falls back to espeak-ng.
+  Comment out the `setenv` call in your init.el. macOS native TTS is the default; no
+  env var is needed to enable it.
+
+- **`OMNIVOX_PIPER_MODEL` missing or invalid path** — If `OMNIVOX_ENGINE=piper` but
+  the model file doesn't exist, omnivox warns and falls back to espeak-ng.
+
+- **Build was done without native TTS support** — Unlikely on macOS (the ObjC bridge
+  always compiles), but `cargo build` vs `make build` should both include it.
+
+### Engine selection order
+
+1. If `OMNIVOX_ENGINE=espeak`, use espeak-ng directly (intentional override).
+2. If `OMNIVOX_ENGINE=piper`, try piper; fall back to espeak-ng on failure.
+3. Otherwise: try native (macOS AVSpeechSynthesizer / Windows WinRT); fall back to
+   espeak-ng only if native init fails.
+4. espeak-ng is the final fallback and will always succeed.
+
 ## Key Files
 
 - `omnivox-tts/src/lib.rs` - TtsEngine trait definition. New backends must implement `synthesize() -> Result<AudioBuffer, TtsError>`.
