@@ -15,11 +15,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS — native runner per arch (ObjC bridge requires native compile)
+          # macOS — macos-15 (arm64) for both targets; Apple's toolchain supports
+          # cross-compilation to x86_64 natively. macos-13 (Intel) is unavailable.
           - os: macos-15
             target: aarch64-apple-darwin
             name: macos-arm64
-          - os: macos-13
+          - os: macos-15
             target: x86_64-apple-darwin
             name: macos-x64
           # Windows — native runner per arch (WinRT requires native compile)
@@ -87,8 +88,6 @@ jobs:
         include:
           - os: macos-15
             name: macos-arm64
-          - os: macos-13
-            name: macos-x64
           - os: windows-latest
             name: windows-x64
           - os: windows-11-arm
@@ -116,10 +115,10 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ matrix.name }}-test-
 
       - name: Run tests
-        run: cargo test --all
+        run: cargo test
 
       - name: Run clippy
-        run: cargo clippy --all -- -D warnings
+        run: cargo clippy -- -D warnings
 
   release:
     name: Create Release

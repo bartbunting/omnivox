@@ -206,6 +206,7 @@ pub fn run_server(
 // Command dispatch
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 fn handle_command(
     command: Command,
     state: &mut TtsState,

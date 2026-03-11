@@ -387,11 +387,8 @@ pub fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
     let mut state = TtsState::default();
     if !voice.is_empty() {
         let parts: Vec<&str> = voice.splitn(2, ':').collect();
-        if parts.len() == 2 {
-            state.current_voice = voice.to_string();
-        } else {
-            state.current_voice = voice.to_string();
-        }
+        let _ = parts; // splitn result unused; voice is always valid either way
+        state.current_voice = voice.to_string();
     }
 
     let settings = TtsSettings {
