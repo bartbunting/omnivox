@@ -11,7 +11,9 @@ use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::resolver::{resolve_voice, VoiceResolution};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
-use omnivox_tts::{SynthesisRequest, SynthesisResult, TtsEngine, TtsError, TtsSettings};
+use omnivox_tts::{
+    RequestedAnchor, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, TtsSettings,
+};
 use tracing::{debug, warn};
 
 use crate::health::{EngineAccess, EnginePermit, RuntimeEngineHealth};
@@ -180,8 +182,35 @@ pub enum RuntimeSynthesisOutcome {
 /// failures. Every attempt speaks the identical text and checks cancellation
 /// both before and after the synchronous engine call.
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub fn synthesize_with_runtime_fallback(
     chunk: &str,
+    settings: &TtsSettings,
+    route: &mut LogicalRoute,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    generation: u64,
+    generation_counter: &AtomicU64,
+) -> RuntimeSynthesisOutcome {
+    synthesize_with_runtime_fallback_anchored(
+        chunk,
+        &[],
+        settings,
+        route,
+        routing,
+        engine_registry,
+        runtime_health,
+        generation,
+        generation_counter,
+    )
+}
+
+/// Routed synthesis retaining identical requested anchors across every retry.
+#[allow(clippy::too_many_arguments)]
+pub fn synthesize_with_runtime_fallback_anchored(
+    chunk: &str,
+    anchors: &[RequestedAnchor],
     settings: &TtsSettings,
     route: &mut LogicalRoute,
     routing: &mut LogicalVoiceRoutingSnapshot,
@@ -244,8 +273,9 @@ pub fn synthesize_with_runtime_fallback(
         let mut routed_settings = settings.clone();
         routed_settings.voice = route.realized.voice_id.clone();
         apply_logical_acss(&mut routed_settings, &route.acss.style);
-        let request = SynthesisRequest::new(chunk, routed_settings)
+        let mut request = SynthesisRequest::new(chunk, routed_settings)
             .with_route(route.logical_voice_id.clone(), route.realized.clone());
+        request.anchors = anchors.to_vec();
         let synthesis = route.engine.synthesize(&request).and_then(|mut result| {
             result.resolve_anchors(
                 &request,

@@ -8,7 +8,8 @@ use omnivox_core::{QueueItem, TtsState};
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId};
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::{
-    ResolvedAnchor, SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
+    AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisMarker,
+    SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
 };
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -16,13 +17,10 @@ use tracing::{debug, warn};
 
 use crate::health::RuntimeEngineHealth;
 use crate::marker_events::MarkerDispatchContext;
-use crate::routing::{
-    synthesize_with_runtime_fallback, LogicalRoute, LogicalVoiceRoutingSnapshot,
-    RuntimeSynthesisOutcome,
-};
+use crate::routing::{LogicalRoute, LogicalVoiceRoutingSnapshot, RuntimeSynthesisOutcome};
 use crate::text::{
-    chunk_text, extract_logical_voice, extract_pitch, extract_voice, preprocess_text,
-    rate_scaled_padding,
+    chunk_prepared_speech, extract_logical_voice, extract_pitch, extract_voice,
+    prepare_speech_text, rate_scaled_padding, CapitalizationTone,
 };
 
 // ---------------------------------------------------------------------------
@@ -185,6 +183,25 @@ impl SynthCtx<'_> {
         }
     }
 
+    pub fn queue_stream_overlay(&self, stream: StreamType, buffer: &AudioBuffer) {
+        let barriers = self
+            .presentation_clock
+            .map(|clock| clock.lock().unwrap().clone())
+            .unwrap_or_default();
+        match self.control.queue_stream_after(stream, buffer, barriers) {
+            Ok(Some(ticket)) => {
+                if let Some(tickets) = self.playback_tickets {
+                    tickets.lock().unwrap().push(ticket);
+                }
+            }
+            Ok(None) => {}
+            Err(error) => {
+                self.mark_failed();
+                warn!("{:?} overlay queue error: {}", stream, error);
+            }
+        }
+    }
+
     pub fn flush_overlays(&self) {
         let Some(overlays) = self.pending_overlays else {
             return;
@@ -243,10 +260,9 @@ pub enum BatchStatus {
 // Synthesis helpers
 // ---------------------------------------------------------------------------
 
-/// Synthesize one text chunk and queue it on the speech stream.
-/// Returns `false` if the request was cancelled before or during synthesis.
-pub fn synthesize_chunk(
+pub fn synthesize_chunk_with_tones(
     chunk: &str,
+    capitalization_tones: &[CapitalizationTone],
     settings: &TtsSettings,
     state: &TtsState,
     is_last: bool,
@@ -256,7 +272,9 @@ pub fn synthesize_chunk(
         return false;
     }
 
-    let request = SynthesisRequest::new(chunk, settings.clone());
+    let request = SynthesisRequest::new(chunk, settings.clone())
+        .with_anchors(requested_capitalization_anchors(capitalization_tones))
+        .expect("prepared capitalization offsets are valid");
     match ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(
             &request,
@@ -269,7 +287,15 @@ pub fn synthesize_chunk(
             if ctx.is_stale() {
                 return false;
             }
-            queue_synthesis_result(result, chunk, None, state, is_last, ctx);
+            queue_synthesis_result(
+                result,
+                chunk,
+                None,
+                capitalization_tones,
+                state,
+                is_last,
+                ctx,
+            );
             true
         }
         Err(e) => {
@@ -284,6 +310,7 @@ fn queue_synthesis_result(
     result: SynthesisResult,
     utterance_text: &str,
     logical_voice_id: Option<&str>,
+    capitalization_tones: &[CapitalizationTone],
     state: &TtsState,
     is_last: bool,
     ctx: &SynthCtx,
@@ -293,12 +320,21 @@ fn queue_synthesis_result(
         engine = %result.engine_id,
         voice = ?result.actual_voice,
         markers = result.markers.len(),
+        anchors = result.anchors.len(),
         degraded_acss = ?result.degraded_acss,
         "queueing structured synthesis result"
     );
     if let Err(error) = process_speech_result(&mut result, state, is_last) {
         ctx.mark_failed();
         warn!("Pipeline error: {}", error);
+    }
+    match capitalization_overlay_track(&result, capitalization_tones, state) {
+        Ok(Some(track)) => ctx.queue_stream_overlay(StreamType::Tone, &track),
+        Ok(None) => {}
+        Err(error) => {
+            ctx.mark_failed();
+            warn!("Capitalization tone pipeline error: {}", error);
+        }
     }
     if let Some(marker_dispatch) = ctx.marker_dispatch.filter(|_| !result.audio.is_empty()) {
         ctx.flush_overlays();
@@ -324,6 +360,59 @@ fn queue_synthesis_result(
     } else {
         ctx.queue(StreamType::Speech, &result.audio);
     }
+}
+
+fn requested_capitalization_anchors(tones: &[CapitalizationTone]) -> Vec<RequestedAnchor> {
+    tones
+        .iter()
+        .map(|tone| {
+            RequestedAnchor::new(tone.id.clone(), tone.text_offset, AnchorAffinity::Before)
+        })
+        .collect()
+}
+
+fn capitalization_overlay_track(
+    result: &CanonicalSynthesisResult,
+    tones: &[CapitalizationTone],
+    state: &TtsState,
+) -> Result<Option<AudioBuffer>, omnivox_audio::AudioError> {
+    let mut track = Vec::<f32>::new();
+    for tone in tones {
+        let resolved = result
+            .anchors
+            .iter()
+            .find(|anchor| anchor.id == tone.id)
+            .expect("validated synthesis result contains every requested anchor");
+        let frame_offset = resolved.frame_offset.unwrap_or(0);
+        if resolved.resolution != AnchorResolution::Exact {
+            debug!(
+                anchor = %tone.id,
+                resolution = ?resolved.resolution,
+                frame_offset,
+                "capitalization tone placement degraded"
+            );
+        }
+        let generated =
+            ToneGenerator::generate(tone.frequency_hz, tone.duration_ms, 1.0);
+        let sample_offset = usize::try_from(frame_offset)
+            .unwrap_or(usize::MAX)
+            .saturating_mul(2);
+        let required = sample_offset.saturating_add(generated.samples.len());
+        if required == usize::MAX {
+            continue;
+        }
+        track.resize(track.len().max(required), 0.0);
+        for (output, input) in track[sample_offset..].iter_mut().zip(generated.samples) {
+            *output += input;
+        }
+    }
+    if track.is_empty() {
+        return Ok(None);
+    }
+    let mut track = AudioBuffer::new(track);
+    track.clamp();
+    build_tone_pipeline(state).process(&mut track)?;
+    Ok(Some(track))
 }
 
 fn process_speech_result(
@@ -357,6 +446,7 @@ enum RoutedChunkOutcome {
 #[allow(clippy::too_many_arguments)]
 fn synthesize_routed_chunk(
     chunk: &str,
+    capitalization_tones: &[CapitalizationTone],
     state: &TtsState,
     is_last: bool,
     route: &mut LogicalRoute,
@@ -371,8 +461,9 @@ fn synthesize_routed_chunk(
         pitch: state.pitch_multiplier,
         volume: 1.0,
     };
-    match synthesize_with_runtime_fallback(
+    match crate::routing::synthesize_with_runtime_fallback_anchored(
         chunk,
+        &requested_capitalization_anchors(capitalization_tones),
         &settings,
         route,
         routing,
@@ -391,6 +482,7 @@ fn synthesize_routed_chunk(
                 *result,
                 chunk,
                 Some(&route.logical_voice_id),
+                capitalization_tones,
                 state,
                 is_last,
                 ctx,
@@ -435,15 +527,15 @@ pub fn process_preview(
             return preview_result(BatchStatus::Failed, None, Vec::new(), Some(message));
         }
     };
-    let processed = preprocess_text(text, &state);
-    let chunks = chunk_text(&processed, 15);
+    let chunks = chunk_prepared_speech(prepare_speech_text(text, &state), 15);
     let chunk_count = chunks.len();
     let mut realized = Some(route.realized.clone());
     let mut degraded_acss = route.acss.omitted.clone();
 
     for (index, chunk) in chunks.into_iter().enumerate() {
         match synthesize_routed_chunk(
-            &chunk,
+            &chunk.text,
+            &chunk.capitalization_tones,
             &state,
             index + 1 == chunk_count,
             &mut route,
@@ -525,7 +617,9 @@ pub fn process_batch(
     let total_speech_chunks: usize = items
         .iter()
         .map(|item| match item {
-            QueueItem::Speech(text) => chunk_text(&preprocess_text(text, &state), 15).len(),
+            QueueItem::Speech(text) => {
+                chunk_prepared_speech(prepare_speech_text(text, &state), 15).len()
+            }
             _ => 0,
         })
         .sum();
@@ -541,8 +635,7 @@ pub fn process_batch(
 
         match item {
             QueueItem::Speech(text) => {
-                let processed = preprocess_text(&text, &state);
-                let chunks = chunk_text(&processed, 15);
+                let chunks = chunk_prepared_speech(prepare_speech_text(&text, &state), 15);
                 for chunk in chunks {
                     let is_last = speech_chunk_index == total_speech_chunks - 1;
                     if logical_route_exhausted {
@@ -551,7 +644,8 @@ pub fn process_batch(
                     }
                     if let Some(route) = &mut logical_route {
                         match synthesize_routed_chunk(
-                            &chunk,
+                            &chunk.text,
+                            &chunk.capitalization_tones,
                             &state,
                             is_last,
                             route,
@@ -575,7 +669,14 @@ pub fn process_batch(
                             pitch: state.pitch_multiplier,
                             volume: 1.0,
                         };
-                        if !synthesize_chunk(&chunk, &settings, &state, is_last, ctx) {
+                        if !synthesize_chunk_with_tones(
+                            &chunk.text,
+                            &chunk.capitalization_tones,
+                            &settings,
+                            &state,
+                            is_last,
+                            ctx,
+                        ) {
                             return BatchStatus::Cancelled;
                         }
                     }
@@ -663,6 +764,7 @@ pub fn process_batch(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::text::{CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ};
 
     fn result(audio: omnivox_tts::AudioBuffer) -> SynthesisResult {
         SynthesisResult::audio("mock", None, audio)
@@ -787,5 +889,64 @@ mod tests {
 
         assert_eq!(mixed.frame_count(), 2);
         assert_eq!(mixed.samples, vec![1.0, -0.25, 0.5, -0.5]);
+    }
+
+    #[test]
+    fn capitalization_track_places_tone_at_resolved_frame() {
+        let result = CanonicalSynthesisResult {
+            audio: AudioBuffer::silence(1.0),
+            engine_id: "mock".to_owned(),
+            actual_voice: None,
+            markers: Vec::new(),
+            anchors: vec![ResolvedAnchor {
+                id: "capital".to_owned(),
+                frame_offset: Some(10),
+                resolution: AnchorResolution::Exact,
+            }],
+            degraded_acss: Vec::new(),
+        };
+        let tones = vec![CapitalizationTone {
+            id: "capital".to_owned(),
+            text_offset: 0,
+            frequency_hz: CAPITAL_TONE_HZ,
+            duration_ms: CAPITAL_TONE_DURATION_MS,
+        }];
+
+        let track = capitalization_overlay_track(&result, &tones, &TtsState::default())
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(track.frame_count(), 10 + 882);
+        assert!(track.samples[..20].iter().all(|sample| *sample == 0.0));
+        assert!(track.samples[20..].iter().any(|sample| *sample != 0.0));
+    }
+
+    #[test]
+    fn omitted_capitalization_anchor_degrades_to_chunk_start() {
+        let result = CanonicalSynthesisResult {
+            audio: AudioBuffer::silence(1.0),
+            engine_id: "markerless".to_owned(),
+            actual_voice: None,
+            markers: Vec::new(),
+            anchors: vec![ResolvedAnchor {
+                id: "capital".to_owned(),
+                frame_offset: None,
+                resolution: AnchorResolution::Omitted,
+            }],
+            degraded_acss: Vec::new(),
+        };
+        let tones = vec![CapitalizationTone {
+            id: "capital".to_owned(),
+            text_offset: 3,
+            frequency_hz: CAPITAL_TONE_HZ,
+            duration_ms: CAPITAL_TONE_DURATION_MS,
+        }];
+
+        let track = capitalization_overlay_track(&result, &tones, &TtsState::default())
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(track.frame_count(), 882);
+        assert!(track.samples.iter().any(|sample| *sample != 0.0));
     }
 }

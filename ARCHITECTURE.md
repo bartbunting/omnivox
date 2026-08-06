@@ -85,6 +85,14 @@ The deferred icon ticket covers both its wait and full audible tail; tracked
 completion waits for it and stop invalidates it before or during playback.
 This is boundary-level lowering of the pure timeline model. Requested engine
 anchors and the later bounded renderer provide sample-aligned in-span actions.
+Capitalization cues are the first in-span consumer: preprocessing retains their
+UTF-8 offsets, synthesis resolves them, and a sparse 20 ms tone track is queued
+beside the corresponding speech chunk. Eloquence provides exact frames;
+DECtalk and WinRT approximate to word boundaries; markerless engines place the
+tone at the chunk start. The tone track uses the normal tone volume/channel
+pipeline, overlaps speech, contributes its complete tail to tracked completion,
+and is invalidated by stop. The common resource renderer planned next will
+generalize this specialized path to auditory-icon insertions and overlays.
 
 ## Key Types
 

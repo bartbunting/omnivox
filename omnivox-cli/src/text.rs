@@ -4,6 +4,30 @@ use omnivox_core::{state::PunctuationLevel, TtsState};
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 
+pub const CAPITAL_TONE_HZ: f32 = 440.0;
+pub const ALL_CAPS_TONE_HZ: f32 = 1300.0;
+pub const CAPITAL_TONE_DURATION_MS: u32 = 20;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CapitalizationTone {
+    pub id: String,
+    pub text_offset: u32,
+    pub frequency_hz: f32,
+    pub duration_ms: u32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PreparedSpeechText {
+    pub text: String,
+    pub capitalization_tones: Vec<CapitalizationTone>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PreparedSpeechChunk {
+    pub text: String,
+    pub capitalization_tones: Vec<CapitalizationTone>,
+}
+
 // ---------------------------------------------------------------------------
 // Compiled regexes (one-time cost)
 // ---------------------------------------------------------------------------
@@ -23,17 +47,61 @@ pub(crate) static LOGICAL_VOICE_RE: Lazy<regex::Regex> = Lazy::new(|| {
 // Chunking
 // ---------------------------------------------------------------------------
 
-/// Split text into chunks of at most `max_words` words.
-///
-/// Keeps individual utterances small so the TTS engine produces single-buffer
-/// output, enabling aggressive silence trimming and fast cancellation between
-/// chunks.
-pub fn chunk_text(text: &str, max_words: usize) -> Vec<String> {
-    let words: Vec<&str> = text.split_whitespace().collect();
-    if words.len() <= max_words {
-        return vec![text.to_string()];
+/// Split prepared speech without losing capitalization anchor offsets.
+pub fn chunk_prepared_speech(
+    prepared: PreparedSpeechText,
+    max_words: usize,
+) -> Vec<PreparedSpeechChunk> {
+    let spans = word_spans(&prepared.text);
+    if spans.len() <= max_words || max_words == 0 {
+        return vec![PreparedSpeechChunk {
+            text: prepared.text,
+            capitalization_tones: prepared.capitalization_tones,
+        }];
     }
-    words.chunks(max_words).map(|c| c.join(" ")).collect()
+
+    spans
+        .chunks(max_words)
+        .map(|words| {
+            let start = words.first().expect("word chunk is nonempty").0;
+            let end = words.last().expect("word chunk is nonempty").1;
+            let capitalization_tones = prepared
+                .capitalization_tones
+                .iter()
+                .filter(|tone| {
+                    let offset = tone.text_offset as usize;
+                    offset >= start && offset < end
+                })
+                .cloned()
+                .map(|mut tone| {
+                    tone.text_offset -= start as u32;
+                    tone
+                })
+                .collect();
+            PreparedSpeechChunk {
+                text: prepared.text[start..end].to_owned(),
+                capitalization_tones,
+            }
+        })
+        .collect()
+}
+
+fn word_spans(text: &str) -> Vec<(usize, usize)> {
+    let mut spans = Vec::new();
+    let mut start = None;
+    for (offset, character) in text.char_indices() {
+        if character.is_whitespace() {
+            if let Some(start) = start.take() {
+                spans.push((start, offset));
+            }
+        } else if start.is_none() {
+            start = Some(offset);
+        }
+    }
+    if let Some(start) = start {
+        spans.push((start, text.len()));
+    }
+    spans
 }
 
 // ---------------------------------------------------------------------------
@@ -146,13 +214,94 @@ pub fn insert_space_before_uppercase(input: &str) -> String {
 // Text preprocessing
 // ---------------------------------------------------------------------------
 
-/// Apply punctuation expansion and optional CamelCase splitting to `text`.
-pub fn preprocess_text(text: &str, state: &TtsState) -> String {
+/// Apply speech preprocessing while retaining capitalization tone positions.
+pub fn prepare_speech_text(text: &str, state: &TtsState) -> PreparedSpeechText {
     let mut processed = apply_punctuation(text, state.punctuation_level);
     if state.split_caps {
         processed = insert_space_before_uppercase(&processed);
     }
-    processed
+    if state.allcaps_beep {
+        annotate_capitalization(&processed)
+    } else {
+        PreparedSpeechText {
+            text: processed,
+            capitalization_tones: Vec::new(),
+        }
+    }
+}
+
+fn annotate_capitalization(input: &str) -> PreparedSpeechText {
+    let mut text = String::with_capacity(input.len());
+    let mut tones = Vec::new();
+    let mut position = 0;
+    while position < input.len() {
+        let character = input[position..]
+            .chars()
+            .next()
+            .expect("position remains on a character boundary");
+        if character.is_uppercase() && is_word_start(input, position) {
+            if let Some(end) = all_caps_run_end(input, position) {
+                let id = format!("capitalization-{}", tones.len());
+                tones.push(CapitalizationTone {
+                    id,
+                    text_offset: text.len() as u32,
+                    frequency_hz: ALL_CAPS_TONE_HZ,
+                    duration_ms: CAPITAL_TONE_DURATION_MS,
+                });
+                text.extend(input[position..end].chars().flat_map(char::to_lowercase));
+                position = end;
+                continue;
+            }
+        }
+        if character.is_uppercase() {
+            let id = format!("capitalization-{}", tones.len());
+            tones.push(CapitalizationTone {
+                id,
+                text_offset: text.len() as u32,
+                frequency_hz: CAPITAL_TONE_HZ,
+                duration_ms: CAPITAL_TONE_DURATION_MS,
+            });
+        }
+        text.push(character);
+        position += character.len_utf8();
+    }
+    PreparedSpeechText {
+        text,
+        capitalization_tones: tones,
+    }
+}
+
+fn is_word_start(text: &str, position: usize) -> bool {
+    text[..position]
+        .chars()
+        .next_back()
+        .is_none_or(|character| !is_word_character(character))
+}
+
+fn all_caps_run_end(text: &str, start: usize) -> Option<usize> {
+    let mut end = start;
+    let mut count = 0;
+    for character in text[start..].chars() {
+        if character.is_uppercase()
+            || character.is_numeric()
+            || character == '_'
+            || character == '-'
+        {
+            end += character.len_utf8();
+            count += 1;
+        } else {
+            break;
+        }
+    }
+    let has_word_end = text[end..]
+        .chars()
+        .next()
+        .is_none_or(|character| !is_word_character(character));
+    (count >= 2 && has_word_end).then_some(end)
+}
+
+fn is_word_character(character: char) -> bool {
+    character.is_alphanumeric() || character == '_'
 }
 
 // ---------------------------------------------------------------------------
@@ -306,6 +455,59 @@ mod tests {
     }
 
     #[test]
+    fn capitalization_preparation_distinguishes_caps_and_all_caps() {
+        let state = TtsState {
+            punctuation_level: PunctuationLevel::None,
+            split_caps: false,
+            allcaps_beep: true,
+            ..TtsState::default()
+        };
+        let prepared = prepare_speech_text("Hello camelCase ABC A1", &state);
+
+        assert_eq!(prepared.text, "Hello camelCase abc a1");
+        assert_eq!(
+            prepared
+                .capitalization_tones
+                .iter()
+                .map(|tone| (tone.text_offset, tone.frequency_hz))
+                .collect::<Vec<_>>(),
+            vec![(0, 440.0), (11, 440.0), (16, 1300.0), (20, 1300.0)]
+        );
+        assert!(prepared
+            .capitalization_tones
+            .iter()
+            .all(|tone| tone.duration_ms == 20));
+    }
+
+    #[test]
+    fn prepared_chunking_rebases_capitalization_offsets() {
+        let prepared = PreparedSpeechText {
+            text: "One two  Three four".to_owned(),
+            capitalization_tones: vec![
+                CapitalizationTone {
+                    id: "first".to_owned(),
+                    text_offset: 0,
+                    frequency_hz: 440.0,
+                    duration_ms: 20,
+                },
+                CapitalizationTone {
+                    id: "third".to_owned(),
+                    text_offset: 9,
+                    frequency_hz: 440.0,
+                    duration_ms: 20,
+                },
+            ],
+        };
+
+        let chunks = chunk_prepared_speech(prepared, 2);
+
+        assert_eq!(chunks[0].text, "One two");
+        assert_eq!(chunks[0].capitalization_tones[0].text_offset, 0);
+        assert_eq!(chunks[1].text, "Three four");
+        assert_eq!(chunks[1].capitalization_tones[0].text_offset, 0);
+    }
+
+    #[test]
     fn test_extract_voice() {
         assert_eq!(
             extract_voice("[{voice en-US:Samantha}]"),
@@ -331,22 +533,6 @@ mod tests {
         assert_eq!(extract_logical_voice(codes).as_deref(), Some("source-code"));
         assert_eq!(extract_logical_voice("[[logical_voice invalid voice]]"), None);
         assert_eq!(extract_logical_voice("[[logical_voice ../invalid]]"), None);
-    }
-
-    #[test]
-    fn test_chunk_text_short() {
-        let chunks = chunk_text("hello world", 15);
-        assert_eq!(chunks.len(), 1);
-        assert_eq!(chunks[0], "hello world");
-    }
-
-    #[test]
-    fn test_chunk_text_long() {
-        let text = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen";
-        let chunks = chunk_text(text, 15);
-        assert_eq!(chunks.len(), 2);
-        assert_eq!(chunks[0].split_whitespace().count(), 15);
-        assert_eq!(chunks[1].split_whitespace().count(), 1);
     }
 
     #[test]

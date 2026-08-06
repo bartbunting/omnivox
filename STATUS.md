@@ -21,7 +21,7 @@
 - Text chunking (~15 word chunks for single-buffer utterances)
 - Punctuation replacement (none/some/all levels)
 - Split caps (insert spaces before capitals)
-- Letter speaking with pitch raise for capitals
+- Letter speaking with anchored capitalization tone or pitch-raise fallback
 - Voice switching (intra-sentence via queue)
 - Stop with persistent singleton synthesizer
 - Engine selection via OMNIVOX_ENGINE env var or --engine flag
@@ -58,6 +58,8 @@
   and omitted resolution grades
 - Helper protocol v2 exact Eloquence anchors with automatic v1 negotiation fallback
 - Anchor frames retained through canonical resampling and silence trimming
+- Speech-overlaid 440 Hz capital and 1300 Hz all-caps tones resolved through
+  requested anchors with word-boundary and chunk-boundary degradation
 - Per-engine rate, average-pitch, and volume degradation for logical ACSS routes
 - Canonical PCM conversion before helper audio enters the effects/playback pipeline
 - Structured synthesis requests and results with realized engine/voice metadata
@@ -102,12 +104,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 315 tests, all passing
+Total: 317 tests, all passing
 
 omnivox-audio:  69 unit + 31 integration = 100
 omnivox-core:   48 unit + 1 doc = 49
 omnivox-tts:   110 unit
-omnivox-cli:    56 unit
+omnivox-cli:    58 unit
 ```
 
 ## Platform Support
@@ -127,7 +129,7 @@ omnivox-cli:    56 unit
 | `c {[[logical_voice ID]]}` | Working | Registered engine/voice routing for queued spans |
 | `d` | Working | Dispatch queue |
 | `s` | Working | Stop (persistent synth) |
-| `l {letter}` | Working | Pitch raise for caps |
+| `l {letter}` | Working | Anchored cap tone when enabled; pitch raise otherwise |
 | `t {freq} {dur}` | Working | Tone generation |
 | `a {path}` | Working | Queue-boundary overlay; complete tail is tracked |
 | `p {path}` | Working | Immediate sound |
@@ -150,8 +152,8 @@ omnivox-cli:    56 unit
 
 ## Next Priority
 
-1. Add capitalization-tone overlays using requested anchors.
-2. Add sample-aligned inserted and overlaid audio resources.
-3. Make language commands functional and include language in synchronized state.
+1. Add sample-aligned inserted and overlaid audio resources.
+2. Add playback-bound semantic timeline events.
+3. Add persistent post-synthesis effects.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).

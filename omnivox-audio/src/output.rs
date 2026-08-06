@@ -30,6 +30,14 @@ pub enum StreamType {
     Sound,
 }
 
+fn stream_index(stream: StreamType) -> usize {
+    match stream {
+        StreamType::Speech => 0,
+        StreamType::Tone => 1,
+        StreamType::Sound => 2,
+    }
+}
+
 /// Terminal state of one queued audio buffer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlaybackStatus {
@@ -156,7 +164,7 @@ pub struct AudioControl {
     speech_max: usize,
     tone_max: usize,
     sound_max: usize,
-    schedule_generation: Arc<AtomicU64>,
+    schedule_generations: Arc<[AtomicU64; 3]>,
     scheduled_playback: Arc<ScheduledPlaybackState>,
 }
 
@@ -215,14 +223,30 @@ impl AudioControl {
         buffer: &AudioBuffer,
         barriers: Vec<PlaybackTicket>,
     ) -> Result<Option<PlaybackTicket>, AudioError> {
+        self.queue_stream_after(StreamType::Sound, buffer, barriers)
+    }
+
+    /// Queue one stream after every playback barrier completes.
+    ///
+    /// This is the boundary-level scheduling primitive used by overlay tracks.
+    /// The scheduled stream retains its own volume/routing pipeline and does
+    /// not advance the speech sink. Stopping that stream cancels work which has
+    /// not reached its boundary yet.
+    pub fn queue_stream_after(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        barriers: Vec<PlaybackTicket>,
+    ) -> Result<Option<PlaybackTicket>, AudioError> {
         if buffer.is_empty() {
             return Ok(None);
         }
         if barriers.is_empty() {
-            return self.queue_tracked(StreamType::Sound, buffer);
+            return self.queue_tracked(stream, buffer);
         }
 
-        let generation = self.schedule_generation.load(Ordering::Acquire);
+        let stream_index = stream_index(stream);
+        let generation = self.schedule_generations[stream_index].load(Ordering::Acquire);
         let control = self.clone();
         let samples = buffer.samples.clone();
         let (mut completion, ticket) = PlaybackCompletion::pair();
@@ -234,13 +258,14 @@ impl AudioControl {
                 if barriers
                     .into_iter()
                     .any(|barrier| barrier.wait() == PlaybackStatus::Cancelled)
-                    || control.schedule_generation.load(Ordering::Acquire) != generation
+                    || control.schedule_generations[stream_index].load(Ordering::Acquire)
+                        != generation
                 {
                     completion.report(PlaybackStatus::Cancelled);
                     return;
                 }
                 let overlay = AudioBuffer::new(samples);
-                let status = match control.queue_tracked(StreamType::Sound, &overlay) {
+                let status = match control.queue_tracked(stream, &overlay) {
                     Ok(Some(actual)) => actual.wait(),
                     Ok(None) => PlaybackStatus::Completed,
                     Err(error) => {
@@ -338,9 +363,7 @@ impl AudioControl {
 
     /// Stop a specific stream, clearing all queued and playing audio.
     pub fn stop(&self, stream: StreamType) {
-        if stream == StreamType::Sound {
-            self.schedule_generation.fetch_add(1, Ordering::AcqRel);
-        }
+        self.schedule_generations[stream_index(stream)].fetch_add(1, Ordering::AcqRel);
         let (sink, _) = self.sink_and_max(stream);
         sink.clear();
         sink.play();
@@ -422,7 +445,11 @@ impl AudioStreams {
             speech_max: speech_max_depth,
             tone_max: tone_max_depth,
             sound_max: sound_max_depth,
-            schedule_generation: Arc::new(AtomicU64::new(0)),
+            schedule_generations: Arc::new([
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+            ]),
             scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
         });
 

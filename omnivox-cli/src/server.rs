@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use omnivox_audio::{
-    AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, StreamType, ToneGenerator,
+    AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, StreamType,
 };
 use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
@@ -30,11 +30,14 @@ use tracing::{debug, error, info, warn};
 use crate::health::RuntimeEngineHealth;
 use crate::marker_events::{MarkerDispatchContext, MarkerEventOutput};
 use crate::pipeline::{
-    build_sound_pipeline, build_tone_pipeline, process_batch, process_preview, synthesize_chunk,
-    BatchStatus, SynthCtx,
+    build_sound_pipeline, process_batch, process_preview, synthesize_chunk_with_tones, BatchStatus,
+    SynthCtx,
 };
 use crate::routing::LogicalVoiceRoutingSnapshot;
-use crate::text::{chunk_text, normalize_rate, parse_resource_path, preprocess_text};
+use crate::text::{
+    chunk_prepared_speech, normalize_rate, parse_resource_path, prepare_speech_text,
+    CapitalizationTone, CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ,
+};
 use crate::transaction::{
     prefer_newer, PreparedPresentation, PresentationGenerations,
 };
@@ -406,11 +409,18 @@ pub fn synthesis_worker(
                     pitch: state.pitch_multiplier,
                     volume: 1.0,
                 };
-                let processed = preprocess_text(&text, &state);
-                let chunks = chunk_text(&processed, 15);
+                let prepared = prepare_speech_text(&text, &state);
+                let chunks = chunk_prepared_speech(prepared, 15);
                 let count = chunks.len();
                 for (i, chunk) in chunks.into_iter().enumerate() {
-                    if !synthesize_chunk(&chunk, &settings, &state, i == count - 1, &ctx) {
+                    if !synthesize_chunk_with_tones(
+                        &chunk.text,
+                        &chunk.capitalization_tones,
+                        &settings,
+                        &state,
+                        i == count - 1,
+                        &ctx,
+                    ) {
                         break;
                     }
                 }
@@ -446,15 +456,18 @@ pub fn synthesis_worker(
                 letter_state.speech_rate = state.character_rate();
 
                 let is_upper = text.chars().next().is_some_and(|c| c.is_uppercase());
-                if is_upper {
-                    if state.allcaps_beep {
-                        let mut tone_buf = ToneGenerator::generate(440.0, 10, state.tone_volume);
-                        let pipeline = build_tone_pipeline(&state);
-                        let _ = pipeline.process(&mut tone_buf);
-                        let _ = ctx.control.queue(StreamType::Tone, &tone_buf);
-                    } else {
-                        letter_state.pitch_multiplier = 1.5;
-                    }
+                let capitalization_tones = if is_upper && state.allcaps_beep {
+                    vec![CapitalizationTone {
+                        id: "capitalization-letter".to_string(),
+                        text_offset: 0,
+                        frequency_hz: CAPITAL_TONE_HZ,
+                        duration_ms: CAPITAL_TONE_DURATION_MS,
+                    }]
+                } else {
+                    Vec::new()
+                };
+                if is_upper && !state.allcaps_beep {
+                    letter_state.pitch_multiplier = 1.5;
                 }
 
                 let settings = TtsSettings {
@@ -463,7 +476,15 @@ pub fn synthesis_worker(
                     pitch: letter_state.pitch_multiplier,
                     volume: 1.0,
                 };
-                synthesize_chunk(&text.to_ascii_lowercase(), &settings, &letter_state, true, &ctx);
+                let lowered = text.chars().flat_map(char::to_lowercase).collect::<String>();
+                synthesize_chunk_with_tones(
+                    &lowered,
+                    &capitalization_tones,
+                    &settings,
+                    &letter_state,
+                    true,
+                    &ctx,
+                );
             }
 
             SynthRequest::PlaySound { path, state, gen } => {

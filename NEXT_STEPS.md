@@ -426,6 +426,20 @@ negotiation for installed older helpers. A real Eloquence smoke resolved start,
 inter-word, and terminal anchors at frames 0, 2431, and 8360 respectively.
 Timeline action transport does not use these anchors until Slice 4.
 
+Slice 4 status on 2026-08-07: implemented. Text preprocessing retains the
+post-expansion UTF-8 positions of single capitals and all-uppercase words.
+Every synthesis path, including routed spans, previews, immediate speech, and
+single letters, requests those positions from the selected engine and renders
+20 ms tone tracks on the independent tone stream: 440 Hz for a capital and
+1300 Hz for an all-uppercase word. All-uppercase words are lowercased before
+synthesis, matching the standalone Eloquence behavior. Exact Eloquence anchors
+place a tone at the requested frame; DECtalk and WinRT degrade explicitly to a
+word boundary; engines without anchor support place the tone at the start of
+the affected synthesis chunk. Tone tracks overlap speech, retain tone volume
+and channel routing, participate in tracked completion, and are cancelled by
+stop. Slice 5 replaces this specialized renderer with the common bounded
+audio-resource path and adds structured insert/overlay actions.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when
