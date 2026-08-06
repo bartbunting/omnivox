@@ -13,6 +13,7 @@ use thiserror::Error;
 pub enum ResolutionStage {
     Preference { index: usize },
     SameLanguageOnRequestedEngine,
+    PreferredEngine { index: usize },
     GlobalDefault,
     FallbackEngine { index: usize },
 }
@@ -44,6 +45,7 @@ pub enum ResolutionReason {
     Preferred,
     ExplicitAlternative { preference_index: usize },
     SameLanguageOnRequestedEngine,
+    PreferredEngine { preferred_index: usize },
     GlobalDefault,
     FallbackEngine { fallback_index: usize },
 }
@@ -80,7 +82,7 @@ pub fn resolve_voice(
 
     for (index, selector) in definition.preferences.iter().enumerate() {
         let stage = ResolutionStage::Preference { index };
-        match evaluate_selector(engines, selector) {
+        match evaluate_selector(engines, selector, &policy.preferred_engines) {
             Ok(realized) => {
                 let reason = if index == 0 {
                     ResolutionReason::Preferred
@@ -109,7 +111,7 @@ pub fn resolve_voice(
                 language: Some(language.clone()),
                 gender: None,
             };
-            match evaluate_selector(engines, &selector) {
+            match evaluate_selector(engines, &selector, &policy.preferred_engines) {
                 Ok(realized) => {
                     return Ok(success(
                         definition,
@@ -128,8 +130,32 @@ pub fn resolve_voice(
         }
     }
 
+    for (index, engine_id) in policy.preferred_engines.iter().enumerate() {
+        let selector = VoiceSelector::EngineDefault {
+            engine_id: engine_id.clone(),
+        };
+        match evaluate_selector(engines, &selector, &policy.preferred_engines) {
+            Ok(realized) => {
+                return Ok(success(
+                    definition,
+                    requested,
+                    realized,
+                    ResolutionReason::PreferredEngine {
+                        preferred_index: index,
+                    },
+                    attempts,
+                ));
+            }
+            Err(failure) => attempts.push(ResolutionAttempt {
+                stage: ResolutionStage::PreferredEngine { index },
+                selector,
+                failure,
+            }),
+        }
+    }
+
     if let Some(selector) = &policy.global_default {
-        match evaluate_selector(engines, selector) {
+        match evaluate_selector(engines, selector, &policy.preferred_engines) {
             Ok(realized) => {
                 return Ok(success(
                     definition,
@@ -151,7 +177,7 @@ pub fn resolve_voice(
         let selector = VoiceSelector::EngineDefault {
             engine_id: engine_id.clone(),
         };
-        match evaluate_selector(engines, &selector) {
+        match evaluate_selector(engines, &selector, &policy.preferred_engines) {
             Ok(realized) => {
                 return Ok(success(
                     definition,
@@ -196,6 +222,7 @@ fn success(
 fn evaluate_selector(
     engines: &[EngineDescriptor],
     selector: &VoiceSelector,
+    preferred_engines: &[String],
 ) -> Result<PhysicalVoiceId, ResolutionFailure> {
     match selector {
         VoiceSelector::Exact(id) => evaluate_exact(engines, id),
@@ -212,7 +239,12 @@ fn evaluate_selector(
                 let engine = find_usable_engine(engines, engine_id)?;
                 choose_voice(engine, language.as_deref(), *gender)
             } else {
-                choose_across_engines(engines, language.as_deref(), *gender)
+                choose_across_engines(
+                    engines,
+                    language.as_deref(),
+                    *gender,
+                    preferred_engines,
+                )
             }
         }
     }
@@ -272,12 +304,25 @@ fn choose_across_engines(
     engines: &[EngineDescriptor],
     language: Option<&str>,
     gender: Option<crate::contracts::VoiceGender>,
+    preferred_engines: &[String],
 ) -> Result<PhysicalVoiceId, ResolutionFailure> {
     let mut candidates: Vec<&EngineDescriptor> = engines
         .iter()
         .filter(|engine| engine.can_synthesize())
         .collect();
-    candidates.sort_by(|left, right| left.id.cmp(&right.id));
+    candidates.sort_by(|left, right| {
+        let left_priority = preferred_engines
+            .iter()
+            .position(|engine_id| engine_id == &left.id)
+            .unwrap_or(usize::MAX);
+        let right_priority = preferred_engines
+            .iter()
+            .position(|engine_id| engine_id == &right.id)
+            .unwrap_or(usize::MAX);
+        left_priority
+            .cmp(&right_priority)
+            .then_with(|| left.id.cmp(&right.id))
+    });
 
     for engine in candidates {
         if let Ok(voice) = choose_voice(engine, language, gender) {
@@ -487,6 +532,38 @@ mod tests {
             resolution.reason,
             ResolutionReason::FallbackEngine { fallback_index: 1 }
         );
+    }
+
+    #[test]
+    fn global_preferred_engines_follow_explicit_logical_alternatives() {
+        let engines = vec![
+            engine("winrt", "david", vec![voice("winrt", "david", "en-US")]),
+            engine(
+                "eloquence",
+                "reed",
+                vec![voice("eloquence", "reed", "en-US")],
+            ),
+        ];
+        let policy = FallbackPolicy {
+            preferred_engines: vec!["eloquence".to_owned(), "winrt".to_owned()],
+            ..FallbackPolicy::default()
+        };
+
+        let global = resolve_voice(&engines, &logical(Vec::new()), &policy).unwrap();
+        let explicit = resolve_voice(
+            &engines,
+            &logical(vec![exact("winrt", "david")]),
+            &policy,
+        )
+        .unwrap();
+
+        assert_eq!(global.realized, PhysicalVoiceId::new("eloquence", "reed"));
+        assert_eq!(
+            global.reason,
+            ResolutionReason::PreferredEngine { preferred_index: 0 }
+        );
+        assert_eq!(explicit.realized, PhysicalVoiceId::new("winrt", "david"));
+        assert_eq!(explicit.reason, ResolutionReason::Preferred);
     }
 
     #[test]

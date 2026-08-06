@@ -336,6 +336,8 @@ pub struct LogicalVoiceDefinition {
 /// Machine/session policy applied after a logical voice's explicit preferences.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FallbackPolicy {
+    #[serde(default)]
+    pub preferred_engines: Vec<String>,
     pub allow_same_language_on_requested_engine: bool,
     pub global_default: Option<VoiceSelector>,
     pub fallback_engines: Vec<String>,

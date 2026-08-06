@@ -45,6 +45,9 @@
 - Same-chunk routed synthesis retry with a four-attempt cap and stop checks
 - Persistent engine failure circuits with bounded cooldowns and single recovery probes
 - Runtime health and recovery transitions projected into structured inventory
+- Independent generation-safe preferred, fallback, and disabled engine policy
+- Structured circuit, last-failure, cooldown, and policy-disable diagnostics
+- Explicit recovery-probe arming for failed in-process and helper engines
 - Generic versioned helper-process engine with bounded framing, negotiation,
   cancellation, timeout handling, and restart/reconnect recovery probes
 - Optional buffered Eloquence and DECtalk engines through separate 32-bit helpers
@@ -89,12 +92,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 292 tests, all passing
+Total: 299 tests, all passing
 
 omnivox-audio:  67 unit + 31 integration = 98
 omnivox-core:   42 unit + 1 doc = 43
-omnivox-tts:    98 unit
-omnivox-cli:    53 unit
+omnivox-tts:   103 unit
+omnivox-cli:    55 unit
 ```
 
 ## Platform Support
@@ -130,7 +133,7 @@ omnivox-cli:    53 unit
 | `tts_reset` | Working | Reset defaults |
 | `version` | Working | Version announcement |
 | `tts_exit` | Working | Clean exit |
-| `omnivox_control` | Working | Capabilities, inventory, logical-voice registration, and one-shot voice preview |
+| `omnivox_control` | Working | Capabilities, inventory, logical voices, runtime engine policy, recovery probes, and one-shot preview |
 | `emacsvox_tx` | Working | Bounded replaceable presentation transaction after capability negotiation |
 | `emacsvox_tracked_dispatch` | Working | One terminal result after queued playback completes, cancels, or fails |
 | `emacsvox_marker_dispatch` | Working | Versioned marker events plus the tracked terminal result |
@@ -138,7 +141,7 @@ omnivox-cli:    53 unit
 ## Next Priority
 
 1. Assess truthful Eloquence and DECtalk sentence-boundary support.
-2. Add user-facing realized-route, degradation, and health diagnostics.
+2. Complete Emacsvox workbench controls for runtime engine policy and health.
 3. Make language commands functional and include language in synchronized state.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).

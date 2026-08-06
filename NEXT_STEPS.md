@@ -413,6 +413,10 @@ tails, and events atomically.
 - Add generation-safe runtime routing policy so a client can set the global
   preferred engine order independently of startup environment variables while
   retaining per-logical-voice selector order and the global fallback list.
+  Implemented: policy generations atomically control preferred, fallback, and
+  disabled engine lists; logical bindings re-resolve, dispatched work keeps its
+  snapshot, legacy speech follows the global preference, inventory exposes
+  circuit/cooldown/disable state, and clients can arm explicit recovery probes.
 - Add a one-shot exact-route preview request that carries a physical selector,
   normalized style, effect state, and sample text without replacing persistent
   logical-voice registration or notification-process state. Exact and portable
@@ -440,7 +444,10 @@ contract. Emacsvox now negotiates that capability per process, consumes and
 validates bounded version 1 events, preserves dispatch ownership and event
 order, and exposes marker and terminal callbacks through `tts-speak-marked`.
 It selects the new command only for that explicit API and rejects unsupported
-servers before submitting text. Functional language commands remain.
+servers before submitting text. Omnivox now also implements and advertises the
+independent runtime routing-policy and explicit engine-recovery-probe requests;
+Emacsvox workbench integration follows in the paired UI slice. Functional
+language commands remain.
 
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking

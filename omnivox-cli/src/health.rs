@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use omnivox_tts::contracts::{EngineDescriptor, EngineHealth};
+use omnivox_tts::control::{EngineCircuitStatus, EngineRuntimeStatus};
 
 const FIRST_COOLDOWN: Duration = Duration::from_secs(5);
 const SECOND_COOLDOWN: Duration = Duration::from_secs(15);
@@ -104,6 +105,39 @@ impl RuntimeEngineHealth {
         advance_generation(&mut inner);
     }
 
+    /// Make the next routed request an immediate recovery probe.
+    pub fn request_probe(&self, engine_id: &str) -> Result<(), String> {
+        let mut inner = self.inner.lock().unwrap();
+        let Some(state) = inner.circuits.remove(engine_id) else {
+            return Err(format!("engine {engine_id} has no runtime failure to recover"));
+        };
+        let (failures, reason) = match state {
+            CircuitState::Open {
+                failures, reason, ..
+            }
+            | CircuitState::Ready { failures, reason } => (failures, reason),
+            probing @ CircuitState::Probing { .. } => {
+                inner.circuits.insert(engine_id.to_owned(), probing);
+                return Err(format!("engine {engine_id} recovery probe is already in progress"));
+            }
+        };
+        inner.circuits.insert(
+            engine_id.to_owned(),
+            CircuitState::Ready { failures, reason },
+        );
+        advance_generation(&mut inner);
+        Ok(())
+    }
+
+    /// Return structured dynamic state for every inventory engine.
+    pub fn statuses(
+        &self,
+        inventory: &[EngineDescriptor],
+        disabled_engine_ids: &[String],
+    ) -> Vec<EngineRuntimeStatus> {
+        self.statuses_at(inventory, disabled_engine_ids, Instant::now())
+    }
+
     #[cfg(test)]
     pub fn force_probe_ready(&self, engine_id: &str) {
         let mut inner = self.inner.lock().unwrap();
@@ -141,6 +175,55 @@ impl RuntimeEngineHealth {
             generation: base_generation.saturating_add(inner.generation),
             engines: inventory,
         }
+    }
+
+    fn statuses_at(
+        &self,
+        inventory: &[EngineDescriptor],
+        disabled_engine_ids: &[String],
+        now: Instant,
+    ) -> Vec<EngineRuntimeStatus> {
+        let mut inner = self.inner.lock().unwrap();
+        inventory
+            .iter()
+            .map(|descriptor| {
+                promote_ready(&mut inner, &descriptor.id, now);
+                let (circuit, last_failure, cooldown_remaining_ms) =
+                    match inner.circuits.get(&descriptor.id) {
+                        None => (EngineCircuitStatus::Closed, None, None),
+                        Some(CircuitState::Open {
+                            reason, retry_at, ..
+                        }) => (
+                            EngineCircuitStatus::Cooldown,
+                            Some(reason.clone()),
+                            Some(
+                                retry_at
+                                    .saturating_duration_since(now)
+                                    .as_millis()
+                                    .try_into()
+                                    .unwrap_or(u64::MAX),
+                            ),
+                        ),
+                        Some(CircuitState::Ready { reason, .. }) => (
+                            EngineCircuitStatus::Ready,
+                            Some(reason.clone()),
+                            Some(0),
+                        ),
+                        Some(CircuitState::Probing { reason, .. }) => (
+                            EngineCircuitStatus::Probing,
+                            Some(reason.clone()),
+                            None,
+                        ),
+                    };
+                EngineRuntimeStatus {
+                    engine_id: descriptor.id.clone(),
+                    circuit,
+                    last_failure,
+                    cooldown_remaining_ms,
+                    disabled_by_policy: disabled_engine_ids.contains(&descriptor.id),
+                }
+            })
+            .collect()
     }
 
     fn acquire_at(&self, engine_id: &str, now: Instant) -> EngineAccess {
@@ -398,5 +481,29 @@ mod tests {
             health.acquire_at("dectalk", now + Duration::from_secs(5)),
             EngineAccess::Permit(EnginePermit::RecoveryProbe)
         );
+    }
+
+    #[test]
+    fn explicit_probe_and_runtime_status_expose_recovery_state() {
+        let health = RuntimeEngineHealth::new();
+        let now = Instant::now();
+        let inventory = vec![descriptor("dectalk")];
+        health.record_failure_at("dectalk", "helper exited".to_owned(), now);
+
+        let cooldown = health.statuses_at(&inventory, &[], now);
+        assert_eq!(cooldown[0].circuit, EngineCircuitStatus::Cooldown);
+        assert_eq!(cooldown[0].last_failure.as_deref(), Some("helper exited"));
+        assert_eq!(cooldown[0].cooldown_remaining_ms, Some(5_000));
+
+        health.request_probe("dectalk").unwrap();
+        let ready = health.statuses_at(&inventory, &["dectalk".to_owned()], now);
+        assert_eq!(ready[0].circuit, EngineCircuitStatus::Ready);
+        assert_eq!(ready[0].cooldown_remaining_ms, Some(0));
+        assert!(ready[0].disabled_by_policy);
+        assert_eq!(
+            health.acquire_at("dectalk", now),
+            EngineAccess::Permit(EnginePermit::RecoveryProbe)
+        );
+        assert!(health.request_probe("dectalk").is_err());
     }
 }

@@ -16,6 +16,9 @@ use crate::contracts::{
 use crate::logical_voices::{
     LogicalVoiceRegistration, LogicalVoiceRegistry, LogicalVoiceRegistryError,
 };
+use crate::routing_policy::{
+    RoutingPolicy, RoutingPolicyError, RoutingPolicyRegistration, RoutingPolicyRegistry,
+};
 
 /// Current control protocol version.
 pub const CONTROL_PROTOCOL_VERSION: u32 = 1;
@@ -53,6 +56,14 @@ pub enum ControlRequest {
         #[serde(default)]
         fallback_policy: FallbackPolicy,
     },
+    SetRoutingPolicy {
+        routing_policy_generation: u64,
+        #[serde(flatten)]
+        policy: RoutingPolicy,
+    },
+    RequestEngineRecoveryProbe {
+        engine_id: String,
+    },
     Preview {
         text: String,
         selector: VoiceSelector,
@@ -84,11 +95,22 @@ pub enum ControlResponse {
     Inventory {
         inventory_generation: u64,
         preferred_engine_id: String,
+        routing_policy: RoutingPolicyRegistration,
+        engine_runtime: Vec<EngineRuntimeStatus>,
         engines: Vec<EngineDescriptor>,
     },
     LogicalVoicesRegistered {
         inventory_generation: u64,
         registration: LogicalVoiceRegistration,
+    },
+    RoutingPolicyApplied {
+        inventory_generation: u64,
+        routing_policy: RoutingPolicyRegistration,
+        logical_voices: LogicalVoiceRegistration,
+    },
+    EngineRecoveryProbeRequested {
+        inventory_generation: u64,
+        engine_id: String,
     },
     PreviewCompleted {
         status: PreviewStatus,
@@ -110,6 +132,26 @@ pub enum PreviewStatus {
     Completed,
     Cancelled,
     Failed,
+}
+
+/// Runtime circuit state exposed separately from static engine capability.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EngineCircuitStatus {
+    Closed,
+    Cooldown,
+    Ready,
+    Probing,
+}
+
+/// Dynamic operational state for one inventory engine.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EngineRuntimeStatus {
+    pub engine_id: String,
+    pub circuit: EngineCircuitStatus,
+    pub last_failure: Option<String>,
+    pub cooldown_remaining_ms: Option<u64>,
+    pub disabled_by_policy: bool,
 }
 
 /// Stable machine-readable control error codes.
@@ -167,13 +209,18 @@ pub fn decode_response(payload: &str) -> Result<ControlResponseEnvelope, Control
 }
 
 /// Turn one encoded request into a response without mutating synthesis state.
+// Keep the protocol projections explicit at this boundary; bundling them would hide
+// which server snapshots are used to construct a response.
+#[allow(clippy::too_many_arguments)]
 pub fn process_control_request(
     payload: &str,
     server_version: &str,
     inventory_generation: u64,
     preferred_engine_id: &str,
     engines: &[EngineDescriptor],
+    engine_runtime: &[EngineRuntimeStatus],
     logical_voices: &mut LogicalVoiceRegistry,
+    routing_policy: &mut RoutingPolicyRegistry,
 ) -> ControlResponseEnvelope {
     match decode_request(payload) {
         Ok(request) if request.protocol_version != CONTROL_PROTOCOL_VERSION => error_response(
@@ -195,26 +242,39 @@ pub fn process_control_request(
                         "control_v1".to_owned(),
                         "emacsvox_tx".to_owned(),
                         "engine_inventory".to_owned(),
+                        "engine_recovery_probe".to_owned(),
                         "exact_voice_preview".to_owned(),
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
                         "logical_voice_routing".to_owned(),
                         "playback_marker_events_v1".to_owned(),
                         "preferred_engine".to_owned(),
+                        "runtime_routing_policy".to_owned(),
                         "stable_voice_ids".to_owned(),
                         "tracked_playback_completion".to_owned(),
                     ],
                 },
             },
-            ControlRequest::Inventory => ControlResponseEnvelope {
-                protocol_version: CONTROL_PROTOCOL_VERSION,
-                request_id: Some(request.request_id),
-                response: ControlResponse::Inventory {
-                    inventory_generation,
-                    preferred_engine_id: preferred_engine_id.to_owned(),
-                    engines: engines.to_vec(),
-                },
-            },
+            ControlRequest::Inventory => {
+                let projected = routing_policy.project_inventory(engines.to_vec());
+                ControlResponseEnvelope {
+                    protocol_version: CONTROL_PROTOCOL_VERSION,
+                    request_id: Some(request.request_id),
+                    response: ControlResponse::Inventory {
+                        inventory_generation: routing_policy
+                            .inventory_generation(inventory_generation),
+                        preferred_engine_id: routing_policy
+                            .policy()
+                            .preferred_engine_ids
+                            .first()
+                            .cloned()
+                            .unwrap_or_else(|| preferred_engine_id.to_owned()),
+                        routing_policy: routing_policy.registration(),
+                        engine_runtime: engine_runtime.to_vec(),
+                        engines: projected,
+                    },
+                }
+            }
             ControlRequest::RegisterLogicalVoices {
                 registry_generation,
                 definitions,
@@ -223,29 +283,73 @@ pub fn process_control_request(
                 registry_generation,
                 definitions,
                 fallback_policy,
-                engines,
+                &routing_policy.project_inventory(engines.to_vec()),
             ) {
-                Ok(registration) => ControlResponseEnvelope {
-                    protocol_version: CONTROL_PROTOCOL_VERSION,
-                    request_id: Some(request.request_id),
-                    response: ControlResponse::LogicalVoicesRegistered {
-                        inventory_generation,
-                        registration,
-                    },
-                },
+                Ok(_) => {
+                    let projected = routing_policy.project_inventory(engines.to_vec());
+                    let effective = routing_policy
+                        .effective_fallback_policy(logical_voices.fallback_policy());
+                    let registration = logical_voices
+                        .resolve_and_store_with_policy(&projected, &effective);
+                    ControlResponseEnvelope {
+                        protocol_version: CONTROL_PROTOCOL_VERSION,
+                        request_id: Some(request.request_id),
+                        response: ControlResponse::LogicalVoicesRegistered {
+                            inventory_generation: routing_policy
+                                .inventory_generation(inventory_generation),
+                            registration,
+                        },
+                    }
+                }
                 Err(error) => error_response(
                     Some(request.request_id),
                     registry_error_code(&error),
                     error.to_string(),
                 ),
             },
-            ControlRequest::Preview { .. } => error_response(
+            ControlRequest::SetRoutingPolicy {
+                routing_policy_generation,
+                policy,
+            } => match routing_policy.register(routing_policy_generation, policy) {
+                Ok(registration) => {
+                    let projected = routing_policy.project_inventory(engines.to_vec());
+                    let effective = routing_policy
+                        .effective_fallback_policy(logical_voices.fallback_policy());
+                    let logical_registration = logical_voices
+                        .resolve_and_store_with_policy(&projected, &effective);
+                    ControlResponseEnvelope {
+                        protocol_version: CONTROL_PROTOCOL_VERSION,
+                        request_id: Some(request.request_id),
+                        response: ControlResponse::RoutingPolicyApplied {
+                            inventory_generation: routing_policy
+                                .inventory_generation(inventory_generation),
+                            routing_policy: registration,
+                            logical_voices: logical_registration,
+                        },
+                    }
+                }
+                Err(error) => error_response(
+                    Some(request.request_id),
+                    policy_error_code(&error),
+                    error.to_string(),
+                ),
+            },
+            ControlRequest::Preview { .. }
+            | ControlRequest::RequestEngineRecoveryProbe { .. } => error_response(
                 Some(request.request_id),
                 ControlErrorCode::InvalidConfiguration,
-                "preview requests require a live playback server".to_owned(),
+                "request requires a live playback server".to_owned(),
             ),
         },
         Err(error) => error_response(None, error.code(), error.to_string()),
+    }
+}
+
+fn policy_error_code(error: &RoutingPolicyError) -> ControlErrorCode {
+    match error {
+        RoutingPolicyError::StaleGeneration { .. } => ControlErrorCode::StaleGeneration,
+        RoutingPolicyError::GenerationConflict { .. } => ControlErrorCode::GenerationConflict,
+        _ => ControlErrorCode::InvalidConfiguration,
     }
 }
 
@@ -334,7 +438,11 @@ mod tests {
             inventory_generation,
             engines.first().map_or("", |engine| engine.id.as_str()),
             engines,
+            &[],
             &mut LogicalVoiceRegistry::default(),
+            &mut RoutingPolicyRegistry::new(
+                engines.first().map_or("", |engine| engine.id.as_str()),
+            ),
         )
     }
 
@@ -421,6 +529,8 @@ mod tests {
                     .iter()
                     .any(|feature| feature == "exact_voice_preview")
                 && features.iter().any(|feature| feature == "logical_voice_routing")
+                && features.iter().any(|feature| feature == "runtime_routing_policy")
+                && features.iter().any(|feature| feature == "engine_recovery_probe")
                 && features
                     .iter()
                     .any(|feature| feature == "playback_marker_events_v1")
@@ -535,6 +645,7 @@ mod tests {
                 inventory_generation: 7,
                 preferred_engine_id: ref preferred,
                 ref engines,
+                ..
             } if preferred == "winrt" && engines == &[engine]
         ));
     }
@@ -549,8 +660,16 @@ mod tests {
         .unwrap();
         let mut registry = LogicalVoiceRegistry::default();
 
-        let response =
-            process_control_request(&encoded, "1.3.0", 7, "winrt", &inventory(), &mut registry);
+        let response = process_control_request(
+            &encoded,
+            "1.3.0",
+            7,
+            "winrt",
+            &inventory(),
+            &[],
+            &mut registry,
+            &mut RoutingPolicyRegistry::new("winrt"),
+        );
 
         assert_eq!(response.request_id, Some(101));
         assert_eq!(registry.generation(), 3);
@@ -563,6 +682,99 @@ mod tests {
                     ref bindings,
                 },
             } if matches!(bindings.as_slice(), [LogicalVoiceBinding::Resolved { .. }])
+        ));
+    }
+
+    #[test]
+    fn routing_policy_applies_atomically_and_re_resolves_logical_voices() {
+        let request = ControlRequestEnvelope {
+            protocol_version: CONTROL_PROTOCOL_VERSION,
+            request_id: 92,
+            request: ControlRequest::SetRoutingPolicy {
+                routing_policy_generation: 4,
+                policy: RoutingPolicy {
+                    preferred_engine_ids: vec!["eloquence".to_owned(), "winrt".to_owned()],
+                    fallback_engine_ids: vec!["espeak".to_owned()],
+                    disabled_engine_ids: vec!["winrt".to_owned()],
+                },
+            },
+        };
+        let encoded = encode_request(&request).unwrap();
+        let mut logical = LogicalVoiceRegistry::default();
+        let mut policy = RoutingPolicyRegistry::new("winrt");
+
+        let response = process_control_request(
+            &encoded,
+            "1.3.0",
+            7,
+            "winrt",
+            &inventory(),
+            &[],
+            &mut logical,
+            &mut policy,
+        );
+
+        assert_eq!(policy.generation(), 4);
+        assert_eq!(policy.policy().disabled_engine_ids, ["winrt"]);
+        assert!(matches!(
+            response.response,
+            ControlResponse::RoutingPolicyApplied {
+                inventory_generation: 11,
+                routing_policy: RoutingPolicyRegistration {
+                    routing_policy_generation: 4,
+                    ..
+                },
+                logical_voices: LogicalVoiceRegistration {
+                    registry_generation: 0,
+                    ..
+                },
+            }
+        ));
+    }
+
+    #[test]
+    fn inventory_projects_policy_disablement_without_losing_order() {
+        let encoded = encode_request(&ControlRequestEnvelope {
+            protocol_version: CONTROL_PROTOCOL_VERSION,
+            request_id: 93,
+            request: ControlRequest::Inventory,
+        })
+        .unwrap();
+        let mut policy = RoutingPolicyRegistry::new("winrt");
+        policy
+            .register(
+                2,
+                RoutingPolicy {
+                    preferred_engine_ids: vec!["winrt".to_owned()],
+                    fallback_engine_ids: vec!["espeak".to_owned()],
+                    disabled_engine_ids: vec!["winrt".to_owned()],
+                },
+            )
+            .unwrap();
+        let response = process_control_request(
+            &encoded,
+            "1.3.0",
+            7,
+            "winrt",
+            &inventory(),
+            &[],
+            &mut LogicalVoiceRegistry::default(),
+            &mut policy,
+        );
+
+        assert!(matches!(
+            response.response,
+            ControlResponse::Inventory {
+                inventory_generation: 9,
+                routing_policy: RoutingPolicyRegistration {
+                    policy: RoutingPolicy { ref preferred_engine_ids, ref disabled_engine_ids, .. },
+                    ..
+                },
+                ref engines,
+                ..
+            } if preferred_engine_ids == &["winrt"]
+                && disabled_engine_ids == &["winrt"]
+                && matches!(engines[0].availability, Availability::Unavailable { .. })
         ));
     }
 
@@ -584,8 +796,16 @@ mod tests {
         ))
         .unwrap();
 
-        let response =
-            process_control_request(&encoded, "1.3.0", 7, "winrt", &inventory(), &mut registry);
+        let response = process_control_request(
+            &encoded,
+            "1.3.0",
+            7,
+            "winrt",
+            &inventory(),
+            &[],
+            &mut registry,
+            &mut RoutingPolicyRegistry::new("winrt"),
+        );
 
         assert_eq!(response.request_id, Some(102));
         assert!(matches!(
@@ -608,8 +828,16 @@ mod tests {
         .unwrap();
         let mut registry = LogicalVoiceRegistry::default();
 
-        let response =
-            process_control_request(&encoded, "1.3.0", 7, "winrt", &inventory(), &mut registry);
+        let response = process_control_request(
+            &encoded,
+            "1.3.0",
+            7,
+            "winrt",
+            &inventory(),
+            &[],
+            &mut registry,
+            &mut RoutingPolicyRegistry::new("winrt"),
+        );
 
         assert!(matches!(
             response.response,

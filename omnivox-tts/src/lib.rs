@@ -16,6 +16,7 @@ pub mod logical_voices;
 pub mod marker_protocol;
 pub mod presentation;
 pub mod resolver;
+pub mod routing_policy;
 pub mod synthesis;
 pub mod windows;
 #[cfg(feature = "piper")]

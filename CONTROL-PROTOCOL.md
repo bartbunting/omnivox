@@ -15,10 +15,11 @@ not need Tcl escaping and remain separate structured fields.
 - The server advertises only features it currently implements. Version 1
   currently implements capability negotiation, active-engine inventory,
   atomic logical-voice registration, queued logical-voice routing, exact or
-  portable one-shot voice preview, and bounded replaceable presentation
-  transactions. It also advertises tracked playback completion for clients
-  that need a terminal result after queued audio ends, plus version 1
-  marker-aware playback events.
+  portable one-shot voice preview, generation-safe runtime engine policy,
+  explicit recovery probes, and bounded replaceable presentation transactions.
+  It also advertises tracked playback completion for clients that need a
+  terminal result after queued audio ends, plus version 1 marker-aware playback
+  events.
 
 ## Request Record
 
@@ -83,6 +84,32 @@ whenever the definitions or fallback policy change:
 
 Omitting `fallback_policy` selects the empty default policy.
 
+When `runtime_routing_policy` is advertised, engine policy is a separate atomic
+generation from logical-voice registration:
+
+```json
+{
+  "protocol_version": 1,
+  "request_id": 44,
+  "type": "set_routing_policy",
+  "routing_policy_generation": 1,
+  "preferred_engine_ids": ["eloquence", "dectalk", "winrt"],
+  "fallback_engine_ids": ["espeak"],
+  "disabled_engine_ids": ["dectalk"]
+}
+```
+
+The preferred order is considered after a logical voice's explicit selectors
+and requested-engine same-language fallback, but before the global default and
+fallback-engine list. Unqualified property selectors also use it to rank
+otherwise matching engines. Disabled engines
+remain in their configured positions and reappear there when restored, but are
+projected as unavailable while disabled. Unknown but syntactically valid engine
+IDs are retained so the same machine profile can degrade and later recover as
+engines appear. An identical generation retry is idempotent; an older
+generation or different content at the current generation is rejected without
+changing routing.
+
 When `exact_voice_preview` is advertised, a client may audition one selector
 and unsaved normalized ACSS style without changing the registered logical
 voices or persistent speech state:
@@ -90,7 +117,7 @@ voices or persistent speech state:
 ```json
 {
   "protocol_version": 1,
-  "request_id": 44,
+  "request_id": 45,
   "type": "preview",
   "text": "Compare this voice using identical text.",
   "selector": {
@@ -128,6 +155,7 @@ A successful capability response decodes to this shape:
   "features": [
     "control_v1",
     "engine_inventory",
+    "engine_recovery_probe",
     "emacsvox_tx",
     "exact_voice_preview",
     "legacy_commands",
@@ -135,6 +163,7 @@ A successful capability response decodes to this shape:
     "logical_voice_routing",
     "playback_marker_events_v1",
     "preferred_engine",
+    "runtime_routing_policy",
     "stable_voice_ids",
     "tracked_playback_completion"
   ]
@@ -148,7 +177,7 @@ fails:
 ```json
 {
   "protocol_version": 1,
-  "request_id": 44,
+  "request_id": 45,
   "type": "preview_completed",
   "status": "completed",
   "requested": {
@@ -175,11 +204,15 @@ notification process.
 The request ID lets Emacsvox distinguish simultaneous main and notification
 process responses. Server events are never injected into synthesized speech.
 
-An inventory response contains an `inventory_generation`, the stable
-`preferred_engine_id`, and an `engines` array. Each engine includes its stable
+An inventory response contains an `inventory_generation`, the compatibility
+`preferred_engine_id`, the complete routing-policy generation and lists, an
+`engine_runtime` array, and an `engines` array. Each engine includes its stable
 ID, runtime availability and health, capabilities, discovered physical voices,
-and default voice ID. On Windows the server eagerly registers WinRT and eSpeak;
-WinRT is preferred by default and eSpeak is retained as a fallback.
+and default voice ID. Dynamic status reports the circuit state (`closed`,
+`cooldown`, `ready`, or `probing`), last runtime failure, remaining cooldown in
+milliseconds, and policy disablement separately from static capability. On
+Windows the server eagerly registers WinRT and eSpeak; WinRT is preferred by
+default and eSpeak is retained as a fallback.
 `OMNIVOX_ENGINE=espeak` reverses that preference without removing WinRT from
 inventory. Other platforms currently register the compatibility-selected
 engine. Descriptors are snapshotted before the reader loop starts, so inventory
@@ -188,6 +221,30 @@ inventory is sorted by stable engine ID, and its generation advances when
 engines or their descriptor state change. Persistent runtime circuit state is
 overlaid on those snapshots; inventory generation also advances when an engine
 fails, becomes probe-ready, starts probing, or recovers.
+
+A successful policy update returns `routing_policy_applied`, the effective
+policy generation and content, and every logical voice re-resolved against the
+new policy. Dispatched batches retain their policy snapshot; later changes
+affect only later dispatches. The same policy also chooses the engine for
+legacy queued speech, immediate speech, and letter commands when no logical
+route is active.
+
+When `engine_recovery_probe` is advertised, a client can move a failed engine
+out of cooldown so the next routed request performs its engine-specific
+recovery preparation and synthesis probe:
+
+```json
+{
+  "protocol_version": 1,
+  "request_id": 46,
+  "type": "request_engine_recovery_probe",
+  "engine_id": "dectalk"
+}
+```
+
+The request is rejected for an unknown, policy-disabled, healthy, or already
+probing engine. Probe success closes the circuit; failure returns it to bounded
+cooldown and uses the same chunk's configured fallback.
 
 A successful registration response reports the inventory generation used and
 one resolved or unresolved binding for every definition:
@@ -405,18 +462,20 @@ later logical-voice directive or a legacy physical `[[voice ...]]` code changes
 the route. A server that predates this feature ignores the unknown directive
 and continues to apply the legacy codes.
 
-Definitions and fallback policy are snapshotted when a batch is dispatched.
-The worker resolves them against its current health-adjusted inventory before
-speaking the batch, so an engine failure or recovery that happened while the
-batch waited in the worker queue is respected. A registration received later
+Definitions, fallback policy, runtime engine policy, and administrative
+disablement are snapshotted when a batch is dispatched. The worker resolves
+them against its current health-adjusted inventory before speaking the batch,
+so an engine failure or recovery that happened while the batch waited in the
+worker queue is respected. A registration or policy update received later
 still affects only later batches. An unknown, unresolved, or
 no-longer-registered route degrades to the preferred legacy engine and voice
 instead of dropping speech. Hard stop and reset requests cancel playback and
 request cancellation from every registered engine.
 
-This first routing slice applies to queued `q`/`c` speech. Immediate `tts_say`
-and `l` commands retain legacy preferred-engine behavior. For a queued logical
-route, a runtime `VoiceNotFound` excludes that physical voice and an unavailable
+Logical voice IDs still apply to queued `q`/`c` speech only. Immediate
+`tts_say` and `l` commands use the runtime global engine order but do not select
+a logical voice. For a queued logical route, a runtime `VoiceNotFound` excludes
+that physical voice and an unavailable
 or failed synthesis call excludes that engine from the dispatched batch's
 inventory snapshot. Omnivox then re-runs the registered definition and fallback
 policy and retries the identical text chunk on the newly resolved route.

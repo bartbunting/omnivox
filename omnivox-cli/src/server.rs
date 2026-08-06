@@ -13,11 +13,12 @@ use omnivox_tts::contracts::{
 };
 use omnivox_tts::control::{
     decode_request, format_control_event, process_control_request, ControlRequest,
-    ControlResponse, ControlResponseEnvelope, PreviewStatus, CONTROL_PROTOCOL_VERSION,
-    MAX_PREVIEW_TEXT_BYTES,
+    ControlErrorCode, ControlResponse, ControlResponseEnvelope, PreviewStatus,
+    CONTROL_PROTOCOL_VERSION, MAX_PREVIEW_TEXT_BYTES,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
+use omnivox_tts::routing_policy::RoutingPolicyRegistry;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead, Write};
 use std::mem;
@@ -71,9 +72,19 @@ pub enum SynthRequest {
         gen: u64,
     },
     /// Synthesize and play a single string immediately (`tts_say`).
-    Immediate { text: String, state: TtsState, gen: u64 },
+    Immediate {
+        text: String,
+        state: TtsState,
+        preferred_routing: LogicalVoiceRoutingSnapshot,
+        gen: u64,
+    },
     /// Synthesize and play a single letter (`l`).
-    Letter { text: String, state: TtsState, gen: u64 },
+    Letter {
+        text: String,
+        state: TtsState,
+        preferred_routing: LogicalVoiceRoutingSnapshot,
+        gen: u64,
+    },
     /// Play a sound file immediately on the sound stream (`p`).
     PlaySound { path: std::path::PathBuf, state: TtsState, gen: u64 },
 }
@@ -267,6 +278,8 @@ pub fn synthesis_worker(
                     engine_registry.inventory(),
                 );
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
+                let batch_engine = logical_voice_routing
+                    .preferred_legacy_engine(&engine_registry, &engine);
                 let tickets = Mutex::new(Vec::new());
                 let failed = AtomicBool::new(false);
                 let marker_dispatch = tracking.and_then(|tracking| match tracking {
@@ -279,7 +292,7 @@ pub fn synthesis_worker(
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
-                    engine: &*engine,
+                    engine: &*batch_engine,
                     control: &control,
                     playback_tickets: tracking.map(|_| &tickets),
                     marker_dispatch: marker_dispatch.as_ref(),
@@ -356,11 +369,23 @@ pub fn synthesis_worker(
                 }
             }
 
-            SynthRequest::Immediate { text, state, gen } => {
+            SynthRequest::Immediate {
+                text,
+                state,
+                mut preferred_routing,
+                gen,
+            } => {
+                let runtime_inventory = runtime_health.snapshot(
+                    engine_registry.generation(),
+                    engine_registry.inventory(),
+                );
+                preferred_routing.replace_inventory(runtime_inventory.engines);
+                let preferred_engine = preferred_routing
+                    .preferred_legacy_engine(&engine_registry, &engine);
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
-                    engine: &*engine,
+                    engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
                     marker_dispatch: None,
@@ -383,11 +408,23 @@ pub fn synthesis_worker(
                 }
             }
 
-            SynthRequest::Letter { text, state, gen } => {
+            SynthRequest::Letter {
+                text,
+                state,
+                mut preferred_routing,
+                gen,
+            } => {
+                let runtime_inventory = runtime_health.snapshot(
+                    engine_registry.generation(),
+                    engine_registry.inventory(),
+                );
+                preferred_routing.replace_inventory(runtime_inventory.engines);
+                let preferred_engine = preferred_routing
+                    .preferred_legacy_engine(&engine_registry, &engine);
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
-                    engine: &*engine,
+                    engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
                     marker_dispatch: None,
@@ -499,6 +536,7 @@ pub fn run_server(
     let mut logical_voices = LogicalVoiceRegistry::default();
     let mut presentation_generations = PresentationGenerations::default();
     let preferred_engine_id = engine.descriptor().id;
+    let mut routing_policy = RoutingPolicyRegistry::new(preferred_engine_id.clone());
 
     info!("Ready to accept commands from stdin");
 
@@ -537,6 +575,7 @@ pub fn run_server(
                 &engine_registry,
                 &runtime_health,
                 &preferred_engine_id,
+                &mut routing_policy,
                 &mut logical_voices,
                 &control,
                 &tx,
@@ -574,6 +613,7 @@ pub fn run_server(
                         &engine_registry,
                         &runtime_health,
                         &preferred_engine_id,
+                        &mut routing_policy,
                         &mut logical_voices,
                         &control,
                         &tx,
@@ -591,6 +631,7 @@ pub fn run_server(
                         &engine_registry,
                         &runtime_health,
                         &preferred_engine_id,
+                        &mut routing_policy,
                         &mut logical_voices,
                         &control,
                         &tx,
@@ -609,6 +650,7 @@ pub fn run_server(
                         &engine_registry,
                         &runtime_health,
                         &preferred_engine_id,
+                        &mut routing_policy,
                         &mut logical_voices,
                         &control,
                         &tx,
@@ -626,6 +668,7 @@ pub fn run_server(
                         &engine_registry,
                         &runtime_health,
                         &preferred_engine_id,
+                        &mut routing_policy,
                         &mut logical_voices,
                         &control,
                         &tx,
@@ -735,6 +778,7 @@ fn execute_presentation(
     engine_registry: &EngineRegistry,
     runtime_health: &RuntimeEngineHealth,
     preferred_engine_id: &str,
+    routing_policy: &mut RoutingPolicyRegistry,
     logical_voices: &mut LogicalVoiceRegistry,
     control: &Arc<AudioControl>,
     tx: &mpsc::Sender<SynthRequest>,
@@ -754,6 +798,7 @@ fn execute_presentation(
             engine_registry,
             runtime_health,
             preferred_engine_id,
+            routing_policy,
             logical_voices,
             control,
             tx,
@@ -776,6 +821,7 @@ fn dispatch_preview(
     gen: u64,
     inventory: &[EngineDescriptor],
     engine_registry: &EngineRegistry,
+    routing_policy: &RoutingPolicyRegistry,
     tx: &mpsc::Sender<SynthRequest>,
 ) {
     let reject = |message: String| {
@@ -835,9 +881,10 @@ fn dispatch_preview(
         text,
         requested: selector.clone(),
         state: state.clone(),
-        logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+        logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_preview(
             &preview_registry,
             engine_registry,
+            routing_policy,
         ),
         gen,
     };
@@ -856,6 +903,7 @@ fn handle_command(
     engine_registry: &EngineRegistry,
     runtime_health: &RuntimeEngineHealth,
     preferred_engine_id: &str,
+    routing_policy: &mut RoutingPolicyRegistry,
     logical_voices: &mut LogicalVoiceRegistry,
     control: &Arc<AudioControl>,
     tx: &mpsc::Sender<SynthRequest>,
@@ -919,9 +967,10 @@ fn handle_command(
                 let _ = tx.send(SynthRequest::Batch {
                     items,
                     state: state.clone(),
-                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
                         logical_voices,
                         engine_registry,
+                        routing_policy,
                     ),
                     tracking: None,
                     gen: *current_gen,
@@ -945,9 +994,10 @@ fn handle_command(
                 let request = SynthRequest::Batch {
                     items: mem::take(pending),
                     state: state.clone(),
-                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
                         logical_voices,
                         engine_registry,
+                        routing_policy,
                     ),
                     tracking: Some(DispatchTracking::Completion(identifier)),
                     gen: *current_gen,
@@ -976,9 +1026,10 @@ fn handle_command(
                 let request = SynthRequest::Batch {
                     items: mem::take(pending),
                     state: state.clone(),
-                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
                         logical_voices,
                         engine_registry,
+                        routing_policy,
                     ),
                     tracking: Some(DispatchTracking::Markers(identifier)),
                     gen: *current_gen,
@@ -1003,7 +1054,16 @@ fn handle_command(
             if let Some(text) = command.args {
                 debug!("tts_say: {}", text);
                 interrupt(current_gen, gen_counter, control, engine_registry, true, false);
-                let _ = tx.send(SynthRequest::Immediate { text, state: state.clone(), gen: *current_gen });
+                let _ = tx.send(SynthRequest::Immediate {
+                    text,
+                    state: state.clone(),
+                    preferred_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
+                        logical_voices,
+                        engine_registry,
+                        routing_policy,
+                    ),
+                    gen: *current_gen,
+                });
             }
         }
 
@@ -1011,7 +1071,16 @@ fn handle_command(
             if let Some(letter) = command.args {
                 debug!("Letter: {}", letter);
                 interrupt(current_gen, gen_counter, control, engine_registry, true, false);
-                let _ = tx.send(SynthRequest::Letter { text: letter, state: state.clone(), gen: *current_gen });
+                let _ = tx.send(SynthRequest::Letter {
+                    text: letter,
+                    state: state.clone(),
+                    preferred_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
+                        logical_voices,
+                        engine_registry,
+                        routing_policy,
+                    ),
+                    gen: *current_gen,
+                });
             }
         }
 
@@ -1036,7 +1105,16 @@ fn handle_command(
                 "Omnivox version {}",
                 crate::VERSION.replace('.', " dot ")
             );
-            let _ = tx.send(SynthRequest::Immediate { text: version_text, state: state.clone(), gen: *current_gen });
+            let _ = tx.send(SynthRequest::Immediate {
+                text: version_text,
+                state: state.clone(),
+                preferred_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
+                    logical_voices,
+                    engine_registry,
+                    routing_policy,
+                ),
+                gen: *current_gen,
+            });
         }
 
         CommandId::OmnivoxControl => {
@@ -1045,43 +1123,97 @@ fn handle_command(
                 engine_registry.inventory(),
             );
             let payload = command.args.as_deref().unwrap_or("");
-            let preview = decode_request(payload).ok().and_then(|request| {
+            let live_request = decode_request(payload).ok().and_then(|request| {
                 if request.protocol_version != CONTROL_PROTOCOL_VERSION {
                     return None;
                 }
-                match request.request {
-                    ControlRequest::Preview {
-                        text,
-                        selector,
-                        language,
-                        acss,
-                    } => Some((request.request_id, text, selector, language, acss)),
-                    _ => None,
-                }
+                Some(request)
             });
-            if let Some((request_id, text, selector, language, acss)) = preview {
-                dispatch_preview(
-                    request_id,
+            match live_request.map(|request| (request.request_id, request.request)) {
+                Some((request_id, ControlRequest::Preview {
                     text,
                     selector,
                     language,
                     acss,
-                    state,
-                    *current_gen,
-                    &inventory.engines,
-                    engine_registry,
-                    tx,
-                );
-            } else {
-                let response = process_control_request(
-                    payload,
-                    crate::VERSION,
-                    inventory.generation,
-                    preferred_engine_id,
-                    &inventory.engines,
-                    logical_voices,
-                );
-                write_control_response(&response);
+                })) => {
+                    let projected =
+                        routing_policy.project_inventory(inventory.engines.clone());
+                    dispatch_preview(
+                        request_id,
+                        text,
+                        selector,
+                        language,
+                        acss,
+                        state,
+                        *current_gen,
+                        &projected,
+                        engine_registry,
+                        routing_policy,
+                        tx,
+                    );
+                }
+                Some((request_id, ControlRequest::RequestEngineRecoveryProbe {
+                    engine_id,
+                })) => {
+                    let response = if !inventory.engines.iter().any(|engine| engine.id == engine_id)
+                    {
+                        ControlResponse::Error {
+                            code: ControlErrorCode::InvalidConfiguration,
+                            message: format!("unknown engine {engine_id}"),
+                        }
+                    } else if routing_policy
+                        .policy()
+                        .disabled_engine_ids
+                        .contains(&engine_id)
+                    {
+                        ControlResponse::Error {
+                            code: ControlErrorCode::InvalidConfiguration,
+                            message: format!(
+                                "engine {engine_id} is disabled by runtime routing policy"
+                            ),
+                        }
+                    } else {
+                        match runtime_health.request_probe(&engine_id) {
+                            Ok(()) => ControlResponse::EngineRecoveryProbeRequested {
+                                inventory_generation: routing_policy.inventory_generation(
+                                    runtime_health
+                                        .snapshot(
+                                            engine_registry.generation(),
+                                            engine_registry.inventory(),
+                                        )
+                                        .generation,
+                                ),
+                                engine_id,
+                            },
+                            Err(message) => ControlResponse::Error {
+                                code: ControlErrorCode::InvalidConfiguration,
+                                message,
+                            },
+                        }
+                    };
+                    write_control_response(&ControlResponseEnvelope {
+                        protocol_version: CONTROL_PROTOCOL_VERSION,
+                        request_id: Some(request_id),
+                        response,
+                    });
+                }
+                _ => {
+                    let engine_runtime = runtime_health.statuses(
+                        &inventory.engines,
+                        &routing_policy.policy().disabled_engine_ids,
+                    );
+                    let response = process_control_request(
+                        payload,
+                        crate::VERSION,
+                        inventory.generation,
+                        preferred_engine_id,
+                        &inventory.engines,
+                        &engine_runtime,
+                        logical_voices,
+                        routing_policy,
+                    );
+                    write_control_response(&response);
+                }
             }
         }
 

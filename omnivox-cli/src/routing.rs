@@ -10,6 +10,7 @@ use omnivox_tts::contracts::{
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::resolver::{resolve_voice, VoiceResolution};
+use omnivox_tts::routing_policy::RoutingPolicyRegistry;
 use omnivox_tts::{SynthesisRequest, SynthesisResult, TtsEngine, TtsError, TtsSettings};
 use tracing::{debug, warn};
 
@@ -24,9 +25,11 @@ pub struct LogicalVoiceRoutingSnapshot {
     definitions: Vec<LogicalVoiceDefinition>,
     fallback_policy: FallbackPolicy,
     inventory: Vec<EngineDescriptor>,
+    disabled_engine_ids: Vec<String>,
 }
 
 impl LogicalVoiceRoutingSnapshot {
+    #[cfg(test)]
     pub fn capture(
         logical_voices: &LogicalVoiceRegistry,
         engine_registry: &EngineRegistry,
@@ -35,13 +38,74 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: engine_registry.inventory(),
+            disabled_engine_ids: Vec::new(),
+        }
+    }
+
+    pub fn capture_with_policy(
+        logical_voices: &LogicalVoiceRegistry,
+        engine_registry: &EngineRegistry,
+        routing_policy: &RoutingPolicyRegistry,
+    ) -> Self {
+        Self {
+            definitions: logical_voices.definitions().to_vec(),
+            fallback_policy: routing_policy
+                .effective_fallback_policy(logical_voices.fallback_policy()),
+            inventory: routing_policy.project_inventory(engine_registry.inventory()),
+            disabled_engine_ids: routing_policy.policy().disabled_engine_ids.clone(),
+        }
+    }
+
+    /// Preview retains its private empty fallback policy but honors explicit
+    /// administrative engine disablement.
+    pub fn capture_preview(
+        logical_voices: &LogicalVoiceRegistry,
+        engine_registry: &EngineRegistry,
+        routing_policy: &RoutingPolicyRegistry,
+    ) -> Self {
+        Self {
+            definitions: logical_voices.definitions().to_vec(),
+            fallback_policy: logical_voices.fallback_policy().clone(),
+            inventory: routing_policy.project_inventory(engine_registry.inventory()),
+            disabled_engine_ids: routing_policy.policy().disabled_engine_ids.clone(),
         }
     }
 
     /// Replace the dispatch-time inventory with the worker's current runtime
     /// view before resolving any logical voice in this batch.
     pub fn replace_inventory(&mut self, inventory: Vec<EngineDescriptor>) {
-        self.inventory = inventory;
+        self.inventory = inventory
+            .into_iter()
+            .map(|mut descriptor| {
+                if self.disabled_engine_ids.contains(&descriptor.id) {
+                    descriptor.availability = Availability::Unavailable {
+                        reason: "disabled by runtime routing policy".to_owned(),
+                    };
+                }
+                descriptor
+            })
+            .collect();
+    }
+
+    /// Return the first currently usable engine in global preferred/fallback
+    /// order, or DEFAULT when none of those engines is usable.
+    pub fn preferred_legacy_engine(
+        &self,
+        engine_registry: &EngineRegistry,
+        default: &Arc<dyn TtsEngine>,
+    ) -> Arc<dyn TtsEngine> {
+        self.fallback_policy
+            .preferred_engines
+            .iter()
+            .chain(self.fallback_policy.fallback_engines.iter())
+            .find_map(|engine_id| {
+                self.inventory
+                    .iter()
+                    .find(|descriptor| descriptor.id == *engine_id)
+                    .filter(|descriptor| descriptor.can_synthesize())
+                    .and_then(|_| engine_registry.engine(engine_id))
+            })
+            .unwrap_or_else(|| Arc::clone(default))
     }
 
     pub fn initial_route(
@@ -395,6 +459,7 @@ mod tests {
         AcssCapabilities, AudioOutputMode, CancellationSupport, ConcurrencyModel,
         EngineCapabilities, MarkerCapabilities, NormalizedAcss, VoiceDescriptor, VoiceSelector,
     };
+    use omnivox_tts::routing_policy::RoutingPolicy;
     use omnivox_tts::{
         AudioBuffer, SynthesisRequest, SynthesisResult, TtsSettings, VoiceInfo, VoiceQuality,
     };
@@ -565,6 +630,63 @@ mod tests {
             .register(1, vec![definition], fallback_policy, &engines.inventory())
             .unwrap();
         LogicalVoiceRoutingSnapshot::capture(&logical_voices, engines)
+    }
+
+    #[test]
+    fn global_policy_selects_legacy_engine_and_skips_disabled_positions() {
+        let winrt = synthesis_engine("winrt", "david", None);
+        let eloquence = synthesis_engine("eloquence", "reed", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&winrt) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&eloquence) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let logical = LogicalVoiceRegistry::default();
+        let mut policy = RoutingPolicyRegistry::new("winrt");
+        policy
+            .register(
+                1,
+                RoutingPolicy {
+                    preferred_engine_ids: vec!["eloquence".to_owned(), "winrt".to_owned()],
+                    fallback_engine_ids: Vec::new(),
+                    disabled_engine_ids: Vec::new(),
+                },
+            )
+            .unwrap();
+        let preferred = LogicalVoiceRoutingSnapshot::capture_with_policy(
+            &logical, &engines, &policy,
+        );
+
+        assert_eq!(
+            preferred
+                .preferred_legacy_engine(&engines, &(winrt.clone() as Arc<dyn TtsEngine>))
+                .descriptor()
+                .id,
+            "eloquence"
+        );
+
+        policy
+            .register(
+                2,
+                RoutingPolicy {
+                    preferred_engine_ids: vec!["eloquence".to_owned(), "winrt".to_owned()],
+                    fallback_engine_ids: Vec::new(),
+                    disabled_engine_ids: vec!["eloquence".to_owned()],
+                },
+            )
+            .unwrap();
+        let disabled = LogicalVoiceRoutingSnapshot::capture_with_policy(
+            &logical, &engines, &policy,
+        );
+        assert_eq!(
+            disabled
+                .preferred_legacy_engine(&engines, &(winrt.clone() as Arc<dyn TtsEngine>))
+                .descriptor()
+                .id,
+            "winrt"
+        );
     }
 
     #[test]

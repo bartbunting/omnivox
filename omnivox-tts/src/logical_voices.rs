@@ -142,11 +142,30 @@ impl LogicalVoiceRegistry {
 
     /// Re-resolve the current definitions after inventory or health changes.
     pub fn resolve_all(&self, inventory: &[EngineDescriptor]) -> LogicalVoiceRegistration {
+        self.resolve_with_policy(inventory, &self.fallback_policy)
+    }
+
+    /// Re-resolve and retain bindings under an independent runtime policy.
+    pub fn resolve_and_store_with_policy(
+        &mut self,
+        inventory: &[EngineDescriptor],
+        fallback_policy: &FallbackPolicy,
+    ) -> LogicalVoiceRegistration {
+        let registration = self.resolve_with_policy(inventory, fallback_policy);
+        self.bindings = registration.bindings.clone();
+        registration
+    }
+
+    fn resolve_with_policy(
+        &self,
+        inventory: &[EngineDescriptor],
+        fallback_policy: &FallbackPolicy,
+    ) -> LogicalVoiceRegistration {
         let bindings = self
             .definitions
             .iter()
             .map(
-                |definition| match resolve_voice(inventory, definition, &self.fallback_policy) {
+                |definition| match resolve_voice(inventory, definition, fallback_policy) {
                     Ok(resolution) => LogicalVoiceBinding::Resolved { resolution },
                     Err(error) => LogicalVoiceBinding::Unresolved { error },
                 },
@@ -205,8 +224,9 @@ fn validate_registration(
     }
 
     if fallback_policy
-        .fallback_engines
+        .preferred_engines
         .iter()
+        .chain(fallback_policy.fallback_engines.iter())
         .any(|engine_id| !valid_engine_id(engine_id))
     {
         return Err(LogicalVoiceRegistryError::InvalidFallbackEngineId);
