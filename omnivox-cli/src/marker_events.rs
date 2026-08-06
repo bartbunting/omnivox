@@ -6,8 +6,10 @@ use omnivox_audio::{
 use omnivox_tts::contracts::PhysicalVoiceId;
 use omnivox_tts::marker_protocol::{
     format_marker_event, MarkerEvent, MarkerEventEnvelope, MARKER_PROTOCOL_VERSION,
+    TIMELINE_EVENT_PROTOCOL_VERSION,
 };
 use omnivox_tts::SynthesisMarker;
+use omnivox_core::timeline::TimelineActionId;
 use std::cell::Cell;
 use std::io::{self, Write};
 use std::sync::{mpsc, Arc};
@@ -77,6 +79,7 @@ fn marker_event_reporter(receiver: mpsc::Receiver<MarkerReporterMessage>) {
 /// Per-dispatch sequence and route context used while synthesis queues chunks.
 pub struct MarkerDispatchContext {
     dispatch_id: u64,
+    protocol_version: u32,
     next_sequence: Cell<u64>,
     next_utterance_id: Cell<u64>,
     output: MarkerEventOutput,
@@ -86,6 +89,19 @@ impl MarkerDispatchContext {
     pub fn new(dispatch_id: u64, output: MarkerEventOutput) -> Self {
         Self {
             dispatch_id,
+            protocol_version: MARKER_PROTOCOL_VERSION,
+            next_sequence: Cell::new(0),
+            next_utterance_id: Cell::new(0),
+            output,
+        }
+    }
+
+    /// Create a dispatch capable of emitting playback-bound semantic actions.
+    #[allow(dead_code)] // Activated by the structured timeline transport slice.
+    pub fn with_timeline_events(dispatch_id: u64, output: MarkerEventOutput) -> Self {
+        Self {
+            dispatch_id,
+            protocol_version: TIMELINE_EVENT_PROTOCOL_VERSION,
             next_sequence: Cell::new(0),
             next_utterance_id: Cell::new(0),
             output,
@@ -102,16 +118,21 @@ impl MarkerDispatchContext {
         sample_rate: u32,
         frame_count: usize,
         markers: &[SynthesisMarker],
+        semantic_events: &[PlaybackSemanticEvent],
     ) -> PreparedMarkerPlayback {
+        assert!(
+            semantic_events.is_empty() || self.protocol_version == TIMELINE_EVENT_PROTOCOL_VERSION,
+            "semantic playback events require a version 2 dispatch"
+        );
         let utterance_id = increment(&self.next_utterance_id);
-        let mut events = Vec::with_capacity(markers.len() + 1);
-        let mut cues = Vec::with_capacity(markers.len() + 1);
+        let mut events = Vec::with_capacity(markers.len() + semantic_events.len() + 1);
+        let mut cues = Vec::with_capacity(markers.len() + semantic_events.len() + 1);
         push_event(
             &mut events,
             &mut cues,
             0,
             MarkerEventEnvelope {
-                protocol_version: MARKER_PROTOCOL_VERSION,
+                protocol_version: self.protocol_version,
                 dispatch_id: self.dispatch_id,
                 sequence: increment(&self.next_sequence),
                 event: MarkerEvent::UtteranceStarted {
@@ -126,22 +147,42 @@ impl MarkerDispatchContext {
             },
         );
 
-        let mut markers = markers.to_vec();
-        markers.sort_by_key(|marker| marker.frame_offset);
-        for marker in markers {
-            let frame_offset = marker.frame_offset;
+        let mut pending = markers
+            .iter()
+            .cloned()
+            .enumerate()
+            .map(|(order, marker)| {
+                (
+                    marker.frame_offset,
+                    order,
+                    MarkerEvent::MarkerReached {
+                        utterance_id,
+                        marker,
+                    },
+                )
+            })
+            .chain(semantic_events.iter().enumerate().map(|(index, event)| {
+                (
+                    event.frame_offset,
+                    markers.len() + index,
+                    MarkerEvent::SemanticEventReached {
+                        utterance_id,
+                        action_id: event.action_id.as_str().to_owned(),
+                    },
+                )
+            }))
+            .collect::<Vec<_>>();
+        pending.sort_by_key(|(frame_offset, order, _)| (*frame_offset, *order));
+        for (frame_offset, _, event) in pending {
             push_event(
                 &mut events,
                 &mut cues,
                 frame_offset,
                 MarkerEventEnvelope {
-                    protocol_version: MARKER_PROTOCOL_VERSION,
+                    protocol_version: self.protocol_version,
                     dispatch_id: self.dispatch_id,
                     sequence: increment(&self.next_sequence),
-                    event: MarkerEvent::MarkerReached {
-                        utterance_id,
-                        marker,
-                    },
+                    event,
                 },
             );
         }
@@ -152,6 +193,13 @@ impl MarkerDispatchContext {
             output: self.output.clone(),
         }
     }
+}
+
+/// An opaque semantic action already mapped to the mixed output clock.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlaybackSemanticEvent {
+    pub action_id: TimelineActionId,
+    pub frame_offset: u64,
 }
 
 pub struct PreparedMarkerPlayback {
@@ -228,6 +276,7 @@ mod tests {
             44100,
             100,
             &[marker(50, "second"), marker(10, "first"), marker(10, "same")],
+            &[],
         );
 
         assert_eq!(
@@ -270,6 +319,60 @@ mod tests {
                 ref marker,
                 ..
             } if marker.value.as_deref() == Some("same")
+        ));
+    }
+
+    #[test]
+    fn v2_semantic_events_are_stably_merged_at_playback_frames() {
+        let (sender, _receiver) = mpsc::channel();
+        let context = MarkerDispatchContext::with_timeline_events(
+            91,
+            MarkerEventOutput { sender },
+        );
+        let prepared = context.prepare_utterance(
+            "hello",
+            "helper",
+            None,
+            None,
+            44100,
+            100,
+            &[marker(20, "word")],
+            &[
+                PlaybackSemanticEvent {
+                    action_id: TimelineActionId::new("same-frame").unwrap(),
+                    frame_offset: 20,
+                },
+                PlaybackSemanticEvent {
+                    action_id: TimelineActionId::new("earlier").unwrap(),
+                    frame_offset: 10,
+                },
+            ],
+        );
+
+        assert_eq!(
+            prepared
+                .cues
+                .iter()
+                .map(|cue| cue.frame_offset)
+                .collect::<Vec<_>>(),
+            vec![0, 10, 20, 20]
+        );
+        assert!(prepared.events.iter().all(|event| {
+            event.protocol_version == TIMELINE_EVENT_PROTOCOL_VERSION
+        }));
+        assert!(matches!(
+            prepared.events[1].event,
+            MarkerEvent::SemanticEventReached { ref action_id, .. }
+                if action_id == "earlier"
+        ));
+        assert!(matches!(
+            prepared.events[2].event,
+            MarkerEvent::MarkerReached { .. }
+        ));
+        assert!(matches!(
+            prepared.events[3].event,
+            MarkerEvent::SemanticEventReached { ref action_id, .. }
+                if action_id == "same-frame"
         ));
     }
 }

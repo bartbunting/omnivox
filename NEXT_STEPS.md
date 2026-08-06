@@ -456,6 +456,19 @@ for resource paths and text positions remains Slice 8; until then insertion
 and general auditory-icon overlay are exercised through the renderer API while
 capitalization is its live in-span consumer.
 
+Slice 6 status on 2026-08-07: implemented below the client-transport boundary.
+The renderer projects zero-duration semantic actions onto the insertion-shifted
+mixed output clock. Marker/event protocol v2 adds a validated 1-to-128-byte
+opaque action ID, and a v2 dispatch stably merges semantic cues with engine
+markers at playback frames. The existing tracked audio source emits an event
+only when its frame is consumed, drops unreached cues on cancellation, and the
+single reporter flushes all submitted records before terminal completion.
+Emacs retains the richer Lisp value associated with each ID; Omnivox never
+deserializes or executes it. Version 1 marker dispatch remains unchanged. The
+v2 capability is intentionally not advertised until Slice 8 supplies the
+structured action transport, at which point the already-implemented v2
+dispatch constructor becomes live.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when

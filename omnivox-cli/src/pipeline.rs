@@ -343,6 +343,7 @@ fn queue_synthesis_result(
             result.audio.sample_rate(),
             result.audio.frame_count(),
             &result.markers,
+            &[],
         );
         match prepared.queue(ctx.control, &result.audio) {
             Ok(Some(ticket)) => {

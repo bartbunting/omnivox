@@ -38,7 +38,16 @@ pub struct RenderedTimelineWindow {
     pub audio: AudioBuffer,
     /// Final overlay-only tail beginning at the primary window boundary.
     pub overlay_tail: Option<AudioBuffer>,
+    /// Zero-duration semantic actions on the rendered output clock.
+    pub semantic_events: Vec<RenderedSemanticEvent>,
     pub frame_map: FrameMap,
+}
+
+/// One opaque semantic action ready to become a playback cue.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RenderedSemanticEvent {
+    pub id: TimelineActionId,
+    pub frame_offset: u64,
 }
 
 impl RenderedTimelineWindow {
@@ -137,6 +146,15 @@ impl TimelineAudioRenderer {
         Ok(RenderedTimelineWindow {
             audio: AudioBuffer::new(mixed),
             overlay_tail,
+            semantic_events: timeline
+                .actions
+                .iter()
+                .filter(|action| matches!(action.kind, TimelineActionKind::SemanticEvent))
+                .map(|action| RenderedSemanticEvent {
+                    id: action.id.clone(),
+                    frame_offset: action.output_frame,
+                })
+                .collect(),
             frame_map: timeline.frame_map.clone(),
         })
     }
@@ -344,6 +362,21 @@ mod tests {
         }
     }
 
+    fn semantic(name: &str, source_frame: u64) -> ResolvedTimelineAction {
+        ResolvedTimelineAction {
+            action: TimelineAction {
+                id: id(name),
+                position: PresentationPosition::TextOffset {
+                    span_id: 1,
+                    utf8_offset: source_frame as u32,
+                    affinity: ActionAffinity::Before,
+                },
+                kind: TimelineActionKind::SemanticEvent,
+            },
+            source_frame,
+        }
+    }
+
     #[test]
     fn insertion_shifts_primary_and_frame_mapping() {
         let primary = AudioBuffer::new(vec![0.1, 0.1, 0.2, 0.2, 0.3, 0.3]);
@@ -465,5 +498,37 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("action declares"));
+    }
+
+    #[test]
+    fn semantic_event_uses_the_insertion_shifted_output_frame() {
+        let primary = AudioBuffer::new(vec![0.1; 6]);
+        let inserted = AudioBuffer::new(vec![0.8; 4]);
+        let timeline = ScheduledTimeline::build(
+            3,
+            vec![
+                action("insert", 1, AudioActionMode::Insert, &inserted),
+                semantic("meaning", 1),
+            ],
+        )
+        .unwrap();
+        let mut renderer = TimelineAudioRenderer::new();
+
+        let rendered = renderer
+            .render_window(
+                &primary,
+                &timeline,
+                &[PreparedAudioResource::new(id("insert"), inserted)],
+                true,
+            )
+            .unwrap();
+
+        assert_eq!(
+            rendered.semantic_events,
+            vec![RenderedSemanticEvent {
+                id: id("meaning"),
+                frame_offset: 3,
+            }]
+        );
     }
 }

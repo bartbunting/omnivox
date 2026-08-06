@@ -24,7 +24,7 @@ pub use output::{
 };
 pub use pipeline::{AudioEffect, AudioPipeline};
 pub use timeline::{
-    PreparedAudioResource, RenderedTimelineWindow, TimelineAudioRenderer,
+    PreparedAudioResource, RenderedSemanticEvent, RenderedTimelineWindow, TimelineAudioRenderer,
     MAX_TIMELINE_ACTIONS_PER_WINDOW, MAX_TIMELINE_RENDER_FRAMES,
 };
 pub use tone::ToneGenerator;

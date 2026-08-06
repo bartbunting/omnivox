@@ -10,6 +10,10 @@ use crate::SynthesisMarker;
 
 /// Current marker event protocol version.
 pub const MARKER_PROTOCOL_VERSION: u32 = 1;
+/// Marker/event protocol version adding playback-bound semantic actions.
+pub const TIMELINE_EVENT_PROTOCOL_VERSION: u32 = 2;
+/// Maximum UTF-8 size of an opaque semantic action identifier.
+pub const MAX_SEMANTIC_ACTION_ID_BYTES: usize = 128;
 
 /// Prefix used for marker playback events on stdout.
 pub const MARKER_EVENT_PREFIX: &str = "__EMACSVOX_MARKER__";
@@ -54,6 +58,11 @@ pub enum MarkerEvent {
         utterance_id: u64,
         marker: SynthesisMarker,
     },
+    /// The playback source reached an opaque presentation-timeline action.
+    SemanticEventReached {
+        utterance_id: u64,
+        action_id: String,
+    },
 }
 
 /// Encoding or decoding failure for one marker event.
@@ -67,16 +76,22 @@ pub enum MarkerProtocolError {
 
     #[error("marker event is not valid JSON: {0}")]
     InvalidJson(#[source] serde_json::Error),
+
+    #[error("invalid marker event envelope: {0}")]
+    InvalidEnvelope(String),
 }
 
 /// Encode one marker event as an unwrapped Base64 field.
 pub fn encode_marker_event(event: &MarkerEventEnvelope) -> Result<String, MarkerProtocolError> {
+    validate_event(event)?;
     encode_json(event)
 }
 
 /// Decode and bound one marker event field.
 pub fn decode_marker_event(payload: &str) -> Result<MarkerEventEnvelope, MarkerProtocolError> {
-    decode_json(payload)
+    let event = decode_json(payload)?;
+    validate_event(&event)?;
+    Ok(event)
 }
 
 /// Format one newline-free marker event record.
@@ -107,6 +122,33 @@ fn decode_json<T: DeserializeOwned>(payload: &str) -> Result<T, MarkerProtocolEr
         return Err(MarkerProtocolError::PayloadTooLarge);
     }
     serde_json::from_slice(&json).map_err(MarkerProtocolError::InvalidJson)
+}
+
+fn validate_event(event: &MarkerEventEnvelope) -> Result<(), MarkerProtocolError> {
+    match &event.event {
+        MarkerEvent::SemanticEventReached { action_id, .. } => {
+            if event.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION {
+                return Err(MarkerProtocolError::InvalidEnvelope(
+                    "semantic events require protocol version 2".to_owned(),
+                ));
+            }
+            if action_id.is_empty() || action_id.len() > MAX_SEMANTIC_ACTION_ID_BYTES {
+                return Err(MarkerProtocolError::InvalidEnvelope(format!(
+                    "semantic action ID must contain 1 to {MAX_SEMANTIC_ACTION_ID_BYTES} UTF-8 bytes"
+                )));
+            }
+        }
+        _ if event.protocol_version != MARKER_PROTOCOL_VERSION
+            && event.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION =>
+        {
+            return Err(MarkerProtocolError::InvalidEnvelope(format!(
+                "unsupported protocol version {}",
+                event.protocol_version
+            )));
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -178,6 +220,38 @@ mod tests {
         assert!(matches!(
             decode_marker_event(&payload),
             Err(MarkerProtocolError::PayloadTooLarge)
+        ));
+    }
+
+    #[test]
+    fn semantic_events_require_v2_and_a_bounded_opaque_id() {
+        let semantic = |protocol_version, action_id: String| MarkerEventEnvelope {
+            protocol_version,
+            dispatch_id: 9,
+            sequence: 3,
+            event: MarkerEvent::SemanticEventReached {
+                utterance_id: 1,
+                action_id,
+            },
+        };
+        let valid = semantic(TIMELINE_EVENT_PROTOCOL_VERSION, "object-entered".to_owned());
+        assert_eq!(
+            decode_marker_event(&encode_marker_event(&valid).unwrap()).unwrap(),
+            valid
+        );
+
+        let wrong_version = semantic(MARKER_PROTOCOL_VERSION, "event".to_owned());
+        assert!(matches!(
+            encode_marker_event(&wrong_version),
+            Err(MarkerProtocolError::InvalidEnvelope(_))
+        ));
+        let oversized = semantic(
+            TIMELINE_EVENT_PROTOCOL_VERSION,
+            "x".repeat(MAX_SEMANTIC_ACTION_ID_BYTES + 1),
+        );
+        assert!(matches!(
+            encode_marker_event(&oversized),
+            Err(MarkerProtocolError::InvalidEnvelope(_))
         ));
     }
 }

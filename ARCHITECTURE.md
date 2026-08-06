@@ -103,6 +103,15 @@ tone uses normal tone volume/channel processing and stop cancels all mixed or
 unreached output. Structured resource transport is added at the Emacsvox
 timeline-negotiation layer rather than to the legacy command stream.
 
+Semantic timeline actions render as zero-duration output-frame cues. Protocol
+v2 carries only their bounded opaque IDs; the corresponding Lisp meaning stays
+in Emacsvox. The audio source invokes the nonblocking event callback as it
+consumes the frame, so stop/replacement drops every unreached event. Engine
+markers and semantic events share one stable playback order and one stdout
+reporter, whose flush barrier runs before tracked completion. Marker protocol
+v1 remains available unchanged; v2 is enabled only with structured timeline
+transport.
+
 ## Key Types
 
 ### omnivox-core

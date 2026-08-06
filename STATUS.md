@@ -83,6 +83,8 @@
   tracked playback, and stop-safe deferred scheduling
 - Bounded timeline PCM rendering with serial insertion, sample-aligned overlay,
   cross-chunk tails, and insertion-aware marker/anchor remapping
+- Playback-bound semantic action cues with bounded opaque IDs, stable marker
+  ordering, cancellation of unreached events, and a versioned v2 wire record
 - Non-mutating exact/portable voice preview with playback completion, realized
   route metadata, and ACSS degradation reporting
 - English-US eSpeak voice selected as the portable engine default when available
@@ -107,12 +109,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 323 tests, all passing
+Total: 326 tests, all passing
 
-omnivox-audio:  75 unit + 31 integration = 106
+omnivox-audio:  76 unit + 31 integration = 107
 omnivox-core:   48 unit + 1 doc = 49
-omnivox-tts:   110 unit
-omnivox-cli:    58 unit
+omnivox-tts:   111 unit
+omnivox-cli:    59 unit
 ```
 
 ## Platform Support
@@ -155,8 +157,8 @@ omnivox-cli:    58 unit
 
 ## Next Priority
 
-1. Add playback-bound semantic timeline events.
-2. Add persistent post-synthesis effects.
-3. Add structured Emacsvox timeline transport and degradation reporting.
+1. Add persistent post-synthesis effects.
+2. Add structured Emacsvox timeline transport and degradation reporting.
+3. Make language commands functional and include language in synchronized state.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).
