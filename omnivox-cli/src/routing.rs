@@ -1,0 +1,640 @@
+//! Batch-local logical voice rerouting after runtime synthesis failures.
+
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+
+use omnivox_tts::contracts::{
+    Availability, EngineDescriptor, EngineHealth, FallbackPolicy, LogicalVoiceDefinition,
+    PhysicalVoiceId,
+};
+use omnivox_tts::engine_registry::EngineRegistry;
+use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
+use omnivox_tts::resolver::{resolve_voice, VoiceResolution};
+use omnivox_tts::{AudioBuffer, TtsEngine, TtsError, TtsSettings};
+use tracing::{debug, warn};
+
+/// Maximum synthesis attempts for one routed chunk, including the first try.
+pub const MAX_RUNTIME_SYNTHESIS_ATTEMPTS: usize = 4;
+
+/// Immutable registration state plus a batch-local mutable inventory.
+///
+/// Runtime failures only affect this dispatch. Persistent engine health needs a
+/// recovery contract and is deliberately not inferred from one synthesis call.
+#[derive(Clone)]
+pub struct LogicalVoiceRoutingSnapshot {
+    definitions: Vec<LogicalVoiceDefinition>,
+    fallback_policy: FallbackPolicy,
+    bindings: Vec<LogicalVoiceBinding>,
+    inventory: Vec<EngineDescriptor>,
+    runtime_failure_recorded: bool,
+}
+
+impl LogicalVoiceRoutingSnapshot {
+    pub fn capture(
+        logical_voices: &LogicalVoiceRegistry,
+        engine_registry: &EngineRegistry,
+    ) -> Self {
+        Self {
+            definitions: logical_voices.definitions().to_vec(),
+            fallback_policy: logical_voices.fallback_policy().clone(),
+            bindings: logical_voices.bindings().to_vec(),
+            inventory: engine_registry.inventory(),
+            runtime_failure_recorded: false,
+        }
+    }
+
+    pub fn initial_route(
+        &self,
+        logical_voice_id: &str,
+        engine_registry: &EngineRegistry,
+    ) -> Result<LogicalRoute, String> {
+        if self.runtime_failure_recorded {
+            return self.resolve_current(logical_voice_id, engine_registry);
+        }
+        let binding = self
+            .bindings
+            .iter()
+            .find(|binding| binding.logical_voice_id() == logical_voice_id)
+            .ok_or_else(|| format!("logical voice {logical_voice_id} is not registered"))?;
+
+        match binding {
+            LogicalVoiceBinding::Resolved { resolution } => {
+                route_from_resolution(resolution.clone(), engine_registry)
+            }
+            LogicalVoiceBinding::Unresolved { error } => Err(error.to_string()),
+        }
+    }
+
+    /// Exclude the failed runtime target locally and resolve the same logical
+    /// voice again. Invalid settings are not route failures and are not retried.
+    pub fn reroute_after_failure(
+        &mut self,
+        route: &LogicalRoute,
+        error: &TtsError,
+        engine_registry: &EngineRegistry,
+    ) -> RuntimeReroute {
+        if !record_runtime_failure(&mut self.inventory, &route.realized, error) {
+            return RuntimeReroute::NotRetryable;
+        }
+        self.runtime_failure_recorded = true;
+
+        match self.resolve_current(&route.logical_voice_id, engine_registry) {
+            Ok(retry) if retry.realized != route.realized => RuntimeReroute::Retry(retry),
+            Ok(_) => RuntimeReroute::Exhausted(format!(
+                "logical voice {} resolved back to its failed runtime target",
+                route.logical_voice_id
+            )),
+            Err(error) => RuntimeReroute::Exhausted(error),
+        }
+    }
+
+    fn resolve_current(
+        &self,
+        logical_voice_id: &str,
+        engine_registry: &EngineRegistry,
+    ) -> Result<LogicalRoute, String> {
+        let definition = self
+            .definitions
+            .iter()
+            .find(|definition| definition.id == logical_voice_id)
+            .ok_or_else(|| {
+                format!("logical voice {logical_voice_id} no longer has a definition")
+            })?;
+        let resolution = resolve_voice(&self.inventory, definition, &self.fallback_policy)
+            .map_err(|error| error.to_string())?;
+        route_from_resolution(resolution, engine_registry)
+    }
+}
+
+/// Physical route selected for one logical voice within a dispatched batch.
+pub struct LogicalRoute {
+    pub logical_voice_id: String,
+    pub engine: Arc<dyn TtsEngine>,
+    pub realized: PhysicalVoiceId,
+}
+
+pub enum RuntimeReroute {
+    Retry(LogicalRoute),
+    NotRetryable,
+    Exhausted(String),
+}
+
+pub enum RuntimeSynthesisOutcome {
+    Ready(AudioBuffer),
+    Cancelled,
+    Failed,
+    Exhausted,
+}
+
+/// Synthesize one chunk, re-resolving the logical voice after retryable
+/// failures. Every attempt speaks the identical text and checks cancellation
+/// both before and after the synchronous engine call.
+#[allow(clippy::too_many_arguments)]
+pub fn synthesize_with_runtime_fallback(
+    chunk: &str,
+    settings: &TtsSettings,
+    route: &mut LogicalRoute,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engine_registry: &EngineRegistry,
+    generation: u64,
+    generation_counter: &AtomicU64,
+) -> RuntimeSynthesisOutcome {
+    for attempt in 1..=MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
+        if stale(generation, generation_counter) {
+            return RuntimeSynthesisOutcome::Cancelled;
+        }
+        let mut routed_settings = settings.clone();
+        routed_settings.voice = route.realized.voice_id.clone();
+        match route.engine.synthesize(chunk, &routed_settings) {
+            Ok(buffer) => {
+                return if stale(generation, generation_counter) {
+                    RuntimeSynthesisOutcome::Cancelled
+                } else {
+                    RuntimeSynthesisOutcome::Ready(buffer)
+                };
+            }
+            Err(error) => {
+                if stale(generation, generation_counter) {
+                    return RuntimeSynthesisOutcome::Cancelled;
+                }
+                warn!(
+                    "Logical voice {} synthesis attempt {}/{} failed on engine {} voice {}: {}",
+                    route.logical_voice_id,
+                    attempt,
+                    MAX_RUNTIME_SYNTHESIS_ATTEMPTS,
+                    route.realized.engine_id,
+                    route.realized.voice_id,
+                    error
+                );
+                let reroute = routing.reroute_after_failure(route, &error, engine_registry);
+                if attempt == MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
+                    warn!(
+                        "Logical voice {} exhausted the runtime synthesis attempt limit",
+                        route.logical_voice_id
+                    );
+                    return RuntimeSynthesisOutcome::Exhausted;
+                }
+                match reroute {
+                    RuntimeReroute::Retry(retry) => {
+                        debug!(
+                            "Logical voice {} retrying on engine {} voice {}",
+                            retry.logical_voice_id,
+                            retry.realized.engine_id,
+                            retry.realized.voice_id
+                        );
+                        *route = retry;
+                    }
+                    RuntimeReroute::NotRetryable => return RuntimeSynthesisOutcome::Failed,
+                    RuntimeReroute::Exhausted(reason) => {
+                        warn!(
+                            "Logical voice {} runtime fallback exhausted: {}",
+                            route.logical_voice_id, reason
+                        );
+                        return RuntimeSynthesisOutcome::Exhausted;
+                    }
+                }
+            }
+        }
+    }
+
+    unreachable!("the bounded routed synthesis loop always returns")
+}
+
+fn stale(generation: u64, generation_counter: &AtomicU64) -> bool {
+    generation_counter.load(Ordering::Acquire) != generation
+}
+
+fn route_from_resolution(
+    resolution: VoiceResolution,
+    engine_registry: &EngineRegistry,
+) -> Result<LogicalRoute, String> {
+    let engine = engine_registry
+        .engine(&resolution.realized.engine_id)
+        .ok_or_else(|| {
+            format!(
+                "logical voice {} resolved to missing engine {}",
+                resolution.logical_voice_id, resolution.realized.engine_id
+            )
+        })?;
+
+    Ok(LogicalRoute {
+        logical_voice_id: resolution.logical_voice_id,
+        engine,
+        realized: resolution.realized,
+    })
+}
+
+fn record_runtime_failure(
+    inventory: &mut [EngineDescriptor],
+    realized: &PhysicalVoiceId,
+    error: &TtsError,
+) -> bool {
+    let Some(engine) = inventory
+        .iter_mut()
+        .find(|engine| engine.id == realized.engine_id)
+    else {
+        return false;
+    };
+
+    match error {
+        TtsError::VoiceNotFound(reason) => {
+            let Some(voice) = engine.voices.iter_mut().find(|voice| voice.id == *realized) else {
+                return false;
+            };
+            voice.availability = Availability::Unavailable {
+                reason: reason.clone(),
+            };
+            true
+        }
+        TtsError::NotAvailable => {
+            engine.availability = Availability::Unavailable {
+                reason: "runtime synthesis reported engine unavailable".to_owned(),
+            };
+            true
+        }
+        TtsError::SynthesisFailed(reason) => {
+            engine.health = EngineHealth::Failed {
+                reason: reason.clone(),
+            };
+            true
+        }
+        TtsError::InvalidParameter(_) => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Mutex;
+
+    use super::*;
+    use omnivox_tts::contracts::{
+        AcssCapabilities, AudioOutputMode, CancellationSupport, ConcurrencyModel,
+        EngineCapabilities, MarkerCapabilities, NormalizedAcss, VoiceDescriptor, VoiceSelector,
+    };
+    use omnivox_tts::{AudioBuffer, TtsSettings, VoiceInfo, VoiceQuality};
+
+    enum MockFailure {
+        Synthesis,
+        SynthesisAndCancel(Arc<AtomicU64>),
+    }
+
+    struct MockEngine {
+        descriptor: EngineDescriptor,
+        failure: Option<MockFailure>,
+        calls: Mutex<Vec<(String, String)>>,
+    }
+
+    impl TtsEngine for MockEngine {
+        fn descriptor(&self) -> EngineDescriptor {
+            self.descriptor.clone()
+        }
+
+        fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push((text.to_owned(), settings.voice.clone()));
+            match self.failure.as_ref() {
+                Some(MockFailure::Synthesis) => {
+                    Err(TtsError::SynthesisFailed("mock failure".to_owned()))
+                }
+                Some(MockFailure::SynthesisAndCancel(counter)) => {
+                    counter.fetch_add(1, Ordering::Release);
+                    Err(TtsError::SynthesisFailed("cancelled mock".to_owned()))
+                }
+                None => Ok(AudioBuffer::empty()),
+            }
+        }
+
+        fn stop(&self) {}
+
+        fn is_speaking(&self) -> bool {
+            false
+        }
+
+        fn available_voices(&self) -> Vec<VoiceInfo> {
+            Vec::new()
+        }
+
+        fn voice_info(&self, _identifier: &str) -> Option<VoiceInfo> {
+            None
+        }
+    }
+
+    fn descriptor(engine_id: &str, voice_ids: &[&str]) -> EngineDescriptor {
+        EngineDescriptor {
+            id: engine_id.to_owned(),
+            display_name: engine_id.to_owned(),
+            version: None,
+            availability: Availability::Available,
+            health: EngineHealth::Healthy,
+            capabilities: EngineCapabilities {
+                acss: AcssCapabilities::default(),
+                audio_output: AudioOutputMode::BufferedPcm,
+                cancellation: CancellationSupport::PlaybackOnly,
+                concurrency: ConcurrencyModel::Serialized,
+                markers: MarkerCapabilities::default(),
+                language_switching: false,
+                native_extensions: Vec::new(),
+            },
+            voices: voice_ids
+                .iter()
+                .map(|voice_id| VoiceDescriptor {
+                    id: PhysicalVoiceId::new(engine_id, *voice_id),
+                    display_name: (*voice_id).to_owned(),
+                    language: Some("en-US".to_owned()),
+                    gender: None,
+                    quality: VoiceQuality::Compact,
+                    availability: Availability::Available,
+                })
+                .collect(),
+            default_voice_id: voice_ids.first().map(|voice_id| (*voice_id).to_owned()),
+        }
+    }
+
+    fn register_engine(registry: &mut EngineRegistry, engine_id: &str, voice_ids: &[&str]) {
+        registry
+            .register(Arc::new(MockEngine {
+                descriptor: descriptor(engine_id, voice_ids),
+                failure: None,
+                calls: Mutex::new(Vec::new()),
+            }))
+            .unwrap();
+    }
+
+    fn synthesis_engine(
+        engine_id: &str,
+        voice_id: &str,
+        failure: Option<MockFailure>,
+    ) -> Arc<MockEngine> {
+        Arc::new(MockEngine {
+            descriptor: descriptor(engine_id, &[voice_id]),
+            failure,
+            calls: Mutex::new(Vec::new()),
+        })
+    }
+
+    fn definition(preferences: Vec<VoiceSelector>) -> LogicalVoiceDefinition {
+        LogicalVoiceDefinition {
+            id: "source-code".to_owned(),
+            language: Some("en-US".to_owned()),
+            preferences,
+            acss: NormalizedAcss::default(),
+        }
+    }
+
+    fn exact(engine_id: &str, voice_id: &str) -> VoiceSelector {
+        VoiceSelector::Exact(PhysicalVoiceId::new(engine_id, voice_id))
+    }
+
+    fn snapshot(
+        engines: &EngineRegistry,
+        definition: LogicalVoiceDefinition,
+        fallback_policy: FallbackPolicy,
+    ) -> LogicalVoiceRoutingSnapshot {
+        let mut logical_voices = LogicalVoiceRegistry::default();
+        logical_voices
+            .register(1, vec![definition], fallback_policy, &engines.inventory())
+            .unwrap();
+        LogicalVoiceRoutingSnapshot::capture(&logical_voices, engines)
+    }
+
+    #[test]
+    fn voice_failure_uses_an_explicit_alternative_on_the_same_engine() {
+        let mut engines = EngineRegistry::new();
+        register_engine(&mut engines, "dectalk", &["paul", "betty"]);
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("dectalk", "paul"), exact("dectalk", "betty")]),
+            FallbackPolicy::default(),
+        );
+        let initial = routes.initial_route("source-code", &engines).unwrap();
+
+        let rerouted = routes.reroute_after_failure(
+            &initial,
+            &TtsError::VoiceNotFound("Paul was removed".to_owned()),
+            &engines,
+        );
+
+        let RuntimeReroute::Retry(retry) = rerouted else {
+            panic!("voice failure did not select the explicit alternative");
+        };
+        assert_eq!(MAX_RUNTIME_SYNTHESIS_ATTEMPTS, 4);
+        assert_eq!(retry.engine.descriptor().id, "dectalk");
+        assert_eq!(retry.realized, PhysicalVoiceId::new("dectalk", "betty"));
+    }
+
+    #[test]
+    fn engine_failure_uses_the_configured_fallback_engine() {
+        let mut engines = EngineRegistry::new();
+        register_engine(&mut engines, "dectalk", &["paul"]);
+        register_engine(&mut engines, "espeak", &["en-us"]);
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("dectalk", "paul")]),
+            FallbackPolicy {
+                fallback_engines: vec!["espeak".to_owned()],
+                ..FallbackPolicy::default()
+            },
+        );
+        let initial = routes.initial_route("source-code", &engines).unwrap();
+
+        let rerouted = routes.reroute_after_failure(
+            &initial,
+            &TtsError::SynthesisFailed("helper exited".to_owned()),
+            &engines,
+        );
+
+        let RuntimeReroute::Retry(retry) = rerouted else {
+            panic!("engine failure did not select the fallback engine");
+        };
+        assert_eq!(retry.realized, PhysicalVoiceId::new("espeak", "en-us"));
+        assert_eq!(
+            routes
+                .initial_route("source-code", &engines)
+                .unwrap()
+                .realized,
+            PhysicalVoiceId::new("espeak", "en-us")
+        );
+        assert!(matches!(
+            engines.descriptor("dectalk").unwrap().health,
+            EngineHealth::Healthy
+        ));
+    }
+
+    #[test]
+    fn invalid_parameters_are_not_retried_or_marked_failed() {
+        let mut engines = EngineRegistry::new();
+        register_engine(&mut engines, "dectalk", &["paul"]);
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("dectalk", "paul")]),
+            FallbackPolicy::default(),
+        );
+        let initial = routes.initial_route("source-code", &engines).unwrap();
+
+        assert!(matches!(
+            routes.reroute_after_failure(
+                &initial,
+                &TtsError::InvalidParameter("rate".to_owned()),
+                &engines,
+            ),
+            RuntimeReroute::NotRetryable
+        ));
+        assert_eq!(
+            routes
+                .initial_route("source-code", &engines)
+                .unwrap()
+                .realized,
+            initial.realized
+        );
+    }
+
+    #[test]
+    fn fallback_exhaustion_is_explicit() {
+        let mut engines = EngineRegistry::new();
+        register_engine(&mut engines, "dectalk", &["paul"]);
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("dectalk", "paul")]),
+            FallbackPolicy::default(),
+        );
+        let initial = routes.initial_route("source-code", &engines).unwrap();
+
+        let RuntimeReroute::Exhausted(error) =
+            routes.reroute_after_failure(&initial, &TtsError::NotAvailable, &engines)
+        else {
+            panic!("missing fallback was not reported as exhausted");
+        };
+        assert!(error.contains("no usable physical voice"));
+    }
+
+    #[test]
+    fn routed_failure_retries_the_same_chunk_on_the_fallback_engine() {
+        let primary = synthesis_engine("dectalk", "paul", Some(MockFailure::Synthesis));
+        let fallback = synthesis_engine("espeak", "en-us", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("dectalk", "paul")]),
+            FallbackPolicy {
+                fallback_engines: vec!["espeak".to_owned()],
+                ..FallbackPolicy::default()
+            },
+        );
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let counter = AtomicU64::new(7);
+
+        let outcome = synthesize_with_runtime_fallback(
+            "same chunk",
+            &TtsSettings::default(),
+            &mut route,
+            &mut routes,
+            &engines,
+            7,
+            &counter,
+        );
+
+        assert!(matches!(outcome, RuntimeSynthesisOutcome::Ready(_)));
+        assert_eq!(route.realized, PhysicalVoiceId::new("espeak", "en-us"));
+        assert_eq!(
+            *primary.calls.lock().unwrap(),
+            [("same chunk".to_owned(), "paul".to_owned())]
+        );
+        assert_eq!(
+            *fallback.calls.lock().unwrap(),
+            [("same chunk".to_owned(), "en-us".to_owned())]
+        );
+    }
+
+    #[test]
+    fn routed_synthesis_never_exceeds_the_attempt_limit() {
+        let mut engines = EngineRegistry::new();
+        let mut mocks = Vec::new();
+        let mut preferences = Vec::new();
+        for index in 0..=MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
+            let engine_id = format!("engine-{index}");
+            let voice_id = format!("voice-{index}");
+            let engine = synthesis_engine(&engine_id, &voice_id, Some(MockFailure::Synthesis));
+            engines
+                .register(Arc::clone(&engine) as Arc<dyn TtsEngine>)
+                .unwrap();
+            preferences.push(exact(&engine_id, &voice_id));
+            mocks.push(engine);
+        }
+        let mut routes = snapshot(&engines, definition(preferences), FallbackPolicy::default());
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let counter = AtomicU64::new(3);
+
+        let outcome = synthesize_with_runtime_fallback(
+            "bounded chunk",
+            &TtsSettings::default(),
+            &mut route,
+            &mut routes,
+            &engines,
+            3,
+            &counter,
+        );
+
+        assert!(matches!(outcome, RuntimeSynthesisOutcome::Exhausted));
+        assert_eq!(
+            mocks
+                .iter()
+                .map(|engine| engine.calls.lock().unwrap().len())
+                .sum::<usize>(),
+            MAX_RUNTIME_SYNTHESIS_ATTEMPTS
+        );
+        assert!(mocks[MAX_RUNTIME_SYNTHESIS_ATTEMPTS]
+            .calls
+            .lock()
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn cancellation_after_a_failed_attempt_prevents_the_retry() {
+        let counter = Arc::new(AtomicU64::new(11));
+        let primary = synthesis_engine(
+            "dectalk",
+            "paul",
+            Some(MockFailure::SynthesisAndCancel(Arc::clone(&counter))),
+        );
+        let fallback = synthesis_engine("espeak", "en-us", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("dectalk", "paul")]),
+            FallbackPolicy {
+                fallback_engines: vec!["espeak".to_owned()],
+                ..FallbackPolicy::default()
+            },
+        );
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+
+        let outcome = synthesize_with_runtime_fallback(
+            "cancelled chunk",
+            &TtsSettings::default(),
+            &mut route,
+            &mut routes,
+            &engines,
+            11,
+            &counter,
+        );
+
+        assert!(matches!(outcome, RuntimeSynthesisOutcome::Cancelled));
+        assert_eq!(primary.calls.lock().unwrap().len(), 1);
+        assert!(fallback.calls.lock().unwrap().is_empty());
+    }
+}

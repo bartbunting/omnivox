@@ -7,7 +7,7 @@ use omnivox_core::{
 };
 use omnivox_tts::control::{format_control_event, process_control_request};
 use omnivox_tts::engine_registry::EngineRegistry;
-use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
+use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead, Write};
 use std::mem;
@@ -19,6 +19,7 @@ use tracing::{debug, error, info, warn};
 use crate::pipeline::{
     build_sound_pipeline, build_tone_pipeline, process_batch, synthesize_chunk, SynthCtx,
 };
+use crate::routing::LogicalVoiceRoutingSnapshot;
 use crate::text::{chunk_text, normalize_rate, parse_resource_path, preprocess_text};
 use crate::transaction::{
     prefer_newer, PreparedPresentation, PresentationGenerations,
@@ -41,7 +42,7 @@ pub enum SynthRequest {
     Batch {
         items: Vec<QueueItem>,
         state: TtsState,
-        logical_voice_bindings: Vec<LogicalVoiceBinding>,
+        logical_voice_routing: LogicalVoiceRoutingSnapshot,
         gen: u64,
     },
     /// Synthesize and play a single string immediately (`tts_say`).
@@ -67,7 +68,7 @@ pub fn synthesis_worker(
 ) {
     for request in rx {
         match request {
-            SynthRequest::Batch { items, state, logical_voice_bindings, gen } => {
+            SynthRequest::Batch { items, state, logical_voice_routing, gen } => {
                 let ctx = SynthCtx { gen, gen_counter: &gen_counter, engine: &*engine, control: &control };
                 process_batch(
                     items,
@@ -75,7 +76,7 @@ pub fn synthesis_worker(
                     &ctx,
                     &loader,
                     &engine_registry,
-                    &logical_voice_bindings,
+                    logical_voice_routing,
                 );
             }
 
@@ -523,7 +524,10 @@ fn handle_command(
                 let _ = tx.send(SynthRequest::Batch {
                     items,
                     state: state.clone(),
-                    logical_voice_bindings: logical_voices.bindings().to_vec(),
+                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                        logical_voices,
+                        engine_registry,
+                    ),
                     gen: *current_gen,
                 });
             }

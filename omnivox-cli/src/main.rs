@@ -18,6 +18,7 @@
 mod cli;
 mod engine;
 mod pipeline;
+mod routing;
 mod server;
 mod text;
 mod transaction;
