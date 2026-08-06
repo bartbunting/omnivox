@@ -25,13 +25,12 @@ use anyhow::Result;
 use omnivox_audio::AudioFileLoader;
 use omnivox_audio::AudioStreams;
 use omnivox_core::TtsState;
-use omnivox_tts::engine_registry::EngineRegistry;
 use std::sync::atomic::AtomicU64;
 use std::sync::{mpsc, Arc};
 use tracing::info;
 
 use cli::{apply_cli_flags, parse_args};
-use engine::{apply_audio_target_env, create_engine};
+use engine::{apply_audio_target_env, create_engine, create_engines};
 use server::{run_server, synthesis_worker, SynthRequest};
 
 pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -96,15 +95,14 @@ fn main() -> Result<()> {
 
     info!("Omnivox v{} starting", VERSION);
 
-    let engine = {
+    let created_engines = {
         #[cfg(target_os = "macos")]
         { info!("Initializing macOS TTS engine (ObjC bridge)"); }
-        create_engine(&cli.engine, cli.piper_model.as_deref())?
+        create_engines(&cli.engine, cli.piper_model.as_deref())?
     };
-    info!("TTS engine initialized");
-
-    let mut engine_registry = EngineRegistry::new();
-    engine_registry.register(Arc::clone(&engine))?;
+    let engine = created_engines.preferred;
+    let engine_registry = created_engines.registry;
+    info!("TTS engines initialized");
     let voice_count = engine_registry
         .inventory()
         .iter()

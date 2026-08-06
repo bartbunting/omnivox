@@ -3,6 +3,7 @@
 use anyhow::Result;
 use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
+use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::espeak::EspeakTtsEngine;
 #[cfg(target_os = "macos")]
 use omnivox_tts::macos::MacOsTtsEngine;
@@ -13,6 +14,116 @@ use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::TtsEngine;
 use std::sync::Arc;
 use tracing::{info, warn};
+
+/// Engines initialized for one server session.
+pub struct CreatedEngines {
+    pub preferred: Arc<dyn TtsEngine>,
+    pub registry: EngineRegistry,
+}
+
+/// Create all engines that should be available to the server process.
+///
+/// Windows eagerly initializes WinRT and eSpeak so that the registry can expose
+/// both engines. Other platforms retain the current single-engine startup until
+/// their multi-engine policy is defined.
+pub fn create_engines(engine_name: &str, piper_model: Option<&str>) -> Result<CreatedEngines> {
+    #[cfg(target_os = "windows")]
+    {
+        return create_windows_engines(engine_name, piper_model);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let preferred = create_engine(engine_name, piper_model)?;
+        let mut registry = EngineRegistry::new();
+        registry.register(Arc::clone(&preferred))?;
+        Ok(CreatedEngines {
+            preferred,
+            registry,
+        })
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn create_windows_engines(
+    engine_name: &str,
+    _piper_model: Option<&str>,
+) -> Result<CreatedEngines> {
+    let forced = requested_engine(engine_name);
+    let mut registry = EngineRegistry::new();
+
+    match WindowsTtsEngine::new() {
+        Ok(engine) => {
+            registry.register(Arc::new(engine))?;
+            info!("Registered Windows WinRT engine");
+        }
+        Err(error) => warn!("Windows WinRT not available: {}", error),
+    }
+
+    match EspeakTtsEngine::new() {
+        Ok(engine) => {
+            registry.register(Arc::new(engine))?;
+            info!("Registered espeak-ng fallback engine");
+        }
+        Err(error) => warn!("espeak-ng fallback not available: {}", error),
+    }
+
+    if forced == "piper" {
+        #[cfg(feature = "piper")]
+        {
+            let model = _piper_model
+                .map(str::to_string)
+                .or_else(|| std::env::var("OMNIVOX_PIPER_MODEL").ok());
+            match model {
+                Some(ref path) => match PiperTtsEngine::new(path) {
+                    Ok(engine) => {
+                        registry.register(Arc::new(engine))?;
+                        info!("Registered piper neural TTS engine: {}", path);
+                    }
+                    Err(error) => warn!("Piper TTS not available: {}", error),
+                },
+                None => warn!(
+                    "OMNIVOX_ENGINE=piper but no model path given. \
+                     Set OMNIVOX_PIPER_MODEL or use --piper-model."
+                ),
+            }
+        }
+        #[cfg(not(feature = "piper"))]
+        warn!(
+            "OMNIVOX_ENGINE=piper but omnivox was built without piper support. \
+             Rebuild with --features piper."
+        );
+    }
+
+    let preferred = windows_preference_order(&forced)
+        .iter()
+        .find_map(|engine_id| registry.engine(engine_id))
+        .ok_or_else(|| anyhow::anyhow!("No TTS engine available"))?;
+    info!("Using {} as the preferred TTS engine", preferred.descriptor().id);
+
+    Ok(CreatedEngines {
+        preferred,
+        registry,
+    })
+}
+
+#[cfg(target_os = "windows")]
+fn requested_engine(engine_name: &str) -> String {
+    if engine_name.is_empty() {
+        std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
+    } else {
+        engine_name.to_owned()
+    }
+}
+
+#[cfg(any(test, target_os = "windows"))]
+fn windows_preference_order(requested: &str) -> &'static [&'static str] {
+    match requested {
+        "espeak" => &["espeak", "winrt"],
+        "piper" => &["piper", "espeak", "winrt"],
+        _ => &["winrt", "espeak"],
+    }
+}
 
 /// Create a TTS engine by name, falling back through the platform default to espeak-ng.
 ///
@@ -106,5 +217,25 @@ pub fn apply_audio_target_env(state: &mut TtsState) {
         } else {
             warn!("Invalid OMNIVOX_AUDIO_TARGET value: {}", target);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::windows_preference_order;
+
+    #[test]
+    fn windows_defaults_to_winrt_with_espeak_fallback() {
+        assert_eq!(windows_preference_order(""), &["winrt", "espeak"]);
+        assert_eq!(windows_preference_order("native"), &["winrt", "espeak"]);
+    }
+
+    #[test]
+    fn windows_honours_explicit_engine_preferences() {
+        assert_eq!(windows_preference_order("espeak"), &["espeak", "winrt"]);
+        assert_eq!(
+            windows_preference_order("piper"),
+            &["piper", "espeak", "winrt"]
+        );
     }
 }
