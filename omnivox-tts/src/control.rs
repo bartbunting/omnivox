@@ -166,6 +166,7 @@ pub fn process_control_request(
                         "engine_inventory".to_owned(),
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
+                        "logical_voice_routing".to_owned(),
                         "preferred_engine".to_owned(),
                         "stable_voice_ids".to_owned(),
                     ],
@@ -371,8 +372,12 @@ mod tests {
         assert_eq!(response.request_id, Some(73));
         assert!(matches!(
             response.response,
-            ControlResponse::Capabilities { ref server_version, .. }
-                if server_version == "1.3.0"
+            ControlResponse::Capabilities {
+                ref server_version,
+                ref features,
+                ..
+            } if server_version == "1.3.0"
+                && features.iter().any(|feature| feature == "logical_voice_routing")
         ));
     }
 

@@ -101,7 +101,7 @@ fn main() -> Result<()> {
         create_engines(&cli.engine, cli.piper_model.as_deref())?
     };
     let engine = created_engines.preferred;
-    let engine_registry = created_engines.registry;
+    let engine_registry = Arc::new(created_engines.registry);
     info!("TTS engines initialized");
     let voice_count = engine_registry
         .inventory()
@@ -123,12 +123,22 @@ fn main() -> Result<()> {
 
     let worker_handle = {
         let worker_engine = engine.clone();
+        let worker_engine_registry = engine_registry.clone();
         let worker_control = control.clone();
         let worker_gen = gen_counter.clone();
         let loader = AudioFileLoader::with_cache();
         std::thread::Builder::new()
             .name("omnivox-synth".to_string())
-            .spawn(move || synthesis_worker(rx, worker_gen, worker_engine, worker_control, loader))
+            .spawn(move || {
+                synthesis_worker(
+                    rx,
+                    worker_gen,
+                    worker_engine,
+                    worker_engine_registry,
+                    worker_control,
+                    loader,
+                )
+            })
             .expect("Failed to spawn synthesis worker thread")
     };
 

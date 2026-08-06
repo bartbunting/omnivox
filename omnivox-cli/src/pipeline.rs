@@ -5,11 +5,18 @@ use omnivox_audio::{
     StreamType, ToneGenerator, VolumeAdjust,
 };
 use omnivox_core::{QueueItem, TtsState};
+use omnivox_tts::contracts::PhysicalVoiceId;
+use omnivox_tts::engine_registry::EngineRegistry;
+use omnivox_tts::logical_voices::LogicalVoiceBinding;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::sync::atomic::{AtomicU64, Ordering};
-use tracing::warn;
+use std::sync::Arc;
+use tracing::{debug, warn};
 
-use crate::text::{chunk_text, extract_pitch, extract_voice, preprocess_text, rate_scaled_padding};
+use crate::text::{
+    chunk_text, extract_logical_voice, extract_pitch, extract_voice, preprocess_text,
+    rate_scaled_padding,
+};
 
 // ---------------------------------------------------------------------------
 // Buffer conversion
@@ -116,12 +123,40 @@ pub fn synthesize_chunk(
     }
 }
 
+fn resolve_logical_route(
+    logical_voice_id: &str,
+    bindings: &[LogicalVoiceBinding],
+    engine_registry: &EngineRegistry,
+) -> Result<(Arc<dyn TtsEngine>, PhysicalVoiceId), String> {
+    let binding = bindings
+        .iter()
+        .find(|binding| binding.logical_voice_id() == logical_voice_id)
+        .ok_or_else(|| format!("logical voice {logical_voice_id} is not registered"))?;
+
+    match binding {
+        LogicalVoiceBinding::Resolved { resolution } => {
+            let engine = engine_registry
+                .engine(&resolution.realized.engine_id)
+                .ok_or_else(|| {
+                    format!(
+                        "logical voice {logical_voice_id} resolved to missing engine {}",
+                        resolution.realized.engine_id
+                    )
+                })?;
+            Ok((engine, resolution.realized.clone()))
+        }
+        LogicalVoiceBinding::Unresolved { error } => Err(error.to_string()),
+    }
+}
+
 /// Process a dispatched batch of queue items in the worker thread.
 pub fn process_batch(
     items: Vec<QueueItem>,
     mut state: TtsState,
     ctx: &SynthCtx,
     loader: &AudioFileLoader,
+    engine_registry: &EngineRegistry,
+    logical_voice_bindings: &[LogicalVoiceBinding],
 ) {
     if ctx.is_stale() {
         return;
@@ -137,6 +172,7 @@ pub fn process_batch(
         .sum();
 
     let mut speech_chunk_index: usize = 0;
+    let mut logical_route: Option<(Arc<dyn TtsEngine>, PhysicalVoiceId)> = None;
 
     for item in items {
         if ctx.is_stale() {
@@ -145,17 +181,31 @@ pub fn process_batch(
 
         match item {
             QueueItem::Speech(text) => {
+                let engine = logical_route
+                    .as_ref()
+                    .map_or(ctx.engine, |(engine, _voice_id)| engine.as_ref());
                 let settings = TtsSettings {
-                    voice: state.current_voice.clone(),
+                    voice: logical_route
+                        .as_ref()
+                        .map_or_else(
+                            || state.current_voice.clone(),
+                            |route| route.1.voice_id.clone(),
+                        ),
                     rate: state.speech_rate,
                     pitch: state.pitch_multiplier,
                     volume: 1.0,
+                };
+                let routed_ctx = SynthCtx {
+                    gen: ctx.gen,
+                    gen_counter: ctx.gen_counter,
+                    engine,
+                    control: ctx.control,
                 };
                 let processed = preprocess_text(&text, &state);
                 let chunks = chunk_text(&processed, 15);
                 for chunk in chunks {
                     let is_last = speech_chunk_index == total_speech_chunks - 1;
-                    if !synthesize_chunk(&chunk, &settings, &state, is_last, ctx) {
+                    if !synthesize_chunk(&chunk, &settings, &state, is_last, &routed_ctx) {
                         return;
                     }
                     speech_chunk_index += 1;
@@ -165,6 +215,28 @@ pub fn process_batch(
             QueueItem::Code(codes) => {
                 if let Some(voice) = extract_voice(&codes) {
                     state.current_voice = voice;
+                    logical_route = None;
+                }
+                if let Some(logical_voice_id) = extract_logical_voice(&codes) {
+                    match resolve_logical_route(
+                        &logical_voice_id,
+                        logical_voice_bindings,
+                        engine_registry,
+                    ) {
+                        Ok(route) => {
+                            debug!(
+                                "Logical voice {} routed to engine {} voice {}",
+                                logical_voice_id,
+                                route.1.engine_id,
+                                route.1.voice_id
+                            );
+                            logical_route = Some(route);
+                        }
+                        Err(error) => {
+                            warn!("{}; using preferred legacy engine", error);
+                            logical_route = None;
+                        }
+                    }
                 }
                 if let Some(pitch) = extract_pitch(&codes) {
                     state.pitch_multiplier = pitch;
@@ -212,6 +284,74 @@ pub fn process_batch(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use omnivox_tts::contracts::{
+        AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
+        EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities, VoiceDescriptor,
+    };
+    use omnivox_tts::resolver::{ResolutionReason, VoiceResolution};
+    use omnivox_tts::{AudioBuffer as TtsAudioBuffer, TtsError, VoiceInfo, VoiceQuality};
+
+    struct MockEngine {
+        descriptor: EngineDescriptor,
+    }
+
+    impl TtsEngine for MockEngine {
+        fn descriptor(&self) -> EngineDescriptor {
+            self.descriptor.clone()
+        }
+
+        fn synthesize(
+            &self,
+            _text: &str,
+            _settings: &TtsSettings,
+        ) -> Result<TtsAudioBuffer, TtsError> {
+            Ok(TtsAudioBuffer::empty())
+        }
+
+        fn stop(&self) {}
+
+        fn is_speaking(&self) -> bool {
+            false
+        }
+
+        fn available_voices(&self) -> Vec<VoiceInfo> {
+            Vec::new()
+        }
+
+        fn voice_info(&self, _identifier: &str) -> Option<VoiceInfo> {
+            None
+        }
+    }
+
+    fn mock_engine(engine_id: &str, voice_id: &str) -> Arc<dyn TtsEngine> {
+        Arc::new(MockEngine {
+            descriptor: EngineDescriptor {
+                id: engine_id.to_owned(),
+                display_name: engine_id.to_owned(),
+                version: None,
+                availability: Availability::Available,
+                health: EngineHealth::Healthy,
+                capabilities: EngineCapabilities {
+                    acss: AcssCapabilities::default(),
+                    audio_output: AudioOutputMode::BufferedPcm,
+                    cancellation: CancellationSupport::PlaybackOnly,
+                    concurrency: ConcurrencyModel::Serialized,
+                    markers: MarkerCapabilities::default(),
+                    language_switching: false,
+                    native_extensions: Vec::new(),
+                },
+                voices: vec![VoiceDescriptor {
+                    id: PhysicalVoiceId::new(engine_id, voice_id),
+                    display_name: voice_id.to_owned(),
+                    language: Some("en-US".to_owned()),
+                    gender: None,
+                    quality: VoiceQuality::Compact,
+                    availability: Availability::Available,
+                }],
+                default_voice_id: Some(voice_id.to_owned()),
+            },
+        })
+    }
 
     #[test]
     fn test_tts_buffer_to_audio_buffer() {
@@ -234,5 +374,40 @@ mod tests {
         assert!(!is_stale(5, &counter));
         assert!(is_stale(4, &counter));
         assert!(is_stale(6, &counter));
+    }
+
+    #[test]
+    fn logical_route_selects_the_resolved_engine_and_voice() {
+        let espeak = mock_engine("espeak", "espeak:en-US");
+        let mut registry = EngineRegistry::new();
+        registry.register(espeak.clone()).unwrap();
+        let realized = PhysicalVoiceId::new("espeak", "espeak:en-US");
+        let bindings = vec![LogicalVoiceBinding::Resolved {
+            resolution: VoiceResolution {
+                logical_voice_id: "source-code".to_owned(),
+                requested: None,
+                realized: realized.clone(),
+                reason: ResolutionReason::Preferred,
+                failed_attempts: Vec::new(),
+            },
+        }];
+
+        let (engine, voice) =
+            resolve_logical_route("source-code", &bindings, &registry).unwrap();
+
+        assert!(Arc::ptr_eq(&engine, &espeak));
+        assert_eq!(voice, realized);
+    }
+
+    #[test]
+    fn missing_logical_route_degrades_without_selecting_an_engine() {
+        let registry = EngineRegistry::new();
+
+        let error = match resolve_logical_route("missing", &[], &registry) {
+            Ok(_) => panic!("missing logical voice unexpectedly resolved"),
+            Err(error) => error,
+        };
+
+        assert!(error.contains("not registered"));
     }
 }

@@ -14,6 +14,11 @@ pub(crate) static VOICE_RE: Lazy<regex::Regex> =
 pub(crate) static PITCH_RE: Lazy<regex::Regex> =
     Lazy::new(|| regex::Regex::new(r"\[\[pitch\s+([^\]]+)\]\]").expect("invalid pitch regex"));
 
+pub(crate) static LOGICAL_VOICE_RE: Lazy<regex::Regex> = Lazy::new(|| {
+    regex::Regex::new(r"\[\[logical_voice\s+([A-Za-z0-9_.-]{1,128})\]\]")
+        .expect("invalid logical voice regex")
+});
+
 // ---------------------------------------------------------------------------
 // Chunking
 // ---------------------------------------------------------------------------
@@ -168,6 +173,10 @@ pub fn extract_pitch(codes: &str) -> Option<f32> {
     extract_regex_group(&PITCH_RE, codes).and_then(|s| s.parse().ok())
 }
 
+pub fn extract_logical_voice(codes: &str) -> Option<String> {
+    extract_regex_group(&LOGICAL_VOICE_RE, codes)
+}
+
 // ---------------------------------------------------------------------------
 // Path helpers
 // ---------------------------------------------------------------------------
@@ -314,6 +323,14 @@ mod tests {
         assert_eq!(extract_pitch("[[pitch 1.5]]"), Some(1.5f32));
         assert_eq!(extract_pitch("[[pitch 0.8]]"), Some(0.8f32));
         assert_eq!(extract_pitch("no pitch here"), None);
+    }
+
+    #[test]
+    fn test_extract_logical_voice() {
+        let codes = "[[logical_voice source-code]] [[pitch 1.2]]";
+        assert_eq!(extract_logical_voice(codes).as_deref(), Some("source-code"));
+        assert_eq!(extract_logical_voice("[[logical_voice invalid voice]]"), None);
+        assert_eq!(extract_logical_voice("[[logical_voice ../invalid]]"), None);
     }
 
     #[test]

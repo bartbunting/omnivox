@@ -7,7 +7,7 @@ use omnivox_core::{
 };
 use omnivox_tts::control::{format_control_event, process_control_request};
 use omnivox_tts::engine_registry::EngineRegistry;
-use omnivox_tts::logical_voices::LogicalVoiceRegistry;
+use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead, Write};
 use std::mem;
@@ -32,7 +32,12 @@ use crate::text::{chunk_text, normalize_rate, parse_resource_path, preprocess_te
 /// interrupt), the request is abandoned and no audio is queued.
 pub enum SynthRequest {
     /// Synthesize and play a batch of queued items (from `q`/`c`/`t`/`sh`/`a` + `d`).
-    Batch { items: Vec<QueueItem>, state: TtsState, gen: u64 },
+    Batch {
+        items: Vec<QueueItem>,
+        state: TtsState,
+        logical_voice_bindings: Vec<LogicalVoiceBinding>,
+        gen: u64,
+    },
     /// Synthesize and play a single string immediately (`tts_say`).
     Immediate { text: String, state: TtsState, gen: u64 },
     /// Synthesize and play a single letter (`l`).
@@ -50,14 +55,22 @@ pub fn synthesis_worker(
     rx: mpsc::Receiver<SynthRequest>,
     gen_counter: Arc<AtomicU64>,
     engine: Arc<dyn TtsEngine>,
+    engine_registry: Arc<EngineRegistry>,
     control: Arc<AudioControl>,
     loader: AudioFileLoader,
 ) {
     for request in rx {
         match request {
-            SynthRequest::Batch { items, state, gen } => {
+            SynthRequest::Batch { items, state, logical_voice_bindings, gen } => {
                 let ctx = SynthCtx { gen, gen_counter: &gen_counter, engine: &*engine, control: &control };
-                process_batch(items, state, &ctx, &loader);
+                process_batch(
+                    items,
+                    state,
+                    &ctx,
+                    &loader,
+                    &engine_registry,
+                    &logical_voice_bindings,
+                );
             }
 
             SynthRequest::Immediate { text, state, gen } => {
@@ -131,17 +144,17 @@ pub fn synthesis_worker(
 // Reader loop
 // ---------------------------------------------------------------------------
 
-/// Increment the generation counter, stop audio, and optionally stop the TTS engine.
+/// Increment the generation counter, stop audio, and optionally stop every TTS engine.
 ///
 /// `stop_engine` should be `true` only for hard stops (`s` command).  For
 /// `tts_say` and `letter`, pass `false` — the generation counter already causes
-/// the worker to discard stale results, and calling `engine.stop()` cross-thread
+/// the worker to discard stale results, and calling `stop()` cross-thread
 /// while AVSpeechSynthesizer is running on its GCD queue corrupts the synthesizer.
 pub fn interrupt(
     current_gen: &mut u64,
     gen_counter: &AtomicU64,
     control: &AudioControl,
-    engine: &dyn TtsEngine,
+    engine_registry: &EngineRegistry,
     stop_speech_only: bool,
     stop_engine: bool,
 ) {
@@ -153,7 +166,7 @@ pub fn interrupt(
         control.stop_all();
     }
     if stop_engine {
-        engine.stop();
+        engine_registry.stop_all();
     }
 }
 
@@ -163,7 +176,7 @@ pub fn interrupt(
 /// drop guard outlives playback.
 pub fn run_server(
     engine: Arc<dyn TtsEngine>,
-    engine_registry: EngineRegistry,
+    engine_registry: Arc<EngineRegistry>,
     mut state: TtsState,
     tx: mpsc::Sender<SynthRequest>,
     control: Arc<AudioControl>,
@@ -200,7 +213,6 @@ pub fn run_server(
             &mut pending,
             &mut current_gen,
             &gen_counter,
-            &engine,
             &engine_registry,
             &preferred_engine_id,
             &mut logical_voices,
@@ -231,7 +243,6 @@ fn handle_command(
     pending: &mut Vec<QueueItem>,
     current_gen: &mut u64,
     gen_counter: &Arc<AtomicU64>,
-    engine: &Arc<dyn TtsEngine>,
     engine_registry: &EngineRegistry,
     preferred_engine_id: &str,
     logical_voices: &mut LogicalVoiceRegistry,
@@ -294,7 +305,12 @@ fn handle_command(
             if !pending.is_empty() {
                 debug!("Dispatch {} items (gen={})", pending.len(), current_gen);
                 let items = mem::take(pending);
-                let _ = tx.send(SynthRequest::Batch { items, state: state.clone(), gen: *current_gen });
+                let _ = tx.send(SynthRequest::Batch {
+                    items,
+                    state: state.clone(),
+                    logical_voice_bindings: logical_voices.bindings().to_vec(),
+                    gen: *current_gen,
+                });
             }
         }
 
@@ -302,14 +318,14 @@ fn handle_command(
 
         CommandId::Stop => {
             debug!("Stop");
-            interrupt(current_gen, gen_counter, control, engine.as_ref(), false, true);
+            interrupt(current_gen, gen_counter, control, engine_registry, false, true);
             pending.clear();
         }
 
         CommandId::TtsSay => {
             if let Some(text) = command.args {
                 debug!("tts_say: {}", text);
-                interrupt(current_gen, gen_counter, control, engine.as_ref(), true, false);
+                interrupt(current_gen, gen_counter, control, engine_registry, true, false);
                 let _ = tx.send(SynthRequest::Immediate { text, state: state.clone(), gen: *current_gen });
             }
         }
@@ -317,7 +333,7 @@ fn handle_command(
         CommandId::Letter => {
             if let Some(letter) = command.args {
                 debug!("Letter: {}", letter);
-                interrupt(current_gen, gen_counter, control, engine.as_ref(), true, false);
+                interrupt(current_gen, gen_counter, control, engine_registry, true, false);
                 let _ = tx.send(SynthRequest::Letter { text: letter, state: state.clone(), gen: *current_gen });
             }
         }
@@ -486,7 +502,7 @@ fn handle_command(
 
         CommandId::TtsReset => {
             debug!("Reset");
-            interrupt(current_gen, gen_counter, control, engine.as_ref(), false, true);
+            interrupt(current_gen, gen_counter, control, engine_registry, false, true);
             state.reset();
             pending.clear();
         }
