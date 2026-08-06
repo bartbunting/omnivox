@@ -151,6 +151,36 @@ impl AudioControl {
         Ok(Some(ticket))
     }
 
+    /// Queue tracked audio and invoke `on_cue` at caller-defined frame cues.
+    ///
+    /// This has the same ordering, bounds, cancellation, and source-consumption
+    /// timing contract as [`Self::queue_tracked_with_cues`]. The callback runs
+    /// on the audio source thread and must return quickly without blocking.
+    pub fn queue_tracked_with_cue_callback<F>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        cues: Vec<PlaybackCue>,
+        on_cue: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnMut(PlaybackCue) + Send + 'static,
+    {
+        let cues = prepare_playback_cues(cues, buffer.frame_count())?;
+        let Some(sink) = self.prepare_queue(stream, buffer) else {
+            return Ok(None);
+        };
+
+        let (source, ticket) = TrackedBufferSource::new_with_cue_callback(
+            buffer.samples.clone(),
+            cues,
+            on_cue,
+        );
+        sink.append(source);
+        sink.play();
+        Ok(Some(ticket))
+    }
+
     fn prepare_queue(&self, stream: StreamType, buffer: &AudioBuffer) -> Option<&Arc<Sink>> {
         if buffer.is_empty() {
             return None;
@@ -439,6 +469,7 @@ struct TrackedBufferSource {
     cues: Vec<PlaybackCue>,
     next_cue: usize,
     cue_sender: Option<Sender<PlaybackCue>>,
+    cue_callback: Option<Box<dyn FnMut(PlaybackCue) + Send>>,
 }
 
 impl TrackedBufferSource {
@@ -451,6 +482,7 @@ impl TrackedBufferSource {
                 cues: Vec::new(),
                 next_cue: 0,
                 cue_sender: None,
+                cue_callback: None,
             },
             PlaybackTicket { receiver },
         )
@@ -469,6 +501,29 @@ impl TrackedBufferSource {
                 cues,
                 next_cue: 0,
                 cue_sender: Some(cue_sender),
+                cue_callback: None,
+            },
+            PlaybackTicket { receiver },
+        )
+    }
+
+    fn new_with_cue_callback<F>(
+        samples: Vec<f32>,
+        cues: Vec<PlaybackCue>,
+        on_cue: F,
+    ) -> (Self, PlaybackTicket)
+    where
+        F: FnMut(PlaybackCue) + Send + 'static,
+    {
+        let (sender, receiver) = mpsc::channel();
+        (
+            Self {
+                inner: BufferSource::new(samples),
+                sender: Some(sender),
+                cues,
+                next_cue: 0,
+                cue_sender: None,
+                cue_callback: Some(Box::new(on_cue)),
             },
             PlaybackTicket { receiver },
         )
@@ -487,6 +542,10 @@ impl TrackedBufferSource {
         {
             let cue = self.cues[self.next_cue];
             self.next_cue += 1;
+            if let Some(callback) = &mut self.cue_callback {
+                callback(cue);
+                continue;
+            }
             let delivered = self
                 .cue_sender
                 .as_ref()
@@ -654,5 +713,22 @@ mod tests {
 
         assert!(matches!(error, AudioError::InvalidFormat(_)));
         assert!(error.to_string().contains("offset 4 exceeds buffer frame count 3"));
+    }
+
+    #[test]
+    fn tracked_source_invokes_cue_callback_without_changing_completion() {
+        let cues = prepare_playback_cues(vec![cue(1, 10)], 2).unwrap();
+        let (sender, receiver) = mpsc::channel();
+        let (mut source, ticket) = TrackedBufferSource::new_with_cue_callback(
+            vec![0.1; 4],
+            cues,
+            move |cue| {
+                let _ = sender.send(cue);
+            },
+        );
+
+        assert_eq!(source.by_ref().collect::<Vec<_>>(), vec![0.1; 4]);
+        assert_eq!(receiver.try_iter().collect::<Vec<_>>(), vec![cue(1, 10)]);
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
     }
 }
