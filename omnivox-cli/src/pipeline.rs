@@ -1177,24 +1177,27 @@ fn preload_timeline_resources(
     let mut resources = HashMap::new();
     for action in actions {
         let audio = match &action.action {
-            PresentationAction::Audio { path, .. } => {
+            PresentationAction::Audio { path, pan, .. } => {
                 let mut audio = loader
                     .load(std::path::Path::new(path))
                     .map_err(|error| format!("action {}: {error}", action.id))?;
                 build_sound_pipeline(state)
                     .process(&mut audio)
                     .map_err(|error| format!("action {}: {error}", action.id))?;
+                apply_action_pan(&mut audio, *pan);
                 audio
             }
             PresentationAction::Tone {
                 frequency_hz,
                 duration_ms,
+                pan,
                 ..
             } => {
                 let mut audio = ToneGenerator::generate(*frequency_hz, *duration_ms, 1.0);
                 build_tone_pipeline(state)
                     .process(&mut audio)
                     .map_err(|error| format!("action {}: {error}", action.id))?;
+                apply_action_pan(&mut audio, *pan);
                 audio
             }
             PresentationAction::Silence { duration_ms } => {
@@ -1208,6 +1211,17 @@ fn preload_timeline_resources(
         resources.insert(action.id.clone(), audio);
     }
     Ok(resources)
+}
+
+fn apply_action_pan(audio: &mut AudioBuffer, normalized_pan: f32) {
+    let pan = normalized_pan.clamp(0.0, 1.0) * 2.0 - 1.0;
+    for frame in audio.samples.chunks_exact_mut(2) {
+        if pan < 0.0 {
+            frame[1] *= 1.0 + pan;
+        } else {
+            frame[0] *= 1.0 - pan;
+        }
+    }
 }
 
 fn prepare_timeline_spans(
@@ -1811,6 +1825,7 @@ mod tests {
                     path: "/unused/test.ogg".to_owned(),
                     mode: PresentationAudioMode::Overlay,
                     volume: 1.0,
+                    pan: 0.5,
                     effect_bus: PresentationEffectBus::Dry,
                 },
             },
@@ -1839,5 +1854,16 @@ mod tests {
         assert_eq!(prepared.actions[0][0].text_offset, 0);
         assert_eq!(prepared.actions[1][0].id, "sixteenth-word");
         assert_eq!(prepared.actions[1][0].text_offset, 0);
+    }
+
+    #[test]
+    fn structured_audio_pan_uses_normalized_stereo_position() {
+        let mut left = AudioBuffer::new(vec![1.0, 1.0, 0.5, 0.5]);
+        apply_action_pan(&mut left, 0.25);
+        assert_eq!(left.samples, vec![1.0, 0.5, 0.5, 0.25]);
+
+        let mut center = AudioBuffer::new(vec![1.0, -1.0]);
+        apply_action_pan(&mut center, 0.5);
+        assert_eq!(center.samples, vec![1.0, -1.0]);
     }
 }

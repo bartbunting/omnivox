@@ -124,6 +124,8 @@ pub enum PresentationAction {
         mode: PresentationAudioMode,
         #[serde(default = "unity")]
         volume: f32,
+        #[serde(default = "center")]
+        pan: f32,
         #[serde(default)]
         effect_bus: PresentationEffectBus,
     },
@@ -133,6 +135,8 @@ pub enum PresentationAction {
         mode: PresentationAudioMode,
         #[serde(default = "unity")]
         volume: f32,
+        #[serde(default = "center")]
+        pan: f32,
         #[serde(default)]
         effect_bus: PresentationEffectBus,
     },
@@ -289,7 +293,9 @@ pub fn validate_presentation_timeline(
 
 fn validate_action(action: &PresentationTimelineAction) -> Result<(), PresentationTimelineError> {
     match &action.action {
-        PresentationAction::Audio { path, volume, .. } => {
+        PresentationAction::Audio {
+            path, volume, pan, ..
+        } => {
             invalid_if(
                 path.is_empty(),
                 format!("audio action {} has an empty path", action.id),
@@ -298,12 +304,14 @@ fn validate_action(action: &PresentationTimelineAction) -> Result<(), Presentati
                 path.len() > MAX_TIMELINE_RESOURCE_PATH_BYTES,
                 format!("audio action {} path is too long", action.id),
             )?;
-            validate_normalized(*volume, &format!("audio action {} volume", action.id))
+            validate_normalized(*volume, &format!("audio action {} volume", action.id))?;
+            validate_normalized(*pan, &format!("audio action {} pan", action.id))
         }
         PresentationAction::Tone {
             frequency_hz,
             duration_ms,
             volume,
+            pan,
             ..
         } => {
             invalid_if(
@@ -314,7 +322,8 @@ fn validate_action(action: &PresentationTimelineAction) -> Result<(), Presentati
                 *duration_ms == 0 || *duration_ms > 60_000,
                 format!("tone action {} has an invalid duration", action.id),
             )?;
-            validate_normalized(*volume, &format!("tone action {} volume", action.id))
+            validate_normalized(*volume, &format!("tone action {} volume", action.id))?;
+            validate_normalized(*pan, &format!("tone action {} pan", action.id))
         }
         PresentationAction::Silence { duration_ms } => invalid_if(
             *duration_ms == 0 || *duration_ms > 60_000,
@@ -388,6 +397,10 @@ fn unity() -> f32 {
     1.0
 }
 
+fn center() -> f32 {
+    0.5
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -426,6 +439,7 @@ mod tests {
                         path: "/tmp/open.ogg".to_owned(),
                         mode: PresentationAudioMode::Overlay,
                         volume: 0.8,
+                        pan: 0.25,
                         effect_bus: PresentationEffectBus::Dry,
                     },
                 },
