@@ -71,23 +71,22 @@ fn create_windows_engines(engine_name: &str, _piper_model: Option<&str>) -> Resu
         Err(error) => warn!("espeak-ng fallback not available: {}", error),
     }
 
-    if let Some(config) = eloquence_helper_config() {
-        let helper_path = config.program.clone();
-        match HelperTtsEngine::new(config) {
-            Ok(engine) => {
-                registry.register(Arc::new(engine))?;
-                info!(
-                    "Registered Eloquence helper engine: {}",
-                    helper_path.display()
-                );
-            }
-            Err(error) => warn!(
-                "Eloquence helper at {} is not available: {}",
-                helper_path.display(),
-                error
-            ),
-        }
-    }
+    register_optional_helper(
+        &mut registry,
+        helper_config(
+            "eloquence",
+            "OMNIVOX_ELOQUENCE_HELPER",
+            "OmnivoxEloquenceHelper32.exe",
+        ),
+    )?;
+    register_optional_helper(
+        &mut registry,
+        helper_config(
+            "dectalk",
+            "OMNIVOX_DECTALK_HELPER",
+            "OmnivoxDectalkHelper32.exe",
+        ),
+    )?;
 
     if forced == "piper" {
         #[cfg(feature = "piper")]
@@ -132,8 +131,12 @@ fn create_windows_engines(engine_name: &str, _piper_model: Option<&str>) -> Resu
 }
 
 #[cfg(target_os = "windows")]
-fn eloquence_helper_config() -> Option<HelperEngineConfig> {
-    let explicitly_configured = std::env::var_os("OMNIVOX_ELOQUENCE_HELPER")
+fn helper_config(
+    engine_id: &str,
+    environment_variable: &str,
+    adjacent_filename: &str,
+) -> Option<HelperEngineConfig> {
+    let explicitly_configured = std::env::var_os(environment_variable)
         .filter(|value| !value.is_empty())
         .map(PathBuf::from);
     let program = match explicitly_configured {
@@ -142,7 +145,7 @@ fn eloquence_helper_config() -> Option<HelperEngineConfig> {
             let adjacent = std::env::current_exe()
                 .ok()?
                 .parent()?
-                .join("OmnivoxEloquenceHelper32.exe");
+                .join(adjacent_filename);
             if !adjacent.is_file() {
                 return None;
             }
@@ -150,12 +153,41 @@ fn eloquence_helper_config() -> Option<HelperEngineConfig> {
         }
     };
 
-    let mut config = HelperEngineConfig::new("eloquence", program);
-    // The version-1 ECI helper captures one complete utterance before emitting
-    // PCM.  Allow ordinary long passages without weakening startup or control
+    let mut config = HelperEngineConfig::new(engine_id, program);
+    // Version-1 native helpers capture one complete utterance before emitting
+    // PCM. Allow ordinary long passages without weakening startup or control
     // request timeouts.
     config.synthesis_idle_timeout = Duration::from_secs(60);
     Some(config)
+}
+
+#[cfg(target_os = "windows")]
+fn register_optional_helper(
+    registry: &mut EngineRegistry,
+    config: Option<HelperEngineConfig>,
+) -> Result<()> {
+    let Some(config) = config else {
+        return Ok(());
+    };
+    let engine_id = config.engine_id.clone();
+    let helper_path = config.program.clone();
+    match HelperTtsEngine::new(config) {
+        Ok(engine) => {
+            registry.register(Arc::new(engine))?;
+            info!(
+                "Registered {} helper engine: {}",
+                engine_id,
+                helper_path.display()
+            );
+        }
+        Err(error) => warn!(
+            "{} helper at {} is not available: {}",
+            engine_id,
+            helper_path.display(),
+            error
+        ),
+    }
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]

@@ -295,8 +295,11 @@ bounded 11.025 kHz mono PCM, normalized rate, responsive cancellation, and
 truthful reduced capabilities. Windows Omnivox discovers that helper beside its
 executable or through `OMNIVOX_ELOQUENCE_HELPER`, negotiates it through the
 generic host, and adds it to the registry without changing the WinRT legacy
-default. End-to-end per-span validation, helper packaging, richer ECI controls
-and indexes, and the DECtalk helper remain.
+default. The same shared host now drives a DECtalk capture adapter with nine
+named voices, bounded in-memory PCM, rate mapping, and native cancellation;
+Windows discovery treats its startup and failure independently. End-to-end
+DECtalk per-span validation and packaging, richer native controls and indexes,
+and hardening remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model
 

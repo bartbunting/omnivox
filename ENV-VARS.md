@@ -59,6 +59,18 @@ Omnivox recognizes these environment variables:
 - Overrides the helper's normal Freedom Scientific installation path
 - Omnivox and Emacsvox do not distribute the proprietary runtime
 
+**OMNIVOX_DECTALK_HELPER** (Windows, optional)
+
+- Path to `OmnivoxDectalkHelper32.exe`
+- Overrides automatic discovery beside `omnivox.exe`
+- A missing or failed helper is omitted independently of other engines
+
+**OMNIVOX_DECTALK_DLL** (inherited by the DECtalk helper, optional)
+
+- Path to the user-supplied 32-bit `DECtalk.dll`
+- `dtalk_us.dic` must be in the same directory
+- Overrides discovery beside the helper and its development runtime directory
+
 ## Emacs Customization
 
 All settings are in the `omnivox` customization group:
