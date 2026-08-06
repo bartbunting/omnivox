@@ -218,6 +218,10 @@ helper engine and has been verified against the DECtalk helper.
   canonical type.
 - Preserve or adjust marker timestamps through resampling, silence trimming,
   and other audio effects.
+- If effects beyond silence trimming begin to alter duration, generalize
+  `AudioEffect` to return a composable audio/timeline transformation. Define
+  marker semantics for repeated or non-linear audio such as echo before making
+  that breaking API change.
 
 Status on 2026-08-06: buffered queued audio now has one-shot playback tickets.
 Natural mixer-source exhaustion completes a ticket; stop, backlog clearing, or
@@ -229,8 +233,13 @@ ACSS dimensions. Exact routed voices must be realized exactly. Helper marker
 frames now leave the process client and their frame offsets are rescaled with
 audio during canonical conversion. All engine PCM is converted to Omnivox's
 stereo 44.1 kHz format before entering the effects and playback pipeline; this
-includes the helpers' native mono 11.025 kHz output. Silence-trim adjustment,
-playback delivery, native marker capture, external playback, and unifying the
+includes the helpers' native mono 11.025 kHz output. `SilenceTrimmer` now
+reports removed frames, and structured synthesis markers are shifted and
+clamped to the retained audio timeline before volume and channel processing.
+This focused API preserves the existing `AudioEffect` contract while trimming
+is the only duration-changing effect. A composable timeline-aware effect
+contract remains the planned generalization if more effects change duration.
+Playback delivery, native marker capture, external playback, and unifying the
 two audio buffer types remain.
 
 ### Phase 5: Complete the Emacsvox Protocol
@@ -269,7 +278,7 @@ through a configured fallback when either engine or voice is unavailable.
 - Return complete voice and language descriptors.
 - Enable WinRT word and sentence boundary metadata.
 - Convert WinRT markers to the common result model.
-- Adjust marker positions after trimming and resampling.
+- Exercise common resampling and trim adjustment with WinRT markers.
 - Improve voice, language, rate, pitch, and volume mapping.
 - Advertise the limitation that a synchronous WinRT synthesis call cannot be
   interrupted internally even though playback and stale-result queuing can be

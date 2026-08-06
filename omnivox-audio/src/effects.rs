@@ -24,6 +24,31 @@ pub struct SilenceTrimmer {
     pub trailing_padding_secs: f32,
 }
 
+/// Frame changes made by a [`SilenceTrimmer`].
+///
+/// The counts always partition the input: leading frames, output frames, then
+/// trailing frames. An entirely silent input is reported as wholly removed
+/// leading silence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SilenceTrimReport {
+    pub input_frames: usize,
+    pub output_frames: usize,
+    pub removed_leading_frames: usize,
+    pub removed_trailing_frames: usize,
+}
+
+impl SilenceTrimReport {
+    /// Map an input frame offset into the trimmed buffer.
+    ///
+    /// Offsets in removed leading or trailing silence are clamped to the
+    /// corresponding output boundary.
+    pub fn map_frame_offset(self, frame_offset: u64) -> u64 {
+        frame_offset
+            .saturating_sub(self.removed_leading_frames as u64)
+            .min(self.output_frames as u64)
+    }
+}
+
 impl SilenceTrimmer {
     /// Create a new SilenceTrimmer with default settings.
     ///
@@ -57,6 +82,69 @@ impl SilenceTrimmer {
             trailing_padding_secs,
         }
     }
+
+    /// Trim the buffer and report how its frame timeline changed.
+    pub fn process_with_report(
+        &self,
+        buffer: &mut AudioBuffer,
+    ) -> Result<SilenceTrimReport, AudioError> {
+        let input_frames = buffer.frame_count();
+        if buffer.is_empty() {
+            return Ok(SilenceTrimReport {
+                input_frames,
+                output_frames: 0,
+                removed_leading_frames: 0,
+                removed_trailing_frames: 0,
+            });
+        }
+
+        let leading_frames = (self.leading_padding_secs * SAMPLE_RATE as f32) as usize;
+        let trailing_frames = (self.trailing_padding_secs * SAMPLE_RATE as f32) as usize;
+
+        // Find first non-silent frame.
+        let first_sound = (0..input_frames).find(|&i| {
+            buffer.left(i).abs() > self.threshold || buffer.right(i).abs() > self.threshold
+        });
+        let Some(first_sound) = first_sound else {
+            buffer.samples.clear();
+            return Ok(SilenceTrimReport {
+                input_frames,
+                output_frames: 0,
+                removed_leading_frames: input_frames,
+                removed_trailing_frames: 0,
+            });
+        };
+
+        // A first audible frame guarantees a last audible frame.
+        let last_sound = (0..input_frames)
+            .rev()
+            .find(|&i| {
+                buffer.left(i).abs() > self.threshold || buffer.right(i).abs() > self.threshold
+            })
+            .unwrap();
+
+        // Apply padding without going beyond buffer bounds.
+        let start_frame = first_sound.saturating_sub(leading_frames);
+        let end_frame = last_sound
+            .saturating_add(trailing_frames)
+            .saturating_add(1)
+            .min(input_frames);
+        let output_frames = end_frame - start_frame;
+
+        // Only trim if there's actually silence to remove.
+        if start_frame > 0 || end_frame < input_frames {
+            let start_sample = start_frame * 2;
+            let end_sample = end_frame * 2;
+            buffer.samples = buffer.samples[start_sample..end_sample].to_vec();
+        }
+
+        Ok(SilenceTrimReport {
+            input_frames,
+            output_frames,
+            removed_leading_frames: start_frame,
+            removed_trailing_frames: input_frames - end_frame,
+        })
+    }
 }
 
 impl Default for SilenceTrimmer {
@@ -67,48 +155,7 @@ impl Default for SilenceTrimmer {
 
 impl AudioEffect for SilenceTrimmer {
     fn process(&self, buffer: &mut AudioBuffer) -> Result<(), AudioError> {
-        if buffer.is_empty() {
-            return Ok(());
-        }
-
-        let frame_count = buffer.frame_count();
-        let leading_frames = (self.leading_padding_secs * SAMPLE_RATE as f32) as usize;
-        let trailing_frames = (self.trailing_padding_secs * SAMPLE_RATE as f32) as usize;
-
-        // Find first non-silent frame
-        let mut first_sound = 0;
-        for i in 0..frame_count {
-            if buffer.left(i).abs() > self.threshold || buffer.right(i).abs() > self.threshold {
-                first_sound = i;
-                break;
-            }
-            if i == frame_count - 1 {
-                // Entire buffer is silence
-                buffer.samples.clear();
-                return Ok(());
-            }
-        }
-
-        // Find last non-silent frame
-        let mut last_sound = frame_count - 1;
-        for i in (0..frame_count).rev() {
-            if buffer.left(i).abs() > self.threshold || buffer.right(i).abs() > self.threshold {
-                last_sound = i;
-                break;
-            }
-        }
-
-        // Apply padding (but don't go beyond buffer bounds)
-        let start_frame = first_sound.saturating_sub(leading_frames);
-        let end_frame = (last_sound + trailing_frames + 1).min(frame_count);
-
-        // Only trim if there's actually silence to remove
-        if start_frame > 0 || end_frame < frame_count {
-            let start_sample = start_frame * 2;
-            let end_sample = end_frame * 2;
-            buffer.samples = buffer.samples[start_sample..end_sample].to_vec();
-        }
-
+        self.process_with_report(buffer)?;
         Ok(())
     }
 
@@ -197,16 +244,30 @@ mod tests {
     fn test_silence_trimmer_empty_buffer() {
         let trimmer = SilenceTrimmer::new();
         let mut buf = AudioBuffer::empty();
-        trimmer.process(&mut buf).unwrap();
+        let report = trimmer.process_with_report(&mut buf).unwrap();
         assert!(buf.is_empty());
+        assert_eq!(
+            report,
+            SilenceTrimReport {
+                input_frames: 0,
+                output_frames: 0,
+                removed_leading_frames: 0,
+                removed_trailing_frames: 0,
+            }
+        );
     }
 
     #[test]
     fn test_silence_trimmer_all_silence() {
         let trimmer = SilenceTrimmer::new();
         let mut buf = AudioBuffer::new(vec![0.0; 1000]);
-        trimmer.process(&mut buf).unwrap();
+        let report = trimmer.process_with_report(&mut buf).unwrap();
         assert!(buf.is_empty());
+        assert_eq!(report.input_frames, 500);
+        assert_eq!(report.output_frames, 0);
+        assert_eq!(report.removed_leading_frames, 500);
+        assert_eq!(report.removed_trailing_frames, 0);
+        assert_eq!(report.map_frame_offset(250), 0);
     }
 
     #[test]
@@ -249,9 +310,17 @@ mod tests {
         samples.extend_from_slice(&[0.5, -0.5, 0.3, -0.3]); // 2 sound frames
         samples.extend_from_slice(&[0.0; 10]); // 5 silent frames
         let mut buf = AudioBuffer::new(samples);
-        trimmer.process(&mut buf).unwrap();
+        let report = trimmer.process_with_report(&mut buf).unwrap();
         assert_eq!(buf.frame_count(), 2);
         assert_eq!(buf.left(0), 0.5);
+        assert_eq!(report.input_frames, 12);
+        assert_eq!(report.output_frames, 2);
+        assert_eq!(report.removed_leading_frames, 5);
+        assert_eq!(report.removed_trailing_frames, 5);
+        assert_eq!(report.map_frame_offset(2), 0);
+        assert_eq!(report.map_frame_offset(5), 0);
+        assert_eq!(report.map_frame_offset(6), 1);
+        assert_eq!(report.map_frame_offset(10), 2);
     }
 
     #[test]

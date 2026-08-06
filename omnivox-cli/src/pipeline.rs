@@ -2,7 +2,7 @@
 
 use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, PlaybackTicket,
-    SilenceTrimmer, StreamType, ToneGenerator, VolumeAdjust,
+    SilenceTrimReport, SilenceTrimmer, StreamType, ToneGenerator, VolumeAdjust,
 };
 use omnivox_core::{QueueItem, TtsState};
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId};
@@ -54,17 +54,28 @@ pub fn canonicalize_synthesis_result(result: SynthesisResult) -> CanonicalSynthe
 // Pipeline builders
 // ---------------------------------------------------------------------------
 
-pub fn build_speech_pipeline(state: &TtsState, is_last: bool) -> AudioPipeline {
+fn speech_trimmer(state: &TtsState, is_last: bool) -> SilenceTrimmer {
     let trailing = if is_last {
         rate_scaled_padding(state.speech_rate)
     } else {
         0.0
     };
 
+    SilenceTrimmer::with_asymmetric_padding(0.01, 0.0, trailing)
+}
+
+fn build_speech_output_pipeline(state: &TtsState) -> AudioPipeline {
     let mut pipeline = AudioPipeline::new();
-    pipeline.push(Box::new(SilenceTrimmer::with_asymmetric_padding(
-        0.01, 0.0, trailing,
+    pipeline.push(Box::new(VolumeAdjust::new(state.voice_volume)));
+    pipeline.push(Box::new(ChannelRouter::new(
+        state.speech_routing.channel_mode,
     )));
+    pipeline
+}
+
+pub fn build_speech_pipeline(state: &TtsState, is_last: bool) -> AudioPipeline {
+    let mut pipeline = AudioPipeline::new();
+    pipeline.push(Box::new(speech_trimmer(state, is_last)));
     pipeline.push(Box::new(VolumeAdjust::new(state.voice_volume)));
     pipeline.push(Box::new(ChannelRouter::new(
         state.speech_routing.channel_mode,
@@ -201,12 +212,24 @@ fn queue_synthesis_result(
         degraded_acss = ?result.degraded_acss,
         "queueing structured synthesis result"
     );
-    let pipeline = build_speech_pipeline(state, is_last);
-    if let Err(error) = pipeline.process(&mut result.audio) {
+    if let Err(error) = process_speech_result(&mut result, state, is_last) {
         ctx.mark_failed();
         warn!("Pipeline error: {}", error);
     }
     ctx.queue(StreamType::Speech, &result.audio);
+}
+
+fn process_speech_result(
+    result: &mut CanonicalSynthesisResult,
+    state: &TtsState,
+    is_last: bool,
+) -> Result<SilenceTrimReport, omnivox_audio::AudioError> {
+    let report = speech_trimmer(state, is_last).process_with_report(&mut result.audio)?;
+    for marker in &mut result.markers {
+        marker.frame_offset = report.map_frame_offset(marker.frame_offset);
+    }
+    build_speech_output_pipeline(state).process(&mut result.audio)?;
+    Ok(report)
 }
 
 enum RoutedChunkOutcome {
@@ -464,6 +487,41 @@ mod tests {
         );
         assert_eq!(canonical.markers[0].frame_offset, 400);
         assert_eq!(canonical.degraded_acss, vec![AcssDimension::PitchRange]);
+    }
+
+    #[test]
+    fn speech_processing_remaps_markers_after_silence_trimming() {
+        let mut samples = vec![0.0; 10]; // 5 silent frames
+        samples.extend_from_slice(&[0.5, -0.5, 0.3, -0.3]); // 2 audible frames
+        samples.extend_from_slice(&[0.0; 6]); // 3 silent frames
+        let marker = |frame_offset| SynthesisMarker {
+            kind: omnivox_tts::SynthesisMarkerKind::Word,
+            frame_offset,
+            text_start: None,
+            text_length: None,
+            value: None,
+        };
+        let mut result = CanonicalSynthesisResult {
+            audio: AudioBuffer::new(samples),
+            engine_id: "mock".to_owned(),
+            actual_voice: None,
+            markers: vec![marker(2), marker(5), marker(6), marker(9)],
+            degraded_acss: Vec::new(),
+        };
+
+        let report = process_speech_result(&mut result, &TtsState::default(), false).unwrap();
+
+        assert_eq!(report.removed_leading_frames, 5);
+        assert_eq!(report.removed_trailing_frames, 3);
+        assert_eq!(result.audio.frame_count(), 2);
+        assert_eq!(
+            result
+                .markers
+                .iter()
+                .map(|marker| marker.frame_offset)
+                .collect::<Vec<_>>(),
+            vec![0, 0, 1, 2]
+        );
     }
 
     #[test]

@@ -12,7 +12,7 @@ pub mod pipeline;
 pub mod tone;
 
 pub use buffer::AudioBuffer;
-pub use effects::{ChannelRouter, SilenceTrimmer, VolumeAdjust};
+pub use effects::{ChannelRouter, SilenceTrimReport, SilenceTrimmer, VolumeAdjust};
 pub use loader::AudioFileLoader;
 pub use output::{
     AudioControl, AudioOutput, AudioStreams, PlaybackStatus, PlaybackTicket, StreamType,
