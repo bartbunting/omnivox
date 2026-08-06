@@ -132,7 +132,10 @@ without changing the legacy synthesis path. Tests cover exact and property-based
 selectors, explicit alternatives, same-language fallback, global and engine
 fallbacks, degraded and failed engines, environment-specific late binding,
 fallback exhaustion, normalized ACSS clamping, and capability degradation. The
-structured wire encoding and compatibility behavior remain to be decided.
+separate versioned Base64-JSON control envelope, bounds, capability negotiation,
+structured errors, and compatibility boundary are implemented and documented
+in [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md). Inventory and logical-voice
+registration messages remain to be added.
 
 ### Phase 3: Add an Engine Registry and Per-Span Routing
 

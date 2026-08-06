@@ -54,7 +54,7 @@ Each stream has a max backlog depth. On overflow, old items are dropped to keep 
 ```bash
 make build     # Release build
 make dev       # Debug build
-make test      # Run all tests (185 tests)
+make test      # Run all tests (192 tests)
 make lint      # Clippy
 make fmt       # Format
 make install   # Install binary to ~/.cargo/bin
@@ -63,11 +63,11 @@ make clean     # Clean build artifacts
 
 ## Testing
 
-185 tests total, all passing:
+192 tests total, all passing:
 
 - omnivox-audio: 60 unit + 31 integration = 91
-- omnivox-core: 38 unit + 1 doc = 39 (includes `;;` and quoted-path regression tests)
-- omnivox-tts: 34 unit (includes WinRT mapping, contract, ACSS degradation, and resolver tests)
+- omnivox-core: 39 unit + 1 doc = 40 (includes `;;`, quoted-path, and control-command regression tests)
+- omnivox-tts: 40 unit (includes WinRT mapping, contract, ACSS degradation, resolver, and control-codec tests)
 - omnivox-cli: 21 unit (includes Tcl resource-word decoding and voice-listing tests)
 
 Run: `cargo test`
@@ -203,6 +203,7 @@ Common causes and fixes:
 - `omnivox-tts/src/lib.rs` - TtsEngine trait definition. New backends must implement `synthesize() -> Result<AudioBuffer, TtsError>`.
 - `omnivox-tts/src/contracts.rs` - Additive engine/voice descriptors, normalized ACSS, portable selectors, logical definitions, and fallback policy.
 - `omnivox-tts/src/resolver.rs` - Pure late-binding resolver. It records failed attempts and the reason for the realized physical voice; it is not wired into synthesis yet.
+- `omnivox-tts/src/control.rs` - Bounded Base64-JSON control codec, capability negotiation, and structured errors. See `CONTROL-PROTOCOL.md`.
 - `omnivox-tts/src/espeak.rs` - espeak-ng backend (cross-platform fallback).
 - `omnivox-tts/src/macos.rs` - macOS AVSpeechSynthesizer backend (ObjC bridge).
 - `omnivox-tts/src/windows.rs` - Windows WinRT backend (SpeechSynthesizer via windows-rs).
@@ -213,7 +214,8 @@ Common causes and fixes:
 
 Key workspace dependencies (Cargo.toml):
 
-- thiserror, anyhow, tracing, tracing-subscriber, regex, once_cell
+- thiserror, anyhow, tracing, tracing-subscriber, regex, once_cell, serde,
+  serde_json, base64
 - omnivox-tts: espeak-rs-sys (with compile-espeak-intonations), rubato (sinc resampler), cc (build), windows v0.58 (Windows-only, WinRT SpeechSynthesizer)
 - omnivox-audio: rodio (vorbis + wav features)
 - omnivox-cli: all workspace crates (no tokio — pure std threads)

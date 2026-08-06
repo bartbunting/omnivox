@@ -61,7 +61,7 @@ make build
 # Build debug binary
 make dev
 
-# Run tests (185 tests)
+# Run tests (192 tests)
 make test
 
 # Run clippy lints
@@ -211,6 +211,10 @@ omnivox --check
 See [NEXT_STEPS.md](NEXT_STEPS.md) for the multi-engine voice architecture,
 fallback contract, Emacsvox protocol work, new engine plans, and consolidated
 project backlog.
+
+The versioned Base64-JSON discovery and configuration transport is specified in
+[CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md). Legacy speech commands remain
+unchanged.
 
 ## Configuration
 
