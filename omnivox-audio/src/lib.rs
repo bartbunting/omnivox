@@ -14,7 +14,9 @@ pub mod tone;
 pub use buffer::AudioBuffer;
 pub use effects::{ChannelRouter, SilenceTrimmer, VolumeAdjust};
 pub use loader::AudioFileLoader;
-pub use output::{AudioControl, AudioOutput, AudioStreams, StreamType};
+pub use output::{
+    AudioControl, AudioOutput, AudioStreams, PlaybackStatus, PlaybackTicket, StreamType,
+};
 pub use pipeline::{AudioEffect, AudioPipeline};
 pub use tone::ToneGenerator;
 

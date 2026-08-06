@@ -13,6 +13,7 @@
 use crate::AudioError;
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
 use rodio::{OutputStream, OutputStreamHandle, Sink, Source};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::debug;
@@ -26,6 +27,27 @@ pub enum StreamType {
     Tone,
     /// Audio icons / sound files. Serialized within stream, concurrent with others.
     Sound,
+}
+
+/// Terminal state of one queued audio buffer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlaybackStatus {
+    /// The audio source was consumed to its natural end.
+    Completed,
+    /// The source was cleared or dropped before its natural end.
+    Cancelled,
+}
+
+/// One-shot acknowledgement for a queued audio buffer.
+pub struct PlaybackTicket {
+    receiver: Receiver<PlaybackStatus>,
+}
+
+impl PlaybackTicket {
+    /// Wait until playback completes naturally or is cancelled.
+    pub fn wait(self) -> PlaybackStatus {
+        self.receiver.recv().unwrap_or(PlaybackStatus::Cancelled)
+    }
 }
 
 /// Thread-safe handle to the three audio sinks.
@@ -56,12 +78,42 @@ impl AudioControl {
     /// If the stream's backlog is at capacity, clears old items first.
     /// Returns `true` if audio was queued, `false` if the buffer was empty.
     pub fn queue(&self, stream: StreamType, buffer: &AudioBuffer) -> Result<bool, AudioError> {
-        if buffer.is_empty() {
+        let Some(sink) = self.prepare_queue(stream, buffer) else {
             return Ok(false);
+        };
+
+        let source = BufferSource::new(buffer.samples.clone());
+        sink.append(source);
+        sink.play();
+        Ok(true)
+    }
+
+    /// Queue an audio buffer and return a ticket reporting its terminal state.
+    ///
+    /// Natural source exhaustion reports [`PlaybackStatus::Completed`]. Stop,
+    /// backlog clearing, or sink teardown reports [`PlaybackStatus::Cancelled`].
+    /// An empty buffer returns `None` because it has no playback lifetime.
+    pub fn queue_tracked(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+    ) -> Result<Option<PlaybackTicket>, AudioError> {
+        let Some(sink) = self.prepare_queue(stream, buffer) else {
+            return Ok(None);
+        };
+
+        let (source, ticket) = TrackedBufferSource::new(buffer.samples.clone());
+        sink.append(source);
+        sink.play();
+        Ok(Some(ticket))
+    }
+
+    fn prepare_queue(&self, stream: StreamType, buffer: &AudioBuffer) -> Option<&Arc<Sink>> {
+        if buffer.is_empty() {
+            return None;
         }
 
         let (sink, max_depth) = self.sink_and_max(stream);
-
         if sink.len() >= max_depth {
             debug!(
                 "Stream {:?} at capacity ({}/{}), clearing backlog",
@@ -72,11 +124,7 @@ impl AudioControl {
             sink.clear();
             sink.play();
         }
-
-        let source = BufferSource::new(buffer.samples.clone());
-        sink.append(source);
-        sink.play();
-        Ok(true)
+        Some(sink)
     }
 
     /// Stop a specific stream, clearing all queued and playing audio.
@@ -338,5 +386,105 @@ impl Source for BufferSource {
         Some(Duration::from_secs_f64(
             frames as f64 / SAMPLE_RATE as f64,
         ))
+    }
+}
+
+/// Buffer source that reports natural exhaustion and cancellation distinctly.
+struct TrackedBufferSource {
+    inner: BufferSource,
+    sender: Option<Sender<PlaybackStatus>>,
+}
+
+impl TrackedBufferSource {
+    fn new(samples: Vec<f32>) -> (Self, PlaybackTicket) {
+        let (sender, receiver) = mpsc::channel();
+        (
+            Self {
+                inner: BufferSource::new(samples),
+                sender: Some(sender),
+            },
+            PlaybackTicket { receiver },
+        )
+    }
+
+    fn report(&mut self, status: PlaybackStatus) {
+        if let Some(sender) = self.sender.take() {
+            let _ = sender.send(status);
+        }
+    }
+}
+
+impl Iterator for TrackedBufferSource {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let sample = self.inner.next();
+        if sample.is_none() {
+            self.report(PlaybackStatus::Completed);
+        }
+        sample
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}
+
+impl Source for TrackedBufferSource {
+    fn current_frame_len(&self) -> Option<usize> {
+        self.inner.current_frame_len()
+    }
+
+    fn channels(&self) -> u16 {
+        self.inner.channels()
+    }
+
+    fn sample_rate(&self) -> u32 {
+        self.inner.sample_rate()
+    }
+
+    fn total_duration(&self) -> Option<Duration> {
+        self.inner.total_duration()
+    }
+}
+
+impl Drop for TrackedBufferSource {
+    fn drop(&mut self) {
+        self.report(PlaybackStatus::Cancelled);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tracked_source_reports_natural_completion() {
+        let (mut source, ticket) = TrackedBufferSource::new(vec![0.1, -0.1]);
+
+        assert_eq!(source.next(), Some(0.1));
+        assert_eq!(source.next(), Some(-0.1));
+        assert_eq!(source.next(), None);
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+    }
+
+    #[test]
+    fn tracked_source_reports_early_drop_as_cancellation() {
+        let (mut source, ticket) = TrackedBufferSource::new(vec![0.1, -0.1]);
+
+        assert_eq!(source.next(), Some(0.1));
+        drop(source);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+    }
+
+    #[test]
+    fn tracked_source_reports_only_one_terminal_state() {
+        let (mut source, ticket) = TrackedBufferSource::new(vec![0.1]);
+
+        assert_eq!(source.next(), Some(0.1));
+        assert_eq!(source.next(), None);
+        assert_eq!(source.next(), None);
+        drop(source);
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
     }
 }
