@@ -37,6 +37,7 @@
 - Versioned, bounded Base64-JSON control channel with capability negotiation
 - Mandatory self-description for built-in engines and structured active-engine inventory
 - Atomic, generation-safe logical-voice registration with resolution diagnostics
+- Emacsvox capability negotiation, inventory discovery, and portable voice registration
 - Diagnostic self-test (--check)
 - GitHub Actions CI/CD for 6 platforms
 
@@ -104,6 +105,6 @@ omnivox-cli:    21 unit
 
 1. Introduce the engine registry and per-speech-span engine/voice routing.
 2. Re-resolve registered voices after bounded runtime engine failures.
-3. Connect Emacsvox logical voice definitions to control registration.
+3. Add user-facing inventory, binding, degradation, and health diagnostics.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).

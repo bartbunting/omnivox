@@ -139,9 +139,12 @@ implements mandatory self-description, and the active engine's snapshotted
 descriptor is available through a structured inventory request. Logical-voice
 registration is now available as an atomic, generation-safe whole-set
 replacement. It retains unresolved definitions with diagnostics and supports
-idempotent retries without changing the legacy synthesis path. The next slice
-is the engine registry and per-span routing needed to make those bindings drive
-speech.
+idempotent retries without changing the legacy synthesis path. The Emacsvox
+adapter now negotiates capabilities, discovers inventory, normalizes its ACSS
+definitions, and sends portable ordered selectors to both speech processes.
+Machine-specific exact IDs stay optional; property selectors late-bind against
+each server's inventory. The next slice is the engine registry and per-span
+routing needed to make those bindings drive speech.
 
 ### Phase 3: Add an Engine Registry and Per-Span Routing
 
@@ -190,6 +193,11 @@ voices while preserving text, order, stop behavior, and deterministic fallback.
 - Map Emacs logical voices and ACSS styles to Omnivox logical voice definitions,
   including ordered physical voice fallbacks.
 - Retain graceful behavior with clients that only send the legacy protocol.
+
+Status on 2026-08-06: capability negotiation, inventory discovery, atomic
+logical-voice registration, portable selector customization, and legacy-client
+fallback are implemented in Emacsvox. Transaction framing, tracked dispatch,
+functional language commands, and routing registered voices remain.
 
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking
