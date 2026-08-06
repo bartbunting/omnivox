@@ -3,7 +3,7 @@
 //! These types are additive to the current [`crate::TtsEngine`] interface. They
 //! define the richer contract without changing the legacy synthesis path yet.
 
-use crate::VoiceQuality;
+use crate::{VoiceInfo, VoiceQuality};
 use serde::{Deserialize, Serialize};
 
 /// Stable identity for a physical voice.
@@ -261,6 +261,25 @@ pub struct VoiceDescriptor {
     pub availability: Availability,
 }
 
+impl VoiceDescriptor {
+    /// Promote legacy voice discovery data into the structured engine model.
+    pub fn from_voice_info(engine_id: &str, voice: VoiceInfo) -> Self {
+        let language = if voice.language.is_empty() {
+            None
+        } else {
+            Some(voice.language)
+        };
+        Self {
+            id: PhysicalVoiceId::new(engine_id, voice.identifier),
+            display_name: voice.name,
+            language,
+            gender: None,
+            quality: voice.quality,
+            availability: Availability::Available,
+        }
+    }
+}
+
 /// Complete runtime description of one speech engine.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EngineDescriptor {
@@ -369,5 +388,22 @@ mod tests {
         assert_eq!(application.style.richness, None);
         assert_eq!(application.style.volume, Some(0.6));
         assert_eq!(application.omitted, vec![AcssDimension::Richness]);
+    }
+
+    #[test]
+    fn legacy_voice_info_promotes_without_joining_identifiers() {
+        let descriptor = VoiceDescriptor::from_voice_info(
+            "winrt",
+            VoiceInfo {
+                identifier: r"winrt:HKEY\Voice".to_owned(),
+                name: "David".to_owned(),
+                language: "en-US".to_owned(),
+                quality: VoiceQuality::Enhanced,
+            },
+        );
+
+        assert_eq!(descriptor.id.engine_id, "winrt");
+        assert_eq!(descriptor.id.voice_id, r"winrt:HKEY\Voice");
+        assert_eq!(descriptor.language.as_deref(), Some("en-US"));
     }
 }

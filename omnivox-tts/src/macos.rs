@@ -4,11 +4,34 @@
 //! AVSpeechSynthesizer.write(_:toBufferCallback:). The bridge is compiled
 //! by build.rs and linked in statically.
 
+use crate::contracts::{
+    AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
+    EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities,
+};
+#[cfg(target_os = "macos")]
+use crate::contracts::VoiceDescriptor;
 use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo};
 #[cfg(target_os = "macos")]
 use crate::VoiceQuality;
 #[cfg(target_os = "macos")]
 use tracing::{debug, info};
+
+fn macos_capabilities() -> EngineCapabilities {
+    EngineCapabilities {
+        acss: AcssCapabilities {
+            rate: true,
+            average_pitch: true,
+            volume: true,
+            ..AcssCapabilities::default()
+        },
+        audio_output: AudioOutputMode::BufferedPcm,
+        cancellation: CancellationSupport::SynthesisAndPlayback,
+        concurrency: ConcurrencyModel::Serialized,
+        markers: MarkerCapabilities::default(),
+        language_switching: true,
+        native_extensions: Vec::new(),
+    }
+}
 
 #[cfg(target_os = "macos")]
 #[repr(C)]
@@ -105,6 +128,25 @@ impl Default for MacOsTtsEngine {
 
 #[cfg(target_os = "macos")]
 impl TtsEngine for MacOsTtsEngine {
+    fn descriptor(&self) -> EngineDescriptor {
+        let voices = self
+            .available_voices()
+            .into_iter()
+            .map(|voice| VoiceDescriptor::from_voice_info("macos", voice))
+            .collect();
+
+        EngineDescriptor {
+            id: "macos".to_owned(),
+            display_name: "macOS AVSpeechSynthesizer".to_owned(),
+            version: None,
+            availability: Availability::Available,
+            health: EngineHealth::Healthy,
+            capabilities: macos_capabilities(),
+            voices,
+            default_voice_id: None,
+        }
+    }
+
     fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
         debug!(
             "Synthesizing: {} (rate: {}, pitch: {}, volume: {})",
@@ -243,6 +285,23 @@ impl MacOsTtsEngine {
 
 #[cfg(not(target_os = "macos"))]
 impl TtsEngine for MacOsTtsEngine {
+    fn descriptor(&self) -> EngineDescriptor {
+        EngineDescriptor {
+            id: "macos".to_owned(),
+            display_name: "macOS AVSpeechSynthesizer".to_owned(),
+            version: None,
+            availability: Availability::Unavailable {
+                reason: "AVSpeechSynthesizer is only available on macOS".to_owned(),
+            },
+            health: EngineHealth::Failed {
+                reason: "unsupported platform".to_owned(),
+            },
+            capabilities: macos_capabilities(),
+            voices: Vec::new(),
+            default_voice_id: None,
+        }
+    }
+
     fn synthesize(&self, _text: &str, _settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
         Err(TtsError::NotAvailable)
     }
@@ -259,5 +318,20 @@ impl TtsEngine for MacOsTtsEngine {
 
     fn voice_info(&self, _identifier: &str) -> Option<VoiceInfo> {
         None
+    }
+}
+
+#[cfg(all(test, not(target_os = "macos")))]
+mod stub_tests {
+    use super::MacOsTtsEngine;
+    use crate::TtsEngine;
+
+    #[test]
+    fn macos_stub_reports_unavailable() {
+        let descriptor = MacOsTtsEngine.descriptor();
+
+        assert_eq!(descriptor.id, "macos");
+        assert!(!descriptor.can_synthesize());
+        assert!(descriptor.voices.is_empty());
     }
 }

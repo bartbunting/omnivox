@@ -19,6 +19,10 @@
 //! synchronous (cancellation requires killing the ongoing call, which the
 //! bridge does not currently support).
 
+use crate::contracts::{
+    AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
+    EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities, VoiceDescriptor,
+};
 use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo, VoiceQuality};
 use std::ffi::{CStr, CString};
 use std::path::{Path, PathBuf};
@@ -58,6 +62,21 @@ impl Drop for PiperTtsEngine {
 }
 
 impl PiperTtsEngine {
+    fn capabilities() -> EngineCapabilities {
+        EngineCapabilities {
+            acss: AcssCapabilities {
+                rate: true,
+                ..AcssCapabilities::default()
+            },
+            audio_output: AudioOutputMode::BufferedPcm,
+            cancellation: CancellationSupport::PlaybackOnly,
+            concurrency: ConcurrencyModel::Serialized,
+            markers: MarkerCapabilities::default(),
+            language_switching: false,
+            native_extensions: Vec::new(),
+        }
+    }
+
     /// Create a new piper TTS engine loading the given `.onnx` model file.
     ///
     /// The JSON config is expected alongside the model as either
@@ -177,6 +196,27 @@ impl PiperTtsEngine {
 }
 
 impl TtsEngine for PiperTtsEngine {
+    fn descriptor(&self) -> EngineDescriptor {
+        let voices: Vec<VoiceDescriptor> = self
+            .available_voices()
+            .into_iter()
+            .map(|voice| VoiceDescriptor::from_voice_info("piper", voice))
+            .collect();
+        let default_voice_id = voices.first().map(|voice| voice.id.voice_id.clone());
+        let version = piper_version();
+
+        EngineDescriptor {
+            id: "piper".to_owned(),
+            display_name: "Piper".to_owned(),
+            version: (version != "unknown").then_some(version),
+            availability: Availability::Available,
+            health: EngineHealth::Healthy,
+            capabilities: Self::capabilities(),
+            voices,
+            default_voice_id,
+        }
+    }
+
     fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
         if text.is_empty() {
             return Ok(AudioBuffer::empty());

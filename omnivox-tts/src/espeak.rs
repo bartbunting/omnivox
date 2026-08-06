@@ -3,6 +3,10 @@
 //! Cross-platform TTS backend using espeak-ng. Always compiled in as the
 //! guaranteed fallback engine that works on all platforms.
 
+use crate::contracts::{
+    AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
+    EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities, VoiceDescriptor,
+};
 use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo, VoiceQuality};
 use once_cell::sync::OnceCell;
 use std::ffi::{CStr, CString};
@@ -60,6 +64,58 @@ unsafe extern "C" fn synth_callback(
 const ESPEAK_DATA_DIR: &str = env!("ESPEAK_NG_DATA_DIR");
 
 impl EspeakTtsEngine {
+    fn capabilities() -> EngineCapabilities {
+        EngineCapabilities {
+            acss: AcssCapabilities {
+                rate: true,
+                average_pitch: true,
+                volume: true,
+                ..AcssCapabilities::default()
+            },
+            audio_output: AudioOutputMode::BufferedPcm,
+            cancellation: CancellationSupport::SynthesisAndPlayback,
+            concurrency: ConcurrencyModel::Serialized,
+            markers: MarkerCapabilities::default(),
+            language_switching: true,
+            native_extensions: Vec::new(),
+        }
+    }
+
+    fn runtime_metadata() -> (Option<String>, Option<String>) {
+        let Some(state) = ESPEAK_LOCK.get() else {
+            return (None, None);
+        };
+        let Ok(_guard) = state.lock() else {
+            return (None, None);
+        };
+
+        unsafe {
+            let version_ptr = espeak_rs_sys::espeak_Info(std::ptr::null_mut());
+            let version = (!version_ptr.is_null())
+                .then(|| CStr::from_ptr(version_ptr).to_string_lossy().into_owned());
+
+            let voice_ptr = espeak_rs_sys::espeak_GetCurrentVoice();
+            let default_voice_id = if voice_ptr.is_null() {
+                None
+            } else {
+                let voice = &*voice_ptr;
+                let id_ptr = if voice.identifier.is_null() {
+                    voice.name
+                } else {
+                    voice.identifier
+                };
+                (!id_ptr.is_null()).then(|| {
+                    format!(
+                        "espeak:{}",
+                        CStr::from_ptr(id_ptr).to_string_lossy()
+                    )
+                })
+            };
+
+            (version, default_voice_id)
+        }
+    }
+
     /// Find the espeak-ng data directory.
     /// Checks (in order): ESPEAK_NG_DATA env var, build-time path, next to executable, system paths.
     /// Returns the parent directory (espeak-ng appends "espeak-ng-data" itself).
@@ -204,6 +260,26 @@ impl EspeakTtsEngine {
 }
 
 impl TtsEngine for EspeakTtsEngine {
+    fn descriptor(&self) -> EngineDescriptor {
+        let voices = self
+            .available_voices()
+            .into_iter()
+            .map(|voice| VoiceDescriptor::from_voice_info("espeak", voice))
+            .collect();
+        let (version, default_voice_id) = Self::runtime_metadata();
+
+        EngineDescriptor {
+            id: "espeak".to_owned(),
+            display_name: "eSpeak NG".to_owned(),
+            version,
+            availability: Availability::Available,
+            health: EngineHealth::Healthy,
+            capabilities: Self::capabilities(),
+            voices,
+            default_voice_id,
+        }
+    }
+
     fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
         if text.is_empty() {
             return Ok(AudioBuffer::empty());
@@ -431,6 +507,21 @@ mod tests {
         assert!(mid > 20 && mid < 45, "mid pitch {} should be ~33", mid);
         // 2.0 -> 99
         assert_eq!(EspeakTtsEngine::map_pitch(2.0), 99);
+    }
+
+    #[test]
+    fn test_espeak_descriptor_is_self_consistent() {
+        let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        let descriptor = engine.descriptor();
+
+        assert_eq!(descriptor.id, "espeak");
+        assert!(descriptor.can_synthesize());
+        assert!(descriptor.capabilities.acss.rate);
+        assert!(descriptor.capabilities.acss.average_pitch);
+        assert!(descriptor
+            .voices
+            .iter()
+            .all(|voice| voice.id.engine_id == descriptor.id));
     }
 
     #[test]

@@ -5,8 +5,34 @@
 //! parsed, and converted to the standard AudioBuffer format
 //! (stereo f32 @ 44100Hz).
 
+use crate::contracts::{
+    AcssCapabilities, AudioOutputMode, CancellationSupport, ConcurrencyModel, EngineCapabilities,
+    MarkerCapabilities,
+};
+#[cfg(not(target_os = "windows"))]
+use crate::contracts::{Availability, EngineDescriptor, EngineHealth};
+
+fn windows_capabilities() -> EngineCapabilities {
+    EngineCapabilities {
+        acss: AcssCapabilities {
+            rate: true,
+            average_pitch: true,
+            volume: true,
+            ..AcssCapabilities::default()
+        },
+        audio_output: AudioOutputMode::BufferedPcm,
+        cancellation: CancellationSupport::PlaybackOnly,
+        concurrency: ConcurrencyModel::Serialized,
+        markers: MarkerCapabilities::default(),
+        language_switching: true,
+        native_extensions: Vec::new(),
+    }
+}
+
 #[cfg(target_os = "windows")]
 mod impl_windows {
+    use super::windows_capabilities;
+    use crate::contracts::{Availability, EngineDescriptor, EngineHealth, VoiceDescriptor};
     use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo, VoiceQuality};
     use std::sync::Mutex;
     use tracing::{debug, info, warn};
@@ -105,6 +131,29 @@ mod impl_windows {
     }
 
     impl TtsEngine for WindowsTtsEngine {
+        fn descriptor(&self) -> EngineDescriptor {
+            let voices = self
+                .available_voices()
+                .into_iter()
+                .map(|voice| VoiceDescriptor::from_voice_info("winrt", voice))
+                .collect();
+            let default_voice_id = SpeechSynthesizer::DefaultVoice()
+                .ok()
+                .and_then(|voice| voice.Id().ok())
+                .map(|id| format!("winrt:{}", id.to_string_lossy()));
+
+            EngineDescriptor {
+                id: "winrt".to_owned(),
+                display_name: "Windows WinRT Speech Synthesis".to_owned(),
+                version: None,
+                availability: Availability::Available,
+                health: EngineHealth::Healthy,
+                capabilities: windows_capabilities(),
+                voices,
+                default_voice_id,
+            }
+        }
+
         fn synthesize(
             &self,
             text: &str,
@@ -353,6 +402,23 @@ impl WindowsTtsEngine {
 
 #[cfg(not(target_os = "windows"))]
 impl crate::TtsEngine for WindowsTtsEngine {
+    fn descriptor(&self) -> EngineDescriptor {
+        EngineDescriptor {
+            id: "winrt".to_owned(),
+            display_name: "Windows WinRT Speech Synthesis".to_owned(),
+            version: None,
+            availability: Availability::Unavailable {
+                reason: "WinRT is only available on Windows".to_owned(),
+            },
+            health: EngineHealth::Failed {
+                reason: "unsupported platform".to_owned(),
+            },
+            capabilities: windows_capabilities(),
+            voices: Vec::new(),
+            default_voice_id: None,
+        }
+    }
+
     fn synthesize(
         &self,
         _text: &str,
@@ -373,6 +439,21 @@ impl crate::TtsEngine for WindowsTtsEngine {
 
     fn voice_info(&self, _identifier: &str) -> Option<crate::VoiceInfo> {
         None
+    }
+}
+
+#[cfg(all(test, not(target_os = "windows")))]
+mod stub_tests {
+    use super::WindowsTtsEngine;
+    use crate::TtsEngine;
+
+    #[test]
+    fn windows_stub_reports_unavailable() {
+        let descriptor = WindowsTtsEngine.descriptor();
+
+        assert_eq!(descriptor.id, "winrt");
+        assert!(!descriptor.can_synthesize());
+        assert!(descriptor.voices.is_empty());
     }
 }
 

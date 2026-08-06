@@ -215,6 +215,9 @@ impl Default for TtsSettings {
 
 /// Platform-agnostic TTS engine trait
 pub trait TtsEngine: Send + Sync {
+    /// Describe this engine, its current runtime state, and discovered voices.
+    fn descriptor(&self) -> contracts::EngineDescriptor;
+
     /// Synthesize text to an audio buffer
     fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError>;
 
