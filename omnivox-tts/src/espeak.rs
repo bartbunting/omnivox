@@ -4,14 +4,15 @@
 //! guaranteed fallback engine that works on all platforms.
 
 use crate::contracts::{
-    buffered_post_synthesis_dimensions, AcssCapabilities, AudioOutputMode, Availability,
-    CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor, EngineHealth,
-    MarkerCapabilities, PhysicalVoiceId, VoiceDescriptor,
+    buffered_post_synthesis_dimensions, AcssCapabilities, AnchorSupport, AudioOutputMode,
+    Availability, CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor,
+    EngineHealth, MarkerCapabilities, PhysicalVoiceId, VoiceDescriptor,
 };
 #[cfg(test)]
 use crate::TtsSettings;
 use crate::{
-    AudioBuffer, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
+    AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
+    TtsEngine, TtsError, VoiceInfo, VoiceQuality,
 };
 use once_cell::sync::OnceCell;
 use std::ffi::{CStr, CString};
@@ -29,8 +30,33 @@ struct EspeakState {
     initialized: bool,
 }
 
-/// Thread-local storage for collecting audio samples during synthesis callback
-static SYNTH_BUFFER: Mutex<Option<Vec<i16>>> = Mutex::new(None);
+/// Defensive limit for the native callback's zero-terminated event array.
+const MAX_CALLBACK_EVENTS: usize = 65_536;
+
+/// Audio and synchronization events collected for the one serialized synthesis.
+static SYNTH_CAPTURE: Mutex<Option<EspeakSynthesisCapture>> = Mutex::new(None);
+
+#[derive(Default)]
+struct EspeakSynthesisCapture {
+    samples: Vec<i16>,
+    markers: Vec<EspeakNativeMarker>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum EspeakNativeMarkerKind {
+    Word,
+    Sentence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct EspeakNativeMarker {
+    kind: EspeakNativeMarkerKind,
+    /// One-based Unicode character position supplied by eSpeak.
+    text_position: usize,
+    /// Unicode character count; eSpeak supplies this only for words.
+    text_length: usize,
+    audio_position_ms: u64,
+}
 
 /// espeak-ng TTS engine
 pub struct EspeakTtsEngine {
@@ -46,18 +72,41 @@ unsafe impl Sync for EspeakTtsEngine {}
 unsafe extern "C" fn synth_callback(
     wav: *mut c_short,
     sample_count: c_int,
-    _events: *mut espeak_rs_sys::espeak_EVENT,
+    events: *mut espeak_rs_sys::espeak_EVENT,
 ) -> c_int {
-    if wav.is_null() || sample_count <= 0 {
-        return 0;
-    }
+    if let Ok(mut slot) = SYNTH_CAPTURE.lock() {
+        if let Some(capture) = slot.as_mut() {
+            if !wav.is_null() && sample_count > 0 {
+                let samples = std::slice::from_raw_parts(wav as *const i16, sample_count as usize);
+                capture.samples.extend_from_slice(samples);
+            }
 
-    let samples =
-        std::slice::from_raw_parts(wav as *const i16, sample_count as usize);
-
-    if let Ok(mut buf) = SYNTH_BUFFER.lock() {
-        if let Some(ref mut buffer) = *buf {
-            buffer.extend_from_slice(samples);
+            if !events.is_null() {
+                for index in 0..MAX_CALLBACK_EVENTS {
+                    let event = &*events.add(index);
+                    if event.type_ == espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_LIST_TERMINATED {
+                        break;
+                    }
+                    let kind = match event.type_ {
+                        espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_WORD => {
+                            EspeakNativeMarkerKind::Word
+                        }
+                        espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_SENTENCE => {
+                            EspeakNativeMarkerKind::Sentence
+                        }
+                        _ => continue,
+                    };
+                    if event.text_position <= 0 || event.audio_position < 0 {
+                        continue;
+                    }
+                    capture.markers.push(EspeakNativeMarker {
+                        kind,
+                        text_position: event.text_position as usize,
+                        text_length: event.length.max(0) as usize,
+                        audio_position_ms: event.audio_position as u64,
+                    });
+                }
+            }
         }
     }
 
@@ -80,7 +129,12 @@ impl EspeakTtsEngine {
             audio_output: AudioOutputMode::BufferedPcm,
             cancellation: CancellationSupport::SynthesisAndPlayback,
             concurrency: ConcurrencyModel::Serialized,
-            markers: MarkerCapabilities::default(),
+            markers: MarkerCapabilities {
+                word: true,
+                sentence: true,
+                requested_anchors: AnchorSupport::WordBoundary,
+                ..MarkerCapabilities::default()
+            },
             language_switching: true,
             post_synthesis_dimensions: buffered_post_synthesis_dimensions(),
             native_extensions: Vec::new(),
@@ -110,12 +164,8 @@ impl EspeakTtsEngine {
                 } else {
                     voice.identifier
                 };
-                (!id_ptr.is_null()).then(|| {
-                    format!(
-                        "espeak:{}",
-                        CStr::from_ptr(id_ptr).to_string_lossy()
-                    )
-                })
+                (!id_ptr.is_null())
+                    .then(|| format!("espeak:{}", CStr::from_ptr(id_ptr).to_string_lossy()))
             };
 
             (version, default_voice_id)
@@ -270,6 +320,59 @@ impl EspeakTtsEngine {
         voice_id.strip_prefix("espeak:").unwrap_or(voice_id)
     }
 
+    fn markers_from_native(
+        text: &str,
+        native_markers: &[EspeakNativeMarker],
+        sample_rate: u32,
+        frame_count: u64,
+    ) -> Vec<SynthesisMarker> {
+        let character_boundaries = text
+            .char_indices()
+            .map(|(index, _)| index)
+            .chain(std::iter::once(text.len()))
+            .collect::<Vec<_>>();
+        let sentence_positions = native_markers
+            .iter()
+            .filter(|marker| marker.kind == EspeakNativeMarkerKind::Sentence)
+            .map(|marker| marker.text_position)
+            .collect::<Vec<_>>();
+        native_markers
+            .iter()
+            .filter_map(|native| {
+                let character_length = match native.kind {
+                    EspeakNativeMarkerKind::Word => native.text_length,
+                    EspeakNativeMarkerKind::Sentence => sentence_positions
+                        .iter()
+                        .copied()
+                        .filter(|position| *position > native.text_position)
+                        .min()
+                        .unwrap_or(character_boundaries.len())
+                        .saturating_sub(native.text_position),
+                };
+                let (text_start, text_length) = utf8_range_for_character_boundaries(
+                    &character_boundaries,
+                    native.text_position,
+                    character_length,
+                )?;
+                let frame_offset = native
+                    .audio_position_ms
+                    .saturating_mul(u64::from(sample_rate))
+                    .saturating_add(500)
+                    / 1_000;
+                Some(SynthesisMarker {
+                    kind: match native.kind {
+                        EspeakNativeMarkerKind::Word => SynthesisMarkerKind::Word,
+                        EspeakNativeMarkerKind::Sentence => SynthesisMarkerKind::Sentence,
+                    },
+                    frame_offset: frame_offset.min(frame_count),
+                    text_start: Some(text_start),
+                    text_length: Some(text_length),
+                    value: None,
+                })
+            })
+            .collect()
+    }
+
     fn default_voice_id(
         voices: &[VoiceDescriptor],
         runtime_default: Option<String>,
@@ -377,19 +480,19 @@ impl TtsEngine for EspeakTtsEngine {
                 0,
             );
 
-            // Prepare the synthesis buffer
-            {
-                let mut buf = SYNTH_BUFFER.lock().map_err(|e| {
-                    TtsError::SynthesisFailed(format!("Buffer lock poisoned: {}", e))
-                })?;
-                *buf = Some(Vec::new());
-            }
-
-            // Synthesize
             let text_cstr = CString::new(text)
                 .map_err(|_| TtsError::SynthesisFailed("Text contains null bytes".to_string()))?;
             let text_len = text_cstr.as_bytes_with_nul().len();
 
+            // Prepare the synthesis capture before eSpeak starts invoking the callback.
+            {
+                let mut capture = SYNTH_CAPTURE.lock().map_err(|e| {
+                    TtsError::SynthesisFailed(format!("Capture lock poisoned: {}", e))
+                })?;
+                *capture = Some(EspeakSynthesisCapture::default());
+            }
+
+            // Synthesize
             let result = espeak_rs_sys::espeak_Synth(
                 text_cstr.as_ptr() as *const c_void,
                 text_len,
@@ -402,6 +505,9 @@ impl TtsEngine for EspeakTtsEngine {
             );
 
             if result != espeak_rs_sys::espeak_ERROR_EE_OK {
+                if let Ok(mut capture) = SYNTH_CAPTURE.lock() {
+                    capture.take();
+                }
                 return Err(TtsError::SynthesisFailed(format!(
                     "espeak_Synth failed with error: {}",
                     result
@@ -412,15 +518,15 @@ impl TtsEngine for EspeakTtsEngine {
             espeak_rs_sys::espeak_Synchronize();
         }
 
-        // Extract the collected audio samples
-        let i16_samples = {
-            let mut buf = SYNTH_BUFFER
+        // Extract the collected audio and native synchronization events.
+        let capture = {
+            let mut capture = SYNTH_CAPTURE
                 .lock()
-                .map_err(|e| TtsError::SynthesisFailed(format!("Buffer lock poisoned: {}", e)))?;
-            buf.take().unwrap_or_default()
+                .map_err(|e| TtsError::SynthesisFailed(format!("Capture lock poisoned: {}", e)))?;
+            capture.take().unwrap_or_default()
         };
 
-        if i16_samples.is_empty() {
+        if capture.samples.is_empty() {
             debug!("espeak-ng produced no audio");
             return Ok(SynthesisResult::audio(
                 "espeak",
@@ -431,17 +537,18 @@ impl TtsEngine for EspeakTtsEngine {
 
         debug!(
             "espeak-ng produced {} i16 samples at {}Hz (mono)",
-            i16_samples.len(),
+            capture.samples.len(),
             sample_rate
         );
 
-        // Convert i16 mono to f32, then to standard format (stereo @ 44100Hz)
-        let buffer = AudioBuffer::from_i16(&i16_samples, sample_rate, 1);
-        Ok(SynthesisResult::audio(
-            "espeak",
-            actual_voice,
-            buffer.to_standard_format(),
-        ))
+        let buffer = AudioBuffer::from_i16(&capture.samples, sample_rate, 1);
+        let markers = Self::markers_from_native(
+            text,
+            &capture.markers,
+            sample_rate,
+            buffer.frame_count() as u64,
+        );
+        Ok(SynthesisResult::new("espeak", actual_voice, buffer, markers).into_standard_format())
     }
 
     fn stop(&self) {
@@ -531,15 +638,40 @@ impl TtsEngine for EspeakTtsEngine {
 
     fn voice_info(&self, identifier: &str) -> Option<VoiceInfo> {
         let search = identifier.strip_prefix("espeak:").unwrap_or(identifier);
-        self.available_voices()
-            .into_iter()
-            .find(|v| {
-                v.identifier == identifier
-                    || v.identifier == format!("espeak:{}", search)
-                    || v.name == search
-                    || v.language == search
-            })
+        self.available_voices().into_iter().find(|v| {
+            v.identifier == identifier
+                || v.identifier == format!("espeak:{}", search)
+                || v.name == search
+                || v.language == search
+        })
     }
+}
+
+/// Convert eSpeak's one-based Unicode character range to Omnivox's UTF-8 byte range.
+#[cfg(test)]
+fn utf8_range_for_characters(
+    text: &str,
+    one_based_start: usize,
+    character_length: usize,
+) -> Option<(u32, u32)> {
+    let character_boundaries = text
+        .char_indices()
+        .map(|(index, _)| index)
+        .chain(std::iter::once(text.len()))
+        .collect::<Vec<_>>();
+    utf8_range_for_character_boundaries(&character_boundaries, one_based_start, character_length)
+}
+
+fn utf8_range_for_character_boundaries(
+    character_boundaries: &[usize],
+    one_based_start: usize,
+    character_length: usize,
+) -> Option<(u32, u32)> {
+    let start_character = one_based_start.checked_sub(1)?;
+    let end_character = start_character.checked_add(character_length)?;
+    let start = *character_boundaries.get(start_character)?;
+    let end = *character_boundaries.get(end_character)?;
+    Some((u32::try_from(start).ok()?, u32::try_from(end - start).ok()?))
 }
 
 #[cfg(test)]
@@ -579,6 +711,12 @@ mod tests {
         assert!(descriptor.can_synthesize());
         assert!(descriptor.capabilities.acss.rate);
         assert!(descriptor.capabilities.acss.average_pitch);
+        assert!(descriptor.capabilities.markers.word);
+        assert!(descriptor.capabilities.markers.sentence);
+        assert_eq!(
+            descriptor.capabilities.markers.requested_anchors,
+            AnchorSupport::WordBoundary
+        );
         assert!(descriptor
             .voices
             .iter()
@@ -612,7 +750,11 @@ mod tests {
     fn test_espeak_initialization() {
         // This test verifies that espeak-ng can be initialized
         let engine = EspeakTtsEngine::new();
-        assert!(engine.is_ok(), "Failed to initialize espeak-ng: {:?}", engine.err());
+        assert!(
+            engine.is_ok(),
+            "Failed to initialize espeak-ng: {:?}",
+            engine.err()
+        );
     }
 
     #[test]
@@ -630,6 +772,81 @@ mod tests {
         assert!(result.audio.duration() > 0.0, "Duration should be positive");
         assert_eq!(result.engine_id, "espeak");
         assert!(result.actual_voice.is_some());
+        result
+            .validate(&SynthesisRequest::new(
+                "hello world",
+                TtsSettings::default(),
+            ))
+            .unwrap();
+        let words = result
+            .markers
+            .iter()
+            .filter(|marker| marker.kind == SynthesisMarkerKind::Word)
+            .collect::<Vec<_>>();
+        assert_eq!(words.len(), 2);
+        assert_eq!(
+            (words[0].text_start, words[0].text_length),
+            (Some(0), Some(5))
+        );
+        assert_eq!(
+            (words[1].text_start, words[1].text_length),
+            (Some(6), Some(5))
+        );
+        assert!(words[0].frame_offset <= words[1].frame_offset);
+        assert!(result
+            .markers
+            .iter()
+            .any(|marker| marker.kind == SynthesisMarkerKind::Sentence));
+    }
+
+    #[test]
+    fn native_character_ranges_become_utf8_byte_ranges() {
+        assert_eq!(utf8_range_for_characters("héllo 世界", 1, 5), Some((0, 6)));
+        assert_eq!(utf8_range_for_characters("héllo 世界", 7, 2), Some((7, 6)));
+        assert_eq!(utf8_range_for_characters("héllo 世界", 9, 0), Some((13, 0)));
+        assert_eq!(utf8_range_for_characters("hello", 0, 1), None);
+        assert_eq!(utf8_range_for_characters("hello", 6, 1), None);
+    }
+
+    #[test]
+    fn native_markers_include_unicode_words_and_sentence_spans() {
+        let text = "Héllo world. Next sentence.";
+        let native = [
+            EspeakNativeMarker {
+                kind: EspeakNativeMarkerKind::Sentence,
+                text_position: 1,
+                text_length: 0,
+                audio_position_ms: 0,
+            },
+            EspeakNativeMarker {
+                kind: EspeakNativeMarkerKind::Word,
+                text_position: 1,
+                text_length: 5,
+                audio_position_ms: 10,
+            },
+            EspeakNativeMarker {
+                kind: EspeakNativeMarkerKind::Sentence,
+                text_position: 14,
+                text_length: 0,
+                audio_position_ms: 800,
+            },
+        ];
+
+        let markers = EspeakTtsEngine::markers_from_native(text, &native, 22_050, 44_100);
+
+        assert_eq!(
+            (markers[0].text_start, markers[0].text_length),
+            (Some(0), Some(14))
+        );
+        assert_eq!(
+            (markers[1].text_start, markers[1].text_length),
+            (Some(0), Some(6))
+        );
+        assert_eq!(
+            (markers[2].text_start, markers[2].text_length),
+            (Some(14), Some(14))
+        );
+        assert_eq!(markers[2].frame_offset, 17_640);
     }
 
     #[test]

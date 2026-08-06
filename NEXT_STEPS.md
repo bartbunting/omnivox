@@ -140,10 +140,11 @@ to a declared span boundary or omits only the optional action.  It never uses
 synthesis-time timers as a substitute for playback positions and never drops
 speech because optional placement metadata is unavailable.
 
-The current eSpeak backend advertises no markers even though its synthesis
-callback receives native event records.  Capturing and validating its word,
-sentence, and mark events is planned; until then it exercises the markerless
-buffered-engine degradation path.
+The eSpeak backend captures native word and sentence callback events, converts
+their one-based Unicode character ranges to UTF-8 source ranges, and carries
+their millisecond audio positions through canonical resampling. It advertises
+word-boundary anchor resolution. Engines without markers still exercise the
+markerless buffered-engine degradation path described above.
 
 ## Fallback Contract
 
@@ -338,8 +339,8 @@ cues degrade to fewer markers or less source metadata without failing speech.
 A real Windows playback smoke test delivered sentence and word events before
 tracked completion. Eloquence and DECtalk word markers plus DECtalk
 phoneme/native-index markers now follow the same helper, resampling, and
-playback-cue path. External playback and unifying the two audio buffer types
-remain.
+playback-cue path. eSpeak native word and sentence events now follow that path
+as well. External playback and unifying the two audio buffer types remain.
 
 #### Planned Presentation-Timeline Slices
 
@@ -702,8 +703,9 @@ malformed helper-output testing remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model
 
-- **eSpeak**: populate full descriptors and remain the reliable cross-platform
-  final fallback.
+- **eSpeak**: remain the reliable cross-platform final fallback. Full engine
+  and voice descriptors plus native word/sentence marker capture are
+  implemented; native mark/phoneme events remain optional future enrichment.
 - **macOS AVSpeechSynthesizer**: expose native voice/language capabilities and
   markers where available.
 - **Piper**: stabilize the existing opt-in backend, revisit dependency and model
