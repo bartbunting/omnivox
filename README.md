@@ -221,6 +221,11 @@ The versioned Base64-JSON discovery and configuration transport is specified in
 [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md). Legacy speech commands remain
 unchanged.
 
+Structured mixed-engine Aural presentation, including inserted and overlaid
+audio, semantic events, persistent effects, and marker-v2 degradation records,
+is specified in
+[PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md).
+
 ## Configuration
 
 See [ENV-VARS.md](ENV-VARS.md) for full CLI flags, environment variables, and Emacs customization reference.

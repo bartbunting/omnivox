@@ -469,6 +469,34 @@ v2 capability is intentionally not advertised until Slice 8 supplies the
 structured action transport, at which point the already-implemented v2
 dispatch constructor becomes live.
 
+Slice 7 status on 2026-08-07: implemented. Engine-rendered ACSS and
+Omnivox-rendered effect dimensions are separated after route selection.
+Complete persistent effect state now follows speech spans through
+preprocessing, chunking, mixed-engine routing, fallback, and voice changes.
+The common PCM processor supplies click-free gain, low/high-pass filtering,
+pan, reverb, and echo; delayed tails extend tracked completion while semantic
+events and word markers remain attached to their dry-source boundaries.
+Unsupported ACSS and effect dimensions are reported independently, and
+fallback recomputes degradation against the engine that actually synthesized
+the span. Audio actions choose a dry or speech-effect bus explicitly.
+
+Slice 8 status on 2026-08-07: implemented end to end and specified in
+[PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md).
+Omnivox accepts one bounded versioned timeline containing independently
+routable speech spans, normalized ACSS, persistent effect operations, inserted
+or overlaid audio/tone actions, silence, source positions, lifecycle metadata,
+and semantic event IDs. It validates the whole frame and preloads every
+resource before changing playback, coalesces generations atomically, and
+reports exact, word-boundary, span-boundary, or omitted action placement plus
+style degradation over marker protocol v2. Audio resources retain normalized
+volume and stereo pan. Emacsvox now negotiates the capability and lowers one
+complete frozen Aural presentation to this frame, including rich styles,
+overlaid icons and capitalization tones, semantic callback bindings, and
+per-span logical voices. If any captured operation cannot be represented, the
+complete presentation stays on the established legacy path; it is never split
+between protocols. Engines without markers still provide normal ordered
+speech, fallback, whole-span effects, completion, and boundary-level actions.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when
@@ -520,8 +548,10 @@ order, and exposes marker and terminal callbacks through `tts-speak-marked`.
 It selects the new command only for that explicit API and rejects unsupported
 servers before submitting text. Omnivox now also implements and advertises the
 independent runtime routing-policy and explicit engine-recovery-probe requests;
-Emacsvox workbench integration follows in the paired UI slice. Functional
-language commands remain.
+Emacsvox workbench integration follows in the paired UI slices. Structured
+presentation timelines and marker protocol v2 are now negotiated and used by
+ordinary Aural presentation, with an all-or-nothing legacy fallback for older
+servers and unmodelled client operations. Functional language commands remain.
 
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking
@@ -548,6 +578,53 @@ select an existing logical voice, audition installed physical voices, assign
 and reorder exact or portable fallbacks, tune its supported style/effects,
 choose global engine priority, inspect the realized route, and atomically save
 or cancel the staged configuration.
+
+#### Planned Voice Workbench Slices
+
+The persistence boundary is an architectural invariant rather than a UI
+detail:
+
+- portable voice palettes own logical voice names plus ACSS and
+  post-synthesis style/effect values;
+- separate versioned routing profiles own machine/environment policy: global
+  preferred, fallback, and disabled engine lists plus ordered selectors for
+  each logical voice;
+- exact native voice IDs require explicit local scope, portable property and
+  engine-default selectors may travel, and unsaved session choices remain
+  ephemeral;
+- the workbench presents the active palette and routing profile as one logical
+  editing experience without copying one representation into the other.
+
+Slices 49 through 55 are complete in Emacsvox: the adapter-neutral inventory,
+separate routing profile schema, accessible workbench shell, non-mutating exact
+preview, quick staged assignment, runtime engine-priority policy, route-aware
+style/effect tuning, and ordinary structured Aural transport are implemented.
+The remaining slices are:
+
+1. **Atomic apply and realized diagnostics.** Validate the complete staged
+   palette/profile pair, write machine-local routing data atomically while
+   preserving the prior known-good revision, and apply one generation to both
+   speaker and notification processes. Expose retryable per-process status,
+   registration resolution, current capability degradation, inventory/health
+   changes, and the last engine/voice actually observed at playback. Cancel
+   and undo must never leave a half-applied live configuration.
+2. **Migration, suggestions, and static adapters.** Import existing palettes,
+   personalities, Omnivox customization, and standalone Eloquence/DECtalk
+   mappings into a reviewable draft. Offer non-persistent suggestions by exact
+   alias, language, gender, and engine defaults plus useful priority presets.
+   Export/import must retain clear portable, local, inherited, suggested, and
+   degraded provenance. Static, cached, free-form, and unsupported adapters
+   use the same workflow with truthful reduced capabilities.
+3. **Hardening and user documentation.** Exercise stale and divergent
+   inventories, disappearing voices, health recovery, exact and portable
+   routes, staged save/cancel/undo, migration, fallback, and every inventory
+   class. Document keyboard workflows, selector scope, preview, diagnostics,
+   recovery, and cross-machine behavior, then run the complete Emacs 31,
+   compiled Aural, audit, startup, trace, and real Omnivox gates.
+
+These slices do not absorb the Speech Dispatcher or network backlog. Speech
+Dispatcher remains the external-playback engine work in Phase 8, and
+authenticated TCP/network mode remains Phase 9 future work.
 
 ### Phase 6: Upgrade WinRT as the Reference Buffered Engine
 
