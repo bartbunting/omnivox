@@ -1,8 +1,8 @@
 //! Audio synthesis pipeline: buffer conversion, pipeline construction, chunk synthesis.
 
 use omnivox_audio::{
-    AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, SilenceTrimmer,
-    PlaybackTicket, StreamType, ToneGenerator, VolumeAdjust,
+    AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, PlaybackTicket,
+    SilenceTrimmer, StreamType, ToneGenerator, VolumeAdjust,
 };
 use omnivox_core::{QueueItem, TtsState};
 use omnivox_tts::engine_registry::EngineRegistry;
@@ -30,7 +30,8 @@ pub fn tts_buffer_to_audio_buffer(tts_buf: omnivox_tts::AudioBuffer) -> AudioBuf
     if tts_buf.is_empty() {
         return AudioBuffer::empty();
     }
-    AudioBuffer::new(tts_buf.samples)
+    let standard = tts_buf.to_standard_format();
+    AudioBuffer::new(standard.samples)
 }
 
 // ---------------------------------------------------------------------------
@@ -38,28 +39,38 @@ pub fn tts_buffer_to_audio_buffer(tts_buf: omnivox_tts::AudioBuffer) -> AudioBuf
 // ---------------------------------------------------------------------------
 
 pub fn build_speech_pipeline(state: &TtsState, is_last: bool) -> AudioPipeline {
-    let trailing = if is_last { rate_scaled_padding(state.speech_rate) } else { 0.0 };
+    let trailing = if is_last {
+        rate_scaled_padding(state.speech_rate)
+    } else {
+        0.0
+    };
 
     let mut pipeline = AudioPipeline::new();
     pipeline.push(Box::new(SilenceTrimmer::with_asymmetric_padding(
         0.01, 0.0, trailing,
     )));
     pipeline.push(Box::new(VolumeAdjust::new(state.voice_volume)));
-    pipeline.push(Box::new(ChannelRouter::new(state.speech_routing.channel_mode)));
+    pipeline.push(Box::new(ChannelRouter::new(
+        state.speech_routing.channel_mode,
+    )));
     pipeline
 }
 
 pub fn build_tone_pipeline(state: &TtsState) -> AudioPipeline {
     let mut pipeline = AudioPipeline::new();
     pipeline.push(Box::new(VolumeAdjust::new(state.tone_volume)));
-    pipeline.push(Box::new(ChannelRouter::new(state.tone_routing.channel_mode)));
+    pipeline.push(Box::new(ChannelRouter::new(
+        state.tone_routing.channel_mode,
+    )));
     pipeline
 }
 
 pub fn build_sound_pipeline(state: &TtsState) -> AudioPipeline {
     let mut pipeline = AudioPipeline::new();
     pipeline.push(Box::new(VolumeAdjust::new(state.sound_volume)));
-    pipeline.push(Box::new(ChannelRouter::new(state.sound_routing.channel_mode)));
+    pipeline.push(Box::new(ChannelRouter::new(
+        state.sound_routing.channel_mode,
+    )));
     pipeline
 }
 
@@ -319,8 +330,12 @@ pub fn process_batch(
                 }
             }
 
-            QueueItem::Tone { frequency, duration } => {
-                let mut buf = ToneGenerator::generate(frequency as f32, duration, state.tone_volume);
+            QueueItem::Tone {
+                frequency,
+                duration,
+            } => {
+                let mut buf =
+                    ToneGenerator::generate(frequency as f32, duration, state.tone_volume);
                 let pipeline = build_tone_pipeline(&state);
                 if let Err(e) = pipeline.process(&mut buf) {
                     ctx.mark_failed();
@@ -382,11 +397,22 @@ mod tests {
     }
 
     #[test]
+    fn test_tts_buffer_to_audio_buffer_canonicalizes_odd_mono_input() {
+        let tts_buf = omnivox_tts::AudioBuffer::new(vec![0.1; 513], 11025, 1);
+
+        let audio_buf = tts_buffer_to_audio_buffer(tts_buf);
+
+        assert!(!audio_buf.is_empty());
+        assert_eq!(audio_buf.samples.len() % 2, 0);
+        assert_eq!(audio_buf.sample_rate(), omnivox_audio::buffer::SAMPLE_RATE);
+        assert_eq!(audio_buf.channels(), omnivox_audio::buffer::CHANNELS);
+    }
+
+    #[test]
     fn test_is_stale() {
         let counter = AtomicU64::new(5);
         assert!(!is_stale(5, &counter));
         assert!(is_stale(4, &counter));
         assert!(is_stale(6, &counter));
     }
-
 }
