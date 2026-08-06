@@ -257,10 +257,18 @@ Interactive commands:
 
 ### Environment Variables
 
-Only two environment variables are recognized (for Emacspeak integration):
+Relevant environment variables are:
 
 - **OMNIVOX_ENGINE**: Set to `espeak` to force espeak-ng on platforms with native TTS
 - **OMNIVOX_AUDIO_TARGET**: Set to `left`, `right`, or `both` for channel routing (used by Emacspeak for dual-server notification mode)
+- **OMNIVOX_ELOQUENCE_HELPER**: Optional Windows path to `OmnivoxEloquenceHelper32.exe`; otherwise Omnivox looks beside its own executable
+- **OMNIVOX_ECI_DLL**: Optional path passed through to the Eloquence helper for a user-supplied 32-bit `ECI.DLL`
+
+When present, the Eloquence helper adds engine `eloquence` and native voice IDs
+`v1` through `v8` to structured inventory. WinRT remains the preferred legacy
+engine; logical voices may select Eloquence per span and retain their ordered
+fallbacks when the helper, DLL, or requested voice is unavailable. The
+proprietary Eloquence runtime is not distributed with Omnivox.
 
 All other settings use CLI flags (terminal) or protocol commands via Emacs defcustoms.
 

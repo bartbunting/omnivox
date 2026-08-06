@@ -284,7 +284,14 @@ bounds, cancellation terminal states, and recovery contract are defined in
 [HELPER-PROTOCOL.md](HELPER-PROTOCOL.md). The generic helper-backed engine now
 negotiates inventory, validates exact voice and PCM results, cancels active
 synthesis, invalidates failed children, and reconnects for recovery probes.
-The Eloquence and DECtalk x86 capture implementations remain.
+The Emacsvox tree now builds a separate 32-bit Eloquence capture helper without
+changing its existing WaveOut bridge. It exposes ECI voices `v1` through `v8`,
+bounded 11.025 kHz mono PCM, normalized rate, responsive cancellation, and
+truthful reduced capabilities. Windows Omnivox discovers that helper beside its
+executable or through `OMNIVOX_ELOQUENCE_HELPER`, negotiates it through the
+generic host, and adds it to the registry without changing the WinRT legacy
+default. End-to-end per-span validation, helper packaging, richer ECI controls
+and indexes, and the DECtalk helper remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model
 

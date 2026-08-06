@@ -28,7 +28,7 @@ Without options, starts the Emacspeak protocol server on stdin.
 
 ## Environment Variables
 
-Only two environment variables are recognized, both for Emacspeak integration:
+Omnivox recognizes these environment variables:
 
 **OMNIVOX_ENGINE**
 
@@ -45,6 +45,19 @@ Only two environment variables are recognized, both for Emacspeak integration:
 - Used by Emacspeak for dual-server notification mode
 - Normally set automatically by Emacspeak, not manually
 - Equivalent to `--audio-target`
+
+**OMNIVOX_ELOQUENCE_HELPER** (Windows, optional)
+
+- Path to `OmnivoxEloquenceHelper32.exe`
+- Overrides automatic discovery beside `omnivox.exe`
+- A missing or failed helper is omitted from inventory; WinRT and eSpeak remain
+  available according to normal fallback policy
+
+**OMNIVOX_ECI_DLL** (inherited by the Eloquence helper, optional)
+
+- Path to the user-supplied 32-bit `ECI.DLL`
+- Overrides the helper's normal Freedom Scientific installation path
+- Omnivox and Emacsvox do not distribute the proprietary runtime
 
 ## Emacs Customization
 

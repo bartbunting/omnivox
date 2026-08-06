@@ -5,6 +5,8 @@ use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::espeak::EspeakTtsEngine;
+#[cfg(target_os = "windows")]
+use omnivox_tts::helper_engine::{HelperEngineConfig, HelperTtsEngine};
 #[cfg(target_os = "macos")]
 use omnivox_tts::macos::MacOsTtsEngine;
 #[cfg(feature = "piper")]
@@ -12,7 +14,11 @@ use omnivox_tts::piper::PiperTtsEngine;
 #[cfg(target_os = "windows")]
 use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::TtsEngine;
+#[cfg(target_os = "windows")]
+use std::path::PathBuf;
 use std::sync::Arc;
+#[cfg(target_os = "windows")]
+use std::time::Duration;
 use tracing::{info, warn};
 
 /// Engines initialized for one server session.
@@ -29,7 +35,7 @@ pub struct CreatedEngines {
 pub fn create_engines(engine_name: &str, piper_model: Option<&str>) -> Result<CreatedEngines> {
     #[cfg(target_os = "windows")]
     {
-        return create_windows_engines(engine_name, piper_model);
+        create_windows_engines(engine_name, piper_model)
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -45,10 +51,7 @@ pub fn create_engines(engine_name: &str, piper_model: Option<&str>) -> Result<Cr
 }
 
 #[cfg(target_os = "windows")]
-fn create_windows_engines(
-    engine_name: &str,
-    _piper_model: Option<&str>,
-) -> Result<CreatedEngines> {
+fn create_windows_engines(engine_name: &str, _piper_model: Option<&str>) -> Result<CreatedEngines> {
     let forced = requested_engine(engine_name);
     let mut registry = EngineRegistry::new();
 
@@ -66,6 +69,24 @@ fn create_windows_engines(
             info!("Registered espeak-ng fallback engine");
         }
         Err(error) => warn!("espeak-ng fallback not available: {}", error),
+    }
+
+    if let Some(config) = eloquence_helper_config() {
+        let helper_path = config.program.clone();
+        match HelperTtsEngine::new(config) {
+            Ok(engine) => {
+                registry.register(Arc::new(engine))?;
+                info!(
+                    "Registered Eloquence helper engine: {}",
+                    helper_path.display()
+                );
+            }
+            Err(error) => warn!(
+                "Eloquence helper at {} is not available: {}",
+                helper_path.display(),
+                error
+            ),
+        }
     }
 
     if forced == "piper" {
@@ -99,12 +120,42 @@ fn create_windows_engines(
         .iter()
         .find_map(|engine_id| registry.engine(engine_id))
         .ok_or_else(|| anyhow::anyhow!("No TTS engine available"))?;
-    info!("Using {} as the preferred TTS engine", preferred.descriptor().id);
+    info!(
+        "Using {} as the preferred TTS engine",
+        preferred.descriptor().id
+    );
 
     Ok(CreatedEngines {
         preferred,
         registry,
     })
+}
+
+#[cfg(target_os = "windows")]
+fn eloquence_helper_config() -> Option<HelperEngineConfig> {
+    let explicitly_configured = std::env::var_os("OMNIVOX_ELOQUENCE_HELPER")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from);
+    let program = match explicitly_configured {
+        Some(program) => program,
+        None => {
+            let adjacent = std::env::current_exe()
+                .ok()?
+                .parent()?
+                .join("OmnivoxEloquenceHelper32.exe");
+            if !adjacent.is_file() {
+                return None;
+            }
+            adjacent
+        }
+    };
+
+    let mut config = HelperEngineConfig::new("eloquence", program);
+    // The version-1 ECI helper captures one complete utterance before emitting
+    // PCM.  Allow ordinary long passages without weakening startup or control
+    // request timeouts.
+    config.synthesis_idle_timeout = Duration::from_secs(60);
+    Some(config)
 }
 
 #[cfg(target_os = "windows")]
@@ -182,7 +233,10 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
                 info!("Using Windows WinRT engine");
                 return Ok(Arc::new(engine));
             }
-            Err(e) => warn!("Windows WinRT not available: {}, falling back to espeak-ng", e),
+            Err(e) => warn!(
+                "Windows WinRT not available: {}, falling back to espeak-ng",
+                e
+            ),
         }
     }
 
@@ -198,11 +252,17 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
 /// Human-readable name of the platform-native TTS backend.
 pub fn native_engine_name() -> &'static str {
     #[cfg(target_os = "macos")]
-    { "macos (AVSpeechSynthesizer)" }
+    {
+        "macos (AVSpeechSynthesizer)"
+    }
     #[cfg(target_os = "windows")]
-    { "winrt (Windows SpeechSynthesizer)" }
+    {
+        "winrt (Windows SpeechSynthesizer)"
+    }
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    { "none (espeak-ng is the only backend)" }
+    {
+        "none (espeak-ng is the only backend)"
+    }
 }
 
 /// Apply `OMNIVOX_AUDIO_TARGET` env var to the state's channel routing fields.
