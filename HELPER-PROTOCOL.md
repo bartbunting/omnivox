@@ -119,12 +119,14 @@ frames are validated, converted to common synthesis markers, and returned with
 the helper's native PCM and realized physical voice. Their frame offsets follow
 sample-rate conversion into canonical Omnivox audio. The Eloquence adapter now
 inserts ECI indexes at bounded Unicode word starts and emits the native callback
-frame with a UTF-8 source range. DECtalk does not advertise or emit native
-markers yet.
+frame with a UTF-8 source range. The DECtalk adapter captures its native
+phoneme-change and inserted-index records at DECtalk's utterance-relative sample
+positions. It emits their numeric engine values without source ranges because
+the native records do not identify request-text spans.
 
 The Eloquence and DECtalk adapters share one C# protocol host while retaining
 separate native capture implementations and executables. Windows Omnivox
 discovers either helper independently. End-to-end smoke tests have exercised real
 capture, cancellation, mixed-engine routing, fallback, PCM canonicalization,
-Eloquence word markers, tracked playback completion, and process replacement
-after a helper crash.
+Eloquence word markers, DECtalk phoneme and native-index markers, tracked
+playback completion, and process replacement after a helper crash.

@@ -254,9 +254,9 @@ maps cue timestamps plus inclusive UTF-16 input positions into bounded PCM
 frame offsets and UTF-8 byte ranges. Missing tracks or malformed individual
 cues degrade to fewer markers or less source metadata without failing speech.
 A real Windows playback smoke test delivered sentence and word events before
-tracked completion.
-Native helper marker capture, external playback, and unifying the two audio
-buffer types remain.
+tracked completion. Eloquence word markers and DECtalk phoneme/native-index
+markers now follow the same helper, resampling, and playback-cue path. External
+playback and unifying the two audio buffer types remain.
 
 ### Phase 5: Complete the Emacsvox Protocol
 
@@ -324,6 +324,7 @@ loading those libraries into the Rust process.
 - Implement Eloquence first because its waveform and index callbacks provide a
   clean reference for the helper protocol. (Word markers implemented.)
 - Implement DECtalk second, including phoneme/index metadata where available.
+  (Implemented.)
 - Keep the existing standalone `windows-outloud` and `windows-dtk` servers as
   fallbacks until Omnivox reaches practical parity.
 
@@ -351,9 +352,14 @@ The Eloquence adapter segments bounded Unicode words, inserts an ECI index at
 each word start, records index callbacks against captured PCM frames, and emits
 UTF-8 source ranges. Direct helper tests covered apostrophes and non-ASCII text;
 a routed Windows playback smoke carried the rescaled word events through
-Omnivox before tracked completion. Richer native controls, Eloquence sentence
-boundaries, DECtalk phoneme/index metadata, long-session measurements, and
-broader malformed helper-output testing remain.
+Omnivox before tracked completion. The DECtalk adapter allocates the native
+phoneme and index arrays, emits their utterance-relative sample positions with
+numeric engine values, and deliberately omits unavailable source-text ranges.
+A direct helper test captured phonemes plus an inserted index, and a routed
+Windows playback smoke carried rescaled DECtalk phoneme events through Omnivox
+before tracked completion. Richer native controls, truthful Eloquence/DECtalk
+word and sentence boundary coverage, long-session measurements, and broader
+malformed helper-output testing remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model
 
