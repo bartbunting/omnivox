@@ -135,6 +135,7 @@ fn validate_command(command: &Command) -> Result<(), String> {
         | CommandId::Version
         | CommandId::OmnivoxControl
         | CommandId::EmacsvoxTx
+        | CommandId::EmacsvoxTrackedDispatch
         | CommandId::TtsExit => false,
     };
 
@@ -204,6 +205,12 @@ mod tests {
         assert!(generations.prepare(&arguments(1, "s\nd\n")).is_err());
         assert!(generations
             .prepare(&arguments(1, "omnivox_control {payload}\nd\n"))
+            .is_err());
+        assert!(generations
+            .prepare(&arguments(
+                1,
+                "q {hello}\nemacsvox_tracked_dispatch 1\nd\n"
+            ))
             .is_err());
         assert_eq!(generations.latest(), 0);
     }

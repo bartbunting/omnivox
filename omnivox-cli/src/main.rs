@@ -35,7 +35,9 @@ use tracing::info;
 use cli::{apply_cli_flags, parse_args};
 use engine::{apply_audio_target_env, create_engine, create_engines};
 use health::RuntimeEngineHealth;
-use server::{run_server, synthesis_worker, SynthRequest};
+use server::{
+    run_server, spawn_tracked_playback_reporter, synthesis_worker, SynthRequest,
+};
 
 pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -125,6 +127,8 @@ fn main() -> Result<()> {
     let (tx, rx) = mpsc::channel::<SynthRequest>();
     let gen_counter = Arc::new(AtomicU64::new(0));
     let runtime_health = Arc::new(RuntimeEngineHealth::new());
+    let (tracked_playback_tx, tracked_playback_handle) =
+        spawn_tracked_playback_reporter();
 
     let worker_handle = {
         let worker_engine = engine.clone();
@@ -144,6 +148,7 @@ fn main() -> Result<()> {
                     worker_runtime_health,
                     worker_control,
                     loader,
+                    tracked_playback_tx,
                 )
             })
             .expect("Failed to spawn synthesis worker thread")
@@ -170,6 +175,7 @@ fn main() -> Result<()> {
                     control,
                     gen_counter,
                     worker_handle,
+                    tracked_playback_handle,
                 );
                 *result2.lock().unwrap() = Some(r);
                 omnivox_tts::macos::stop_main_runloop();
@@ -190,5 +196,6 @@ fn main() -> Result<()> {
         control,
         gen_counter,
         worker_handle,
+        tracked_playback_handle,
     )
 }

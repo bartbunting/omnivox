@@ -2,12 +2,13 @@
 
 use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, SilenceTrimmer,
-    StreamType, ToneGenerator, VolumeAdjust,
+    PlaybackTicket, StreamType, ToneGenerator, VolumeAdjust,
 };
 use omnivox_core::{QueueItem, TtsState};
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::{AudioBuffer as TtsAudioBuffer, TtsEngine, TtsSettings};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Mutex;
 use tracing::{debug, warn};
 
 use crate::health::RuntimeEngineHealth;
@@ -78,12 +79,48 @@ pub struct SynthCtx<'a> {
     pub gen_counter: &'a AtomicU64,
     pub engine: &'a dyn TtsEngine,
     pub control: &'a AudioControl,
+    pub playback_tickets: Option<&'a Mutex<Vec<PlaybackTicket>>>,
+    pub batch_failed: Option<&'a AtomicBool>,
 }
 
 impl SynthCtx<'_> {
     pub fn is_stale(&self) -> bool {
         is_stale(self.gen, self.gen_counter)
     }
+
+    pub fn mark_failed(&self) {
+        if let Some(failed) = self.batch_failed {
+            failed.store(true, Ordering::Release);
+        }
+    }
+
+    pub fn failed(&self) -> bool {
+        self.batch_failed
+            .is_some_and(|failed| failed.load(Ordering::Acquire))
+    }
+
+    pub fn queue(&self, stream: StreamType, buffer: &AudioBuffer) {
+        let result = if let Some(tickets) = self.playback_tickets {
+            self.control.queue_tracked(stream, buffer).map(|ticket| {
+                if let Some(ticket) = ticket {
+                    tickets.lock().unwrap().push(ticket);
+                }
+            })
+        } else {
+            self.control.queue(stream, buffer).map(|_| ())
+        };
+        if let Err(error) = result {
+            self.mark_failed();
+            warn!("{:?} queue error: {}", stream, error);
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BatchStatus {
+    Completed,
+    Cancelled,
+    Failed,
 }
 
 // ---------------------------------------------------------------------------
@@ -108,10 +145,11 @@ pub fn synthesize_chunk(
             if ctx.is_stale() {
                 return false;
             }
-            queue_synthesized_buffer(tts_buf, state, is_last, ctx.control);
+            queue_synthesized_buffer(tts_buf, state, is_last, ctx);
             true
         }
         Err(e) => {
+            ctx.mark_failed();
             warn!("Synthesis error: {}", e);
             true
         }
@@ -122,16 +160,15 @@ fn queue_synthesized_buffer(
     tts_buf: TtsAudioBuffer,
     state: &TtsState,
     is_last: bool,
-    control: &AudioControl,
+    ctx: &SynthCtx,
 ) {
     let mut buf = tts_buffer_to_audio_buffer(tts_buf);
     let pipeline = build_speech_pipeline(state, is_last);
     if let Err(error) = pipeline.process(&mut buf) {
+        ctx.mark_failed();
         warn!("Pipeline error: {}", error);
     }
-    if let Err(error) = control.queue(StreamType::Speech, &buf) {
-        warn!("Speech queue error: {}", error);
-    }
+    ctx.queue(StreamType::Speech, &buf);
 }
 
 enum RoutedChunkOutcome {
@@ -169,7 +206,7 @@ fn synthesize_routed_chunk(
         ctx.gen_counter,
     ) {
         RuntimeSynthesisOutcome::Ready(buffer) => {
-            queue_synthesized_buffer(buffer, state, is_last, ctx.control);
+            queue_synthesized_buffer(buffer, state, is_last, ctx);
             RoutedChunkOutcome::Queued
         }
         RuntimeSynthesisOutcome::Cancelled => RoutedChunkOutcome::Cancelled,
@@ -187,9 +224,9 @@ pub fn process_batch(
     engine_registry: &EngineRegistry,
     runtime_health: &RuntimeEngineHealth,
     mut logical_voice_routing: LogicalVoiceRoutingSnapshot,
-) {
+) -> BatchStatus {
     if ctx.is_stale() {
-        return;
+        return BatchStatus::Cancelled;
     }
 
     // Pre-count total speech chunks to identify the last one for trailing padding.
@@ -207,7 +244,7 @@ pub fn process_batch(
 
     for item in items {
         if ctx.is_stale() {
-            return;
+            return BatchStatus::Cancelled;
         }
 
         match item {
@@ -231,9 +268,13 @@ pub fn process_batch(
                             runtime_health,
                             ctx,
                         ) {
-                            RoutedChunkOutcome::Cancelled => return,
-                            RoutedChunkOutcome::Exhausted => logical_route_exhausted = true,
-                            RoutedChunkOutcome::Queued | RoutedChunkOutcome::Failed => {}
+                            RoutedChunkOutcome::Cancelled => return BatchStatus::Cancelled,
+                            RoutedChunkOutcome::Failed => ctx.mark_failed(),
+                            RoutedChunkOutcome::Exhausted => {
+                                ctx.mark_failed();
+                                logical_route_exhausted = true;
+                            }
+                            RoutedChunkOutcome::Queued => {}
                         }
                     } else {
                         let settings = TtsSettings {
@@ -243,7 +284,7 @@ pub fn process_batch(
                             volume: 1.0,
                         };
                         if !synthesize_chunk(&chunk, &settings, &state, is_last, ctx) {
-                            return;
+                            return BatchStatus::Cancelled;
                         }
                     }
                     speech_chunk_index += 1;
@@ -282,33 +323,38 @@ pub fn process_batch(
                 let mut buf = ToneGenerator::generate(frequency as f32, duration, state.tone_volume);
                 let pipeline = build_tone_pipeline(&state);
                 if let Err(e) = pipeline.process(&mut buf) {
+                    ctx.mark_failed();
                     warn!("Tone pipeline error: {}", e);
                 }
-                if let Err(e) = ctx.control.queue(StreamType::Tone, &buf) {
-                    warn!("Tone queue error: {}", e);
-                }
+                ctx.queue(StreamType::Tone, &buf);
             }
 
             QueueItem::Silence { duration } => {
                 let buf = AudioBuffer::silence(duration as f32 / 1000.0);
-                if let Err(e) = ctx.control.queue(StreamType::Speech, &buf) {
-                    warn!("Silence queue error: {}", e);
-                }
+                ctx.queue(StreamType::Speech, &buf);
             }
 
             QueueItem::AudioIcon { path } => match loader.load(&path) {
                 Ok(mut buf) => {
                     let pipeline = build_sound_pipeline(&state);
                     if let Err(e) = pipeline.process(&mut buf) {
+                        ctx.mark_failed();
                         warn!("Sound pipeline error: {}", e);
                     }
-                    if let Err(e) = ctx.control.queue(StreamType::Sound, &buf) {
-                        warn!("Sound queue error: {}", e);
-                    }
+                    ctx.queue(StreamType::Sound, &buf);
                 }
-                Err(e) => warn!("Failed to load audio icon {}: {}", path.display(), e),
+                Err(e) => {
+                    ctx.mark_failed();
+                    warn!("Failed to load audio icon {}: {}", path.display(), e);
+                }
             },
         }
+    }
+
+    if ctx.failed() {
+        BatchStatus::Failed
+    } else {
+        BatchStatus::Completed
     }
 }
 

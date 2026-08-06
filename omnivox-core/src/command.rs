@@ -48,6 +48,7 @@ pub enum CommandId {
     Version,              // version
     OmnivoxControl,       // omnivox_control - versioned Base64-JSON control request
     EmacsvoxTx,           // emacsvox_tx - replaceable Base64 presentation transaction
+    EmacsvoxTrackedDispatch, // emacsvox_tracked_dispatch - dispatch with terminal playback status
 
     // SwiftMac extensions
     TtsSetVoice,               // tts_set_voice
@@ -90,6 +91,7 @@ impl CommandId {
             "version" => Some(Self::Version),
             "omnivox_control" => Some(Self::OmnivoxControl),
             "emacsvox_tx" => Some(Self::EmacsvoxTx),
+            "emacsvox_tracked_dispatch" => Some(Self::EmacsvoxTrackedDispatch),
             "tts_set_voice" => Some(Self::TtsSetVoice),
             "tts_set_pitch_multiplier" => Some(Self::TtsSetPitchMultiplier),
             "tts_set_sound_volume" => Some(Self::TtsSetSoundVolume),
@@ -252,6 +254,13 @@ mod tests {
         let cmd = parse_command("emacsvox_tx 17 {cSB7aGVsbG99XG5kXG4=}").unwrap();
         assert_eq!(cmd.id, CommandId::EmacsvoxTx);
         assert_eq!(cmd.args, Some("17 {cSB7aGVsbG99XG5kXG4=}".to_string()));
+    }
+
+    #[test]
+    fn test_parse_emacsvox_tracked_dispatch_identifier() {
+        let cmd = parse_command("emacsvox_tracked_dispatch 73").unwrap();
+        assert_eq!(cmd.id, CommandId::EmacsvoxTrackedDispatch);
+        assert_eq!(cmd.args, Some("73".to_string()));
     }
 
     #[test]

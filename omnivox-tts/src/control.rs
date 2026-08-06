@@ -170,6 +170,7 @@ pub fn process_control_request(
                         "logical_voice_routing".to_owned(),
                         "preferred_engine".to_owned(),
                         "stable_voice_ids".to_owned(),
+                        "tracked_playback_completion".to_owned(),
                     ],
                 },
             },
@@ -380,6 +381,9 @@ mod tests {
             } if server_version == "1.3.0"
                 && features.iter().any(|feature| feature == "emacsvox_tx")
                 && features.iter().any(|feature| feature == "logical_voice_routing")
+                && features
+                    .iter()
+                    .any(|feature| feature == "tracked_playback_completion")
         ));
     }
 

@@ -1,7 +1,9 @@
 //! Protocol server: synthesis worker thread, reader loop, command dispatch.
 
 use anyhow::Result;
-use omnivox_audio::{AudioControl, AudioFileLoader, StreamType, ToneGenerator};
+use omnivox_audio::{
+    AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, StreamType, ToneGenerator,
+};
 use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
 };
@@ -11,14 +13,15 @@ use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead, Write};
 use std::mem;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};
 
 use crate::health::RuntimeEngineHealth;
 use crate::pipeline::{
-    build_sound_pipeline, build_tone_pipeline, process_batch, synthesize_chunk, SynthCtx,
+    build_sound_pipeline, build_tone_pipeline, process_batch, synthesize_chunk, BatchStatus,
+    SynthCtx,
 };
 use crate::routing::LogicalVoiceRoutingSnapshot;
 use crate::text::{chunk_text, normalize_rate, parse_resource_path, preprocess_text};
@@ -27,6 +30,7 @@ use crate::transaction::{
 };
 
 const PRESENTATION_COALESCE_WINDOW: Duration = Duration::from_millis(2);
+const TRACKED_STATUS_PREFIX: &str = "__EMACSVOX_TRACKED__";
 
 // ---------------------------------------------------------------------------
 // Synthesis request types
@@ -44,6 +48,7 @@ pub enum SynthRequest {
         items: Vec<QueueItem>,
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
+        tracked_identifier: Option<u64>,
         gen: u64,
     },
     /// Synthesize and play a single string immediately (`tts_say`).
@@ -54,11 +59,69 @@ pub enum SynthRequest {
     PlaySound { path: std::path::PathBuf, state: TtsState, gen: u64 },
 }
 
+pub(crate) struct TrackedPlayback {
+    identifier: u64,
+    status: BatchStatus,
+    tickets: Vec<PlaybackTicket>,
+}
+
+pub(crate) fn spawn_tracked_playback_reporter(
+) -> (mpsc::Sender<TrackedPlayback>, std::thread::JoinHandle<()>) {
+    let (sender, receiver) = mpsc::channel::<TrackedPlayback>();
+    let handle = std::thread::Builder::new()
+        .name("omnivox-playback-tracker".to_owned())
+        .spawn(move || tracked_playback_reporter(receiver))
+        .expect("Failed to spawn tracked playback reporter thread");
+    (sender, handle)
+}
+
+fn tracked_playback_reporter(receiver: mpsc::Receiver<TrackedPlayback>) {
+    for playback in receiver {
+        let identifier = playback.identifier;
+        let status = await_tracked_playback(playback);
+        write_tracked_status(identifier, status);
+    }
+}
+
+fn write_tracked_status(identifier: u64, status: BatchStatus) {
+    let mut stdout = io::stdout().lock();
+    if let Err(error) = writeln!(
+        stdout,
+        "{} {} {}",
+        TRACKED_STATUS_PREFIX,
+        identifier,
+        tracked_status_name(status)
+    )
+    .and_then(|_| stdout.flush())
+    {
+        warn!("Could not write tracked playback status: {}", error);
+    }
+}
+
+fn await_tracked_playback(playback: TrackedPlayback) -> BatchStatus {
+    let mut status = playback.status;
+    for ticket in playback.tickets {
+        if ticket.wait() == PlaybackStatus::Cancelled && status == BatchStatus::Completed {
+            status = BatchStatus::Cancelled;
+        }
+    }
+    status
+}
+
+fn tracked_status_name(status: BatchStatus) -> &'static str {
+    match status {
+        BatchStatus::Completed => "completed",
+        BatchStatus::Cancelled => "cancelled",
+        BatchStatus::Failed => "failed",
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Synthesis worker
 // ---------------------------------------------------------------------------
 
 /// Worker thread: receive `SynthRequest`s and synthesize them one at a time.
+#[allow(clippy::too_many_arguments)]
 pub fn synthesis_worker(
     rx: mpsc::Receiver<SynthRequest>,
     gen_counter: Arc<AtomicU64>,
@@ -67,17 +130,33 @@ pub fn synthesis_worker(
     runtime_health: Arc<RuntimeEngineHealth>,
     control: Arc<AudioControl>,
     loader: AudioFileLoader,
+    tracked_playback_tx: mpsc::Sender<TrackedPlayback>,
 ) {
     for request in rx {
         match request {
-            SynthRequest::Batch { items, state, mut logical_voice_routing, gen } => {
+            SynthRequest::Batch {
+                items,
+                state,
+                mut logical_voice_routing,
+                tracked_identifier,
+                gen,
+            } => {
                 let runtime_inventory = runtime_health.snapshot(
                     engine_registry.generation(),
                     engine_registry.inventory(),
                 );
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
-                let ctx = SynthCtx { gen, gen_counter: &gen_counter, engine: &*engine, control: &control };
-                process_batch(
+                let tickets = Mutex::new(Vec::new());
+                let failed = AtomicBool::new(false);
+                let ctx = SynthCtx {
+                    gen,
+                    gen_counter: &gen_counter,
+                    engine: &*engine,
+                    control: &control,
+                    playback_tickets: tracked_identifier.map(|_| &tickets),
+                    batch_failed: Some(&failed),
+                };
+                let status = process_batch(
                     items,
                     state,
                     &ctx,
@@ -86,10 +165,27 @@ pub fn synthesis_worker(
                     &runtime_health,
                     logical_voice_routing,
                 );
+                if let Some(identifier) = tracked_identifier {
+                    let playback = TrackedPlayback {
+                        identifier,
+                        status,
+                        tickets: tickets.into_inner().unwrap(),
+                    };
+                    if tracked_playback_tx.send(playback).is_err() {
+                        warn!("Tracked playback reporter stopped before dispatch {identifier}");
+                    }
+                }
             }
 
             SynthRequest::Immediate { text, state, gen } => {
-                let ctx = SynthCtx { gen, gen_counter: &gen_counter, engine: &*engine, control: &control };
+                let ctx = SynthCtx {
+                    gen,
+                    gen_counter: &gen_counter,
+                    engine: &*engine,
+                    control: &control,
+                    playback_tickets: None,
+                    batch_failed: None,
+                };
                 if ctx.is_stale() { continue; }
                 let settings = TtsSettings {
                     voice: state.current_voice.clone(),
@@ -108,7 +204,14 @@ pub fn synthesis_worker(
             }
 
             SynthRequest::Letter { text, state, gen } => {
-                let ctx = SynthCtx { gen, gen_counter: &gen_counter, engine: &*engine, control: &control };
+                let ctx = SynthCtx {
+                    gen,
+                    gen_counter: &gen_counter,
+                    engine: &*engine,
+                    control: &control,
+                    playback_tickets: None,
+                    batch_failed: None,
+                };
                 if ctx.is_stale() { continue; }
 
                 let mut letter_state = state.clone();
@@ -136,7 +239,14 @@ pub fn synthesis_worker(
             }
 
             SynthRequest::PlaySound { path, state, gen } => {
-                let ctx = SynthCtx { gen, gen_counter: &gen_counter, engine: &*engine, control: &control };
+                let ctx = SynthCtx {
+                    gen,
+                    gen_counter: &gen_counter,
+                    engine: &*engine,
+                    control: &control,
+                    playback_tickets: None,
+                    batch_failed: None,
+                };
                 if ctx.is_stale() { continue; }
                 match loader.load(&path) {
                     Ok(mut buf) => {
@@ -199,6 +309,7 @@ pub fn run_server(
     control: Arc<AudioControl>,
     gen_counter: Arc<AtomicU64>,
     worker_handle: std::thread::JoinHandle<()>,
+    tracked_playback_handle: std::thread::JoinHandle<()>,
 ) -> Result<()> {
     let mut pending: Vec<QueueItem> = Vec::new();
     let mut current_gen: u64 = 0;
@@ -350,6 +461,7 @@ pub fn run_server(
 
     info!("Draining audio output");
     control.drain();
+    let _ = tracked_playback_handle.join();
 
     info!("Shutting down");
     Ok(())
@@ -546,8 +658,40 @@ fn handle_command(
                         logical_voices,
                         engine_registry,
                     ),
+                    tracked_identifier: None,
                     gen: *current_gen,
                 });
+            }
+        }
+
+        CommandId::EmacsvoxTrackedDispatch => {
+            let identifier = command
+                .args
+                .as_deref()
+                .and_then(|value| value.parse::<u64>().ok())
+                .filter(|identifier| *identifier > 0);
+            if let Some(identifier) = identifier {
+                debug!(
+                    "Tracked dispatch {} with {} items (gen={})",
+                    identifier,
+                    pending.len(),
+                    current_gen
+                );
+                let request = SynthRequest::Batch {
+                    items: mem::take(pending),
+                    state: state.clone(),
+                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                        logical_voices,
+                        engine_registry,
+                    ),
+                    tracked_identifier: Some(identifier),
+                    gen: *current_gen,
+                };
+                if tx.send(request).is_err() {
+                    write_tracked_status(identifier, BatchStatus::Failed);
+                }
+            } else {
+                warn!("Invalid tracked dispatch identifier");
             }
         }
 
@@ -759,5 +903,35 @@ fn handle_command(
         CommandId::SetLang | CommandId::SetNextLang | CommandId::SetPreviousLang | CommandId::SetPreferredLang => {
             debug!("Language switching not yet implemented: {:?} {:?}", command.id, command.args);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_tracked_dispatch_preserves_worker_terminal_status() {
+        for status in [
+            BatchStatus::Completed,
+            BatchStatus::Cancelled,
+            BatchStatus::Failed,
+        ] {
+            assert_eq!(
+                await_tracked_playback(TrackedPlayback {
+                    identifier: 1,
+                    status,
+                    tickets: Vec::new(),
+                }),
+                status
+            );
+        }
+    }
+
+    #[test]
+    fn tracked_terminal_status_names_match_emacsvox_protocol() {
+        assert_eq!(tracked_status_name(BatchStatus::Completed), "completed");
+        assert_eq!(tracked_status_name(BatchStatus::Cancelled), "cancelled");
+        assert_eq!(tracked_status_name(BatchStatus::Failed), "failed");
     }
 }
