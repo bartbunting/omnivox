@@ -254,9 +254,10 @@ maps cue timestamps plus inclusive UTF-16 input positions into bounded PCM
 frame offsets and UTF-8 byte ranges. Missing tracks or malformed individual
 cues degrade to fewer markers or less source metadata without failing speech.
 A real Windows playback smoke test delivered sentence and word events before
-tracked completion. Eloquence word markers and DECtalk phoneme/native-index
-markers now follow the same helper, resampling, and playback-cue path. External
-playback and unifying the two audio buffer types remain.
+tracked completion. Eloquence and DECtalk word markers plus DECtalk
+phoneme/native-index markers now follow the same helper, resampling, and
+playback-cue path. External playback and unifying the two audio buffer types
+remain.
 
 ### Phase 5: Complete the Emacsvox Protocol
 
@@ -357,8 +358,14 @@ phoneme and index arrays, emits their utterance-relative sample positions with
 numeric engine values, and deliberately omits unavailable source-text ranges.
 A direct helper test captured phonemes plus an inserted index, and a routed
 Windows playback smoke carried rescaled DECtalk phoneme events through Omnivox
-before tracked completion. Richer native controls, truthful Eloquence/DECtalk
-word and sentence boundary coverage, long-session measurements, and broader
+before tracked completion. DECtalk word capture now inserts collision-avoiding
+private indexes around bounded Unicode words, excludes balanced native command
+and phonetic spans, preserves caller indexes, and maps callbacks back to UTF-8
+source ranges. Direct tests covered Unicode, an existing colliding index, and a
+command embedded in a word; a comparison with the uninstrumented helper
+produced identical PCM. Routed playback delivered the rescaled DECtalk word
+events before tracked completion. Richer native controls, truthful
+Eloquence/DECtalk sentence boundaries, long-session measurements, and broader
 malformed helper-output testing remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model

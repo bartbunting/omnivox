@@ -122,11 +122,15 @@ inserts ECI indexes at bounded Unicode word starts and emits the native callback
 frame with a UTF-8 source range. The DECtalk adapter captures its native
 phoneme-change and inserted-index records at DECtalk's utterance-relative sample
 positions. It emits their numeric engine values without source ranges because
-the native records do not identify request-text spans.
+the native records do not identify request-text spans. For words, it inserts
+collision-avoiding private indexes outside balanced DECtalk command/phonetic
+spans and maps those callbacks to bounded UTF-8 source ranges. Existing caller
+indexes remain distinct `native_index` markers, and words crossing native spans
+are conservatively left unmarked.
 
 The Eloquence and DECtalk adapters share one C# protocol host while retaining
 separate native capture implementations and executables. Windows Omnivox
 discovers either helper independently. End-to-end smoke tests have exercised real
 capture, cancellation, mixed-engine routing, fallback, PCM canonicalization,
-Eloquence word markers, DECtalk phoneme and native-index markers, tracked
-playback completion, and process replacement after a helper crash.
+Eloquence and DECtalk word markers, DECtalk phoneme and native-index markers,
+tracked playback completion, and process replacement after a helper crash.

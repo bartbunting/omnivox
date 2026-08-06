@@ -49,7 +49,8 @@
   cancellation, timeout handling, and restart/reconnect recovery probes
 - Optional buffered Eloquence and DECtalk engines through separate 32-bit helpers
 - Eloquence ECI index callbacks mapped to bounded word markers and UTF-8 ranges
-- DECtalk native phoneme changes and inserted indexes mapped to audio-frame markers
+- DECtalk private indexes mapped to bounded word markers and UTF-8 ranges
+- DECtalk native phoneme changes and caller indexes mapped to audio-frame markers
 - Per-engine rate, average-pitch, and volume degradation for logical ACSS routes
 - Canonical PCM conversion before helper audio enters the effects/playback pipeline
 - Structured synthesis requests and results with realized engine/voice metadata
@@ -73,7 +74,7 @@
 - Logical routing for immediate `tts_say` and letter commands
 - A general timeline-aware effects API
 - Eloquence pitch-range, stress, richness, and sentence-marker support
-- DECtalk native pitch-range, stress, richness, word-marker, and sentence-marker support
+- DECtalk native pitch-range, stress, richness, and sentence-marker support
 - Linux Speech Dispatcher TTS backend
 - Network mode (-p TCP flag)
 - Multi-device audio routing
@@ -134,7 +135,7 @@ omnivox-cli:    52 unit
 
 ## Next Priority
 
-1. Assess truthful Eloquence and DECtalk sentence/word boundary support.
+1. Assess truthful Eloquence and DECtalk sentence-boundary support.
 2. Add user-facing realized-route, degradation, and health diagnostics.
 3. Make language commands functional and include language in synchronized state.
 
