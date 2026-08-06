@@ -36,6 +36,14 @@ pub enum PresentationFrameError {
     InvalidUtf8(#[source] std::string::FromUtf8Error),
 }
 
+/// Encode a UTF-8 legacy-protocol script for an `emacsvox_tx` payload.
+pub fn encode_presentation_script(script: &str) -> Result<String, PresentationFrameError> {
+    if script.len() > MAX_PRESENTATION_PAYLOAD_BYTES {
+        return Err(PresentationFrameError::PayloadTooLarge);
+    }
+    Ok(STANDARD.encode(script.as_bytes()))
+}
+
 /// Decode and bound the arguments captured after `emacsvox_tx`.
 pub fn decode_presentation_frame(
     arguments: &str,
@@ -76,7 +84,7 @@ mod tests {
 
     #[test]
     fn decodes_a_utf8_transaction() {
-        let encoded = STANDARD.encode("q {café 日本 }\nd\n");
+        let encoded = encode_presentation_script("q {café 日本 }\nd\n").unwrap();
 
         let frame = decode_presentation_frame(&format!("17 {{{encoded}}}")).unwrap();
 

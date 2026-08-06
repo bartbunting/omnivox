@@ -20,6 +20,7 @@ mod engine;
 mod pipeline;
 mod server;
 mod text;
+mod transaction;
 
 use anyhow::Result;
 use omnivox_audio::AudioFileLoader;

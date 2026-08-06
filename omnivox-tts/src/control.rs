@@ -163,6 +163,7 @@ pub fn process_control_request(
                     supported_protocol_versions: vec![CONTROL_PROTOCOL_VERSION],
                     features: vec![
                         "control_v1".to_owned(),
+                        "emacsvox_tx".to_owned(),
                         "engine_inventory".to_owned(),
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
@@ -377,6 +378,7 @@ mod tests {
                 ref features,
                 ..
             } if server_version == "1.3.0"
+                && features.iter().any(|feature| feature == "emacsvox_tx")
                 && features.iter().any(|feature| feature == "logical_voice_routing")
         ));
     }

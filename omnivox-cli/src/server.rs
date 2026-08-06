@@ -13,12 +13,18 @@ use std::io::{self, BufRead, Write};
 use std::mem;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Arc};
+use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};
 
 use crate::pipeline::{
     build_sound_pipeline, build_tone_pipeline, process_batch, synthesize_chunk, SynthCtx,
 };
 use crate::text::{chunk_text, normalize_rate, parse_resource_path, preprocess_text};
+use crate::transaction::{
+    prefer_newer, PreparedPresentation, PresentationGenerations,
+};
+
+const PRESENTATION_COALESCE_WINDOW: Duration = Duration::from_millis(2);
 
 // ---------------------------------------------------------------------------
 // Synthesis request types
@@ -186,40 +192,141 @@ pub fn run_server(
     let mut pending: Vec<QueueItem> = Vec::new();
     let mut current_gen: u64 = 0;
     let mut logical_voices = LogicalVoiceRegistry::default();
+    let mut presentation_generations = PresentationGenerations::default();
     let preferred_engine_id = engine.descriptor().id;
 
     info!("Ready to accept commands from stdin");
 
-    let stdin = io::stdin();
-    for line in stdin.lock().lines() {
-        let line = line?;
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        debug!("Received: {}", line);
-
-        let command = match parse_command(line) {
-            Ok(c) => c,
-            Err(e) => {
-                error!("Parse error '{}': {}", line, e);
-                continue;
+    let (input_tx, input_rx) = mpsc::channel::<io::Result<String>>();
+    let input_handle = std::thread::Builder::new()
+        .name("omnivox-stdin".to_owned())
+        .spawn(move || {
+            let stdin = io::stdin();
+            for line in stdin.lock().lines() {
+                let failed = line.is_err();
+                if input_tx.send(line).is_err() || failed {
+                    break;
+                }
             }
+        })
+        .expect("Failed to spawn stdin reader thread");
+    let mut deferred_command = None;
+    let mut input_closed = false;
+
+    while !input_closed {
+        let command = match deferred_command
+            .take()
+            .map_or_else(|| receive_command(&input_rx), |command| Ok(Some(command)))?
+        {
+            Some(command) => command,
+            None => break,
         };
 
-        handle_command(
-            command,
-            &mut state,
-            &mut pending,
-            &mut current_gen,
-            &gen_counter,
-            &engine_registry,
-            &preferred_engine_id,
-            &mut logical_voices,
-            &control,
-            &tx,
-        );
+        if command.id != CommandId::EmacsvoxTx {
+            handle_command(
+                command,
+                &mut state,
+                &mut pending,
+                &mut current_gen,
+                &gen_counter,
+                &engine_registry,
+                &preferred_engine_id,
+                &mut logical_voices,
+                &control,
+                &tx,
+            );
+            continue;
+        }
+
+        let Some(mut selected) = prepare_presentation(&presentation_generations, &command) else {
+            continue;
+        };
+        loop {
+            match receive_command_until(
+                &input_rx,
+                Instant::now() + PRESENTATION_COALESCE_WINDOW,
+            )? {
+                TimedCommand::Command(next) if next.id == CommandId::EmacsvoxTx => {
+                    if let Some(candidate) =
+                        prepare_presentation(&presentation_generations, &next)
+                    {
+                        selected = prefer_newer(selected, candidate);
+                    }
+                }
+                TimedCommand::Command(next) if next.id == CommandId::Stop => {
+                    debug!(
+                        "Stop barrier discarded Emacsvox transaction {}",
+                        selected.generation
+                    );
+                    presentation_generations.commit(selected.generation);
+                    handle_command(
+                        next,
+                        &mut state,
+                        &mut pending,
+                        &mut current_gen,
+                        &gen_counter,
+                        &engine_registry,
+                        &preferred_engine_id,
+                        &mut logical_voices,
+                        &control,
+                        &tx,
+                    );
+                    break;
+                }
+                TimedCommand::Command(next) => {
+                    execute_presentation(
+                        selected,
+                        &mut presentation_generations,
+                        &mut state,
+                        &mut pending,
+                        &mut current_gen,
+                        &gen_counter,
+                        &engine_registry,
+                        &preferred_engine_id,
+                        &mut logical_voices,
+                        &control,
+                        &tx,
+                    );
+                    deferred_command = Some(next);
+                    break;
+                }
+                TimedCommand::Timeout => {
+                    execute_presentation(
+                        selected,
+                        &mut presentation_generations,
+                        &mut state,
+                        &mut pending,
+                        &mut current_gen,
+                        &gen_counter,
+                        &engine_registry,
+                        &preferred_engine_id,
+                        &mut logical_voices,
+                        &control,
+                        &tx,
+                    );
+                    break;
+                }
+                TimedCommand::Closed => {
+                    execute_presentation(
+                        selected,
+                        &mut presentation_generations,
+                        &mut state,
+                        &mut pending,
+                        &mut current_gen,
+                        &gen_counter,
+                        &engine_registry,
+                        &preferred_engine_id,
+                        &mut logical_voices,
+                        &control,
+                        &tx,
+                    );
+                    input_closed = true;
+                    break;
+                }
+            }
+        }
     }
+    let _ = input_handle.join();
 
     info!("Stdin closed; waiting for synthesis worker to finish");
     drop(tx);
@@ -230,6 +337,114 @@ pub fn run_server(
 
     info!("Shutting down");
     Ok(())
+}
+
+enum TimedCommand {
+    Command(Command),
+    Timeout,
+    Closed,
+}
+
+fn parse_input_line(line: &str) -> Option<Command> {
+    let line = line.trim();
+    if line.is_empty() {
+        return None;
+    }
+    debug!("Received: {}", line);
+    match parse_command(line) {
+        Ok(command) => Some(command),
+        Err(error) => {
+            error!("Parse error '{}': {}", line, error);
+            None
+        }
+    }
+}
+
+fn receive_command(receiver: &mpsc::Receiver<io::Result<String>>) -> Result<Option<Command>> {
+    loop {
+        match receiver.recv() {
+            Ok(Ok(line)) => {
+                if let Some(command) = parse_input_line(&line) {
+                    return Ok(Some(command));
+                }
+            }
+            Ok(Err(error)) => return Err(error.into()),
+            Err(_) => return Ok(None),
+        }
+    }
+}
+
+fn receive_command_until(
+    receiver: &mpsc::Receiver<io::Result<String>>,
+    deadline: Instant,
+) -> Result<TimedCommand> {
+    loop {
+        let Some(remaining) = deadline.checked_duration_since(Instant::now()) else {
+            return Ok(TimedCommand::Timeout);
+        };
+        match receiver.recv_timeout(remaining) {
+            Ok(Ok(line)) => {
+                if let Some(command) = parse_input_line(&line) {
+                    return Ok(TimedCommand::Command(command));
+                }
+            }
+            Ok(Err(error)) => return Err(error.into()),
+            Err(mpsc::RecvTimeoutError::Timeout) => return Ok(TimedCommand::Timeout),
+            Err(mpsc::RecvTimeoutError::Disconnected) => return Ok(TimedCommand::Closed),
+        }
+    }
+}
+
+fn prepare_presentation(
+    generations: &PresentationGenerations,
+    command: &Command,
+) -> Option<PreparedPresentation> {
+    match generations.prepare(command.args.as_deref().unwrap_or("")) {
+        Ok(Some(presentation)) => Some(presentation),
+        Ok(None) => {
+            debug!("Ignored stale Emacsvox presentation transaction");
+            None
+        }
+        Err(error) => {
+            warn!("Invalid Emacsvox presentation transaction: {}", error);
+            None
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn execute_presentation(
+    presentation: PreparedPresentation,
+    generations: &mut PresentationGenerations,
+    state: &mut TtsState,
+    pending: &mut Vec<QueueItem>,
+    current_gen: &mut u64,
+    gen_counter: &Arc<AtomicU64>,
+    engine_registry: &EngineRegistry,
+    preferred_engine_id: &str,
+    logical_voices: &mut LogicalVoiceRegistry,
+    control: &Arc<AudioControl>,
+    tx: &mpsc::Sender<SynthRequest>,
+) {
+    debug!(
+        "Accepted Emacsvox presentation transaction {}",
+        presentation.generation
+    );
+    generations.commit(presentation.generation);
+    for command in presentation.commands {
+        handle_command(
+            command,
+            state,
+            pending,
+            current_gen,
+            gen_counter,
+            engine_registry,
+            preferred_engine_id,
+            logical_voices,
+            control,
+            tx,
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -381,6 +596,10 @@ fn handle_command(
                 }
                 Err(error) => warn!("Could not encode Omnivox control response: {}", error),
             }
+        }
+
+        CommandId::EmacsvoxTx => {
+            warn!("Nested Emacsvox presentation transaction was ignored");
         }
 
         // --- State management ---
