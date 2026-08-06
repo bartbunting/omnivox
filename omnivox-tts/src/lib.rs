@@ -13,6 +13,7 @@ pub mod engine_registry;
 pub mod helper_engine;
 pub mod helper_protocol;
 pub mod logical_voices;
+pub mod marker_protocol;
 pub mod presentation;
 pub mod resolver;
 pub mod synthesis;
