@@ -209,24 +209,45 @@ pub fn cmd_list_voices(engine: &dyn TtsEngine) {
     }
 }
 
-pub fn cmd_list_voices_alist(engine: &dyn TtsEngine) {
-    let voices = engine.available_voices();
-    print!("(");
-    for (i, voice) in voices.iter().enumerate() {
-        let quality = format!("{:?}", voice.quality);
-        let escaped_name = voice.name.replace('\\', "\\\\").replace('"', "\\\"");
-        print!(
-            "(\"{lang}:{name}\" \"{display}\" \"{lang}\" \"{quality}\")",
-            lang = voice.language,
-            name = escaped_name,
-            display = escaped_name,
-            quality = quality
-        );
-        if i < voices.len() - 1 {
-            print!("\n ");
+fn escape_elisp_string(value: &str) -> String {
+    let mut escaped = String::with_capacity(value.len());
+    for character in value.chars() {
+        match character {
+            '\\' => escaped.push_str("\\\\"),
+            '"' => escaped.push_str("\\\""),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            character if character.is_control() => {
+                escaped.push_str(&format!("\\u{:04x}", character as u32));
+            }
+            character => escaped.push(character),
         }
     }
-    println!(")");
+    escaped
+}
+
+fn format_voices_alist(voices: &[omnivox_tts::VoiceInfo]) -> String {
+    let mut output = String::from("(");
+    for (index, voice) in voices.iter().enumerate() {
+        if index > 0 {
+            output.push_str("\n ");
+        }
+        output.push_str(&format!(
+            "(\"{}\" \"{}\" \"{}\" \"{:?}\")",
+            escape_elisp_string(&voice.identifier),
+            escape_elisp_string(&voice.name),
+            escape_elisp_string(&voice.language),
+            voice.quality,
+        ));
+    }
+    output.push(')');
+    output
+}
+
+pub fn cmd_list_voices_alist(engine: &dyn TtsEngine) {
+    let voices = engine.available_voices();
+    println!("{}", format_voices_alist(&voices));
 }
 
 pub fn cmd_check(engine_name: &str) {
@@ -446,5 +467,34 @@ pub fn cmd_play_wav(path: &str) {
             eprintln!("Failed to load {}: {}", path, e);
             std::process::exit(1);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use omnivox_tts::{VoiceInfo, VoiceQuality};
+
+    #[test]
+    fn test_format_voices_alist_preserves_backend_identifier() {
+        let voices = vec![VoiceInfo {
+            identifier: "winrt:HKEY\\Voice\"One".to_string(),
+            name: "Voice \"One\"".to_string(),
+            language: "en-US".to_string(),
+            quality: VoiceQuality::Enhanced,
+        }];
+
+        assert_eq!(
+            format_voices_alist(&voices),
+            r#"(("winrt:HKEY\\Voice\"One" "Voice \"One\"" "en-US" "Enhanced"))"#
+        );
+    }
+
+    #[test]
+    fn test_escape_elisp_string_handles_protocol_unsafe_characters() {
+        assert_eq!(
+            escape_elisp_string("line\ncarriage\rtab\tcontrol\u{1f}"),
+            "line\\ncarriage\\rtab\\tcontrol\\u001f"
+        );
     }
 }
