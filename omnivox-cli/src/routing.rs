@@ -510,7 +510,8 @@ mod tests {
     use super::*;
     use omnivox_tts::contracts::{
         AcssCapabilities, AudioOutputMode, CancellationSupport, ConcurrencyModel,
-        EngineCapabilities, MarkerCapabilities, NormalizedAcss, VoiceDescriptor, VoiceSelector,
+        EngineCapabilities, MarkerCapabilities, NormalizedAcss, PostSynthesisDimension,
+        PostSynthesisStyle, VoiceDescriptor, VoiceSelector,
     };
     use omnivox_tts::routing_policy::RoutingPolicy;
     use omnivox_tts::{
@@ -864,6 +865,55 @@ mod tests {
         assert_eq!(retry.realized.engine_id, "pitch-only");
         assert_eq!(retry.acss.style.rate, None);
         assert_eq!(retry.acss.style.average_pitch, Some(0.4));
+    }
+
+    #[test]
+    fn fallback_recomputes_post_synthesis_effects_for_the_new_engine() {
+        let mut primary = synthesis_engine("gain-only", "primary", None);
+        Arc::get_mut(&mut primary)
+            .unwrap()
+            .descriptor
+            .capabilities
+            .post_synthesis_dimensions = vec![PostSynthesisDimension::Gain];
+        let mut fallback = synthesis_engine("pan-only", "fallback", None);
+        Arc::get_mut(&mut fallback)
+            .unwrap()
+            .descriptor
+            .capabilities
+            .post_synthesis_dimensions = vec![PostSynthesisDimension::Pan];
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut logical_definition = definition(vec![
+            exact("gain-only", "primary"),
+            exact("pan-only", "fallback"),
+        ]);
+        logical_definition.effects = PostSynthesisStyle {
+            gain: Some(0.7),
+            pan: Some(0.2),
+            ..PostSynthesisStyle::default()
+        };
+        let mut routes = snapshot(&engines, logical_definition, FallbackPolicy::default());
+        let initial = routes.initial_route("source-code", &engines).unwrap();
+        assert_eq!(initial.effects.style.gain, Some(0.7));
+        assert_eq!(initial.effects.style.pan, None);
+        assert_eq!(initial.effects.omitted, vec![PostSynthesisDimension::Pan]);
+
+        let RuntimeReroute::Retry(retry) = routes.reroute_after_failure(
+            &initial,
+            &TtsError::VoiceNotFound("primary disappeared".to_owned()),
+            &engines,
+        ) else {
+            panic!("voice failure did not select the alternate engine");
+        };
+        assert_eq!(retry.realized.engine_id, "pan-only");
+        assert_eq!(retry.effects.style.gain, None);
+        assert_eq!(retry.effects.style.pan, Some(0.2));
+        assert_eq!(retry.effects.omitted, vec![PostSynthesisDimension::Gain]);
     }
 
     #[test]

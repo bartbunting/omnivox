@@ -2,15 +2,17 @@
 
 use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, PlaybackTicket,
-    PreparedAudioResource, SilenceTrimReport, SilenceTrimmer, StreamType, TimelineAudioRenderer,
-    ToneGenerator, VolumeAdjust,
+    PostSynthesisParameters, PostSynthesisProcessor, PreparedAudioResource, SilenceTrimReport,
+    SilenceTrimmer, StreamType, TimelineAudioRenderer, ToneGenerator, VolumeAdjust,
 };
 use omnivox_core::timeline::{
     ActionAffinity, AudioActionMode, EffectBus, PresentationPosition, ResolvedTimelineAction,
     ScheduledTimeline, TimelineAction, TimelineActionId, TimelineActionKind,
 };
 use omnivox_core::{QueueItem, TtsState};
-use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId, PostSynthesisDimension};
+use omnivox_tts::contracts::{
+    AcssDimension, PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle,
+};
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::{
     AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisMarker,
@@ -127,6 +129,7 @@ pub struct SynthCtx<'a> {
     pub presentation_clock: Option<&'a Mutex<Vec<PlaybackTicket>>>,
     pub pending_overlays: Option<&'a Mutex<Vec<AudioBuffer>>>,
     pub timeline_renderer: Option<&'a Mutex<TimelineAudioRenderer>>,
+    pub effect_processor: Option<&'a Mutex<PostSynthesisProcessor>>,
     pub marker_dispatch: Option<&'a MarkerDispatchContext>,
     pub batch_failed: Option<&'a AtomicBool>,
 }
@@ -280,6 +283,7 @@ pub fn synthesize_chunk_with_tones(
                 chunk,
                 None,
                 capitalization_tones,
+                &PostSynthesisStyle::default(),
                 state,
                 is_last_speech,
                 final_timeline_window,
@@ -301,6 +305,7 @@ fn queue_synthesis_result(
     utterance_text: &str,
     logical_voice_id: Option<&str>,
     capitalization_tones: &[CapitalizationTone],
+    effects: &PostSynthesisStyle,
     state: &TtsState,
     is_last_speech: bool,
     final_timeline_window: bool,
@@ -319,6 +324,19 @@ fn queue_synthesis_result(
         ctx.mark_failed();
         warn!("Pipeline error: {}", error);
     }
+    let effect_tail = match process_effect_window(
+        &mut result.audio,
+        effects,
+        final_timeline_window,
+        ctx,
+    ) {
+        Ok(tail) => tail,
+        Err(error) => {
+            ctx.mark_failed();
+            warn!("Post-synthesis effect error; queueing dry speech: {}", error);
+            None
+        }
+    };
     let overlay_tail = match render_capitalization_timeline(
         &mut result,
         capitalization_tones,
@@ -361,6 +379,51 @@ fn queue_synthesis_result(
     if let Some(tail) = overlay_tail {
         ctx.queue_overlay(tail);
     }
+    if let Some(tail) = effect_tail {
+        ctx.queue_overlay(tail);
+    }
+}
+
+fn post_synthesis_parameters(style: &PostSynthesisStyle) -> PostSynthesisParameters {
+    let style = style.clone().clamped();
+    let logarithmic = |minimum: f32, maximum: f32, value: f32| {
+        minimum * (maximum / minimum).powf(value)
+    };
+    PostSynthesisParameters {
+        gain: style
+            .gain
+            .map(|value| 10.0_f32.powf(((value - 0.5) * 24.0) / 20.0))
+            .unwrap_or(1.0),
+        low_pass_hz: style
+            .low_pass
+            .map(|value| logarithmic(200.0, 20_000.0, value)),
+        high_pass_hz: style
+            .high_pass
+            .map(|value| logarithmic(20.0, 3_000.0, value)),
+        pan: style.pan.map(|value| value * 2.0 - 1.0).unwrap_or(0.0),
+        reverb: style.reverb.unwrap_or(0.0),
+        echo: style.echo.unwrap_or(0.0),
+    }
+}
+
+fn process_effect_window(
+    audio: &mut AudioBuffer,
+    effects: &PostSynthesisStyle,
+    final_window: bool,
+    ctx: &SynthCtx,
+) -> Result<Option<AudioBuffer>, omnivox_audio::AudioError> {
+    let processor = ctx.effect_processor.ok_or_else(|| {
+        omnivox_audio::AudioError::EffectError(
+            "synthesis context has no post-synthesis processor".into(),
+        )
+    })?;
+    let processed = processor.lock().unwrap().process_window(
+        audio,
+        post_synthesis_parameters(effects),
+        final_window,
+    );
+    *audio = processed.audio;
+    Ok(processed.tail)
 }
 
 fn requested_capitalization_anchors(tones: &[CapitalizationTone]) -> Vec<RequestedAnchor> {
@@ -452,9 +515,12 @@ fn prepare_capitalization_timeline(
 
 fn render_primary_window(
     primary: &AudioBuffer,
+    effects: &PostSynthesisStyle,
     final_window: bool,
     ctx: &SynthCtx,
-) -> Result<(AudioBuffer, Option<AudioBuffer>), omnivox_audio::AudioError> {
+) -> Result<(AudioBuffer, Vec<AudioBuffer>), omnivox_audio::AudioError> {
+    let mut primary = primary.clone();
+    let effect_tail = process_effect_window(&mut primary, effects, final_window, ctx)?;
     let timeline = ScheduledTimeline::build(primary.frame_count() as u64, Vec::new())
         .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
     let renderer = ctx.timeline_renderer.ok_or_else(|| {
@@ -463,8 +529,14 @@ fn render_primary_window(
     let rendered = renderer
         .lock()
         .unwrap()
-        .render_window(primary, &timeline, &[], final_window)?;
-    Ok((rendered.audio, rendered.overlay_tail))
+        .render_window(&primary, &timeline, &[], final_window)?;
+    Ok((
+        rendered.audio,
+        [effect_tail, rendered.overlay_tail]
+            .into_iter()
+            .flatten()
+            .collect(),
+    ))
 }
 
 fn finish_timeline_tail(ctx: &SynthCtx) {
@@ -474,13 +546,26 @@ fn finish_timeline_tail(ctx: &SynthCtx) {
     if !renderer.lock().unwrap().has_overlay_carry() {
         return;
     }
-    match render_primary_window(&AudioBuffer::empty(), true, ctx) {
-        Ok((_, Some(tail))) => ctx.queue_overlay(tail),
-        Ok((_, None)) => {}
+    match render_primary_window(
+        &AudioBuffer::empty(),
+        &PostSynthesisStyle::default(),
+        true,
+        ctx,
+    ) {
+        Ok((_, tails)) => tails.into_iter().for_each(|tail| ctx.queue_overlay(tail)),
         Err(error) => {
             ctx.mark_failed();
             warn!("Could not flush final timeline tail: {}", error);
         }
+    }
+}
+
+fn finish_effect_tail(ctx: &SynthCtx) {
+    let Some(processor) = ctx.effect_processor else {
+        return;
+    };
+    if let Some(tail) = processor.lock().unwrap().finish() {
+        ctx.queue_overlay(tail);
     }
 }
 
@@ -555,6 +640,7 @@ fn synthesize_routed_chunk(
                 chunk,
                 Some(&route.logical_voice_id),
                 capitalization_tones,
+                &route.effects.style,
                 state,
                 is_last_speech,
                 final_timeline_window,
@@ -842,10 +928,14 @@ pub fn process_batch(
             QueueItem::Silence { duration } => {
                 let buf = AudioBuffer::silence(duration as f32 / 1000.0);
                 let final_timeline_window = primary_window_index + 1 == total_primary_windows;
-                match render_primary_window(&buf, final_timeline_window, ctx) {
-                    Ok((rendered, tail)) => {
+                let effects = logical_route
+                    .as_ref()
+                    .map(|route| route.effects.style.clone())
+                    .unwrap_or_default();
+                match render_primary_window(&buf, &effects, final_timeline_window, ctx) {
+                    Ok((rendered, tails)) => {
                         ctx.queue(StreamType::Speech, &rendered);
-                        if let Some(tail) = tail {
+                        for tail in tails {
                             ctx.queue_overlay(tail);
                         }
                     }
@@ -875,6 +965,7 @@ pub fn process_batch(
         }
     }
 
+    finish_effect_tail(ctx);
     finish_timeline_tail(ctx);
     ctx.flush_overlays();
 
@@ -1017,6 +1108,28 @@ mod tests {
 
         assert_eq!(mixed.frame_count(), 2);
         assert_eq!(mixed.samples, vec![1.0, -0.25, 0.5, -0.5]);
+    }
+
+    #[test]
+    fn normalized_effects_map_to_documented_dsp_ranges() {
+        let parameters = post_synthesis_parameters(&PostSynthesisStyle {
+            gain: Some(0.5),
+            low_pass: Some(0.0),
+            high_pass: Some(1.0),
+            pan: Some(0.25),
+            reverb: Some(0.4),
+            echo: Some(0.6),
+        });
+
+        assert!((parameters.gain - 1.0).abs() < 0.000_001);
+        assert_eq!(parameters.low_pass_hz, Some(200.0));
+        assert!((parameters.high_pass_hz.unwrap() - 3_000.0).abs() < 0.001);
+        assert_eq!(parameters.pan, -0.5);
+        assert_eq!(parameters.reverb, 0.4);
+        assert_eq!(parameters.echo, 0.6);
+
+        let neutral = post_synthesis_parameters(&PostSynthesisStyle::default());
+        assert_eq!(neutral, PostSynthesisParameters::default());
     }
 
     #[test]

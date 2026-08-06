@@ -233,10 +233,14 @@ impl PostSynthesisProcessor {
         let delayed = self.echo[self.echo_position];
         let echo_feedback = parameters.echo * 0.72;
         let echo_mix = parameters.echo * 0.7;
-        self.echo[self.echo_position] = [
-            frame[0] + delayed[0] * echo_feedback,
-            frame[1] + delayed[1] * echo_feedback,
-        ];
+        self.echo[self.echo_position] = if parameters.echo > 0.0 {
+            [
+                frame[0] + delayed[0] * echo_feedback,
+                frame[1] + delayed[1] * echo_feedback,
+            ]
+        } else {
+            [0.0; 2]
+        };
         self.echo_position = (self.echo_position + 1) % self.echo.len();
         frame[0] += delayed[0] * echo_mix;
         frame[1] += delayed[1] * echo_mix;
@@ -248,10 +252,14 @@ impl PostSynthesisProcessor {
             reverberated[0] += delayed[0];
             reverberated[1] += delayed[1];
             let feedback = parameters.reverb * (0.68 + index as f32 * 0.035);
-            self.reverb[index][position] = [
-                frame[0] + delayed[0] * feedback,
-                frame[1] + delayed[1] * feedback,
-            ];
+            self.reverb[index][position] = if parameters.reverb > 0.0 {
+                [
+                    frame[0] + delayed[0] * feedback,
+                    frame[1] + delayed[1] * feedback,
+                ]
+            } else {
+                [0.0; 2]
+            };
             self.reverb_positions[index] = (position + 1) % self.reverb[index].len();
         }
         frame[0] += reverberated[0] * parameters.reverb * 0.15;
@@ -276,6 +284,15 @@ impl PostSynthesisProcessor {
             }
         }
         self.tail_active = false;
+        if let Some(last_audible_sample) = tail
+            .iter()
+            .rposition(|sample| sample.abs() > QUIET_THRESHOLD)
+        {
+            let retained_samples = ((last_audible_sample / 2) + 1) * 2;
+            tail.truncate(retained_samples);
+        } else {
+            tail.clear();
+        }
         tail
     }
 }
@@ -358,5 +375,26 @@ mod tests {
 
         assert_eq!(processed.audio.frame_count(), 1);
         assert!(processed.tail.unwrap().frame_count() <= MAX_EFFECT_TAIL_FRAMES);
+    }
+
+    #[test]
+    fn enabling_a_delay_does_not_replay_earlier_dry_audio() {
+        let dry = AudioBuffer::new(vec![0.5; (ECHO_DELAY_FRAMES + 4) * 2]);
+        let silence = AudioBuffer::new(vec![0.0; (ECHO_DELAY_FRAMES + 4) * 2]);
+        let mut processor = PostSynthesisProcessor::new();
+
+        processor.process_window(&dry, PostSynthesisParameters::default(), false);
+        let processed = processor.process_window(
+            &silence,
+            PostSynthesisParameters {
+                echo: 0.8,
+                reverb: 0.8,
+                ..PostSynthesisParameters::default()
+            },
+            true,
+        );
+
+        assert!(processed.audio.samples.iter().all(|sample| sample.abs() < 0.0001));
+        assert!(processed.tail.is_none());
     }
 }

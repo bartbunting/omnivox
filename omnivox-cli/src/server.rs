@@ -2,8 +2,8 @@
 
 use anyhow::Result;
 use omnivox_audio::{
-    AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, StreamType,
-    TimelineAudioRenderer,
+    AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, PostSynthesisProcessor,
+    StreamType, TimelineAudioRenderer,
 };
 use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
@@ -295,6 +295,7 @@ pub fn synthesis_worker(
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
                 let failed = AtomicBool::new(false);
                 let marker_dispatch = tracking.and_then(|tracking| match tracking {
                     DispatchTracking::Completion(_) => None,
@@ -312,6 +313,7 @@ pub fn synthesis_worker(
                     presentation_clock: Some(&presentation_clock),
                     pending_overlays: Some(&pending_overlays),
                     timeline_renderer: Some(&timeline_renderer),
+                    effect_processor: Some(&effect_processor),
                     marker_dispatch: marker_dispatch.as_ref(),
                     batch_failed: Some(&failed),
                 };
@@ -354,6 +356,7 @@ pub fn synthesis_worker(
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
                 let failed = AtomicBool::new(false);
                 let ctx = SynthCtx {
                     gen,
@@ -364,6 +367,7 @@ pub fn synthesis_worker(
                     presentation_clock: Some(&presentation_clock),
                     pending_overlays: Some(&pending_overlays),
                     timeline_renderer: Some(&timeline_renderer),
+                    effect_processor: Some(&effect_processor),
                     marker_dispatch: None,
                     batch_failed: Some(&failed),
                 };
@@ -409,6 +413,7 @@ pub fn synthesis_worker(
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
@@ -418,6 +423,7 @@ pub fn synthesis_worker(
                     presentation_clock: Some(&presentation_clock),
                     pending_overlays: Some(&pending_overlays),
                     timeline_renderer: Some(&timeline_renderer),
+                    effect_processor: Some(&effect_processor),
                     marker_dispatch: None,
                     batch_failed: None,
                 };
@@ -463,6 +469,7 @@ pub fn synthesis_worker(
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
@@ -472,6 +479,7 @@ pub fn synthesis_worker(
                     presentation_clock: Some(&presentation_clock),
                     pending_overlays: Some(&pending_overlays),
                     timeline_renderer: Some(&timeline_renderer),
+                    effect_processor: Some(&effect_processor),
                     marker_dispatch: None,
                     batch_failed: None,
                 };
@@ -524,6 +532,7 @@ pub fn synthesis_worker(
                     presentation_clock: None,
                     pending_overlays: None,
                     timeline_renderer: None,
+                    effect_processor: None,
                     marker_dispatch: None,
                     batch_failed: None,
                 };

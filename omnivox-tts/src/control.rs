@@ -251,6 +251,7 @@ pub fn process_control_request(
                         "logical_voice_registration".to_owned(),
                         "logical_voice_routing".to_owned(),
                         "playback_marker_events_v1".to_owned(),
+                        "post_synthesis_effects_v1".to_owned(),
                         "preferred_engine".to_owned(),
                         "runtime_routing_policy".to_owned(),
                         "stable_voice_ids".to_owned(),
