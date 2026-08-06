@@ -11,6 +11,7 @@ pub mod contracts;
 pub mod control;
 pub mod engine_registry;
 pub mod logical_voices;
+pub mod presentation;
 pub mod resolver;
 pub mod windows;
 #[cfg(feature = "piper")]

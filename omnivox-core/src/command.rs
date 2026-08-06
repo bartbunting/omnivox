@@ -47,6 +47,7 @@ pub enum CommandId {
     TtsReset,             // tts_reset
     Version,              // version
     OmnivoxControl,       // omnivox_control - versioned Base64-JSON control request
+    EmacsvoxTx,           // emacsvox_tx - replaceable Base64 presentation transaction
 
     // SwiftMac extensions
     TtsSetVoice,               // tts_set_voice
@@ -88,6 +89,7 @@ impl CommandId {
             "tts_reset" => Some(Self::TtsReset),
             "version" => Some(Self::Version),
             "omnivox_control" => Some(Self::OmnivoxControl),
+            "emacsvox_tx" => Some(Self::EmacsvoxTx),
             "tts_set_voice" => Some(Self::TtsSetVoice),
             "tts_set_pitch_multiplier" => Some(Self::TtsSetPitchMultiplier),
             "tts_set_sound_volume" => Some(Self::TtsSetSoundVolume),
@@ -243,6 +245,13 @@ mod tests {
             cmd.args,
             Some("eyJ0eXBlIjoiY2FwYWJpbGl0aWVzIn0=".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_emacsvox_transaction_arguments() {
+        let cmd = parse_command("emacsvox_tx 17 {cSB7aGVsbG99XG5kXG4=}").unwrap();
+        assert_eq!(cmd.id, CommandId::EmacsvoxTx);
+        assert_eq!(cmd.args, Some("17 {cSB7aGVsbG99XG5kXG4=}".to_string()));
     }
 
     #[test]
