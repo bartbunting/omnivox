@@ -190,7 +190,9 @@ mod tests {
         AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
         EngineCapabilities, EngineHealth, MarkerCapabilities, PhysicalVoiceId, VoiceDescriptor,
     };
-    use crate::{AudioBuffer, TtsError, TtsSettings, VoiceInfo, VoiceQuality};
+    use crate::{
+        AudioBuffer, SynthesisRequest, SynthesisResult, TtsError, VoiceInfo, VoiceQuality,
+    };
 
     struct MockEngine {
         descriptor: Mutex<EngineDescriptor>,
@@ -215,12 +217,12 @@ mod tests {
             self.descriptor.lock().unwrap().clone()
         }
 
-        fn synthesize(
-            &self,
-            _text: &str,
-            _settings: &TtsSettings,
-        ) -> Result<AudioBuffer, TtsError> {
-            Ok(AudioBuffer::empty())
+        fn synthesize(&self, _request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+            Ok(SynthesisResult::audio(
+                self.descriptor().id,
+                None,
+                AudioBuffer::empty(),
+            ))
         }
 
         fn stop(&self) {

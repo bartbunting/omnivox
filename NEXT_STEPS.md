@@ -222,10 +222,16 @@ helper engine and has been verified against the DECtalk helper.
 Status on 2026-08-06: buffered queued audio now has one-shot playback tickets.
 Natural mixer-source exhaustion completes a ticket; stop, backlog clearing, or
 source teardown cancels it. This supplies the queued Emacsvox contract, while
-structured engine results, externally playing engines, and marker propagation
-remain part of this phase. All engine PCM is now converted to Omnivox's canonical
+externally playing engines and full marker propagation remain part of this
+phase. `TtsEngine::synthesize` now accepts an owned structured request and
+returns audio plus the realized engine/voice, validated markers, and omitted
+ACSS dimensions. Exact routed voices must be realized exactly. Helper marker
+frames now leave the process client and their frame offsets are rescaled with
+audio during canonical conversion. All engine PCM is converted to Omnivox's
 stereo 44.1 kHz format before entering the effects and playback pipeline; this
-includes the helpers' native mono 11.025 kHz output.
+includes the helpers' native mono 11.025 kHz output. Silence-trim adjustment,
+playback delivery, native marker capture, external playback, and unifying the
+two audio buffer types remain.
 
 ### Phase 5: Complete the Emacsvox Protocol
 

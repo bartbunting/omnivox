@@ -5,8 +5,11 @@ use omnivox_audio::{
     SilenceTrimmer, StreamType, ToneGenerator, VolumeAdjust,
 };
 use omnivox_core::{QueueItem, TtsState};
+use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId};
 use omnivox_tts::engine_registry::EngineRegistry;
-use omnivox_tts::{AudioBuffer as TtsAudioBuffer, TtsEngine, TtsSettings};
+use omnivox_tts::{
+    SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
+};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use tracing::{debug, warn};
@@ -25,13 +28,26 @@ use crate::text::{
 // Buffer conversion
 // ---------------------------------------------------------------------------
 
-/// Convert a TTS `AudioBuffer` (omnivox_tts) to the pipeline `AudioBuffer` (omnivox_audio).
-pub fn tts_buffer_to_audio_buffer(tts_buf: omnivox_tts::AudioBuffer) -> AudioBuffer {
-    if tts_buf.is_empty() {
-        return AudioBuffer::empty();
+/// A synthesis result whose audio and marker offsets use the pipeline sample rate.
+pub struct CanonicalSynthesisResult {
+    pub audio: AudioBuffer,
+    pub engine_id: String,
+    pub actual_voice: Option<PhysicalVoiceId>,
+    pub markers: Vec<SynthesisMarker>,
+    pub degraded_acss: Vec<AcssDimension>,
+}
+
+/// Convert a structured synthesis result to canonical pipeline audio while
+/// preserving its realized route and rescaled markers.
+pub fn canonicalize_synthesis_result(result: SynthesisResult) -> CanonicalSynthesisResult {
+    let standard = result.into_standard_format();
+    CanonicalSynthesisResult {
+        audio: AudioBuffer::new(standard.audio.samples),
+        engine_id: standard.engine_id,
+        actual_voice: standard.actual_voice,
+        markers: standard.markers,
+        degraded_acss: standard.degraded_acss,
     }
-    let standard = tts_buf.to_standard_format();
-    AudioBuffer::new(standard.samples)
 }
 
 // ---------------------------------------------------------------------------
@@ -151,12 +167,16 @@ pub fn synthesize_chunk(
         return false;
     }
 
-    match ctx.engine.synthesize(chunk, settings) {
-        Ok(tts_buf) => {
+    let request = SynthesisRequest::new(chunk, settings.clone());
+    match ctx.engine.synthesize(&request).and_then(|result| {
+        result.validate(&request)?;
+        Ok(result)
+    }) {
+        Ok(result) => {
             if ctx.is_stale() {
                 return false;
             }
-            queue_synthesized_buffer(tts_buf, state, is_last, ctx);
+            queue_synthesis_result(result, state, is_last, ctx);
             true
         }
         Err(e) => {
@@ -167,19 +187,26 @@ pub fn synthesize_chunk(
     }
 }
 
-fn queue_synthesized_buffer(
-    tts_buf: TtsAudioBuffer,
+fn queue_synthesis_result(
+    result: SynthesisResult,
     state: &TtsState,
     is_last: bool,
     ctx: &SynthCtx,
 ) {
-    let mut buf = tts_buffer_to_audio_buffer(tts_buf);
+    let mut result = canonicalize_synthesis_result(result);
+    debug!(
+        engine = %result.engine_id,
+        voice = ?result.actual_voice,
+        markers = result.markers.len(),
+        degraded_acss = ?result.degraded_acss,
+        "queueing structured synthesis result"
+    );
     let pipeline = build_speech_pipeline(state, is_last);
-    if let Err(error) = pipeline.process(&mut buf) {
+    if let Err(error) = pipeline.process(&mut result.audio) {
         ctx.mark_failed();
         warn!("Pipeline error: {}", error);
     }
-    ctx.queue(StreamType::Speech, &buf);
+    ctx.queue(StreamType::Speech, &result.audio);
 }
 
 enum RoutedChunkOutcome {
@@ -216,8 +243,8 @@ fn synthesize_routed_chunk(
         ctx.gen,
         ctx.gen_counter,
     ) {
-        RuntimeSynthesisOutcome::Ready(buffer) => {
-            queue_synthesized_buffer(buffer, state, is_last, ctx);
+        RuntimeSynthesisOutcome::Ready(result) => {
+            queue_synthesis_result(*result, state, is_last, ctx);
             RoutedChunkOutcome::Queued
         }
         RuntimeSynthesisOutcome::Cancelled => RoutedChunkOutcome::Cancelled,
@@ -381,31 +408,62 @@ pub fn process_batch(
 mod tests {
     use super::*;
 
+    fn result(audio: omnivox_tts::AudioBuffer) -> SynthesisResult {
+        SynthesisResult::audio("mock", None, audio)
+    }
+
     #[test]
-    fn test_tts_buffer_to_audio_buffer() {
+    fn test_canonicalize_synthesis_result() {
         let tts_buf = omnivox_tts::AudioBuffer::new(vec![0.1, -0.1, 0.2, -0.2], 44100, 2);
-        let audio_buf = tts_buffer_to_audio_buffer(tts_buf);
+        let audio_buf = canonicalize_synthesis_result(result(tts_buf)).audio;
         assert_eq!(audio_buf.samples, vec![0.1, -0.1, 0.2, -0.2]);
         assert_eq!(audio_buf.frame_count(), 2);
     }
 
     #[test]
-    fn test_tts_buffer_to_audio_buffer_empty() {
+    fn test_canonicalize_synthesis_result_empty() {
         let tts_buf = omnivox_tts::AudioBuffer::empty();
-        let audio_buf = tts_buffer_to_audio_buffer(tts_buf);
+        let audio_buf = canonicalize_synthesis_result(result(tts_buf)).audio;
         assert!(audio_buf.is_empty());
     }
 
     #[test]
-    fn test_tts_buffer_to_audio_buffer_canonicalizes_odd_mono_input() {
+    fn test_canonicalize_synthesis_result_handles_odd_mono_input() {
         let tts_buf = omnivox_tts::AudioBuffer::new(vec![0.1; 513], 11025, 1);
 
-        let audio_buf = tts_buffer_to_audio_buffer(tts_buf);
+        let audio_buf = canonicalize_synthesis_result(result(tts_buf)).audio;
 
         assert!(!audio_buf.is_empty());
         assert_eq!(audio_buf.samples.len() % 2, 0);
         assert_eq!(audio_buf.sample_rate(), omnivox_audio::buffer::SAMPLE_RATE);
         assert_eq!(audio_buf.channels(), omnivox_audio::buffer::CHANNELS);
+    }
+
+    #[test]
+    fn canonicalization_preserves_metadata_and_rescales_markers() {
+        let mut result = SynthesisResult::new(
+            "helper",
+            Some(PhysicalVoiceId::new("helper", "voice")),
+            omnivox_tts::AudioBuffer::new(vec![0.1; 513], 11025, 1),
+            vec![SynthesisMarker {
+                kind: omnivox_tts::SynthesisMarkerKind::Word,
+                frame_offset: 100,
+                text_start: Some(0),
+                text_length: Some(5),
+                value: None,
+            }],
+        );
+        result.degraded_acss.push(AcssDimension::PitchRange);
+
+        let canonical = canonicalize_synthesis_result(result);
+
+        assert_eq!(canonical.engine_id, "helper");
+        assert_eq!(
+            canonical.actual_voice,
+            Some(PhysicalVoiceId::new("helper", "voice"))
+        );
+        assert_eq!(canonical.markers[0].frame_offset, 400);
+        assert_eq!(canonical.degraded_acss, vec![AcssDimension::PitchRange]);
     }
 
     #[test]

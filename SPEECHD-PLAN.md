@@ -65,13 +65,13 @@ pub struct SpeechDispatcherEngine {
 }
 
 impl TtsEngine for SpeechDispatcherEngine {
-    fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
+    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         let conn = self.conn.lock().unwrap();
-        self.apply_settings(&conn, settings)?;
+        self.apply_settings(&conn, &request.settings)?;
         // Set end-of-speech callback to signal done
-        // Call spd_say() with SPD_TEXT priority
+        // Call spd_say() with request.text and SPD_TEXT priority
         // Wait on condvar for callback to fire
-        Ok(AudioBuffer::empty())
+        Ok(SynthesisResult::audio("speechd", actual_voice, AudioBuffer::empty()))
     }
 
     fn stop(&self) {

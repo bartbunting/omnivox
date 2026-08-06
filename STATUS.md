@@ -50,6 +50,8 @@
 - Optional buffered Eloquence and DECtalk engines through separate 32-bit helpers
 - Per-engine rate, average-pitch, and volume degradation for logical ACSS routes
 - Canonical PCM conversion before helper audio enters the effects/playback pipeline
+- Structured synthesis requests and results with realized engine/voice metadata
+- Validated helper markers retained through canonical sample-rate conversion
 - Hard-stop cancellation requests fan out across all registered engines
 - Bounded, capability-advertised `emacsvox_tx` presentation framing with atomic validation
 - Generation coalescing, stale-frame rejection, and stop-barrier semantics
@@ -62,7 +64,7 @@
 ### Not Yet Implemented
 
 - Logical routing for immediate `tts_say` and letter commands
-- Structured synthesis results carrying realized routes and marker metadata
+- Marker adjustment through silence trimming and downstream audio effects
 - Eloquence and DECtalk native pitch-range, stress, richness, and marker support
 - Linux Speech Dispatcher TTS backend
 - Network mode (-p TCP flag)
@@ -76,12 +78,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 270 tests, all passing
+Total: 276 tests, all passing
 
 omnivox-audio:  63 unit + 31 integration = 94
 omnivox-core:   41 unit + 1 doc = 42
-omnivox-tts:    85 unit
-omnivox-cli:    49 unit
+omnivox-tts:    90 unit
+omnivox-cli:    50 unit
 ```
 
 ## Platform Support
@@ -123,8 +125,8 @@ omnivox-cli:    49 unit
 
 ## Next Priority
 
-1. Introduce structured synthesis results without breaking the existing engine trait.
-2. Carry WinRT, Eloquence, and DECtalk markers through the canonical audio pipeline.
+1. Preserve marker timestamps through silence trimming and queued playback.
+2. Populate WinRT, Eloquence, and DECtalk native markers.
 3. Add user-facing realized-route, degradation, and health diagnostics.
 4. Make language commands functional and include language in synchronized state.
 

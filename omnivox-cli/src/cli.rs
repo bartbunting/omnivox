@@ -4,13 +4,13 @@ use anyhow::Result;
 use omnivox_audio::{AudioFileLoader, AudioStreams, StreamType, ToneGenerator};
 use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
-use omnivox_tts::{TtsEngine, TtsSettings};
+use omnivox_tts::{SynthesisRequest, TtsEngine, TtsSettings};
 use std::io::Write as IoWrite;
 use std::sync::Arc;
 use tracing::{info, warn};
 
 use crate::engine::{create_engine, native_engine_name};
-use crate::pipeline::tts_buffer_to_audio_buffer;
+use crate::pipeline::canonicalize_synthesis_result;
 use crate::text::home_dir;
 
 // ---------------------------------------------------------------------------
@@ -293,14 +293,25 @@ pub fn cmd_check(engine_name: &str) {
 
     println!("[synthesis]");
     let settings = TtsSettings::default();
-    match engine.synthesize("test", &settings) {
-        Ok(buf) => {
-            if buf.is_empty() {
+    let test_request = SynthesisRequest::new("test", settings.clone());
+    match engine.synthesize(&test_request).and_then(|result| {
+        result.validate(&test_request)?;
+        Ok(result)
+    }) {
+        Ok(result) => {
+            if result.audio.is_empty() {
                 println!("  Status: WARNING - synthesized empty buffer");
             } else {
                 println!(
-                    "  Status: OK - {} samples, {}Hz, {} channels",
-                    buf.samples.len(), buf.sample_rate, buf.channels
+                    "  Status: OK - {} samples, {}Hz, {} channels, engine {}, voice {}",
+                    result.audio.samples.len(),
+                    result.audio.sample_rate,
+                    result.audio.channels,
+                    result.engine_id,
+                    result
+                        .actual_voice
+                        .as_ref()
+                        .map_or("unknown", |voice| voice.voice_id.as_str())
                 );
             }
         }
@@ -319,9 +330,13 @@ pub fn cmd_check(engine_name: &str) {
                 Err(e) => println!("  Test tone: FAILED - {}", e),
             }
 
-            match engine.synthesize("Omnivox is ready.", &settings) {
-                Ok(tts_buf) => {
-                    let buf = tts_buffer_to_audio_buffer(tts_buf);
+            let ready_request = SynthesisRequest::new("Omnivox is ready.", settings.clone());
+            match engine.synthesize(&ready_request).and_then(|result| {
+                result.validate(&ready_request)?;
+                Ok(result)
+            }) {
+                Ok(result) => {
+                    let buf = canonicalize_synthesis_result(result).audio;
                     match streams.queue(StreamType::Speech, &buf) {
                         Ok(_) => println!("  Test speech: playing..."),
                         Err(e) => println!("  Test speech: FAILED - {}", e),
@@ -394,7 +409,7 @@ pub fn write_wav(path: &str, samples: &[f32], sample_rate: u32, channels: u16) -
 }
 
 pub fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
-    use crate::pipeline::{build_speech_pipeline, tts_buffer_to_audio_buffer};
+    use crate::pipeline::{build_speech_pipeline, canonicalize_synthesis_result};
     use omnivox_audio::AudioBuffer;
 
     let engine = match create_engine(engine_name, None) {
@@ -419,21 +434,40 @@ pub fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
         volume: 1.0,
     };
 
-    match engine.synthesize(text, &settings) {
-        Ok(tts_buf) => {
+    let request = SynthesisRequest::new(text, settings);
+    match engine.synthesize(&request).and_then(|result| {
+        result.validate(&request)?;
+        Ok(result)
+    }) {
+        Ok(result) => {
             let raw_path = output.replace(".wav", "_raw.wav");
-            match write_wav(&raw_path, &tts_buf.samples, tts_buf.sample_rate, tts_buf.channels) {
-                Ok(_) => println!("Raw: {} ({} samples, {}Hz, {}ch)", raw_path, tts_buf.samples.len(), tts_buf.sample_rate, tts_buf.channels),
+            match write_wav(
+                &raw_path,
+                &result.audio.samples,
+                result.audio.sample_rate,
+                result.audio.channels,
+            ) {
+                Ok(_) => println!(
+                    "Raw: {} ({} samples, {}Hz, {}ch)",
+                    raw_path,
+                    result.audio.samples.len(),
+                    result.audio.sample_rate,
+                    result.audio.channels
+                ),
                 Err(e) => eprintln!("Failed to write {}: {}", raw_path, e),
             }
 
-            let mut buf: AudioBuffer = tts_buffer_to_audio_buffer(tts_buf);
+            let mut buf: AudioBuffer = canonicalize_synthesis_result(result).audio;
             let pipeline = build_speech_pipeline(&state, true);
             if let Err(e) = pipeline.process(&mut buf) {
                 eprintln!("Pipeline error: {}", e);
             }
             match write_wav(output, &buf.samples, 44100, 2) {
-                Ok(_) => println!("Pipeline: {} ({} samples, 44100Hz, 2ch)", output, buf.samples.len()),
+                Ok(_) => println!(
+                    "Pipeline: {} ({} samples, 44100Hz, 2ch)",
+                    output,
+                    buf.samples.len()
+                ),
                 Err(e) => eprintln!("Failed to write {}: {}", output, e),
             }
         }

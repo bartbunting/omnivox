@@ -10,7 +10,7 @@ use omnivox_tts::contracts::{
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::resolver::{resolve_voice, VoiceResolution};
-use omnivox_tts::{AudioBuffer, TtsEngine, TtsError, TtsSettings};
+use omnivox_tts::{SynthesisRequest, SynthesisResult, TtsEngine, TtsError, TtsSettings};
 use tracing::{debug, warn};
 
 use crate::health::{EngineAccess, EnginePermit, RuntimeEngineHealth};
@@ -106,7 +106,7 @@ pub enum RuntimeReroute {
 }
 
 pub enum RuntimeSynthesisOutcome {
-    Ready(AudioBuffer),
+    Ready(Box<SynthesisResult>),
     Cancelled,
     Failed,
     Exhausted,
@@ -180,13 +180,20 @@ pub fn synthesize_with_runtime_fallback(
         let mut routed_settings = settings.clone();
         routed_settings.voice = route.realized.voice_id.clone();
         apply_logical_acss(&mut routed_settings, &route.acss.style);
-        match route.engine.synthesize(chunk, &routed_settings) {
-            Ok(buffer) => {
+        let request = SynthesisRequest::new(chunk, routed_settings)
+            .with_route(route.logical_voice_id.clone(), route.realized.clone());
+        let synthesis = route.engine.synthesize(&request).and_then(|mut result| {
+            result.validate(&request)?;
+            result.degraded_acss = route.acss.omitted.clone();
+            Ok(result)
+        });
+        match synthesis {
+            Ok(result) => {
                 runtime_health.record_success(&route.realized.engine_id, permit);
                 return if stale(generation, generation_counter) {
                     RuntimeSynthesisOutcome::Cancelled
                 } else {
-                    RuntimeSynthesisOutcome::Ready(buffer)
+                    RuntimeSynthesisOutcome::Ready(Box::new(result))
                 };
             }
             Err(error) => {
@@ -388,7 +395,9 @@ mod tests {
         AcssCapabilities, AudioOutputMode, CancellationSupport, ConcurrencyModel,
         EngineCapabilities, MarkerCapabilities, NormalizedAcss, VoiceDescriptor, VoiceSelector,
     };
-    use omnivox_tts::{AudioBuffer, TtsSettings, VoiceInfo, VoiceQuality};
+    use omnivox_tts::{
+        AudioBuffer, SynthesisRequest, SynthesisResult, TtsSettings, VoiceInfo, VoiceQuality,
+    };
 
     enum MockFailure {
         Synthesis,
@@ -414,12 +423,19 @@ mod tests {
             Ok(())
         }
 
-        fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
+        fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
             self.calls
                 .lock()
                 .unwrap()
-                .push((text.to_owned(), settings.voice.clone()));
-            self.settings.lock().unwrap().push(settings.clone());
+                .push((request.text.clone(), request.settings.voice.clone()));
+            self.settings.lock().unwrap().push(request.settings.clone());
+            let success = || {
+                Ok(SynthesisResult::audio(
+                    self.descriptor.id.clone(),
+                    request.requested_voice.clone(),
+                    AudioBuffer::empty(),
+                ))
+            };
             match self.failure.as_ref() {
                 Some(MockFailure::Synthesis) => {
                     Err(TtsError::SynthesisFailed("mock failure".to_owned()))
@@ -433,8 +449,8 @@ mod tests {
                     counter.fetch_add(1, Ordering::Release);
                     Err(TtsError::SynthesisFailed("cancelled mock".to_owned()))
                 }
-                Some(MockFailure::SynthesisOnce(_)) => Ok(AudioBuffer::empty()),
-                None => Ok(AudioBuffer::empty()),
+                Some(MockFailure::SynthesisOnce(_)) => success(),
+                None => success(),
             }
         }
 

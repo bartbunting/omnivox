@@ -5,9 +5,14 @@
 
 use crate::contracts::{
     AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
-    EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities, VoiceDescriptor,
+    EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities, PhysicalVoiceId,
+    VoiceDescriptor,
 };
-use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo, VoiceQuality};
+#[cfg(test)]
+use crate::TtsSettings;
+use crate::{
+    AudioBuffer, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
+};
 use once_cell::sync::OnceCell;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_int, c_short, c_void};
@@ -178,50 +183,52 @@ impl EspeakTtsEngine {
     /// Create a new espeak-ng TTS engine.
     /// Initializes espeak-ng on first call; subsequent calls reuse the existing initialization.
     pub fn new() -> Result<Self, TtsError> {
-        let state = ESPEAK_LOCK.get_or_try_init(|| -> Result<Mutex<EspeakState>, TtsError> {
-            info!("Initializing espeak-ng TTS engine");
+        let state = ESPEAK_LOCK
+            .get_or_try_init(|| -> Result<Mutex<EspeakState>, TtsError> {
+                info!("Initializing espeak-ng TTS engine");
 
-            let data_path = Self::find_data_path();
+                let data_path = Self::find_data_path();
 
-            let sample_rate = unsafe {
-                let path_ptr = match &data_path {
-                    Some(p) => p.as_ptr(),
-                    None => std::ptr::null(),
+                let sample_rate = unsafe {
+                    let path_ptr = match &data_path {
+                        Some(p) => p.as_ptr(),
+                        None => std::ptr::null(),
+                    };
+
+                    // Initialize espeak-ng with AUDIO_OUTPUT_RETRIEVAL mode (no direct playback)
+                    // 0x8000 = espeakINITIALIZE_DONT_EXIT: prevents espeak from calling exit()
+                    let rate = espeak_rs_sys::espeak_Initialize(
+                        espeak_rs_sys::espeak_AUDIO_OUTPUT_AUDIO_OUTPUT_RETRIEVAL,
+                        0,        // default buffer length
+                        path_ptr, // data path (or null for default)
+                        0x8000,   // espeakINITIALIZE_DONT_EXIT
+                    );
+
+                    if rate <= 0 {
+                        return Err(TtsError::SynthesisFailed(
+                            "espeak_Initialize failed (is espeak-ng-data installed?)".to_string(),
+                        ));
+                    }
+
+                    // Set the synthesis callback
+                    espeak_rs_sys::espeak_SetSynthCallback(Some(synth_callback));
+
+                    rate as u32
                 };
 
-                // Initialize espeak-ng with AUDIO_OUTPUT_RETRIEVAL mode (no direct playback)
-                // 0x8000 = espeakINITIALIZE_DONT_EXIT: prevents espeak from calling exit()
-                let rate = espeak_rs_sys::espeak_Initialize(
-                    espeak_rs_sys::espeak_AUDIO_OUTPUT_AUDIO_OUTPUT_RETRIEVAL,
-                    0,        // default buffer length
-                    path_ptr, // data path (or null for default)
-                    0x8000,   // espeakINITIALIZE_DONT_EXIT
-                );
+                info!("espeak-ng initialized with sample rate: {}Hz", sample_rate);
 
-                if rate <= 0 {
-                    return Err(TtsError::SynthesisFailed(
-                        "espeak_Initialize failed (is espeak-ng-data installed?)".to_string(),
-                    ));
-                }
-
-                // Set the synthesis callback
-                espeak_rs_sys::espeak_SetSynthCallback(Some(synth_callback));
-
-                rate as u32
-            };
-
-            info!("espeak-ng initialized with sample rate: {}Hz", sample_rate);
-
-            Ok(Mutex::new(EspeakState {
-                sample_rate,
-                initialized: true,
-            }))
-        }).map_err(|e| TtsError::SynthesisFailed(format!("Failed to init espeak-ng: {}", e)))?;
+                Ok(Mutex::new(EspeakState {
+                    sample_rate,
+                    initialized: true,
+                }))
+            })
+            .map_err(|e| TtsError::SynthesisFailed(format!("Failed to init espeak-ng: {}", e)))?;
 
         // Verify it's initialized
-        let guard = state.lock().map_err(|e| {
-            TtsError::SynthesisFailed(format!("espeak-ng lock poisoned: {}", e))
-        })?;
+        let guard = state
+            .lock()
+            .map_err(|e| TtsError::SynthesisFailed(format!("espeak-ng lock poisoned: {}", e)))?;
         if !guard.initialized {
             return Err(TtsError::NotAvailable);
         }
@@ -303,17 +310,19 @@ impl TtsEngine for EspeakTtsEngine {
         }
     }
 
-    fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
+    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+        let text = request.text.as_str();
+        let settings = &request.settings;
         if text.is_empty() {
-            return Ok(AudioBuffer::empty());
+            return Ok(SynthesisResult::audio("espeak", None, AudioBuffer::empty()));
         }
 
-        let state = ESPEAK_LOCK
-            .get()
-            .ok_or(TtsError::NotAvailable)?;
-        let state_guard = state.lock().map_err(|e| {
-            TtsError::SynthesisFailed(format!("espeak-ng lock poisoned: {}", e))
-        })?;
+        let voice_id = request.voice_id_for_engine("espeak")?.to_owned();
+
+        let state = ESPEAK_LOCK.get().ok_or(TtsError::NotAvailable)?;
+        let state_guard = state
+            .lock()
+            .map_err(|e| TtsError::SynthesisFailed(format!("espeak-ng lock poisoned: {}", e)))?;
 
         let sample_rate = state_guard.sample_rate;
 
@@ -322,16 +331,33 @@ impl TtsEngine for EspeakTtsEngine {
             text, settings.rate, settings.pitch, settings.volume
         );
 
+        let actual_voice;
         unsafe {
             // Set voice
-            let voice_name = Self::backend_voice_name(&settings.voice);
-            let voice_cstr = CString::new(voice_name).map_err(|_| {
-                TtsError::InvalidParameter("Invalid voice name".to_string())
-            })?;
+            let voice_name = Self::backend_voice_name(&voice_id);
+            let voice_cstr = CString::new(voice_name)
+                .map_err(|_| TtsError::InvalidParameter("Invalid voice name".to_string()))?;
             let voice_result = espeak_rs_sys::espeak_SetVoiceByName(voice_cstr.as_ptr());
             if voice_result != espeak_rs_sys::espeak_ERROR_EE_OK {
-                return Err(TtsError::VoiceNotFound(settings.voice.clone()));
+                return Err(TtsError::VoiceNotFound(voice_id));
             }
+            let current_voice = espeak_rs_sys::espeak_GetCurrentVoice();
+            actual_voice = if current_voice.is_null() {
+                None
+            } else {
+                let current_voice = &*current_voice;
+                let identifier = if current_voice.identifier.is_null() {
+                    current_voice.name
+                } else {
+                    current_voice.identifier
+                };
+                (!identifier.is_null()).then(|| {
+                    PhysicalVoiceId::new(
+                        "espeak",
+                        format!("espeak:{}", CStr::from_ptr(identifier).to_string_lossy()),
+                    )
+                })
+            };
 
             // Set parameters
             espeak_rs_sys::espeak_SetParameter(
@@ -359,18 +385,17 @@ impl TtsEngine for EspeakTtsEngine {
             }
 
             // Synthesize
-            let text_cstr = CString::new(text).map_err(|_| {
-                TtsError::SynthesisFailed("Text contains null bytes".to_string())
-            })?;
+            let text_cstr = CString::new(text)
+                .map_err(|_| TtsError::SynthesisFailed("Text contains null bytes".to_string()))?;
             let text_len = text_cstr.as_bytes_with_nul().len();
 
             let result = espeak_rs_sys::espeak_Synth(
                 text_cstr.as_ptr() as *const c_void,
                 text_len,
-                0,     // start position
-                0,     // POS_CHARACTER
-                0,     // end position (0 = all)
-                0x1000, // espeakCHARS_UTF8
+                0,                    // start position
+                0,                    // POS_CHARACTER
+                0,                    // end position (0 = all)
+                0x1000,               // espeakCHARS_UTF8
                 std::ptr::null_mut(), // unique identifier
                 std::ptr::null_mut(), // user data
             );
@@ -388,15 +413,19 @@ impl TtsEngine for EspeakTtsEngine {
 
         // Extract the collected audio samples
         let i16_samples = {
-            let mut buf = SYNTH_BUFFER.lock().map_err(|e| {
-                TtsError::SynthesisFailed(format!("Buffer lock poisoned: {}", e))
-            })?;
+            let mut buf = SYNTH_BUFFER
+                .lock()
+                .map_err(|e| TtsError::SynthesisFailed(format!("Buffer lock poisoned: {}", e)))?;
             buf.take().unwrap_or_default()
         };
 
         if i16_samples.is_empty() {
             debug!("espeak-ng produced no audio");
-            return Ok(AudioBuffer::empty());
+            return Ok(SynthesisResult::audio(
+                "espeak",
+                actual_voice,
+                AudioBuffer::empty(),
+            ));
         }
 
         debug!(
@@ -407,7 +436,11 @@ impl TtsEngine for EspeakTtsEngine {
 
         // Convert i16 mono to f32, then to standard format (stereo @ 44100Hz)
         let buffer = AudioBuffer::from_i16(&i16_samples, sample_rate, 1);
-        Ok(buffer.to_standard_format())
+        Ok(SynthesisResult::audio(
+            "espeak",
+            actual_voice,
+            buffer.to_standard_format(),
+        ))
     }
 
     fn stop(&self) {
@@ -586,14 +619,16 @@ mod tests {
         let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
         let settings = TtsSettings::default();
 
-        let buffer = engine
-            .synthesize("hello world", &settings)
+        let result = engine
+            .synthesize(&SynthesisRequest::new("hello world", settings))
             .expect("Synthesis failed");
 
-        assert!(!buffer.is_empty(), "Buffer should not be empty");
-        assert_eq!(buffer.sample_rate, crate::STANDARD_SAMPLE_RATE);
-        assert_eq!(buffer.channels, crate::STANDARD_CHANNELS);
-        assert!(buffer.duration() > 0.0, "Duration should be positive");
+        assert!(!result.audio.is_empty(), "Buffer should not be empty");
+        assert_eq!(result.audio.sample_rate, crate::STANDARD_SAMPLE_RATE);
+        assert_eq!(result.audio.channels, crate::STANDARD_CHANNELS);
+        assert!(result.audio.duration() > 0.0, "Duration should be positive");
+        assert_eq!(result.engine_id, "espeak");
+        assert!(result.actual_voice.is_some());
     }
 
     #[test]
@@ -601,11 +636,11 @@ mod tests {
         let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
         let settings = TtsSettings::default();
 
-        let buffer = engine
-            .synthesize("", &settings)
+        let result = engine
+            .synthesize(&SynthesisRequest::new("", settings))
             .expect("Synthesis should succeed for empty text");
 
-        assert!(buffer.is_empty());
+        assert!(result.audio.is_empty());
     }
 
     #[test]
@@ -616,7 +651,9 @@ mod tests {
             ..TtsSettings::default()
         };
 
-        let error = engine.synthesize("test", &settings).unwrap_err();
+        let error = engine
+            .synthesize(&SynthesisRequest::new("test", settings))
+            .unwrap_err();
 
         assert!(matches!(error, TtsError::VoiceNotFound(_)));
     }
@@ -645,10 +682,10 @@ mod tests {
             volume: 0.8,
         };
 
-        let buffer = engine
-            .synthesize("test", &settings)
+        let result = engine
+            .synthesize(&SynthesisRequest::new("test", settings))
             .expect("Synthesis with custom settings failed");
 
-        assert!(!buffer.is_empty());
+        assert!(!result.audio.is_empty());
     }
 }

@@ -115,8 +115,10 @@ stream validator are in `omnivox-tts/src/helper_engine.rs`. They negotiate and
 validate inventory, enforce exact requested voice realization, reject malformed
 or incomplete PCM streams, issue cancellation independently of the serialized
 synthesis call, and replace a failed child during a recovery probe. Marker
-frames are validated but cannot yet leave the helper engine because the current
-`TtsEngine` result type carries audio only.
+frames are validated, converted to common synthesis markers, and returned with
+the helper's native PCM and realized physical voice. Their frame offsets follow
+sample-rate conversion into canonical Omnivox audio. The current Eloquence and
+DECtalk adapters do not advertise or emit native markers yet.
 
 The Eloquence and DECtalk adapters share one C# protocol host while retaining
 separate native capture implementations and executables. Windows Omnivox

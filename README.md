@@ -63,7 +63,7 @@ make build
 # Build debug binary
 make dev
 
-# Run tests (270 tests, including one documentation test)
+# Run tests (276 tests, including one documentation test)
 make test
 
 # Run clippy lints

@@ -9,10 +9,10 @@ use crate::contracts::{
     EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities,
 };
 #[cfg(target_os = "macos")]
-use crate::contracts::VoiceDescriptor;
-use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo};
+use crate::contracts::{PhysicalVoiceId, VoiceDescriptor};
 #[cfg(target_os = "macos")]
-use crate::VoiceQuality;
+use crate::{AudioBuffer, VoiceQuality};
+use crate::{SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo};
 #[cfg(target_os = "macos")]
 use tracing::{debug, info};
 
@@ -147,20 +147,34 @@ impl TtsEngine for MacOsTtsEngine {
         }
     }
 
-    fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
+    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+        let text = request.text.as_str();
+        let settings = &request.settings;
         debug!(
             "Synthesizing: {} (rate: {}, pitch: {}, volume: {})",
             text, settings.rate, settings.pitch, settings.volume
         );
 
         if text.is_empty() {
-            return Ok(AudioBuffer::empty());
+            return Ok(SynthesisResult::audio("macos", None, AudioBuffer::empty()));
         }
+
+        let voice_id = request.voice_id_for_engine("macos")?;
+        let selected_voice = self
+            .available_voices()
+            .into_iter()
+            .find(|voice| voice.identifier == voice_id);
+        let actual_voice = selected_voice
+            .as_ref()
+            .map(|voice| PhysicalVoiceId::new("macos", voice.identifier.clone()));
 
         let c_text = std::ffi::CString::new(text)
             .map_err(|_| TtsError::SynthesisFailed("Invalid text".to_string()))?;
 
-        let (lang, name) = Self::parse_voice_id(&settings.voice);
+        let (lang, name) = selected_voice.map_or_else(
+            || Self::parse_voice_id(voice_id),
+            |voice| (Some(voice.language), Some(voice.name)),
+        );
 
         let c_lang = lang
             .as_ref()
@@ -189,7 +203,11 @@ impl TtsEngine for MacOsTtsEngine {
 
         if result.samples.is_null() || result.sample_count == 0 {
             debug!("Synthesis produced no audio data");
-            return Ok(AudioBuffer::empty());
+            return Ok(SynthesisResult::audio(
+                "macos",
+                actual_voice,
+                AudioBuffer::empty(),
+            ));
         }
 
         debug!(
@@ -206,7 +224,11 @@ impl TtsEngine for MacOsTtsEngine {
         };
 
         let buffer = AudioBuffer::new(samples, result.sample_rate, result.channels);
-        Ok(buffer.to_standard_format())
+        Ok(SynthesisResult::audio(
+            "macos",
+            actual_voice,
+            buffer.to_standard_format(),
+        ))
     }
 
     fn stop(&self) {
@@ -302,7 +324,7 @@ impl TtsEngine for MacOsTtsEngine {
         }
     }
 
-    fn synthesize(&self, _text: &str, _settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
+    fn synthesize(&self, _request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         Err(TtsError::NotAvailable)
     }
 

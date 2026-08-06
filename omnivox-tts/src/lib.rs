@@ -15,9 +15,12 @@ pub mod helper_protocol;
 pub mod logical_voices;
 pub mod presentation;
 pub mod resolver;
+pub mod synthesis;
 pub mod windows;
 #[cfg(feature = "piper")]
 pub mod piper;
+
+pub use synthesis::{SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult};
 
 /// TTS engine errors
 #[derive(Debug, Error)]
@@ -232,8 +235,8 @@ pub trait TtsEngine: Send + Sync {
         Ok(())
     }
 
-    /// Synthesize text to an audio buffer
-    fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError>;
+    /// Synthesize one structured request and report realized output metadata.
+    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError>;
 
     /// Stop current synthesis
     fn stop(&self);

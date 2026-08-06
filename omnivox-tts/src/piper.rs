@@ -21,9 +21,12 @@
 
 use crate::contracts::{
     AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
-    EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities, VoiceDescriptor,
+    EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities, PhysicalVoiceId,
+    VoiceDescriptor,
 };
-use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo, VoiceQuality};
+use crate::{
+    AudioBuffer, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
+};
 use std::ffi::{CStr, CString};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -116,20 +119,17 @@ impl PiperTtsEngine {
         let espeak_cstr = CString::new(espeak_data.as_str())
             .map_err(|_| TtsError::InvalidParameter("Invalid espeak data path".to_string()))?;
 
-        let state_ptr =
-            unsafe { omnivox_piper_sys::piper_init(espeak_cstr.as_ptr()) };
+        let state_ptr = unsafe { omnivox_piper_sys::piper_init(espeak_cstr.as_ptr()) };
         if state_ptr.is_null() {
             return Err(TtsError::SynthesisFailed(
                 "piper_init failed (check espeak-ng data path)".to_string(),
             ));
         }
 
-        let model_cstr =
-            CString::new(model_path.to_string_lossy().as_ref())
-                .map_err(|_| TtsError::InvalidParameter("Invalid model path".to_string()))?;
-        let config_cstr =
-            CString::new(config_path.to_string_lossy().as_ref())
-                .map_err(|_| TtsError::InvalidParameter("Invalid config path".to_string()))?;
+        let model_cstr = CString::new(model_path.to_string_lossy().as_ref())
+            .map_err(|_| TtsError::InvalidParameter("Invalid model path".to_string()))?;
+        let config_cstr = CString::new(config_path.to_string_lossy().as_ref())
+            .map_err(|_| TtsError::InvalidParameter("Invalid config path".to_string()))?;
 
         let ret = unsafe {
             omnivox_piper_sys::piper_load_voice(
@@ -217,14 +217,26 @@ impl TtsEngine for PiperTtsEngine {
         }
     }
 
-    fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
+    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+        let text = request.text.as_str();
+        let settings = &request.settings;
+        request.voice_id_for_engine("piper")?;
+        let actual_voice = Some(PhysicalVoiceId::new(
+            "piper",
+            format!("piper:{}", self.voice_name),
+        ));
         if text.is_empty() {
-            return Ok(AudioBuffer::empty());
+            return Ok(SynthesisResult::audio(
+                "piper",
+                actual_voice,
+                AudioBuffer::empty(),
+            ));
         }
 
-        let ptr = self.state.lock().map_err(|e| {
-            TtsError::SynthesisFailed(format!("piper state lock poisoned: {}", e))
-        })?;
+        let ptr = self
+            .state
+            .lock()
+            .map_err(|e| TtsError::SynthesisFailed(format!("piper state lock poisoned: {}", e)))?;
 
         let length_scale = Self::map_rate_to_length_scale(settings.rate);
         // piper noise parameters use standard defaults
@@ -257,7 +269,11 @@ impl TtsEngine for PiperTtsEngine {
 
         if audio_ptr.is_null() || num_samples == 0 {
             debug!("piper produced no audio");
-            return Ok(AudioBuffer::empty());
+            return Ok(SynthesisResult::audio(
+                "piper",
+                actual_voice,
+                AudioBuffer::empty(),
+            ));
         }
 
         let i16_samples =
@@ -271,7 +287,11 @@ impl TtsEngine for PiperTtsEngine {
         );
 
         let buffer = AudioBuffer::from_i16(&i16_samples, sample_rate, 1);
-        Ok(buffer.to_standard_format())
+        Ok(SynthesisResult::audio(
+            "piper",
+            actual_voice,
+            buffer.to_standard_format(),
+        ))
     }
 
     fn stop(&self) {

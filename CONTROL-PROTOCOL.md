@@ -178,8 +178,9 @@ average pitch interpolates the same ten 0.5-through-2.0 pitch multipliers used
 by the Emacsvox adapter. Unsupported dimensions are omitted for that engine
 without preventing speech. A runtime fallback recomputes this application for
 the replacement engine instead of reusing the failed engine's capabilities.
-Pitch range, stress, and richness remain registered and diagnosable, but the
-current minimal `TtsSettings` interface cannot deliver them to an engine yet.
+Pitch range, stress, and richness remain registered and diagnosable. Structured
+synthesis requests now carry the route and legacy settings together, but those
+three dimensions do not yet have backend request fields or native mappings.
 
 ## Presentation Transactions
 

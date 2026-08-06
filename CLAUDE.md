@@ -9,7 +9,7 @@ Omnivox is a cross-platform Emacspeak speech server written in Rust. It is a dro
 4-crate Cargo workspace:
 
 - **omnivox-core** - Command parsing (27 Emacspeak protocol commands), queue management, state types. Pure Rust, no platform dependencies.
-- **omnivox-tts** - TTS engine trait + backends. `TtsEngine::synthesize()` returns an `AudioBuffer`. Backends: macOS AVSpeechSynthesizer (via ObjC bridge), Windows WinRT SpeechSynthesizer (via windows-rs), espeak-ng (via espeak-rs-sys). espeak-ng is always compiled in as cross-platform fallback.
+- **omnivox-tts** - TTS engine trait + backends. `TtsEngine::synthesize()` accepts a `SynthesisRequest` and returns a `SynthesisResult` containing audio, realized voice, markers, and degradation metadata. Backends: macOS AVSpeechSynthesizer (via ObjC bridge), Windows WinRT SpeechSynthesizer (via windows-rs), espeak-ng (via espeak-rs-sys), and optional helper/Piper engines. espeak-ng is always compiled in as cross-platform fallback.
 - **omnivox-audio** - Audio buffer (stereo f32 @ 44100Hz canonical format), effects pipeline (`AudioEffect` trait), tone generator, OGG/WAV file loader with LRU cache, rodio-based output.
 - **omnivox-cli** - Main binary wiring everything together. Reads Emacspeak protocol from stdin, dispatches to TTS/tone/audio-icon sources, runs through pipeline, plays via rodio.
 
@@ -200,8 +200,9 @@ Common causes and fixes:
 
 ## Key Files
 
-- `omnivox-tts/src/lib.rs` - TtsEngine trait definition. New backends must implement mandatory truthful `descriptor()` plus `synthesize() -> Result<AudioBuffer, TtsError>`.
-- `omnivox-tts/src/contracts.rs` - Additive engine/voice descriptors, normalized ACSS, portable selectors, logical definitions, and fallback policy.
+- `omnivox-tts/src/lib.rs` - TtsEngine trait definition. New backends must implement mandatory truthful `descriptor()` plus structured synthesis.
+- `omnivox-tts/src/synthesis.rs` - Structured synthesis requests, results, realized physical voices, degradation metadata, and validated markers.
+- `omnivox-tts/src/contracts.rs` - Engine/voice descriptors, normalized ACSS, portable selectors, logical definitions, and fallback policy.
 - `omnivox-tts/src/resolver.rs` - Pure late-binding resolver. It records failed attempts and the reason for the realized physical voice; it is not wired into synthesis yet.
 - `omnivox-tts/src/control.rs` - Bounded Base64-JSON control codec, capability negotiation, and structured errors. See `CONTROL-PROTOCOL.md`.
 - `omnivox-tts/src/espeak.rs` - espeak-ng backend (cross-platform fallback).
@@ -227,7 +228,10 @@ There are two `AudioBuffer` types (technical debt):
 - `omnivox_tts::AudioBuffer` - in omnivox-tts/src/lib.rs (TTS output format)
 - `omnivox_audio::AudioBuffer` - in omnivox-audio/src/buffer.rs (pipeline format)
 
-Both are stereo f32 @ 44100Hz but are separate types. The CLI converts between them via `tts_buffer_to_audio_buffer()` in main.rs. A future cleanup could unify these.
+The TTS type can carry an engine's native rate and channel count; the audio
+pipeline type is always stereo f32 at 44100Hz. The CLI converts structured
+results through `canonicalize_synthesis_result()`. A future cleanup could
+unify these types without losing native marker timing.
 
 ## Environment Variables
 

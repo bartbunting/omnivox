@@ -32,8 +32,13 @@ fn windows_capabilities() -> EngineCapabilities {
 #[cfg(target_os = "windows")]
 mod impl_windows {
     use super::windows_capabilities;
-    use crate::contracts::{Availability, EngineDescriptor, EngineHealth, VoiceDescriptor};
-    use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo, VoiceQuality};
+    use crate::contracts::{
+        Availability, EngineDescriptor, EngineHealth, PhysicalVoiceId, VoiceDescriptor,
+    };
+    use crate::{
+        AudioBuffer, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo,
+        VoiceQuality,
+    };
     use std::sync::Mutex;
     use tracing::{debug, info, warn};
     use windows::Media::SpeechSynthesis::SpeechSynthesizer;
@@ -96,7 +101,10 @@ mod impl_windows {
         }
 
         /// Try to find and set a voice matching the settings voice identifier.
-        fn try_set_voice(synth: &SpeechSynthesizer, voice_id: &str) -> Result<(), TtsError> {
+        fn try_set_voice(
+            synth: &SpeechSynthesizer,
+            voice_id: &str,
+        ) -> Result<PhysicalVoiceId, TtsError> {
             let all_voices = SpeechSynthesizer::AllVoices().map_err(|error| {
                 TtsError::SynthesisFailed(format!("Could not enumerate WinRT voices: {error}"))
             })?;
@@ -125,7 +133,7 @@ mod impl_windows {
                                 "Could not select WinRT voice {voice_id}: {error}"
                             ))
                         })?;
-                        return Ok(());
+                        return Ok(PhysicalVoiceId::new("winrt", format!("winrt:{id}")));
                     }
                 }
             }
@@ -157,18 +165,17 @@ mod impl_windows {
             }
         }
 
-        fn synthesize(
-            &self,
-            text: &str,
-            settings: &TtsSettings,
-        ) -> Result<AudioBuffer, TtsError> {
+        fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+            let text = request.text.as_str();
+            let settings = &request.settings;
             if text.is_empty() {
-                return Ok(AudioBuffer::empty());
+                return Ok(SynthesisResult::audio("winrt", None, AudioBuffer::empty()));
             }
 
-            let guard = self.state.lock().map_err(|e| {
-                TtsError::SynthesisFailed(format!("Lock poisoned: {}", e))
-            })?;
+            let guard = self
+                .state
+                .lock()
+                .map_err(|e| TtsError::SynthesisFailed(format!("Lock poisoned: {}", e)))?;
 
             debug!(
                 "WinRT synthesizing: {} (rate: {}, pitch: {}, volume: {})",
@@ -178,7 +185,8 @@ mod impl_windows {
             let synth = &guard.synth;
 
             // Set voice if specified
-            Self::try_set_voice(synth, &settings.voice)?;
+            let voice_id = request.voice_id_for_engine("winrt")?;
+            let actual_voice = Self::try_set_voice(synth, voice_id)?;
 
             // Set synthesis options (rate, pitch, volume)
             if let Ok(options) = synth.Options() {
@@ -192,24 +200,24 @@ mod impl_windows {
             let stream = synth
                 .SynthesizeTextToStreamAsync(&htext)
                 .map_err(|e| {
-                    TtsError::SynthesisFailed(format!(
-                        "SynthesizeTextToStreamAsync failed: {}",
-                        e
-                    ))
+                    TtsError::SynthesisFailed(format!("SynthesizeTextToStreamAsync failed: {}", e))
                 })?
                 .get()
-                .map_err(|e| {
-                    TtsError::SynthesisFailed(format!("Synthesis async failed: {}", e))
-                })?;
+                .map_err(|e| TtsError::SynthesisFailed(format!("Synthesis async failed: {}", e)))?;
 
             // Read the stream size
-            let size = stream.Size().map_err(|e| {
-                TtsError::SynthesisFailed(format!("Stream Size failed: {}", e))
-            })? as u32;
+            let size = stream
+                .Size()
+                .map_err(|e| TtsError::SynthesisFailed(format!("Stream Size failed: {}", e)))?
+                as u32;
 
             if size == 0 {
                 debug!("WinRT produced no audio");
-                return Ok(AudioBuffer::empty());
+                return Ok(SynthesisResult::audio(
+                    "winrt",
+                    Some(actual_voice),
+                    AudioBuffer::empty(),
+                ));
             }
 
             // Read bytes from the stream
@@ -226,19 +234,21 @@ mod impl_windows {
                 .LoadAsync(size)
                 .map_err(|e| TtsError::SynthesisFailed(format!("LoadAsync failed: {}", e)))?
                 .get()
-                .map_err(|e| {
-                    TtsError::SynthesisFailed(format!("Load async get failed: {}", e))
-                })?;
+                .map_err(|e| TtsError::SynthesisFailed(format!("Load async get failed: {}", e)))?;
 
             if bytes_loaded == 0 {
                 debug!("WinRT loaded 0 bytes");
-                return Ok(AudioBuffer::empty());
+                return Ok(SynthesisResult::audio(
+                    "winrt",
+                    Some(actual_voice),
+                    AudioBuffer::empty(),
+                ));
             }
 
             let mut raw_bytes = vec![0u8; bytes_loaded as usize];
-            reader.ReadBytes(&mut raw_bytes).map_err(|e| {
-                TtsError::SynthesisFailed(format!("ReadBytes failed: {}", e))
-            })?;
+            reader
+                .ReadBytes(&mut raw_bytes)
+                .map_err(|e| TtsError::SynthesisFailed(format!("ReadBytes failed: {}", e)))?;
 
             // Parse WAV header to extract format and PCM data offset
             let (sample_rate, channels, bits_per_sample, data_start) =
@@ -260,7 +270,11 @@ mod impl_windows {
                 );
 
                 let buffer = AudioBuffer::from_i16(&i16_samples, sample_rate, channels);
-                Ok(buffer.to_standard_format())
+                Ok(SynthesisResult::audio(
+                    "winrt",
+                    Some(actual_voice),
+                    buffer.to_standard_format(),
+                ))
             } else {
                 Err(TtsError::SynthesisFailed(format!(
                     "Unsupported bits per sample: {}",
@@ -424,9 +438,8 @@ impl crate::TtsEngine for WindowsTtsEngine {
 
     fn synthesize(
         &self,
-        _text: &str,
-        _settings: &crate::TtsSettings,
-    ) -> Result<crate::AudioBuffer, crate::TtsError> {
+        _request: &crate::SynthesisRequest,
+    ) -> Result<crate::SynthesisResult, crate::TtsError> {
         Err(crate::TtsError::NotAvailable)
     }
 

@@ -13,14 +13,19 @@ use std::time::Duration;
 use thiserror::Error;
 use tracing::warn;
 
-use crate::contracts::{AudioOutputMode, CancellationSupport, ConcurrencyModel, EngineDescriptor};
+use crate::contracts::{
+    AudioOutputMode, CancellationSupport, ConcurrencyModel, EngineDescriptor, PhysicalVoiceId,
+};
 use crate::engine_registry::validate_descriptor;
 use crate::helper_protocol::{
-    read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperRequest,
-    HelperRequestBody, HelperResponse, HelperResponseBody, HelperSynthesisSettings,
+    read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
+    HelperRequest, HelperRequestBody, HelperResponse, HelperResponseBody, HelperSynthesisSettings,
     HELPER_PROTOCOL_VERSION, MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES,
 };
-use crate::{AudioBuffer, TtsEngine, TtsError, TtsSettings, VoiceInfo};
+use crate::{
+    AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
+    TtsEngine, TtsError, VoiceInfo,
+};
 
 #[derive(Debug, Error)]
 pub enum HelperEngineError {
@@ -242,8 +247,32 @@ impl Drop for ProcessHelperConnection {
 
 #[derive(Debug)]
 pub(crate) enum HelperSynthesisResult {
-    Completed(AudioBuffer),
+    Completed(HelperCompletedSynthesis),
     Cancelled,
+}
+
+#[derive(Debug)]
+pub(crate) struct HelperCompletedSynthesis {
+    audio: AudioBuffer,
+    actual_voice_id: String,
+    markers: Vec<HelperMarker>,
+}
+
+impl From<HelperMarker> for SynthesisMarker {
+    fn from(marker: HelperMarker) -> Self {
+        Self {
+            kind: match marker.kind {
+                HelperMarkerKind::Word => SynthesisMarkerKind::Word,
+                HelperMarkerKind::Sentence => SynthesisMarkerKind::Sentence,
+                HelperMarkerKind::Phoneme => SynthesisMarkerKind::Phoneme,
+                HelperMarkerKind::NativeIndex => SynthesisMarkerKind::NativeIndex,
+            },
+            frame_offset: marker.frame_offset,
+            text_start: marker.text_start,
+            text_length: marker.text_length,
+            value: marker.value,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -258,6 +287,7 @@ pub(crate) struct HelperSynthesisCollector {
     expected_voice_id: Option<String>,
     phase: SynthesisPhase,
     format: Option<HelperAudioFormat>,
+    actual_voice_id: Option<String>,
     next_sequence: u32,
     samples: Vec<i16>,
     markers: Vec<HelperMarker>,
@@ -270,6 +300,7 @@ impl HelperSynthesisCollector {
             expected_voice_id,
             phase: SynthesisPhase::AwaitingStart,
             format: None,
+            actual_voice_id: None,
             next_sequence: 0,
             samples: Vec::new(),
             markers: Vec::new(),
@@ -307,6 +338,7 @@ impl HelperSynthesisCollector {
                     }
                 }
                 self.format = Some(format);
+                self.actual_voice_id = Some(actual_voice_id);
                 self.phase = SynthesisPhase::Streaming;
                 Ok(None)
             }
@@ -376,7 +408,18 @@ impl HelperSynthesisCollector {
                 }
                 self.phase = SynthesisPhase::Terminal;
                 Ok(Some(HelperSynthesisResult::Completed(
-                    AudioBuffer::from_i16(&self.samples, format.sample_rate, format.channels),
+                    HelperCompletedSynthesis {
+                        audio: AudioBuffer::from_i16(
+                            &self.samples,
+                            format.sample_rate,
+                            format.channels,
+                        ),
+                        actual_voice_id: self
+                            .actual_voice_id
+                            .take()
+                            .expect("streaming synthesis has an actual voice"),
+                        markers: std::mem::take(&mut self.markers),
+                    },
                 )))
             }
             HelperResponseBody::SynthesisCancelled => {
@@ -733,34 +776,36 @@ impl TtsEngine for HelperTtsEngine {
         self.install_fresh_connection().map_err(Self::map_error)
     }
 
-    fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
+    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         let _lifecycle = self.lifecycle.lock().unwrap();
         let connection = self.current_connection().map_err(Self::map_error)?;
+        let descriptor = self.descriptor();
         let request_id = self.allocate_request_id();
-        let requested_voice_id = if settings.voice.is_empty() {
+        let voice_id = request.voice_id_for_engine(&descriptor.id)?;
+        let requested_voice_id = if voice_id.is_empty() {
             None
         } else {
-            Some(settings.voice.clone())
+            Some(voice_id.to_owned())
         };
-        let request = HelperRequest::new(
+        let helper_request = HelperRequest::new(
             request_id,
             HelperRequestBody::Synthesize {
-                text: text.to_owned(),
+                text: request.text.clone(),
                 settings: HelperSynthesisSettings {
                     voice_id: requested_voice_id.clone(),
-                    rate: settings.rate,
-                    pitch: settings.pitch,
-                    volume: settings.volume,
+                    rate: request.settings.rate,
+                    pitch: request.settings.pitch,
+                    volume: request.settings.volume,
                 },
             },
         );
-        request.validate().map_err(|error| {
+        helper_request.validate().map_err(|error| {
             TtsError::InvalidParameter(format!("invalid helper synthesis request: {error}"))
         })?;
 
         {
             let _dispatch = self.dispatch.lock().unwrap();
-            if let Err(error) = connection.send(&request) {
+            if let Err(error) = connection.send(&helper_request) {
                 return Err(self.synthesis_error(&connection, error));
             }
             self.active_request_id.store(request_id, Ordering::Release);
@@ -798,7 +843,18 @@ impl TtsEngine for HelperTtsEngine {
                 Err(error) => return Err(self.synthesis_error(&connection, error)),
             };
             match progress {
-                Some(HelperSynthesisResult::Completed(buffer)) => return Ok(buffer),
+                Some(HelperSynthesisResult::Completed(completed)) => {
+                    let actual_voice =
+                        PhysicalVoiceId::new(descriptor.id.clone(), completed.actual_voice_id);
+                    let result = SynthesisResult::new(
+                        descriptor.id.clone(),
+                        Some(actual_voice),
+                        completed.audio,
+                        completed.markers.into_iter().map(Into::into).collect(),
+                    );
+                    result.validate(request)?;
+                    return Ok(result);
+                }
                 Some(HelperSynthesisResult::Cancelled) => {
                     return Err(TtsError::SynthesisFailed(
                         "helper synthesis cancelled".to_owned(),
@@ -885,7 +941,7 @@ mod tests {
         HelperMarkerKind, HelperPcmChunk, HelperResponseBody, HelperSampleFormat,
         HELPER_PROTOCOL_VERSION,
     };
-    use crate::VoiceQuality;
+    use crate::{TtsSettings, VoiceQuality};
 
     #[derive(Debug, Clone, Copy)]
     enum MockSynthesisMode {
@@ -957,6 +1013,18 @@ mod tests {
                             },
                         ));
                         self.push(audio(request.request_id, 0, &[-32_768, 0, 16_384, 32_767]));
+                        self.push(response(
+                            request.request_id,
+                            HelperResponseBody::Markers {
+                                markers: vec![HelperMarker {
+                                    kind: HelperMarkerKind::Word,
+                                    frame_offset: 1,
+                                    text_start: None,
+                                    text_length: None,
+                                    value: None,
+                                }],
+                            },
+                        ));
                         self.push(response(
                             request.request_id,
                             HelperResponseBody::SynthesisCompleted { frame_count: 4 },
@@ -1100,6 +1168,10 @@ mod tests {
         }
     }
 
+    fn synthesis_request(text: &str) -> SynthesisRequest {
+        SynthesisRequest::new(text, helper_settings())
+    }
+
     fn mock_engine(
         connections: Vec<Arc<MockConnection>>,
     ) -> Result<HelperTtsEngine, HelperEngineError> {
@@ -1175,14 +1247,16 @@ mod tests {
             ))
             .unwrap()
             .unwrap();
-        let HelperSynthesisResult::Completed(buffer) = result else {
+        let HelperSynthesisResult::Completed(completed) = result else {
             panic!("expected completed synthesis");
         };
-        assert_eq!(buffer.sample_rate, 22_050);
-        assert_eq!(buffer.channels, 1);
-        assert_eq!(buffer.samples.len(), 4);
-        assert_eq!(buffer.samples[0], -1.0);
-        assert!((buffer.samples[2] - 0.5).abs() < f32::EPSILON);
+        assert_eq!(completed.audio.sample_rate, 22_050);
+        assert_eq!(completed.audio.channels, 1);
+        assert_eq!(completed.audio.samples.len(), 4);
+        assert_eq!(completed.actual_voice_id, "reed");
+        assert_eq!(completed.markers.len(), 1);
+        assert_eq!(completed.audio.samples[0], -1.0);
+        assert!((completed.audio.samples[2] - 0.5).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -1305,20 +1379,29 @@ mod tests {
 
         assert_eq!(engine.descriptor().id, "eloquence");
         assert_eq!(engine.available_voices()[0].identifier, "reed");
-        let buffer = engine
+        let result = engine
             .synthesize(
-                "hello",
-                &TtsSettings {
-                    voice: "reed".to_owned(),
-                    rate: 0.6,
-                    pitch: 1.1,
-                    volume: 0.8,
-                },
+                &SynthesisRequest::new(
+                    "hello",
+                    TtsSettings {
+                        voice: "reed".to_owned(),
+                        rate: 0.6,
+                        pitch: 1.1,
+                        volume: 0.8,
+                    },
+                )
+                .with_route("logical-reed", PhysicalVoiceId::new("eloquence", "reed")),
             )
             .unwrap();
-        assert_eq!(buffer.sample_rate, 22_050);
-        assert_eq!(buffer.channels, 1);
-        assert_eq!(buffer.samples.len(), 4);
+        assert_eq!(result.audio.sample_rate, 22_050);
+        assert_eq!(result.audio.channels, 1);
+        assert_eq!(result.audio.samples.len(), 4);
+        assert_eq!(
+            result.actual_voice,
+            Some(PhysicalVoiceId::new("eloquence", "reed"))
+        );
+        assert_eq!(result.markers.len(), 1);
+        assert_eq!(result.markers[0].kind, SynthesisMarkerKind::Word);
         assert!(!engine.is_speaking());
 
         let sent = connection.sent.lock().unwrap();
@@ -1338,7 +1421,9 @@ mod tests {
         ));
         let engine = mock_engine(vec![connection]).unwrap();
 
-        let error = engine.synthesize("hello", &helper_settings()).unwrap_err();
+        let error = engine
+            .synthesize(&synthesis_request("hello"))
+            .unwrap_err();
         assert!(matches!(
             error,
             TtsError::VoiceNotFound(message) if message == "requested voice is missing"
@@ -1354,7 +1439,7 @@ mod tests {
         let engine = Arc::new(mock_engine(vec![Arc::clone(&connection)]).unwrap());
         let worker_engine = Arc::clone(&engine);
         let synthesis = std::thread::spawn(move || {
-            worker_engine.synthesize("long utterance", &helper_settings())
+            worker_engine.synthesize(&synthesis_request("long utterance"))
         });
 
         let deadline = Instant::now() + Duration::from_secs(1);
@@ -1394,7 +1479,9 @@ mod tests {
 
         assert!(failed.terminated.load(Ordering::Acquire));
         assert_eq!(engine.descriptor().version.as_deref(), Some("1.1"));
-        assert!(engine.synthesize("recovered", &helper_settings()).is_ok());
+        assert!(engine
+            .synthesize(&synthesis_request("recovered"))
+            .is_ok());
     }
 
     #[test]
@@ -1415,7 +1502,7 @@ mod tests {
         )
         .unwrap();
 
-        let error = engine.synthesize("hung", &helper_settings()).unwrap_err();
+        let error = engine.synthesize(&synthesis_request("hung")).unwrap_err();
         assert!(matches!(
             error,
             TtsError::SynthesisFailed(message) if message.contains("timed out")
@@ -1423,7 +1510,9 @@ mod tests {
         assert!(hung.terminated.load(Ordering::Acquire));
 
         engine.prepare_recovery_probe().unwrap();
-        assert!(engine.synthesize("recovered", &helper_settings()).is_ok());
+        assert!(engine
+            .synthesize(&synthesis_request("recovered"))
+            .is_ok());
     }
 
     #[test]

@@ -114,8 +114,9 @@ fn chunk_text(text: &str, max_words: usize) -> Vec<String> {
 // Usage in TtsSay handler:
 let processed_text = preprocess_text(&text, state);
 for chunk in chunk_text(&processed_text, 15) {
-    if let Ok(tts_buf) = engine.synthesize(&chunk, &settings) {
-        let mut buf = tts_buffer_to_audio_buffer(tts_buf);
+    let request = SynthesisRequest::new(chunk, settings.clone());
+    if let Ok(result) = engine.synthesize(&request) {
+        let mut buf = canonicalize_synthesis_result(result).audio;
         let pipeline = build_speech_pipeline(state);
         let _ = pipeline.process(&mut buf);
         let _ = streams.queue(StreamType::Speech, &buf);

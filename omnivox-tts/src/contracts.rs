@@ -1,7 +1,7 @@
 //! Descriptions shared by TTS engines, voice configuration, and discovery.
 //!
-//! These types are additive to the current [`crate::TtsEngine`] interface. They
-//! define the richer contract without changing the legacy synthesis path yet.
+//! Together with [`crate::SynthesisRequest`] and [`crate::SynthesisResult`],
+//! these types define the engine discovery, selection, and synthesis contract.
 
 use crate::{VoiceInfo, VoiceQuality};
 use serde::{Deserialize, Serialize};

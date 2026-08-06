@@ -101,12 +101,17 @@ enum PunctuationLevel { None, Some, All }
 ```rust
 // TTS engine trait - all backends implement this
 trait TtsEngine: Send + Sync {
-    fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError>;
+    fn descriptor(&self) -> EngineDescriptor;
+    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError>;
     fn stop(&self);
     fn is_speaking(&self) -> bool;
     fn available_voices(&self) -> Vec<VoiceInfo>;
     fn voice_info(&self, identifier: &str) -> Option<VoiceInfo>;
 }
+
+struct SynthesisRequest { text, settings, requested_voice, logical_voice_id, language }
+struct SynthesisResult { audio, engine_id, actual_voice, markers, degraded_acss }
+struct SynthesisMarker { kind, frame_offset, text_start, text_length, value }
 
 // AudioBuffer (TTS output format)
 struct AudioBuffer { samples: Vec<f32>, sample_rate: u32, channels: u16 }
