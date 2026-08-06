@@ -18,6 +18,7 @@ pub mod presentation;
 pub mod resolver;
 pub mod routing_policy;
 pub mod synthesis;
+pub mod timeline_protocol;
 pub mod windows;
 #[cfg(feature = "piper")]
 pub mod piper;
