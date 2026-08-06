@@ -172,6 +172,15 @@ without changing the registry. A valid but presently unresolvable definition
 is retained and returned with `"status": "unresolved"` and diagnostic attempts;
 it is not silently dropped.
 
+At synthesis time the resolved engine's current descriptor filters the logical
+ACSS record. Supported rate and volume values map directly to `TtsSettings`;
+average pitch interpolates the same ten 0.5-through-2.0 pitch multipliers used
+by the Emacsvox adapter. Unsupported dimensions are omitted for that engine
+without preventing speech. A runtime fallback recomputes this application for
+the replacement engine instead of reusing the failed engine's capabilities.
+Pitch range, stress, and richness remain registered and diagnosable, but the
+current minimal `TtsSettings` interface cannot deliver them to an engine yet.
+
 ## Presentation Transactions
 
 When `emacsvox_tx` is advertised, a client may send one replaceable

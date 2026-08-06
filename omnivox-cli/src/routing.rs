@@ -4,8 +4,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use omnivox_tts::contracts::{
-    Availability, EngineDescriptor, EngineHealth, FallbackPolicy, LogicalVoiceDefinition,
-    PhysicalVoiceId,
+    AcssApplication, Availability, EngineDescriptor, EngineHealth, FallbackPolicy,
+    LogicalVoiceDefinition, NormalizedAcss, PhysicalVoiceId,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
@@ -87,7 +87,7 @@ impl LogicalVoiceRoutingSnapshot {
             })?;
         let resolution = resolve_voice(&self.inventory, definition, &self.fallback_policy)
             .map_err(|error| error.to_string())?;
-        route_from_resolution(resolution, engine_registry)
+        route_from_resolution(resolution, definition, &self.inventory, engine_registry)
     }
 }
 
@@ -96,6 +96,7 @@ pub struct LogicalRoute {
     pub logical_voice_id: String,
     pub engine: Arc<dyn TtsEngine>,
     pub realized: PhysicalVoiceId,
+    pub acss: AcssApplication,
 }
 
 pub enum RuntimeReroute {
@@ -178,6 +179,7 @@ pub fn synthesize_with_runtime_fallback(
         }
         let mut routed_settings = settings.clone();
         routed_settings.voice = route.realized.voice_id.clone();
+        apply_logical_acss(&mut routed_settings, &route.acss.style);
         match route.engine.synthesize(chunk, &routed_settings) {
             Ok(buffer) => {
                 runtime_health.record_success(&route.realized.engine_id, permit);
@@ -276,6 +278,8 @@ fn stale(generation: u64, generation_counter: &AtomicU64) -> bool {
 
 fn route_from_resolution(
     resolution: VoiceResolution,
+    definition: &LogicalVoiceDefinition,
+    inventory: &[EngineDescriptor],
     engine_registry: &EngineRegistry,
 ) -> Result<LogicalRoute, String> {
     let engine = engine_registry
@@ -286,12 +290,54 @@ fn route_from_resolution(
                 resolution.logical_voice_id, resolution.realized.engine_id
             )
         })?;
+    let descriptor = inventory
+        .iter()
+        .find(|descriptor| descriptor.id == resolution.realized.engine_id)
+        .ok_or_else(|| {
+            format!(
+                "logical voice {} resolved to an engine missing from inventory",
+                resolution.logical_voice_id
+            )
+        })?;
+    let acss = definition
+        .acss
+        .clone()
+        .degrade_for(&descriptor.capabilities.acss);
+    if !acss.omitted.is_empty() {
+        debug!(
+            "Logical voice {} omitted unsupported {:?} on engine {}",
+            resolution.logical_voice_id, acss.omitted, resolution.realized.engine_id
+        );
+    }
 
     Ok(LogicalRoute {
         logical_voice_id: resolution.logical_voice_id,
         engine,
         realized: resolution.realized,
+        acss,
     })
+}
+
+fn apply_logical_acss(settings: &mut TtsSettings, style: &NormalizedAcss) {
+    if let Some(rate) = style.rate {
+        settings.rate = rate;
+    }
+    if let Some(average_pitch) = style.average_pitch {
+        settings.pitch = normalized_average_pitch(average_pitch);
+    }
+    if let Some(volume) = style.volume {
+        settings.volume = volume;
+    }
+}
+
+/// Interpolate the ten ACSS pitch levels used by the Emacsvox adapter.
+fn normalized_average_pitch(value: f32) -> f32 {
+    const PITCH_LEVELS: [f32; 10] = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.7, 2.0];
+    let position = value.clamp(0.0, 1.0) * (PITCH_LEVELS.len() - 1) as f32;
+    let lower = position.floor() as usize;
+    let upper = (lower + 1).min(PITCH_LEVELS.len() - 1);
+    let fraction = position - lower as f32;
+    PITCH_LEVELS[lower] + (PITCH_LEVELS[upper] - PITCH_LEVELS[lower]) * fraction
 }
 
 fn record_runtime_failure(
@@ -355,6 +401,7 @@ mod tests {
         failure: Option<MockFailure>,
         recovery_preparations: AtomicUsize,
         calls: Mutex<Vec<(String, String)>>,
+        settings: Mutex<Vec<TtsSettings>>,
     }
 
     impl TtsEngine for MockEngine {
@@ -372,6 +419,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .push((text.to_owned(), settings.voice.clone()));
+            self.settings.lock().unwrap().push(settings.clone());
             match self.failure.as_ref() {
                 Some(MockFailure::Synthesis) => {
                     Err(TtsError::SynthesisFailed("mock failure".to_owned()))
@@ -443,6 +491,7 @@ mod tests {
                 failure: None,
                 recovery_preparations: AtomicUsize::new(0),
                 calls: Mutex::new(Vec::new()),
+                settings: Mutex::new(Vec::new()),
             }))
             .unwrap();
     }
@@ -457,6 +506,23 @@ mod tests {
             failure,
             recovery_preparations: AtomicUsize::new(0),
             calls: Mutex::new(Vec::new()),
+            settings: Mutex::new(Vec::new()),
+        })
+    }
+
+    fn synthesis_engine_with_acss(
+        engine_id: &str,
+        voice_id: &str,
+        acss: AcssCapabilities,
+    ) -> Arc<MockEngine> {
+        let mut engine_descriptor = descriptor(engine_id, &[voice_id]);
+        engine_descriptor.capabilities.acss = acss;
+        Arc::new(MockEngine {
+            descriptor: engine_descriptor,
+            failure: None,
+            recovery_preparations: AtomicUsize::new(0),
+            calls: Mutex::new(Vec::new()),
+            settings: Mutex::new(Vec::new()),
         })
     }
 
@@ -483,6 +549,127 @@ mod tests {
             .register(1, vec![definition], fallback_policy, &engines.inventory())
             .unwrap();
         LogicalVoiceRoutingSnapshot::capture(&logical_voices, engines)
+    }
+
+    #[test]
+    fn routed_synthesis_applies_only_supported_logical_acss() {
+        let engine = synthesis_engine_with_acss(
+            "reference",
+            "voice",
+            AcssCapabilities {
+                rate: true,
+                average_pitch: true,
+                ..AcssCapabilities::default()
+            },
+        );
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&engine) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut logical_definition = definition(vec![exact("reference", "voice")]);
+        logical_definition.acss = NormalizedAcss {
+            rate: Some(0.8),
+            average_pitch: Some(5.0 / 9.0),
+            richness: Some(0.7),
+            volume: Some(0.2),
+            ..NormalizedAcss::default()
+        };
+        let mut routes = snapshot(&engines, logical_definition, FallbackPolicy::default());
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
+        let counter = AtomicU64::new(1);
+        let base = TtsSettings {
+            voice: "legacy".to_owned(),
+            rate: 0.3,
+            pitch: 1.7,
+            volume: 0.9,
+        };
+
+        let outcome = synthesize_with_runtime_fallback(
+            "styled",
+            &base,
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            1,
+            &counter,
+        );
+
+        assert!(matches!(outcome, RuntimeSynthesisOutcome::Ready(_)));
+        assert_eq!(
+            route.acss.omitted,
+            [
+                omnivox_tts::contracts::AcssDimension::Richness,
+                omnivox_tts::contracts::AcssDimension::Volume,
+            ]
+        );
+        let settings = engine.settings.lock().unwrap();
+        assert_eq!(settings.len(), 1);
+        assert_eq!(settings[0].voice, "voice");
+        assert!((settings[0].rate - 0.8).abs() < f32::EPSILON);
+        assert!((settings[0].pitch - 1.0).abs() < f32::EPSILON);
+        assert!((settings[0].volume - 0.9).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn average_pitch_mapping_matches_emacsvox_acss_levels() {
+        let expected = [0.5_f32, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.4, 1.7, 2.0];
+        for (index, pitch) in expected.into_iter().enumerate() {
+            let normalized = index as f32 / 9.0;
+            assert!((normalized_average_pitch(normalized) - pitch).abs() < 0.000_001);
+        }
+    }
+
+    #[test]
+    fn fallback_recomputes_acss_for_the_new_engine() {
+        let primary = synthesis_engine_with_acss(
+            "rate-only",
+            "primary",
+            AcssCapabilities {
+                rate: true,
+                ..AcssCapabilities::default()
+            },
+        );
+        let fallback = synthesis_engine_with_acss(
+            "pitch-only",
+            "fallback",
+            AcssCapabilities {
+                average_pitch: true,
+                ..AcssCapabilities::default()
+            },
+        );
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut logical_definition = definition(vec![
+            exact("rate-only", "primary"),
+            exact("pitch-only", "fallback"),
+        ]);
+        logical_definition.acss = NormalizedAcss {
+            rate: Some(0.7),
+            average_pitch: Some(0.4),
+            ..NormalizedAcss::default()
+        };
+        let mut routes = snapshot(&engines, logical_definition, FallbackPolicy::default());
+        let initial = routes.initial_route("source-code", &engines).unwrap();
+        assert_eq!(initial.acss.style.rate, Some(0.7));
+        assert_eq!(initial.acss.style.average_pitch, None);
+
+        let RuntimeReroute::Retry(retry) = routes.reroute_after_failure(
+            &initial,
+            &TtsError::VoiceNotFound("primary disappeared".to_owned()),
+            &engines,
+        ) else {
+            panic!("voice failure did not select the alternate engine");
+        };
+        assert_eq!(retry.realized.engine_id, "pitch-only");
+        assert_eq!(retry.acss.style.rate, None);
+        assert_eq!(retry.acss.style.average_pitch, Some(0.4));
     }
 
     #[test]

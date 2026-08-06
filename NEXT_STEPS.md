@@ -156,6 +156,11 @@ Machine-specific exact IDs stay optional; property selectors late-bind against
 each server's inventory. Registered bindings now drive queued per-span routing;
 semantic Emacs voice preferences resolve to their generated ACSS voice IDs.
 Queued logical voices now re-resolve and retry after bounded runtime failures.
+Their normalized rate, average pitch, and volume now apply when the selected
+engine advertises those dimensions; unsupported values degrade away, and a
+runtime fallback recomputes degradation against the replacement engine.
+Pitch range, stress, and richness still require the structured synthesis result
+work in Phase 4.
 
 ### Phase 3: Add an Engine Registry and Per-Span Routing
 
