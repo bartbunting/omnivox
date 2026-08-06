@@ -395,6 +395,15 @@ resolved speech boundaries, insert serial audio when requested, emit a semantic
 event only when reached, preserve marker order, and cancel all unreached audio,
 tails, and events atomically.
 
+Slice 1 status on 2026-08-07: implemented in `omnivox-core::timeline`. Opaque
+action and complete effect-state IDs are bounded; source positions distinguish
+span boundaries from UTF-8 offsets and before/after affinity; audio actions
+declare insert/overlay mode and dry/speech effect bus. The pure scheduler
+preserves same-frame input order, snapshots begin/replace/end effect state,
+builds a checked piecewise insertion map, separates the primary-clock end from
+overlay-tail completion, and projects active tails and unreached actions for
+cancellation. Playback remains unchanged until Slice 2.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when

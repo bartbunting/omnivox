@@ -68,6 +68,10 @@
 - Generation coalescing, stale-frame rejection, and stop-barrier semantics
 - Capability-advertised tracked dispatch with completed, cancelled, and failed terminal results
 - Playback acknowledgements covering queued speech, tones, silence, and audio icons
+- Pure engine-neutral presentation timeline vocabulary and scheduler with
+  bounded IDs, source/span positions, stable action order, insert/overlay
+  projection, persistent effect-state snapshots, checked frame mapping, and
+  cancellation projections
 - Non-mutating exact/portable voice preview with playback completion, realized
   route metadata, and ACSS degradation reporting
 - English-US eSpeak voice selected as the portable engine default when available
@@ -77,7 +81,7 @@
 ### Not Yet Implemented
 
 - Logical routing for immediate `tts_say` and letter commands
-- A general timeline-aware effects API
+- Playback integration for the presentation timeline and timeline-aware effects
 - Eloquence pitch-range, stress, richness, and sentence-marker support
 - DECtalk native pitch-range, stress, richness, and sentence-marker support
 - Linux Speech Dispatcher TTS backend
@@ -92,10 +96,10 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 299 tests, all passing
+Total: 305 tests, all passing
 
 omnivox-audio:  67 unit + 31 integration = 98
-omnivox-core:   42 unit + 1 doc = 43
+omnivox-core:   48 unit + 1 doc = 49
 omnivox-tts:   103 unit
 omnivox-cli:    55 unit
 ```
@@ -140,8 +144,8 @@ omnivox-cli:    55 unit
 
 ## Next Priority
 
-1. Assess truthful Eloquence and DECtalk sentence-boundary support.
-2. Complete Emacsvox workbench controls for runtime engine policy and health.
+1. Lower queued audio icons to queue-boundary timeline overlays.
+2. Add requested engine anchors and capitalization-tone overlays.
 3. Make language commands functional and include language in synchronized state.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).

@@ -9,7 +9,7 @@ Rust-based cross-platform Emacspeak speech server with mandatory audio processin
 ```
 omnivox/
 ├── Cargo.toml              # Workspace root
-├── omnivox-core/           # Command parsing, queue, state (platform-agnostic)
+├── omnivox-core/           # Commands, queue, state, pure presentation timeline
 ├── omnivox-tts/            # TTS trait + backends (macOS, Windows WinRT, espeak-ng)
 ├── omnivox-audio/          # Buffer, pipeline, effects, tone gen, file loader, rodio output
 ├── omnivox-cli/            # Main binary
@@ -94,7 +94,23 @@ struct CommandQueue { items: VecDeque<QueueItem> }
 struct TtsState { voice, pitch, rate, volume, punctuation_level, split_caps, ... }
 enum ChannelMode { Left, Right, Both }
 enum PunctuationLevel { None, Some, All }
+
+// Engine-neutral presentation timeline
+enum PresentationPosition { SpanBoundary{...}, TextOffset{...} }
+enum AudioActionMode { Insert, Overlay }
+enum TimelineActionKind { Audio{...}, SemanticEvent, EffectState{...} }
+struct FrameMap { /* checked piecewise insertion map */ }
+struct ScheduledTimeline {
+    frame_map, actions, primary_output_frames, completion_frame
+}
 ```
+
+The timeline scheduler is deliberately pure. Engines resolve source positions
+to primary speech-frame boundaries; the scheduler preserves stable same-frame
+order and projects insertions, overlays, semantic events, and persistent effect
+state onto the output clock. `primary_output_frames` excludes overlay tails,
+while `completion_frame` includes them. Playback integration is layered on
+this contract rather than inferred from the three legacy sinks.
 
 ### omnivox-tts
 
