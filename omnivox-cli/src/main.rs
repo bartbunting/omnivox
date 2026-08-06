@@ -17,6 +17,8 @@
 
 mod cli;
 mod engine;
+#[cfg(test)]
+mod health;
 mod pipeline;
 mod routing;
 mod server;
