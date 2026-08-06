@@ -9,6 +9,8 @@ use base64::Engine;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::contracts::EngineDescriptor;
+
 /// Current control protocol version.
 pub const CONTROL_PROTOCOL_VERSION: u32 = 1;
 
@@ -35,6 +37,7 @@ pub struct ControlRequestEnvelope {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ControlRequest {
     Capabilities,
+    Inventory,
 }
 
 /// One versioned server response.
@@ -54,6 +57,10 @@ pub enum ControlResponse {
         server_version: String,
         supported_protocol_versions: Vec<u32>,
         features: Vec<String>,
+    },
+    Inventory {
+        inventory_generation: u64,
+        engines: Vec<EngineDescriptor>,
     },
     Error {
         code: ControlErrorCode,
@@ -113,7 +120,12 @@ pub fn decode_response(payload: &str) -> Result<ControlResponseEnvelope, Control
 }
 
 /// Turn one encoded request into a response without mutating synthesis state.
-pub fn process_control_request(payload: &str, server_version: &str) -> ControlResponseEnvelope {
+pub fn process_control_request(
+    payload: &str,
+    server_version: &str,
+    inventory_generation: u64,
+    engines: &[EngineDescriptor],
+) -> ControlResponseEnvelope {
     match decode_request(payload) {
         Ok(request) if request.protocol_version != CONTROL_PROTOCOL_VERSION => error_response(
             Some(request.request_id),
@@ -132,9 +144,18 @@ pub fn process_control_request(payload: &str, server_version: &str) -> ControlRe
                     supported_protocol_versions: vec![CONTROL_PROTOCOL_VERSION],
                     features: vec![
                         "control_v1".to_owned(),
+                        "engine_inventory".to_owned(),
                         "legacy_commands".to_owned(),
                         "stable_voice_ids".to_owned(),
                     ],
+                },
+            },
+            ControlRequest::Inventory => ControlResponseEnvelope {
+                protocol_version: CONTROL_PROTOCOL_VERSION,
+                request_id: Some(request.request_id),
+                response: ControlResponse::Inventory {
+                    inventory_generation,
+                    engines: engines.to_vec(),
                 },
             },
         },
@@ -213,7 +234,7 @@ mod tests {
     #[test]
     fn capabilities_response_preserves_request_id() {
         let encoded = encode_request(&capabilities_request(1, 73)).unwrap();
-        let response = process_control_request(&encoded, "1.3.0");
+        let response = process_control_request(&encoded, "1.3.0", 1, &[]);
 
         assert_eq!(response.request_id, Some(73));
         assert!(matches!(
@@ -226,7 +247,7 @@ mod tests {
     #[test]
     fn unsupported_version_returns_structured_error() {
         let encoded = encode_request(&capabilities_request(99, 5)).unwrap();
-        let response = process_control_request(&encoded, "1.3.0");
+        let response = process_control_request(&encoded, "1.3.0", 1, &[]);
 
         assert_eq!(response.request_id, Some(5));
         assert!(matches!(
@@ -240,7 +261,7 @@ mod tests {
 
     #[test]
     fn malformed_payload_returns_unowned_error() {
-        let response = process_control_request("not-base64!", "1.3.0");
+        let response = process_control_request("not-base64!", "1.3.0", 1, &[]);
 
         assert_eq!(response.request_id, None);
         assert!(matches!(
@@ -285,5 +306,48 @@ mod tests {
             serde_json::from_value::<LogicalVoiceDefinition>(json).unwrap(),
             definition
         );
+    }
+
+    #[test]
+    fn inventory_response_carries_generation_and_descriptors() {
+        use crate::contracts::{
+            AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
+            EngineCapabilities, EngineHealth, MarkerCapabilities,
+        };
+
+        let engine = EngineDescriptor {
+            id: "winrt".to_owned(),
+            display_name: "Windows WinRT Speech Synthesis".to_owned(),
+            version: None,
+            availability: Availability::Available,
+            health: EngineHealth::Healthy,
+            capabilities: EngineCapabilities {
+                acss: AcssCapabilities::default(),
+                audio_output: AudioOutputMode::BufferedPcm,
+                cancellation: CancellationSupport::PlaybackOnly,
+                concurrency: ConcurrencyModel::Serialized,
+                markers: MarkerCapabilities::default(),
+                language_switching: true,
+                native_extensions: Vec::new(),
+            },
+            voices: Vec::new(),
+            default_voice_id: None,
+        };
+        let request = ControlRequestEnvelope {
+            protocol_version: 1,
+            request_id: 91,
+            request: ControlRequest::Inventory,
+        };
+        let encoded = encode_request(&request).unwrap();
+
+        let response = process_control_request(&encoded, "1.3.0", 7, &[engine.clone()]);
+
+        assert!(matches!(
+            response.response,
+            ControlResponse::Inventory {
+                inventory_generation: 7,
+                ref engines,
+            } if engines == &[engine]
+        ));
     }
 }

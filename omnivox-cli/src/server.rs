@@ -6,6 +6,7 @@ use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
 };
 use omnivox_tts::control::{format_control_event, process_control_request};
+use omnivox_tts::contracts::EngineDescriptor;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead, Write};
 use std::mem;
@@ -161,6 +162,7 @@ pub fn interrupt(
 /// drop guard outlives playback.
 pub fn run_server(
     engine: Arc<dyn TtsEngine>,
+    engine_descriptor: EngineDescriptor,
     mut state: TtsState,
     tx: mpsc::Sender<SynthRequest>,
     control: Arc<AudioControl>,
@@ -189,7 +191,17 @@ pub fn run_server(
             }
         };
 
-        handle_command(command, &mut state, &mut pending, &mut current_gen, &gen_counter, &engine, &control, &tx);
+        handle_command(
+            command,
+            &mut state,
+            &mut pending,
+            &mut current_gen,
+            &gen_counter,
+            &engine,
+            &engine_descriptor,
+            &control,
+            &tx,
+        );
     }
 
     info!("Stdin closed; waiting for synthesis worker to finish");
@@ -215,6 +227,7 @@ fn handle_command(
     current_gen: &mut u64,
     gen_counter: &Arc<AtomicU64>,
     engine: &Arc<dyn TtsEngine>,
+    engine_descriptor: &EngineDescriptor,
     control: &Arc<AudioControl>,
     tx: &mpsc::Sender<SynthRequest>,
 ) {
@@ -327,7 +340,12 @@ fn handle_command(
         }
 
         CommandId::OmnivoxControl => {
-            let response = process_control_request(command.args.as_deref().unwrap_or(""), crate::VERSION);
+            let response = process_control_request(
+                command.args.as_deref().unwrap_or(""),
+                crate::VERSION,
+                1,
+                std::slice::from_ref(engine_descriptor),
+            );
             match format_control_event(&response) {
                 Ok(event) => {
                     let mut stdout = io::stdout().lock();

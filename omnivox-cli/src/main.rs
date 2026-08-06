@@ -102,8 +102,8 @@ fn main() -> Result<()> {
     };
     info!("TTS engine initialized");
 
-    let voices = engine.available_voices();
-    info!("Found {} voices", voices.len());
+    let engine_descriptor = engine.descriptor();
+    info!("Found {} voices", engine_descriptor.voices.len());
 
     let streams = AudioStreams::new(SPEECH_MAX_DEPTH, TONE_MAX_DEPTH, SOUND_MAX_DEPTH)
         .map_err(|e| anyhow::anyhow!("Audio streams init failed: {}", e))?;
@@ -139,7 +139,15 @@ fn main() -> Result<()> {
         std::thread::Builder::new()
             .name("omnivox-reader".to_string())
             .spawn(move || {
-                let r = run_server(engine, state, tx, control, gen_counter, worker_handle);
+                let r = run_server(
+                    engine,
+                    engine_descriptor,
+                    state,
+                    tx,
+                    control,
+                    gen_counter,
+                    worker_handle,
+                );
                 *result2.lock().unwrap() = Some(r);
                 omnivox_tts::macos::stop_main_runloop();
             })
@@ -150,5 +158,13 @@ fn main() -> Result<()> {
     }
 
     #[cfg(not(target_os = "macos"))]
-    run_server(engine, state, tx, control, gen_counter, worker_handle)
+    run_server(
+        engine,
+        engine_descriptor,
+        state,
+        tx,
+        control,
+        gen_counter,
+        worker_handle,
+    )
 }
