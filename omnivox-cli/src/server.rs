@@ -7,6 +7,7 @@ use omnivox_core::{
 };
 use omnivox_tts::control::{format_control_event, process_control_request};
 use omnivox_tts::contracts::EngineDescriptor;
+use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead, Write};
 use std::mem;
@@ -171,6 +172,7 @@ pub fn run_server(
 ) -> Result<()> {
     let mut pending: Vec<QueueItem> = Vec::new();
     let mut current_gen: u64 = 0;
+    let mut logical_voices = LogicalVoiceRegistry::default();
 
     info!("Ready to accept commands from stdin");
 
@@ -199,6 +201,7 @@ pub fn run_server(
             &gen_counter,
             &engine,
             &engine_descriptor,
+            &mut logical_voices,
             &control,
             &tx,
         );
@@ -228,6 +231,7 @@ fn handle_command(
     gen_counter: &Arc<AtomicU64>,
     engine: &Arc<dyn TtsEngine>,
     engine_descriptor: &EngineDescriptor,
+    logical_voices: &mut LogicalVoiceRegistry,
     control: &Arc<AudioControl>,
     tx: &mpsc::Sender<SynthRequest>,
 ) {
@@ -345,6 +349,7 @@ fn handle_command(
                 crate::VERSION,
                 1,
                 std::slice::from_ref(engine_descriptor),
+                logical_voices,
             );
             match format_control_event(&response) {
                 Ok(event) => {
