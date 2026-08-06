@@ -213,6 +213,12 @@ an actual helper from that hook remains part of the x86 helper implementation.
 - Preserve or adjust marker timestamps through resampling, silence trimming,
   and other audio effects.
 
+Status on 2026-08-06: buffered queued audio now has one-shot playback tickets.
+Natural mixer-source exhaustion completes a ticket; stop, backlog clearing, or
+source teardown cancels it. This supplies the queued Emacsvox contract, while
+structured engine results, externally playing engines, and marker propagation
+remain part of this phase.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when
@@ -234,8 +240,11 @@ fallback are implemented in Emacsvox. Registered logical voices now select the
 engine and physical voice for queued spans. Capability-gated `emacsvox_tx`
 delivery now provides bounded UTF-8 decoding, atomic whole-frame validation,
 generation coalescing and stale rejection, and an external stop barrier while
-preserving the legacy path for older servers. Tracked dispatch and functional
-language commands remain.
+preserving the legacy path for older servers. Capability-gated tracked dispatch
+now emits exactly one terminal result after all queued speech, tone, silence,
+and audio-icon sources complete, cancel, or fail. Emacsvox negotiates this
+feature per live process and retains its unsupported-server error for older
+Omnivox builds. Functional language commands remain.
 
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking

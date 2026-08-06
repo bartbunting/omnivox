@@ -49,6 +49,8 @@
 - Hard-stop cancellation requests fan out across all registered engines
 - Bounded, capability-advertised `emacsvox_tx` presentation framing with atomic validation
 - Generation coalescing, stale-frame rejection, and stop-barrier semantics
+- Capability-advertised tracked dispatch with completed, cancelled, and failed terminal results
+- Playback acknowledgements covering queued speech, tones, silence, and audio icons
 - English-US eSpeak voice selected as the portable engine default when available
 - Diagnostic self-test (--check)
 - GitHub Actions CI/CD for 6 platforms
@@ -57,7 +59,6 @@
 
 - Helper-backed engine implementations and concrete helper restart/reconnect overrides
 - Logical routing for immediate `tts_say` and letter commands
-- Tracked-dispatch terminal events
 - Eloquence and DECtalk engines through the planned x86 helper
 - Linux Speech Dispatcher TTS backend
 - Network mode (-p TCP flag)
@@ -71,12 +72,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 239 tests, all passing
+Total: 245 tests, all passing
 
-omnivox-audio:  60 unit + 31 integration = 91
-omnivox-core:   40 unit + 1 doc = 41
+omnivox-audio:  63 unit + 31 integration = 94
+omnivox-core:   41 unit + 1 doc = 42
 omnivox-tts:    64 unit
-omnivox-cli:    43 unit
+omnivox-cli:    45 unit
 ```
 
 ## Platform Support
@@ -114,11 +115,12 @@ omnivox-cli:    43 unit
 | `tts_exit` | Working | Clean exit |
 | `omnivox_control` | Working | Capabilities, inventory, and logical-voice registration |
 | `emacsvox_tx` | Working | Bounded replaceable presentation transaction after capability negotiation |
+| `emacsvox_tracked_dispatch` | Working | One terminal result after queued playback completes, cancels, or fails |
 
 ## Next Priority
 
-1. Add tracked-dispatch terminal results and truthful cancellation reporting.
-2. Define the reusable x86 helper protocol and implement Eloquence capture first.
-3. Add user-facing inventory, binding, degradation, and health diagnostics.
+1. Define the reusable x86 helper protocol and implement Eloquence capture first.
+2. Add user-facing inventory, binding, degradation, and health diagnostics.
+3. Make language commands functional and include language in synchronized state.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).

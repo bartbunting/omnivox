@@ -15,7 +15,8 @@ not need Tcl escaping and remain separate structured fields.
 - The server advertises only features it currently implements. Version 1
   currently implements capability negotiation, active-engine inventory,
   atomic logical-voice registration, queued logical-voice routing, and bounded
-  replaceable presentation transactions.
+  replaceable presentation transactions. It also advertises tracked playback
+  completion for clients that need a terminal result after queued audio ends.
 
 ## Request Record
 
@@ -105,7 +106,8 @@ A successful capability response decodes to this shape:
     "logical_voice_registration",
     "logical_voice_routing",
     "preferred_engine",
-    "stable_voice_ids"
+    "stable_voice_ids",
+    "tracked_playback_completion"
   ]
 }
 ```
@@ -199,6 +201,42 @@ Emacsvox uses this extension only after capability negotiation and currently
 frames replaceable aural presentations. It keeps sending the ordinary legacy
 protocol to older servers. Frame validation failures are server diagnostics,
 not control-channel response records.
+
+## Tracked Playback Completion
+
+When `tracked_playback_completion` is advertised, a client may dispatch the
+current legacy queue with a positive identifier:
+
+```text
+emacsvox_tracked_dispatch 73
+```
+
+This command replaces the ordinary `d` for that dispatch. It is deliberately
+not valid inside an `emacsvox_tx` payload. For every accepted identifier the
+server writes exactly one flushed terminal record:
+
+```text
+__EMACSVOX_TRACKED__ 73 completed
+__EMACSVOX_TRACKED__ 73 cancelled
+__EMACSVOX_TRACKED__ 73 failed
+```
+
+`completed` means the batch succeeded and every nonempty audio buffer it queued
+across the speech, tone, and sound streams was consumed to its natural end. An
+accepted empty current-generation dispatch also completes. This is a mixer
+source-exhaustion guarantee; it is not proof that a physical output device was
+audible.
+
+`cancelled` means the generation became stale before or during processing, or
+a queued source was cleared or dropped before its natural end. Stop commands,
+backlog clearing, and audio-sink teardown therefore cancel affected tracked
+playback. `failed` means synthesis, fallback resolution, audio-icon loading,
+effects processing, or audio queuing failed. The reporter waits for any audio
+that was successfully queued before emitting the result, and `failed` takes
+precedence if that audio is later cancelled.
+
+Clients that do not see the capability must continue using ordinary `d` and
+must not infer playback completion from synthesis or command acceptance.
 
 ## Queued Logical-Voice Routing
 
