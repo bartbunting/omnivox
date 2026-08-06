@@ -16,6 +16,7 @@ use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};
 
+use crate::health::RuntimeEngineHealth;
 use crate::pipeline::{
     build_sound_pipeline, build_tone_pipeline, process_batch, synthesize_chunk, SynthCtx,
 };
@@ -63,12 +64,18 @@ pub fn synthesis_worker(
     gen_counter: Arc<AtomicU64>,
     engine: Arc<dyn TtsEngine>,
     engine_registry: Arc<EngineRegistry>,
+    runtime_health: Arc<RuntimeEngineHealth>,
     control: Arc<AudioControl>,
     loader: AudioFileLoader,
 ) {
     for request in rx {
         match request {
-            SynthRequest::Batch { items, state, logical_voice_routing, gen } => {
+            SynthRequest::Batch { items, state, mut logical_voice_routing, gen } => {
+                let runtime_inventory = runtime_health.snapshot(
+                    engine_registry.generation(),
+                    engine_registry.inventory(),
+                );
+                logical_voice_routing.replace_inventory(runtime_inventory.engines);
                 let ctx = SynthCtx { gen, gen_counter: &gen_counter, engine: &*engine, control: &control };
                 process_batch(
                     items,
@@ -76,6 +83,7 @@ pub fn synthesis_worker(
                     &ctx,
                     &loader,
                     &engine_registry,
+                    &runtime_health,
                     logical_voice_routing,
                 );
             }
@@ -181,9 +189,11 @@ pub fn interrupt(
 ///
 /// Does not own `AudioStreams` — the caller keeps it alive so the `OutputStream`
 /// drop guard outlives playback.
+#[allow(clippy::too_many_arguments)]
 pub fn run_server(
     engine: Arc<dyn TtsEngine>,
     engine_registry: Arc<EngineRegistry>,
+    runtime_health: Arc<RuntimeEngineHealth>,
     mut state: TtsState,
     tx: mpsc::Sender<SynthRequest>,
     control: Arc<AudioControl>,
@@ -231,6 +241,7 @@ pub fn run_server(
                 &mut current_gen,
                 &gen_counter,
                 &engine_registry,
+                &runtime_health,
                 &preferred_engine_id,
                 &mut logical_voices,
                 &control,
@@ -267,6 +278,7 @@ pub fn run_server(
                         &mut current_gen,
                         &gen_counter,
                         &engine_registry,
+                        &runtime_health,
                         &preferred_engine_id,
                         &mut logical_voices,
                         &control,
@@ -283,6 +295,7 @@ pub fn run_server(
                         &mut current_gen,
                         &gen_counter,
                         &engine_registry,
+                        &runtime_health,
                         &preferred_engine_id,
                         &mut logical_voices,
                         &control,
@@ -300,6 +313,7 @@ pub fn run_server(
                         &mut current_gen,
                         &gen_counter,
                         &engine_registry,
+                        &runtime_health,
                         &preferred_engine_id,
                         &mut logical_voices,
                         &control,
@@ -316,6 +330,7 @@ pub fn run_server(
                         &mut current_gen,
                         &gen_counter,
                         &engine_registry,
+                        &runtime_health,
                         &preferred_engine_id,
                         &mut logical_voices,
                         &control,
@@ -422,6 +437,7 @@ fn execute_presentation(
     current_gen: &mut u64,
     gen_counter: &Arc<AtomicU64>,
     engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
     preferred_engine_id: &str,
     logical_voices: &mut LogicalVoiceRegistry,
     control: &Arc<AudioControl>,
@@ -440,6 +456,7 @@ fn execute_presentation(
             current_gen,
             gen_counter,
             engine_registry,
+            runtime_health,
             preferred_engine_id,
             logical_voices,
             control,
@@ -460,6 +477,7 @@ fn handle_command(
     current_gen: &mut u64,
     gen_counter: &Arc<AtomicU64>,
     engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
     preferred_engine_id: &str,
     logical_voices: &mut LogicalVoiceRegistry,
     control: &Arc<AudioControl>,
@@ -582,13 +600,16 @@ fn handle_command(
         }
 
         CommandId::OmnivoxControl => {
-            let inventory = engine_registry.inventory();
+            let inventory = runtime_health.snapshot(
+                engine_registry.generation(),
+                engine_registry.inventory(),
+            );
             let response = process_control_request(
                 command.args.as_deref().unwrap_or(""),
                 crate::VERSION,
-                engine_registry.generation(),
+                inventory.generation,
                 preferred_engine_id,
-                &inventory,
+                &inventory.engines,
                 logical_voices,
             );
             match format_control_event(&response) {

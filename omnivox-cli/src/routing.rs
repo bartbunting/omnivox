@@ -8,25 +8,22 @@ use omnivox_tts::contracts::{
     PhysicalVoiceId,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
-use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
+use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::resolver::{resolve_voice, VoiceResolution};
 use omnivox_tts::{AudioBuffer, TtsEngine, TtsError, TtsSettings};
 use tracing::{debug, warn};
+
+use crate::health::{EngineAccess, EnginePermit, RuntimeEngineHealth};
 
 /// Maximum synthesis attempts for one routed chunk, including the first try.
 pub const MAX_RUNTIME_SYNTHESIS_ATTEMPTS: usize = 4;
 
 /// Immutable registration state plus a batch-local mutable inventory.
-///
-/// Runtime failures only affect this dispatch. Persistent engine health needs a
-/// recovery contract and is deliberately not inferred from one synthesis call.
 #[derive(Clone)]
 pub struct LogicalVoiceRoutingSnapshot {
     definitions: Vec<LogicalVoiceDefinition>,
     fallback_policy: FallbackPolicy,
-    bindings: Vec<LogicalVoiceBinding>,
     inventory: Vec<EngineDescriptor>,
-    runtime_failure_recorded: bool,
 }
 
 impl LogicalVoiceRoutingSnapshot {
@@ -37,10 +34,14 @@ impl LogicalVoiceRoutingSnapshot {
         Self {
             definitions: logical_voices.definitions().to_vec(),
             fallback_policy: logical_voices.fallback_policy().clone(),
-            bindings: logical_voices.bindings().to_vec(),
             inventory: engine_registry.inventory(),
-            runtime_failure_recorded: false,
         }
+    }
+
+    /// Replace the dispatch-time inventory with the worker's current runtime
+    /// view before resolving any logical voice in this batch.
+    pub fn replace_inventory(&mut self, inventory: Vec<EngineDescriptor>) {
+        self.inventory = inventory;
     }
 
     pub fn initial_route(
@@ -48,21 +49,7 @@ impl LogicalVoiceRoutingSnapshot {
         logical_voice_id: &str,
         engine_registry: &EngineRegistry,
     ) -> Result<LogicalRoute, String> {
-        if self.runtime_failure_recorded {
-            return self.resolve_current(logical_voice_id, engine_registry);
-        }
-        let binding = self
-            .bindings
-            .iter()
-            .find(|binding| binding.logical_voice_id() == logical_voice_id)
-            .ok_or_else(|| format!("logical voice {logical_voice_id} is not registered"))?;
-
-        match binding {
-            LogicalVoiceBinding::Resolved { resolution } => {
-                route_from_resolution(resolution.clone(), engine_registry)
-            }
-            LogicalVoiceBinding::Unresolved { error } => Err(error.to_string()),
-        }
+        self.resolve_current(logical_voice_id, engine_registry)
     }
 
     /// Exclude the failed runtime target locally and resolve the same logical
@@ -76,8 +63,6 @@ impl LogicalVoiceRoutingSnapshot {
         if !record_runtime_failure(&mut self.inventory, &route.realized, error) {
             return RuntimeReroute::NotRetryable;
         }
-        self.runtime_failure_recorded = true;
-
         match self.resolve_current(&route.logical_voice_id, engine_registry) {
             Ok(retry) if retry.realized != route.realized => RuntimeReroute::Retry(retry),
             Ok(_) => RuntimeReroute::Exhausted(format!(
@@ -136,6 +121,7 @@ pub fn synthesize_with_runtime_fallback(
     route: &mut LogicalRoute,
     routing: &mut LogicalVoiceRoutingSnapshot,
     engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
     generation: u64,
     generation_counter: &AtomicU64,
 ) -> RuntimeSynthesisOutcome {
@@ -143,10 +129,32 @@ pub fn synthesize_with_runtime_fallback(
         if stale(generation, generation_counter) {
             return RuntimeSynthesisOutcome::Cancelled;
         }
+        let permit = match runtime_health.acquire(&route.realized.engine_id) {
+            EngineAccess::Permit(permit) => permit,
+            EngineAccess::Denied { reason } => {
+                warn!(
+                    "Logical voice {} routed around engine {}: {}",
+                    route.logical_voice_id, route.realized.engine_id, reason
+                );
+                let error = TtsError::NotAvailable;
+                match select_retry(route, routing, engine_registry, &error, attempt) {
+                    Ok(retry) => {
+                        *route = retry;
+                        continue;
+                    }
+                    Err(outcome) => return outcome,
+                }
+            }
+        };
+        if stale(generation, generation_counter) {
+            release_cancelled_probe(runtime_health, &route.realized.engine_id, permit);
+            return RuntimeSynthesisOutcome::Cancelled;
+        }
         let mut routed_settings = settings.clone();
         routed_settings.voice = route.realized.voice_id.clone();
         match route.engine.synthesize(chunk, &routed_settings) {
             Ok(buffer) => {
+                runtime_health.record_success(&route.realized.engine_id, permit);
                 return if stale(generation, generation_counter) {
                     RuntimeSynthesisOutcome::Cancelled
                 } else {
@@ -155,7 +163,22 @@ pub fn synthesize_with_runtime_fallback(
             }
             Err(error) => {
                 if stale(generation, generation_counter) {
+                    release_cancelled_probe(runtime_health, &route.realized.engine_id, permit);
                     return RuntimeSynthesisOutcome::Cancelled;
+                }
+                match &error {
+                    TtsError::NotAvailable | TtsError::SynthesisFailed(_) => {
+                        let cooldown = runtime_health
+                            .record_failure(&route.realized.engine_id, error.to_string());
+                        warn!(
+                            "Engine {} runtime circuit opened for {} seconds",
+                            route.realized.engine_id,
+                            cooldown.as_secs()
+                        );
+                    }
+                    TtsError::VoiceNotFound(_) | TtsError::InvalidParameter(_) => {
+                        release_cancelled_probe(runtime_health, &route.realized.engine_id, permit);
+                    }
                 }
                 warn!(
                     "Logical voice {} synthesis attempt {}/{} failed on engine {} voice {}: {}",
@@ -166,38 +189,59 @@ pub fn synthesize_with_runtime_fallback(
                     route.realized.voice_id,
                     error
                 );
-                let reroute = routing.reroute_after_failure(route, &error, engine_registry);
-                if attempt == MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
-                    warn!(
-                        "Logical voice {} exhausted the runtime synthesis attempt limit",
-                        route.logical_voice_id
-                    );
-                    return RuntimeSynthesisOutcome::Exhausted;
-                }
-                match reroute {
-                    RuntimeReroute::Retry(retry) => {
-                        debug!(
-                            "Logical voice {} retrying on engine {} voice {}",
-                            retry.logical_voice_id,
-                            retry.realized.engine_id,
-                            retry.realized.voice_id
-                        );
-                        *route = retry;
-                    }
-                    RuntimeReroute::NotRetryable => return RuntimeSynthesisOutcome::Failed,
-                    RuntimeReroute::Exhausted(reason) => {
-                        warn!(
-                            "Logical voice {} runtime fallback exhausted: {}",
-                            route.logical_voice_id, reason
-                        );
-                        return RuntimeSynthesisOutcome::Exhausted;
-                    }
+                match select_retry(route, routing, engine_registry, &error, attempt) {
+                    Ok(retry) => *route = retry,
+                    Err(outcome) => return outcome,
                 }
             }
         }
     }
 
     unreachable!("the bounded routed synthesis loop always returns")
+}
+
+fn select_retry(
+    route: &LogicalRoute,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engine_registry: &EngineRegistry,
+    error: &TtsError,
+    attempt: usize,
+) -> Result<LogicalRoute, RuntimeSynthesisOutcome> {
+    let reroute = routing.reroute_after_failure(route, error, engine_registry);
+    if attempt == MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
+        warn!(
+            "Logical voice {} exhausted the runtime synthesis attempt limit",
+            route.logical_voice_id
+        );
+        return Err(RuntimeSynthesisOutcome::Exhausted);
+    }
+    match reroute {
+        RuntimeReroute::Retry(retry) => {
+            debug!(
+                "Logical voice {} retrying on engine {} voice {}",
+                retry.logical_voice_id, retry.realized.engine_id, retry.realized.voice_id
+            );
+            Ok(retry)
+        }
+        RuntimeReroute::NotRetryable => Err(RuntimeSynthesisOutcome::Failed),
+        RuntimeReroute::Exhausted(reason) => {
+            warn!(
+                "Logical voice {} runtime fallback exhausted: {}",
+                route.logical_voice_id, reason
+            );
+            Err(RuntimeSynthesisOutcome::Exhausted)
+        }
+    }
+}
+
+fn release_cancelled_probe(
+    runtime_health: &RuntimeEngineHealth,
+    engine_id: &str,
+    permit: EnginePermit,
+) {
+    if permit == EnginePermit::RecoveryProbe {
+        runtime_health.release_probe(engine_id);
+    }
 }
 
 fn stale(generation: u64, generation_counter: &AtomicU64) -> bool {
@@ -529,6 +573,7 @@ mod tests {
             },
         );
         let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
         let counter = AtomicU64::new(7);
 
         let outcome = synthesize_with_runtime_fallback(
@@ -537,6 +582,7 @@ mod tests {
             &mut route,
             &mut routes,
             &engines,
+            &health,
             7,
             &counter,
         );
@@ -550,6 +596,24 @@ mod tests {
         assert_eq!(
             *fallback.calls.lock().unwrap(),
             [("same chunk".to_owned(), "en-us".to_owned())]
+        );
+
+        let runtime_inventory = health.snapshot(engines.generation(), engines.inventory());
+        let mut next_routes = snapshot(
+            &engines,
+            definition(vec![exact("dectalk", "paul")]),
+            FallbackPolicy {
+                fallback_engines: vec!["espeak".to_owned()],
+                ..FallbackPolicy::default()
+            },
+        );
+        next_routes.replace_inventory(runtime_inventory.engines);
+        assert_eq!(
+            next_routes
+                .initial_route("source-code", &engines)
+                .unwrap()
+                .realized,
+            PhysicalVoiceId::new("espeak", "en-us")
         );
     }
 
@@ -570,6 +634,7 @@ mod tests {
         }
         let mut routes = snapshot(&engines, definition(preferences), FallbackPolicy::default());
         let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
         let counter = AtomicU64::new(3);
 
         let outcome = synthesize_with_runtime_fallback(
@@ -578,6 +643,7 @@ mod tests {
             &mut route,
             &mut routes,
             &engines,
+            &health,
             3,
             &counter,
         );
@@ -622,6 +688,7 @@ mod tests {
             },
         );
         let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
 
         let outcome = synthesize_with_runtime_fallback(
             "cancelled chunk",
@@ -629,6 +696,7 @@ mod tests {
             &mut route,
             &mut routes,
             &engines,
+            &health,
             11,
             &counter,
         );

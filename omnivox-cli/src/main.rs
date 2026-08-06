@@ -17,7 +17,6 @@
 
 mod cli;
 mod engine;
-#[cfg(test)]
 mod health;
 mod pipeline;
 mod routing;
@@ -35,6 +34,7 @@ use tracing::info;
 
 use cli::{apply_cli_flags, parse_args};
 use engine::{apply_audio_target_env, create_engine, create_engines};
+use health::RuntimeEngineHealth;
 use server::{run_server, synthesis_worker, SynthRequest};
 
 pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -124,10 +124,12 @@ fn main() -> Result<()> {
 
     let (tx, rx) = mpsc::channel::<SynthRequest>();
     let gen_counter = Arc::new(AtomicU64::new(0));
+    let runtime_health = Arc::new(RuntimeEngineHealth::new());
 
     let worker_handle = {
         let worker_engine = engine.clone();
         let worker_engine_registry = engine_registry.clone();
+        let worker_runtime_health = runtime_health.clone();
         let worker_control = control.clone();
         let worker_gen = gen_counter.clone();
         let loader = AudioFileLoader::with_cache();
@@ -139,6 +141,7 @@ fn main() -> Result<()> {
                     worker_gen,
                     worker_engine,
                     worker_engine_registry,
+                    worker_runtime_health,
                     worker_control,
                     loader,
                 )
@@ -161,6 +164,7 @@ fn main() -> Result<()> {
                 let r = run_server(
                     engine,
                     engine_registry,
+                    runtime_health,
                     state,
                     tx,
                     control,
@@ -180,6 +184,7 @@ fn main() -> Result<()> {
     run_server(
         engine,
         engine_registry,
+        runtime_health,
         state,
         tx,
         control,

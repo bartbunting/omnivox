@@ -10,6 +10,7 @@ use omnivox_tts::{AudioBuffer as TtsAudioBuffer, TtsEngine, TtsSettings};
 use std::sync::atomic::{AtomicU64, Ordering};
 use tracing::{debug, warn};
 
+use crate::health::RuntimeEngineHealth;
 use crate::routing::{
     synthesize_with_runtime_fallback, LogicalRoute, LogicalVoiceRoutingSnapshot,
     RuntimeSynthesisOutcome,
@@ -148,6 +149,7 @@ fn synthesize_routed_chunk(
     route: &mut LogicalRoute,
     routing: &mut LogicalVoiceRoutingSnapshot,
     engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
     ctx: &SynthCtx,
 ) -> RoutedChunkOutcome {
     let settings = TtsSettings {
@@ -162,6 +164,7 @@ fn synthesize_routed_chunk(
         route,
         routing,
         engine_registry,
+        runtime_health,
         ctx.gen,
         ctx.gen_counter,
     ) {
@@ -182,6 +185,7 @@ pub fn process_batch(
     ctx: &SynthCtx,
     loader: &AudioFileLoader,
     engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
     mut logical_voice_routing: LogicalVoiceRoutingSnapshot,
 ) {
     if ctx.is_stale() {
@@ -224,6 +228,7 @@ pub fn process_batch(
                             route,
                             &mut logical_voice_routing,
                             engine_registry,
+                            runtime_health,
                             ctx,
                         ) {
                             RoutedChunkOutcome::Cancelled => return,
