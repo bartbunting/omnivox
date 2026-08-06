@@ -13,9 +13,75 @@ use std::io::BufReader;
 use std::path::Path;
 use std::sync::Mutex;
 
+/// Maximum encoded resource size accepted by the common loader (16 MiB).
+pub const MAX_AUDIO_FILE_BYTES: u64 = 16 * 1024 * 1024;
+/// Maximum decoded duration retained for one resource.
+pub const MAX_AUDIO_DURATION_SECS: usize = 30;
+/// Maximum number of decoded resources retained by the shared cache.
+pub const MAX_AUDIO_CACHE_ENTRIES: usize = 128;
+/// Maximum canonical PCM sample storage retained by the shared cache (64 MiB).
+pub const MAX_AUDIO_CACHE_SAMPLES: usize = 64 * 1024 * 1024 / std::mem::size_of::<f32>();
+
+#[derive(Debug, Clone)]
+struct CachedAudio {
+    buffer: AudioBuffer,
+    last_used: u64,
+}
+
+#[derive(Debug, Default)]
+struct AudioCache {
+    entries: HashMap<String, CachedAudio>,
+    total_samples: usize,
+    access_clock: u64,
+}
+
+impl AudioCache {
+    fn get(&mut self, key: &str) -> Option<AudioBuffer> {
+        let entry = self.entries.get_mut(key)?;
+        self.access_clock = self.access_clock.wrapping_add(1);
+        entry.last_used = self.access_clock;
+        Some(entry.buffer.clone())
+    }
+
+    fn insert(&mut self, key: String, buffer: AudioBuffer) {
+        self.access_clock = self.access_clock.wrapping_add(1);
+        if let Some(previous) = self.entries.remove(&key) {
+            self.total_samples = self.total_samples.saturating_sub(previous.buffer.samples.len());
+        }
+        self.total_samples = self.total_samples.saturating_add(buffer.samples.len());
+        self.entries.insert(
+            key,
+            CachedAudio {
+                buffer,
+                last_used: self.access_clock,
+            },
+        );
+        while self.entries.len() > MAX_AUDIO_CACHE_ENTRIES
+            || self.total_samples > MAX_AUDIO_CACHE_SAMPLES
+        {
+            let Some(oldest) = self
+                .entries
+                .iter()
+                .min_by_key(|(_, entry)| entry.last_used)
+                .map(|(key, _)| key.clone())
+            else {
+                break;
+            };
+            if let Some(removed) = self.entries.remove(&oldest) {
+                self.total_samples = self.total_samples.saturating_sub(removed.buffer.samples.len());
+            }
+        }
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+        self.total_samples = 0;
+    }
+}
+
 /// Loads audio files (OGG, WAV) into AudioBuffers.
 pub struct AudioFileLoader {
-    cache: Mutex<HashMap<String, AudioBuffer>>,
+    cache: Mutex<AudioCache>,
     cache_enabled: bool,
 }
 
@@ -23,7 +89,7 @@ impl AudioFileLoader {
     /// Create a new AudioFileLoader without caching.
     pub fn new() -> Self {
         Self {
-            cache: Mutex::new(HashMap::new()),
+            cache: Mutex::new(AudioCache::default()),
             cache_enabled: false,
         }
     }
@@ -31,7 +97,7 @@ impl AudioFileLoader {
     /// Create a new AudioFileLoader with an LRU-style cache.
     pub fn with_cache() -> Self {
         Self {
-            cache: Mutex::new(HashMap::new()),
+            cache: Mutex::new(AudioCache::default()),
             cache_enabled: true,
         }
     }
@@ -43,13 +109,16 @@ impl AudioFileLoader {
     /// - Mono to stereo conversion (duplicate channels)
     /// - Integer to f32 conversion
     pub fn load(&self, path: &Path) -> Result<AudioBuffer, AudioError> {
-        let path_str = path.to_string_lossy().to_string();
+        let path_key = std::fs::canonicalize(path)
+            .unwrap_or_else(|_| path.to_path_buf())
+            .to_string_lossy()
+            .to_string();
 
         // Check cache first
         if self.cache_enabled {
-            if let Ok(cache) = self.cache.lock() {
-                if let Some(buffer) = cache.get(&path_str) {
-                    return Ok(buffer.clone());
+            if let Ok(mut cache) = self.cache.lock() {
+                if let Some(buffer) = cache.get(&path_key) {
+                    return Ok(buffer);
                 }
             }
         }
@@ -59,7 +128,7 @@ impl AudioFileLoader {
         // Store in cache
         if self.cache_enabled {
             if let Ok(mut cache) = self.cache.lock() {
-                cache.insert(path_str, buffer.clone());
+                cache.insert(path_key, buffer.clone());
             }
         }
 
@@ -68,10 +137,15 @@ impl AudioFileLoader {
 
     /// Load without checking or updating the cache.
     fn load_uncached(&self, path: &Path) -> Result<AudioBuffer, AudioError> {
-        if !path.exists() {
-            return Err(AudioError::FileNotFound(
-                path.to_string_lossy().to_string(),
-            ));
+        let metadata = std::fs::metadata(path).map_err(|error| {
+            AudioError::FileNotFound(format!("{}: {error}", path.to_string_lossy()))
+        })?;
+        if metadata.len() > MAX_AUDIO_FILE_BYTES {
+            return Err(AudioError::DecodeError(format!(
+                "{} is {} bytes; maximum resource size is {MAX_AUDIO_FILE_BYTES}",
+                path.to_string_lossy(),
+                metadata.len()
+            )));
         }
 
         let file = File::open(path).map_err(|e| {
@@ -85,9 +159,32 @@ impl AudioFileLoader {
 
         let source_channels = decoder.channels();
         let source_sample_rate = decoder.sample_rate();
+        if source_channels == 0 || source_sample_rate == 0 {
+            return Err(AudioError::DecodeError(format!(
+                "{} reports an invalid audio format",
+                path.to_string_lossy()
+            )));
+        }
 
-        // Collect all samples as f32
-        let raw_samples: Vec<f32> = decoder.convert_samples::<f32>().collect();
+        let max_raw_samples = (source_sample_rate as usize)
+            .checked_mul(MAX_AUDIO_DURATION_SECS)
+            .and_then(|frames| frames.checked_mul(source_channels as usize))
+            .ok_or_else(|| {
+                AudioError::DecodeError(format!(
+                    "{} reports an unbounded audio format",
+                    path.to_string_lossy()
+                ))
+            })?;
+        let raw_samples: Vec<f32> = decoder
+            .convert_samples::<f32>()
+            .take(max_raw_samples.saturating_add(1))
+            .collect();
+        if raw_samples.len() > max_raw_samples {
+            return Err(AudioError::DecodeError(format!(
+                "{} exceeds the {MAX_AUDIO_DURATION_SECS}-second decoded duration limit",
+                path.to_string_lossy()
+            )));
+        }
 
         if raw_samples.is_empty() {
             return Ok(AudioBuffer::empty());
@@ -124,7 +221,7 @@ impl AudioFileLoader {
     pub fn cache_size(&self) -> usize {
         self.cache
             .lock()
-            .map(|c| c.len())
+            .map(|cache| cache.entries.len())
             .unwrap_or(0)
     }
 }
@@ -258,9 +355,44 @@ mod tests {
     }
 
     #[test]
+    fn cache_evicts_the_least_recently_used_entry() {
+        let mut cache = AudioCache::default();
+        for index in 0..MAX_AUDIO_CACHE_ENTRIES {
+            cache.insert(
+                format!("resource-{index}"),
+                AudioBuffer::new(vec![index as f32, index as f32]),
+            );
+        }
+        assert!(cache.get("resource-0").is_some());
+
+        cache.insert("new-resource".to_owned(), AudioBuffer::new(vec![0.0, 0.0]));
+
+        assert_eq!(cache.entries.len(), MAX_AUDIO_CACHE_ENTRIES);
+        assert!(cache.entries.contains_key("resource-0"));
+        assert!(!cache.entries.contains_key("resource-1"));
+        assert!(cache.entries.contains_key("new-resource"));
+    }
+
+    #[test]
     fn test_loader_default() {
         let loader = AudioFileLoader::default();
         assert_eq!(loader.cache_size(), 0);
+    }
+
+    #[test]
+    fn encoded_resource_size_is_bounded_before_decode() {
+        let path = std::env::temp_dir().join(format!(
+            "omnivox-oversized-resource-{}.wav",
+            std::process::id()
+        ));
+        let file = File::create(&path).unwrap();
+        file.set_len(MAX_AUDIO_FILE_BYTES + 1).unwrap();
+
+        let error = AudioFileLoader::new().load(&path).unwrap_err();
+        let _ = std::fs::remove_file(&path);
+
+        assert!(matches!(error, AudioError::DecodeError(_)));
+        assert!(error.to_string().contains("maximum resource size"));
     }
 
     #[test]
