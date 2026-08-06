@@ -807,6 +807,44 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "long-session synthesis stress test"]
+    fn stress_repeated_synthesis_session() {
+        const ITERATIONS: usize = 100;
+        let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        let texts = [
+            "First sentence has several words. Second sentence checks markers!",
+            "Unicode café and naïve words work here. Another sentence follows?",
+            "A short clause, followed by another clause; then the sentence ends.",
+        ];
+        let mut total_frames = 0_usize;
+        for iteration in 0..ITERATIONS {
+            let settings = TtsSettings {
+                rate: [0.35, 0.5, 0.7][iteration % 3],
+                pitch: [0.8, 1.0, 1.2][iteration % 3],
+                volume: [0.35, 0.65, 1.0][iteration % 3],
+                ..TtsSettings::default()
+            };
+            let request = SynthesisRequest::new(texts[iteration % texts.len()], settings);
+            let result = engine.synthesize(&request).expect("stress synthesis failed");
+
+            result.validate(&request).expect("stress result was invalid");
+            assert!(!result.audio.is_empty());
+            assert_eq!(result.audio.sample_rate(), crate::STANDARD_SAMPLE_RATE);
+            assert_eq!(result.audio.channels(), crate::STANDARD_CHANNELS);
+            assert!(result
+                .markers
+                .iter()
+                .any(|marker| marker.kind == SynthesisMarkerKind::Word));
+            assert!(result
+                .markers
+                .iter()
+                .any(|marker| marker.kind == SynthesisMarkerKind::Sentence));
+            total_frames += result.audio.frame_count();
+        }
+        assert!(total_frames > ITERATIONS * crate::STANDARD_SAMPLE_RATE as usize);
+    }
+
+    #[test]
     fn native_character_ranges_become_utf8_byte_ranges() {
         assert_eq!(utf8_range_for_characters("héllo 世界", 1, 5), Some((0, 6)));
         assert_eq!(utf8_range_for_characters("héllo 世界", 7, 2), Some((7, 6)));

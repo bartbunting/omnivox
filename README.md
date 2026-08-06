@@ -289,7 +289,7 @@ The project is organized as a Cargo workspace:
 
 - **omnivox-core** - Command parsing, queue/state types, and pure presentation timeline projection
 - **omnivox-tts** - TTS engine trait and backends (macOS AVSpeechSynthesizer, Windows WinRT, espeak-ng)
-- **omnivox-audio** - Audio buffer, effects pipeline, tone generator, file loader, playback
+- **omnivox-audio** - The single canonical stereo 44.1 kHz `AudioBuffer`, effects pipeline, tone generator, file loader, and playback
 - **omnivox-cli** - Main binary wiring everything together
 - **elisp/** - Emacs voice module (`omnivox-voices.el`)
 

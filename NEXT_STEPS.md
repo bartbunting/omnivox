@@ -710,8 +710,11 @@ conservative source sentence boundaries and return timed UTF-8 sentence ranges.
 Eloquence maps normalized average pitch and volume to native ECI controls;
 DECtalk maps average pitch to its native voice parameter and applies volume to
 captured PCM. Real-helper smoke tests exercised both controls and sentence
-tracks. Pitch range, stress, richness, long-session measurements, and broader
-malformed helper-output testing remain.
+tracks. A reusable protocol stress driver completed 100 consecutive syntheses
+in one Eloquence helper process and 100 in one DECtalk helper process while
+validating PCM totals, word/sentence marker bounds, periodic health pings, and
+clean shutdown. Pitch range, stress, richness, native Windows working-set
+profiling, and broader malformed helper-output testing remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model
 
@@ -734,7 +737,8 @@ it will need revision to use the common capability and completion contracts.
 
 - Make text chunk size configurable if testing shows a useful need.
 - Split intelligently at sentence/clause boundaries while retaining screen
-  reader responsiveness.
+  reader responsiveness. (Implemented with sentence, line-break, clause, then
+  hard-word-limit preference and source-map regression tests.)
 - Benchmark synthesis overhead and add chunked/non-chunked integration tests.
 - Add multi-device audio routing, including explicit speech and notification
   devices.
@@ -767,6 +771,16 @@ it will need revision to use the common capability and completion contracts.
   divergent speaker/notification inventories.
 - Reconcile README, STATUS, architecture, and protocol documentation at each
   release.
+
+The long-session harnesses are repeatable rather than ad hoc. The ignored
+eSpeak stress test synthesizes and validates 100 utterances through one engine
+instance. `tools/stress_helper.py` drives a negotiated helper-v2 session and
+checks response ordering, PCM framing and totals, marker bounds, health pings,
+and orderly shutdown. On 2026-08-07 the eSpeak run passed in 41.35 seconds;
+real Eloquence and DECtalk helpers each passed 100 requests, producing 6.6 MiB
+and 8.0 MiB of native PCM respectively. WSL exposes only the interop launcher's
+RSS to the script, so native Windows working-set growth remains a separate
+profiling gate rather than being inferred from that number.
 
 ## Repository TODO Reconciliation
 

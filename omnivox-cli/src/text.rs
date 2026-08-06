@@ -65,32 +65,96 @@ pub fn chunk_prepared_speech(
         }];
     }
 
-    spans
-        .chunks(max_words)
-        .map(|words| {
-            let start = words.first().expect("word chunk is nonempty").0;
-            let end = words.last().expect("word chunk is nonempty").1;
-            let capitalization_tones = prepared
-                .capitalization_tones
-                .iter()
-                .filter(|tone| {
-                    let offset = tone.text_offset as usize;
-                    offset >= start && offset < end
-                })
-                .cloned()
-                .map(|mut tone| {
-                    tone.text_offset -= start as u32;
-                    tone
-                })
-                .collect();
-            PreparedSpeechChunk {
-                text: prepared.text[start..end].to_owned(),
-                capitalization_tones,
-                source_start: start as u32,
-                source_end: end as u32,
-            }
-        })
-        .collect()
+    let mut chunks = Vec::new();
+    let mut first_word = 0;
+    while first_word < spans.len() {
+        let hard_end = (first_word + max_words).min(spans.len());
+        let word_end = if hard_end == spans.len() {
+            hard_end
+        } else {
+            preferred_chunk_end(&prepared.text, &spans, first_word, hard_end)
+        };
+        let start = spans[first_word].0;
+        let end = spans[word_end - 1].1;
+        let capitalization_tones = prepared
+            .capitalization_tones
+            .iter()
+            .filter(|tone| {
+                let offset = tone.text_offset as usize;
+                offset >= start && offset < end
+            })
+            .cloned()
+            .map(|mut tone| {
+                tone.text_offset -= start as u32;
+                tone
+            })
+            .collect();
+        chunks.push(PreparedSpeechChunk {
+            text: prepared.text[start..end].to_owned(),
+            capitalization_tones,
+            source_start: start as u32,
+            source_end: end as u32,
+        });
+        first_word = word_end;
+    }
+    chunks
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ChunkBoundary {
+    Sentence,
+    Clause,
+}
+
+fn preferred_chunk_end(
+    text: &str,
+    spans: &[(usize, usize)],
+    first_word: usize,
+    hard_end: usize,
+) -> usize {
+    let mut sentence = None;
+    let mut clause = None;
+    for word_index in first_word..hard_end {
+        match boundary_after_word(text, spans, word_index) {
+            Some(ChunkBoundary::Sentence) => sentence = Some(word_index + 1),
+            Some(ChunkBoundary::Clause) => clause = Some(word_index + 1),
+            None => {}
+        }
+    }
+    sentence.or(clause).unwrap_or(hard_end)
+}
+
+fn boundary_after_word(
+    text: &str,
+    spans: &[(usize, usize)],
+    word_index: usize,
+) -> Option<ChunkBoundary> {
+    let (_, end) = spans[word_index];
+    if let Some((next_start, _)) = spans.get(word_index + 1) {
+        if text[end..*next_start]
+            .chars()
+            .any(|character| character == '\r' || character == '\n')
+        {
+            return Some(ChunkBoundary::Sentence);
+        }
+    }
+
+    let (start, end) = spans[word_index];
+    let last = text[start..end]
+        .trim_end_matches(is_boundary_closer)
+        .chars()
+        .next_back()?;
+    if matches!(last, '.' | '!' | '?' | '…' | '。' | '！' | '？') {
+        Some(ChunkBoundary::Sentence)
+    } else if matches!(last, ',' | ';' | ':' | '—' | '–') {
+        Some(ChunkBoundary::Clause)
+    } else {
+        None
+    }
+}
+
+fn is_boundary_closer(character: char) -> bool {
+    matches!(character, '\'' | '"' | '’' | '”' | ')' | ']' | '}')
 }
 
 fn word_spans(text: &str) -> Vec<(usize, usize)> {
@@ -650,6 +714,70 @@ mod tests {
         assert_eq!(chunks[1].text, "Three four");
         assert_eq!((chunks[1].source_start, chunks[1].source_end), (9, 19));
         assert_eq!(chunks[1].capitalization_tones[0].text_offset, 0);
+    }
+
+    #[test]
+    fn prepared_chunking_prefers_sentences_then_clauses() {
+        let prepared = PreparedSpeechText {
+            text: "One two three. Four five six seven, eight nine ten eleven twelve".to_owned(),
+            capitalization_tones: Vec::new(),
+        };
+
+        let chunks = chunk_prepared_speech(prepared, 5);
+
+        assert_eq!(
+            chunks.iter().map(|chunk| chunk.text.as_str()).collect::<Vec<_>>(),
+            vec!["One two three.", "Four five six seven,", "eight nine ten eleven twelve"]
+        );
+        assert!(chunks
+            .iter()
+            .all(|chunk| word_spans(&chunk.text).len() <= 5));
+    }
+
+    #[test]
+    fn prepared_chunking_treats_newlines_and_unicode_closers_as_sentences() {
+        let prepared = PreparedSpeechText {
+            text: "First line\nSecond line continues here. “Really?” Third tail words".to_owned(),
+            capitalization_tones: Vec::new(),
+        };
+
+        let chunks = chunk_prepared_speech(prepared, 5);
+
+        assert_eq!(
+            chunks.iter().map(|chunk| chunk.text.as_str()).collect::<Vec<_>>(),
+            vec!["First line", "Second line continues here. “Really?”", "Third tail words"]
+        );
+        assert_eq!(
+            chunks
+                .iter()
+                .map(|chunk| (chunk.source_start, chunk.source_end))
+                .collect::<Vec<_>>(),
+            vec![(0, 10), (11, 52), (53, 69)]
+        );
+
+        let quoted = chunk_prepared_speech(
+            PreparedSpeechText {
+                text: "“Really?” one two three four five".to_owned(),
+                capitalization_tones: Vec::new(),
+            },
+            4,
+        );
+        assert_eq!(quoted[0].text, "“Really?”");
+    }
+
+    #[test]
+    fn prepared_chunking_falls_back_to_the_hard_word_limit() {
+        let prepared = PreparedSpeechText {
+            text: "one two three four five six".to_owned(),
+            capitalization_tones: Vec::new(),
+        };
+
+        let chunks = chunk_prepared_speech(prepared, 2);
+
+        assert_eq!(
+            chunks.iter().map(|chunk| chunk.text.as_str()).collect::<Vec<_>>(),
+            vec!["one two", "three four", "five six"]
+        );
     }
 
     #[test]
