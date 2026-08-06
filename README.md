@@ -9,7 +9,8 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 - **Concurrent streams**: Speech, tones, and audio icons play on independent streams with backlog limits (no blocking between stream types)
 - **Tone generation**: Pure-Rust sine wave generator with fade envelopes
 - **Capitalization cues**: Requested speech anchors place overlaid capital and all-caps tones, with deterministic degradation for engines lacking exact markers
-- **Audio icon playback**: OGG Vorbis and WAV file loading with caching
+- **Audio icon playback**: Bounded OGG/WAV loading with decoded LRU caching
+- **Timeline mixing**: Serial insertion and sample-aligned overlays render in bounded chunks with cross-chunk tails
 - **Full Emacspeak protocol**: Command parsing, queue dispatch, voice switching, state management
 - **Engine fallback**: Tries platform-native TTS first, falls back to espeak-ng
 - **Portable multi-engine voices**: Structured descriptors and late-bound logical voices route queued spans to engine/voice pairs with deterministic degradation, persistent engine health, and bounded same-chunk runtime retry
@@ -64,7 +65,7 @@ make build
 # Build debug binary
 make dev
 
-# Run tests (317 tests, including one documentation test)
+# Run tests (323 tests, including one documentation test)
 make test
 
 # Run clippy lints

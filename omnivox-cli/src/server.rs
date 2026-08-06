@@ -3,6 +3,7 @@
 use anyhow::Result;
 use omnivox_audio::{
     AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, StreamType,
+    TimelineAudioRenderer,
 };
 use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
@@ -286,6 +287,7 @@ pub fn synthesis_worker(
                 let tickets = Mutex::new(Vec::new());
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
+                let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
                 let failed = AtomicBool::new(false);
                 let marker_dispatch = tracking.and_then(|tracking| match tracking {
                     DispatchTracking::Completion(_) => None,
@@ -302,6 +304,7 @@ pub fn synthesis_worker(
                     playback_tickets: tracking.map(|_| &tickets),
                     presentation_clock: Some(&presentation_clock),
                     pending_overlays: Some(&pending_overlays),
+                    timeline_renderer: Some(&timeline_renderer),
                     marker_dispatch: marker_dispatch.as_ref(),
                     batch_failed: Some(&failed),
                 };
@@ -341,6 +344,9 @@ pub fn synthesis_worker(
                 );
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
                 let tickets = Mutex::new(Vec::new());
+                let presentation_clock = Mutex::new(Vec::new());
+                let pending_overlays = Mutex::new(Vec::new());
+                let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
                 let failed = AtomicBool::new(false);
                 let ctx = SynthCtx {
                     gen,
@@ -348,8 +354,9 @@ pub fn synthesis_worker(
                     engine: &*engine,
                     control: &control,
                     playback_tickets: Some(&tickets),
-                    presentation_clock: None,
-                    pending_overlays: None,
+                    presentation_clock: Some(&presentation_clock),
+                    pending_overlays: Some(&pending_overlays),
+                    timeline_renderer: Some(&timeline_renderer),
                     marker_dispatch: None,
                     batch_failed: Some(&failed),
                 };
@@ -391,14 +398,18 @@ pub fn synthesis_worker(
                 preferred_routing.replace_inventory(runtime_inventory.engines);
                 let preferred_engine = preferred_routing
                     .preferred_legacy_engine(&engine_registry, &engine);
+                let presentation_clock = Mutex::new(Vec::new());
+                let pending_overlays = Mutex::new(Vec::new());
+                let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
                     engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
-                    presentation_clock: None,
-                    pending_overlays: None,
+                    presentation_clock: Some(&presentation_clock),
+                    pending_overlays: Some(&pending_overlays),
+                    timeline_renderer: Some(&timeline_renderer),
                     marker_dispatch: None,
                     batch_failed: None,
                 };
@@ -419,11 +430,13 @@ pub fn synthesis_worker(
                         &settings,
                         &state,
                         i == count - 1,
+                        i == count - 1,
                         &ctx,
                     ) {
                         break;
                     }
                 }
+                ctx.flush_overlays();
             }
 
             SynthRequest::Letter {
@@ -439,14 +452,18 @@ pub fn synthesis_worker(
                 preferred_routing.replace_inventory(runtime_inventory.engines);
                 let preferred_engine = preferred_routing
                     .preferred_legacy_engine(&engine_registry, &engine);
+                let presentation_clock = Mutex::new(Vec::new());
+                let pending_overlays = Mutex::new(Vec::new());
+                let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
                     engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
-                    presentation_clock: None,
-                    pending_overlays: None,
+                    presentation_clock: Some(&presentation_clock),
+                    pending_overlays: Some(&pending_overlays),
+                    timeline_renderer: Some(&timeline_renderer),
                     marker_dispatch: None,
                     batch_failed: None,
                 };
@@ -483,8 +500,10 @@ pub fn synthesis_worker(
                     &settings,
                     &letter_state,
                     true,
+                    true,
                     &ctx,
                 );
+                ctx.flush_overlays();
             }
 
             SynthRequest::PlaySound { path, state, gen } => {
@@ -496,6 +515,7 @@ pub fn synthesis_worker(
                     playback_tickets: None,
                     presentation_clock: None,
                     pending_overlays: None,
+                    timeline_renderer: None,
                     marker_dispatch: None,
                     batch_failed: None,
                 };

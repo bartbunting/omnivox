@@ -440,6 +440,22 @@ and channel routing, participate in tracked completion, and are cancelled by
 stop. Slice 5 replaces this specialized renderer with the common bounded
 audio-resource path and adds structured insert/overlay actions.
 
+Slice 5 status on 2026-08-07: the common bounded PCM renderer is implemented
+and used by capitalization actions. It consumes the pure scheduled timeline,
+validates a unique pre-decoded resource for every audio action, inserts serial
+PCM while producing a source-to-output frame map, and sample-mixes overlays
+without advancing the primary clock. Non-final overlay tails carry into the
+next speech or silence window; a final tail is returned as a boundary overlay,
+so it extends tracked completion without delaying later primary-boundary
+actions. Word markers and resolved anchors are remapped through insertion
+shifts before playback. Rendering is bounded to 4096 actions and two minutes
+of primary output per roughly 15-word synthesis window. The shared file loader
+now rejects resources above 16 MiB or 30 decoded seconds before unbounded
+allocation and uses a 128-entry/64 MiB LRU cache. Structured client transport
+for resource paths and text positions remains Slice 8; until then insertion
+and general auditory-icon overlay are exercised through the renderer API while
+capitalization is its live in-span consumer.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when

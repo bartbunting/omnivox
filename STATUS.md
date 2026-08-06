@@ -18,6 +18,7 @@
 - Rubato sinc resampler (256-tap BlackmanHarris2, replaces linear interpolation)
 - Tone generation (pure Rust sine wave, fade envelopes, stereo spatial)
 - Audio icon playback (OGG/WAV via rodio, LRU cache, tilde expansion)
+- Bounded audio-resource loading (16 MiB/30 seconds) and decoded LRU caching
 - Text chunking (~15 word chunks for single-buffer utterances)
 - Punctuation replacement (none/some/all levels)
 - Split caps (insert spaces before capitals)
@@ -80,6 +81,8 @@
   cancellation projections
 - Queue-boundary auditory-icon overlays with same-boundary mixing, complete-tail
   tracked playback, and stop-safe deferred scheduling
+- Bounded timeline PCM rendering with serial insertion, sample-aligned overlay,
+  cross-chunk tails, and insertion-aware marker/anchor remapping
 - Non-mutating exact/portable voice preview with playback completion, realized
   route metadata, and ACSS degradation reporting
 - English-US eSpeak voice selected as the portable engine default when available
@@ -89,7 +92,7 @@
 ### Not Yet Implemented
 
 - Logical routing for immediate `tts_say` and letter commands
-- Playback integration for the presentation timeline and timeline-aware effects
+- Structured timeline transport, semantic actions, and timeline-aware effects
 - Eloquence pitch-range, stress, richness, and sentence-marker support
 - DECtalk native pitch-range, stress, richness, and sentence-marker support
 - Linux Speech Dispatcher TTS backend
@@ -104,9 +107,9 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 317 tests, all passing
+Total: 323 tests, all passing
 
-omnivox-audio:  69 unit + 31 integration = 100
+omnivox-audio:  75 unit + 31 integration = 106
 omnivox-core:   48 unit + 1 doc = 49
 omnivox-tts:   110 unit
 omnivox-cli:    58 unit
@@ -152,8 +155,8 @@ omnivox-cli:    58 unit
 
 ## Next Priority
 
-1. Add sample-aligned inserted and overlaid audio resources.
-2. Add playback-bound semantic timeline events.
-3. Add persistent post-synthesis effects.
+1. Add playback-bound semantic timeline events.
+2. Add persistent post-synthesis effects.
+3. Add structured Emacsvox timeline transport and degradation reporting.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).

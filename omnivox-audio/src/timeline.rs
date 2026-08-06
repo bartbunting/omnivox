@@ -36,6 +36,8 @@ impl PreparedAudioResource {
 #[derive(Debug, Clone)]
 pub struct RenderedTimelineWindow {
     pub audio: AudioBuffer,
+    /// Final overlay-only tail beginning at the primary window boundary.
+    pub overlay_tail: Option<AudioBuffer>,
     pub frame_map: FrameMap,
 }
 
@@ -66,9 +68,10 @@ impl TimelineAudioRenderer {
 
     /// Render one scheduled timeline over PRIMARY.
     ///
-    /// Non-final windows return exactly the primary output length and retain
-    /// overlay samples beyond that boundary. A final window appends the entire
-    /// remaining audible tail and leaves the renderer empty.
+    /// Every returned primary buffer has exactly the scheduled primary length.
+    /// Non-final windows retain overlay samples beyond that boundary. A final
+    /// window returns that remainder separately so playback can overlap it
+    /// with later boundary actions without advancing the primary clock.
     pub fn render_window(
         &mut self,
         primary: &AudioBuffer,
@@ -92,8 +95,7 @@ impl TimelineAudioRenderer {
         let mut mixed = vec![0.0_f32; primary_frames * CHANNELS as usize];
         copy_primary_with_insertions(primary, timeline, &mut mixed)?;
 
-        mix_samples(&mut mixed, 0, &self.overlay_carry, 1.0)?;
-        self.overlay_carry.clear();
+        mix_samples_extending(&mut mixed, 0, &self.overlay_carry, 1.0)?;
         for action in &timeline.actions {
             let TimelineActionKind::Audio { mode, volume, .. } = &action.kind else {
                 continue;
@@ -117,15 +119,24 @@ impl TimelineAudioRenderer {
         }
 
         let primary_samples = primary_frames * CHANNELS as usize;
-        if !final_window && mixed.len() > primary_samples {
-            self.overlay_carry = mixed.split_off(primary_samples);
-        }
         clamp_samples(&mut mixed);
-        if final_window {
-            self.overlay_carry.clear();
-        }
+        let tail = if mixed.len() > primary_samples {
+            Some(AudioBuffer::new(mixed.split_off(primary_samples)))
+        } else {
+            None
+        };
+        let (next_carry, overlay_tail) = if final_window {
+            (Vec::new(), tail)
+        } else {
+            (
+                tail.map(|buffer| buffer.samples).unwrap_or_default(),
+                None,
+            )
+        };
+        self.overlay_carry = next_carry;
         Ok(RenderedTimelineWindow {
             audio: AudioBuffer::new(mixed),
+            overlay_tail,
             frame_map: timeline.frame_map.clone(),
         })
     }
@@ -381,10 +392,13 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(rendered.audio.frame_count(), 5);
+        assert_eq!(rendered.audio.frame_count(), 3);
         assert_eq!(rendered.audio.samples[..2], [0.1, 0.1]);
         assert_eq!(rendered.audio.samples[2..6], [0.5, 0.5, 0.5, 0.5]);
-        assert_eq!(rendered.audio.samples[6..], [0.4, 0.4, 0.4, 0.4]);
+        assert_eq!(
+            rendered.overlay_tail.as_ref().unwrap().samples,
+            [0.4, 0.4, 0.4, 0.4]
+        );
         assert_eq!(rendered.map_primary_frame(2).unwrap(), 2);
     }
 
@@ -418,6 +432,7 @@ mod tests {
         assert_eq!(rendered_second.audio.frame_count(), 3);
         assert_eq!(rendered_second.audio.samples[..4], [0.6, 0.6, 0.6, 0.6]);
         assert_eq!(rendered_second.audio.samples[4..], [0.2, 0.2]);
+        assert!(rendered_second.overlay_tail.is_none());
         assert!(!renderer.has_overlay_carry());
     }
 

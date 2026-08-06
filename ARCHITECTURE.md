@@ -85,14 +85,23 @@ The deferred icon ticket covers both its wait and full audible tail; tracked
 completion waits for it and stop invalidates it before or during playback.
 This is boundary-level lowering of the pure timeline model. Requested engine
 anchors and the later bounded renderer provide sample-aligned in-span actions.
-Capitalization cues are the first in-span consumer: preprocessing retains their
-UTF-8 offsets, synthesis resolves them, and a sparse 20 ms tone track is queued
-beside the corresponding speech chunk. Eloquence provides exact frames;
-DECtalk and WinRT approximate to word boundaries; markerless engines place the
-tone at the chunk start. The tone track uses the normal tone volume/channel
-pipeline, overlaps speech, contributes its complete tail to tracked completion,
-and is invalidated by stop. The common resource renderer planned next will
-generalize this specialized path to auditory-icon insertions and overlays.
+The bounded PCM renderer realizes each scheduled timeline one synthesis window
+at a time. Insertions expand the primary buffer and its frame map; overlays mix
+at their scheduled frame without moving the primary clock. Overlay tails carry
+into the next speech or silence window, while the final remainder becomes a
+separately tracked boundary overlay. This permits playback after one bounded
+chunk and lets following speech continue under a long icon. Marker and anchor
+frames are remapped through insertions before playback. Prepared resources are
+canonical stereo PCM and must match their declared duration; file-backed
+resources are limited to 16 MiB/30 decoded seconds and a 128-entry/64 MiB LRU.
+
+Capitalization cues are the first live in-span consumer: preprocessing retains
+their UTF-8 offsets, synthesis resolves them, and the renderer sample-mixes a
+20 ms tone. Eloquence provides exact frames; DECtalk and WinRT approximate to
+word boundaries; markerless engines place the tone at the chunk start. The
+tone uses normal tone volume/channel processing and stop cancels all mixed or
+unreached output. Structured resource transport is added at the Emacsvox
+timeline-negotiation layer rather than to the legacy command stream.
 
 ## Key Types
 

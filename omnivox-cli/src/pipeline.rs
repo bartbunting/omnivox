@@ -2,7 +2,12 @@
 
 use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, PlaybackTicket,
-    SilenceTrimReport, SilenceTrimmer, StreamType, ToneGenerator, VolumeAdjust,
+    PreparedAudioResource, SilenceTrimReport, SilenceTrimmer, StreamType, TimelineAudioRenderer,
+    ToneGenerator, VolumeAdjust,
+};
+use omnivox_core::timeline::{
+    ActionAffinity, AudioActionMode, EffectBus, PresentationPosition, ResolvedTimelineAction,
+    ScheduledTimeline, TimelineAction, TimelineActionId, TimelineActionKind,
 };
 use omnivox_core::{QueueItem, TtsState};
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId};
@@ -121,6 +126,7 @@ pub struct SynthCtx<'a> {
     pub playback_tickets: Option<&'a Mutex<Vec<PlaybackTicket>>>,
     pub presentation_clock: Option<&'a Mutex<Vec<PlaybackTicket>>>,
     pub pending_overlays: Option<&'a Mutex<Vec<AudioBuffer>>>,
+    pub timeline_renderer: Option<&'a Mutex<TimelineAudioRenderer>>,
     pub marker_dispatch: Option<&'a MarkerDispatchContext>,
     pub batch_failed: Option<&'a AtomicBool>,
 }
@@ -180,25 +186,6 @@ impl SynthCtx<'_> {
             }
         } else {
             self.queue(StreamType::Sound, &buffer);
-        }
-    }
-
-    pub fn queue_stream_overlay(&self, stream: StreamType, buffer: &AudioBuffer) {
-        let barriers = self
-            .presentation_clock
-            .map(|clock| clock.lock().unwrap().clone())
-            .unwrap_or_default();
-        match self.control.queue_stream_after(stream, buffer, barriers) {
-            Ok(Some(ticket)) => {
-                if let Some(tickets) = self.playback_tickets {
-                    tickets.lock().unwrap().push(ticket);
-                }
-            }
-            Ok(None) => {}
-            Err(error) => {
-                self.mark_failed();
-                warn!("{:?} overlay queue error: {}", stream, error);
-            }
         }
     }
 
@@ -265,7 +252,8 @@ pub fn synthesize_chunk_with_tones(
     capitalization_tones: &[CapitalizationTone],
     settings: &TtsSettings,
     state: &TtsState,
-    is_last: bool,
+    is_last_speech: bool,
+    final_timeline_window: bool,
     ctx: &SynthCtx,
 ) -> bool {
     if ctx.is_stale() {
@@ -293,7 +281,8 @@ pub fn synthesize_chunk_with_tones(
                 None,
                 capitalization_tones,
                 state,
-                is_last,
+                is_last_speech,
+                final_timeline_window,
                 ctx,
             );
             true
@@ -306,13 +295,15 @@ pub fn synthesize_chunk_with_tones(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn queue_synthesis_result(
     result: SynthesisResult,
     utterance_text: &str,
     logical_voice_id: Option<&str>,
     capitalization_tones: &[CapitalizationTone],
     state: &TtsState,
-    is_last: bool,
+    is_last_speech: bool,
+    final_timeline_window: bool,
     ctx: &SynthCtx,
 ) {
     let mut result = canonicalize_synthesis_result(result);
@@ -324,18 +315,24 @@ fn queue_synthesis_result(
         degraded_acss = ?result.degraded_acss,
         "queueing structured synthesis result"
     );
-    if let Err(error) = process_speech_result(&mut result, state, is_last) {
+    if let Err(error) = process_speech_result(&mut result, state, is_last_speech) {
         ctx.mark_failed();
         warn!("Pipeline error: {}", error);
     }
-    match capitalization_overlay_track(&result, capitalization_tones, state) {
-        Ok(Some(track)) => ctx.queue_stream_overlay(StreamType::Tone, &track),
-        Ok(None) => {}
+    let overlay_tail = match render_capitalization_timeline(
+        &mut result,
+        capitalization_tones,
+        state,
+        final_timeline_window,
+        ctx,
+    ) {
+        Ok(tail) => tail,
         Err(error) => {
             ctx.mark_failed();
-            warn!("Capitalization tone pipeline error: {}", error);
+            warn!("Timeline render error; queueing dry speech: {}", error);
+            None
         }
-    }
+    };
     if let Some(marker_dispatch) = ctx.marker_dispatch.filter(|_| !result.audio.is_empty()) {
         ctx.flush_overlays();
         let prepared = marker_dispatch.prepare_utterance(
@@ -360,6 +357,9 @@ fn queue_synthesis_result(
     } else {
         ctx.queue(StreamType::Speech, &result.audio);
     }
+    if let Some(tail) = overlay_tail {
+        ctx.queue_overlay(tail);
+    }
 }
 
 fn requested_capitalization_anchors(tones: &[CapitalizationTone]) -> Vec<RequestedAnchor> {
@@ -371,12 +371,40 @@ fn requested_capitalization_anchors(tones: &[CapitalizationTone]) -> Vec<Request
         .collect()
 }
 
-fn capitalization_overlay_track(
+fn render_capitalization_timeline(
+    result: &mut CanonicalSynthesisResult,
+    tones: &[CapitalizationTone],
+    state: &TtsState,
+    final_window: bool,
+    ctx: &SynthCtx,
+) -> Result<Option<AudioBuffer>, omnivox_audio::AudioError> {
+    let (timeline, resources) = prepare_capitalization_timeline(result, tones, state)?;
+    let renderer = ctx.timeline_renderer.ok_or_else(|| {
+        omnivox_audio::AudioError::TimelineError("synthesis context has no timeline renderer".into())
+    })?;
+    let rendered = renderer
+        .lock()
+        .unwrap()
+        .render_window(&result.audio, &timeline, &resources, final_window)?;
+    for marker in &mut result.markers {
+        marker.frame_offset = rendered.map_primary_frame(marker.frame_offset)?;
+    }
+    for anchor in &mut result.anchors {
+        if let Some(frame_offset) = &mut anchor.frame_offset {
+            *frame_offset = rendered.map_primary_frame(*frame_offset)?;
+        }
+    }
+    result.audio = rendered.audio;
+    Ok(rendered.overlay_tail)
+}
+
+fn prepare_capitalization_timeline(
     result: &CanonicalSynthesisResult,
     tones: &[CapitalizationTone],
     state: &TtsState,
-) -> Result<Option<AudioBuffer>, omnivox_audio::AudioError> {
-    let mut track = Vec::<f32>::new();
+) -> Result<(ScheduledTimeline, Vec<PreparedAudioResource>), omnivox_audio::AudioError> {
+    let mut actions = Vec::with_capacity(tones.len());
+    let mut resources = Vec::with_capacity(tones.len());
     for tone in tones {
         let resolved = result
             .anchors
@@ -392,27 +420,67 @@ fn capitalization_overlay_track(
                 "capitalization tone placement degraded"
             );
         }
-        let generated =
-            ToneGenerator::generate(tone.frequency_hz, tone.duration_ms, 1.0);
-        let sample_offset = usize::try_from(frame_offset)
-            .unwrap_or(usize::MAX)
-            .saturating_mul(2);
-        let required = sample_offset.saturating_add(generated.samples.len());
-        if required == usize::MAX {
-            continue;
-        }
-        track.resize(track.len().max(required), 0.0);
-        for (output, input) in track[sample_offset..].iter_mut().zip(generated.samples) {
-            *output += input;
+        let id = TimelineActionId::new(tone.id.clone())
+            .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
+        let mut audio = ToneGenerator::generate(tone.frequency_hz, tone.duration_ms, 1.0);
+        build_tone_pipeline(state).process(&mut audio)?;
+        let action = TimelineAction {
+            id: id.clone(),
+            position: PresentationPosition::TextOffset {
+                span_id: 0,
+                utf8_offset: tone.text_offset,
+                affinity: ActionAffinity::Before,
+            },
+            kind: TimelineActionKind::Audio {
+                mode: AudioActionMode::Overlay,
+                duration_frames: audio.frame_count() as u64,
+                volume: 1.0,
+                effect_bus: EffectBus::Dry,
+            },
+        };
+        actions.push(ResolvedTimelineAction {
+            action,
+            source_frame: frame_offset,
+        });
+        resources.push(PreparedAudioResource::new(id, audio));
+    }
+    let timeline = ScheduledTimeline::build(result.audio.frame_count() as u64, actions)
+        .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
+    Ok((timeline, resources))
+}
+
+fn render_primary_window(
+    primary: &AudioBuffer,
+    final_window: bool,
+    ctx: &SynthCtx,
+) -> Result<(AudioBuffer, Option<AudioBuffer>), omnivox_audio::AudioError> {
+    let timeline = ScheduledTimeline::build(primary.frame_count() as u64, Vec::new())
+        .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
+    let renderer = ctx.timeline_renderer.ok_or_else(|| {
+        omnivox_audio::AudioError::TimelineError("synthesis context has no timeline renderer".into())
+    })?;
+    let rendered = renderer
+        .lock()
+        .unwrap()
+        .render_window(primary, &timeline, &[], final_window)?;
+    Ok((rendered.audio, rendered.overlay_tail))
+}
+
+fn finish_timeline_tail(ctx: &SynthCtx) {
+    let Some(renderer) = ctx.timeline_renderer else {
+        return;
+    };
+    if !renderer.lock().unwrap().has_overlay_carry() {
+        return;
+    }
+    match render_primary_window(&AudioBuffer::empty(), true, ctx) {
+        Ok((_, Some(tail))) => ctx.queue_overlay(tail),
+        Ok((_, None)) => {}
+        Err(error) => {
+            ctx.mark_failed();
+            warn!("Could not flush final timeline tail: {}", error);
         }
     }
-    if track.is_empty() {
-        return Ok(None);
-    }
-    let mut track = AudioBuffer::new(track);
-    track.clamp();
-    build_tone_pipeline(state).process(&mut track)?;
-    Ok(Some(track))
 }
 
 fn process_speech_result(
@@ -448,7 +516,8 @@ fn synthesize_routed_chunk(
     chunk: &str,
     capitalization_tones: &[CapitalizationTone],
     state: &TtsState,
-    is_last: bool,
+    is_last_speech: bool,
+    final_timeline_window: bool,
     route: &mut LogicalRoute,
     routing: &mut LogicalVoiceRoutingSnapshot,
     engine_registry: &EngineRegistry,
@@ -484,7 +553,8 @@ fn synthesize_routed_chunk(
                 Some(&route.logical_voice_id),
                 capitalization_tones,
                 state,
-                is_last,
+                is_last_speech,
+                final_timeline_window,
                 ctx,
             );
             RoutedChunkOutcome::Queued {
@@ -538,6 +608,7 @@ pub fn process_preview(
             &chunk.capitalization_tones,
             &state,
             index + 1 == chunk_count,
+            index + 1 == chunk_count,
             &mut route,
             &mut logical_voice_routing,
             engine_registry,
@@ -577,6 +648,8 @@ pub fn process_preview(
         }
     }
 
+    ctx.flush_overlays();
+
     let status = if ctx.failed() {
         BatchStatus::Failed
     } else {
@@ -613,7 +686,8 @@ pub fn process_batch(
         return BatchStatus::Cancelled;
     }
 
-    // Pre-count total speech chunks to identify the last one for trailing padding.
+    // Pre-count speech chunks for trailing padding and all primary windows for
+    // final overlay-tail placement.
     let total_speech_chunks: usize = items
         .iter()
         .map(|item| match item {
@@ -623,8 +697,14 @@ pub fn process_batch(
             _ => 0,
         })
         .sum();
+    let total_primary_windows = total_speech_chunks
+        + items
+            .iter()
+            .filter(|item| matches!(item, QueueItem::Silence { .. }))
+            .count();
 
     let mut speech_chunk_index: usize = 0;
+    let mut primary_window_index: usize = 0;
     let mut logical_route: Option<LogicalRoute> = None;
     let mut logical_route_exhausted = false;
 
@@ -637,9 +717,11 @@ pub fn process_batch(
             QueueItem::Speech(text) => {
                 let chunks = chunk_prepared_speech(prepare_speech_text(&text, &state), 15);
                 for chunk in chunks {
-                    let is_last = speech_chunk_index == total_speech_chunks - 1;
+                    let is_last_speech = speech_chunk_index + 1 == total_speech_chunks;
+                    let final_timeline_window = primary_window_index + 1 == total_primary_windows;
                     if logical_route_exhausted {
                         speech_chunk_index += 1;
+                        primary_window_index += 1;
                         continue;
                     }
                     if let Some(route) = &mut logical_route {
@@ -647,7 +729,8 @@ pub fn process_batch(
                             &chunk.text,
                             &chunk.capitalization_tones,
                             &state,
-                            is_last,
+                            is_last_speech,
+                            final_timeline_window,
                             route,
                             &mut logical_voice_routing,
                             engine_registry,
@@ -674,13 +757,15 @@ pub fn process_batch(
                             &chunk.capitalization_tones,
                             &settings,
                             &state,
-                            is_last,
+                            is_last_speech,
+                            final_timeline_window,
                             ctx,
                         ) {
                             return BatchStatus::Cancelled;
                         }
                     }
                     speech_chunk_index += 1;
+                    primary_window_index += 1;
                 }
             }
 
@@ -728,7 +813,21 @@ pub fn process_batch(
 
             QueueItem::Silence { duration } => {
                 let buf = AudioBuffer::silence(duration as f32 / 1000.0);
-                ctx.queue(StreamType::Speech, &buf);
+                let final_timeline_window = primary_window_index + 1 == total_primary_windows;
+                match render_primary_window(&buf, final_timeline_window, ctx) {
+                    Ok((rendered, tail)) => {
+                        ctx.queue(StreamType::Speech, &rendered);
+                        if let Some(tail) = tail {
+                            ctx.queue_overlay(tail);
+                        }
+                    }
+                    Err(error) => {
+                        ctx.mark_failed();
+                        warn!("Silence timeline render error; queueing dry silence: {}", error);
+                        ctx.queue(StreamType::Speech, &buf);
+                    }
+                }
+                primary_window_index += 1;
             }
 
             QueueItem::AudioIcon { path } => match loader.load(&path) {
@@ -748,6 +847,7 @@ pub fn process_batch(
         }
     }
 
+    finish_timeline_tail(ctx);
     ctx.flush_overlays();
 
     if ctx.failed() {
@@ -912,13 +1012,16 @@ mod tests {
             duration_ms: CAPITAL_TONE_DURATION_MS,
         }];
 
-        let track = capitalization_overlay_track(&result, &tones, &TtsState::default())
-            .unwrap()
+        let (timeline, resources) =
+            prepare_capitalization_timeline(&result, &tones, &TtsState::default()).unwrap();
+        let rendered = TimelineAudioRenderer::new()
+            .render_window(&result.audio, &timeline, &resources, true)
             .unwrap();
 
-        assert_eq!(track.frame_count(), 10 + 882);
-        assert!(track.samples[..20].iter().all(|sample| *sample == 0.0));
-        assert!(track.samples[20..].iter().any(|sample| *sample != 0.0));
+        assert_eq!(timeline.actions[0].output_frame, 10);
+        assert_eq!(rendered.audio.frame_count(), 44100);
+        assert!(rendered.audio.samples[..20].iter().all(|sample| *sample == 0.0));
+        assert!(rendered.audio.samples[20..].iter().any(|sample| *sample != 0.0));
     }
 
     #[test]
@@ -942,11 +1045,13 @@ mod tests {
             duration_ms: CAPITAL_TONE_DURATION_MS,
         }];
 
-        let track = capitalization_overlay_track(&result, &tones, &TtsState::default())
-            .unwrap()
+        let (timeline, resources) =
+            prepare_capitalization_timeline(&result, &tones, &TtsState::default()).unwrap();
+        let rendered = TimelineAudioRenderer::new()
+            .render_window(&result.audio, &timeline, &resources, true)
             .unwrap();
 
-        assert_eq!(track.frame_count(), 882);
-        assert!(track.samples.iter().any(|sample| *sample != 0.0));
+        assert_eq!(timeline.actions[0].output_frame, 0);
+        assert!(rendered.audio.samples.iter().any(|sample| *sample != 0.0));
     }
 }
