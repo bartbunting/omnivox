@@ -247,6 +247,15 @@ pub fn synthesize_with_runtime_fallback(
         let request = SynthesisRequest::new(chunk, routed_settings)
             .with_route(route.logical_voice_id.clone(), route.realized.clone());
         let synthesis = route.engine.synthesize(&request).and_then(|mut result| {
+            result.resolve_anchors(
+                &request,
+                route
+                    .engine
+                    .descriptor()
+                    .capabilities
+                    .markers
+                    .requested_anchors,
+            );
             result.validate(&request)?;
             result.degraded_acss = route.acss.omitted.clone();
             Ok(result)

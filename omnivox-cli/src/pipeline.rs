@@ -7,7 +7,9 @@ use omnivox_audio::{
 use omnivox_core::{QueueItem, TtsState};
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId};
 use omnivox_tts::engine_registry::EngineRegistry;
-use omnivox_tts::{SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings};
+use omnivox_tts::{
+    ResolvedAnchor, SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
+};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use tracing::{debug, warn};
@@ -33,6 +35,7 @@ pub struct CanonicalSynthesisResult {
     pub engine_id: String,
     pub actual_voice: Option<PhysicalVoiceId>,
     pub markers: Vec<SynthesisMarker>,
+    pub anchors: Vec<ResolvedAnchor>,
     pub degraded_acss: Vec<AcssDimension>,
 }
 
@@ -45,6 +48,7 @@ pub fn canonicalize_synthesis_result(result: SynthesisResult) -> CanonicalSynthe
         engine_id: standard.engine_id,
         actual_voice: standard.actual_voice,
         markers: standard.markers,
+        anchors: standard.anchors,
         degraded_acss: standard.degraded_acss,
     }
 }
@@ -253,7 +257,11 @@ pub fn synthesize_chunk(
     }
 
     let request = SynthesisRequest::new(chunk, settings.clone());
-    match ctx.engine.synthesize(&request).and_then(|result| {
+    match ctx.engine.synthesize(&request).and_then(|mut result| {
+        result.resolve_anchors(
+            &request,
+            ctx.engine.descriptor().capabilities.markers.requested_anchors,
+        );
         result.validate(&request)?;
         Ok(result)
     }) {
@@ -326,6 +334,11 @@ fn process_speech_result(
     let report = speech_trimmer(state, is_last).process_with_report(&mut result.audio)?;
     for marker in &mut result.markers {
         marker.frame_offset = report.map_frame_offset(marker.frame_offset);
+    }
+    for anchor in &mut result.anchors {
+        if let Some(frame_offset) = &mut anchor.frame_offset {
+            *frame_offset = report.map_frame_offset(*frame_offset);
+        }
     }
     build_speech_output_pipeline(state).process(&mut result.audio)?;
     Ok(report)
@@ -696,6 +709,11 @@ mod tests {
                 value: None,
             }],
         );
+        result.anchors.push(omnivox_tts::ResolvedAnchor {
+            id: "cue".to_owned(),
+            frame_offset: Some(100),
+            resolution: omnivox_tts::AnchorResolution::Exact,
+        });
         result.degraded_acss.push(AcssDimension::PitchRange);
 
         let canonical = canonicalize_synthesis_result(result);
@@ -706,6 +724,7 @@ mod tests {
             Some(PhysicalVoiceId::new("helper", "voice"))
         );
         assert_eq!(canonical.markers[0].frame_offset, 400);
+        assert_eq!(canonical.anchors[0].frame_offset, Some(400));
         assert_eq!(canonical.degraded_acss, vec![AcssDimension::PitchRange]);
     }
 
@@ -726,6 +745,11 @@ mod tests {
             engine_id: "mock".to_owned(),
             actual_voice: None,
             markers: vec![marker(2), marker(5), marker(6), marker(9)],
+            anchors: vec![omnivox_tts::ResolvedAnchor {
+                id: "trimmed-cue".to_owned(),
+                frame_offset: Some(6),
+                resolution: omnivox_tts::AnchorResolution::Exact,
+            }],
             degraded_acss: Vec::new(),
         };
 
@@ -742,6 +766,7 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![0, 0, 1, 2]
         );
+        assert_eq!(result.anchors[0].frame_offset, Some(1));
     }
 
     #[test]

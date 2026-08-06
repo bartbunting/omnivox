@@ -6,8 +6,8 @@
 //! (stereo f32 @ 44100Hz).
 
 use crate::contracts::{
-    AcssCapabilities, AudioOutputMode, CancellationSupport, ConcurrencyModel, EngineCapabilities,
-    MarkerCapabilities,
+    AcssCapabilities, AnchorSupport, AudioOutputMode, CancellationSupport, ConcurrencyModel,
+    EngineCapabilities, MarkerCapabilities,
 };
 #[cfg(not(target_os = "windows"))]
 use crate::contracts::{Availability, EngineDescriptor, EngineHealth};
@@ -26,6 +26,11 @@ fn windows_capabilities() -> EngineCapabilities {
         markers: MarkerCapabilities {
             word: cfg!(target_os = "windows"),
             sentence: cfg!(target_os = "windows"),
+            requested_anchors: if cfg!(target_os = "windows") {
+                AnchorSupport::WordBoundary
+            } else {
+                AnchorSupport::None
+            },
             ..MarkerCapabilities::default()
         },
         language_switching: true,

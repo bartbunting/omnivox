@@ -8,7 +8,7 @@ completion, and runtime health policy.
 
 ## Transport and Compatibility
 
-Version 1 is a bidirectional stream of newline-terminated UTF-8 JSON objects.
+Versions 1 and 2 use a bidirectional stream of newline-terminated UTF-8 JSON objects.
 The helper reserves standard output for protocol frames and writes diagnostics
 only to standard error. Each frame contains `protocol_version`, a tagged
 `type`, and normally a positive `request_id`; only an error caused before an
@@ -18,22 +18,28 @@ The host starts every session with `hello` and supplies the versions it
 supports:
 
 ```json
-{"protocol_version":1,"request_id":1,"type":"hello","supported_protocol_versions":[1]}
+{"protocol_version":2,"request_id":1,"type":"hello","supported_protocol_versions":[2,1]}
 ```
 
 The helper selects a common version and describes its implementation:
 
 ```json
-{"protocol_version":1,"request_id":1,"type":"hello","selected_protocol_version":1,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
+{"protocol_version":2,"request_id":1,"type":"hello","selected_protocol_version":2,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
 ```
 
 No inventory or synthesis request is valid until this exchange succeeds.
 Unknown types or fields added by a later incompatible contract require a new
 protocol version; helpers must not guess at incompatible semantics.
 
+Omnivox offers version 2 first. If an installed version-1 helper rejects that
+envelope as unsupported, the host retries `hello` with a version-1 envelope on
+the same connection. Every later frame uses the selected version. Version 1
+remains byte-compatible: it has no requested-anchor synthesis field or anchor
+capability entry.
+
 ## Requests
 
-Version 1 defines these request types:
+Both versions define these request types:
 
 - `hello`: negotiate a protocol version;
 - `describe`: return the complete structured `EngineDescriptor`;
@@ -47,6 +53,12 @@ Synthesis text is limited to 256 KiB. Rate and volume use the inclusive
 zero-to-one range; pitch uses 0.5 through 2.0. A missing voice selects the
 helper's advertised default. The helper reports the actual physical voice in
 its `synthesis_started` response.
+
+Version 2 adds a required `anchors` array to `synthesize`. Each entry carries
+a unique non-empty opaque ID of at most 128 UTF-8 bytes, a `text_offset` on a
+UTF-8 boundary in the exact request text, and `before` or `after` affinity. One
+request carries at most 4096 anchors. The descriptor reports
+`markers.requested_anchors` as `exact`, `word_boundary`, or `none`.
 
 ## Synthesis Responses
 
@@ -68,7 +80,15 @@ optional source-text range/value. Text ranges are byte offsets into the request
 UTF-8; a helper leaves them absent when its native indexes cannot be mapped
 truthfully. One synthesis carries at most 4096 markers across all responses.
 
-Version 1 permits one active synthesis per helper because the initial native
+In version 2 an exact helper resolution is transported as a private
+`requested_anchor` marker whose value is the opaque request ID. Omnivox removes
+these from the ordinary marker list and returns them as structured resolved
+anchors. Missing exact results can degrade through ordinary word markers; an
+engine with no usable placement explicitly reports the anchor as omitted.
+Resampling and silence trimming transform anchor frames alongside ordinary
+marker frames.
+
+Both versions permit one active synthesis per helper because the initial native
 engines are serialized. The helper must continue reading commands while its
 native synthesis worker runs so `cancel`, `ping`, and `shutdown` do not wait
 behind synthesis. A `cancel` request receives `cancel_accepted`; the target
@@ -83,7 +103,7 @@ before registration and never combines engine and native voice IDs into one
 opaque identifier.
 
 Errors carry a stable code, bounded human-readable message, and `retryable`
-flag. Version 1 codes cover malformed requests, unsupported versions, oversized
+flag. Error codes cover malformed requests, unsupported versions, oversized
 payloads, unavailable engines, missing voices, invalid parameters, busy
 helpers, synthesis failures, and internal failures. An error may omit its
 request ID only when malformed input prevented the helper from trusting that
@@ -98,6 +118,7 @@ The Rust codec enforces these bounds before accepting content:
 - 256 KiB of decoded PCM per audio chunk;
 - 128 MiB of decoded PCM per synthesis request;
 - 4096 markers per synthesis request;
+- 4096 requested anchors per synthesis request and 128 bytes per anchor ID;
 - 4096 discovered physical voices;
 - 16 advertised protocol versions.
 
@@ -118,8 +139,10 @@ synthesis call, and replace a failed child during a recovery probe. Marker
 frames are validated, converted to common synthesis markers, and returned with
 the helper's native PCM and realized physical voice. Their frame offsets follow
 sample-rate conversion into canonical Omnivox audio. The Eloquence adapter now
-inserts ECI indexes at bounded Unicode word starts and emits the native callback
-frame with a UTF-8 source range. The DECtalk adapter captures its native
+merges bounded requested anchors with its Unicode word indexes, inserts both
+through ECI's index API without splitting synthesis, and emits each native
+callback frame. Before/after anchors at a shared source position retain
+deterministic insertion order. The DECtalk adapter captures its native
 phoneme-change and inserted-index records at DECtalk's utterance-relative sample
 positions. It emits their numeric engine values without source ranges because
 the native records do not identify request-text spans. For words, it inserts
@@ -132,5 +155,5 @@ The Eloquence and DECtalk adapters share one C# protocol host while retaining
 separate native capture implementations and executables. Windows Omnivox
 discovers either helper independently. End-to-end smoke tests have exercised real
 capture, cancellation, mixed-engine routing, fallback, PCM canonicalization,
-Eloquence and DECtalk word markers, DECtalk phoneme and native-index markers,
+Eloquence exact requested anchors and word markers, DECtalk phoneme and native-index markers,
 tracked playback completion, and process replacement after a helper crash.

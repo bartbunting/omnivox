@@ -88,6 +88,19 @@ pub struct MarkerCapabilities {
     pub sentence: bool,
     pub phoneme: bool,
     pub native_index: bool,
+    /// Strongest source-text anchor placement this engine can provide.
+    #[serde(default)]
+    pub requested_anchors: AnchorSupport,
+}
+
+/// Strongest placement guarantee available for requested source-text anchors.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnchorSupport {
+    #[default]
+    None,
+    WordBoundary,
+    Exact,
 }
 
 /// Normalized ACSS dimensions understood by Omnivox.
@@ -407,5 +420,15 @@ mod tests {
         assert_eq!(descriptor.id.engine_id, "winrt");
         assert_eq!(descriptor.id.voice_id, r"winrt:HKEY\Voice");
         assert_eq!(descriptor.language.as_deref(), Some("en-US"));
+    }
+
+    #[test]
+    fn legacy_marker_inventory_defaults_requested_anchors_to_none() {
+        let capabilities: MarkerCapabilities = serde_json::from_str(
+            r#"{"word":true,"sentence":false,"phoneme":false,"native_index":false}"#,
+        )
+        .unwrap();
+
+        assert_eq!(capabilities.requested_anchors, AnchorSupport::None);
     }
 }

@@ -54,6 +54,10 @@
 - Eloquence ECI index callbacks mapped to bounded word markers and UTF-8 ranges
 - DECtalk private indexes mapped to bounded word markers and UTF-8 ranges
 - DECtalk native phoneme changes and caller indexes mapped to audio-frame markers
+- Bounded requested synthesis anchors with exact, word-boundary, span-boundary,
+  and omitted resolution grades
+- Helper protocol v2 exact Eloquence anchors with automatic v1 negotiation fallback
+- Anchor frames retained through canonical resampling and silence trimming
 - Per-engine rate, average-pitch, and volume degradation for logical ACSS routes
 - Canonical PCM conversion before helper audio enters the effects/playback pipeline
 - Structured synthesis requests and results with realized engine/voice metadata
@@ -98,11 +102,11 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 308 tests, all passing
+Total: 315 tests, all passing
 
 omnivox-audio:  69 unit + 31 integration = 100
 omnivox-core:   48 unit + 1 doc = 49
-omnivox-tts:   103 unit
+omnivox-tts:   110 unit
 omnivox-cli:    56 unit
 ```
 
@@ -146,7 +150,7 @@ omnivox-cli:    56 unit
 
 ## Next Priority
 
-1. Add requested engine anchors and capitalization-tone overlays.
+1. Add capitalization-tone overlays using requested anchors.
 2. Add sample-aligned inserted and overlaid audio resources.
 3. Make language commands functional and include language in synchronized state.
 

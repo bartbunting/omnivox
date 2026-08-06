@@ -414,6 +414,18 @@ and a cancelled primary barrier prevents a stale deferred icon from starting.
 This slice intentionally provides queue-boundary precision. Sample-aligned
 in-span placement and structured `insert` remain Slices 3 and 5 work.
 
+Slice 3 status on 2026-08-07: implemented. Structured synthesis requests now
+accept up to 4096 unique opaque anchor IDs at validated UTF-8 boundaries with
+before/after affinity. Results preserve an explicit `exact`, `word_boundary`,
+`span_boundary`, or `omitted` grade, and common canonical resampling plus
+silence trimming remap resolved frames. Engine inventory advertises exact,
+word-boundary, or no support: Eloquence is exact through ECI indexes, DECtalk
+and WinRT are word-boundary, and the remaining engines currently advertise no
+anchors. Helper protocol v2 transports anchors while the Rust host retries v1
+negotiation for installed older helpers. A real Eloquence smoke resolved start,
+inter-word, and terminal anchors at frames 0, 2431, and 8360 respectively.
+Timeline action transport does not use these anchors until Slice 4.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when
@@ -522,12 +534,14 @@ loading those libraries into the Rust process.
   clean reference for the helper protocol. (Word markers implemented.)
 - Add negotiated requested-anchor support so Eloquence can map Omnivox
   timeline actions to exact captured PCM frames without taking over playback.
+  (Implemented through helper protocol v2 with v1 fallback.)
 - Implement DECtalk second, including phoneme/index metadata where available.
   (Implemented.)
 - Keep the existing standalone `windows-outloud` and `windows-dtk` servers as
   fallbacks until Omnivox reaches practical parity.
 
-The version 1 transport, request/response types, PCM and marker framing,
+The version 1 transport plus the version 2 requested-anchor extension,
+request/response types, PCM and marker framing,
 bounds, cancellation terminal states, and recovery contract are defined in
 [HELPER-PROTOCOL.md](HELPER-PROTOCOL.md). The generic helper-backed engine now
 negotiates inventory, validates exact voice and PCM results, cancels active

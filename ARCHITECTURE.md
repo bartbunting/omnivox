@@ -135,9 +135,11 @@ trait TtsEngine: Send + Sync {
     fn voice_info(&self, identifier: &str) -> Option<VoiceInfo>;
 }
 
-struct SynthesisRequest { text, settings, requested_voice, logical_voice_id, language }
-struct SynthesisResult { audio, engine_id, actual_voice, markers, degraded_acss }
+struct SynthesisRequest { text, settings, requested_voice, logical_voice_id, language, anchors }
+struct SynthesisResult { audio, engine_id, actual_voice, markers, anchors, degraded_acss }
 struct SynthesisMarker { kind, frame_offset, text_start, text_length, value }
+struct RequestedAnchor { id, text_offset, affinity }
+struct ResolvedAnchor { id, frame_offset, resolution }
 
 // AudioBuffer (TTS output format)
 struct AudioBuffer { samples: Vec<f32>, sample_rate: u32, channels: u16 }

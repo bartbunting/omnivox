@@ -22,7 +22,11 @@ pub mod windows;
 #[cfg(feature = "piper")]
 pub mod piper;
 
-pub use synthesis::{SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult};
+pub use synthesis::{
+    AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisMarker,
+    SynthesisMarkerKind, SynthesisRequest, SynthesisResult, MAX_SYNTHESIS_ANCHORS,
+    MAX_SYNTHESIS_ANCHOR_ID_BYTES,
+};
 
 /// TTS engine errors
 #[derive(Debug, Error)]

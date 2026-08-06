@@ -12,8 +12,12 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::contracts::EngineDescriptor;
+use crate::{RequestedAnchor, MAX_SYNTHESIS_ANCHORS, MAX_SYNTHESIS_ANCHOR_ID_BYTES};
 
-pub const HELPER_PROTOCOL_VERSION: u16 = 1;
+pub const HELPER_PROTOCOL_VERSION: u16 = 2;
+pub const HELPER_PROTOCOL_V1: u16 = 1;
+pub const SUPPORTED_HELPER_PROTOCOL_VERSIONS: &[u16] =
+    &[HELPER_PROTOCOL_VERSION, HELPER_PROTOCOL_V1];
 pub const MAX_HELPER_FRAME_BYTES: usize = 1024 * 1024;
 pub const MAX_HELPER_TEXT_BYTES: usize = 256 * 1024;
 pub const MAX_HELPER_AUDIO_CHUNK_BYTES: usize = 256 * 1024;
@@ -59,6 +63,9 @@ pub enum HelperProtocolError {
 
     #[error("helper marker batch exceeds the {MAX_HELPER_MARKERS}-marker limit")]
     TooManyMarkers,
+
+    #[error("helper synthesis request exceeds the {MAX_SYNTHESIS_ANCHORS}-anchor limit")]
+    TooManyAnchors,
 
     #[error("invalid helper protocol field: {0}")]
     InvalidField(&'static str),
@@ -122,8 +129,16 @@ pub struct HelperRequest {
 
 impl HelperRequest {
     pub fn new(request_id: u64, body: HelperRequestBody) -> Self {
+        Self::with_version(HELPER_PROTOCOL_VERSION, request_id, body)
+    }
+
+    pub fn with_version(
+        protocol_version: u16,
+        request_id: u64,
+        body: HelperRequestBody,
+    ) -> Self {
         Self {
-            protocol_version: HELPER_PROTOCOL_VERSION,
+            protocol_version,
             request_id,
             body,
         }
@@ -153,11 +168,28 @@ impl HelperRequest {
             }
             HelperRequestBody::Describe | HelperRequestBody::Ping | HelperRequestBody::Shutdown => {
             }
-            HelperRequestBody::Synthesize { text, settings } => {
+            HelperRequestBody::Synthesize {
+                text,
+                settings,
+                anchors,
+            } => {
                 if text.len() > MAX_HELPER_TEXT_BYTES {
                     return Err(HelperProtocolError::TextTooLarge);
                 }
                 settings.validate()?;
+                match (self.protocol_version, anchors) {
+                    (HELPER_PROTOCOL_V1, None) => {}
+                    (HELPER_PROTOCOL_VERSION, Some(anchors)) => {
+                        validate_requested_anchors(anchors, text)?;
+                    }
+                    (HELPER_PROTOCOL_V1, Some(_)) => {
+                        return Err(HelperProtocolError::InvalidField("anchors"));
+                    }
+                    (_, None) => {
+                        return Err(HelperProtocolError::InvalidField("anchors"));
+                    }
+                    _ => unreachable!("validated helper protocol version"),
+                }
             }
             HelperRequestBody::Cancel { target_request_id } => {
                 validate_request_id(*target_request_id)?;
@@ -180,6 +212,9 @@ pub enum HelperRequestBody {
     Synthesize {
         text: String,
         settings: HelperSynthesisSettings,
+        /// Present in protocol v2 and absent in protocol v1.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        anchors: Option<Vec<RequestedAnchor>>,
     },
     Cancel {
         target_request_id: u64,
@@ -228,8 +263,16 @@ pub struct HelperResponse {
 
 impl HelperResponse {
     pub fn for_request(request_id: u64, body: HelperResponseBody) -> Self {
+        Self::for_request_version(HELPER_PROTOCOL_VERSION, request_id, body)
+    }
+
+    pub fn for_request_version(
+        protocol_version: u16,
+        request_id: u64,
+        body: HelperResponseBody,
+    ) -> Self {
         Self {
-            protocol_version: HELPER_PROTOCOL_VERSION,
+            protocol_version,
             request_id: Some(request_id),
             body,
         }
@@ -274,6 +317,11 @@ impl HelperResponse {
                     return Err(HelperProtocolError::TooManyMarkers);
                 }
                 for marker in markers {
+                    if self.protocol_version == HELPER_PROTOCOL_V1
+                        && marker.kind == HelperMarkerKind::RequestedAnchor
+                    {
+                        return Err(HelperProtocolError::InvalidField("marker.kind"));
+                    }
                     marker.validate()?;
                 }
             }
@@ -416,6 +464,8 @@ pub enum HelperMarkerKind {
     Sentence,
     Phoneme,
     NativeIndex,
+    /// Protocol-v2 exact resolution of one requested opaque anchor.
+    RequestedAnchor,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -433,6 +483,14 @@ impl HelperMarker {
             .value
             .as_ref()
             .is_some_and(|value| value.len() > MAX_HELPER_STRING_BYTES)
+        {
+            return Err(HelperProtocolError::InvalidField("marker.value"));
+        }
+        if self.kind == HelperMarkerKind::RequestedAnchor
+            && self
+                .value
+                .as_ref()
+                .is_none_or(|value| value.is_empty() || value.len() > MAX_SYNTHESIS_ANCHOR_ID_BYTES)
         {
             return Err(HelperProtocolError::InvalidField("marker.value"));
         }
@@ -455,8 +513,31 @@ pub enum HelperErrorCode {
 }
 
 fn validate_version(version: u16) -> Result<(), HelperProtocolError> {
-    if version != HELPER_PROTOCOL_VERSION {
+    if !SUPPORTED_HELPER_PROTOCOL_VERSIONS.contains(&version) {
         return Err(HelperProtocolError::UnsupportedVersion(version));
+    }
+    Ok(())
+}
+
+fn validate_requested_anchors(
+    anchors: &[RequestedAnchor],
+    text: &str,
+) -> Result<(), HelperProtocolError> {
+    if anchors.len() > MAX_SYNTHESIS_ANCHORS {
+        return Err(HelperProtocolError::TooManyAnchors);
+    }
+    let mut identifiers = std::collections::HashSet::with_capacity(anchors.len());
+    for anchor in anchors {
+        if anchor.id.is_empty()
+            || anchor.id.len() > MAX_SYNTHESIS_ANCHOR_ID_BYTES
+            || !identifiers.insert(anchor.id.as_str())
+        {
+            return Err(HelperProtocolError::InvalidField("anchors.id"));
+        }
+        let offset = anchor.text_offset as usize;
+        if offset > text.len() || !text.is_char_boundary(offset) {
+            return Err(HelperProtocolError::InvalidField("anchors.text_offset"));
+        }
     }
     Ok(())
 }
@@ -492,6 +573,7 @@ mod tests {
                     pitch: 1.1,
                     volume: 0.8,
                 },
+                anchors: Some(Vec::new()),
             },
         )
     }
@@ -507,6 +589,49 @@ mod tests {
             .unwrap();
         assert_eq!(decoded, request);
         decoded.validate().unwrap();
+    }
+
+    #[test]
+    fn protocol_v1_synthesis_omits_the_v2_anchor_field() {
+        let request = HelperRequest::with_version(
+            HELPER_PROTOCOL_V1,
+            19,
+            HelperRequestBody::Synthesize {
+                text: "legacy".to_owned(),
+                settings: HelperSynthesisSettings {
+                    voice_id: None,
+                    rate: 0.5,
+                    pitch: 1.0,
+                    volume: 1.0,
+                },
+                anchors: None,
+            },
+        );
+
+        request.validate().unwrap();
+        let json = String::from_utf8(encode_frame(&request).unwrap()).unwrap();
+        assert!(!json.contains("anchors"));
+    }
+
+    #[test]
+    fn protocol_v2_validates_utf8_anchor_boundaries_and_ids() {
+        let mut request = synthesis_request();
+        if let HelperRequestBody::Synthesize { anchors, .. } = &mut request.body {
+            *anchors = Some(vec![RequestedAnchor::new(
+                "accent",
+                3,
+                crate::AnchorAffinity::Before,
+            )]);
+        }
+        request.validate().unwrap();
+
+        if let HelperRequestBody::Synthesize { anchors, .. } = &mut request.body {
+            anchors.as_mut().unwrap()[0].text_offset = 2;
+        }
+        assert!(matches!(
+            request.validate(),
+            Err(HelperProtocolError::InvalidField("anchors.text_offset"))
+        ));
     }
 
     #[test]
@@ -563,7 +688,7 @@ mod tests {
             Err(HelperProtocolError::TextTooLarge)
         ));
 
-        if let HelperRequestBody::Synthesize { text, settings } = &mut request.body {
+        if let HelperRequestBody::Synthesize { text, settings, .. } = &mut request.body {
             text.clear();
             settings.rate = f32::NAN;
         }

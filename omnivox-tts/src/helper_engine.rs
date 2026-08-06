@@ -20,11 +20,12 @@ use crate::engine_registry::validate_descriptor;
 use crate::helper_protocol::{
     read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
     HelperRequest, HelperRequestBody, HelperResponse, HelperResponseBody, HelperSynthesisSettings,
-    HELPER_PROTOCOL_VERSION, MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES,
+    HELPER_PROTOCOL_V1, HELPER_PROTOCOL_VERSION, MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES,
+    SUPPORTED_HELPER_PROTOCOL_VERSIONS,
 };
 use crate::{
-    AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
-    TtsEngine, TtsError, VoiceInfo,
+    AnchorResolution, AudioBuffer, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind,
+    SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo,
 };
 
 #[derive(Debug, Error)]
@@ -258,21 +259,37 @@ pub(crate) struct HelperCompletedSynthesis {
     markers: Vec<HelperMarker>,
 }
 
-impl From<HelperMarker> for SynthesisMarker {
-    fn from(marker: HelperMarker) -> Self {
-        Self {
-            kind: match marker.kind {
-                HelperMarkerKind::Word => SynthesisMarkerKind::Word,
-                HelperMarkerKind::Sentence => SynthesisMarkerKind::Sentence,
-                HelperMarkerKind::Phoneme => SynthesisMarkerKind::Phoneme,
-                HelperMarkerKind::NativeIndex => SynthesisMarkerKind::NativeIndex,
-            },
+fn split_helper_markers(
+    markers: Vec<HelperMarker>,
+) -> (Vec<SynthesisMarker>, Vec<ResolvedAnchor>) {
+    let mut synthesis_markers = Vec::new();
+    let mut anchors = Vec::new();
+    for marker in markers {
+        let kind = match marker.kind {
+            HelperMarkerKind::Word => SynthesisMarkerKind::Word,
+            HelperMarkerKind::Sentence => SynthesisMarkerKind::Sentence,
+            HelperMarkerKind::Phoneme => SynthesisMarkerKind::Phoneme,
+            HelperMarkerKind::NativeIndex => SynthesisMarkerKind::NativeIndex,
+            HelperMarkerKind::RequestedAnchor => {
+                anchors.push(ResolvedAnchor {
+                    id: marker
+                        .value
+                        .expect("validated requested-anchor marker has an ID"),
+                    frame_offset: Some(marker.frame_offset),
+                    resolution: AnchorResolution::Exact,
+                });
+                continue;
+            }
+        };
+        synthesis_markers.push(SynthesisMarker {
+            kind,
             frame_offset: marker.frame_offset,
             text_start: marker.text_start,
             text_length: marker.text_length,
             value: marker.value,
-        }
+        });
     }
+    (synthesis_markers, anchors)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -284,6 +301,7 @@ enum SynthesisPhase {
 
 pub(crate) struct HelperSynthesisCollector {
     request_id: u64,
+    protocol_version: u16,
     expected_voice_id: Option<String>,
     phase: SynthesisPhase,
     format: Option<HelperAudioFormat>,
@@ -294,9 +312,14 @@ pub(crate) struct HelperSynthesisCollector {
 }
 
 impl HelperSynthesisCollector {
-    pub(crate) fn new(request_id: u64, expected_voice_id: Option<String>) -> Self {
+    pub(crate) fn new(
+        protocol_version: u16,
+        request_id: u64,
+        expected_voice_id: Option<String>,
+    ) -> Self {
         Self {
             request_id,
+            protocol_version,
             expected_voice_id,
             phase: SynthesisPhase::AwaitingStart,
             format: None,
@@ -312,6 +335,11 @@ impl HelperSynthesisCollector {
         response: HelperResponse,
     ) -> Result<Option<HelperSynthesisResult>, HelperEngineError> {
         response.validate()?;
+        if response.protocol_version != self.protocol_version {
+            return Err(HelperEngineError::UnexpectedResponse(
+                "response uses a different negotiated protocol version",
+            ));
+        }
         if response.request_id != Some(self.request_id) {
             return Err(HelperEngineError::RequestMismatch {
                 expected: self.request_id,
@@ -462,6 +490,7 @@ pub struct HelperTtsEngine {
     connector: Arc<dyn HelperConnector>,
     connection: RwLock<Option<Arc<dyn HelperConnection>>>,
     descriptor: RwLock<Option<EngineDescriptor>>,
+    protocol_version: AtomicU64,
     next_request_id: AtomicU64,
     active_request_id: AtomicU64,
     pending_cancellations: Mutex<HashMap<u64, u64>>,
@@ -498,6 +527,7 @@ impl HelperTtsEngine {
             connector,
             connection: RwLock::new(None),
             descriptor: RwLock::new(None),
+            protocol_version: AtomicU64::new(0),
             next_request_id: AtomicU64::new(1),
             active_request_id: AtomicU64::new(0),
             pending_cancellations: Mutex::new(HashMap::new()),
@@ -524,14 +554,16 @@ impl HelperTtsEngine {
         self.pending_cancellations.lock().unwrap().clear();
 
         let connection = self.connector.connect()?;
-        let descriptor = match self.negotiate(&connection) {
-            Ok(descriptor) => descriptor,
+        let (descriptor, protocol_version) = match self.negotiate(&connection) {
+            Ok(negotiated) => negotiated,
             Err(error) => {
                 connection.terminate();
                 return Err(error);
             }
         };
         *self.descriptor.write().unwrap() = Some(descriptor);
+        self.protocol_version
+            .store(u64::from(protocol_version), Ordering::Release);
         *self.connection.write().unwrap() = Some(connection);
         Ok(())
     }
@@ -539,21 +571,42 @@ impl HelperTtsEngine {
     fn negotiate(
         &self,
         connection: &Arc<dyn HelperConnection>,
-    ) -> Result<EngineDescriptor, HelperEngineError> {
+    ) -> Result<(EngineDescriptor, u16), HelperEngineError> {
         let hello_id = self.allocate_request_id();
         let hello = HelperRequest::new(
             hello_id,
             HelperRequestBody::Hello {
-                supported_protocol_versions: vec![HELPER_PROTOCOL_VERSION],
+                supported_protocol_versions: SUPPORTED_HELPER_PROTOCOL_VERSIONS.to_vec(),
             },
         );
         connection.send(&hello)?;
-        let response = receive_owned_response(connection, hello_id, self.config.startup_timeout)?;
-        match response.body {
+        let mut response =
+            receive_owned_response(connection, hello_id, self.config.startup_timeout)?;
+        if matches!(
+            response.body,
+            HelperResponseBody::Error {
+                code: HelperErrorCode::UnsupportedVersion,
+                ..
+            }
+        ) {
+            let fallback_id = self.allocate_request_id();
+            connection.send(&HelperRequest::with_version(
+                HELPER_PROTOCOL_V1,
+                fallback_id,
+                HelperRequestBody::Hello {
+                    supported_protocol_versions: vec![HELPER_PROTOCOL_V1],
+                },
+            ))?;
+            response =
+                receive_owned_response(connection, fallback_id, self.config.startup_timeout)?;
+        }
+        let response_version = response.protocol_version;
+        let selected_protocol_version = match response.body {
             HelperResponseBody::Hello {
                 selected_protocol_version,
                 ..
-            } if selected_protocol_version == HELPER_PROTOCOL_VERSION => {}
+            } if SUPPORTED_HELPER_PROTOCOL_VERSIONS.contains(&selected_protocol_version)
+                && selected_protocol_version == response_version => selected_protocol_version,
             HelperResponseBody::Error {
                 code,
                 message,
@@ -570,15 +623,21 @@ impl HelperTtsEngine {
                     "expected hello response",
                 ));
             }
-        }
+        };
 
         let describe_id = self.allocate_request_id();
-        connection.send(&HelperRequest::new(
+        connection.send(&HelperRequest::with_version(
+            selected_protocol_version,
             describe_id,
             HelperRequestBody::Describe,
         ))?;
         let response =
             receive_owned_response(connection, describe_id, self.config.request_timeout)?;
+        if response.protocol_version != selected_protocol_version {
+            return Err(HelperEngineError::UnexpectedResponse(
+                "descriptor uses a different negotiated protocol version",
+            ));
+        }
         let descriptor = match response.body {
             HelperResponseBody::Descriptor { descriptor } => descriptor,
             HelperResponseBody::Error {
@@ -599,7 +658,7 @@ impl HelperTtsEngine {
             }
         };
         self.validate_descriptor(&descriptor)?;
-        Ok(descriptor)
+        Ok((descriptor, selected_protocol_version))
     }
 
     fn validate_descriptor(&self, descriptor: &EngineDescriptor) -> Result<(), HelperEngineError> {
@@ -780,6 +839,7 @@ impl TtsEngine for HelperTtsEngine {
         let _lifecycle = self.lifecycle.lock().unwrap();
         let connection = self.current_connection().map_err(Self::map_error)?;
         let descriptor = self.descriptor();
+        let protocol_version = self.protocol_version.load(Ordering::Acquire) as u16;
         let request_id = self.allocate_request_id();
         let voice_id = request.voice_id_for_engine(&descriptor.id)?;
         let requested_voice_id = if voice_id.is_empty() {
@@ -787,7 +847,8 @@ impl TtsEngine for HelperTtsEngine {
         } else {
             Some(voice_id.to_owned())
         };
-        let helper_request = HelperRequest::new(
+        let helper_request = HelperRequest::with_version(
+            protocol_version,
             request_id,
             HelperRequestBody::Synthesize {
                 text: request.text.clone(),
@@ -797,6 +858,8 @@ impl TtsEngine for HelperTtsEngine {
                     pitch: request.settings.pitch,
                     volume: request.settings.volume,
                 },
+                anchors: (protocol_version >= HELPER_PROTOCOL_VERSION)
+                    .then(|| request.anchors.clone()),
             },
         );
         helper_request.validate().map_err(|error| {
@@ -815,12 +878,21 @@ impl TtsEngine for HelperTtsEngine {
             active_request_id: &self.active_request_id,
             dispatch: &self.dispatch,
         };
-        let mut collector = HelperSynthesisCollector::new(request_id, requested_voice_id);
+        let mut collector =
+            HelperSynthesisCollector::new(protocol_version, request_id, requested_voice_id);
         loop {
             let response = match connection.receive(self.config.synthesis_idle_timeout) {
                 Ok(response) => response,
                 Err(error) => return Err(self.synthesis_error(&connection, error)),
             };
+            if response.protocol_version != protocol_version {
+                return Err(self.synthesis_error(
+                    &connection,
+                    HelperEngineError::UnexpectedResponse(
+                        "response uses a different negotiated protocol version",
+                    ),
+                ));
+            }
             if response.request_id != Some(request_id) {
                 if let Err(error) = response.validate() {
                     return Err(self.synthesis_error(&connection, error.into()));
@@ -846,11 +918,17 @@ impl TtsEngine for HelperTtsEngine {
                 Some(HelperSynthesisResult::Completed(completed)) => {
                     let actual_voice =
                         PhysicalVoiceId::new(descriptor.id.clone(), completed.actual_voice_id);
-                    let result = SynthesisResult::new(
+                    let (markers, anchors) = split_helper_markers(completed.markers);
+                    let mut result = SynthesisResult::new(
                         descriptor.id.clone(),
                         Some(actual_voice),
                         completed.audio,
-                        completed.markers.into_iter().map(Into::into).collect(),
+                        markers,
+                    );
+                    result.anchors = anchors;
+                    result.resolve_anchors(
+                        request,
+                        descriptor.capabilities.markers.requested_anchors,
                     );
                     result.validate(request)?;
                     return Ok(result);
@@ -875,8 +953,11 @@ impl TtsEngine for HelperTtsEngine {
             return;
         };
         let request_id = self.allocate_request_id();
-        let request =
-            HelperRequest::new(request_id, HelperRequestBody::Cancel { target_request_id });
+        let request = HelperRequest::with_version(
+            self.protocol_version.load(Ordering::Acquire) as u16,
+            request_id,
+            HelperRequestBody::Cancel { target_request_id },
+        );
         self.pending_cancellations
             .lock()
             .unwrap()
@@ -934,14 +1015,14 @@ mod tests {
 
     use super::*;
     use crate::contracts::{
-        AcssCapabilities, Availability, EngineCapabilities, EngineHealth, MarkerCapabilities,
-        PhysicalVoiceId, VoiceDescriptor,
+        AcssCapabilities, AnchorSupport, Availability, EngineCapabilities, EngineHealth,
+        MarkerCapabilities, PhysicalVoiceId, VoiceDescriptor,
     };
     use crate::helper_protocol::{
         HelperMarkerKind, HelperPcmChunk, HelperResponseBody, HelperSampleFormat,
         HELPER_PROTOCOL_VERSION,
     };
-    use crate::{TtsSettings, VoiceQuality};
+    use crate::{AnchorAffinity, RequestedAnchor, TtsSettings, VoiceQuality};
 
     #[derive(Debug, Clone, Copy)]
     enum MockSynthesisMode {
@@ -952,6 +1033,7 @@ mod tests {
 
     struct MockConnection {
         descriptor: EngineDescriptor,
+        protocol_version: u16,
         mode: MockSynthesisMode,
         sent: Mutex<Vec<HelperRequest>>,
         responses: Mutex<VecDeque<HelperResponse>>,
@@ -963,6 +1045,7 @@ mod tests {
         fn new(descriptor: EngineDescriptor, mode: MockSynthesisMode) -> Self {
             Self {
                 descriptor,
+                protocol_version: HELPER_PROTOCOL_VERSION,
                 mode,
                 sent: Mutex::new(Vec::new()),
                 responses: Mutex::new(VecDeque::new()),
@@ -971,9 +1054,20 @@ mod tests {
             }
         }
 
+        fn legacy(descriptor: EngineDescriptor, mode: MockSynthesisMode) -> Self {
+            let mut connection = Self::new(descriptor, mode);
+            connection.protocol_version = HELPER_PROTOCOL_V1;
+            connection
+        }
+
         fn push(&self, response: HelperResponse) {
             self.responses.lock().unwrap().push_back(response);
             self.response_ready.notify_all();
+        }
+
+
+        fn response(&self, request_id: u64, body: HelperResponseBody) -> HelperResponse {
+            HelperResponse::for_request_version(self.protocol_version, request_id, body)
         }
     }
 
@@ -981,24 +1075,50 @@ mod tests {
         fn send(&self, request: &HelperRequest) -> Result<(), HelperEngineError> {
             request.validate()?;
             self.sent.lock().unwrap().push(request.clone());
+            if request.protocol_version != self.protocol_version {
+                if matches!(request.body, HelperRequestBody::Hello { .. })
+                    && self.protocol_version == HELPER_PROTOCOL_V1
+                {
+                    self.push(self.response(
+                        request.request_id,
+                        HelperResponseBody::Error {
+                            code: HelperErrorCode::UnsupportedVersion,
+                            message: "mock helper supports protocol v1".to_owned(),
+                            retryable: false,
+                        },
+                    ));
+                    return Ok(());
+                }
+                return Err(HelperEngineError::UnexpectedResponse(
+                    "mock request uses a different protocol version",
+                ));
+            }
             match &request.body {
-                HelperRequestBody::Hello { .. } => self.push(response(
+                HelperRequestBody::Hello { .. } => self.push(self.response(
                     request.request_id,
                     HelperResponseBody::Hello {
-                        selected_protocol_version: HELPER_PROTOCOL_VERSION,
+                        selected_protocol_version: self.protocol_version,
                         helper_name: "mock x86 helper".to_owned(),
                         helper_version: "0.1.0".to_owned(),
                     },
                 )),
-                HelperRequestBody::Describe => self.push(response(
-                    request.request_id,
-                    HelperResponseBody::Descriptor {
-                        descriptor: self.descriptor.clone(),
-                    },
-                )),
-                HelperRequestBody::Synthesize { settings, .. } => match self.mode {
+                HelperRequestBody::Describe => {
+                    let mut descriptor = self.descriptor.clone();
+                    if self.protocol_version == HELPER_PROTOCOL_V1 {
+                        descriptor.capabilities.markers.requested_anchors = AnchorSupport::None;
+                    }
+                    self.push(self.response(
+                        request.request_id,
+                        HelperResponseBody::Descriptor { descriptor },
+                    ));
+                }
+                HelperRequestBody::Synthesize {
+                    settings,
+                    anchors,
+                    ..
+                } => match self.mode {
                     MockSynthesisMode::Complete => {
-                        self.push(response(
+                        self.push(self.response(
                             request.request_id,
                             HelperResponseBody::SynthesisStarted {
                                 format: HelperAudioFormat {
@@ -1012,26 +1132,56 @@ mod tests {
                                     .unwrap_or_else(|| "reed".to_owned()),
                             },
                         ));
-                        self.push(audio(request.request_id, 0, &[-32_768, 0, 16_384, 32_767]));
-                        self.push(response(
+                        let bytes = [-32_768_i16, 0, 16_384, 32_767]
+                            .into_iter()
+                            .flat_map(i16::to_le_bytes)
+                            .collect::<Vec<_>>();
+                        self.push(self.response(
                             request.request_id,
-                            HelperResponseBody::Markers {
-                                markers: vec![HelperMarker {
-                                    kind: HelperMarkerKind::Word,
-                                    frame_offset: 1,
-                                    text_start: None,
-                                    text_length: None,
-                                    value: None,
-                                }],
+                            HelperResponseBody::AudioChunk {
+                                chunk: HelperPcmChunk::from_bytes(0, &bytes).unwrap(),
                             },
                         ));
-                        self.push(response(
+                        let mut markers = vec![HelperMarker {
+                            kind: HelperMarkerKind::Word,
+                            frame_offset: 1,
+                            text_start: Some(0),
+                            text_length: Some(5),
+                            value: None,
+                        }];
+                        if let Some(anchors) = anchors {
+                            markers.extend(anchors.iter().map(|anchor| HelperMarker {
+                                kind: HelperMarkerKind::RequestedAnchor,
+                                frame_offset: u64::from(anchor.text_offset).min(4),
+                                text_start: Some(anchor.text_offset),
+                                text_length: Some(0),
+                                value: Some(anchor.id.clone()),
+                            }));
+                        }
+                        self.push(self.response(
+                            request.request_id,
+                            HelperResponseBody::Markers {
+                                markers,
+                            },
+                        ));
+                        self.push(self.response(
                             request.request_id,
                             HelperResponseBody::SynthesisCompleted { frame_count: 4 },
                         ));
                     }
-                    MockSynthesisMode::WaitForCancel => self.push(started(request.request_id, 1)),
-                    MockSynthesisMode::VoiceMissing => self.push(response(
+                    MockSynthesisMode::WaitForCancel => self.push(HelperResponse::for_request_version(
+                        self.protocol_version,
+                        request.request_id,
+                        HelperResponseBody::SynthesisStarted {
+                            format: HelperAudioFormat {
+                                sample_rate: 22_050,
+                                channels: 1,
+                                sample_format: HelperSampleFormat::PcmS16Le,
+                            },
+                            actual_voice_id: "reed".to_owned(),
+                        },
+                    )),
+                    MockSynthesisMode::VoiceMissing => self.push(self.response(
                         request.request_id,
                         HelperResponseBody::Error {
                             code: HelperErrorCode::VoiceNotFound,
@@ -1041,22 +1191,22 @@ mod tests {
                     )),
                 },
                 HelperRequestBody::Cancel { target_request_id } => {
-                    self.push(response(
+                    self.push(self.response(
                         request.request_id,
                         HelperResponseBody::CancelAccepted {
                             target_request_id: *target_request_id,
                         },
                     ));
-                    self.push(response(
+                    self.push(self.response(
                         *target_request_id,
                         HelperResponseBody::SynthesisCancelled,
                     ));
                 }
                 HelperRequestBody::Ping => {
-                    self.push(response(request.request_id, HelperResponseBody::Pong));
+                    self.push(self.response(request.request_id, HelperResponseBody::Pong));
                 }
                 HelperRequestBody::Shutdown => {
-                    self.push(response(
+                    self.push(self.response(
                         request.request_id,
                         HelperResponseBody::ShuttingDown,
                     ));
@@ -1136,6 +1286,7 @@ mod tests {
                 markers: MarkerCapabilities {
                     word: true,
                     native_index: true,
+                    requested_anchors: AnchorSupport::Exact,
                     ..MarkerCapabilities::default()
                 },
                 language_switching: false,
@@ -1214,7 +1365,7 @@ mod tests {
 
     #[test]
     fn assembles_valid_pcm_and_markers_after_terminal_frame_count() {
-        let mut collector = HelperSynthesisCollector::new(11, None);
+        let mut collector = HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 11, None);
         assert!(collector.accept(started(11, 1)).unwrap().is_none());
         assert!(collector
             .accept(audio(11, 0, &[-32_768, 0]))
@@ -1261,7 +1412,7 @@ mod tests {
 
     #[test]
     fn rejects_wrong_request_and_out_of_order_chunks() {
-        let mut collector = HelperSynthesisCollector::new(11, None);
+        let mut collector = HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 11, None);
         let error = collector.accept(started(12, 1)).unwrap_err();
         assert!(matches!(
             error,
@@ -1284,7 +1435,11 @@ mod tests {
 
     #[test]
     fn rejects_a_helper_that_synthesizes_with_the_wrong_voice() {
-        let mut collector = HelperSynthesisCollector::new(13, Some("paul".to_owned()));
+        let mut collector = HelperSynthesisCollector::new(
+            HELPER_PROTOCOL_VERSION,
+            13,
+            Some("paul".to_owned()),
+        );
         let error = collector.accept(started(13, 1)).unwrap_err();
         assert!(matches!(
             error,
@@ -1297,12 +1452,12 @@ mod tests {
 
     #[test]
     fn rejects_channel_misalignment_and_false_frame_counts() {
-        let mut collector = HelperSynthesisCollector::new(7, None);
+        let mut collector = HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 7, None);
         collector.accept(started(7, 2)).unwrap();
         let error = collector.accept(audio(7, 0, &[1])).unwrap_err();
         assert!(matches!(error, HelperEngineError::AudioFrameAlignment));
 
-        let mut collector = HelperSynthesisCollector::new(8, None);
+        let mut collector = HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 8, None);
         collector.accept(started(8, 1)).unwrap();
         collector.accept(audio(8, 0, &[1, 2])).unwrap();
         let error = collector
@@ -1322,7 +1477,8 @@ mod tests {
 
     #[test]
     fn cancellation_and_remote_errors_are_terminal() {
-        let mut cancelled = HelperSynthesisCollector::new(4, None);
+        let mut cancelled =
+            HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 4, None);
         assert!(matches!(
             cancelled
                 .accept(response(4, HelperResponseBody::SynthesisCancelled))
@@ -1336,7 +1492,7 @@ mod tests {
             ))
         ));
 
-        let mut failed = HelperSynthesisCollector::new(5, None);
+        let mut failed = HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 5, None);
         let error = failed
             .accept(response(
                 5,
@@ -1358,7 +1514,7 @@ mod tests {
 
     #[test]
     fn rejects_unowned_and_wrong_version_responses_before_assembly() {
-        let mut collector = HelperSynthesisCollector::new(9, None);
+        let mut collector = HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 9, None);
         let error = collector
             .accept(HelperResponse {
                 protocol_version: HELPER_PROTOCOL_VERSION + 1,
@@ -1411,6 +1567,77 @@ mod tests {
             panic!("expected synthesis request");
         };
         assert_eq!(settings.voice_id.as_deref(), Some("reed"));
+    }
+
+    #[test]
+    fn helper_v2_returns_exact_requested_anchors() {
+        let connection = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.0"),
+            MockSynthesisMode::Complete,
+        ));
+        let engine = mock_engine(vec![Arc::clone(&connection)]).unwrap();
+        let request = synthesis_request("hello")
+            .with_anchors(vec![RequestedAnchor::new(
+                "capital-1",
+                3,
+                AnchorAffinity::Before,
+            )])
+            .unwrap();
+
+        let result = engine.synthesize(&request).unwrap();
+
+        assert_eq!(
+            result.anchors,
+            vec![ResolvedAnchor {
+                id: "capital-1".to_owned(),
+                frame_offset: Some(3),
+                resolution: AnchorResolution::Exact,
+            }]
+        );
+        let sent = connection.sent.lock().unwrap();
+        let HelperRequestBody::Synthesize { anchors, .. } = &sent[2].body else {
+            panic!("expected synthesis request");
+        };
+        assert_eq!(anchors.as_deref(), Some(request.anchors.as_slice()));
+    }
+
+    #[test]
+    fn helper_host_retries_negotiation_with_protocol_v1() {
+        let connection = Arc::new(MockConnection::legacy(
+            helper_descriptor("eloquence", "legacy"),
+            MockSynthesisMode::Complete,
+        ));
+        let engine = mock_engine(vec![Arc::clone(&connection)]).unwrap();
+        let request = synthesis_request("hello")
+            .with_anchors(vec![RequestedAnchor::new(
+                "legacy-anchor",
+                2,
+                AnchorAffinity::After,
+            )])
+            .unwrap();
+
+        let result = engine.synthesize(&request).unwrap();
+
+        assert_eq!(
+            result.anchors,
+            vec![ResolvedAnchor {
+                id: "legacy-anchor".to_owned(),
+                frame_offset: None,
+                resolution: AnchorResolution::Omitted,
+            }]
+        );
+        assert_eq!(
+            engine.descriptor().capabilities.markers.requested_anchors,
+            AnchorSupport::None
+        );
+        let sent = connection.sent.lock().unwrap();
+        assert_eq!(sent[0].protocol_version, HELPER_PROTOCOL_VERSION);
+        assert_eq!(sent[1].protocol_version, HELPER_PROTOCOL_V1);
+        assert_eq!(sent[2].body, HelperRequestBody::Describe);
+        let HelperRequestBody::Synthesize { anchors, .. } = &sent[3].body else {
+            panic!("expected synthesis request");
+        };
+        assert!(anchors.is_none());
     }
 
     #[test]
