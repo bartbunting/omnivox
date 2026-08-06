@@ -145,7 +145,9 @@ impl EngineRegistry {
     }
 }
 
-fn validate_descriptor(descriptor: &EngineDescriptor) -> Result<(), EngineRegistryError> {
+pub(crate) fn validate_descriptor(
+    descriptor: &EngineDescriptor,
+) -> Result<(), EngineRegistryError> {
     if descriptor.id.is_empty() {
         return Err(EngineRegistryError::EmptyEngineId);
     }

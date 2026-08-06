@@ -66,7 +66,7 @@ reject missing, repeated, or truncated chunks. A marker identifies a word,
 sentence, phoneme, or native engine index using an audio-frame offset and
 optional source-text range/value. Text ranges are byte offsets into the request
 UTF-8; a helper leaves them absent when its native indexes cannot be mapped
-truthfully. One marker response carries at most 4096 markers.
+truthfully. One synthesis carries at most 4096 markers across all responses.
 
 Version 1 permits one active synthesis per helper because the initial native
 engines are serialized. The helper must continue reading commands while its
@@ -96,7 +96,8 @@ The Rust codec enforces these bounds before accepting content:
 - 1 MiB per JSON frame;
 - 256 KiB of synthesis text;
 - 256 KiB of decoded PCM per audio chunk;
-- 4096 markers per marker response;
+- 128 MiB of decoded PCM per synthesis request;
+- 4096 markers per synthesis request;
 - 4096 discovered physical voices;
 - 16 advertised protocol versions.
 
@@ -109,4 +110,10 @@ helper after cooldown. Proprietary DLLs remain user-supplied and outside the
 Omnivox distribution.
 
 The authoritative Rust wire types and bounded codec are in
-`omnivox-tts/src/helper_protocol.rs`.
+`omnivox-tts/src/helper_protocol.rs`. The generic process client and synthesis
+stream validator are in `omnivox-tts/src/helper_engine.rs`. They negotiate and
+validate inventory, enforce exact requested voice realization, reject malformed
+or incomplete PCM streams, issue cancellation independently of the serialized
+synthesis call, and replace a failed child during a recovery probe. Marker
+frames are validated but cannot yet leave the helper engine because the current
+`TtsEngine` result type carries audio only.

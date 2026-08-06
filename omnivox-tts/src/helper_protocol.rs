@@ -17,6 +17,7 @@ pub const HELPER_PROTOCOL_VERSION: u16 = 1;
 pub const MAX_HELPER_FRAME_BYTES: usize = 1024 * 1024;
 pub const MAX_HELPER_TEXT_BYTES: usize = 256 * 1024;
 pub const MAX_HELPER_AUDIO_CHUNK_BYTES: usize = 256 * 1024;
+pub const MAX_HELPER_SYNTHESIS_BYTES: usize = 128 * 1024 * 1024;
 pub const MAX_HELPER_MARKERS: usize = 4096;
 pub const MAX_HELPER_VOICES: usize = 4096;
 const MAX_HELPER_STRING_BYTES: usize = 16 * 1024;

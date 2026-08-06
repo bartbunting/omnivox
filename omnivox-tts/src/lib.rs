@@ -10,6 +10,7 @@ pub mod macos;
 pub mod contracts;
 pub mod control;
 pub mod engine_registry;
+pub mod helper_engine;
 pub mod helper_protocol;
 pub mod logical_voices;
 pub mod presentation;

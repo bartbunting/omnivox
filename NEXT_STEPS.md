@@ -281,8 +281,10 @@ loading those libraries into the Rust process.
 
 The version 1 transport, request/response types, PCM and marker framing,
 bounds, cancellation terminal states, and recovery contract are defined in
-[HELPER-PROTOCOL.md](HELPER-PROTOCOL.md). The generic helper-backed engine and
-x86 capture implementations remain.
+[HELPER-PROTOCOL.md](HELPER-PROTOCOL.md). The generic helper-backed engine now
+negotiates inventory, validates exact voice and PCM results, cancels active
+synthesis, invalidates failed children, and reconnects for recovery probes.
+The Eloquence and DECtalk x86 capture implementations remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model
 
