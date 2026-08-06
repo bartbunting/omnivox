@@ -8,13 +8,14 @@ not need Tcl escaping and remain separate structured fields.
 ## Compatibility Boundary
 
 - Existing clients and legacy commands continue to work unchanged.
-- `emacsvox_tx` remains the presentation-transaction frame. It is not used for
-  persistent logical-voice configuration or discovery.
+- `emacsvox_tx` is an optional presentation-transaction frame. It is not used
+  for persistent logical-voice configuration or discovery.
 - A client must successfully request capabilities before using later control
   extensions.
 - The server advertises only features it currently implements. Version 1
   currently implements capability negotiation, active-engine inventory,
-  atomic logical-voice registration, and queued logical-voice routing.
+  atomic logical-voice registration, queued logical-voice routing, and bounded
+  replaceable presentation transactions.
 
 ## Request Record
 
@@ -99,6 +100,7 @@ A successful capability response decodes to this shape:
   "features": [
     "control_v1",
     "engine_inventory",
+    "emacsvox_tx",
     "legacy_commands",
     "logical_voice_registration",
     "logical_voice_routing",
@@ -165,6 +167,36 @@ generation with different content or sending an older generation is rejected
 without changing the registry. A valid but presently unresolvable definition
 is retained and returned with `"status": "unresolved"` and diagnostic attempts;
 it is not silently dropped.
+
+## Presentation Transactions
+
+When `emacsvox_tx` is advertised, a client may send one replaceable
+presentation as:
+
+```text
+emacsvox_tx 17 {BASE64_LEGACY_SCRIPT}
+```
+
+The generation is a positive, monotonically increasing integer. The decoded
+payload is a UTF-8 script containing ordinary legacy protocol commands, ending
+with exactly one `d` dispatch command. Omnivox decodes, parses, bounds, and
+validates the complete script before executing any of it. A payload may contain
+at most 256 KiB and 4096 commands. Stop, control, exit, nested transaction,
+reset, version, letter, immediate speech, and immediate sound commands are not
+valid inside a frame.
+
+Stale or repeated generations are ignored. Consecutive valid frames arriving
+within the server's short reader coalescing window are replaceable: only the
+highest generation executes. An ordinary command closes that window and runs
+after the selected frame. An immediate `s` stop instead discards the selected
+frame, performs the stop, and consumes the selected generation so that it
+cannot reappear on retry. Invalid frames do not consume their generation and
+may be corrected and retried.
+
+Emacsvox uses this extension only after capability negotiation and currently
+frames replaceable aural presentations. It keeps sending the ordinary legacy
+protocol to older servers. Frame validation failures are server diagnostics,
+not control-channel response records.
 
 ## Queued Logical-Voice Routing
 

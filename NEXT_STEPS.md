@@ -144,7 +144,8 @@ adapter now negotiates capabilities, discovers inventory, normalizes its ACSS
 definitions, and sends portable ordered selectors to both speech processes.
 Machine-specific exact IDs stay optional; property selectors late-bind against
 each server's inventory. Registered bindings now drive queued per-span routing;
-bounded runtime-failure retry remains in Phase 3.
+semantic Emacs voice preferences resolve to their generated ACSS voice IDs.
+Bounded runtime-failure retry remains in Phase 3.
 
 ### Phase 3: Add an Engine Registry and Per-Span Routing
 
@@ -211,8 +212,11 @@ restart remain.
 Status on 2026-08-06: capability negotiation, inventory discovery, atomic
 logical-voice registration, portable selector customization, and legacy-client
 fallback are implemented in Emacsvox. Registered logical voices now select the
-engine and physical voice for queued spans. Transaction framing, tracked
-dispatch, and functional language commands remain.
+engine and physical voice for queued spans. Capability-gated `emacsvox_tx`
+delivery now provides bounded UTF-8 decoding, atomic whole-frame validation,
+generation coalescing and stale rejection, and an external stop barrier while
+preserving the legacy path for older servers. Tracked dispatch and functional
+language commands remain.
 
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking

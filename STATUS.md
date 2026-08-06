@@ -7,7 +7,7 @@
 
 ### Working
 
-- Full Emacspeak protocol parser (27 commands)
+- Full Emacspeak protocol parser (32 commands)
 - Command queue system with dispatch (depth: speech 100, tone 10, sound 10)
 - State management (voice, rate, pitch, volume, punctuation, split caps)
 - macOS native TTS (AVSpeechSynthesizer via ObjC bridge, buffer capture)
@@ -42,6 +42,9 @@
 - Per-span queued logical-voice routing across registered engines
 - Safe preferred-engine fallback for missing or unresolved logical routes
 - Hard-stop cancellation requests fan out across all registered engines
+- Bounded, capability-advertised `emacsvox_tx` presentation framing with atomic validation
+- Generation coalescing, stale-frame rejection, and stop-barrier semantics
+- English-US eSpeak voice selected as the portable engine default when available
 - Diagnostic self-test (--check)
 - GitHub Actions CI/CD for 6 platforms
 
@@ -49,7 +52,7 @@
 
 - Bounded re-resolution and retry after synthesis-time engine failures
 - Logical routing for immediate `tts_say` and letter commands
-- Full Emacsvox framing and tracked-dispatch extensions
+- Tracked-dispatch terminal events
 - Eloquence and DECtalk engines through the planned x86 helper
 - Linux Speech Dispatcher TTS backend
 - Network mode (-p TCP flag)
@@ -63,12 +66,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 217 tests, all passing
+Total: 226 tests, all passing
 
 omnivox-audio:  60 unit + 31 integration = 91
-omnivox-core:   39 unit + 1 doc = 40
-omnivox-tts:    60 unit
-omnivox-cli:    26 unit
+omnivox-core:   40 unit + 1 doc = 41
+omnivox-tts:    63 unit
+omnivox-cli:    31 unit
 ```
 
 ## Platform Support
@@ -105,11 +108,12 @@ omnivox-cli:    26 unit
 | `version` | Working | Version announcement |
 | `tts_exit` | Working | Clean exit |
 | `omnivox_control` | Working | Capabilities, inventory, and logical-voice registration |
+| `emacsvox_tx` | Working | Bounded replaceable presentation transaction after capability negotiation |
 
 ## Next Priority
 
-1. Implement `emacsvox_tx` framing, coalescing, and stop-barrier semantics.
-2. Re-resolve registered voices after bounded runtime engine failures.
+1. Re-resolve registered voices after bounded runtime engine failures.
+2. Add tracked-dispatch terminal results and truthful cancellation reporting.
 3. Add user-facing inventory, binding, degradation, and health diagnostics.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).
