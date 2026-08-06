@@ -178,6 +178,27 @@ impl SynthesisResult {
         Self::new(engine_id, actual_voice, audio, Vec::new())
     }
 
+    /// Build a canonical result from engine-native signed 16-bit PCM and
+    /// rescale all native timing metadata to the canonical frame clock.
+    pub(crate) fn from_native_i16(
+        engine_id: impl Into<String>,
+        actual_voice: Option<PhysicalVoiceId>,
+        samples: &[i16],
+        sample_rate: u32,
+        channels: u16,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<ResolvedAnchor>,
+    ) -> Result<Self, TtsError> {
+        let audio = AudioBuffer::try_from_interleaved_i16(samples, sample_rate, channels)
+            .map_err(|error| {
+                TtsError::SynthesisFailed(format!("could not canonicalize engine PCM: {error}"))
+            })?;
+        let mut result = Self::new(engine_id, actual_voice, audio, markers);
+        result.anchors = anchors;
+        result.rescale_timing(sample_rate);
+        Ok(result)
+    }
+
     /// Complete anchor results according to an engine's advertised support.
     ///
     /// Exact engine results already present in `anchors` win. Missing results
@@ -258,15 +279,10 @@ impl SynthesisResult {
         Ok(())
     }
 
-    /// Convert PCM and marker frame offsets to Omnivox's standard audio format.
-    pub fn into_standard_format(mut self) -> Self {
-        let source_rate = self.audio.sample_rate;
+    fn rescale_timing(&mut self, source_rate: u32) {
         if source_rate == STANDARD_SAMPLE_RATE {
-            self.audio = self.audio.to_stereo();
-            return self;
+            return;
         }
-
-        self.audio = self.audio.to_standard_format();
         let target_frames = self.audio.frame_count() as u64;
         for marker in &mut self.markers {
             marker.frame_offset = scale_frame_offset(
@@ -286,7 +302,6 @@ impl SynthesisResult {
                 );
             }
         }
-        self
     }
 }
 
@@ -441,7 +456,7 @@ mod tests {
         let result = SynthesisResult::new(
             "helper",
             Some(PhysicalVoiceId::new("helper", "voice")),
-            AudioBuffer::new(vec![0.0; 20], 10, 1),
+            AudioBuffer::new(vec![0.0; 40]),
             vec![SynthesisMarker {
                 kind: SynthesisMarkerKind::Word,
                 frame_offset: 20,
@@ -459,7 +474,7 @@ mod tests {
         let result = SynthesisResult::new(
             "helper",
             None,
-            AudioBuffer::new(vec![0.0; 10], 10, 1),
+            AudioBuffer::new(vec![0.0; 20]),
             vec![SynthesisMarker {
                 kind: SynthesisMarkerKind::Word,
                 frame_offset: 11,
@@ -477,7 +492,7 @@ mod tests {
         let result = SynthesisResult::new(
             "helper",
             None,
-            AudioBuffer::new(vec![0.0; 10], 10, 1),
+            AudioBuffer::new(vec![0.0; 20]),
             vec![SynthesisMarker {
                 kind: SynthesisMarkerKind::Word,
                 frame_offset: 0,
@@ -499,7 +514,7 @@ mod tests {
         let result = SynthesisResult::audio(
             "helper",
             Some(PhysicalVoiceId::new("helper", "different")),
-            AudioBuffer::new(vec![0.0; 10], 10, 1),
+            AudioBuffer::new(vec![0.0; 20]),
         );
 
         assert!(result.validate(&request).is_err());
@@ -558,7 +573,7 @@ mod tests {
         let mut word_result = SynthesisResult::new(
             "word-engine",
             None,
-            AudioBuffer::new(vec![0.0; 40], 10, 1),
+            AudioBuffer::new(vec![0.0; 80]),
             markers,
         );
         word_result.resolve_anchors(&request, AnchorSupport::WordBoundary);
@@ -572,7 +587,7 @@ mod tests {
         let mut unsupported = SynthesisResult::audio(
             "markerless",
             None,
-            AudioBuffer::new(vec![0.0; 40], 10, 1),
+            AudioBuffer::new(vec![0.0; 80]),
         );
         unsupported.resolve_anchors(&request, AnchorSupport::None);
         assert!(unsupported.anchors.iter().all(|anchor| {
@@ -583,10 +598,13 @@ mod tests {
 
     #[test]
     fn standard_format_rescales_markers() {
-        let mut result = SynthesisResult::new(
+        let samples = vec![0; 11025];
+        let result = SynthesisResult::from_native_i16(
             "helper",
             None,
-            AudioBuffer::new(vec![0.0; 11025], 11025, 1),
+            &samples,
+            11025,
+            1,
             vec![SynthesisMarker {
                 kind: SynthesisMarkerKind::Word,
                 frame_offset: 5512,
@@ -594,16 +612,16 @@ mod tests {
                 text_length: None,
                 value: None,
             }],
-        );
-        result.anchors.push(ResolvedAnchor {
-            id: "cue".to_owned(),
-            frame_offset: Some(5512),
-            resolution: AnchorResolution::Exact,
-        });
-        let result = result.into_standard_format();
+            vec![ResolvedAnchor {
+                id: "cue".to_owned(),
+                frame_offset: Some(5512),
+                resolution: AnchorResolution::Exact,
+            }],
+        )
+        .unwrap();
 
-        assert_eq!(result.audio.sample_rate, STANDARD_SAMPLE_RATE);
-        assert_eq!(result.audio.channels, 2);
+        assert_eq!(result.audio.sample_rate(), STANDARD_SAMPLE_RATE);
+        assert_eq!(result.audio.channels(), 2);
         assert_eq!(result.markers[0].frame_offset, 22048);
         assert_eq!(result.anchors[0].frame_offset, Some(22048));
     }

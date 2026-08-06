@@ -10,6 +10,7 @@ omnivox-core = { path = "../omnivox-core" }
 thiserror.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
+rubato = "0.16"
 rodio = { version = "0.19", default-features = false, features = ["vorbis", "wav"] }
 
 [dev-dependencies]

@@ -14,10 +14,10 @@ piper = ["omnivox-piper-sys"]
 thiserror.workspace = true
 tracing.workspace = true
 once_cell.workspace = true
-rubato = "0.16"
 serde.workspace = true
 serde_json.workspace = true
 base64.workspace = true
+omnivox-audio = { path = "../omnivox-audio" }
 
 # espeak-ng (always compiled in as cross-platform fallback)
 espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"] }

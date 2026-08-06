@@ -288,11 +288,14 @@ impl TtsEngine for PiperTtsEngine {
             num_samples, sample_rate
         );
 
-        let buffer = AudioBuffer::from_i16(&i16_samples, sample_rate, 1);
+        let buffer = AudioBuffer::try_from_interleaved_i16(&i16_samples, sample_rate, 1)
+            .map_err(|error| {
+                TtsError::SynthesisFailed(format!("could not canonicalize Piper PCM: {error}"))
+            })?;
         Ok(SynthesisResult::audio(
             "piper",
             actual_voice,
-            buffer.to_standard_format(),
+            buffer,
         ))
     }
 

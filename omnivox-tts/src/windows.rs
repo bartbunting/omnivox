@@ -438,16 +438,21 @@ mod impl_windows {
                     channels
                 );
 
-                let buffer = AudioBuffer::from_i16(&i16_samples, sample_rate, channels);
+                let native_frame_count = i16_samples.len() as u64 / u64::from(channels);
                 let markers = Self::collect_timed_markers(
                     &stream,
                     text,
                     sample_rate,
-                    buffer.frame_count() as u64,
+                    native_frame_count,
                 );
-                Ok(
-                    SynthesisResult::new("winrt", Some(actual_voice), buffer, markers)
-                        .into_standard_format(),
+                SynthesisResult::from_native_i16(
+                    "winrt",
+                    Some(actual_voice),
+                    &i16_samples,
+                    sample_rate,
+                    channels,
+                    markers,
+                    Vec::new(),
                 )
             } else {
                 Err(TtsError::SynthesisFailed(format!(

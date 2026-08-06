@@ -295,7 +295,7 @@ helper engine and has been verified against the DECtalk helper.
 - Define truthful cancellation and completion semantics for synchronous,
   streaming, and externally playing engines.
 - Unify `omnivox-tts::AudioBuffer` and `omnivox-audio::AudioBuffer` into one
-  canonical type.
+  canonical type. (Implemented.)
 - Preserve or adjust marker timestamps through resampling, silence trimming,
   and other audio effects.
 - Add an engine-neutral presentation timeline with source/span anchors,
@@ -340,7 +340,12 @@ A real Windows playback smoke test delivered sentence and word events before
 tracked completion. Eloquence and DECtalk word/sentence markers plus DECtalk
 phoneme/native-index markers now follow the same helper, resampling, and
 playback-cue path. eSpeak native word and sentence events now follow that path
-as well. External playback and unifying the two audio buffer types remain.
+as well. `omnivox-audio::AudioBuffer` is now the single canonical buffer type;
+TTS re-exports it, engine-native PCM is validated and resampled at result
+construction, and the CLI no longer performs a second type conversion. A
+linear short-buffer path prevents sub-filter-length helper output from
+disappearing, while ordinary utterances retain sinc resampling. External
+playback remains.
 
 #### Planned Presentation-Timeline Slices
 
@@ -773,7 +778,6 @@ The following previously documented goals remain in this roadmap:
 - the common timeline renderer and optional reverb, echo, and chorus effects;
 - language switching tables;
 - smart/configurable text chunking, benchmarks, and integration tests;
-- unifying the two `AudioBuffer` types;
 - Homebrew packaging.
 
 Two older documentation entries are stale:

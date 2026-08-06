@@ -305,8 +305,8 @@ pub fn cmd_check(engine_name: &str) {
                 println!(
                     "  Status: OK - {} samples, {}Hz, {} channels, engine {}, voice {}",
                     result.audio.samples.len(),
-                    result.audio.sample_rate,
-                    result.audio.channels,
+                    result.audio.sample_rate(),
+                    result.audio.channels(),
                     result.engine_id,
                     result
                         .actual_voice
@@ -444,15 +444,15 @@ pub fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
             match write_wav(
                 &raw_path,
                 &result.audio.samples,
-                result.audio.sample_rate,
-                result.audio.channels,
+                result.audio.sample_rate(),
+                result.audio.channels(),
             ) {
                 Ok(_) => println!(
                     "Raw: {} ({} samples, {}Hz, {}ch)",
                     raw_path,
                     result.audio.samples.len(),
-                    result.audio.sample_rate,
-                    result.audio.channels
+                    result.audio.sample_rate(),
+                    result.audio.channels()
                 ),
                 Err(e) => eprintln!("Failed to write {}: {}", raw_path, e),
             }

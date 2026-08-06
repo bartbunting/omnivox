@@ -225,11 +225,18 @@ impl TtsEngine for MacOsTtsEngine {
             vec
         };
 
-        let buffer = AudioBuffer::new(samples, result.sample_rate, result.channels);
+        let buffer = AudioBuffer::try_from_interleaved_f32(
+            samples,
+            result.sample_rate,
+            result.channels,
+        )
+        .map_err(|error| {
+            TtsError::SynthesisFailed(format!("could not canonicalize macOS PCM: {error}"))
+        })?;
         Ok(SynthesisResult::audio(
             "macos",
             actual_voice,
-            buffer.to_standard_format(),
+            buffer,
         ))
     }
 

@@ -24,8 +24,8 @@ use crate::helper_protocol::{
     SUPPORTED_HELPER_PROTOCOL_VERSIONS,
 };
 use crate::{
-    AnchorResolution, AudioBuffer, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind,
-    SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo,
+    AnchorResolution, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest,
+    SynthesisResult, TtsEngine, TtsError, VoiceInfo,
 };
 
 #[derive(Debug, Error)]
@@ -254,7 +254,9 @@ pub(crate) enum HelperSynthesisResult {
 
 #[derive(Debug)]
 pub(crate) struct HelperCompletedSynthesis {
-    audio: AudioBuffer,
+    samples: Vec<i16>,
+    sample_rate: u32,
+    channels: u16,
     actual_voice_id: String,
     markers: Vec<HelperMarker>,
 }
@@ -437,11 +439,9 @@ impl HelperSynthesisCollector {
                 self.phase = SynthesisPhase::Terminal;
                 Ok(Some(HelperSynthesisResult::Completed(
                     HelperCompletedSynthesis {
-                        audio: AudioBuffer::from_i16(
-                            &self.samples,
-                            format.sample_rate,
-                            format.channels,
-                        ),
+                        samples: std::mem::take(&mut self.samples),
+                        sample_rate: format.sample_rate,
+                        channels: format.channels,
                         actual_voice_id: self
                             .actual_voice_id
                             .take()
@@ -921,13 +921,15 @@ impl TtsEngine for HelperTtsEngine {
                     let actual_voice =
                         PhysicalVoiceId::new(descriptor.id.clone(), completed.actual_voice_id);
                     let (markers, anchors) = split_helper_markers(completed.markers);
-                    let mut result = SynthesisResult::new(
+                    let mut result = SynthesisResult::from_native_i16(
                         descriptor.id.clone(),
                         Some(actual_voice),
-                        completed.audio,
+                        &completed.samples,
+                        completed.sample_rate,
+                        completed.channels,
                         markers,
-                    );
-                    result.anchors = anchors;
+                        anchors,
+                    )?;
                     result.resolve_anchors(
                         request,
                         descriptor.capabilities.markers.requested_anchors,
@@ -1404,13 +1406,13 @@ mod tests {
         let HelperSynthesisResult::Completed(completed) = result else {
             panic!("expected completed synthesis");
         };
-        assert_eq!(completed.audio.sample_rate, 22_050);
-        assert_eq!(completed.audio.channels, 1);
-        assert_eq!(completed.audio.samples.len(), 4);
+        assert_eq!(completed.sample_rate, 22_050);
+        assert_eq!(completed.channels, 1);
+        assert_eq!(completed.samples.len(), 4);
         assert_eq!(completed.actual_voice_id, "reed");
         assert_eq!(completed.markers.len(), 1);
-        assert_eq!(completed.audio.samples[0], -1.0);
-        assert!((completed.audio.samples[2] - 0.5).abs() < f32::EPSILON);
+        assert_eq!(completed.samples[0], -32_768);
+        assert_eq!(completed.samples[2], 16_384);
     }
 
     #[test]
@@ -1552,9 +1554,10 @@ mod tests {
                 .with_route("logical-reed", PhysicalVoiceId::new("eloquence", "reed")),
             )
             .unwrap();
-        assert_eq!(result.audio.sample_rate, 22_050);
-        assert_eq!(result.audio.channels, 1);
-        assert_eq!(result.audio.samples.len(), 4);
+        assert_eq!(result.audio.sample_rate(), crate::STANDARD_SAMPLE_RATE);
+        assert_eq!(result.audio.channels(), crate::STANDARD_CHANNELS);
+        assert_eq!(result.audio.samples.len() % 2, 0);
+        assert!(!result.audio.samples.is_empty());
         assert_eq!(
             result.actual_voice,
             Some(PhysicalVoiceId::new("eloquence", "reed"))
@@ -1593,7 +1596,7 @@ mod tests {
             result.anchors,
             vec![ResolvedAnchor {
                 id: "capital-1".to_owned(),
-                frame_offset: Some(3),
+                frame_offset: Some(6),
                 resolution: AnchorResolution::Exact,
             }]
         );

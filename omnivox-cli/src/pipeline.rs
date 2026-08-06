@@ -53,17 +53,15 @@ pub struct CanonicalSynthesisResult {
     pub degraded_acss: Vec<AcssDimension>,
 }
 
-/// Convert a structured synthesis result to canonical pipeline audio while
-/// preserving its realized route and rescaled markers.
+/// Move a canonical structured synthesis result into the pipeline wrapper.
 pub fn canonicalize_synthesis_result(result: SynthesisResult) -> CanonicalSynthesisResult {
-    let standard = result.into_standard_format();
     CanonicalSynthesisResult {
-        audio: AudioBuffer::new(standard.audio.samples),
-        engine_id: standard.engine_id,
-        actual_voice: standard.actual_voice,
-        markers: standard.markers,
-        anchors: standard.anchors,
-        degraded_acss: standard.degraded_acss,
+        audio: result.audio,
+        engine_id: result.engine_id,
+        actual_voice: result.actual_voice,
+        markers: result.markers,
+        anchors: result.anchors,
+        degraded_acss: result.degraded_acss,
     }
 }
 
@@ -1579,13 +1577,13 @@ mod tests {
     use super::*;
     use crate::text::{CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ};
 
-    fn result(audio: omnivox_tts::AudioBuffer) -> SynthesisResult {
+    fn result(audio: AudioBuffer) -> SynthesisResult {
         SynthesisResult::audio("mock", None, audio)
     }
 
     #[test]
     fn test_canonicalize_synthesis_result() {
-        let tts_buf = omnivox_tts::AudioBuffer::new(vec![0.1, -0.1, 0.2, -0.2], 44100, 2);
+        let tts_buf = omnivox_tts::AudioBuffer::new(vec![0.1, -0.1, 0.2, -0.2]);
         let audio_buf = canonicalize_synthesis_result(result(tts_buf)).audio;
         assert_eq!(audio_buf.samples, vec![0.1, -0.1, 0.2, -0.2]);
         assert_eq!(audio_buf.frame_count(), 2);
@@ -1599,26 +1597,14 @@ mod tests {
     }
 
     #[test]
-    fn test_canonicalize_synthesis_result_handles_odd_mono_input() {
-        let tts_buf = omnivox_tts::AudioBuffer::new(vec![0.1; 513], 11025, 1);
-
-        let audio_buf = canonicalize_synthesis_result(result(tts_buf)).audio;
-
-        assert!(!audio_buf.is_empty());
-        assert_eq!(audio_buf.samples.len() % 2, 0);
-        assert_eq!(audio_buf.sample_rate(), omnivox_audio::buffer::SAMPLE_RATE);
-        assert_eq!(audio_buf.channels(), omnivox_audio::buffer::CHANNELS);
-    }
-
-    #[test]
-    fn canonicalization_preserves_metadata_and_rescales_markers() {
+    fn canonicalization_preserves_metadata() {
         let mut result = SynthesisResult::new(
             "helper",
             Some(PhysicalVoiceId::new("helper", "voice")),
-            omnivox_tts::AudioBuffer::new(vec![0.1; 513], 11025, 1),
+            AudioBuffer::new(vec![0.1; 1026]),
             vec![SynthesisMarker {
                 kind: omnivox_tts::SynthesisMarkerKind::Word,
-                frame_offset: 100,
+                frame_offset: 400,
                 text_start: Some(0),
                 text_length: Some(5),
                 value: None,
@@ -1626,7 +1612,7 @@ mod tests {
         );
         result.anchors.push(omnivox_tts::ResolvedAnchor {
             id: "cue".to_owned(),
-            frame_offset: Some(100),
+            frame_offset: Some(400),
             resolution: omnivox_tts::AnchorResolution::Exact,
         });
         result.degraded_acss.push(AcssDimension::PitchRange);

@@ -541,14 +541,21 @@ impl TtsEngine for EspeakTtsEngine {
             sample_rate
         );
 
-        let buffer = AudioBuffer::from_i16(&capture.samples, sample_rate, 1);
         let markers = Self::markers_from_native(
             text,
             &capture.markers,
             sample_rate,
-            buffer.frame_count() as u64,
+            capture.samples.len() as u64,
         );
-        Ok(SynthesisResult::new("espeak", actual_voice, buffer, markers).into_standard_format())
+        SynthesisResult::from_native_i16(
+            "espeak",
+            actual_voice,
+            &capture.samples,
+            sample_rate,
+            1,
+            markers,
+            Vec::new(),
+        )
     }
 
     fn stop(&self) {
@@ -767,8 +774,8 @@ mod tests {
             .expect("Synthesis failed");
 
         assert!(!result.audio.is_empty(), "Buffer should not be empty");
-        assert_eq!(result.audio.sample_rate, crate::STANDARD_SAMPLE_RATE);
-        assert_eq!(result.audio.channels, crate::STANDARD_CHANNELS);
+        assert_eq!(result.audio.sample_rate(), crate::STANDARD_SAMPLE_RATE);
+        assert_eq!(result.audio.channels(), crate::STANDARD_CHANNELS);
         assert!(result.audio.duration() > 0.0, "Duration should be positive");
         assert_eq!(result.engine_id, "espeak");
         assert!(result.actual_voice.is_some());
