@@ -25,6 +25,7 @@ use anyhow::Result;
 use omnivox_audio::AudioFileLoader;
 use omnivox_audio::AudioStreams;
 use omnivox_core::TtsState;
+use omnivox_tts::engine_registry::EngineRegistry;
 use std::sync::atomic::AtomicU64;
 use std::sync::{mpsc, Arc};
 use tracing::info;
@@ -102,8 +103,14 @@ fn main() -> Result<()> {
     };
     info!("TTS engine initialized");
 
-    let engine_descriptor = engine.descriptor();
-    info!("Found {} voices", engine_descriptor.voices.len());
+    let mut engine_registry = EngineRegistry::new();
+    engine_registry.register(Arc::clone(&engine))?;
+    let voice_count = engine_registry
+        .inventory()
+        .iter()
+        .map(|descriptor| descriptor.voices.len())
+        .sum::<usize>();
+    info!("Found {} voices", voice_count);
 
     let streams = AudioStreams::new(SPEECH_MAX_DEPTH, TONE_MAX_DEPTH, SOUND_MAX_DEPTH)
         .map_err(|e| anyhow::anyhow!("Audio streams init failed: {}", e))?;
@@ -141,7 +148,7 @@ fn main() -> Result<()> {
             .spawn(move || {
                 let r = run_server(
                     engine,
-                    engine_descriptor,
+                    engine_registry,
                     state,
                     tx,
                     control,
@@ -160,7 +167,7 @@ fn main() -> Result<()> {
     #[cfg(not(target_os = "macos"))]
     run_server(
         engine,
-        engine_descriptor,
+        engine_registry,
         state,
         tx,
         control,

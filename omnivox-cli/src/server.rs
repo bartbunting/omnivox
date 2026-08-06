@@ -6,7 +6,7 @@ use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
 };
 use omnivox_tts::control::{format_control_event, process_control_request};
-use omnivox_tts::contracts::EngineDescriptor;
+use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead, Write};
@@ -163,7 +163,7 @@ pub fn interrupt(
 /// drop guard outlives playback.
 pub fn run_server(
     engine: Arc<dyn TtsEngine>,
-    engine_descriptor: EngineDescriptor,
+    engine_registry: EngineRegistry,
     mut state: TtsState,
     tx: mpsc::Sender<SynthRequest>,
     control: Arc<AudioControl>,
@@ -200,7 +200,7 @@ pub fn run_server(
             &mut current_gen,
             &gen_counter,
             &engine,
-            &engine_descriptor,
+            &engine_registry,
             &mut logical_voices,
             &control,
             &tx,
@@ -230,7 +230,7 @@ fn handle_command(
     current_gen: &mut u64,
     gen_counter: &Arc<AtomicU64>,
     engine: &Arc<dyn TtsEngine>,
-    engine_descriptor: &EngineDescriptor,
+    engine_registry: &EngineRegistry,
     logical_voices: &mut LogicalVoiceRegistry,
     control: &Arc<AudioControl>,
     tx: &mpsc::Sender<SynthRequest>,
@@ -344,11 +344,12 @@ fn handle_command(
         }
 
         CommandId::OmnivoxControl => {
+            let inventory = engine_registry.inventory();
             let response = process_control_request(
                 command.args.as_deref().unwrap_or(""),
                 crate::VERSION,
-                1,
-                std::slice::from_ref(engine_descriptor),
+                engine_registry.generation(),
+                &inventory,
                 logical_voices,
             );
             match format_control_event(&response) {
