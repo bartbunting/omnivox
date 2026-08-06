@@ -173,6 +173,7 @@ pub fn run_server(
     let mut pending: Vec<QueueItem> = Vec::new();
     let mut current_gen: u64 = 0;
     let mut logical_voices = LogicalVoiceRegistry::default();
+    let preferred_engine_id = engine.descriptor().id;
 
     info!("Ready to accept commands from stdin");
 
@@ -201,6 +202,7 @@ pub fn run_server(
             &gen_counter,
             &engine,
             &engine_registry,
+            &preferred_engine_id,
             &mut logical_voices,
             &control,
             &tx,
@@ -231,6 +233,7 @@ fn handle_command(
     gen_counter: &Arc<AtomicU64>,
     engine: &Arc<dyn TtsEngine>,
     engine_registry: &EngineRegistry,
+    preferred_engine_id: &str,
     logical_voices: &mut LogicalVoiceRegistry,
     control: &Arc<AudioControl>,
     tx: &mpsc::Sender<SynthRequest>,
@@ -349,6 +352,7 @@ fn handle_command(
                 command.args.as_deref().unwrap_or(""),
                 crate::VERSION,
                 engine_registry.generation(),
+                preferred_engine_id,
                 &inventory,
                 logical_voices,
             );

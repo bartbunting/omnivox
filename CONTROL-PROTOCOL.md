@@ -101,6 +101,7 @@ A successful capability response decodes to this shape:
     "engine_inventory",
     "legacy_commands",
     "logical_voice_registration",
+    "preferred_engine",
     "stable_voice_ids"
   ]
 }
@@ -109,13 +110,17 @@ A successful capability response decodes to this shape:
 The request ID lets Emacsvox distinguish simultaneous main and notification
 process responses. Server events are never injected into synthesized speech.
 
-An inventory response contains an `inventory_generation` and an `engines`
-array. Each engine includes its stable ID, runtime availability and health,
-capabilities, discovered physical voices, and default voice ID. The current
-server registers its startup-selected engine and snapshots its descriptor
-before the reader loop starts, so inventory requests cannot block stop commands
-behind synchronous synthesis. Registry inventory is sorted by stable engine ID,
-and its generation advances when engines or their descriptor state change.
+An inventory response contains an `inventory_generation`, the stable
+`preferred_engine_id`, and an `engines` array. Each engine includes its stable
+ID, runtime availability and health, capabilities, discovered physical voices,
+and default voice ID. On Windows the server eagerly registers WinRT and eSpeak;
+WinRT is preferred by default and eSpeak is retained as a fallback.
+`OMNIVOX_ENGINE=espeak` reverses that preference without removing WinRT from
+inventory. Other platforms currently register the compatibility-selected
+engine. Descriptors are snapshotted before the reader loop starts, so inventory
+requests cannot block stop commands behind synchronous synthesis. Registry
+inventory is sorted by stable engine ID, and its generation advances when
+engines or their descriptor state change.
 
 A successful registration response reports the inventory generation used and
 one resolved or unresolved binding for every definition:

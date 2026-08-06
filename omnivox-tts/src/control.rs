@@ -69,6 +69,7 @@ pub enum ControlResponse {
     },
     Inventory {
         inventory_generation: u64,
+        preferred_engine_id: String,
         engines: Vec<EngineDescriptor>,
     },
     LogicalVoicesRegistered {
@@ -140,6 +141,7 @@ pub fn process_control_request(
     payload: &str,
     server_version: &str,
     inventory_generation: u64,
+    preferred_engine_id: &str,
     engines: &[EngineDescriptor],
     logical_voices: &mut LogicalVoiceRegistry,
 ) -> ControlResponseEnvelope {
@@ -164,6 +166,7 @@ pub fn process_control_request(
                         "engine_inventory".to_owned(),
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
+                        "preferred_engine".to_owned(),
                         "stable_voice_ids".to_owned(),
                     ],
                 },
@@ -173,6 +176,7 @@ pub fn process_control_request(
                 request_id: Some(request.request_id),
                 response: ControlResponse::Inventory {
                     inventory_generation,
+                    preferred_engine_id: preferred_engine_id.to_owned(),
                     engines: engines.to_vec(),
                 },
             },
@@ -288,6 +292,7 @@ mod tests {
             payload,
             server_version,
             inventory_generation,
+            engines.first().map_or("", |engine| engine.id.as_str()),
             engines,
             &mut LogicalVoiceRegistry::default(),
         )
@@ -452,8 +457,9 @@ mod tests {
             response.response,
             ControlResponse::Inventory {
                 inventory_generation: 7,
+                preferred_engine_id: ref preferred,
                 ref engines,
-            } if engines == &[engine]
+            } if preferred == "winrt" && engines == &[engine]
         ));
     }
 
@@ -467,7 +473,8 @@ mod tests {
         .unwrap();
         let mut registry = LogicalVoiceRegistry::default();
 
-        let response = process_control_request(&encoded, "1.3.0", 7, &inventory(), &mut registry);
+        let response =
+            process_control_request(&encoded, "1.3.0", 7, "winrt", &inventory(), &mut registry);
 
         assert_eq!(response.request_id, Some(101));
         assert_eq!(registry.generation(), 3);
@@ -501,7 +508,8 @@ mod tests {
         ))
         .unwrap();
 
-        let response = process_control_request(&encoded, "1.3.0", 7, &inventory(), &mut registry);
+        let response =
+            process_control_request(&encoded, "1.3.0", 7, "winrt", &inventory(), &mut registry);
 
         assert_eq!(response.request_id, Some(102));
         assert!(matches!(
@@ -524,7 +532,8 @@ mod tests {
         .unwrap();
         let mut registry = LogicalVoiceRegistry::default();
 
-        let response = process_control_request(&encoded, "1.3.0", 7, &inventory(), &mut registry);
+        let response =
+            process_control_request(&encoded, "1.3.0", 7, "winrt", &inventory(), &mut registry);
 
         assert!(matches!(
             response.response,
