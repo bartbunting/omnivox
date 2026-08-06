@@ -84,6 +84,7 @@ pub struct LogicalVoiceRegistry {
     generation: u64,
     definitions: Vec<LogicalVoiceDefinition>,
     fallback_policy: FallbackPolicy,
+    bindings: Vec<LogicalVoiceBinding>,
 }
 
 impl LogicalVoiceRegistry {
@@ -97,6 +98,11 @@ impl LogicalVoiceRegistry {
 
     pub fn fallback_policy(&self) -> &FallbackPolicy {
         &self.fallback_policy
+    }
+
+    /// Return the resolution snapshot produced by the latest registration.
+    pub fn bindings(&self) -> &[LogicalVoiceBinding] {
+        &self.bindings
     }
 
     /// Atomically replace all definitions and resolve them against INVENTORY.
@@ -129,7 +135,9 @@ impl LogicalVoiceRegistry {
             self.fallback_policy = fallback_policy;
         }
 
-        Ok(self.resolve_all(inventory))
+        let registration = self.resolve_all(inventory);
+        self.bindings = registration.bindings.clone();
+        Ok(registration)
     }
 
     /// Re-resolve the current definitions after inventory or health changes.
@@ -334,6 +342,7 @@ mod tests {
 
         assert_eq!(registry.generation(), 1);
         assert_eq!(result.bindings.len(), 1);
+        assert_eq!(registry.bindings(), result.bindings);
         assert!(matches!(
             result.bindings[0],
             LogicalVoiceBinding::Resolved { .. }

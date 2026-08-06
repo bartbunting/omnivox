@@ -105,6 +105,13 @@ impl EngineRegistry {
             .collect()
     }
 
+    /// Request cancellation from every registered engine.
+    pub fn stop_all(&self) {
+        for entry in self.entries.values() {
+            entry.engine.stop();
+        }
+    }
+
     /// Refresh one descriptor after an explicit availability or health check.
     /// The inventory generation advances only when the descriptor changed.
     pub fn refresh_descriptor(&mut self, engine_id: &str) -> Result<bool, EngineRegistryError> {
@@ -173,6 +180,7 @@ fn validate_descriptor(descriptor: &EngineDescriptor) -> Result<(), EngineRegist
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Mutex;
 
     use super::*;
@@ -184,12 +192,14 @@ mod tests {
 
     struct MockEngine {
         descriptor: Mutex<EngineDescriptor>,
+        stop_count: AtomicUsize,
     }
 
     impl MockEngine {
         fn new(engine_id: &str) -> Self {
             Self {
                 descriptor: Mutex::new(descriptor(engine_id)),
+                stop_count: AtomicUsize::new(0),
             }
         }
 
@@ -211,7 +221,9 @@ mod tests {
             Ok(AudioBuffer::empty())
         }
 
-        fn stop(&self) {}
+        fn stop(&self) {
+            self.stop_count.fetch_add(1, Ordering::Relaxed);
+        }
 
         fn is_speaking(&self) -> bool {
             false
@@ -314,6 +326,24 @@ mod tests {
 
         assert!(Arc::ptr_eq(&engine, &found));
         assert!(registry.engine("missing").is_none());
+    }
+
+    #[test]
+    fn stop_all_requests_cancellation_from_every_engine() {
+        let winrt = Arc::new(MockEngine::new("winrt"));
+        let espeak = Arc::new(MockEngine::new("espeak"));
+        let mut registry = EngineRegistry::new();
+        registry
+            .register(Arc::clone(&winrt) as Arc<dyn TtsEngine>)
+            .unwrap();
+        registry
+            .register(Arc::clone(&espeak) as Arc<dyn TtsEngine>)
+            .unwrap();
+
+        registry.stop_all();
+
+        assert_eq!(winrt.stop_count.load(Ordering::Relaxed), 1);
+        assert_eq!(espeak.stop_count.load(Ordering::Relaxed), 1);
     }
 
     #[test]

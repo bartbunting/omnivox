@@ -257,6 +257,10 @@ impl EspeakTtsEngine {
         let volume = volume.clamp(0.0, 1.0);
         (volume * 200.0) as c_int
     }
+
+    fn backend_voice_name(voice_id: &str) -> &str {
+        voice_id.strip_prefix("espeak:").unwrap_or(voice_id)
+    }
 }
 
 impl TtsEngine for EspeakTtsEngine {
@@ -301,7 +305,8 @@ impl TtsEngine for EspeakTtsEngine {
 
         unsafe {
             // Set voice
-            let voice_cstr = CString::new(settings.voice.as_str()).map_err(|_| {
+            let voice_name = Self::backend_voice_name(&settings.voice);
+            let voice_cstr = CString::new(voice_name).map_err(|_| {
                 TtsError::InvalidParameter("Invalid voice name".to_string())
             })?;
             espeak_rs_sys::espeak_SetVoiceByName(voice_cstr.as_ptr());
@@ -529,6 +534,15 @@ mod tests {
         assert_eq!(EspeakTtsEngine::map_volume(0.0), 0);
         assert_eq!(EspeakTtsEngine::map_volume(0.5), 100);
         assert_eq!(EspeakTtsEngine::map_volume(1.0), 200);
+    }
+
+    #[test]
+    fn test_backend_voice_name_accepts_structured_ids() {
+        assert_eq!(
+            EspeakTtsEngine::backend_voice_name(r"espeak:gmw\en-US"),
+            r"gmw\en-US"
+        );
+        assert_eq!(EspeakTtsEngine::backend_voice_name("en"), "en");
     }
 
     #[test]
