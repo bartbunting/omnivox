@@ -29,6 +29,13 @@ annotation:
 If an engine, voice, or optional capability is unavailable, speech should
 degrade predictably instead of being dropped or causing the server to fail.
 
+Logical voice/style state may also contain engine-independent post-synthesis
+effects such as reverb or echo.  That state follows the same spans as voice and
+ACSS changes, survives chunk and engine boundaries, and is applied by Omnivox
+after a buffered engine has returned PCM.  Auditory icons and other timeline
+actions may either interrupt the primary speech clock or overlay it without
+pausing speech.
+
 ## Voice and Engine Model
 
 The model needs to distinguish these concepts:
@@ -62,9 +69,66 @@ The synthesis request/result contract should eventually contain:
 
 - requested logical and physical voice information;
 - normalized ACSS and language settings;
+- requested text anchors for timeline actions when an engine can resolve them;
 - PCM audio in the canonical Omnivox buffer format when available;
-- marker metadata and the actual engine/voice selected;
+- marker and resolved-anchor metadata plus the actual engine/voice selected;
 - cancellation, failure, and degradation information.
+
+## Presentation Timeline and Effects Model
+
+Omnivox needs a presentation model in addition to its engine model.  The
+primary speech timeline advances as speech and inserted audio are consumed.
+An overlaid sound starts at an anchored frame but does not advance that primary
+clock.  Its tail may overlap following speech and still counts toward tracked
+completion.  This distinction must be explicit rather than inferred from
+which audio sink happens to receive a buffer.
+
+The first common timeline actions are:
+
+- **audio action**: a tone or decoded resource with an explicit `insert` or
+  `overlay` mode, volume, and routing;
+- **semantic event**: a zero-duration bounded identifier emitted only when its
+  associated playback boundary is consumed;
+- **effect-state change**: begin, replace, or end post-synthesis processing at
+  a source-text boundary.
+
+Legacy queued `a` remains overlay-compatible: it schedules an auditory icon at
+the current presentation cursor and does not by itself pause speech.  A new
+structured action can request `insert` when serial playback is wanted.
+Immediate `p` sounds remain independent of the tracked speech presentation.
+Capital and all-caps tones are overlays at their resolved text boundaries.
+
+Timeline positions are separate from Aural Emacsvox lifecycle anchors such as
+object, run, and transition.  Positions may name a span boundary or a bounded
+UTF-8 source-text offset with before/after affinity.  The preprocessing stage
+must therefore retain a source map when punctuation expansion, capitalization,
+or split-caps handling changes the text sent to an engine.
+
+One logical style can contain two classes of dimensions:
+
+1. engine-rendered dimensions such as rate, pitch, stress, and richness; and
+2. Omnivox-rendered dimensions such as reverb, echo, filtering, gain envelopes,
+   and spatial processing.
+
+The compiler snapshots both classes on every speech span.  Only supported
+engine dimensions are sent with the synthesis request.  The post-synthesis
+state is retained until the engine returns PCM, then applied to the matching
+audio frames.  Active effect state continues across text chunks, physical
+voice changes, and engine changes until an explicit state change ends it.
+Audio icons remain dry unless their action explicitly selects an effect bus.
+
+The timeline transform owns source-to-output frame mapping.  Inserted audio
+shifts later markers and events; overlays do not.  Duration-preserving effects
+retain marker positions.  Reverb and echo tails extend playback completion but
+do not duplicate word markers or semantic events: those remain attached to the
+primary dry-speech boundary.  More complex repeated or non-linear marker
+semantics require a later explicit protocol rather than being guessed.
+
+Buffered PCM engines receive the full timeline and post-processing behavior.
+An external-playback engine may omit unavailable effects or exact placement,
+but must still speak and report the degradation.  Fallback must distinguish an
+unavailable voice, an unresolved text anchor, and an unsupported post-synthesis
+effect.
 
 ## Fallback Contract
 
@@ -218,10 +282,13 @@ helper engine and has been verified against the DECtalk helper.
   canonical type.
 - Preserve or adjust marker timestamps through resampling, silence trimming,
   and other audio effects.
-- If effects beyond silence trimming begin to alter duration, generalize
-  `AudioEffect` to return a composable audio/timeline transformation. Define
-  marker semantics for repeated or non-linear audio such as echo before making
-  that breaking API change.
+- Add an engine-neutral presentation timeline with source/span anchors,
+  insert and overlay audio actions, semantic events, and persistent
+  post-synthesis effect state.
+- Generalize `AudioEffect` to return a composable audio/timeline transformation
+  before effects beyond silence trimming alter duration.
+- Preserve the dry-source marker contract for echo and reverb while accounting
+  for their audible tails in tracked completion.
 
 Status on 2026-08-07: buffered queued audio now has one-shot playback tickets.
 Natural mixer-source exhaustion completes a ticket; stop, backlog clearing, or
@@ -259,6 +326,60 @@ phoneme/native-index markers now follow the same helper, resampling, and
 playback-cue path. External playback and unifying the two audio buffer types
 remain.
 
+#### Planned Presentation-Timeline Slices
+
+Each slice is independently tested, documented, and committed before the next
+one changes the contract.
+
+1. **Timeline vocabulary and renderer tests.** Define stable action IDs,
+   source/span positions, `insert` and `overlay` modes, persistent effect state,
+   and a piecewise source-to-output frame map.  Test stable same-frame ordering,
+   overlay tails, insertion shifts, and cancellation before changing playback.
+2. **Queue-boundary overlays.** Lower legacy `a` to an overlay at the current
+   presentation cursor.  Keep speech as the primary clock, allow the icon to
+   overlap following speech, retain independent sound volume and stereo
+   routing, and include the complete icon tail in stop and tracked-completion
+   behavior.  Add an explicit structured `insert` action instead of changing
+   legacy `a` to serial playback.
+3. **Requested engine anchors.** Extend synthesis requests with bounded opaque
+   anchor IDs and UTF-8 positions.  Add a negotiated helper protocol version
+   while retaining version 1.  Eloquence resolves exact anchors with reserved
+   ECI indexes alongside its automatic word indexes; resampling and silence
+   trimming carry them through the existing marker map.  Other engines
+   advertise exact, word-boundary-only, or no anchor support.
+4. **Capitalization tones.** Convert queued single-capital and all-caps handling
+   into 440 Hz and 1300 Hz timeline overlays at requested anchors, matching the
+   standalone Eloquence behavior without splitting an Eloquence synthesis.
+   Move letter capitalization onto the same audio-action implementation and
+   retain a documented fallback for engines without exact anchors.
+5. **Anchored audio resources.** Preload, bound, decode, resample, route, and
+   cache icons before rendering.  Support both insertion and sample-aligned
+   overlay within a speech span.  Render with bounded look-ahead windows so an
+   icon or effect tail may cross a synthesis-chunk boundary without requiring
+   the entire dispatch to finish synthesis before first audio.
+6. **Playback-bound semantic events.** Attach zero-duration action IDs to the
+   common playback-cue path, emit them only when reached, discard unreached
+   events on stop/replacement, and flush them before the terminal dispatch
+   record.  Negotiate a new bounded event protocol; Emacsvox retains the richer
+   Lisp meaning associated with each opaque ID.
+7. **Persistent post-synthesis effects.** Split normalized style application
+   into engine-rendered and Omnivox-rendered dimensions.  Carry effect state
+   through preprocessing, chunking, routing, fallback, and voice changes, then
+   apply it to resolved PCM regions with click-free boundary ramps.  Begin with
+   duration-preserving gain, filtering, and spatial effects, followed by reverb
+   and echo with explicit tail and marker semantics.
+8. **Aural Emacsvox transport and degradation.** Negotiate a structured
+   timeline capability and send positions separately from lifecycle anchors.
+   Lower before/after actions to the legacy queue when possible.  Report exact,
+   approximated, and omitted anchors/effects without dropping speech, and keep
+   old Omnivox servers usable.
+
+Completion criterion: one tracked mixed-engine dispatch can carry persistent
+voice and effect state, overlay an auditory icon and capitalization tone at
+resolved speech boundaries, insert serial audio when requested, emit a semantic
+event only when reached, preserve marker order, and cancel all unreached audio,
+tails, and events atomically.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when
@@ -271,6 +392,9 @@ remain.
   `failed` terminal result.
 - Negotiate marker-aware playback, decode bounded events, and expose explicit
   marker and terminal callbacks without changing ordinary speech dispatch.
+- Negotiate structured presentation timelines with explicit audio modes,
+  source positions, persistent post-synthesis effect state, degradation
+  reports, and playback-bound semantic event IDs.
 - Make language commands functional and include language in synchronized state.
 - Map Emacs logical voices and ACSS styles to Omnivox logical voice definitions,
   including ordered physical voice fallbacks.
@@ -324,6 +448,8 @@ loading those libraries into the Rust process.
 - Keep proprietary DLLs user-supplied and document redistribution constraints.
 - Implement Eloquence first because its waveform and index callbacks provide a
   clean reference for the helper protocol. (Word markers implemented.)
+- Add negotiated requested-anchor support so Eloquence can map Omnivox
+  timeline actions to exact captured PCM frames without taking over playback.
 - Implement DECtalk second, including phoneme/index metadata where available.
   (Implemented.)
 - Keep the existing standalone `windows-outloud` and `windows-dtk` servers as
@@ -394,8 +520,8 @@ it will need revision to use the common capability and completion contracts.
   devices.
 - Add TCP/network mode for the existing `-p` concept with authentication and
   exposure risks documented before enabling non-loopback listeners.
-- Add optional effects such as reverb, echo, and chorus without compromising
-  latency or marker accuracy.
+- Expand the common post-synthesis effect set after the Phase 4 timeline work,
+  without compromising latency, marker accuracy, or effect-state continuity.
 - Complete language switching tables; the protocol work in Phase 5 supplies the
   underlying state model.
 - Create a Homebrew formula/tap that installs the binary and Emacs module and
@@ -410,6 +536,8 @@ it will need revision to use the common capability and completion contracts.
 - Add parser/framing fuzz and malformed-input tests with strict payload bounds.
 - Test mixed-engine ordering, cancellation, stale-result rejection, tracked
   completion, and helper restart behavior.
+- Test inserted and overlaid icons, cross-chunk effect spans and tails,
+  requested-anchor degradation, and cancellation of unreached semantic events.
 - Run the Emacs 31 suite and real WSL-to-Windows tests for each Windows engine.
 - Measure first-audio latency, memory growth, long-session stability, and helper
   process overhead.
@@ -424,7 +552,7 @@ The following previously documented goals remain in this roadmap:
 - Linux Speech Dispatcher backend;
 - TCP/network mode;
 - multi-device routing;
-- optional reverb, echo, and chorus effects;
+- the common timeline renderer and optional reverb, echo, and chorus effects;
 - language switching tables;
 - smart/configurable text chunking, benchmarks, and integration tests;
 - unifying the two `AudioBuffer` types;
@@ -450,7 +578,8 @@ Two older documentation entries are stale:
    selected.
 4. **Eloquence and DECtalk**: buffered x86 helpers make their voices first-class
    Omnivox choices.
-5. **Rich protocol**: framing, tracked completion, languages, capabilities, and
-   markers work end to end with Emacsvox.
+5. **Rich protocol**: framing, tracked completion, languages, capabilities,
+   markers, timeline actions, and persistent post-synthesis effects work end to
+   end with Emacsvox.
 6. **Project backlog**: the remaining platform, packaging, routing, chunking,
    effects, and network goals are completed or explicitly deferred with reasons.
