@@ -337,7 +337,7 @@ maps cue timestamps plus inclusive UTF-16 input positions into bounded PCM
 frame offsets and UTF-8 byte ranges. Missing tracks or malformed individual
 cues degrade to fewer markers or less source metadata without failing speech.
 A real Windows playback smoke test delivered sentence and word events before
-tracked completion. Eloquence and DECtalk word markers plus DECtalk
+tracked completion. Eloquence and DECtalk word/sentence markers plus DECtalk
 phoneme/native-index markers now follow the same helper, resampling, and
 playback-cue path. eSpeak native word and sentence events now follow that path
 as well. External playback and unifying the two audio buffer types remain.
@@ -634,7 +634,9 @@ authenticated TCP/network mode remains Phase 9 future work.
 - Convert WinRT markers to the common result model. (Implemented.)
 - Exercise common resampling and trim adjustment with WinRT markers.
   (Implemented through common pipeline tests and a real Windows playback smoke.)
-- Improve voice, language, rate, pitch, and volume mapping.
+- Improve voice, language, rate, pitch, and volume mapping. (Rate, pitch, and
+  volume are implemented; setter failures are now reported instead of silently
+  ignored. Broader voice/language matching remains future work.)
 - Advertise the limitation that a synchronous WinRT synthesis call cannot be
   interrupted internally even though playback and stale-result queuing can be
   stopped immediately.
@@ -669,13 +671,14 @@ negotiates inventory, validates exact voice and PCM results, cancels active
 synthesis, invalidates failed children, and reconnects for recovery probes.
 The Emacsvox tree now builds a separate 32-bit Eloquence capture helper without
 changing its existing WaveOut bridge. It exposes ECI voices `v1` through `v8`,
-bounded 11.025 kHz mono PCM, normalized rate, responsive cancellation, and
-truthful reduced capabilities. Windows Omnivox discovers that helper beside its
-executable or through `OMNIVOX_ELOQUENCE_HELPER`, negotiates it through the
+bounded 11.025 kHz mono PCM, normalized rate/average pitch/volume, responsive
+cancellation, and truthful reduced capabilities. Windows Omnivox discovers
+that helper beside its executable or through `OMNIVOX_ELOQUENCE_HELPER`, negotiates it through the
 generic host, and adds it to the registry without changing the WinRT legacy
 default. The same shared host now drives a DECtalk capture adapter with nine
-named voices, bounded in-memory PCM, rate mapping, and native cancellation;
-Windows discovery treats its startup and failure independently. The Windows
+named voices, bounded in-memory PCM, rate/average-pitch/volume mapping, and
+native cancellation; Windows discovery treats its startup and failure
+independently. The Windows
 staging target packages both helper executables and copies an already-installed
 DECtalk runtime without downloading or redistributing proprietary files.
 Real WSL-to-Windows tests have verified mixed Eloquence/DECtalk dispatch,
@@ -697,8 +700,12 @@ and phonetic spans, preserves caller indexes, and maps callbacks back to UTF-8
 source ranges. Direct tests covered Unicode, an existing colliding index, and a
 command embedded in a word; a comparison with the uninstrumented helper
 produced identical PCM. Routed playback delivered the rescaled DECtalk word
-events before tracked completion. Richer native controls, truthful
-Eloquence/DECtalk sentence boundaries, long-session measurements, and broader
+events before tracked completion. Both adapters now insert native indexes at
+conservative source sentence boundaries and return timed UTF-8 sentence ranges.
+Eloquence maps normalized average pitch and volume to native ECI controls;
+DECtalk maps average pitch to its native voice parameter and applies volume to
+captured PCM. Real-helper smoke tests exercised both controls and sentence
+tracks. Pitch range, stress, richness, long-session measurements, and broader
 malformed helper-output testing remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model

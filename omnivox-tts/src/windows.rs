@@ -335,17 +335,33 @@ mod impl_windows {
             let voice_id = request.voice_id_for_engine("winrt")?;
             let actual_voice = Self::try_set_voice(synth, voice_id)?;
 
-            // Set synthesis options (rate, pitch, volume)
-            if let Ok(options) = synth.Options() {
-                let _ = options.SetSpeakingRate(Self::map_rate(settings.rate));
-                let _ = options.SetAudioVolume(Self::map_volume(settings.volume));
-                let _ = options.SetAudioPitch(Self::map_pitch(settings.pitch));
-                if let Err(error) = options.SetIncludeWordBoundaryMetadata(true) {
-                    debug!("WinRT word boundary metadata unavailable: {error}");
-                }
-                if let Err(error) = options.SetIncludeSentenceBoundaryMetadata(true) {
-                    debug!("WinRT sentence boundary metadata unavailable: {error}");
-                }
+            // Requested native controls must either be applied or fail clearly;
+            // marker tracks remain optional metadata and may degrade independently.
+            let options = synth.Options().map_err(|error| {
+                TtsError::SynthesisFailed(format!(
+                    "Could not access WinRT synthesis options: {error}"
+                ))
+            })?;
+            options
+                .SetSpeakingRate(Self::map_rate(settings.rate))
+                .map_err(|error| {
+                    TtsError::SynthesisFailed(format!("Could not set WinRT speaking rate: {error}"))
+                })?;
+            options
+                .SetAudioVolume(Self::map_volume(settings.volume))
+                .map_err(|error| {
+                    TtsError::SynthesisFailed(format!("Could not set WinRT audio volume: {error}"))
+                })?;
+            options
+                .SetAudioPitch(Self::map_pitch(settings.pitch))
+                .map_err(|error| {
+                    TtsError::SynthesisFailed(format!("Could not set WinRT audio pitch: {error}"))
+                })?;
+            if let Err(error) = options.SetIncludeWordBoundaryMetadata(true) {
+                debug!("WinRT word boundary metadata unavailable: {error}");
+            }
+            if let Err(error) = options.SetIncludeSentenceBoundaryMetadata(true) {
+                debug!("WinRT sentence boundary metadata unavailable: {error}");
             }
 
             // Synthesize text to stream (blocking)
@@ -468,10 +484,7 @@ mod impl_windows {
             let mut voices = Vec::with_capacity(count as usize);
             for i in 0..count {
                 if let Ok(voice) = voice_list.GetAt(i) {
-                    let id = voice
-                        .Id()
-                        .map(|s| s.to_string_lossy())
-                        .unwrap_or_default();
+                    let id = voice.Id().map(|s| s.to_string_lossy()).unwrap_or_default();
                     let name = voice
                         .DisplayName()
                         .map(|s| s.to_string_lossy())
@@ -526,24 +539,19 @@ mod impl_windows {
 
         while pos + 8 <= data.len() {
             let chunk_id = &data[pos..pos + 4];
-            let chunk_size = u32::from_le_bytes([
-                data[pos + 4],
-                data[pos + 5],
-                data[pos + 6],
-                data[pos + 7],
-            ]) as usize;
+            let chunk_size =
+                u32::from_le_bytes([data[pos + 4], data[pos + 5], data[pos + 6], data[pos + 7]])
+                    as usize;
 
             if chunk_id == b"fmt " && chunk_size >= 16 {
-                channels =
-                    u16::from_le_bytes([data[pos + 10], data[pos + 11]]);
+                channels = u16::from_le_bytes([data[pos + 10], data[pos + 11]]);
                 sample_rate = u32::from_le_bytes([
                     data[pos + 12],
                     data[pos + 13],
                     data[pos + 14],
                     data[pos + 15],
                 ]);
-                bits_per_sample =
-                    u16::from_le_bytes([data[pos + 22], data[pos + 23]]);
+                bits_per_sample = u16::from_le_bytes([data[pos + 22], data[pos + 23]]);
             } else if chunk_id == b"data" {
                 return Ok((sample_rate, channels, bits_per_sample, pos + 8));
             }
@@ -715,7 +723,7 @@ mod tests {
         wav.extend_from_slice(&32000u32.to_le_bytes()); // byte rate
         wav.extend_from_slice(&2u16.to_le_bytes()); // block align
         wav.extend_from_slice(&16u16.to_le_bytes()); // bits per sample
-        // data chunk
+                                                     // data chunk
         wav.extend_from_slice(b"data");
         wav.extend_from_slice(&4u32.to_le_bytes()); // data size
         wav.extend_from_slice(&[0u8; 4]); // 2 samples of silence

@@ -142,18 +142,24 @@ sample-rate conversion into canonical Omnivox audio. The Eloquence adapter now
 merges bounded requested anchors with its Unicode word indexes, inserts both
 through ECI's index API without splitting synthesis, and emits each native
 callback frame. Before/after anchors at a shared source position retain
-deterministic insertion order. The DECtalk adapter captures its native
+deterministic insertion order. It also inserts indexes at conservative source
+sentence boundaries and maps normalized average pitch and volume to ECI's
+native controls. The DECtalk adapter captures its native
 phoneme-change and inserted-index records at DECtalk's utterance-relative sample
 positions. It emits their numeric engine values without source ranges because
 the native records do not identify request-text spans. For words, it inserts
 collision-avoiding private indexes outside balanced DECtalk command/phonetic
 spans and maps those callbacks to bounded UTF-8 source ranges. Existing caller
 indexes remain distinct `native_index` markers, and words crossing native spans
-are conservatively left unmarked.
+are conservatively left unmarked. The same private-index path times conservative
+source sentence boundaries. DECtalk rate and average pitch use native controls;
+normalized volume scales the captured PCM because DECtalk's speech-to-memory
+output is not affected by its native playback-volume command.
 
 The Eloquence and DECtalk adapters share one C# protocol host while retaining
 separate native capture implementations and executables. Windows Omnivox
 discovers either helper independently. End-to-end smoke tests have exercised real
 capture, cancellation, mixed-engine routing, fallback, PCM canonicalization,
-Eloquence exact requested anchors and word markers, DECtalk phoneme and native-index markers,
-tracked playback completion, and process replacement after a helper crash.
+Eloquence exact requested anchors plus word/sentence markers, DECtalk
+word/sentence/phoneme/native-index markers, control mapping, tracked playback
+completion, and process replacement after a helper crash.
