@@ -139,12 +139,12 @@ implements mandatory self-description, and the active engine's snapshotted
 descriptor is available through a structured inventory request. Logical-voice
 registration is now available as an atomic, generation-safe whole-set
 replacement. It retains unresolved definitions with diagnostics and supports
-idempotent retries without changing the legacy synthesis path. The Emacsvox
+idempotent retries. The Emacsvox
 adapter now negotiates capabilities, discovers inventory, normalizes its ACSS
 definitions, and sends portable ordered selectors to both speech processes.
 Machine-specific exact IDs stay optional; property selectors late-bind against
-each server's inventory. The next slice is the engine registry and per-span
-routing needed to make those bindings drive speech.
+each server's inventory. Registered bindings now drive queued per-span routing;
+bounded runtime-failure retry remains in Phase 3.
 
 ### Phase 3: Add an Engine Registry and Per-Span Routing
 
@@ -171,8 +171,14 @@ ID, validates descriptor voice ownership and defaults atomically, snapshots
 inventory, and generations real descriptor changes. Server discovery and
 logical resolution now use this registry. Windows eagerly populates it with
 WinRT and eSpeak when available, advertises the compatibility-selected preferred
-engine, and retains the other engine for fallback. Per-span synthesis routing
-remains.
+engine, and retains the other engine for fallback. Emacsvox voice codes now
+carry bounded logical IDs, and dispatched batches snapshot their resolved
+bindings. Following speech spans synthesize with the selected engine and
+physical voice while retaining FIFO playback order; missing routes fall back to
+the preferred legacy engine, and hard stops fan out to every registered engine.
+Immediate speech remains on the preferred legacy engine. Re-resolution and
+bounded retry after synthesis-time engine failure, health updates, and helper
+restart remain.
 
 ### Phase 4: Enrich Synthesis Results and the Audio Model
 
@@ -204,8 +210,9 @@ remains.
 
 Status on 2026-08-06: capability negotiation, inventory discovery, atomic
 logical-voice registration, portable selector customization, and legacy-client
-fallback are implemented in Emacsvox. Transaction framing, tracked dispatch,
-functional language commands, and routing registered voices remain.
+fallback are implemented in Emacsvox. Registered logical voices now select the
+engine and physical voice for queued spans. Transaction framing, tracked
+dispatch, and functional language commands remain.
 
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking

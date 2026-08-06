@@ -39,13 +39,16 @@
 - Atomic, generation-safe logical-voice registration with resolution diagnostics
 - Emacsvox capability negotiation, inventory discovery, and portable voice registration
 - Deterministic engine registry backing server inventory and logical resolution
+- Per-span queued logical-voice routing across registered engines
+- Safe preferred-engine fallback for missing or unresolved logical routes
+- Hard-stop cancellation requests fan out across all registered engines
 - Diagnostic self-test (--check)
 - GitHub Actions CI/CD for 6 platforms
 
 ### Not Yet Implemented
 
-- Simultaneous engine registry and per-voice engine selection
-- Routing registered logical voices through the synthesis path
+- Bounded re-resolution and retry after synthesis-time engine failures
+- Logical routing for immediate `tts_say` and letter commands
 - Full Emacsvox framing and tracked-dispatch extensions
 - Eloquence and DECtalk engines through the planned x86 helper
 - Linux Speech Dispatcher TTS backend
@@ -60,12 +63,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 210 tests, all passing
+Total: 217 tests, all passing
 
 omnivox-audio:  60 unit + 31 integration = 91
 omnivox-core:   39 unit + 1 doc = 40
-omnivox-tts:    58 unit
-omnivox-cli:    21 unit
+omnivox-tts:    60 unit
+omnivox-cli:    26 unit
 ```
 
 ## Platform Support
@@ -81,7 +84,8 @@ omnivox-cli:    21 unit
 | Command | Status | Notes |
 |---------|--------|-------|
 | `q {text}` | Working | Queue speech |
-| `c [{voice ...}]` | Working | Voice switching |
+| `c [{voice ...}]` | Working | Legacy physical voice switching |
+| `c {[[logical_voice ID]]}` | Working | Registered engine/voice routing for queued spans |
 | `d` | Working | Dispatch queue |
 | `s` | Working | Stop (persistent synth) |
 | `l {letter}` | Working | Pitch raise for caps |
@@ -104,7 +108,7 @@ omnivox-cli:    21 unit
 
 ## Next Priority
 
-1. Introduce the engine registry and per-speech-span engine/voice routing.
+1. Implement `emacsvox_tx` framing, coalescing, and stop-barrier semantics.
 2. Re-resolve registered voices after bounded runtime engine failures.
 3. Add user-facing inventory, binding, degradation, and health diagnostics.
 

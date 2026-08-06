@@ -13,8 +13,8 @@ not need Tcl escaping and remain separate structured fields.
 - A client must successfully request capabilities before using later control
   extensions.
 - The server advertises only features it currently implements. Version 1
-  currently implements capability negotiation, active-engine inventory, and
-  atomic logical-voice registration.
+  currently implements capability negotiation, active-engine inventory,
+  atomic logical-voice registration, and queued logical-voice routing.
 
 ## Request Record
 
@@ -101,6 +101,7 @@ A successful capability response decodes to this shape:
     "engine_inventory",
     "legacy_commands",
     "logical_voice_registration",
+    "logical_voice_routing",
     "preferred_engine",
     "stable_voice_ids"
   ]
@@ -165,9 +166,35 @@ without changing the registry. A valid but presently unresolvable definition
 is retained and returned with `"status": "unresolved"` and diagnostic attempts;
 it is not silently dropped.
 
-The current speech queue still uses legacy voice state. Registration and
-resolution are available for client integration and diagnostics, but per-span
-engine routing begins with the engine-registry phase.
+## Queued Logical-Voice Routing
+
+When `logical_voice_routing` is advertised, a client selects a registered
+logical voice inside the existing queued code command:
+
+```text
+c {[[logical_voice source-code]] [[pitch 1.2]]}
+q {let answer = 42;}
+d
+```
+
+The directive changes the engine and physical voice used by following queued
+speech spans. It composes with legacy pitch codes and remains active until a
+later logical-voice directive or a legacy physical `[[voice ...]]` code changes
+the route. A server that predates this feature ignores the unknown directive
+and continues to apply the legacy codes.
+
+Bindings are snapshotted when a batch is dispatched. A registration received
+later affects later batches but cannot change a transaction already accepted
+by the synthesis worker. An unknown, unresolved, or no-longer-registered route
+degrades to the preferred legacy engine and voice instead of dropping speech.
+Hard stop and reset requests cancel playback and request cancellation from
+every registered engine.
+
+This first routing slice applies to queued `q`/`c` speech. Immediate `tts_say`
+and `l` commands retain legacy preferred-engine behavior. A synthesis-time
+backend failure is currently reported, produces no audio for that failed chunk,
+and allows later chunks to continue; bounded re-resolution and retry against
+fallback engines remains roadmap work.
 
 ## Errors
 
