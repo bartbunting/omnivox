@@ -223,10 +223,20 @@ Hard stop and reset requests cancel playback and request cancellation from
 every registered engine.
 
 This first routing slice applies to queued `q`/`c` speech. Immediate `tts_say`
-and `l` commands retain legacy preferred-engine behavior. A synthesis-time
-backend failure is currently reported, produces no audio for that failed chunk,
-and allows later chunks to continue; bounded re-resolution and retry against
-fallback engines remains roadmap work.
+and `l` commands retain legacy preferred-engine behavior. For a queued logical
+route, a runtime `VoiceNotFound` excludes that physical voice and an unavailable
+or failed synthesis call excludes that engine from the dispatched batch's
+inventory snapshot. Omnivox then re-runs the registered definition and fallback
+policy and retries the identical text chunk on the newly resolved route.
+
+Each chunk is limited to four total synthesis attempts, with the request
+generation checked before and after every attempt. A stop therefore prevents a
+failed call from reappearing through its fallback. Invalid parameters are not
+route failures and are not retried. If fallback is exhausted, Omnivox logs the
+failure, skips later speech under that failed logical route, continues other
+queued item types, and keeps the server alive. These failure exclusions are
+batch-local; persistent health reporting and engine recovery remain roadmap
+work.
 
 ## Errors
 

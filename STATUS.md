@@ -41,6 +41,8 @@
 - Deterministic engine registry backing server inventory and logical resolution
 - Per-span queued logical-voice routing across registered engines
 - Safe preferred-engine fallback for missing or unresolved logical routes
+- Batch-local runtime voice/engine failure exclusion and deterministic re-resolution
+- Same-chunk routed synthesis retry with a four-attempt cap and stop checks
 - Hard-stop cancellation requests fan out across all registered engines
 - Bounded, capability-advertised `emacsvox_tx` presentation framing with atomic validation
 - Generation coalescing, stale-frame rejection, and stop-barrier semantics
@@ -50,7 +52,7 @@
 
 ### Not Yet Implemented
 
-- Bounded re-resolution and retry after synthesis-time engine failures
+- Persistent engine health updates, recovery probes, and helper restart
 - Logical routing for immediate `tts_say` and letter commands
 - Tracked-dispatch terminal events
 - Eloquence and DECtalk engines through the planned x86 helper
@@ -66,12 +68,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 226 tests, all passing
+Total: 232 tests, all passing
 
 omnivox-audio:  60 unit + 31 integration = 91
 omnivox-core:   40 unit + 1 doc = 41
-omnivox-tts:    63 unit
-omnivox-cli:    31 unit
+omnivox-tts:    64 unit
+omnivox-cli:    36 unit
 ```
 
 ## Platform Support
@@ -112,7 +114,7 @@ omnivox-cli:    31 unit
 
 ## Next Priority
 
-1. Re-resolve registered voices after bounded runtime engine failures.
+1. Define persistent engine health, recovery-probe, and helper-restart semantics.
 2. Add tracked-dispatch terminal results and truthful cancellation reporting.
 3. Add user-facing inventory, binding, degradation, and health diagnostics.
 

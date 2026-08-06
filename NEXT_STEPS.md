@@ -145,7 +145,7 @@ definitions, and sends portable ordered selectors to both speech processes.
 Machine-specific exact IDs stay optional; property selectors late-bind against
 each server's inventory. Registered bindings now drive queued per-span routing;
 semantic Emacs voice preferences resolve to their generated ACSS voice IDs.
-Bounded runtime-failure retry remains in Phase 3.
+Queued logical voices now re-resolve and retry after bounded runtime failures.
 
 ### Phase 3: Add an Engine Registry and Per-Span Routing
 
@@ -177,9 +177,12 @@ carry bounded logical IDs, and dispatched batches snapshot their resolved
 bindings. Following speech spans synthesize with the selected engine and
 physical voice while retaining FIFO playback order; missing routes fall back to
 the preferred legacy engine, and hard stops fan out to every registered engine.
-Immediate speech remains on the preferred legacy engine. Re-resolution and
-bounded retry after synthesis-time engine failure, health updates, and helper
-restart remain.
+Immediate speech remains on the preferred legacy engine. Dispatched batches now
+retain definitions, fallback policy, bindings, and inventory so a missing voice
+can be excluded locally and a failed or unavailable engine can be bypassed.
+The identical failed chunk is re-resolved and retried with a four-attempt cap;
+generation checks prevent a stop from starting a fallback attempt. Persistent
+health updates, recovery probes, and helper restart remain.
 
 ### Phase 4: Enrich Synthesis Results and the Audio Model
 
