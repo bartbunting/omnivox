@@ -223,7 +223,7 @@ helper engine and has been verified against the DECtalk helper.
   marker semantics for repeated or non-linear audio such as echo before making
   that breaking API change.
 
-Status on 2026-08-06: buffered queued audio now has one-shot playback tickets.
+Status on 2026-08-07: buffered queued audio now has one-shot playback tickets.
 Natural mixer-source exhaustion completes a ticket; stop, backlog clearing, or
 source teardown cancels it. This supplies the queued Emacsvox contract, while
 externally playing engines and full marker propagation remain part of this
@@ -239,8 +239,13 @@ clamped to the retained audio timeline before volume and channel processing.
 This focused API preserves the existing `AudioEffect` contract while trimming
 is the only duration-changing effect. A composable timeline-aware effect
 contract remains the planned generalization if more effects change duration.
-Playback delivery, native marker capture, external playback, and unifying the
-two audio buffer types remain.
+Tracked audio sources also accept opaque caller-defined frame cues. They emit
+cues in stable frame order, including frame-zero and terminal-frame cues, and
+drop all unreached cues on cancellation without coupling the audio crate to TTS
+marker types. These cues follow source consumption, so device buffering may
+make them lead acoustic output slightly. Capability-gated Emacsvox delivery of
+those events, native marker capture, external playback, and unifying the two
+audio buffer types remain.
 
 ### Phase 5: Complete the Emacsvox Protocol
 

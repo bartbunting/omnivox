@@ -15,7 +15,8 @@ pub use buffer::AudioBuffer;
 pub use effects::{ChannelRouter, SilenceTrimReport, SilenceTrimmer, VolumeAdjust};
 pub use loader::AudioFileLoader;
 pub use output::{
-    AudioControl, AudioOutput, AudioStreams, PlaybackStatus, PlaybackTicket, StreamType,
+    AudioControl, AudioOutput, AudioStreams, PlaybackCue, PlaybackStatus, PlaybackTicket,
+    StreamType,
 };
 pub use pipeline::{AudioEffect, AudioPipeline};
 pub use tone::ToneGenerator;
