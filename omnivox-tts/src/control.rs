@@ -168,6 +168,7 @@ pub fn process_control_request(
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
                         "logical_voice_routing".to_owned(),
+                        "playback_marker_events_v1".to_owned(),
                         "preferred_engine".to_owned(),
                         "stable_voice_ids".to_owned(),
                         "tracked_playback_completion".to_owned(),
@@ -381,6 +382,9 @@ mod tests {
             } if server_version == "1.3.0"
                 && features.iter().any(|feature| feature == "emacsvox_tx")
                 && features.iter().any(|feature| feature == "logical_voice_routing")
+                && features
+                    .iter()
+                    .any(|feature| feature == "playback_marker_events_v1")
                 && features
                     .iter()
                     .any(|feature| feature == "tracked_playback_completion")

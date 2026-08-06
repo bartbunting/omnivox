@@ -16,7 +16,8 @@ not need Tcl escaping and remain separate structured fields.
   currently implements capability negotiation, active-engine inventory,
   atomic logical-voice registration, queued logical-voice routing, and bounded
   replaceable presentation transactions. It also advertises tracked playback
-  completion for clients that need a terminal result after queued audio ends.
+  completion for clients that need a terminal result after queued audio ends,
+  plus version 1 marker-aware playback events.
 
 ## Request Record
 
@@ -105,6 +106,7 @@ A successful capability response decodes to this shape:
     "legacy_commands",
     "logical_voice_registration",
     "logical_voice_routing",
+    "playback_marker_events_v1",
     "preferred_engine",
     "stable_voice_ids",
     "tracked_playback_completion"
@@ -247,6 +249,86 @@ precedence if that audio is later cancelled.
 
 Clients that do not see the capability must continue using ordinary `d` and
 must not infer playback completion from synthesis or command acceptance.
+
+## Marker-Aware Playback
+
+When `playback_marker_events_v1` is advertised, a client may replace `d` with
+the following positive-ID dispatch command:
+
+```text
+emacsvox_marker_dispatch 91
+```
+
+This is a separate capability and command so existing users of
+`emacsvox_tracked_dispatch` never receive unsolicited records. Marker-aware
+dispatch retains the same terminal contract and writes exactly one final
+`__EMACSVOX_TRACKED__ 91 STATUS` line.
+
+Before that terminal line, Omnivox writes zero or more flushed marker records:
+
+```text
+__EMACSVOX_MARKER__ BASE64_JSON
+```
+
+Each decoded event contains `protocol_version`, `dispatch_id`, and a one-based
+`sequence`. Version 1 emits an `utterance_started` event when playback consumes
+the first frame of every nonempty synthesized chunk:
+
+```json
+{
+  "protocol_version": 1,
+  "dispatch_id": 91,
+  "sequence": 1,
+  "type": "utterance_started",
+  "utterance_id": 1,
+  "text": "hello world",
+  "engine_id": "winrt",
+  "actual_voice": {"engine_id": "winrt", "voice_id": "David"},
+  "logical_voice_id": "source-code",
+  "sample_rate": 44100,
+  "frame_count": 22050
+}
+```
+
+The text is the exact chunk sent to the realized engine after Omnivox
+preprocessing and chunking. `logical_voice_id` and `actual_voice` are nullable
+when no logical route was requested or the engine cannot report an exact
+voice. The start event exists even when an engine supplies no native markers,
+which makes route and utterance timing observable without overstating engine
+capabilities.
+
+An engine marker produces a `marker_reached` event referring to that
+`utterance_id`:
+
+```json
+{
+  "protocol_version": 1,
+  "dispatch_id": 91,
+  "sequence": 2,
+  "type": "marker_reached",
+  "utterance_id": 1,
+  "marker": {
+    "kind": "word",
+    "frame_offset": 4410,
+    "text_start": 0,
+    "text_length": 5,
+    "value": "hello"
+  }
+}
+```
+
+Marker kinds are `word`, `sentence`, `phoneme`, and `native_index`. Text ranges
+are optional UTF-8 byte ranges in the associated start event's `text`.
+`frame_offset` uses the advertised canonical sample rate and has already been
+adjusted for resampling and silence trimming. Event sequence and same-frame
+marker order are stable across the dispatch.
+
+Events report mixer source consumption and may lead acoustic output by the
+audio device's buffering latency. Stop, backlog clearing, or source teardown
+drops unreached events. A writer barrier drains every reached event before the
+terminal status record, including a marker at the final frame boundary. One
+decoded event is bounded to 2 MiB. Invalid, oversized, or unrecognized events
+must be ignored by a client without speaking their raw protocol text.
 
 ## Queued Logical-Voice Routing
 

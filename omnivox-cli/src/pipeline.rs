@@ -15,6 +15,7 @@ use std::sync::Mutex;
 use tracing::{debug, warn};
 
 use crate::health::RuntimeEngineHealth;
+use crate::marker_events::MarkerDispatchContext;
 use crate::routing::{
     synthesize_with_runtime_fallback, LogicalRoute, LogicalVoiceRoutingSnapshot,
     RuntimeSynthesisOutcome,
@@ -118,6 +119,7 @@ pub struct SynthCtx<'a> {
     pub engine: &'a dyn TtsEngine,
     pub control: &'a AudioControl,
     pub playback_tickets: Option<&'a Mutex<Vec<PlaybackTicket>>>,
+    pub marker_dispatch: Option<&'a MarkerDispatchContext>,
     pub batch_failed: Option<&'a AtomicBool>,
 }
 
@@ -187,7 +189,7 @@ pub fn synthesize_chunk(
             if ctx.is_stale() {
                 return false;
             }
-            queue_synthesis_result(result, state, is_last, ctx);
+            queue_synthesis_result(result, chunk, None, state, is_last, ctx);
             true
         }
         Err(e) => {
@@ -200,6 +202,8 @@ pub fn synthesize_chunk(
 
 fn queue_synthesis_result(
     result: SynthesisResult,
+    utterance_text: &str,
+    logical_voice_id: Option<&str>,
     state: &TtsState,
     is_last: bool,
     ctx: &SynthCtx,
@@ -216,7 +220,31 @@ fn queue_synthesis_result(
         ctx.mark_failed();
         warn!("Pipeline error: {}", error);
     }
-    ctx.queue(StreamType::Speech, &result.audio);
+    if let Some(marker_dispatch) = ctx.marker_dispatch.filter(|_| !result.audio.is_empty()) {
+        let prepared = marker_dispatch.prepare_utterance(
+            utterance_text,
+            &result.engine_id,
+            result.actual_voice.as_ref(),
+            logical_voice_id,
+            result.audio.sample_rate(),
+            result.audio.frame_count(),
+            &result.markers,
+        );
+        match prepared.queue(ctx.control, &result.audio) {
+            Ok(Some(ticket)) => {
+                if let Some(tickets) = ctx.playback_tickets {
+                    tickets.lock().unwrap().push(ticket);
+                }
+            }
+            Ok(None) => {}
+            Err(error) => {
+                ctx.mark_failed();
+                warn!("Speech queue error: {}", error);
+            }
+        }
+    } else {
+        ctx.queue(StreamType::Speech, &result.audio);
+    }
 }
 
 fn process_speech_result(
@@ -267,7 +295,14 @@ fn synthesize_routed_chunk(
         ctx.gen_counter,
     ) {
         RuntimeSynthesisOutcome::Ready(result) => {
-            queue_synthesis_result(*result, state, is_last, ctx);
+            queue_synthesis_result(
+                *result,
+                chunk,
+                Some(&route.logical_voice_id),
+                state,
+                is_last,
+                ctx,
+            );
             RoutedChunkOutcome::Queued
         }
         RuntimeSynthesisOutcome::Cancelled => RoutedChunkOutcome::Cancelled,

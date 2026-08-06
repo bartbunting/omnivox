@@ -136,6 +136,7 @@ fn validate_command(command: &Command) -> Result<(), String> {
         | CommandId::OmnivoxControl
         | CommandId::EmacsvoxTx
         | CommandId::EmacsvoxTrackedDispatch
+        | CommandId::EmacsvoxMarkerDispatch
         | CommandId::TtsExit => false,
     };
 
@@ -210,6 +211,12 @@ mod tests {
             .prepare(&arguments(
                 1,
                 "q {hello}\nemacsvox_tracked_dispatch 1\nd\n"
+            ))
+            .is_err());
+        assert!(generations
+            .prepare(&arguments(
+                1,
+                "q {hello}\nemacsvox_marker_dispatch 1\nd\n"
             ))
             .is_err());
         assert_eq!(generations.latest(), 0);

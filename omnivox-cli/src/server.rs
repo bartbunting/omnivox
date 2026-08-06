@@ -19,6 +19,7 @@ use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};
 
 use crate::health::RuntimeEngineHealth;
+use crate::marker_events::{MarkerDispatchContext, MarkerEventOutput};
 use crate::pipeline::{
     build_sound_pipeline, build_tone_pipeline, process_batch, synthesize_chunk, BatchStatus,
     SynthCtx,
@@ -48,7 +49,7 @@ pub enum SynthRequest {
         items: Vec<QueueItem>,
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
-        tracked_identifier: Option<u64>,
+        tracking: Option<DispatchTracking>,
         gen: u64,
     },
     /// Synthesize and play a single string immediately (`tts_say`).
@@ -59,6 +60,20 @@ pub enum SynthRequest {
     PlaySound { path: std::path::PathBuf, state: TtsState, gen: u64 },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DispatchTracking {
+    Completion(u64),
+    Markers(u64),
+}
+
+impl DispatchTracking {
+    fn identifier(self) -> u64 {
+        match self {
+            Self::Completion(identifier) | Self::Markers(identifier) => identifier,
+        }
+    }
+}
+
 pub(crate) struct TrackedPlayback {
     identifier: u64,
     status: BatchStatus,
@@ -66,19 +81,24 @@ pub(crate) struct TrackedPlayback {
 }
 
 pub(crate) fn spawn_tracked_playback_reporter(
+    marker_output: MarkerEventOutput,
 ) -> (mpsc::Sender<TrackedPlayback>, std::thread::JoinHandle<()>) {
     let (sender, receiver) = mpsc::channel::<TrackedPlayback>();
     let handle = std::thread::Builder::new()
         .name("omnivox-playback-tracker".to_owned())
-        .spawn(move || tracked_playback_reporter(receiver))
+        .spawn(move || tracked_playback_reporter(receiver, marker_output))
         .expect("Failed to spawn tracked playback reporter thread");
     (sender, handle)
 }
 
-fn tracked_playback_reporter(receiver: mpsc::Receiver<TrackedPlayback>) {
+fn tracked_playback_reporter(
+    receiver: mpsc::Receiver<TrackedPlayback>,
+    marker_output: MarkerEventOutput,
+) {
     for playback in receiver {
         let identifier = playback.identifier;
         let status = await_tracked_playback(playback);
+        marker_output.flush();
         write_tracked_status(identifier, status);
     }
 }
@@ -131,6 +151,7 @@ pub fn synthesis_worker(
     control: Arc<AudioControl>,
     loader: AudioFileLoader,
     tracked_playback_tx: mpsc::Sender<TrackedPlayback>,
+    marker_output: MarkerEventOutput,
 ) {
     for request in rx {
         match request {
@@ -138,7 +159,7 @@ pub fn synthesis_worker(
                 items,
                 state,
                 mut logical_voice_routing,
-                tracked_identifier,
+                tracking,
                 gen,
             } => {
                 let runtime_inventory = runtime_health.snapshot(
@@ -148,12 +169,20 @@ pub fn synthesis_worker(
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
                 let tickets = Mutex::new(Vec::new());
                 let failed = AtomicBool::new(false);
+                let marker_dispatch = tracking.and_then(|tracking| match tracking {
+                    DispatchTracking::Completion(_) => None,
+                    DispatchTracking::Markers(identifier) => Some(MarkerDispatchContext::new(
+                        identifier,
+                        marker_output.clone(),
+                    )),
+                });
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
                     engine: &*engine,
                     control: &control,
-                    playback_tickets: tracked_identifier.map(|_| &tickets),
+                    playback_tickets: tracking.map(|_| &tickets),
+                    marker_dispatch: marker_dispatch.as_ref(),
                     batch_failed: Some(&failed),
                 };
                 let status = process_batch(
@@ -165,7 +194,8 @@ pub fn synthesis_worker(
                     &runtime_health,
                     logical_voice_routing,
                 );
-                if let Some(identifier) = tracked_identifier {
+                if let Some(tracking) = tracking {
+                    let identifier = tracking.identifier();
                     let playback = TrackedPlayback {
                         identifier,
                         status,
@@ -184,6 +214,7 @@ pub fn synthesis_worker(
                     engine: &*engine,
                     control: &control,
                     playback_tickets: None,
+                    marker_dispatch: None,
                     batch_failed: None,
                 };
                 if ctx.is_stale() { continue; }
@@ -210,6 +241,7 @@ pub fn synthesis_worker(
                     engine: &*engine,
                     control: &control,
                     playback_tickets: None,
+                    marker_dispatch: None,
                     batch_failed: None,
                 };
                 if ctx.is_stale() { continue; }
@@ -245,6 +277,7 @@ pub fn synthesis_worker(
                     engine: &*engine,
                     control: &control,
                     playback_tickets: None,
+                    marker_dispatch: None,
                     batch_failed: None,
                 };
                 if ctx.is_stale() { continue; }
@@ -310,6 +343,7 @@ pub fn run_server(
     gen_counter: Arc<AtomicU64>,
     worker_handle: std::thread::JoinHandle<()>,
     tracked_playback_handle: std::thread::JoinHandle<()>,
+    marker_event_handle: std::thread::JoinHandle<()>,
 ) -> Result<()> {
     let mut pending: Vec<QueueItem> = Vec::new();
     let mut current_gen: u64 = 0;
@@ -462,6 +496,7 @@ pub fn run_server(
     info!("Draining audio output");
     control.drain();
     let _ = tracked_playback_handle.join();
+    let _ = marker_event_handle.join();
 
     info!("Shutting down");
     Ok(())
@@ -658,7 +693,7 @@ fn handle_command(
                         logical_voices,
                         engine_registry,
                     ),
-                    tracked_identifier: None,
+                    tracking: None,
                     gen: *current_gen,
                 });
             }
@@ -684,7 +719,7 @@ fn handle_command(
                         logical_voices,
                         engine_registry,
                     ),
-                    tracked_identifier: Some(identifier),
+                    tracking: Some(DispatchTracking::Completion(identifier)),
                     gen: *current_gen,
                 };
                 if tx.send(request).is_err() {
@@ -692,6 +727,37 @@ fn handle_command(
                 }
             } else {
                 warn!("Invalid tracked dispatch identifier");
+            }
+        }
+
+        CommandId::EmacsvoxMarkerDispatch => {
+            let identifier = command
+                .args
+                .as_deref()
+                .and_then(|value| value.parse::<u64>().ok())
+                .filter(|identifier| *identifier > 0);
+            if let Some(identifier) = identifier {
+                debug!(
+                    "Marker dispatch {} with {} items (gen={})",
+                    identifier,
+                    pending.len(),
+                    current_gen
+                );
+                let request = SynthRequest::Batch {
+                    items: mem::take(pending),
+                    state: state.clone(),
+                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                        logical_voices,
+                        engine_registry,
+                    ),
+                    tracking: Some(DispatchTracking::Markers(identifier)),
+                    gen: *current_gen,
+                };
+                if tx.send(request).is_err() {
+                    write_tracked_status(identifier, BatchStatus::Failed);
+                }
+            } else {
+                warn!("Invalid marker dispatch identifier");
             }
         }
 

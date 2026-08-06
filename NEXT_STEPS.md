@@ -243,8 +243,11 @@ Tracked audio sources also accept opaque caller-defined frame cues. They emit
 cues in stable frame order, including frame-zero and terminal-frame cues, and
 drop all unreached cues on cancellation without coupling the audio crate to TTS
 marker types. These cues follow source consumption, so device buffering may
-make them lead acoustic output slightly. Capability-gated Emacsvox delivery of
-those events, native marker capture, external playback, and unifying the two
+make them lead acoustic output slightly. Capability-gated delivery of those
+events is now implemented server-side with a separate marker dispatch,
+versioned Base64-JSON start/marker records, bounded payloads, and a flush
+barrier before the existing tracked terminal record. Emacsvox negotiation and
+event binding, native marker capture, external playback, and unifying the two
 audio buffer types remain.
 
 ### Phase 5: Complete the Emacsvox Protocol
@@ -272,7 +275,11 @@ preserving the legacy path for older servers. Capability-gated tracked dispatch
 now emits exactly one terminal result after all queued speech, tone, silence,
 and audio-icon sources complete, cancel, or fail. Emacsvox negotiates this
 feature per live process and retains its unsupported-server error for older
-Omnivox builds. Functional language commands remain.
+Omnivox builds. The server now advertises `playback_marker_events_v1` and
+accepts `emacsvox_marker_dispatch` without changing the established tracked
+contract. Emacsvox still needs to negotiate that capability, decode bounded
+events, expose callbacks, and select the new command only when requested.
+Functional language commands remain.
 
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking
