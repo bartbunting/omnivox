@@ -117,11 +117,14 @@ or incomplete PCM streams, issue cancellation independently of the serialized
 synthesis call, and replace a failed child during a recovery probe. Marker
 frames are validated, converted to common synthesis markers, and returned with
 the helper's native PCM and realized physical voice. Their frame offsets follow
-sample-rate conversion into canonical Omnivox audio. The current Eloquence and
-DECtalk adapters do not advertise or emit native markers yet.
+sample-rate conversion into canonical Omnivox audio. The Eloquence adapter now
+inserts ECI indexes at bounded Unicode word starts and emits the native callback
+frame with a UTF-8 source range. DECtalk does not advertise or emit native
+markers yet.
 
 The Eloquence and DECtalk adapters share one C# protocol host while retaining
 separate native capture implementations and executables. Windows Omnivox
 discovers either helper independently. End-to-end smoke tests have exercised real
 capture, cancellation, mixed-engine routing, fallback, PCM canonicalization,
-tracked playback completion, and process replacement after a helper crash.
+Eloquence word markers, tracked playback completion, and process replacement
+after a helper crash.

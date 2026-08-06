@@ -322,7 +322,7 @@ loading those libraries into the Rust process.
   cancellation, markers, bounds, timeouts, and crash recovery.
 - Keep proprietary DLLs user-supplied and document redistribution constraints.
 - Implement Eloquence first because its waveform and index callbacks provide a
-  clean reference for the helper protocol.
+  clean reference for the helper protocol. (Word markers implemented.)
 - Implement DECtalk second, including phoneme/index metadata where available.
 - Keep the existing standalone `windows-outloud` and `windows-dtk` servers as
   fallbacks until Omnivox reaches practical parity.
@@ -345,9 +345,15 @@ staging target packages both helper executables and copies an already-installed
 DECtalk runtime without downloading or redistributing proprietary files.
 Real WSL-to-Windows tests have verified mixed Eloquence/DECtalk dispatch,
 missing-engine and missing-voice fallback, tracked playback completion, and
-DECtalk helper crash recovery. Richer native controls, Eloquence indexes,
-DECtalk phoneme/index metadata, long-session measurements, and broader malformed
-helper-output testing remain.
+DECtalk helper crash recovery. The shared helper host now accepts bounded marker
+results and validates their kinds, frame offsets, source ranges, and values.
+The Eloquence adapter segments bounded Unicode words, inserts an ECI index at
+each word start, records index callbacks against captured PCM frames, and emits
+UTF-8 source ranges. Direct helper tests covered apostrophes and non-ASCII text;
+a routed Windows playback smoke carried the rescaled word events through
+Omnivox before tracked completion. Richer native controls, Eloquence sentence
+boundaries, DECtalk phoneme/index metadata, long-session measurements, and
+broader malformed helper-output testing remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model
 
