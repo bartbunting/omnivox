@@ -130,6 +130,21 @@ but must still speak and report the degradation.  Fallback must distinguish an
 unavailable voice, an unresolved text anchor, and an unsupported post-synthesis
 effect.
 
+Marker support is graded rather than all-or-nothing.  A resolved action reports
+one of `exact`, `word_boundary`, `span_boundary`, or `omitted`.  A buffered
+engine without markers still provides ordinary speech, whole-span effects,
+queue-boundary audio actions, cancellation, completion, and engine/voice
+fallback.  For an action inside one synthesized span, Omnivox first splits at a
+safe text boundary when that preserves the request, otherwise moves the action
+to a declared span boundary or omits only the optional action.  It never uses
+synthesis-time timers as a substitute for playback positions and never drops
+speech because optional placement metadata is unavailable.
+
+The current eSpeak backend advertises no markers even though its synthesis
+callback receives native event records.  Capturing and validating its word,
+sentence, and mark events is planned; until then it exercises the markerless
+buffered-engine degradation path.
+
 ## Fallback Contract
 
 Voice resolution must be deterministic and testable:
@@ -395,6 +410,12 @@ tails, and events atomically.
 - Negotiate structured presentation timelines with explicit audio modes,
   source positions, persistent post-synthesis effect state, degradation
   reports, and playback-bound semantic event IDs.
+- Add generation-safe runtime routing policy so a client can set the global
+  preferred engine order independently of startup environment variables while
+  retaining per-logical-voice selector order and the global fallback list.
+- Add a one-shot exact-route preview request that carries a physical selector,
+  normalized style, effect state, and sample text without replacing persistent
+  logical-voice registration or notification-process state.
 - Make language commands functional and include language in synchronized state.
 - Map Emacs logical voices and ACSS styles to Omnivox logical voice definitions,
   including ordered physical voice fallbacks.
@@ -421,6 +442,28 @@ servers before submitting text. Functional language commands remain.
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking
 through a configured fallback when either engine or voice is unavailable.
+
+#### Emacsvox Voice Workbench Integration
+
+The live inventory and routing protocol feed one generic Emacsvox Voice
+Workbench rather than an Omnivox-only customization screen.  Voice palettes
+remain portable style/effect definitions.  Separate versioned routing profiles
+hold global engine order and ordered selectors for logical voices.  The UI
+presents both together while saving exact machine-local IDs only in an
+explicit local scope.
+
+Omnivox supplies the workbench with live, generation-stamped engine inventory,
+health and degradation state, exact non-mutating preview, atomic logical-voice
+registration, runtime preferred-engine order, and last realized route events.
+Static standalone Eloquence and DECtalk adapters, SwiftMac discovery, and
+markerless/free-form adapters use the same Emacsvox inventory interface with
+truthful reduced capabilities.
+
+Completion criterion: without editing Lisp or raw selector data, a user can
+select an existing logical voice, audition installed physical voices, assign
+and reorder exact or portable fallbacks, tune its supported style/effects,
+choose global engine priority, inspect the realized route, and atomically save
+or cancel the staged configuration.
 
 ### Phase 6: Upgrade WinRT as the Reference Buffered Engine
 
@@ -542,6 +585,9 @@ it will need revision to use the common capability and completion contracts.
 - Measure first-audio latency, memory growth, long-session stability, and helper
   process overhead.
 - Add user-facing engine/voice diagnostics and troubleshooting documentation.
+- Exercise the generic Emacsvox Voice Workbench against live Omnivox,
+  standalone static inventories, changing health, missing voices, and
+  divergent speaker/notification inventories.
 - Reconcile README, STATUS, architecture, and protocol documentation at each
   release.
 
