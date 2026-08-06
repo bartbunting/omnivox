@@ -13,8 +13,9 @@ not need Tcl escaping and remain separate structured fields.
 - A client must successfully request capabilities before using later control
   extensions.
 - The server advertises only features it currently implements. Version 1
-  initially implements capability negotiation; inventory and logical-voice
-  registration will extend the version without changing its envelope.
+  currently implements capability negotiation and active-engine inventory;
+  logical-voice registration will extend the version without changing its
+  envelope.
 
 ## Request Record
 
@@ -38,6 +39,9 @@ ID, and a tagged request body. The current request is:
 The Base64 field must not contain line breaks. Omnivox rejects an encoded field
 before decoding if it cannot fit within the 256 KiB decoded-payload limit.
 
+The structured inventory request uses the same envelope with `"type":
+"inventory"`.
+
 ## Response Record
 
 The server writes one flushed, newline-terminated event to standard output:
@@ -57,6 +61,7 @@ A successful capability response decodes to this shape:
   "supported_protocol_versions": [1],
   "features": [
     "control_v1",
+    "engine_inventory",
     "legacy_commands",
     "stable_voice_ids"
   ]
@@ -65,6 +70,14 @@ A successful capability response decodes to this shape:
 
 The request ID lets Emacsvox distinguish simultaneous main and notification
 process responses. Server events are never injected into synthesized speech.
+
+An inventory response contains an `inventory_generation` and an `engines`
+array. Each engine includes its stable ID, runtime availability and health,
+capabilities, discovered physical voices, and default voice ID. The current
+single-engine server snapshots this descriptor before the reader loop starts,
+so inventory requests cannot block stop commands behind synchronous synthesis.
+The future registry will increment the generation whenever its inventory
+changes.
 
 ## Errors
 

@@ -134,8 +134,10 @@ fallbacks, degraded and failed engines, environment-specific late binding,
 fallback exhaustion, normalized ACSS clamping, and capability degradation. The
 separate versioned Base64-JSON control envelope, bounds, capability negotiation,
 structured errors, and compatibility boundary are implemented and documented
-in [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md). Inventory and logical-voice
-registration messages remain to be added.
+in [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md). Every built-in backend now
+implements mandatory self-description, and the active engine's snapshotted
+descriptor is available through a structured inventory request. Logical-voice
+registration remains to be added.
 
 ### Phase 3: Add an Engine Registry and Per-Span Routing
 

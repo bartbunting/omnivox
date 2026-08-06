@@ -35,6 +35,7 @@
 - Structured engine, capability, physical voice, and logical voice contracts
 - Pure late-binding voice resolver with ordered fallbacks and diagnostics
 - Versioned, bounded Base64-JSON control channel with capability negotiation
+- Mandatory self-description for built-in engines and structured active-engine inventory
 - Diagnostic self-test (--check)
 - GitHub Actions CI/CD for 6 platforms
 
@@ -56,11 +57,11 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 192 tests, all passing
+Total: 197 tests, all passing
 
 omnivox-audio:  60 unit + 31 integration = 91
 omnivox-core:   39 unit + 1 doc = 40
-omnivox-tts:    40 unit
+omnivox-tts:    45 unit
 omnivox-cli:    21 unit
 ```
 
@@ -96,13 +97,13 @@ omnivox-cli:    21 unit
 | `tts_reset` | Working | Reset defaults |
 | `version` | Working | Version announcement |
 | `tts_exit` | Working | Clean exit |
-| `omnivox_control` | Working | Versioned capability request; further message types planned |
+| `omnivox_control` | Working | Versioned capabilities and active-engine inventory |
 
 ## Next Priority
 
-1. Populate descriptors from the existing WinRT and eSpeak engines.
-2. Add structured engine inventory responses to the control channel.
-3. Introduce logical-voice registration, then the engine registry and
+1. Introduce logical-voice registration with generation-safe replacement.
+2. Add resolution diagnostics for registered logical voices.
+3. Introduce the engine registry and
    per-speech-span engine/voice routing.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).

@@ -54,7 +54,7 @@ Each stream has a max backlog depth. On overflow, old items are dropped to keep 
 ```bash
 make build     # Release build
 make dev       # Debug build
-make test      # Run all tests (192 tests)
+make test      # Run all tests (197 tests)
 make lint      # Clippy
 make fmt       # Format
 make install   # Install binary to ~/.cargo/bin
@@ -63,11 +63,11 @@ make clean     # Clean build artifacts
 
 ## Testing
 
-192 tests total, all passing:
+197 tests total, all passing:
 
 - omnivox-audio: 60 unit + 31 integration = 91
 - omnivox-core: 39 unit + 1 doc = 40 (includes `;;`, quoted-path, and control-command regression tests)
-- omnivox-tts: 40 unit (includes WinRT mapping, contract, ACSS degradation, resolver, and control-codec tests)
+- omnivox-tts: 45 unit (includes engine descriptors, WinRT mapping, contract, ACSS degradation, resolver, and control-codec tests)
 - omnivox-cli: 21 unit (includes Tcl resource-word decoding and voice-listing tests)
 
 Run: `cargo test`
@@ -200,7 +200,7 @@ Common causes and fixes:
 
 ## Key Files
 
-- `omnivox-tts/src/lib.rs` - TtsEngine trait definition. New backends must implement `synthesize() -> Result<AudioBuffer, TtsError>`.
+- `omnivox-tts/src/lib.rs` - TtsEngine trait definition. New backends must implement mandatory truthful `descriptor()` plus `synthesize() -> Result<AudioBuffer, TtsError>`.
 - `omnivox-tts/src/contracts.rs` - Additive engine/voice descriptors, normalized ACSS, portable selectors, logical definitions, and fallback policy.
 - `omnivox-tts/src/resolver.rs` - Pure late-binding resolver. It records failed attempts and the reason for the realized physical voice; it is not wired into synthesis yet.
 - `omnivox-tts/src/control.rs` - Bounded Base64-JSON control codec, capability negotiation, and structured errors. See `CONTROL-PROTOCOL.md`.
