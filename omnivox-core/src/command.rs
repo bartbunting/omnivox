@@ -46,6 +46,7 @@ pub enum CommandId {
     TtsSyncState,         // tts_sync_state
     TtsReset,             // tts_reset
     Version,              // version
+    OmnivoxControl,       // omnivox_control - versioned Base64-JSON control request
 
     // SwiftMac extensions
     TtsSetVoice,               // tts_set_voice
@@ -86,6 +87,7 @@ impl CommandId {
             "tts_sync_state" => Some(Self::TtsSyncState),
             "tts_reset" => Some(Self::TtsReset),
             "version" => Some(Self::Version),
+            "omnivox_control" => Some(Self::OmnivoxControl),
             "tts_set_voice" => Some(Self::TtsSetVoice),
             "tts_set_pitch_multiplier" => Some(Self::TtsSetPitchMultiplier),
             "tts_set_sound_volume" => Some(Self::TtsSetSoundVolume),
@@ -231,6 +233,16 @@ mod tests {
         let cmd = parse_command(r#"a "/tmp/cue space/done.ogg""#).unwrap();
         assert_eq!(cmd.id, CommandId::AudioIcon);
         assert_eq!(cmd.args, Some(r#""/tmp/cue space/done.ogg""#.to_string()));
+    }
+
+    #[test]
+    fn test_parse_omnivox_control_payload() {
+        let cmd = parse_command("omnivox_control {eyJ0eXBlIjoiY2FwYWJpbGl0aWVzIn0=}").unwrap();
+        assert_eq!(cmd.id, CommandId::OmnivoxControl);
+        assert_eq!(
+            cmd.args,
+            Some("eyJ0eXBlIjoiY2FwYWJpbGl0aWVzIn0=".to_string())
+        );
     }
 
     #[test]

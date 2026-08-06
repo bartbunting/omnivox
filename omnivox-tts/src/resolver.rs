@@ -4,10 +4,12 @@ use crate::contracts::{
     Availability, EngineDescriptor, EngineHealth, FallbackPolicy, LogicalVoiceDefinition,
     PhysicalVoiceId, VoiceDescriptor, VoiceSelector,
 };
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Stage at which a selector was considered.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "stage", rename_all = "snake_case")]
 pub enum ResolutionStage {
     Preference { index: usize },
     SameLanguageOnRequestedEngine,
@@ -16,7 +18,8 @@ pub enum ResolutionStage {
 }
 
 /// Why a selector could not be used.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ResolutionFailure {
     EngineNotFound { engine_id: String },
     EngineUnavailable { engine_id: String, reason: String },
@@ -27,7 +30,7 @@ pub enum ResolutionFailure {
 }
 
 /// One failed selector, retained for diagnostics.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResolutionAttempt {
     pub stage: ResolutionStage,
     pub selector: VoiceSelector,
@@ -35,7 +38,8 @@ pub struct ResolutionAttempt {
 }
 
 /// Why the realized voice was selected.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "reason", rename_all = "snake_case")]
 pub enum ResolutionReason {
     Preferred,
     ExplicitAlternative { preference_index: usize },
@@ -45,7 +49,7 @@ pub enum ResolutionReason {
 }
 
 /// Successful late binding of one logical voice.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VoiceResolution {
     pub logical_voice_id: String,
     pub requested: Option<VoiceSelector>,
@@ -55,7 +59,7 @@ pub struct VoiceResolution {
 }
 
 /// No configured or policy fallback could speak the logical voice.
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Eq, Error, Serialize, Deserialize)]
 #[error("no usable physical voice for logical voice {logical_voice_id}")]
 pub struct VoiceResolutionError {
     pub logical_voice_id: String,

@@ -8,6 +8,7 @@ use thiserror::Error;
 pub mod espeak;
 pub mod macos;
 pub mod contracts;
+pub mod control;
 pub mod resolver;
 pub mod windows;
 #[cfg(feature = "piper")]
@@ -177,7 +178,8 @@ pub struct VoiceInfo {
 }
 
 /// Voice quality levels
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum VoiceQuality {
     /// Compact/basic quality
     Compact,

@@ -5,8 +5,9 @@ use omnivox_audio::{AudioControl, AudioFileLoader, StreamType, ToneGenerator};
 use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
 };
+use omnivox_tts::control::{format_control_event, process_control_request};
 use omnivox_tts::{TtsEngine, TtsSettings};
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use std::mem;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Arc};
@@ -323,6 +324,19 @@ fn handle_command(
                 crate::VERSION.replace('.', " dot ")
             );
             let _ = tx.send(SynthRequest::Immediate { text: version_text, state: state.clone(), gen: *current_gen });
+        }
+
+        CommandId::OmnivoxControl => {
+            let response = process_control_request(command.args.as_deref().unwrap_or(""), crate::VERSION);
+            match format_control_event(&response) {
+                Ok(event) => {
+                    let mut stdout = io::stdout().lock();
+                    if let Err(error) = writeln!(stdout, "{}", event).and_then(|_| stdout.flush()) {
+                        warn!("Could not write Omnivox control response: {}", error);
+                    }
+                }
+                Err(error) => warn!("Could not encode Omnivox control response: {}", error),
+            }
         }
 
         // --- State management ---

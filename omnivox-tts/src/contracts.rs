@@ -4,12 +4,13 @@
 //! define the richer contract without changing the legacy synthesis path yet.
 
 use crate::VoiceQuality;
+use serde::{Deserialize, Serialize};
 
 /// Stable identity for a physical voice.
 ///
 /// Engine and voice IDs remain separate because native voice IDs may contain
 /// colons, backslashes, or other separator characters.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct PhysicalVoiceId {
     pub engine_id: String,
     pub voice_id: String,
@@ -25,7 +26,8 @@ impl PhysicalVoiceId {
 }
 
 /// Whether an engine or voice can currently be used.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
 pub enum Availability {
     Available,
     Unavailable { reason: String },
@@ -38,7 +40,8 @@ impl Availability {
 }
 
 /// Runtime health of an available engine.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
 pub enum EngineHealth {
     Healthy,
     Degraded { reason: String },
@@ -53,7 +56,8 @@ impl EngineHealth {
 }
 
 /// How an engine supplies audio to Omnivox.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AudioOutputMode {
     BufferedPcm,
     StreamingPcm,
@@ -61,7 +65,8 @@ pub enum AudioOutputMode {
 }
 
 /// The strongest cancellation guarantee an engine offers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum CancellationSupport {
     None,
     PlaybackOnly,
@@ -69,14 +74,15 @@ pub enum CancellationSupport {
 }
 
 /// Whether synthesis calls must be serialized.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "mode", rename_all = "snake_case")]
 pub enum ConcurrencyModel {
     Serialized,
     Concurrent { maximum_requests: Option<usize> },
 }
 
 /// Marker metadata an engine can return with synthesized audio.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MarkerCapabilities {
     pub word: bool,
     pub sentence: bool,
@@ -85,7 +91,8 @@ pub struct MarkerCapabilities {
 }
 
 /// Normalized ACSS dimensions understood by Omnivox.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AcssDimension {
     Rate,
     AveragePitch,
@@ -96,7 +103,7 @@ pub enum AcssDimension {
 }
 
 /// ACSS dimensions that an engine can apply or approximate.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AcssCapabilities {
     pub rate: bool,
     pub average_pitch: bool,
@@ -120,7 +127,7 @@ impl AcssCapabilities {
 }
 
 /// A normalized ACSS style. Present values are in the inclusive range 0.0..=1.0.
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct NormalizedAcss {
     pub rate: Option<f32>,
     pub average_pitch: Option<f32>,
@@ -209,21 +216,21 @@ fn omit_unsupported(
 }
 
 /// ACSS values an engine can apply and the values omitted during degradation.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AcssApplication {
     pub style: NormalizedAcss,
     pub omitted: Vec<AcssDimension>,
 }
 
 /// A namespaced optional native capability advertised by an engine.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NativeExtensionDescriptor {
     pub id: String,
     pub description: String,
 }
 
 /// Capabilities used to route requests and degrade unsupported features.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EngineCapabilities {
     pub acss: AcssCapabilities,
     pub audio_output: AudioOutputMode,
@@ -235,7 +242,8 @@ pub struct EngineCapabilities {
 }
 
 /// Coarse voice traits that may be used in portable selectors.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum VoiceGender {
     Female,
     Male,
@@ -243,7 +251,7 @@ pub enum VoiceGender {
 }
 
 /// A physical voice discovered from one engine.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VoiceDescriptor {
     pub id: PhysicalVoiceId,
     pub display_name: String,
@@ -254,7 +262,7 @@ pub struct VoiceDescriptor {
 }
 
 /// Complete runtime description of one speech engine.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EngineDescriptor {
     pub id: String,
     pub display_name: String,
@@ -273,7 +281,8 @@ impl EngineDescriptor {
 }
 
 /// Portable or exact request for a physical voice.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum VoiceSelector {
     Exact(PhysicalVoiceId),
     EngineDefault {
@@ -297,7 +306,7 @@ impl VoiceSelector {
 }
 
 /// Stable Emacs/ACSS voice name and its portable ordered preferences.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogicalVoiceDefinition {
     pub id: String,
     pub language: Option<String>,
@@ -306,7 +315,7 @@ pub struct LogicalVoiceDefinition {
 }
 
 /// Machine/session policy applied after a logical voice's explicit preferences.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FallbackPolicy {
     pub allow_same_language_on_requested_engine: bool,
     pub global_default: Option<VoiceSelector>,
