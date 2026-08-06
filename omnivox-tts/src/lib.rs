@@ -9,6 +9,7 @@ pub mod espeak;
 pub mod macos;
 pub mod contracts;
 pub mod control;
+pub mod logical_voices;
 pub mod resolver;
 pub mod windows;
 #[cfg(feature = "piper")]
