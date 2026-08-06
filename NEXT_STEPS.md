@@ -247,8 +247,9 @@ make them lead acoustic output slightly. Capability-gated delivery of those
 events is now implemented server-side with a separate marker dispatch,
 versioned Base64-JSON start/marker records, bounded payloads, and a flush
 barrier before the existing tracked terminal record. Emacsvox negotiation and
-event binding, native marker capture, external playback, and unifying the two
-audio buffer types remain.
+event binding now expose those events through an explicit marker-aware speech
+API. Native marker capture, external playback, and unifying the two audio buffer
+types remain.
 
 ### Phase 5: Complete the Emacsvox Protocol
 
@@ -260,12 +261,14 @@ audio buffer types remain.
   and stop-barrier semantics.
 - Implement tracked dispatch with exactly one `completed`, `cancelled`, or
   `failed` terminal result.
+- Negotiate marker-aware playback, decode bounded events, and expose explicit
+  marker and terminal callbacks without changing ordinary speech dispatch.
 - Make language commands functional and include language in synchronized state.
 - Map Emacs logical voices and ACSS styles to Omnivox logical voice definitions,
   including ordered physical voice fallbacks.
 - Retain graceful behavior with clients that only send the legacy protocol.
 
-Status on 2026-08-06: capability negotiation, inventory discovery, atomic
+Status on 2026-08-07: capability negotiation, inventory discovery, atomic
 logical-voice registration, portable selector customization, and legacy-client
 fallback are implemented in Emacsvox. Registered logical voices now select the
 engine and physical voice for queued spans. Capability-gated `emacsvox_tx`
@@ -277,9 +280,11 @@ and audio-icon sources complete, cancel, or fail. Emacsvox negotiates this
 feature per live process and retains its unsupported-server error for older
 Omnivox builds. The server now advertises `playback_marker_events_v1` and
 accepts `emacsvox_marker_dispatch` without changing the established tracked
-contract. Emacsvox still needs to negotiate that capability, decode bounded
-events, expose callbacks, and select the new command only when requested.
-Functional language commands remain.
+contract. Emacsvox now negotiates that capability per process, consumes and
+validates bounded version 1 events, preserves dispatch ownership and event
+order, and exposes marker and terminal callbacks through `tts-speak-marked`.
+It selects the new command only for that explicit API and rejects unsupported
+servers before submitting text. Functional language commands remain.
 
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking

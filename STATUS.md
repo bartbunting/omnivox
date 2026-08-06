@@ -55,6 +55,7 @@
 - Silence-trim reports keep synthesis marker offsets aligned with retained audio
 - Tracked playback sources with ordered, cancellation-safe frame cue delivery
 - Capability-gated marker dispatch with versioned, bounded playback events
+- Emacsvox marker-event negotiation, bounded decoding, and callback dispatch
 - Hard-stop cancellation requests fan out across all registered engines
 - Bounded, capability-advertised `emacsvox_tx` presentation framing with atomic validation
 - Generation coalescing, stale-frame rejection, and stop-barrier semantics
@@ -67,7 +68,7 @@
 ### Not Yet Implemented
 
 - Logical routing for immediate `tts_say` and letter commands
-- Emacsvox marker-event negotiation/binding and a general timeline-aware effects API
+- Native WinRT markers and a general timeline-aware effects API
 - Eloquence and DECtalk native pitch-range, stress, richness, and marker support
 - Linux Speech Dispatcher TTS backend
 - Network mode (-p TCP flag)
@@ -129,9 +130,8 @@ omnivox-cli:    52 unit
 
 ## Next Priority
 
-1. Bind capability-gated marker dispatch and events in Emacsvox.
-2. Populate WinRT, Eloquence, and DECtalk native markers.
-3. Add user-facing realized-route, degradation, and health diagnostics.
-4. Make language commands functional and include language in synchronized state.
+1. Populate WinRT, Eloquence, and DECtalk native markers.
+2. Add user-facing realized-route, degradation, and health diagnostics.
+3. Make language commands functional and include language in synchronized state.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).
