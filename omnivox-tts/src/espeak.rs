@@ -261,6 +261,24 @@ impl EspeakTtsEngine {
     fn backend_voice_name(voice_id: &str) -> &str {
         voice_id.strip_prefix("espeak:").unwrap_or(voice_id)
     }
+
+    fn default_voice_id(
+        voices: &[VoiceDescriptor],
+        runtime_default: Option<String>,
+    ) -> Option<String> {
+        voices
+            .iter()
+            .find(|voice| voice.language.as_deref() == Some("en-us"))
+            .or_else(|| {
+                runtime_default.as_deref().and_then(|runtime_default| {
+                    voices
+                        .iter()
+                        .find(|voice| voice.id.voice_id == runtime_default)
+                })
+            })
+            .or_else(|| voices.first())
+            .map(|voice| voice.id.voice_id.clone())
+    }
 }
 
 impl TtsEngine for EspeakTtsEngine {
@@ -269,8 +287,9 @@ impl TtsEngine for EspeakTtsEngine {
             .available_voices()
             .into_iter()
             .map(|voice| VoiceDescriptor::from_voice_info("espeak", voice))
-            .collect();
-        let (version, default_voice_id) = Self::runtime_metadata();
+            .collect::<Vec<_>>();
+        let (version, runtime_default) = Self::runtime_metadata();
+        let default_voice_id = Self::default_voice_id(&voices, runtime_default);
 
         EngineDescriptor {
             id: "espeak".to_owned(),
@@ -527,6 +546,13 @@ mod tests {
             .voices
             .iter()
             .all(|voice| voice.id.engine_id == descriptor.id));
+        let default_voice_id = descriptor.default_voice_id.unwrap();
+        let default_voice = descriptor
+            .voices
+            .iter()
+            .find(|voice| voice.id.voice_id == default_voice_id)
+            .unwrap();
+        assert_eq!(default_voice.language.as_deref(), Some("en-us"));
     }
 
     #[test]
