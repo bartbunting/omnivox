@@ -203,7 +203,8 @@ failures now open a persistent circuit with 5/15/30/60-second bounded cooldowns,
 one recovery probe, automatic restoration after success, and health/generation
 projection into inventory responses. Engines have an additive recovery
 preparation hook; built-in in-process engines use its no-op default. Restarting
-an actual helper from that hook remains part of the x86 helper implementation.
+an invalidated helper during a recovery probe is implemented by the generic
+helper engine and has been verified against the DECtalk helper.
 
 ### Phase 4: Enrich Synthesis Results and the Audio Model
 
@@ -222,7 +223,9 @@ Status on 2026-08-06: buffered queued audio now has one-shot playback tickets.
 Natural mixer-source exhaustion completes a ticket; stop, backlog clearing, or
 source teardown cancels it. This supplies the queued Emacsvox contract, while
 structured engine results, externally playing engines, and marker propagation
-remain part of this phase.
+remain part of this phase. All engine PCM is now converted to Omnivox's canonical
+stereo 44.1 kHz format before entering the effects and playback pipeline; this
+includes the helpers' native mono 11.025 kHz output.
 
 ### Phase 5: Complete the Emacsvox Protocol
 
@@ -297,9 +300,14 @@ executable or through `OMNIVOX_ELOQUENCE_HELPER`, negotiates it through the
 generic host, and adds it to the registry without changing the WinRT legacy
 default. The same shared host now drives a DECtalk capture adapter with nine
 named voices, bounded in-memory PCM, rate mapping, and native cancellation;
-Windows discovery treats its startup and failure independently. End-to-end
-DECtalk per-span validation and packaging, richer native controls and indexes,
-and hardening remain.
+Windows discovery treats its startup and failure independently. The Windows
+staging target packages both helper executables and copies an already-installed
+DECtalk runtime without downloading or redistributing proprietary files.
+Real WSL-to-Windows tests have verified mixed Eloquence/DECtalk dispatch,
+missing-engine and missing-voice fallback, tracked playback completion, and
+DECtalk helper crash recovery. Richer native controls, Eloquence indexes,
+DECtalk phoneme/index metadata, long-session measurements, and broader malformed
+helper-output testing remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model
 

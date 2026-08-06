@@ -1,10 +1,10 @@
 # Omnivox Engine Helper Protocol
 
 Omnivox uses this protocol to host speech engines that cannot be loaded into
-the main process. Its first consumers are the planned 32-bit Windows Eloquence
-and DECtalk helpers. The protocol is engine-neutral so the main process keeps
-voice routing, fallback, effects, mixing, playback completion, and runtime
-health policy.
+the main process. Its first consumers are the 32-bit Windows Eloquence and
+DECtalk capture helpers built by Emacsvox. The protocol is engine-neutral so
+the main process keeps voice routing, fallback, effects, mixing, playback
+completion, and runtime health policy.
 
 ## Transport and Compatibility
 
@@ -117,3 +117,9 @@ or incomplete PCM streams, issue cancellation independently of the serialized
 synthesis call, and replace a failed child during a recovery probe. Marker
 frames are validated but cannot yet leave the helper engine because the current
 `TtsEngine` result type carries audio only.
+
+The Eloquence and DECtalk adapters share one C# protocol host while retaining
+separate native capture implementations and executables. Windows Omnivox
+discovers either helper independently. End-to-end smoke tests have exercised real
+capture, cancellation, mixed-engine routing, fallback, PCM canonicalization,
+tracked playback completion, and process replacement after a helper crash.

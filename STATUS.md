@@ -45,7 +45,11 @@
 - Same-chunk routed synthesis retry with a four-attempt cap and stop checks
 - Persistent engine failure circuits with bounded cooldowns and single recovery probes
 - Runtime health and recovery transitions projected into structured inventory
-- Recovery-preparation hook for future helper-process restart/reconnect
+- Generic versioned helper-process engine with bounded framing, negotiation,
+  cancellation, timeout handling, and restart/reconnect recovery probes
+- Optional buffered Eloquence and DECtalk engines through separate 32-bit helpers
+- Per-engine rate, average-pitch, and volume degradation for logical ACSS routes
+- Canonical PCM conversion before helper audio enters the effects/playback pipeline
 - Hard-stop cancellation requests fan out across all registered engines
 - Bounded, capability-advertised `emacsvox_tx` presentation framing with atomic validation
 - Generation coalescing, stale-frame rejection, and stop-barrier semantics
@@ -57,9 +61,9 @@
 
 ### Not Yet Implemented
 
-- Helper-backed engine implementations and concrete helper restart/reconnect overrides
 - Logical routing for immediate `tts_say` and letter commands
-- Eloquence and DECtalk engines through the planned x86 helper
+- Structured synthesis results carrying realized routes and marker metadata
+- Eloquence and DECtalk native pitch-range, stress, richness, and marker support
 - Linux Speech Dispatcher TTS backend
 - Network mode (-p TCP flag)
 - Multi-device audio routing
@@ -72,12 +76,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 245 tests, all passing
+Total: 270 tests, all passing
 
 omnivox-audio:  63 unit + 31 integration = 94
 omnivox-core:   41 unit + 1 doc = 42
-omnivox-tts:    64 unit
-omnivox-cli:    45 unit
+omnivox-tts:    85 unit
+omnivox-cli:    49 unit
 ```
 
 ## Platform Support
@@ -86,7 +90,7 @@ omnivox-cli:    45 unit
 |----------|-----------|-------------------|--------|
 | macOS | AVSpeechSynthesizer | Yes | Working |
 | Linux | Speech Dispatcher (planned) | Yes | espeak-ng works |
-| Windows | WinRT SpeechSynthesizer | Yes | Working |
+| Windows | WinRT plus optional Eloquence/DECtalk helpers | Yes | Working |
 
 ## Commands Working
 
@@ -119,8 +123,9 @@ omnivox-cli:    45 unit
 
 ## Next Priority
 
-1. Define the reusable x86 helper protocol and implement Eloquence capture first.
-2. Add user-facing inventory, binding, degradation, and health diagnostics.
-3. Make language commands functional and include language in synchronized state.
+1. Introduce structured synthesis results without breaking the existing engine trait.
+2. Carry WinRT, Eloquence, and DECtalk markers through the canonical audio pipeline.
+3. Add user-facing realized-route, degradation, and health diagnostics.
+4. Make language commands functional and include language in synchronized state.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).

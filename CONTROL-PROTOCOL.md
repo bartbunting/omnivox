@@ -299,9 +299,9 @@ preparation failure reopens it and retries the same chunk on a fallback.
 Cancellation releases a reserved probe without increasing the failure count.
 
 Before a recovery probe, Omnivox calls the engine's recovery-preparation hook.
-The current in-process engines use the safe no-op default. Future helper-backed
-Eloquence and DECtalk engines will override it to restart or reconnect their
-helper before synthesis.
+In-process engines use the safe no-op default. The generic helper-backed engine
+invalidates a failed child and uses this hook to start and negotiate a fresh
+helper before synthesis; Eloquence and DECtalk both use that implementation.
 
 ## Errors
 
