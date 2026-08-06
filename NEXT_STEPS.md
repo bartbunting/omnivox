@@ -248,8 +248,15 @@ events is now implemented server-side with a separate marker dispatch,
 versioned Base64-JSON start/marker records, bounded payloads, and a flush
 barrier before the existing tracked terminal record. Emacsvox negotiation and
 event binding now expose those events through an explicit marker-aware speech
-API. Native marker capture, external playback, and unifying the two audio buffer
-types remain.
+API. WinRT now enables its word and sentence boundary metadata, reads the
+resulting speech cue tracks directly from each buffered synthesis stream, and
+maps cue timestamps plus inclusive UTF-16 input positions into bounded PCM
+frame offsets and UTF-8 byte ranges. Missing tracks or malformed individual
+cues degrade to fewer markers or less source metadata without failing speech.
+A real Windows playback smoke test delivered sentence and word events before
+tracked completion.
+Native helper marker capture, external playback, and unifying the two audio
+buffer types remain.
 
 ### Phase 5: Complete the Emacsvox Protocol
 
@@ -293,9 +300,10 @@ through a configured fallback when either engine or voice is unavailable.
 ### Phase 6: Upgrade WinRT as the Reference Buffered Engine
 
 - Return complete voice and language descriptors.
-- Enable WinRT word and sentence boundary metadata.
-- Convert WinRT markers to the common result model.
+- Enable WinRT word and sentence boundary metadata. (Implemented.)
+- Convert WinRT markers to the common result model. (Implemented.)
 - Exercise common resampling and trim adjustment with WinRT markers.
+  (Implemented through common pipeline tests and a real Windows playback smoke.)
 - Improve voice, language, rate, pitch, and volume mapping.
 - Advertise the limitation that a synchronous WinRT synthesis call cannot be
   interrupted internally even though playback and stale-result queuing can be

@@ -23,10 +23,58 @@ fn windows_capabilities() -> EngineCapabilities {
         audio_output: AudioOutputMode::BufferedPcm,
         cancellation: CancellationSupport::PlaybackOnly,
         concurrency: ConcurrencyModel::Serialized,
-        markers: MarkerCapabilities::default(),
+        markers: MarkerCapabilities {
+            word: cfg!(target_os = "windows"),
+            sentence: cfg!(target_os = "windows"),
+            ..MarkerCapabilities::default()
+        },
         language_switching: true,
         native_extensions: Vec::new(),
     }
+}
+
+#[cfg(any(target_os = "windows", test))]
+const WINRT_TICKS_PER_SECOND: u128 = 10_000_000;
+
+#[cfg(any(target_os = "windows", test))]
+fn winrt_timestamp_to_frame_offset(duration: i64, sample_rate: u32, frame_count: u64) -> u64 {
+    let ticks = u128::try_from(duration).unwrap_or_default();
+    let frames = ticks
+        .saturating_mul(u128::from(sample_rate))
+        .saturating_add(WINRT_TICKS_PER_SECOND / 2)
+        / WINRT_TICKS_PER_SECOND;
+    u64::try_from(frames).unwrap_or(u64::MAX).min(frame_count)
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn utf16_inclusive_range_to_utf8(text: &str, start: i32, end_inclusive: i32) -> Option<(u32, u32)> {
+    let start = usize::try_from(start).ok()?;
+    let end_exclusive = usize::try_from(end_inclusive).ok()?.checked_add(1)?;
+    if end_exclusive < start {
+        return None;
+    }
+
+    let start_byte = utf16_offset_to_utf8(text, start)?;
+    let end_byte = utf16_offset_to_utf8(text, end_exclusive)?;
+    Some((
+        u32::try_from(start_byte).ok()?,
+        u32::try_from(end_byte.checked_sub(start_byte)?).ok()?,
+    ))
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn utf16_offset_to_utf8(text: &str, target: usize) -> Option<usize> {
+    let mut utf16_offset = 0usize;
+    for (byte_offset, character) in text.char_indices() {
+        if utf16_offset == target {
+            return Some(byte_offset);
+        }
+        utf16_offset = utf16_offset.checked_add(character.len_utf16())?;
+        if utf16_offset > target {
+            return None;
+        }
+    }
+    (utf16_offset == target).then_some(text.len())
 }
 
 #[cfg(target_os = "windows")]
@@ -36,13 +84,17 @@ mod impl_windows {
         Availability, EngineDescriptor, EngineHealth, PhysicalVoiceId, VoiceDescriptor,
     };
     use crate::{
-        AudioBuffer, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo,
-        VoiceQuality,
+        AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
+        TtsEngine, TtsError, VoiceInfo, VoiceQuality,
     };
     use std::sync::Mutex;
     use tracing::{debug, info, warn};
+    use windows::core::Interface;
+    use windows::Media::Core::{SpeechCue, TimedMetadataKind};
     use windows::Media::SpeechSynthesis::SpeechSynthesizer;
     use windows::Storage::Streams::{DataReader, InputStreamOptions};
+
+    use super::{utf16_inclusive_range_to_utf8, winrt_timestamp_to_frame_offset};
 
     struct SynthState {
         synth: SpeechSynthesizer,
@@ -139,6 +191,95 @@ mod impl_windows {
             }
             Err(TtsError::VoiceNotFound(voice_id.to_owned()))
         }
+
+        fn collect_timed_markers(
+            stream: &windows::Media::SpeechSynthesis::SpeechSynthesisStream,
+            text: &str,
+            sample_rate: u32,
+            frame_count: u64,
+        ) -> Vec<SynthesisMarker> {
+            let tracks = match stream.TimedMetadataTracks() {
+                Ok(tracks) => tracks,
+                Err(error) => {
+                    debug!("WinRT timed metadata unavailable: {error}");
+                    return Vec::new();
+                }
+            };
+            let track_count = match tracks.Size() {
+                Ok(count) => count,
+                Err(error) => {
+                    warn!("Could not count WinRT timed metadata tracks: {error}");
+                    return Vec::new();
+                }
+            };
+            let mut markers = Vec::new();
+
+            for track_index in 0..track_count {
+                let Ok(track) = tracks.GetAt(track_index) else {
+                    continue;
+                };
+                if track.TimedMetadataKind().ok() != Some(TimedMetadataKind::Speech) {
+                    continue;
+                }
+                let track_id = track
+                    .Id()
+                    .map(|id| id.to_string_lossy())
+                    .unwrap_or_default();
+                let kind = match track_id.as_str() {
+                    "SpeechWord" => SynthesisMarkerKind::Word,
+                    "SpeechSentence" => SynthesisMarkerKind::Sentence,
+                    _ => continue,
+                };
+                let Ok(cues) = track.Cues() else {
+                    continue;
+                };
+                let Ok(cue_count) = cues.Size() else {
+                    continue;
+                };
+
+                for cue_index in 0..cue_count {
+                    let Ok(cue) = cues.GetAt(cue_index) else {
+                        continue;
+                    };
+                    let Ok(cue) = cue.cast::<SpeechCue>() else {
+                        continue;
+                    };
+                    let Ok(start_time) = cue.StartTime() else {
+                        continue;
+                    };
+                    let text_range = cue
+                        .StartPositionInInput()
+                        .and_then(|position| position.Value())
+                        .and_then(|start| {
+                            cue.EndPositionInInput()
+                                .and_then(|position| position.Value())
+                                .map(|end| (start, end))
+                        })
+                        .ok()
+                        .and_then(|(start, end)| utf16_inclusive_range_to_utf8(text, start, end));
+                    let value = cue
+                        .Text()
+                        .ok()
+                        .map(|value| value.to_string_lossy())
+                        .filter(|value| !value.is_empty());
+
+                    markers.push(SynthesisMarker {
+                        kind,
+                        frame_offset: winrt_timestamp_to_frame_offset(
+                            start_time.Duration,
+                            sample_rate,
+                            frame_count,
+                        ),
+                        text_start: text_range.map(|range| range.0),
+                        text_length: text_range.map(|range| range.1),
+                        value,
+                    });
+                }
+            }
+
+            markers.sort_by_key(|marker| marker.frame_offset);
+            markers
+        }
     }
 
     impl TtsEngine for WindowsTtsEngine {
@@ -193,6 +334,12 @@ mod impl_windows {
                 let _ = options.SetSpeakingRate(Self::map_rate(settings.rate));
                 let _ = options.SetAudioVolume(Self::map_volume(settings.volume));
                 let _ = options.SetAudioPitch(Self::map_pitch(settings.pitch));
+                if let Err(error) = options.SetIncludeWordBoundaryMetadata(true) {
+                    debug!("WinRT word boundary metadata unavailable: {error}");
+                }
+                if let Err(error) = options.SetIncludeSentenceBoundaryMetadata(true) {
+                    debug!("WinRT sentence boundary metadata unavailable: {error}");
+                }
             }
 
             // Synthesize text to stream (blocking)
@@ -270,11 +417,16 @@ mod impl_windows {
                 );
 
                 let buffer = AudioBuffer::from_i16(&i16_samples, sample_rate, channels);
-                Ok(SynthesisResult::audio(
-                    "winrt",
-                    Some(actual_voice),
-                    buffer.to_standard_format(),
-                ))
+                let markers = Self::collect_timed_markers(
+                    &stream,
+                    text,
+                    sample_rate,
+                    buffer.frame_count() as u64,
+                );
+                Ok(
+                    SynthesisResult::new("winrt", Some(actual_voice), buffer, markers)
+                        .into_standard_format(),
+                )
             } else {
                 Err(TtsError::SynthesisFailed(format!(
                     "Unsupported bits per sample: {}",
@@ -405,6 +557,41 @@ mod impl_windows {
 
 #[cfg(target_os = "windows")]
 pub use impl_windows::WindowsTtsEngine;
+
+#[cfg(test)]
+mod marker_conversion_tests {
+    use super::{utf16_inclusive_range_to_utf8, winrt_timestamp_to_frame_offset};
+
+    #[test]
+    fn converts_winrt_ticks_to_bounded_audio_frames() {
+        assert_eq!(
+            winrt_timestamp_to_frame_offset(5_000_000, 44_100, 50_000),
+            22_050
+        );
+        assert_eq!(winrt_timestamp_to_frame_offset(-1, 44_100, 50_000), 0);
+        assert_eq!(
+            winrt_timestamp_to_frame_offset(20_000_000, 44_100, 50_000),
+            50_000
+        );
+    }
+
+    #[test]
+    fn converts_inclusive_utf16_ranges_to_utf8_bytes() {
+        let text = "a😀 café";
+
+        assert_eq!(utf16_inclusive_range_to_utf8(text, 1, 2), Some((1, 4)));
+        assert_eq!(utf16_inclusive_range_to_utf8(text, 4, 7), Some((6, 5)));
+    }
+
+    #[test]
+    fn rejects_invalid_or_split_utf16_ranges() {
+        let text = "a😀";
+
+        assert_eq!(utf16_inclusive_range_to_utf8(text, 1, 1), None);
+        assert_eq!(utf16_inclusive_range_to_utf8(text, 2, 1), None);
+        assert_eq!(utf16_inclusive_range_to_utf8(text, 4, 4), None);
+    }
+}
 
 // Stub implementation for non-Windows platforms
 #[cfg(not(target_os = "windows"))]
