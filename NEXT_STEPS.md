@@ -137,7 +137,11 @@ structured errors, and compatibility boundary are implemented and documented
 in [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md). Every built-in backend now
 implements mandatory self-description, and the active engine's snapshotted
 descriptor is available through a structured inventory request. Logical-voice
-registration remains to be added.
+registration is now available as an atomic, generation-safe whole-set
+replacement. It retains unresolved definitions with diagnostics and supports
+idempotent retries without changing the legacy synthesis path. The next slice
+is the engine registry and per-span routing needed to make those bindings drive
+speech.
 
 ### Phase 3: Add an Engine Registry and Per-Span Routing
 

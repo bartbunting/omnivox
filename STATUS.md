@@ -36,13 +36,14 @@
 - Pure late-binding voice resolver with ordered fallbacks and diagnostics
 - Versioned, bounded Base64-JSON control channel with capability negotiation
 - Mandatory self-description for built-in engines and structured active-engine inventory
+- Atomic, generation-safe logical-voice registration with resolution diagnostics
 - Diagnostic self-test (--check)
 - GitHub Actions CI/CD for 6 platforms
 
 ### Not Yet Implemented
 
 - Simultaneous engine registry and per-voice engine selection
-- Runtime registration and routing of logical voices (the model and resolver exist)
+- Routing registered logical voices through the synthesis path
 - Full Emacsvox framing and tracked-dispatch extensions
 - Eloquence and DECtalk engines through the planned x86 helper
 - Linux Speech Dispatcher TTS backend
@@ -57,11 +58,11 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 197 tests, all passing
+Total: 205 tests, all passing
 
 omnivox-audio:  60 unit + 31 integration = 91
 omnivox-core:   39 unit + 1 doc = 40
-omnivox-tts:    45 unit
+omnivox-tts:    53 unit
 omnivox-cli:    21 unit
 ```
 
@@ -97,13 +98,12 @@ omnivox-cli:    21 unit
 | `tts_reset` | Working | Reset defaults |
 | `version` | Working | Version announcement |
 | `tts_exit` | Working | Clean exit |
-| `omnivox_control` | Working | Versioned capabilities and active-engine inventory |
+| `omnivox_control` | Working | Capabilities, inventory, and logical-voice registration |
 
 ## Next Priority
 
-1. Introduce logical-voice registration with generation-safe replacement.
-2. Add resolution diagnostics for registered logical voices.
-3. Introduce the engine registry and
-   per-speech-span engine/voice routing.
+1. Introduce the engine registry and per-speech-span engine/voice routing.
+2. Re-resolve registered voices after bounded runtime engine failures.
+3. Connect Emacsvox logical voice definitions to control registration.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).
