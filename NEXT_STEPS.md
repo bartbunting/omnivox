@@ -279,6 +279,11 @@ loading those libraries into the Rust process.
 - Keep the existing standalone `windows-outloud` and `windows-dtk` servers as
   fallbacks until Omnivox reaches practical parity.
 
+The version 1 transport, request/response types, PCM and marker framing,
+bounds, cancellation terminal states, and recovery contract are defined in
+[HELPER-PROTOCOL.md](HELPER-PROTOCOL.md). The generic helper-backed engine and
+x86 capture implementations remain.
+
 ### Phase 8: Bring Other Engines Into the Same Model
 
 - **eSpeak**: populate full descriptors and remain the reliable cross-platform
