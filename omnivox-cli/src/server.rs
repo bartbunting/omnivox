@@ -7,9 +7,17 @@ use omnivox_audio::{
 use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
 };
-use omnivox_tts::control::{format_control_event, process_control_request};
+use omnivox_tts::contracts::{
+    AcssDimension, EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition, NormalizedAcss,
+    PhysicalVoiceId, VoiceSelector,
+};
+use omnivox_tts::control::{
+    decode_request, format_control_event, process_control_request, ControlRequest,
+    ControlResponse, ControlResponseEnvelope, PreviewStatus, CONTROL_PROTOCOL_VERSION,
+    MAX_PREVIEW_TEXT_BYTES,
+};
 use omnivox_tts::engine_registry::EngineRegistry;
-use omnivox_tts::logical_voices::LogicalVoiceRegistry;
+use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead, Write};
 use std::mem;
@@ -21,8 +29,8 @@ use tracing::{debug, error, info, warn};
 use crate::health::RuntimeEngineHealth;
 use crate::marker_events::{MarkerDispatchContext, MarkerEventOutput};
 use crate::pipeline::{
-    build_sound_pipeline, build_tone_pipeline, process_batch, synthesize_chunk, BatchStatus,
-    SynthCtx,
+    build_sound_pipeline, build_tone_pipeline, process_batch, process_preview, synthesize_chunk,
+    BatchStatus, SynthCtx,
 };
 use crate::routing::LogicalVoiceRoutingSnapshot;
 use crate::text::{chunk_text, normalize_rate, parse_resource_path, preprocess_text};
@@ -32,6 +40,7 @@ use crate::transaction::{
 
 const PRESENTATION_COALESCE_WINDOW: Duration = Duration::from_millis(2);
 const TRACKED_STATUS_PREFIX: &str = "__EMACSVOX_TRACKED__";
+const PREVIEW_LOGICAL_VOICE_ID: &str = "omnivox.preview";
 
 // ---------------------------------------------------------------------------
 // Synthesis request types
@@ -50,6 +59,15 @@ pub enum SynthRequest {
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
         tracking: Option<DispatchTracking>,
+        gen: u64,
+    },
+    /// Synthesize one explicitly selected voice without mutating server state.
+    Preview {
+        request_id: u64,
+        text: String,
+        requested: VoiceSelector,
+        state: TtsState,
+        logical_voice_routing: LogicalVoiceRoutingSnapshot,
         gen: u64,
     },
     /// Synthesize and play a single string immediately (`tts_say`).
@@ -75,9 +93,20 @@ impl DispatchTracking {
 }
 
 pub(crate) struct TrackedPlayback {
-    identifier: u64,
+    completion: PlaybackCompletion,
     status: BatchStatus,
     tickets: Vec<PlaybackTicket>,
+}
+
+pub(crate) enum PlaybackCompletion {
+    Tracked(u64),
+    Preview {
+        request_id: u64,
+        requested: VoiceSelector,
+        realized: Option<PhysicalVoiceId>,
+        degraded_acss: Vec<AcssDimension>,
+        message: Option<String>,
+    },
 }
 
 pub(crate) fn spawn_tracked_playback_reporter(
@@ -96,10 +125,82 @@ fn tracked_playback_reporter(
     marker_output: MarkerEventOutput,
 ) {
     for playback in receiver {
-        let identifier = playback.identifier;
-        let status = await_tracked_playback(playback);
+        let TrackedPlayback { completion, status, tickets } = playback;
+        let status = await_tracked_playback(status, tickets);
         marker_output.flush();
-        write_tracked_status(identifier, status);
+        match completion {
+            PlaybackCompletion::Tracked(identifier) => write_tracked_status(identifier, status),
+            PlaybackCompletion::Preview {
+                request_id,
+                requested,
+                realized,
+                degraded_acss,
+                message,
+            } => write_preview_status(
+                request_id,
+                status,
+                requested,
+                realized,
+                degraded_acss,
+                message,
+            ),
+        }
+    }
+}
+
+fn write_control_response(response: &ControlResponseEnvelope) {
+    match format_control_event(response) {
+        Ok(event) => {
+            let mut stdout = io::stdout().lock();
+            if let Err(error) = writeln!(stdout, "{}", event).and_then(|_| stdout.flush()) {
+                warn!("Could not write Omnivox control response: {}", error);
+            }
+        }
+        Err(error) => warn!("Could not encode Omnivox control response: {}", error),
+    }
+}
+
+fn write_preview_status(
+    request_id: u64,
+    status: BatchStatus,
+    requested: VoiceSelector,
+    realized: Option<PhysicalVoiceId>,
+    degraded_acss: Vec<AcssDimension>,
+    message: Option<String>,
+) {
+    write_control_response(&preview_response(
+        request_id,
+        status,
+        requested,
+        realized,
+        degraded_acss,
+        message,
+    ));
+}
+
+fn preview_response(
+    request_id: u64,
+    status: BatchStatus,
+    requested: VoiceSelector,
+    realized: Option<PhysicalVoiceId>,
+    degraded_acss: Vec<AcssDimension>,
+    message: Option<String>,
+) -> ControlResponseEnvelope {
+    let status = match status {
+        BatchStatus::Completed => PreviewStatus::Completed,
+        BatchStatus::Cancelled => PreviewStatus::Cancelled,
+        BatchStatus::Failed => PreviewStatus::Failed,
+    };
+    ControlResponseEnvelope {
+        protocol_version: CONTROL_PROTOCOL_VERSION,
+        request_id: Some(request_id),
+        response: ControlResponse::PreviewCompleted {
+            status,
+            requested,
+            realized,
+            degraded_acss,
+            message,
+        },
     }
 }
 
@@ -118,9 +219,8 @@ fn write_tracked_status(identifier: u64, status: BatchStatus) {
     }
 }
 
-fn await_tracked_playback(playback: TrackedPlayback) -> BatchStatus {
-    let mut status = playback.status;
-    for ticket in playback.tickets {
+fn await_tracked_playback(mut status: BatchStatus, tickets: Vec<PlaybackTicket>) -> BatchStatus {
+    for ticket in tickets {
         if ticket.wait() == PlaybackStatus::Cancelled && status == BatchStatus::Completed {
             status = BatchStatus::Cancelled;
         }
@@ -197,13 +297,62 @@ pub fn synthesis_worker(
                 if let Some(tracking) = tracking {
                     let identifier = tracking.identifier();
                     let playback = TrackedPlayback {
-                        identifier,
+                        completion: PlaybackCompletion::Tracked(identifier),
                         status,
                         tickets: tickets.into_inner().unwrap(),
                     };
                     if tracked_playback_tx.send(playback).is_err() {
                         warn!("Tracked playback reporter stopped before dispatch {identifier}");
                     }
+                }
+            }
+
+            SynthRequest::Preview {
+                request_id,
+                text,
+                requested,
+                state,
+                mut logical_voice_routing,
+                gen,
+            } => {
+                let runtime_inventory = runtime_health.snapshot(
+                    engine_registry.generation(),
+                    engine_registry.inventory(),
+                );
+                logical_voice_routing.replace_inventory(runtime_inventory.engines);
+                let tickets = Mutex::new(Vec::new());
+                let failed = AtomicBool::new(false);
+                let ctx = SynthCtx {
+                    gen,
+                    gen_counter: &gen_counter,
+                    engine: &*engine,
+                    control: &control,
+                    playback_tickets: Some(&tickets),
+                    marker_dispatch: None,
+                    batch_failed: Some(&failed),
+                };
+                let result = process_preview(
+                    &text,
+                    state,
+                    &ctx,
+                    &engine_registry,
+                    &runtime_health,
+                    logical_voice_routing,
+                    PREVIEW_LOGICAL_VOICE_ID,
+                );
+                let playback = TrackedPlayback {
+                    completion: PlaybackCompletion::Preview {
+                        request_id,
+                        requested,
+                        realized: result.realized,
+                        degraded_acss: result.degraded_acss,
+                        message: result.message,
+                    },
+                    status: result.status,
+                    tickets: tickets.into_inner().unwrap(),
+                };
+                if tracked_playback_tx.send(playback).is_err() {
+                    warn!("Preview playback reporter stopped before request {request_id}");
                 }
             }
 
@@ -617,6 +766,87 @@ fn execute_presentation(
 // ---------------------------------------------------------------------------
 
 #[allow(clippy::too_many_arguments)]
+fn dispatch_preview(
+    request_id: u64,
+    text: String,
+    selector: VoiceSelector,
+    language: Option<String>,
+    acss: NormalizedAcss,
+    state: &TtsState,
+    gen: u64,
+    inventory: &[EngineDescriptor],
+    engine_registry: &EngineRegistry,
+    tx: &mpsc::Sender<SynthRequest>,
+) {
+    let reject = |message: String| {
+        write_preview_status(
+            request_id,
+            BatchStatus::Failed,
+            selector.clone(),
+            None,
+            Vec::new(),
+            Some(message),
+        );
+    };
+    if text.is_empty() {
+        reject("preview text must not be empty".to_owned());
+        return;
+    }
+    if text.len() > MAX_PREVIEW_TEXT_BYTES {
+        reject(format!(
+            "preview text exceeds the {MAX_PREVIEW_TEXT_BYTES}-byte limit"
+        ));
+        return;
+    }
+
+    let mut preview_registry = LogicalVoiceRegistry::default();
+    let registration = preview_registry.register(
+        1,
+        vec![LogicalVoiceDefinition {
+            id: PREVIEW_LOGICAL_VOICE_ID.to_owned(),
+            language,
+            preferences: vec![selector.clone()],
+            acss,
+        }],
+        FallbackPolicy::default(),
+        inventory,
+    );
+    let registration = match registration {
+        Ok(registration) => registration,
+        Err(error) => {
+            reject(error.to_string());
+            return;
+        }
+    };
+    match registration.bindings.as_slice() {
+        [LogicalVoiceBinding::Resolved { .. }] => {}
+        [LogicalVoiceBinding::Unresolved { error }] => {
+            reject(error.to_string());
+            return;
+        }
+        _ => {
+            reject("preview route did not produce one binding".to_owned());
+            return;
+        }
+    }
+
+    let request = SynthRequest::Preview {
+        request_id,
+        text,
+        requested: selector.clone(),
+        state: state.clone(),
+        logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+            &preview_registry,
+            engine_registry,
+        ),
+        gen,
+    };
+    if tx.send(request).is_err() {
+        reject("synthesis worker is unavailable".to_owned());
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn handle_command(
     command: Command,
     state: &mut TtsState,
@@ -814,22 +1044,44 @@ fn handle_command(
                 engine_registry.generation(),
                 engine_registry.inventory(),
             );
-            let response = process_control_request(
-                command.args.as_deref().unwrap_or(""),
-                crate::VERSION,
-                inventory.generation,
-                preferred_engine_id,
-                &inventory.engines,
-                logical_voices,
-            );
-            match format_control_event(&response) {
-                Ok(event) => {
-                    let mut stdout = io::stdout().lock();
-                    if let Err(error) = writeln!(stdout, "{}", event).and_then(|_| stdout.flush()) {
-                        warn!("Could not write Omnivox control response: {}", error);
-                    }
+            let payload = command.args.as_deref().unwrap_or("");
+            let preview = decode_request(payload).ok().and_then(|request| {
+                if request.protocol_version != CONTROL_PROTOCOL_VERSION {
+                    return None;
                 }
-                Err(error) => warn!("Could not encode Omnivox control response: {}", error),
+                match request.request {
+                    ControlRequest::Preview {
+                        text,
+                        selector,
+                        language,
+                        acss,
+                    } => Some((request.request_id, text, selector, language, acss)),
+                    _ => None,
+                }
+            });
+            if let Some((request_id, text, selector, language, acss)) = preview {
+                dispatch_preview(
+                    request_id,
+                    text,
+                    selector,
+                    language,
+                    acss,
+                    state,
+                    *current_gen,
+                    &inventory.engines,
+                    engine_registry,
+                    tx,
+                );
+            } else {
+                let response = process_control_request(
+                    payload,
+                    crate::VERSION,
+                    inventory.generation,
+                    preferred_engine_id,
+                    &inventory.engines,
+                    logical_voices,
+                );
+                write_control_response(&response);
             }
         }
 
@@ -984,11 +1236,7 @@ mod tests {
             BatchStatus::Failed,
         ] {
             assert_eq!(
-                await_tracked_playback(TrackedPlayback {
-                    identifier: 1,
-                    status,
-                    tickets: Vec::new(),
-                }),
+                await_tracked_playback(status, Vec::new()),
                 status
             );
         }
@@ -999,5 +1247,33 @@ mod tests {
         assert_eq!(tracked_status_name(BatchStatus::Completed), "completed");
         assert_eq!(tracked_status_name(BatchStatus::Cancelled), "cancelled");
         assert_eq!(tracked_status_name(BatchStatus::Failed), "failed");
+    }
+
+    #[test]
+    fn preview_response_preserves_route_and_terminal_status() {
+        let requested = VoiceSelector::Exact(PhysicalVoiceId::new("winrt", "David"));
+        let response = preview_response(
+            91,
+            BatchStatus::Cancelled,
+            requested.clone(),
+            Some(PhysicalVoiceId::new("winrt", "David")),
+            vec![AcssDimension::Richness],
+            None,
+        );
+
+        assert!(matches!(
+            response,
+            ControlResponseEnvelope {
+                request_id: Some(91),
+                response: ControlResponse::PreviewCompleted {
+                    status: PreviewStatus::Cancelled,
+                    requested: actual_requested,
+                    degraded_acss,
+                    ..
+                },
+                ..
+            } if actual_requested == requested
+                && degraded_acss == vec![AcssDimension::Richness]
+        ));
     }
 }

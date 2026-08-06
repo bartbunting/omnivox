@@ -415,7 +415,10 @@ tails, and events atomically.
   retaining per-logical-voice selector order and the global fallback list.
 - Add a one-shot exact-route preview request that carries a physical selector,
   normalized style, effect state, and sample text without replacing persistent
-  logical-voice registration or notification-process state.
+  logical-voice registration or notification-process state. Exact and portable
+  selector preview, playback completion, realized-route reporting, and ACSS
+  degradation are implemented; post-synthesis effect preview follows the
+  timeline/effects contract below.
 - Make language commands functional and include language in synchronized state.
 - Map Emacs logical voices and ACSS styles to Omnivox logical voice definitions,
   including ordered physical voice fallbacks.

@@ -14,10 +14,11 @@ not need Tcl escaping and remain separate structured fields.
   extensions.
 - The server advertises only features it currently implements. Version 1
   currently implements capability negotiation, active-engine inventory,
-  atomic logical-voice registration, queued logical-voice routing, and bounded
-  replaceable presentation transactions. It also advertises tracked playback
-  completion for clients that need a terminal result after queued audio ends,
-  plus version 1 marker-aware playback events.
+  atomic logical-voice registration, queued logical-voice routing, exact or
+  portable one-shot voice preview, and bounded replaceable presentation
+  transactions. It also advertises tracked playback completion for clients
+  that need a terminal result after queued audio ends, plus version 1
+  marker-aware playback events.
 
 ## Request Record
 
@@ -82,6 +83,31 @@ whenever the definitions or fallback policy change:
 
 Omitting `fallback_policy` selects the empty default policy.
 
+When `exact_voice_preview` is advertised, a client may audition one selector
+and unsaved normalized ACSS style without changing the registered logical
+voices or persistent speech state:
+
+```json
+{
+  "protocol_version": 1,
+  "request_id": 44,
+  "type": "preview",
+  "text": "Compare this voice using identical text.",
+  "selector": {
+    "kind": "exact",
+    "engine_id": "eloquence",
+    "voice_id": "eci:Reed"
+  },
+  "language": "en-AU",
+  "acss": { "rate": 0.6, "average_pitch": 0.4 }
+}
+```
+
+The preview text is limited to 16 KiB. An exact selector is strict: it does not
+inherit the active logical registry or its fallback policy. A property or
+engine-default selector remains portable and may resolve again within that
+same selector if its first runtime target fails.
+
 ## Response Record
 
 The server writes one flushed, newline-terminated event to standard output:
@@ -103,6 +129,7 @@ A successful capability response decodes to this shape:
     "control_v1",
     "engine_inventory",
     "emacsvox_tx",
+    "exact_voice_preview",
     "legacy_commands",
     "logical_voice_registration",
     "logical_voice_routing",
@@ -113,6 +140,37 @@ A successful capability response decodes to this shape:
   ]
 }
 ```
+
+A preview produces exactly one request-owned terminal response. Omnivox emits
+it only after every preview playback ticket completes, is cancelled by `s`, or
+fails:
+
+```json
+{
+  "protocol_version": 1,
+  "request_id": 44,
+  "type": "preview_completed",
+  "status": "completed",
+  "requested": {
+    "kind": "exact",
+    "engine_id": "eloquence",
+    "voice_id": "eci:Reed"
+  },
+  "realized": {
+    "engine_id": "eloquence",
+    "voice_id": "eci:Reed"
+  },
+  "degraded_acss": ["pitch_range"],
+  "message": null
+}
+```
+
+`status` is `completed`, `cancelled`, or `failed`. `realized` is absent when
+resolution never found a usable target. Unsupported ACSS dimensions are listed
+without preventing otherwise valid speech. Preview uses the ordinary buffered
+synthesis and mixer path, but it owns a private one-definition routing snapshot
+and does not replace logical registration, change server defaults, or affect a
+notification process.
 
 The request ID lets Emacsvox distinguish simultaneous main and notification
 process responses. Server events are never injected into synthesized speech.

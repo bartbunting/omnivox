@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Last Updated:** 2026-08-06
+**Last Updated:** 2026-08-07
 **Version:** 1.3.0
 
 ## Current State
@@ -65,6 +65,8 @@
 - Generation coalescing, stale-frame rejection, and stop-barrier semantics
 - Capability-advertised tracked dispatch with completed, cancelled, and failed terminal results
 - Playback acknowledgements covering queued speech, tones, silence, and audio icons
+- Non-mutating exact/portable voice preview with playback completion, realized
+  route metadata, and ACSS degradation reporting
 - English-US eSpeak voice selected as the portable engine default when available
 - Diagnostic self-test (--check)
 - GitHub Actions CI/CD for 6 platforms
@@ -87,12 +89,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 290 tests, all passing
+Total: 292 tests, all passing
 
 omnivox-audio:  67 unit + 31 integration = 98
 omnivox-core:   42 unit + 1 doc = 43
-omnivox-tts:    97 unit
-omnivox-cli:    52 unit
+omnivox-tts:    98 unit
+omnivox-cli:    53 unit
 ```
 
 ## Platform Support
@@ -128,7 +130,7 @@ omnivox-cli:    52 unit
 | `tts_reset` | Working | Reset defaults |
 | `version` | Working | Version announcement |
 | `tts_exit` | Working | Clean exit |
-| `omnivox_control` | Working | Capabilities, inventory, and logical-voice registration |
+| `omnivox_control` | Working | Capabilities, inventory, logical-voice registration, and one-shot voice preview |
 | `emacsvox_tx` | Working | Bounded replaceable presentation transaction after capability negotiation |
 | `emacsvox_tracked_dispatch` | Working | One terminal result after queued playback completes, cancels, or fails |
 | `emacsvox_marker_dispatch` | Working | Versioned marker events plus the tracked terminal result |

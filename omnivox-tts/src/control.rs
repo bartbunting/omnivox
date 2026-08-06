@@ -9,7 +9,10 @@ use base64::Engine;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::contracts::{EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition};
+use crate::contracts::{
+    AcssDimension, EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition, NormalizedAcss,
+    PhysicalVoiceId, VoiceSelector,
+};
 use crate::logical_voices::{
     LogicalVoiceRegistration, LogicalVoiceRegistry, LogicalVoiceRegistryError,
 };
@@ -22,6 +25,9 @@ pub const MAX_CONTROL_PAYLOAD_BYTES: usize = 256 * 1024;
 
 /// Conservative maximum Base64 size for the decoded payload bound.
 pub const MAX_CONTROL_ENCODED_BYTES: usize = (MAX_CONTROL_PAYLOAD_BYTES / 3) * 4 + 8;
+
+/// Maximum UTF-8 text accepted by one transactional preview request.
+pub const MAX_PREVIEW_TEXT_BYTES: usize = 16 * 1024;
 
 /// Prefix used for machine-readable server events on stdout.
 pub const CONTROL_EVENT_PREFIX: &str = "__OMNIVOX_CONTROL__";
@@ -46,6 +52,14 @@ pub enum ControlRequest {
         definitions: Vec<LogicalVoiceDefinition>,
         #[serde(default)]
         fallback_policy: FallbackPolicy,
+    },
+    Preview {
+        text: String,
+        selector: VoiceSelector,
+        #[serde(default)]
+        language: Option<String>,
+        #[serde(default)]
+        acss: NormalizedAcss,
     },
 }
 
@@ -76,10 +90,26 @@ pub enum ControlResponse {
         inventory_generation: u64,
         registration: LogicalVoiceRegistration,
     },
+    PreviewCompleted {
+        status: PreviewStatus,
+        requested: VoiceSelector,
+        realized: Option<PhysicalVoiceId>,
+        degraded_acss: Vec<AcssDimension>,
+        message: Option<String>,
+    },
     Error {
         code: ControlErrorCode,
         message: String,
     },
+}
+
+/// Terminal state of a one-shot voice preview.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PreviewStatus {
+    Completed,
+    Cancelled,
+    Failed,
 }
 
 /// Stable machine-readable control error codes.
@@ -165,6 +195,7 @@ pub fn process_control_request(
                         "control_v1".to_owned(),
                         "emacsvox_tx".to_owned(),
                         "engine_inventory".to_owned(),
+                        "exact_voice_preview".to_owned(),
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
                         "logical_voice_routing".to_owned(),
@@ -208,6 +239,11 @@ pub fn process_control_request(
                     error.to_string(),
                 ),
             },
+            ControlRequest::Preview { .. } => error_response(
+                Some(request.request_id),
+                ControlErrorCode::InvalidConfiguration,
+                "preview requests require a live playback server".to_owned(),
+            ),
         },
         Err(error) => error_response(None, error.code(), error.to_string()),
     }
@@ -381,6 +417,9 @@ mod tests {
                 ..
             } if server_version == "1.3.0"
                 && features.iter().any(|feature| feature == "emacsvox_tx")
+                && features
+                    .iter()
+                    .any(|feature| feature == "exact_voice_preview")
                 && features.iter().any(|feature| feature == "logical_voice_routing")
                 && features
                     .iter()
@@ -453,6 +492,28 @@ mod tests {
             serde_json::from_value::<LogicalVoiceDefinition>(json).unwrap(),
             definition
         );
+    }
+
+    #[test]
+    fn preview_request_round_trip_preserves_exact_route_and_unsaved_acss() {
+        let request = ControlRequestEnvelope {
+            protocol_version: CONTROL_PROTOCOL_VERSION,
+            request_id: 88,
+            request: ControlRequest::Preview {
+                text: "Compare this voice.".to_owned(),
+                selector: VoiceSelector::Exact(PhysicalVoiceId::new("winrt", "winrt:David")),
+                language: Some("en-US".to_owned()),
+                acss: NormalizedAcss {
+                    rate: Some(0.7),
+                    richness: Some(0.4),
+                    ..NormalizedAcss::default()
+                },
+            },
+        };
+
+        let encoded = encode_request(&request).unwrap();
+
+        assert_eq!(decode_request(&encoded).unwrap(), request);
     }
 
     #[test]

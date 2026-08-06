@@ -7,9 +7,7 @@ use omnivox_audio::{
 use omnivox_core::{QueueItem, TtsState};
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId};
 use omnivox_tts::engine_registry::EngineRegistry;
-use omnivox_tts::{
-    SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
-};
+use omnivox_tts::{SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use tracing::{debug, warn};
@@ -261,7 +259,10 @@ fn process_speech_result(
 }
 
 enum RoutedChunkOutcome {
-    Queued,
+    Queued {
+        realized: PhysicalVoiceId,
+        degraded_acss: Vec<AcssDimension>,
+    },
     Cancelled,
     Failed,
     Exhausted,
@@ -295,6 +296,11 @@ fn synthesize_routed_chunk(
         ctx.gen_counter,
     ) {
         RuntimeSynthesisOutcome::Ready(result) => {
+            let realized = result
+                .actual_voice
+                .clone()
+                .unwrap_or_else(|| route.realized.clone());
+            let degraded_acss = result.degraded_acss.clone();
             queue_synthesis_result(
                 *result,
                 chunk,
@@ -303,11 +309,115 @@ fn synthesize_routed_chunk(
                 is_last,
                 ctx,
             );
-            RoutedChunkOutcome::Queued
+            RoutedChunkOutcome::Queued {
+                realized,
+                degraded_acss,
+            }
         }
         RuntimeSynthesisOutcome::Cancelled => RoutedChunkOutcome::Cancelled,
         RuntimeSynthesisOutcome::Failed => RoutedChunkOutcome::Failed,
         RuntimeSynthesisOutcome::Exhausted => RoutedChunkOutcome::Exhausted,
+    }
+}
+
+/// Terminal synthesis metadata for a non-mutating one-shot preview.
+pub struct PreviewSynthesisResult {
+    pub status: BatchStatus,
+    pub realized: Option<PhysicalVoiceId>,
+    pub degraded_acss: Vec<AcssDimension>,
+    pub message: Option<String>,
+}
+
+/// Resolve, synthesize, and queue one preview without changing persistent TTS
+/// or logical-voice state. The caller supplies a private routing snapshot.
+pub fn process_preview(
+    text: &str,
+    state: TtsState,
+    ctx: &SynthCtx,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    mut logical_voice_routing: LogicalVoiceRoutingSnapshot,
+    logical_voice_id: &str,
+) -> PreviewSynthesisResult {
+    if ctx.is_stale() {
+        return preview_result(BatchStatus::Cancelled, None, Vec::new(), None);
+    }
+
+    let mut route = match logical_voice_routing.initial_route(logical_voice_id, engine_registry) {
+        Ok(route) => route,
+        Err(message) => {
+            return preview_result(BatchStatus::Failed, None, Vec::new(), Some(message));
+        }
+    };
+    let processed = preprocess_text(text, &state);
+    let chunks = chunk_text(&processed, 15);
+    let chunk_count = chunks.len();
+    let mut realized = Some(route.realized.clone());
+    let mut degraded_acss = route.acss.omitted.clone();
+
+    for (index, chunk) in chunks.into_iter().enumerate() {
+        match synthesize_routed_chunk(
+            &chunk,
+            &state,
+            index + 1 == chunk_count,
+            &mut route,
+            &mut logical_voice_routing,
+            engine_registry,
+            runtime_health,
+            ctx,
+        ) {
+            RoutedChunkOutcome::Queued {
+                realized: chunk_realized,
+                degraded_acss: chunk_degraded,
+            } => {
+                realized = Some(chunk_realized);
+                for dimension in chunk_degraded {
+                    if !degraded_acss.contains(&dimension) {
+                        degraded_acss.push(dimension);
+                    }
+                }
+            }
+            RoutedChunkOutcome::Cancelled => {
+                return preview_result(BatchStatus::Cancelled, realized, degraded_acss, None);
+            }
+            RoutedChunkOutcome::Failed => {
+                return preview_result(
+                    BatchStatus::Failed,
+                    realized,
+                    degraded_acss,
+                    Some("preview synthesis failed".to_owned()),
+                );
+            }
+            RoutedChunkOutcome::Exhausted => {
+                return preview_result(
+                    BatchStatus::Failed,
+                    realized,
+                    degraded_acss,
+                    Some("preview routing fallback was exhausted".to_owned()),
+                );
+            }
+        }
+    }
+
+    let status = if ctx.failed() {
+        BatchStatus::Failed
+    } else {
+        BatchStatus::Completed
+    };
+    preview_result(status, realized, degraded_acss, None)
+}
+
+fn preview_result(
+    status: BatchStatus,
+    realized: Option<PhysicalVoiceId>,
+    degraded_acss: Vec<AcssDimension>,
+    message: Option<String>,
+) -> PreviewSynthesisResult {
+    PreviewSynthesisResult {
+        status,
+        realized,
+        degraded_acss,
+        message,
     }
 }
 
@@ -370,7 +480,7 @@ pub fn process_batch(
                                 ctx.mark_failed();
                                 logical_route_exhausted = true;
                             }
-                            RoutedChunkOutcome::Queued => {}
+                            RoutedChunkOutcome::Queued { .. } => {}
                         }
                     } else {
                         let settings = TtsSettings {
