@@ -123,7 +123,9 @@ inventory. Other platforms currently register the compatibility-selected
 engine. Descriptors are snapshotted before the reader loop starts, so inventory
 requests cannot block stop commands behind synchronous synthesis. Registry
 inventory is sorted by stable engine ID, and its generation advances when
-engines or their descriptor state change.
+engines or their descriptor state change. Persistent runtime circuit state is
+overlaid on those snapshots; inventory generation also advances when an engine
+fails, becomes probe-ready, starts probing, or recovers.
 
 A successful registration response reports the inventory generation used and
 one resolved or unresolved binding for every definition:
@@ -215,12 +217,14 @@ later logical-voice directive or a legacy physical `[[voice ...]]` code changes
 the route. A server that predates this feature ignores the unknown directive
 and continues to apply the legacy codes.
 
-Bindings are snapshotted when a batch is dispatched. A registration received
-later affects later batches but cannot change a transaction already accepted
-by the synthesis worker. An unknown, unresolved, or no-longer-registered route
-degrades to the preferred legacy engine and voice instead of dropping speech.
-Hard stop and reset requests cancel playback and request cancellation from
-every registered engine.
+Definitions and fallback policy are snapshotted when a batch is dispatched.
+The worker resolves them against its current health-adjusted inventory before
+speaking the batch, so an engine failure or recovery that happened while the
+batch waited in the worker queue is respected. A registration received later
+still affects only later batches. An unknown, unresolved, or
+no-longer-registered route degrades to the preferred legacy engine and voice
+instead of dropping speech. Hard stop and reset requests cancel playback and
+request cancellation from every registered engine.
 
 This first routing slice applies to queued `q`/`c` speech. Immediate `tts_say`
 and `l` commands retain legacy preferred-engine behavior. For a queued logical
@@ -234,9 +238,23 @@ generation checked before and after every attempt. A stop therefore prevents a
 failed call from reappearing through its fallback. Invalid parameters are not
 route failures and are not retried. If fallback is exhausted, Omnivox logs the
 failure, skips later speech under that failed logical route, continues other
-queued item types, and keeps the server alive. These failure exclusions are
-batch-local; persistent health reporting and engine recovery remain roadmap
-work.
+queued item types, and keeps the server alive. Voice-not-found exclusions stay
+batch-local because another voice on the same engine may still work.
+
+Unavailable and failed synthesis calls also open a persistent engine circuit.
+Cooldowns are 5, 15, 30, and at most 60 seconds across consecutive failures.
+While open, new batches resolve around the engine and inventory reports it as
+failed with a recovery-pending reason. After the cooldown, inventory reports it
+as degraded and exactly one routed synthesis request receives a recovery-probe
+permit; other requests continue to route around a probe in progress. Probe
+success closes the circuit and restores the preferred route. Probe or recovery
+preparation failure reopens it and retries the same chunk on a fallback.
+Cancellation releases a reserved probe without increasing the failure count.
+
+Before a recovery probe, Omnivox calls the engine's recovery-preparation hook.
+The current in-process engines use the safe no-op default. Future helper-backed
+Eloquence and DECtalk engines will override it to restart or reconnect their
+helper before synthesis.
 
 ## Errors
 

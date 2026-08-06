@@ -11,7 +11,7 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 - **Audio icon playback**: OGG Vorbis and WAV file loading with caching
 - **Full Emacspeak protocol**: Command parsing, queue dispatch, voice switching, state management
 - **Engine fallback**: Tries platform-native TTS first, falls back to espeak-ng
-- **Portable multi-engine voices**: Structured descriptors and late-bound logical voices route queued spans to engine/voice pairs with deterministic degradation and bounded same-chunk runtime retry
+- **Portable multi-engine voices**: Structured descriptors and late-bound logical voices route queued spans to engine/voice pairs with deterministic degradation, persistent engine health, and bounded same-chunk runtime retry
 - **Replaceable presentations**: Capability-gated, bounded `emacsvox_tx` frames validate atomically and coalesce stale navigation output behind a stop barrier
 - **Self-registering Emacs module**: `omnivox-voices.el` hooks into emacspeak via advice -- no need to modify emacspeak files
 
@@ -62,7 +62,7 @@ make build
 # Build debug binary
 make dev
 
-# Run tests (232 tests)
+# Run tests (239 tests)
 make test
 
 # Run clippy lints

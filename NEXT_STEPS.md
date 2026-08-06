@@ -90,6 +90,16 @@ runtime `VoiceNotFound` or engine-unavailable failure. Retries must be bounded.
 Diagnostics should expose both the requested and realized engine/voice without
 injecting unexpected speech into the user's session.
 
+Engine-wide runtime failures persist across dispatches. The first unavailable
+or failed synthesis call opens a circuit for five seconds; subsequent failed
+recovery probes back off for 15, 30, and then at most 60 seconds. While a
+circuit is open, resolution routes around that engine. After the cooldown,
+exactly one synthesis request is allowed to probe it while other requests keep
+using fallbacks. A successful probe restores normal routing; a failed probe
+falls back for the same chunk and extends the cooldown. Stop cancellation must
+neither begin a fallback attempt nor count a cancelled probe as another
+failure. Inventory health and generation reflect these transitions.
+
 Legacy `tts_set_voice` and `OMNIVOX_ENGINE` behavior must remain supported.
 Legacy clients select the preferred/default engine; newer clients can select a
 structured engine and voice per queued span.
@@ -173,16 +183,22 @@ inventory, and generations real descriptor changes. Server discovery and
 logical resolution now use this registry. Windows eagerly populates it with
 WinRT and eSpeak when available, advertises the compatibility-selected preferred
 engine, and retains the other engine for fallback. Emacsvox voice codes now
-carry bounded logical IDs, and dispatched batches snapshot their resolved
-bindings. Following speech spans synthesize with the selected engine and
-physical voice while retaining FIFO playback order; missing routes fall back to
-the preferred legacy engine, and hard stops fan out to every registered engine.
+carry bounded logical IDs, and dispatched batches snapshot their definitions
+and fallback policy. Following speech spans synthesize with the selected engine
+and physical voice while retaining FIFO playback order; missing routes fall
+back to the preferred legacy engine, and hard stops fan out to every registered
+engine.
 Immediate speech remains on the preferred legacy engine. Dispatched batches now
-retain definitions, fallback policy, bindings, and inventory so a missing voice
-can be excluded locally and a failed or unavailable engine can be bypassed.
+re-resolve against the worker's current health-adjusted inventory so a missing
+voice can be excluded locally and a failed or unavailable engine can be
+bypassed.
 The identical failed chunk is re-resolved and retried with a four-attempt cap;
-generation checks prevent a stop from starting a fallback attempt. Persistent
-health updates, recovery probes, and helper restart remain.
+generation checks prevent a stop from starting a fallback attempt. Engine-wide
+failures now open a persistent circuit with 5/15/30/60-second bounded cooldowns,
+one recovery probe, automatic restoration after success, and health/generation
+projection into inventory responses. Engines have an additive recovery
+preparation hook; built-in in-process engines use its no-op default. Restarting
+an actual helper from that hook remains part of the x86 helper implementation.
 
 ### Phase 4: Enrich Synthesis Results and the Audio Model
 

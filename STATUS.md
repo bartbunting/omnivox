@@ -43,6 +43,9 @@
 - Safe preferred-engine fallback for missing or unresolved logical routes
 - Batch-local runtime voice/engine failure exclusion and deterministic re-resolution
 - Same-chunk routed synthesis retry with a four-attempt cap and stop checks
+- Persistent engine failure circuits with bounded cooldowns and single recovery probes
+- Runtime health and recovery transitions projected into structured inventory
+- Recovery-preparation hook for future helper-process restart/reconnect
 - Hard-stop cancellation requests fan out across all registered engines
 - Bounded, capability-advertised `emacsvox_tx` presentation framing with atomic validation
 - Generation coalescing, stale-frame rejection, and stop-barrier semantics
@@ -52,7 +55,7 @@
 
 ### Not Yet Implemented
 
-- Persistent engine health updates, recovery probes, and helper restart
+- Helper-backed engine implementations and concrete helper restart/reconnect overrides
 - Logical routing for immediate `tts_say` and letter commands
 - Tracked-dispatch terminal events
 - Eloquence and DECtalk engines through the planned x86 helper
@@ -68,12 +71,12 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 232 tests, all passing
+Total: 239 tests, all passing
 
 omnivox-audio:  60 unit + 31 integration = 91
 omnivox-core:   40 unit + 1 doc = 41
 omnivox-tts:    64 unit
-omnivox-cli:    36 unit
+omnivox-cli:    43 unit
 ```
 
 ## Platform Support
@@ -114,8 +117,8 @@ omnivox-cli:    36 unit
 
 ## Next Priority
 
-1. Define persistent engine health, recovery-probe, and helper-restart semantics.
-2. Add tracked-dispatch terminal results and truthful cancellation reporting.
+1. Add tracked-dispatch terminal results and truthful cancellation reporting.
+2. Define the reusable x86 helper protocol and implement Eloquence capture first.
 3. Add user-facing inventory, binding, degradation, and health diagnostics.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).
