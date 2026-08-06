@@ -1,5 +1,13 @@
 # Speech Dispatcher Backend Implementation Plan
 
+> **Roadmap status:** This is a backend-specific design note, not the canonical
+> project roadmap. See [NEXT_STEPS.md](NEXT_STEPS.md). Before implementation,
+> revise this design to use the common engine descriptor, voice identity,
+> fallback, cancellation, and completion contracts. Because Speech Dispatcher
+> normally owns playback instead of returning PCM, it must advertise external
+> playback and the resulting limits on centralized mixing, effects, and marker
+> handling rather than claiming buffered-engine parity.
+
 ## Overview
 
 Add Speech Dispatcher (`libspeechd`) as a TTS backend for Linux. Gives users access

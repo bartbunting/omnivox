@@ -54,7 +54,7 @@ Each stream has a max backlog depth. On overflow, old items are dropped to keep 
 ```bash
 make build     # Release build
 make dev       # Debug build
-make test      # Run all tests (170 tests)
+make test      # Run all tests (185 tests)
 make lint      # Clippy
 make fmt       # Format
 make install   # Install binary to ~/.cargo/bin
@@ -63,12 +63,12 @@ make clean     # Clean build artifacts
 
 ## Testing
 
-173 tests total, all passing:
+185 tests total, all passing:
 
 - omnivox-audio: 60 unit + 31 integration = 91
-- omnivox-core: 37 unit + 1 doc = 38 (includes `;;` regression tests)
-- omnivox-tts: 22 unit (includes WinRT mapping + WAV header tests)
-- omnivox-cli: 16 unit
+- omnivox-core: 38 unit + 1 doc = 39 (includes `;;` and quoted-path regression tests)
+- omnivox-tts: 34 unit (includes WinRT mapping, contract, ACSS degradation, and resolver tests)
+- omnivox-cli: 21 unit (includes Tcl resource-word decoding and voice-listing tests)
 
 Run: `cargo test`
 
@@ -151,9 +151,19 @@ omnivox --check
 - **Sox-style effects** (reverb, echo, chorus)
 - **Language switching tables**
 
-### Evaluated and Rejected
+### Optional Backend
 
-- **Piper neural TTS** - Evaluated as an optional backend for high-quality offline neural voices via ONNX Runtime. The `piper-rs` crate (v0.1.9) has a broken dependency chain: it pins `ndarray 0.16` but its `ort` dependency resolves to a version requiring `ndarray 0.17`, causing compile failures. The alternative `piper-tts-rust` crate is English-only and uses a limited g2p model. Piper integration should be revisited if/when the Rust crate ecosystem stabilizes.
+- **Piper neural TTS** - Implemented behind the `piper` Cargo feature. It
+  requires CMake, a C++17 compiler, model files, and network access for the
+  first dependency build. Remaining work includes dependency stabilization,
+  model packaging, cross-compilation coverage, and integration with the richer
+  engine capability model described in `NEXT_STEPS.md`.
+
+## Roadmap
+
+See `NEXT_STEPS.md` for the canonical multi-engine voice architecture,
+fallback contract, Emacsvox protocol work, engine expansion, and consolidated
+project backlog.
 
 ## Troubleshooting: Unexpected espeak-ng Voice
 
@@ -191,6 +201,8 @@ Common causes and fixes:
 ## Key Files
 
 - `omnivox-tts/src/lib.rs` - TtsEngine trait definition. New backends must implement `synthesize() -> Result<AudioBuffer, TtsError>`.
+- `omnivox-tts/src/contracts.rs` - Additive engine/voice descriptors, normalized ACSS, portable selectors, logical definitions, and fallback policy.
+- `omnivox-tts/src/resolver.rs` - Pure late-binding resolver. It records failed attempts and the reason for the realized physical voice; it is not wired into synthesis yet.
 - `omnivox-tts/src/espeak.rs` - espeak-ng backend (cross-platform fallback).
 - `omnivox-tts/src/macos.rs` - macOS AVSpeechSynthesizer backend (ObjC bridge).
 - `omnivox-tts/src/windows.rs` - Windows WinRT backend (SpeechSynthesizer via windows-rs).

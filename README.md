@@ -11,6 +11,7 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 - **Audio icon playback**: OGG Vorbis and WAV file loading with caching
 - **Full Emacspeak protocol**: Command parsing, queue dispatch, voice switching, state management
 - **Engine fallback**: Tries platform-native TTS first, falls back to espeak-ng
+- **Portable voice foundation**: Structured engine/voice descriptors and a tested late-binding resolver support exact choices, property selectors, and deterministic degradation; runtime routing is the next phase
 - **Self-registering Emacs module**: `omnivox-voices.el` hooks into emacspeak via advice -- no need to modify emacspeak files
 
 ## Prerequisites
@@ -60,7 +61,7 @@ make build
 # Build debug binary
 make dev
 
-# Run tests (170 tests)
+# Run tests (185 tests)
 make test
 
 # Run clippy lints
@@ -200,7 +201,16 @@ omnivox --check
 
 ### Known Issues
 
-- **Text after `;;` may be skipped**: When text contains `;;` (e.g. Lisp comments), omnivox may drop text after the semicolons until the next quote character. This is an omnivox parsing bug, not an Emacspeak issue (other speech servers handle this correctly). Investigation and fix pending.
+- **Text containing `;;`**: Parser regression tests confirm that Omnivox preserves
+  semicolons and the text following them. If speech is still audibly truncated,
+  capture it with `--dump-wav` and investigate preprocessing or the selected TTS
+  backend rather than assuming the command parser removed the text.
+
+## Roadmap
+
+See [NEXT_STEPS.md](NEXT_STEPS.md) for the multi-engine voice architecture,
+fallback contract, Emacsvox protocol work, new engine plans, and consolidated
+project backlog.
 
 ## Configuration
 
