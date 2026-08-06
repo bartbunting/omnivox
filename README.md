@@ -309,7 +309,7 @@ Omnivox implements the standard Emacspeak speech server protocol:
 | `s` | Stop all speech |
 | `l char` | Speak letter immediately |
 | `t freq dur` | Queue tone |
-| `a path` | Queue audio icon |
+| `a path` | Queue an icon overlay at the current presentation boundary |
 | `p path` | Play sound immediately |
 | `sh dur` | Queue silence |
 | `tts_say {text}` | Speak immediately |

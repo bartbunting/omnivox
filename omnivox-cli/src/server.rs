@@ -281,6 +281,8 @@ pub fn synthesis_worker(
                 let batch_engine = logical_voice_routing
                     .preferred_legacy_engine(&engine_registry, &engine);
                 let tickets = Mutex::new(Vec::new());
+                let presentation_clock = Mutex::new(Vec::new());
+                let pending_overlays = Mutex::new(Vec::new());
                 let failed = AtomicBool::new(false);
                 let marker_dispatch = tracking.and_then(|tracking| match tracking {
                     DispatchTracking::Completion(_) => None,
@@ -295,6 +297,8 @@ pub fn synthesis_worker(
                     engine: &*batch_engine,
                     control: &control,
                     playback_tickets: tracking.map(|_| &tickets),
+                    presentation_clock: Some(&presentation_clock),
+                    pending_overlays: Some(&pending_overlays),
                     marker_dispatch: marker_dispatch.as_ref(),
                     batch_failed: Some(&failed),
                 };
@@ -341,6 +345,8 @@ pub fn synthesis_worker(
                     engine: &*engine,
                     control: &control,
                     playback_tickets: Some(&tickets),
+                    presentation_clock: None,
+                    pending_overlays: None,
                     marker_dispatch: None,
                     batch_failed: Some(&failed),
                 };
@@ -388,6 +394,8 @@ pub fn synthesis_worker(
                     engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
+                    presentation_clock: None,
+                    pending_overlays: None,
                     marker_dispatch: None,
                     batch_failed: None,
                 };
@@ -427,6 +435,8 @@ pub fn synthesis_worker(
                     engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
+                    presentation_clock: None,
+                    pending_overlays: None,
                     marker_dispatch: None,
                     batch_failed: None,
                 };
@@ -463,6 +473,8 @@ pub fn synthesis_worker(
                     engine: &*engine,
                     control: &control,
                     playback_tickets: None,
+                    presentation_clock: None,
+                    pending_overlays: None,
                     marker_dispatch: None,
                     batch_failed: None,
                 };

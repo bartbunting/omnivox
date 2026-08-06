@@ -117,6 +117,8 @@ pub struct SynthCtx<'a> {
     pub engine: &'a dyn TtsEngine,
     pub control: &'a AudioControl,
     pub playback_tickets: Option<&'a Mutex<Vec<PlaybackTicket>>>,
+    pub presentation_clock: Option<&'a Mutex<Vec<PlaybackTicket>>>,
+    pub pending_overlays: Option<&'a Mutex<Vec<AudioBuffer>>>,
     pub marker_dispatch: Option<&'a MarkerDispatchContext>,
     pub batch_failed: Option<&'a AtomicBool>,
 }
@@ -138,10 +140,15 @@ impl SynthCtx<'_> {
     }
 
     pub fn queue(&self, stream: StreamType, buffer: &AudioBuffer) {
-        let result = if let Some(tickets) = self.playback_tickets {
+        if stream == StreamType::Speech {
+            self.flush_overlays();
+        }
+        let needs_ticket = self.playback_tickets.is_some()
+            || (stream == StreamType::Speech && self.presentation_clock.is_some());
+        let result = if needs_ticket {
             self.control.queue_tracked(stream, buffer).map(|ticket| {
                 if let Some(ticket) = ticket {
-                    tickets.lock().unwrap().push(ticket);
+                    self.record_ticket(stream, ticket);
                 }
             })
         } else {
@@ -152,6 +159,73 @@ impl SynthCtx<'_> {
             warn!("{:?} queue error: {}", stream, error);
         }
     }
+
+    fn record_ticket(&self, stream: StreamType, ticket: PlaybackTicket) {
+        if stream == StreamType::Speech {
+            if let Some(clock) = self.presentation_clock {
+                clock.lock().unwrap().push(ticket.clone());
+            }
+        }
+        if let Some(tickets) = self.playback_tickets {
+            tickets.lock().unwrap().push(ticket);
+        }
+    }
+
+    pub fn queue_overlay(&self, buffer: AudioBuffer) {
+        if let Some(overlays) = self.pending_overlays {
+            if !buffer.is_empty() {
+                overlays.lock().unwrap().push(buffer);
+            }
+        } else {
+            self.queue(StreamType::Sound, &buffer);
+        }
+    }
+
+    pub fn flush_overlays(&self) {
+        let Some(overlays) = self.pending_overlays else {
+            return;
+        };
+        let buffers = std::mem::take(&mut *overlays.lock().unwrap());
+        let Some(buffer) = mix_overlays(buffers) else {
+            return;
+        };
+        let barriers = self
+            .presentation_clock
+            .map(|clock| clock.lock().unwrap().clone())
+            .unwrap_or_default();
+        match self.control.queue_overlay_after(&buffer, barriers) {
+            Ok(Some(ticket)) => {
+                if let Some(tickets) = self.playback_tickets {
+                    tickets.lock().unwrap().push(ticket);
+                }
+            }
+            Ok(None) => {}
+            Err(error) => {
+                self.mark_failed();
+                warn!("Overlay queue error: {}", error);
+            }
+        }
+    }
+}
+
+fn mix_overlays(buffers: Vec<AudioBuffer>) -> Option<AudioBuffer> {
+    let sample_count = buffers
+        .iter()
+        .map(|buffer| buffer.samples.len())
+        .max()
+        .unwrap_or(0);
+    if sample_count == 0 {
+        return None;
+    }
+    let mut mixed = vec![0.0_f32; sample_count];
+    for buffer in buffers {
+        for (output, input) in mixed.iter_mut().zip(buffer.samples) {
+            *output += input;
+        }
+    }
+    let mut mixed = AudioBuffer::new(mixed);
+    mixed.clamp();
+    Some(mixed)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -219,6 +293,7 @@ fn queue_synthesis_result(
         warn!("Pipeline error: {}", error);
     }
     if let Some(marker_dispatch) = ctx.marker_dispatch.filter(|_| !result.audio.is_empty()) {
+        ctx.flush_overlays();
         let prepared = marker_dispatch.prepare_utterance(
             utterance_text,
             &result.engine_id,
@@ -230,9 +305,7 @@ fn queue_synthesis_result(
         );
         match prepared.queue(ctx.control, &result.audio) {
             Ok(Some(ticket)) => {
-                if let Some(tickets) = ctx.playback_tickets {
-                    tickets.lock().unwrap().push(ticket);
-                }
+                ctx.record_ticket(StreamType::Speech, ticket);
             }
             Ok(None) => {}
             Err(error) => {
@@ -551,7 +624,7 @@ pub fn process_batch(
                         ctx.mark_failed();
                         warn!("Sound pipeline error: {}", e);
                     }
-                    ctx.queue(StreamType::Sound, &buf);
+                    ctx.queue_overlay(buf);
                 }
                 Err(e) => {
                     ctx.mark_failed();
@@ -560,6 +633,8 @@ pub fn process_batch(
             },
         }
     }
+
+    ctx.flush_overlays();
 
     if ctx.failed() {
         BatchStatus::Failed
@@ -675,5 +750,17 @@ mod tests {
         assert!(!is_stale(5, &counter));
         assert!(is_stale(4, &counter));
         assert!(is_stale(6, &counter));
+    }
+
+    #[test]
+    fn same_boundary_overlays_mix_without_advancing_or_serializing() {
+        let mixed = mix_overlays(vec![
+            AudioBuffer::new(vec![0.75, 0.25, 0.5, -0.5]),
+            AudioBuffer::new(vec![0.5, -0.5]),
+        ])
+        .unwrap();
+
+        assert_eq!(mixed.frame_count(), 2);
+        assert_eq!(mixed.samples, vec![1.0, -0.25, 0.5, -0.5]);
     }
 }

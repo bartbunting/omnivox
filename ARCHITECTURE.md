@@ -76,6 +76,16 @@ stdin (Emacspeak protocol)
 └──────────────────────────────────────────┘
 ```
 
+For a dispatched batch, speech and silence tickets form the primary
+presentation clock. Legacy queued audio icons are buffered at their queue
+boundary, mixed when several share that boundary, and scheduled on the sound
+sink after all preceding primary tickets complete. Following speech can
+already be queued, so it overlaps the icon instead of waiting for its tail.
+The deferred icon ticket covers both its wait and full audible tail; tracked
+completion waits for it and stop invalidates it before or during playback.
+This is boundary-level lowering of the pure timeline model. Requested engine
+anchors and the later bounded renderer provide sample-aligned in-span actions.
+
 ## Key Types
 
 ### omnivox-core
@@ -167,6 +177,7 @@ AudioFileLoader::load(path) -> Result<AudioBuffer>  // OGG/WAV, optional LRU cac
 // Concurrent output streams
 AudioStreams::new(speech_max, tone_max, sound_max) -> Result<Self>
 AudioStreams::queue(stream, buffer) -> Result<bool>   // overflow drops old items
+AudioControl::queue_overlay_after(buffer, barriers)   // nonblocking deferred overlay
 AudioStreams::stop(stream)                            // clear + resume
 AudioStreams::stop_all()
 AudioStreams::is_playing(stream) -> bool

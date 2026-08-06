@@ -404,6 +404,16 @@ builds a checked piecewise insertion map, separates the primary-clock end from
 overlay-tail completion, and projects active tails and unreached actions for
 cancellation. Playback remains unchanged until Slice 2.
 
+Slice 2 status on 2026-08-07: implemented for the legacy queued `a` command.
+Consecutive icons at one queue boundary are mixed and start after all preceding
+primary speech or silence has completed; following speech is already queued on
+the independent primary stream and therefore overlaps the icon. A cloneable
+deferred playback ticket covers the boundary wait and the icon's complete tail,
+so tracked completion includes it. Stop cancels both waiting and audible icons,
+and a cancelled primary barrier prevents a stale deferred icon from starting.
+This slice intentionally provides queue-boundary precision. Sample-aligned
+in-span placement and structured `insert` remain Slices 3 and 5 work.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when

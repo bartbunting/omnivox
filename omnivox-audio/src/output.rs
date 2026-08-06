@@ -13,8 +13,9 @@
 use crate::AudioError;
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
 use rodio::{OutputStream, OutputStreamHandle, Sink, Source};
-use std::sync::mpsc::{self, Receiver, Sender};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 use tracing::debug;
 
@@ -50,15 +51,95 @@ pub struct PlaybackCue {
     pub identifier: u64,
 }
 
-/// One-shot acknowledgement for a queued audio buffer.
+/// Cloneable acknowledgement for a queued or scheduled audio buffer.
+#[derive(Clone)]
 pub struct PlaybackTicket {
-    receiver: Receiver<PlaybackStatus>,
+    state: Arc<PlaybackCompletionState>,
 }
 
 impl PlaybackTicket {
     /// Wait until playback completes naturally or is cancelled.
     pub fn wait(self) -> PlaybackStatus {
-        self.receiver.recv().unwrap_or(PlaybackStatus::Cancelled)
+        let mut status = self.state.status.lock().unwrap();
+        while status.is_none() {
+            status = self.state.changed.wait(status).unwrap();
+        }
+        status.unwrap_or(PlaybackStatus::Cancelled)
+    }
+}
+
+struct PlaybackCompletionState {
+    status: Mutex<Option<PlaybackStatus>>,
+    changed: Condvar,
+}
+
+struct PlaybackCompletion {
+    state: Arc<PlaybackCompletionState>,
+    reported: bool,
+}
+
+impl PlaybackCompletion {
+    fn pair() -> (Self, PlaybackTicket) {
+        let state = Arc::new(PlaybackCompletionState {
+            status: Mutex::new(None),
+            changed: Condvar::new(),
+        });
+        (
+            Self {
+                state: state.clone(),
+                reported: false,
+            },
+            PlaybackTicket { state },
+        )
+    }
+
+    fn report(&mut self, status: PlaybackStatus) {
+        if self.reported {
+            return;
+        }
+        self.reported = true;
+        *self.state.status.lock().unwrap() = Some(status);
+        self.state.changed.notify_all();
+    }
+}
+
+impl Drop for PlaybackCompletion {
+    fn drop(&mut self) {
+        self.report(PlaybackStatus::Cancelled);
+    }
+}
+
+#[derive(Default)]
+struct ScheduledPlaybackState {
+    pending: Mutex<usize>,
+    changed: Condvar,
+}
+
+impl ScheduledPlaybackState {
+    fn begin(self: &Arc<Self>) -> ScheduledPlaybackGuard {
+        *self.pending.lock().unwrap() += 1;
+        ScheduledPlaybackGuard {
+            state: self.clone(),
+        }
+    }
+
+    fn wait(&self) {
+        let mut pending = self.pending.lock().unwrap();
+        while *pending > 0 {
+            pending = self.changed.wait(pending).unwrap();
+        }
+    }
+}
+
+struct ScheduledPlaybackGuard {
+    state: Arc<ScheduledPlaybackState>,
+}
+
+impl Drop for ScheduledPlaybackGuard {
+    fn drop(&mut self) {
+        let mut pending = self.state.pending.lock().unwrap();
+        *pending = pending.saturating_sub(1);
+        self.state.changed.notify_all();
     }
 }
 
@@ -67,6 +148,7 @@ impl PlaybackTicket {
 /// Both the reader thread (for `stop_all` on `s` command) and the synthesis
 /// worker thread (for queuing synthesized audio) hold an `Arc<AudioControl>`.
 /// `Sink` is `Send + Sync` in rodio, so this type is automatically `Send + Sync`.
+#[derive(Clone)]
 pub struct AudioControl {
     speech_sink: Arc<Sink>,
     tone_sink: Arc<Sink>,
@@ -74,6 +156,8 @@ pub struct AudioControl {
     speech_max: usize,
     tone_max: usize,
     sound_max: usize,
+    schedule_generation: Arc<AtomicU64>,
+    scheduled_playback: Arc<ScheduledPlaybackState>,
 }
 
 impl AudioControl {
@@ -117,6 +201,58 @@ impl AudioControl {
         let (source, ticket) = TrackedBufferSource::new(buffer.samples.clone());
         sink.append(source);
         sink.play();
+        Ok(Some(ticket))
+    }
+
+    /// Queue an overlay after every primary playback BARRIER completes.
+    ///
+    /// The returned ticket exists immediately and covers the wait plus the
+    /// overlay's full audible tail. If a barrier or a subsequent sound-stream
+    /// stop is cancelled, the overlay is never queued and the ticket reports
+    /// cancellation. Scheduling never blocks the synthesis worker.
+    pub fn queue_overlay_after(
+        &self,
+        buffer: &AudioBuffer,
+        barriers: Vec<PlaybackTicket>,
+    ) -> Result<Option<PlaybackTicket>, AudioError> {
+        if buffer.is_empty() {
+            return Ok(None);
+        }
+        if barriers.is_empty() {
+            return self.queue_tracked(StreamType::Sound, buffer);
+        }
+
+        let generation = self.schedule_generation.load(Ordering::Acquire);
+        let control = self.clone();
+        let samples = buffer.samples.clone();
+        let (mut completion, ticket) = PlaybackCompletion::pair();
+        let guard = self.scheduled_playback.begin();
+        std::thread::Builder::new()
+            .name("omnivox-overlay-scheduler".to_owned())
+            .spawn(move || {
+                let _guard = guard;
+                if barriers
+                    .into_iter()
+                    .any(|barrier| barrier.wait() == PlaybackStatus::Cancelled)
+                    || control.schedule_generation.load(Ordering::Acquire) != generation
+                {
+                    completion.report(PlaybackStatus::Cancelled);
+                    return;
+                }
+                let overlay = AudioBuffer::new(samples);
+                let status = match control.queue_tracked(StreamType::Sound, &overlay) {
+                    Ok(Some(actual)) => actual.wait(),
+                    Ok(None) => PlaybackStatus::Completed,
+                    Err(error) => {
+                        tracing::warn!("scheduled overlay queue error: {}", error);
+                        PlaybackStatus::Cancelled
+                    }
+                };
+                completion.report(status);
+            })
+            .map_err(|error| {
+                AudioError::PlaybackError(format!("overlay scheduler thread: {error}"))
+            })?;
         Ok(Some(ticket))
     }
 
@@ -202,6 +338,9 @@ impl AudioControl {
 
     /// Stop a specific stream, clearing all queued and playing audio.
     pub fn stop(&self, stream: StreamType) {
+        if stream == StreamType::Sound {
+            self.schedule_generation.fetch_add(1, Ordering::AcqRel);
+        }
         let (sink, _) = self.sink_and_max(stream);
         sink.clear();
         sink.play();
@@ -231,6 +370,7 @@ impl AudioControl {
     /// Call this after all synthesis is done (worker thread joined) to ensure
     /// all queued audio plays out before the `OutputStream` is dropped.
     pub fn drain(&self) {
+        self.scheduled_playback.wait();
         self.speech_sink.sleep_until_end();
         self.tone_sink.sleep_until_end();
         self.sound_sink.sleep_until_end();
@@ -282,6 +422,8 @@ impl AudioStreams {
             speech_max: speech_max_depth,
             tone_max: tone_max_depth,
             sound_max: sound_max_depth,
+            schedule_generation: Arc::new(AtomicU64::new(0)),
+            scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
         });
 
         Ok(Self {
@@ -465,7 +607,7 @@ impl Source for BufferSource {
 /// Buffer source that reports natural exhaustion and cancellation distinctly.
 struct TrackedBufferSource {
     inner: BufferSource,
-    sender: Option<Sender<PlaybackStatus>>,
+    completion: PlaybackCompletion,
     cues: Vec<PlaybackCue>,
     next_cue: usize,
     cue_sender: Option<Sender<PlaybackCue>>,
@@ -474,17 +616,17 @@ struct TrackedBufferSource {
 
 impl TrackedBufferSource {
     fn new(samples: Vec<f32>) -> (Self, PlaybackTicket) {
-        let (sender, receiver) = mpsc::channel();
+        let (completion, ticket) = PlaybackCompletion::pair();
         (
             Self {
                 inner: BufferSource::new(samples),
-                sender: Some(sender),
+                completion,
                 cues: Vec::new(),
                 next_cue: 0,
                 cue_sender: None,
                 cue_callback: None,
             },
-            PlaybackTicket { receiver },
+            ticket,
         )
     }
 
@@ -493,17 +635,17 @@ impl TrackedBufferSource {
         cues: Vec<PlaybackCue>,
         cue_sender: Sender<PlaybackCue>,
     ) -> (Self, PlaybackTicket) {
-        let (sender, receiver) = mpsc::channel();
+        let (completion, ticket) = PlaybackCompletion::pair();
         (
             Self {
                 inner: BufferSource::new(samples),
-                sender: Some(sender),
+                completion,
                 cues,
                 next_cue: 0,
                 cue_sender: Some(cue_sender),
                 cue_callback: None,
             },
-            PlaybackTicket { receiver },
+            ticket,
         )
     }
 
@@ -515,17 +657,17 @@ impl TrackedBufferSource {
     where
         F: FnMut(PlaybackCue) + Send + 'static,
     {
-        let (sender, receiver) = mpsc::channel();
+        let (completion, ticket) = PlaybackCompletion::pair();
         (
             Self {
                 inner: BufferSource::new(samples),
-                sender: Some(sender),
+                completion,
                 cues,
                 next_cue: 0,
                 cue_sender: None,
                 cue_callback: Some(Box::new(on_cue)),
             },
-            PlaybackTicket { receiver },
+            ticket,
         )
     }
 
@@ -559,9 +701,7 @@ impl TrackedBufferSource {
     }
 
     fn report(&mut self, status: PlaybackStatus) {
-        if let Some(sender) = self.sender.take() {
-            let _ = sender.send(status);
-        }
+        self.completion.report(status);
     }
 }
 
@@ -624,6 +764,7 @@ impl Drop for TrackedBufferSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::mpsc;
 
     fn cue(frame_offset: u64, identifier: u64) -> PlaybackCue {
         PlaybackCue {
@@ -640,6 +781,35 @@ mod tests {
         assert_eq!(source.next(), Some(-0.1));
         assert_eq!(source.next(), None);
         assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+    }
+
+    #[test]
+    fn cloned_tickets_observe_the_same_terminal_state() {
+        let (mut source, ticket) = TrackedBufferSource::new(vec![0.1, -0.1]);
+        let barrier = ticket.clone();
+
+        assert_eq!(source.by_ref().collect::<Vec<_>>(), vec![0.1, -0.1]);
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+        assert_eq!(barrier.wait(), PlaybackStatus::Completed);
+    }
+
+    #[test]
+    fn scheduled_playback_waits_for_every_guard() {
+        let state = Arc::new(ScheduledPlaybackState::default());
+        let first = state.begin();
+        let second = state.begin();
+        let waiting = state.clone();
+        let (sender, receiver) = mpsc::channel();
+        let waiter = std::thread::spawn(move || {
+            waiting.wait();
+            let _ = sender.send(());
+        });
+
+        drop(first);
+        assert!(receiver.try_recv().is_err());
+        drop(second);
+        assert!(receiver.recv_timeout(Duration::from_secs(1)).is_ok());
+        waiter.join().unwrap();
     }
 
     #[test]
