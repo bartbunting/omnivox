@@ -328,7 +328,10 @@ impl TtsEngine for EspeakTtsEngine {
             let voice_cstr = CString::new(voice_name).map_err(|_| {
                 TtsError::InvalidParameter("Invalid voice name".to_string())
             })?;
-            espeak_rs_sys::espeak_SetVoiceByName(voice_cstr.as_ptr());
+            let voice_result = espeak_rs_sys::espeak_SetVoiceByName(voice_cstr.as_ptr());
+            if voice_result != espeak_rs_sys::espeak_ERROR_EE_OK {
+                return Err(TtsError::VoiceNotFound(settings.voice.clone()));
+            }
 
             // Set parameters
             espeak_rs_sys::espeak_SetParameter(
@@ -603,6 +606,19 @@ mod tests {
             .expect("Synthesis should succeed for empty text");
 
         assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn test_espeak_missing_voice_is_reported() {
+        let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        let settings = TtsSettings {
+            voice: "omnivox-missing-voice".to_owned(),
+            ..TtsSettings::default()
+        };
+
+        let error = engine.synthesize("test", &settings).unwrap_err();
+
+        assert!(matches!(error, TtsError::VoiceNotFound(_)));
     }
 
     #[test]

@@ -96,15 +96,13 @@ mod impl_windows {
         }
 
         /// Try to find and set a voice matching the settings voice identifier.
-        fn try_set_voice(synth: &SpeechSynthesizer, voice_id: &str) {
-            let all_voices = match SpeechSynthesizer::AllVoices() {
-                Ok(v) => v,
-                Err(_) => return,
-            };
-            let count = match all_voices.Size() {
-                Ok(c) => c,
-                Err(_) => return,
-            };
+        fn try_set_voice(synth: &SpeechSynthesizer, voice_id: &str) -> Result<(), TtsError> {
+            let all_voices = SpeechSynthesizer::AllVoices().map_err(|error| {
+                TtsError::SynthesisFailed(format!("Could not enumerate WinRT voices: {error}"))
+            })?;
+            let count = all_voices.Size().map_err(|error| {
+                TtsError::SynthesisFailed(format!("Could not count WinRT voices: {error}"))
+            })?;
             for i in 0..count {
                 if let Ok(voice) = all_voices.GetAt(i) {
                     let id = voice.Id().map(|s| s.to_string_lossy()).unwrap_or_default();
@@ -122,11 +120,16 @@ mod impl_windows {
                         || lang == voice_id
                         || format!("winrt:{}", id) == voice_id
                     {
-                        let _ = synth.SetVoice(&voice);
-                        return;
+                        synth.SetVoice(&voice).map_err(|error| {
+                            TtsError::SynthesisFailed(format!(
+                                "Could not select WinRT voice {voice_id}: {error}"
+                            ))
+                        })?;
+                        return Ok(());
                     }
                 }
             }
+            Err(TtsError::VoiceNotFound(voice_id.to_owned()))
         }
     }
 
@@ -175,7 +178,7 @@ mod impl_windows {
             let synth = &guard.synth;
 
             // Set voice if specified
-            Self::try_set_voice(synth, &settings.voice);
+            Self::try_set_voice(synth, &settings.voice)?;
 
             // Set synthesis options (rate, pitch, volume)
             if let Ok(options) = synth.Options() {
