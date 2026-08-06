@@ -10,7 +10,7 @@ use omnivox_core::{
 };
 use omnivox_tts::contracts::{
     AcssDimension, EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition, NormalizedAcss,
-    PhysicalVoiceId, VoiceSelector,
+    PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle, VoiceSelector,
 };
 use omnivox_tts::control::{
     decode_request, format_control_event, process_control_request, ControlRequest,
@@ -120,6 +120,7 @@ pub(crate) enum PlaybackCompletion {
         requested: VoiceSelector,
         realized: Option<PhysicalVoiceId>,
         degraded_acss: Vec<AcssDimension>,
+        degraded_effects: Vec<PostSynthesisDimension>,
         message: Option<String>,
     },
 }
@@ -150,6 +151,7 @@ fn tracked_playback_reporter(
                 requested,
                 realized,
                 degraded_acss,
+                degraded_effects,
                 message,
             } => write_preview_status(
                 request_id,
@@ -157,6 +159,7 @@ fn tracked_playback_reporter(
                 requested,
                 realized,
                 degraded_acss,
+                degraded_effects,
                 message,
             ),
         }
@@ -181,6 +184,7 @@ fn write_preview_status(
     requested: VoiceSelector,
     realized: Option<PhysicalVoiceId>,
     degraded_acss: Vec<AcssDimension>,
+    degraded_effects: Vec<PostSynthesisDimension>,
     message: Option<String>,
 ) {
     write_control_response(&preview_response(
@@ -189,6 +193,7 @@ fn write_preview_status(
         requested,
         realized,
         degraded_acss,
+        degraded_effects,
         message,
     ));
 }
@@ -199,6 +204,7 @@ fn preview_response(
     requested: VoiceSelector,
     realized: Option<PhysicalVoiceId>,
     degraded_acss: Vec<AcssDimension>,
+    degraded_effects: Vec<PostSynthesisDimension>,
     message: Option<String>,
 ) -> ControlResponseEnvelope {
     let status = match status {
@@ -214,6 +220,7 @@ fn preview_response(
             requested,
             realized,
             degraded_acss,
+            degraded_effects,
             message,
         },
     }
@@ -375,6 +382,7 @@ pub fn synthesis_worker(
                         requested,
                         realized: result.realized,
                         degraded_acss: result.degraded_acss,
+                        degraded_effects: result.degraded_effects,
                         message: result.message,
                     },
                     status: result.status,
@@ -870,6 +878,7 @@ fn dispatch_preview(
     selector: VoiceSelector,
     language: Option<String>,
     acss: NormalizedAcss,
+    effects: PostSynthesisStyle,
     state: &TtsState,
     gen: u64,
     inventory: &[EngineDescriptor],
@@ -883,6 +892,7 @@ fn dispatch_preview(
             BatchStatus::Failed,
             selector.clone(),
             None,
+            Vec::new(),
             Vec::new(),
             Some(message),
         );
@@ -906,6 +916,7 @@ fn dispatch_preview(
             language,
             preferences: vec![selector.clone()],
             acss,
+            effects,
         }],
         FallbackPolicy::default(),
         inventory,
@@ -1188,6 +1199,7 @@ fn handle_command(
                     selector,
                     language,
                     acss,
+                    effects,
                 })) => {
                     let projected =
                         routing_policy.project_inventory(inventory.engines.clone());
@@ -1197,6 +1209,7 @@ fn handle_command(
                         selector,
                         language,
                         acss,
+                        effects,
                         state,
                         *current_gen,
                         &projected,
@@ -1443,6 +1456,7 @@ mod tests {
             requested.clone(),
             Some(PhysicalVoiceId::new("winrt", "David")),
             vec![AcssDimension::Richness],
+            Vec::new(),
             None,
         );
 

@@ -322,6 +322,7 @@ mod tests {
                 concurrency: ConcurrencyModel::Serialized,
                 markers: MarkerCapabilities::default(),
                 language_switching: true,
+                post_synthesis_dimensions: Vec::new(),
                 native_extensions: Vec::new(),
             },
             voices: vec![VoiceDescriptor {
@@ -344,6 +345,7 @@ mod tests {
                 "winrt", voice_id,
             ))],
             acss: NormalizedAcss::default(),
+            effects: Default::default(),
         }
     }
 

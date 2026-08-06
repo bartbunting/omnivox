@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use omnivox_tts::contracts::{
     AcssApplication, Availability, EngineDescriptor, EngineHealth, FallbackPolicy,
-    LogicalVoiceDefinition, NormalizedAcss, PhysicalVoiceId,
+    LogicalVoiceDefinition, NormalizedAcss, PhysicalVoiceId, PostSynthesisApplication,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
@@ -130,7 +130,9 @@ impl LogicalVoiceRoutingSnapshot {
             return RuntimeReroute::NotRetryable;
         }
         match self.resolve_current(&route.logical_voice_id, engine_registry) {
-            Ok(retry) if retry.realized != route.realized => RuntimeReroute::Retry(retry),
+            Ok(retry) if retry.realized != route.realized => {
+                RuntimeReroute::Retry(Box::new(retry))
+            }
             Ok(_) => RuntimeReroute::Exhausted(format!(
                 "logical voice {} resolved back to its failed runtime target",
                 route.logical_voice_id
@@ -163,10 +165,11 @@ pub struct LogicalRoute {
     pub engine: Arc<dyn TtsEngine>,
     pub realized: PhysicalVoiceId,
     pub acss: AcssApplication,
+    pub effects: PostSynthesisApplication,
 }
 
 pub enum RuntimeReroute {
-    Retry(LogicalRoute),
+    Retry(Box<LogicalRoute>),
     NotRetryable,
     Exhausted(String),
 }
@@ -359,7 +362,7 @@ fn select_retry(
                 "Logical voice {} retrying on engine {} voice {}",
                 retry.logical_voice_id, retry.realized.engine_id, retry.realized.voice_id
             );
-            Ok(retry)
+            Ok(*retry)
         }
         RuntimeReroute::NotRetryable => Err(RuntimeSynthesisOutcome::Failed),
         RuntimeReroute::Exhausted(reason) => {
@@ -419,12 +422,23 @@ fn route_from_resolution(
             resolution.logical_voice_id, acss.omitted, resolution.realized.engine_id
         );
     }
+    let effects = definition
+        .effects
+        .clone()
+        .degrade_for(&descriptor.capabilities.post_synthesis_dimensions);
+    if !effects.omitted.is_empty() {
+        debug!(
+            "Logical voice {} omitted unsupported post-synthesis {:?} on engine {}",
+            resolution.logical_voice_id, effects.omitted, resolution.realized.engine_id
+        );
+    }
 
     Ok(LogicalRoute {
         logical_voice_id: resolution.logical_voice_id,
         engine,
         realized: resolution.realized,
         acss,
+        effects,
     })
 }
 
@@ -587,6 +601,8 @@ mod tests {
                 concurrency: ConcurrencyModel::Serialized,
                 markers: MarkerCapabilities::default(),
                 language_switching: false,
+                post_synthesis_dimensions:
+                    omnivox_tts::contracts::buffered_post_synthesis_dimensions(),
                 native_extensions: Vec::new(),
             },
             voices: voice_ids
@@ -652,6 +668,7 @@ mod tests {
             language: Some("en-US".to_owned()),
             preferences,
             acss: NormalizedAcss::default(),
+            effects: Default::default(),
         }
     }
 

@@ -5,8 +5,9 @@
 //! by build.rs and linked in statically.
 
 use crate::contracts::{
-    AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
-    EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities,
+    buffered_post_synthesis_dimensions, AcssCapabilities, AudioOutputMode, Availability,
+    CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor, EngineHealth,
+    MarkerCapabilities,
 };
 #[cfg(target_os = "macos")]
 use crate::contracts::{PhysicalVoiceId, VoiceDescriptor};
@@ -29,6 +30,7 @@ fn macos_capabilities() -> EngineCapabilities {
         concurrency: ConcurrencyModel::Serialized,
         markers: MarkerCapabilities::default(),
         language_switching: true,
+        post_synthesis_dimensions: buffered_post_synthesis_dimensions(),
         native_extensions: Vec::new(),
     }
 }

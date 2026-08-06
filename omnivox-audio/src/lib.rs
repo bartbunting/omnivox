@@ -9,6 +9,7 @@ pub mod effects;
 pub mod loader;
 pub mod output;
 pub mod pipeline;
+pub mod post_synthesis;
 pub mod timeline;
 pub mod tone;
 
@@ -23,6 +24,10 @@ pub use output::{
     StreamType,
 };
 pub use pipeline::{AudioEffect, AudioPipeline};
+pub use post_synthesis::{
+    PostSynthesisParameters, PostSynthesisProcessor, ProcessedEffectWindow,
+    EFFECT_BOUNDARY_RAMP_FRAMES, MAX_EFFECT_TAIL_FRAMES,
+};
 pub use timeline::{
     PreparedAudioResource, RenderedSemanticEvent, RenderedTimelineWindow, TimelineAudioRenderer,
     MAX_TIMELINE_ACTIONS_PER_WINDOW, MAX_TIMELINE_RENDER_FRAMES,

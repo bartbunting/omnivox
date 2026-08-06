@@ -115,6 +115,144 @@ pub enum AcssDimension {
     Volume,
 }
 
+/// Engine-independent dimensions Omnivox can apply to returned PCM.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PostSynthesisDimension {
+    Gain,
+    LowPass,
+    HighPass,
+    Pan,
+    Reverb,
+    Echo,
+}
+
+/// Complete normalized state for Omnivox-owned post-synthesis processing.
+///
+/// Present values are clamped to 0.0..=1.0. Neutral values are gain 0.5,
+/// low-pass 1.0, high-pass 0.0, pan 0.5, and zero reverb/echo.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct PostSynthesisStyle {
+    pub gain: Option<f32>,
+    pub low_pass: Option<f32>,
+    pub high_pass: Option<f32>,
+    pub pan: Option<f32>,
+    pub reverb: Option<f32>,
+    pub echo: Option<f32>,
+}
+
+impl PostSynthesisStyle {
+    pub fn clamped(mut self) -> Self {
+        self.gain = self.gain.map(clamp_normalized);
+        self.low_pass = self.low_pass.map(clamp_normalized);
+        self.high_pass = self.high_pass.map(clamp_normalized);
+        self.pan = self.pan.map(clamp_normalized);
+        self.reverb = self.reverb.map(clamp_normalized);
+        self.echo = self.echo.map(clamp_normalized);
+        self
+    }
+
+    pub fn active_dimensions(&self) -> Vec<PostSynthesisDimension> {
+        let mut active = Vec::new();
+        if self.gain.is_some() {
+            active.push(PostSynthesisDimension::Gain);
+        }
+        if self.low_pass.is_some() {
+            active.push(PostSynthesisDimension::LowPass);
+        }
+        if self.high_pass.is_some() {
+            active.push(PostSynthesisDimension::HighPass);
+        }
+        if self.pan.is_some() {
+            active.push(PostSynthesisDimension::Pan);
+        }
+        if self.reverb.is_some() {
+            active.push(PostSynthesisDimension::Reverb);
+        }
+        if self.echo.is_some() {
+            active.push(PostSynthesisDimension::Echo);
+        }
+        active
+    }
+
+    /// Retain only dimensions available on the selected engine/audio path.
+    pub fn degrade_for(
+        self,
+        supported: &[PostSynthesisDimension],
+    ) -> PostSynthesisApplication {
+        let mut style = self.clamped();
+        let mut omitted = Vec::new();
+        omit_post_synthesis(
+            &mut style.gain,
+            PostSynthesisDimension::Gain,
+            supported,
+            &mut omitted,
+        );
+        omit_post_synthesis(
+            &mut style.low_pass,
+            PostSynthesisDimension::LowPass,
+            supported,
+            &mut omitted,
+        );
+        omit_post_synthesis(
+            &mut style.high_pass,
+            PostSynthesisDimension::HighPass,
+            supported,
+            &mut omitted,
+        );
+        omit_post_synthesis(
+            &mut style.pan,
+            PostSynthesisDimension::Pan,
+            supported,
+            &mut omitted,
+        );
+        omit_post_synthesis(
+            &mut style.reverb,
+            PostSynthesisDimension::Reverb,
+            supported,
+            &mut omitted,
+        );
+        omit_post_synthesis(
+            &mut style.echo,
+            PostSynthesisDimension::Echo,
+            supported,
+            &mut omitted,
+        );
+        PostSynthesisApplication { style, omitted }
+    }
+}
+
+fn omit_post_synthesis(
+    value: &mut Option<f32>,
+    dimension: PostSynthesisDimension,
+    supported: &[PostSynthesisDimension],
+    omitted: &mut Vec<PostSynthesisDimension>,
+) {
+    if value.is_some() && !supported.contains(&dimension) {
+        *value = None;
+        omitted.push(dimension);
+    }
+}
+
+/// Post-synthesis state Omnivox can apply and dimensions it omitted.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PostSynthesisApplication {
+    pub style: PostSynthesisStyle,
+    pub omitted: Vec<PostSynthesisDimension>,
+}
+
+/// Dimensions implemented by the common buffered-PCM renderer.
+pub fn buffered_post_synthesis_dimensions() -> Vec<PostSynthesisDimension> {
+    vec![
+        PostSynthesisDimension::Gain,
+        PostSynthesisDimension::LowPass,
+        PostSynthesisDimension::HighPass,
+        PostSynthesisDimension::Pan,
+        PostSynthesisDimension::Reverb,
+        PostSynthesisDimension::Echo,
+    ]
+}
+
 /// ACSS dimensions that an engine can apply or approximate.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AcssCapabilities {
@@ -251,6 +389,9 @@ pub struct EngineCapabilities {
     pub concurrency: ConcurrencyModel,
     pub markers: MarkerCapabilities,
     pub language_switching: bool,
+    /// Omnivox-owned dimensions available after this engine returns audio.
+    #[serde(default)]
+    pub post_synthesis_dimensions: Vec<PostSynthesisDimension>,
     pub native_extensions: Vec<NativeExtensionDescriptor>,
 }
 
@@ -344,6 +485,8 @@ pub struct LogicalVoiceDefinition {
     pub language: Option<String>,
     pub preferences: Vec<VoiceSelector>,
     pub acss: NormalizedAcss,
+    #[serde(default)]
+    pub effects: PostSynthesisStyle,
 }
 
 /// Machine/session policy applied after a logical voice's explicit preferences.
@@ -403,6 +546,25 @@ mod tests {
         assert_eq!(application.style.richness, None);
         assert_eq!(application.style.volume, Some(0.6));
         assert_eq!(application.omitted, vec![AcssDimension::Richness]);
+    }
+
+    #[test]
+    fn post_synthesis_style_clamps_and_degrades_independently() {
+        let application = PostSynthesisStyle {
+            gain: Some(1.5),
+            pan: Some(-1.0),
+            reverb: Some(f32::NAN),
+            ..PostSynthesisStyle::default()
+        }
+        .degrade_for(&[
+            PostSynthesisDimension::Gain,
+            PostSynthesisDimension::Reverb,
+        ]);
+
+        assert_eq!(application.style.gain, Some(1.0));
+        assert_eq!(application.style.pan, None);
+        assert_eq!(application.style.reverb, Some(0.5));
+        assert_eq!(application.omitted, vec![PostSynthesisDimension::Pan]);
     }
 
     #[test]

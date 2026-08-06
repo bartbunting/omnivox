@@ -4,9 +4,9 @@
 //! guaranteed fallback engine that works on all platforms.
 
 use crate::contracts::{
-    AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
-    EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities, PhysicalVoiceId,
-    VoiceDescriptor,
+    buffered_post_synthesis_dimensions, AcssCapabilities, AudioOutputMode, Availability,
+    CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor, EngineHealth,
+    MarkerCapabilities, PhysicalVoiceId, VoiceDescriptor,
 };
 #[cfg(test)]
 use crate::TtsSettings;
@@ -82,6 +82,7 @@ impl EspeakTtsEngine {
             concurrency: ConcurrencyModel::Serialized,
             markers: MarkerCapabilities::default(),
             language_switching: true,
+            post_synthesis_dimensions: buffered_post_synthesis_dimensions(),
             native_extensions: Vec::new(),
         }
     }

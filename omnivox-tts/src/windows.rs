@@ -6,8 +6,8 @@
 //! (stereo f32 @ 44100Hz).
 
 use crate::contracts::{
-    AcssCapabilities, AnchorSupport, AudioOutputMode, CancellationSupport, ConcurrencyModel,
-    EngineCapabilities, MarkerCapabilities,
+    buffered_post_synthesis_dimensions, AcssCapabilities, AnchorSupport, AudioOutputMode,
+    CancellationSupport, ConcurrencyModel, EngineCapabilities, MarkerCapabilities,
 };
 #[cfg(not(target_os = "windows"))]
 use crate::contracts::{Availability, EngineDescriptor, EngineHealth};
@@ -34,6 +34,7 @@ fn windows_capabilities() -> EngineCapabilities {
             ..MarkerCapabilities::default()
         },
         language_switching: true,
+        post_synthesis_dimensions: buffered_post_synthesis_dimensions(),
         native_extensions: Vec::new(),
     }
 }

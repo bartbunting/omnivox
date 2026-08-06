@@ -638,7 +638,7 @@ impl HelperTtsEngine {
                 "descriptor uses a different negotiated protocol version",
             ));
         }
-        let descriptor = match response.body {
+        let mut descriptor = match response.body {
             HelperResponseBody::Descriptor { descriptor } => descriptor,
             HelperResponseBody::Error {
                 code,
@@ -657,6 +657,8 @@ impl HelperTtsEngine {
                 ));
             }
         };
+        descriptor.capabilities.post_synthesis_dimensions =
+            crate::contracts::buffered_post_synthesis_dimensions();
         self.validate_descriptor(&descriptor)?;
         Ok((descriptor, selected_protocol_version))
     }
@@ -1290,6 +1292,7 @@ mod tests {
                     ..MarkerCapabilities::default()
                 },
                 language_switching: false,
+                post_synthesis_dimensions: Vec::new(),
                 native_extensions: Vec::new(),
             },
             voices: vec![VoiceDescriptor {

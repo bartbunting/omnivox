@@ -11,7 +11,7 @@ use thiserror::Error;
 
 use crate::contracts::{
     AcssDimension, EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition, NormalizedAcss,
-    PhysicalVoiceId, VoiceSelector,
+    PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle, VoiceSelector,
 };
 use crate::logical_voices::{
     LogicalVoiceRegistration, LogicalVoiceRegistry, LogicalVoiceRegistryError,
@@ -71,6 +71,8 @@ pub enum ControlRequest {
         language: Option<String>,
         #[serde(default)]
         acss: NormalizedAcss,
+        #[serde(default)]
+        effects: PostSynthesisStyle,
     },
 }
 
@@ -117,6 +119,7 @@ pub enum ControlResponse {
         requested: VoiceSelector,
         realized: Option<PhysicalVoiceId>,
         degraded_acss: Vec<AcssDimension>,
+        degraded_effects: Vec<PostSynthesisDimension>,
         message: Option<String>,
     },
     Error {
@@ -460,6 +463,7 @@ mod tests {
                 concurrency: ConcurrencyModel::Serialized,
                 markers: MarkerCapabilities::default(),
                 language_switching: true,
+                post_synthesis_dimensions: Vec::new(),
                 native_extensions: Vec::new(),
             },
             voices: vec![VoiceDescriptor {
@@ -483,6 +487,7 @@ mod tests {
                 "winrt:David",
             ))],
             acss: NormalizedAcss::default(),
+            effects: Default::default(),
         }
     }
 
@@ -589,6 +594,7 @@ mod tests {
                 r"winrt:HKEY_LOCAL_MACHINE\Voices\David",
             ))],
             acss: NormalizedAcss::default(),
+            effects: Default::default(),
         };
 
         let json = serde_json::to_value(&definition).unwrap();
@@ -617,6 +623,10 @@ mod tests {
                     rate: Some(0.7),
                     richness: Some(0.4),
                     ..NormalizedAcss::default()
+                },
+                effects: PostSynthesisStyle {
+                    reverb: Some(0.4),
+                    ..PostSynthesisStyle::default()
                 },
             },
         };

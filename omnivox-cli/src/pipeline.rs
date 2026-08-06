@@ -10,7 +10,7 @@ use omnivox_core::timeline::{
     ScheduledTimeline, TimelineAction, TimelineActionId, TimelineActionKind,
 };
 use omnivox_core::{QueueItem, TtsState};
-use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId};
+use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId, PostSynthesisDimension};
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::{
     AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisMarker,
@@ -506,6 +506,7 @@ enum RoutedChunkOutcome {
     Queued {
         realized: PhysicalVoiceId,
         degraded_acss: Vec<AcssDimension>,
+        degraded_effects: Vec<PostSynthesisDimension>,
     },
     Cancelled,
     Failed,
@@ -548,6 +549,7 @@ fn synthesize_routed_chunk(
                 .clone()
                 .unwrap_or_else(|| route.realized.clone());
             let degraded_acss = result.degraded_acss.clone();
+            let degraded_effects = route.effects.omitted.clone();
             queue_synthesis_result(
                 *result,
                 chunk,
@@ -561,6 +563,7 @@ fn synthesize_routed_chunk(
             RoutedChunkOutcome::Queued {
                 realized,
                 degraded_acss,
+                degraded_effects,
             }
         }
         RuntimeSynthesisOutcome::Cancelled => RoutedChunkOutcome::Cancelled,
@@ -574,6 +577,7 @@ pub struct PreviewSynthesisResult {
     pub status: BatchStatus,
     pub realized: Option<PhysicalVoiceId>,
     pub degraded_acss: Vec<AcssDimension>,
+    pub degraded_effects: Vec<PostSynthesisDimension>,
     pub message: Option<String>,
 }
 
@@ -589,19 +593,26 @@ pub fn process_preview(
     logical_voice_id: &str,
 ) -> PreviewSynthesisResult {
     if ctx.is_stale() {
-        return preview_result(BatchStatus::Cancelled, None, Vec::new(), None);
+        return preview_result(BatchStatus::Cancelled, None, Vec::new(), Vec::new(), None);
     }
 
     let mut route = match logical_voice_routing.initial_route(logical_voice_id, engine_registry) {
         Ok(route) => route,
         Err(message) => {
-            return preview_result(BatchStatus::Failed, None, Vec::new(), Some(message));
+            return preview_result(
+                BatchStatus::Failed,
+                None,
+                Vec::new(),
+                Vec::new(),
+                Some(message),
+            );
         }
     };
     let chunks = chunk_prepared_speech(prepare_speech_text(text, &state), 15);
     let chunk_count = chunks.len();
     let mut realized = Some(route.realized.clone());
     let mut degraded_acss = route.acss.omitted.clone();
+    let mut degraded_effects = route.effects.omitted.clone();
 
     for (index, chunk) in chunks.into_iter().enumerate() {
         match synthesize_routed_chunk(
@@ -619,6 +630,7 @@ pub fn process_preview(
             RoutedChunkOutcome::Queued {
                 realized: chunk_realized,
                 degraded_acss: chunk_degraded,
+                degraded_effects: chunk_degraded_effects,
             } => {
                 realized = Some(chunk_realized);
                 for dimension in chunk_degraded {
@@ -626,15 +638,27 @@ pub fn process_preview(
                         degraded_acss.push(dimension);
                     }
                 }
+                for dimension in chunk_degraded_effects {
+                    if !degraded_effects.contains(&dimension) {
+                        degraded_effects.push(dimension);
+                    }
+                }
             }
             RoutedChunkOutcome::Cancelled => {
-                return preview_result(BatchStatus::Cancelled, realized, degraded_acss, None);
+                return preview_result(
+                    BatchStatus::Cancelled,
+                    realized,
+                    degraded_acss,
+                    degraded_effects,
+                    None,
+                );
             }
             RoutedChunkOutcome::Failed => {
                 return preview_result(
                     BatchStatus::Failed,
                     realized,
                     degraded_acss,
+                    degraded_effects,
                     Some("preview synthesis failed".to_owned()),
                 );
             }
@@ -643,6 +667,7 @@ pub fn process_preview(
                     BatchStatus::Failed,
                     realized,
                     degraded_acss,
+                    degraded_effects,
                     Some("preview routing fallback was exhausted".to_owned()),
                 );
             }
@@ -656,19 +681,21 @@ pub fn process_preview(
     } else {
         BatchStatus::Completed
     };
-    preview_result(status, realized, degraded_acss, None)
+    preview_result(status, realized, degraded_acss, degraded_effects, None)
 }
 
 fn preview_result(
     status: BatchStatus,
     realized: Option<PhysicalVoiceId>,
     degraded_acss: Vec<AcssDimension>,
+    degraded_effects: Vec<PostSynthesisDimension>,
     message: Option<String>,
 ) -> PreviewSynthesisResult {
     PreviewSynthesisResult {
         status,
         realized,
         degraded_acss,
+        degraded_effects,
         message,
     }
 }

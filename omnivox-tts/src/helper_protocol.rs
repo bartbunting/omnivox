@@ -342,6 +342,7 @@ impl HelperResponse {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)] // Mirrors bounded JSON frames; boxing would alter every host adapter.
 pub enum HelperResponseBody {
     Hello {
         selected_protocol_version: u16,
