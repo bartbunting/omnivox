@@ -176,6 +176,68 @@ pub fn home_dir() -> Option<std::ffi::OsString> {
     std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))
 }
 
+/// Decode the double-quoted Tcl word emitted by Emacsvox for a resource path.
+///
+/// Unquoted and brace-delimited command arguments have already been normalized
+/// by the protocol parser and are returned unchanged. Backslashes in unquoted
+/// paths must remain untouched so native Windows paths continue to work.
+fn decode_tcl_resource_word(argument: &str) -> Result<String, String> {
+    if !argument.starts_with('"') {
+        return Ok(argument.to_string());
+    }
+    if argument.len() < 2 || !argument.ends_with('"') {
+        return Err("unterminated double-quoted Tcl resource path".to_string());
+    }
+
+    let mut decoded = String::with_capacity(argument.len().saturating_sub(2));
+    let mut chars = argument[1..argument.len() - 1].chars();
+    while let Some(ch) = chars.next() {
+        if ch != '\\' {
+            decoded.push(ch);
+            continue;
+        }
+
+        let escaped = chars
+            .next()
+            .ok_or_else(|| "trailing backslash in Tcl resource path".to_string())?;
+        match escaped {
+            '\\' => decoded.push('\\'),
+            '"' => decoded.push('"'),
+            '$' => decoded.push('$'),
+            '[' => decoded.push('['),
+            'n' => decoded.push('\n'),
+            'r' => decoded.push('\r'),
+            't' => decoded.push('\t'),
+            'u' => {
+                let mut value = 0_u32;
+                for _ in 0..4 {
+                    let digit = chars.next().ok_or_else(|| {
+                        "incomplete \\u escape in Tcl resource path".to_string()
+                    })?;
+                    value = value * 16
+                        + digit.to_digit(16).ok_or_else(|| {
+                            "invalid \\u escape in Tcl resource path".to_string()
+                        })?;
+                }
+                let character = char::from_u32(value).ok_or_else(|| {
+                    "invalid Unicode scalar in Tcl resource path".to_string()
+                })?;
+                if character == '\0' {
+                    return Err("Tcl resource path cannot contain NUL".to_string());
+                }
+                decoded.push(character);
+            }
+            other => {
+                return Err(format!(
+                    "unsupported Tcl escape \\{other} in resource path"
+                ));
+            }
+        }
+    }
+
+    Ok(decoded)
+}
+
 pub fn expand_tilde(path: &str) -> PathBuf {
     if let Some(rest) = path.strip_prefix("~/") {
         if let Some(home) = home_dir() {
@@ -187,6 +249,11 @@ pub fn expand_tilde(path: &str) -> PathBuf {
         }
     }
     PathBuf::from(path)
+}
+
+/// Parse one resource path argument and expand a leading home-directory marker.
+pub fn parse_resource_path(argument: &str) -> Result<PathBuf, String> {
+    decode_tcl_resource_word(argument).map(|path| expand_tilde(&path))
 }
 
 // ---------------------------------------------------------------------------
@@ -302,6 +369,30 @@ mod tests {
     #[test]
     fn test_expand_tilde_no_tilde() {
         assert_eq!(expand_tilde("/absolute/path"), PathBuf::from("/absolute/path"));
+    }
+
+    #[test]
+    fn test_parse_resource_path_decodes_emacsvox_tcl_word() {
+        let encoded =
+            r#""/tmp/cue space {brace} quote\" back\\slash; dollar\$ \[command] λ\n.ogg""#;
+        let expected = "/tmp/cue space {brace} quote\" back\\slash; dollar$ [command] λ\n.ogg";
+        assert_eq!(parse_resource_path(encoded).unwrap(), PathBuf::from(expected));
+    }
+
+    #[test]
+    fn test_parse_resource_path_preserves_unquoted_windows_backslashes() {
+        let path = r"C:\Users\Bart\sounds\complete.ogg";
+        assert_eq!(parse_resource_path(path).unwrap(), PathBuf::from(path));
+
+        let encoded = r#""C:\\Users\\Bart\\sounds\\complete.ogg""#;
+        assert_eq!(parse_resource_path(encoded).unwrap(), PathBuf::from(path));
+    }
+
+    #[test]
+    fn test_parse_resource_path_rejects_malformed_tcl_word() {
+        assert!(parse_resource_path(r#""unterminated"#).is_err());
+        assert!(parse_resource_path(r#""bad\qescape""#).is_err());
+        assert!(parse_resource_path(r#""nul\u0000path""#).is_err());
     }
 
     #[test]

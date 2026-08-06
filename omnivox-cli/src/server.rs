@@ -15,7 +15,7 @@ use tracing::{debug, error, info, warn};
 use crate::pipeline::{
     build_sound_pipeline, build_tone_pipeline, process_batch, synthesize_chunk, SynthCtx,
 };
-use crate::text::{chunk_text, expand_tilde, normalize_rate, preprocess_text};
+use crate::text::{chunk_text, normalize_rate, parse_resource_path, preprocess_text};
 
 // ---------------------------------------------------------------------------
 // Synthesis request types
@@ -257,9 +257,13 @@ fn handle_command(
 
         CommandId::AudioIcon => {
             if let Some(path) = command.args {
-                let expanded = expand_tilde(&path);
-                debug!("Queue audio icon: {}", expanded.display());
-                pending.push(QueueItem::AudioIcon { path: expanded });
+                match parse_resource_path(&path) {
+                    Ok(path) => {
+                        debug!("Queue audio icon: {}", path.display());
+                        pending.push(QueueItem::AudioIcon { path });
+                    }
+                    Err(error) => warn!("Invalid audio icon path: {}", error),
+                }
             }
         }
 
@@ -299,9 +303,17 @@ fn handle_command(
 
         CommandId::PlaySound => {
             if let Some(path) = command.args {
-                let expanded = expand_tilde(&path);
-                debug!("Play sound: {}", expanded.display());
-                let _ = tx.send(SynthRequest::PlaySound { path: expanded, state: state.clone(), gen: *current_gen });
+                match parse_resource_path(&path) {
+                    Ok(path) => {
+                        debug!("Play sound: {}", path.display());
+                        let _ = tx.send(SynthRequest::PlaySound {
+                            path,
+                            state: state.clone(),
+                            gen: *current_gen,
+                        });
+                    }
+                    Err(error) => warn!("Invalid sound path: {}", error),
+                }
             }
         }
 

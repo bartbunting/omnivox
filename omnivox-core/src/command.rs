@@ -227,6 +227,13 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_audio_icon_preserves_quoted_tcl_word() {
+        let cmd = parse_command(r#"a "/tmp/cue space/done.ogg""#).unwrap();
+        assert_eq!(cmd.id, CommandId::AudioIcon);
+        assert_eq!(cmd.args, Some(r#""/tmp/cue space/done.ogg""#.to_string()));
+    }
+
+    #[test]
     fn test_parse_tts_set_speech_rate() {
         let cmd = parse_command("tts_set_speech_rate 225").unwrap();
         assert_eq!(cmd.id, CommandId::TtsSetSpeechRate);
