@@ -54,7 +54,7 @@ Each stream has a max backlog depth. On overflow, old items are dropped to keep 
 ```bash
 make build     # Release build
 make dev       # Debug build
-make test      # Run all tests (205 tests)
+make test      # Run all tests (210 tests)
 make lint      # Clippy
 make fmt       # Format
 make install   # Install binary to ~/.cargo/bin
@@ -63,11 +63,11 @@ make clean     # Clean build artifacts
 
 ## Testing
 
-205 tests total, all passing:
+210 tests total, all passing:
 
 - omnivox-audio: 60 unit + 31 integration = 91
 - omnivox-core: 39 unit + 1 doc = 40 (includes `;;`, quoted-path, and control-command regression tests)
-- omnivox-tts: 53 unit (includes engine descriptors, WinRT mapping, contracts, logical registration, ACSS degradation, resolver, and control-codec tests)
+- omnivox-tts: 58 unit (includes engine descriptors and registry, WinRT mapping, contracts, logical registration, ACSS degradation, resolver, and control-codec tests)
 - omnivox-cli: 21 unit (includes Tcl resource-word decoding and voice-listing tests)
 
 Run: `cargo test`

@@ -38,6 +38,7 @@
 - Mandatory self-description for built-in engines and structured active-engine inventory
 - Atomic, generation-safe logical-voice registration with resolution diagnostics
 - Emacsvox capability negotiation, inventory discovery, and portable voice registration
+- Deterministic engine registry backing server inventory and logical resolution
 - Diagnostic self-test (--check)
 - GitHub Actions CI/CD for 6 platforms
 
@@ -59,11 +60,11 @@ contract, acceptance criteria, and additional backlog items.
 ## Test Results
 
 ```
-Total: 205 tests, all passing
+Total: 210 tests, all passing
 
 omnivox-audio:  60 unit + 31 integration = 91
 omnivox-core:   39 unit + 1 doc = 40
-omnivox-tts:    53 unit
+omnivox-tts:    58 unit
 omnivox-cli:    21 unit
 ```
 

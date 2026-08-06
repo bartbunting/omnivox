@@ -166,6 +166,13 @@ routing needed to make those bindings drive speech.
 Completion criterion: one dispatch can alternate between mock engines and
 voices while preserving text, order, stop behavior, and deterministic fallback.
 
+Status on 2026-08-06: the deterministic registry core owns engines by stable
+ID, validates descriptor voice ownership and defaults atomically, snapshots
+inventory, and generations real descriptor changes. Server discovery and
+logical resolution now use this registry, initially populated with the one
+legacy startup-selected engine. Multi-engine population and synthesis routing
+remain.
+
 ### Phase 4: Enrich Synthesis Results and the Audio Model
 
 - Replace the minimal `TtsSettings -> AudioBuffer` interface with structured

@@ -112,10 +112,10 @@ process responses. Server events are never injected into synthesized speech.
 An inventory response contains an `inventory_generation` and an `engines`
 array. Each engine includes its stable ID, runtime availability and health,
 capabilities, discovered physical voices, and default voice ID. The current
-single-engine server snapshots this descriptor before the reader loop starts,
-so inventory requests cannot block stop commands behind synchronous synthesis.
-The future registry will increment the generation whenever its inventory
-changes.
+server registers its startup-selected engine and snapshots its descriptor
+before the reader loop starts, so inventory requests cannot block stop commands
+behind synchronous synthesis. Registry inventory is sorted by stable engine ID,
+and its generation advances when engines or their descriptor state change.
 
 A successful registration response reports the inventory generation used and
 one resolved or unresolved binding for every definition:
