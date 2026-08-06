@@ -221,6 +221,15 @@ pub trait TtsEngine: Send + Sync {
     /// Describe this engine, its current runtime state, and discovered voices.
     fn descriptor(&self) -> contracts::EngineDescriptor;
 
+    /// Prepare an engine for a circuit-breaker recovery probe.
+    ///
+    /// In-process engines need no preparation. Engines backed by helper
+    /// processes can override this to restart or reconnect the helper before
+    /// the probe synthesis call.
+    fn prepare_recovery_probe(&self) -> Result<(), TtsError> {
+        Ok(())
+    }
+
     /// Synthesize text to an audio buffer
     fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError>;
 

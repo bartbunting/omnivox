@@ -104,6 +104,26 @@ impl RuntimeEngineHealth {
         advance_generation(&mut inner);
     }
 
+    #[cfg(test)]
+    pub fn force_probe_ready(&self, engine_id: &str) {
+        let mut inner = self.inner.lock().unwrap();
+        let Some(state) = inner.circuits.remove(engine_id) else {
+            return;
+        };
+        let (failures, reason) = match state {
+            CircuitState::Open {
+                failures, reason, ..
+            }
+            | CircuitState::Ready { failures, reason }
+            | CircuitState::Probing { failures, reason } => (failures, reason),
+        };
+        inner.circuits.insert(
+            engine_id.to_owned(),
+            CircuitState::Ready { failures, reason },
+        );
+        advance_generation(&mut inner);
+    }
+
     fn snapshot_at(
         &self,
         base_generation: u64,

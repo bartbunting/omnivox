@@ -147,8 +147,34 @@ pub fn synthesize_with_runtime_fallback(
             }
         };
         if stale(generation, generation_counter) {
-            release_cancelled_probe(runtime_health, &route.realized.engine_id, permit);
+            release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
             return RuntimeSynthesisOutcome::Cancelled;
+        }
+        if permit == EnginePermit::RecoveryProbe {
+            if let Err(preparation_error) = route.engine.prepare_recovery_probe() {
+                if stale(generation, generation_counter) {
+                    release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+                    return RuntimeSynthesisOutcome::Cancelled;
+                }
+                let error = TtsError::SynthesisFailed(format!(
+                    "recovery preparation failed: {preparation_error}"
+                ));
+                let cooldown =
+                    runtime_health.record_failure(&route.realized.engine_id, error.to_string());
+                warn!(
+                    "Engine {} recovery preparation failed; circuit opened for {} seconds: {}",
+                    route.realized.engine_id,
+                    cooldown.as_secs(),
+                    preparation_error
+                );
+                match select_retry(route, routing, engine_registry, &error, attempt) {
+                    Ok(retry) => {
+                        *route = retry;
+                        continue;
+                    }
+                    Err(outcome) => return outcome,
+                }
+            }
         }
         let mut routed_settings = settings.clone();
         routed_settings.voice = route.realized.voice_id.clone();
@@ -163,7 +189,7 @@ pub fn synthesize_with_runtime_fallback(
             }
             Err(error) => {
                 if stale(generation, generation_counter) {
-                    release_cancelled_probe(runtime_health, &route.realized.engine_id, permit);
+                    release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
                     return RuntimeSynthesisOutcome::Cancelled;
                 }
                 match &error {
@@ -177,7 +203,7 @@ pub fn synthesize_with_runtime_fallback(
                         );
                     }
                     TtsError::VoiceNotFound(_) | TtsError::InvalidParameter(_) => {
-                        release_cancelled_probe(runtime_health, &route.realized.engine_id, permit);
+                        release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
                     }
                 }
                 warn!(
@@ -234,7 +260,7 @@ fn select_retry(
     }
 }
 
-fn release_cancelled_probe(
+fn release_probe_if_held(
     runtime_health: &RuntimeEngineHealth,
     engine_id: &str,
     permit: EnginePermit,
@@ -308,6 +334,7 @@ fn record_runtime_failure(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::AtomicUsize;
     use std::sync::Mutex;
 
     use super::*;
@@ -319,18 +346,25 @@ mod tests {
 
     enum MockFailure {
         Synthesis,
+        SynthesisOnce(AtomicUsize),
         SynthesisAndCancel(Arc<AtomicU64>),
     }
 
     struct MockEngine {
         descriptor: EngineDescriptor,
         failure: Option<MockFailure>,
+        recovery_preparations: AtomicUsize,
         calls: Mutex<Vec<(String, String)>>,
     }
 
     impl TtsEngine for MockEngine {
         fn descriptor(&self) -> EngineDescriptor {
             self.descriptor.clone()
+        }
+
+        fn prepare_recovery_probe(&self) -> Result<(), TtsError> {
+            self.recovery_preparations.fetch_add(1, Ordering::AcqRel);
+            Ok(())
         }
 
         fn synthesize(&self, text: &str, settings: &TtsSettings) -> Result<AudioBuffer, TtsError> {
@@ -342,10 +376,16 @@ mod tests {
                 Some(MockFailure::Synthesis) => {
                     Err(TtsError::SynthesisFailed("mock failure".to_owned()))
                 }
+                Some(MockFailure::SynthesisOnce(remaining))
+                    if remaining.swap(0, Ordering::AcqRel) > 0 =>
+                {
+                    Err(TtsError::SynthesisFailed("one mock failure".to_owned()))
+                }
                 Some(MockFailure::SynthesisAndCancel(counter)) => {
                     counter.fetch_add(1, Ordering::Release);
                     Err(TtsError::SynthesisFailed("cancelled mock".to_owned()))
                 }
+                Some(MockFailure::SynthesisOnce(_)) => Ok(AudioBuffer::empty()),
                 None => Ok(AudioBuffer::empty()),
             }
         }
@@ -401,6 +441,7 @@ mod tests {
             .register(Arc::new(MockEngine {
                 descriptor: descriptor(engine_id, voice_ids),
                 failure: None,
+                recovery_preparations: AtomicUsize::new(0),
                 calls: Mutex::new(Vec::new()),
             }))
             .unwrap();
@@ -414,6 +455,7 @@ mod tests {
         Arc::new(MockEngine {
             descriptor: descriptor(engine_id, &[voice_id]),
             failure,
+            recovery_preparations: AtomicUsize::new(0),
             calls: Mutex::new(Vec::new()),
         })
     }
@@ -615,6 +657,75 @@ mod tests {
                 .realized,
             PhysicalVoiceId::new("espeak", "en-us")
         );
+    }
+
+    #[test]
+    fn successful_recovery_probe_prepares_engine_and_restores_primary_route() {
+        let primary = synthesis_engine(
+            "dectalk",
+            "paul",
+            Some(MockFailure::SynthesisOnce(AtomicUsize::new(1))),
+        );
+        let fallback = synthesis_engine("espeak", "en-us", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let policy = FallbackPolicy {
+            fallback_engines: vec!["espeak".to_owned()],
+            ..FallbackPolicy::default()
+        };
+        let health = RuntimeEngineHealth::new();
+        let counter = AtomicU64::new(9);
+        let mut failed_routes = snapshot(
+            &engines,
+            definition(vec![exact("dectalk", "paul")]),
+            policy.clone(),
+        );
+        let mut failed_route = failed_routes
+            .initial_route("source-code", &engines)
+            .unwrap();
+
+        let first = synthesize_with_runtime_fallback(
+            "first chunk",
+            &TtsSettings::default(),
+            &mut failed_route,
+            &mut failed_routes,
+            &engines,
+            &health,
+            9,
+            &counter,
+        );
+        assert!(matches!(first, RuntimeSynthesisOutcome::Ready(_)));
+        assert_eq!(failed_route.realized.engine_id, "espeak");
+
+        health.force_probe_ready("dectalk");
+        let runtime_inventory = health.snapshot(engines.generation(), engines.inventory());
+        let mut probe_routes =
+            snapshot(&engines, definition(vec![exact("dectalk", "paul")]), policy);
+        probe_routes.replace_inventory(runtime_inventory.engines);
+        let mut probe_route = probe_routes.initial_route("source-code", &engines).unwrap();
+        assert_eq!(probe_route.realized.engine_id, "dectalk");
+
+        let probe = synthesize_with_runtime_fallback(
+            "probe chunk",
+            &TtsSettings::default(),
+            &mut probe_route,
+            &mut probe_routes,
+            &engines,
+            &health,
+            9,
+            &counter,
+        );
+
+        assert!(matches!(probe, RuntimeSynthesisOutcome::Ready(_)));
+        assert_eq!(probe_route.realized.engine_id, "dectalk");
+        assert_eq!(primary.recovery_preparations.load(Ordering::Acquire), 1);
+        let restored = health.snapshot(engines.generation(), engines.inventory());
+        assert!(matches!(restored.engines[0].health, EngineHealth::Healthy));
     }
 
     #[test]
