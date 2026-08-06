@@ -7,6 +7,8 @@ use thiserror::Error;
 
 pub mod espeak;
 pub mod macos;
+pub mod contracts;
+pub mod resolver;
 pub mod windows;
 #[cfg(feature = "piper")]
 pub mod piper;
