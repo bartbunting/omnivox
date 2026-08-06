@@ -222,6 +222,62 @@ pub fn synthesize_with_runtime_fallback_anchored(
     generation: u64,
     generation_counter: &AtomicU64,
 ) -> RuntimeSynthesisOutcome {
+    synthesize_with_runtime_fallback_anchored_inner(
+        chunk,
+        anchors,
+        settings,
+        None,
+        route,
+        routing,
+        engine_registry,
+        runtime_health,
+        generation,
+        generation_counter,
+    )
+}
+
+/// Routed synthesis with a complete per-span ACSS style reapplied after every
+/// engine fallback.
+#[allow(clippy::too_many_arguments)]
+pub fn synthesize_with_runtime_fallback_anchored_styled(
+    chunk: &str,
+    anchors: &[RequestedAnchor],
+    settings: &TtsSettings,
+    requested_acss: &NormalizedAcss,
+    route: &mut LogicalRoute,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    generation: u64,
+    generation_counter: &AtomicU64,
+) -> RuntimeSynthesisOutcome {
+    synthesize_with_runtime_fallback_anchored_inner(
+        chunk,
+        anchors,
+        settings,
+        Some(requested_acss),
+        route,
+        routing,
+        engine_registry,
+        runtime_health,
+        generation,
+        generation_counter,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn synthesize_with_runtime_fallback_anchored_inner(
+    chunk: &str,
+    anchors: &[RequestedAnchor],
+    settings: &TtsSettings,
+    requested_acss: Option<&NormalizedAcss>,
+    route: &mut LogicalRoute,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    generation: u64,
+    generation_counter: &AtomicU64,
+) -> RuntimeSynthesisOutcome {
     for attempt in 1..=MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
         if stale(generation, generation_counter) {
             return RuntimeSynthesisOutcome::Cancelled;
@@ -275,7 +331,15 @@ pub fn synthesize_with_runtime_fallback_anchored(
         }
         let mut routed_settings = settings.clone();
         routed_settings.voice = route.realized.voice_id.clone();
-        apply_logical_acss(&mut routed_settings, &route.acss.style);
+        let acss = requested_acss.map_or_else(
+            || route.acss.clone(),
+            |style| {
+                style.clone().degrade_for(
+                    &route.engine.descriptor().capabilities.acss,
+                )
+            },
+        );
+        apply_normalized_acss(&mut routed_settings, &acss.style);
         let mut request = SynthesisRequest::new(chunk, routed_settings)
             .with_route(route.logical_voice_id.clone(), route.realized.clone());
         request.anchors = anchors.to_vec();
@@ -290,7 +354,7 @@ pub fn synthesize_with_runtime_fallback_anchored(
                     .requested_anchors,
             );
             result.validate(&request)?;
-            result.degraded_acss = route.acss.omitted.clone();
+            result.degraded_acss = acss.omitted.clone();
             Ok(result)
         });
         match synthesis {
@@ -442,7 +506,7 @@ fn route_from_resolution(
     })
 }
 
-fn apply_logical_acss(settings: &mut TtsSettings, style: &NormalizedAcss) {
+pub(crate) fn apply_normalized_acss(settings: &mut TtsSettings, style: &NormalizedAcss) {
     if let Some(rate) = style.rate {
         settings.rate = rate;
     }

@@ -5,8 +5,8 @@ use base64::Engine;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::contracts::PhysicalVoiceId;
-use crate::SynthesisMarker;
+use crate::contracts::{AcssDimension, PhysicalVoiceId, PostSynthesisDimension};
+use crate::{AnchorResolution, SynthesisMarker};
 
 /// Current marker event protocol version.
 pub const MARKER_PROTOCOL_VERSION: u32 = 1;
@@ -62,6 +62,18 @@ pub enum MarkerEvent {
     SemanticEventReached {
         utterance_id: u64,
         action_id: String,
+    },
+    /// Synthesis resolved one requested presentation action position.
+    TimelineActionResolved {
+        utterance_id: u64,
+        action_id: String,
+        resolution: AnchorResolution,
+    },
+    /// Requested style dimensions omitted on the realized route.
+    TimelineStyleDegraded {
+        utterance_id: u64,
+        degraded_acss: Vec<AcssDimension>,
+        degraded_effects: Vec<PostSynthesisDimension>,
     },
 }
 
@@ -126,7 +138,8 @@ fn decode_json<T: DeserializeOwned>(payload: &str) -> Result<T, MarkerProtocolEr
 
 fn validate_event(event: &MarkerEventEnvelope) -> Result<(), MarkerProtocolError> {
     match &event.event {
-        MarkerEvent::SemanticEventReached { action_id, .. } => {
+        MarkerEvent::SemanticEventReached { action_id, .. }
+        | MarkerEvent::TimelineActionResolved { action_id, .. } => {
             if event.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION {
                 return Err(MarkerProtocolError::InvalidEnvelope(
                     "semantic events require protocol version 2".to_owned(),
@@ -137,6 +150,13 @@ fn validate_event(event: &MarkerEventEnvelope) -> Result<(), MarkerProtocolError
                     "semantic action ID must contain 1 to {MAX_SEMANTIC_ACTION_ID_BYTES} UTF-8 bytes"
                 )));
             }
+        }
+        MarkerEvent::TimelineStyleDegraded { .. }
+            if event.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION =>
+        {
+            return Err(MarkerProtocolError::InvalidEnvelope(
+                "timeline style diagnostics require protocol version 2".to_owned(),
+            ));
         }
         _ if event.protocol_version != MARKER_PROTOCOL_VERSION
             && event.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION =>
@@ -253,5 +273,36 @@ mod tests {
             encode_marker_event(&oversized),
             Err(MarkerProtocolError::InvalidEnvelope(_))
         ));
+    }
+
+    #[test]
+    fn timeline_diagnostics_round_trip_in_v2() {
+        let resolution = MarkerEventEnvelope {
+            protocol_version: TIMELINE_EVENT_PROTOCOL_VERSION,
+            dispatch_id: 9,
+            sequence: 2,
+            event: MarkerEvent::TimelineActionResolved {
+                utterance_id: 1,
+                action_id: "open-cue".to_owned(),
+                resolution: AnchorResolution::WordBoundary,
+            },
+        };
+        let degradation = MarkerEventEnvelope {
+            protocol_version: TIMELINE_EVENT_PROTOCOL_VERSION,
+            dispatch_id: 9,
+            sequence: 3,
+            event: MarkerEvent::TimelineStyleDegraded {
+                utterance_id: 1,
+                degraded_acss: vec![AcssDimension::Richness],
+                degraded_effects: vec![PostSynthesisDimension::Echo],
+            },
+        };
+
+        for event in [resolution, degradation] {
+            assert_eq!(
+                decode_marker_event(&encode_marker_event(&event).unwrap()).unwrap(),
+                event
+            );
+        }
     }
 }

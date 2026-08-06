@@ -262,6 +262,10 @@ pub fn validate_presentation_timeline(
     for action in &timeline.actions {
         validate_id(&action.id, "action")?;
         invalid_if(
+            action.id.starts_with("omnivox."),
+            "action IDs beginning with omnivox. are reserved",
+        )?;
+        invalid_if(
             !action_ids.insert(action.id.as_str()),
             format!("duplicate action ID {}", action.id),
         )?;

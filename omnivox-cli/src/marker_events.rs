@@ -3,12 +3,12 @@
 use omnivox_audio::{
     AudioBuffer, AudioControl, AudioError, PlaybackCue, PlaybackTicket, StreamType,
 };
-use omnivox_tts::contracts::PhysicalVoiceId;
+use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId, PostSynthesisDimension};
 use omnivox_tts::marker_protocol::{
     format_marker_event, MarkerEvent, MarkerEventEnvelope, MARKER_PROTOCOL_VERSION,
     TIMELINE_EVENT_PROTOCOL_VERSION,
 };
-use omnivox_tts::SynthesisMarker;
+use omnivox_tts::{AnchorResolution, SynthesisMarker};
 use omnivox_core::timeline::TimelineActionId;
 use std::cell::Cell;
 use std::io::{self, Write};
@@ -108,6 +108,10 @@ impl MarkerDispatchContext {
         }
     }
 
+    pub fn supports_timeline_events(&self) -> bool {
+        self.protocol_version == TIMELINE_EVENT_PROTOCOL_VERSION
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn prepare_utterance(
         &self,
@@ -120,13 +124,51 @@ impl MarkerDispatchContext {
         markers: &[SynthesisMarker],
         semantic_events: &[PlaybackSemanticEvent],
     ) -> PreparedMarkerPlayback {
+        self.prepare_timeline_utterance(
+            text,
+            engine_id,
+            actual_voice,
+            logical_voice_id,
+            sample_rate,
+            frame_count,
+            markers,
+            semantic_events,
+            &[],
+            &[],
+            &[],
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_timeline_utterance(
+        &self,
+        text: &str,
+        engine_id: &str,
+        actual_voice: Option<&PhysicalVoiceId>,
+        logical_voice_id: Option<&str>,
+        sample_rate: u32,
+        frame_count: usize,
+        markers: &[SynthesisMarker],
+        semantic_events: &[PlaybackSemanticEvent],
+        resolutions: &[PlaybackTimelineResolution],
+        degraded_acss: &[AcssDimension],
+        degraded_effects: &[PostSynthesisDimension],
+    ) -> PreparedMarkerPlayback {
         assert!(
-            semantic_events.is_empty() || self.protocol_version == TIMELINE_EVENT_PROTOCOL_VERSION,
-            "semantic playback events require a version 2 dispatch"
+            (semantic_events.is_empty()
+                && resolutions.is_empty()
+                && degraded_acss.is_empty()
+                && degraded_effects.is_empty())
+                || self.protocol_version == TIMELINE_EVENT_PROTOCOL_VERSION,
+            "timeline playback events require a version 2 dispatch"
         );
         let utterance_id = increment(&self.next_utterance_id);
-        let mut events = Vec::with_capacity(markers.len() + semantic_events.len() + 1);
-        let mut cues = Vec::with_capacity(markers.len() + semantic_events.len() + 1);
+        let diagnostic_count = resolutions.len()
+            + usize::from(!degraded_acss.is_empty() || !degraded_effects.is_empty());
+        let mut events =
+            Vec::with_capacity(markers.len() + semantic_events.len() + diagnostic_count + 1);
+        let mut cues =
+            Vec::with_capacity(markers.len() + semantic_events.len() + diagnostic_count + 1);
         push_event(
             &mut events,
             &mut cues,
@@ -146,6 +188,40 @@ impl MarkerDispatchContext {
                 },
             },
         );
+        for resolution in resolutions {
+            push_event(
+                &mut events,
+                &mut cues,
+                0,
+                MarkerEventEnvelope {
+                    protocol_version: self.protocol_version,
+                    dispatch_id: self.dispatch_id,
+                    sequence: increment(&self.next_sequence),
+                    event: MarkerEvent::TimelineActionResolved {
+                        utterance_id,
+                        action_id: resolution.action_id.as_str().to_owned(),
+                        resolution: resolution.resolution,
+                    },
+                },
+            );
+        }
+        if !degraded_acss.is_empty() || !degraded_effects.is_empty() {
+            push_event(
+                &mut events,
+                &mut cues,
+                0,
+                MarkerEventEnvelope {
+                    protocol_version: self.protocol_version,
+                    dispatch_id: self.dispatch_id,
+                    sequence: increment(&self.next_sequence),
+                    event: MarkerEvent::TimelineStyleDegraded {
+                        utterance_id,
+                        degraded_acss: degraded_acss.to_vec(),
+                        degraded_effects: degraded_effects.to_vec(),
+                    },
+                },
+            );
+        }
 
         let mut pending = markers
             .iter()
@@ -200,6 +276,13 @@ impl MarkerDispatchContext {
 pub struct PlaybackSemanticEvent {
     pub action_id: TimelineActionId,
     pub frame_offset: u64,
+}
+
+/// One requested action and the placement grade realized by synthesis.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlaybackTimelineResolution {
+    pub action_id: TimelineActionId,
+    pub resolution: AnchorResolution,
 }
 
 pub struct PreparedMarkerPlayback {
@@ -373,6 +456,57 @@ mod tests {
             prepared.events[3].event,
             MarkerEvent::SemanticEventReached { ref action_id, .. }
                 if action_id == "same-frame"
+        ));
+    }
+
+    #[test]
+    fn v2_reports_anchor_and_style_degradation_at_utterance_start() {
+        let (sender, _receiver) = mpsc::channel();
+        let context = MarkerDispatchContext::with_timeline_events(
+            92,
+            MarkerEventOutput { sender },
+        );
+        let prepared = context.prepare_timeline_utterance(
+            "hello",
+            "helper",
+            None,
+            Some("comment"),
+            44100,
+            100,
+            &[],
+            &[],
+            &[PlaybackTimelineResolution {
+                action_id: TimelineActionId::new("cue").unwrap(),
+                resolution: AnchorResolution::WordBoundary,
+            }],
+            &[AcssDimension::Richness],
+            &[PostSynthesisDimension::Echo],
+        );
+
+        assert_eq!(
+            prepared
+                .cues
+                .iter()
+                .map(|cue| cue.frame_offset)
+                .collect::<Vec<_>>(),
+            vec![0, 0, 0]
+        );
+        assert!(matches!(
+            prepared.events[1].event,
+            MarkerEvent::TimelineActionResolved {
+                ref action_id,
+                resolution: AnchorResolution::WordBoundary,
+                ..
+            } if action_id == "cue"
+        ));
+        assert!(matches!(
+            prepared.events[2].event,
+            MarkerEvent::TimelineStyleDegraded {
+                ref degraded_acss,
+                ref degraded_effects,
+                ..
+            } if degraded_acss == &[AcssDimension::Richness]
+                && degraded_effects == &[PostSynthesisDimension::Echo]
         ));
     }
 }

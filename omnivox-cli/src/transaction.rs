@@ -3,6 +3,9 @@
 use omnivox_core::state::{ChannelMode, PunctuationLevel};
 use omnivox_core::{parse_command, Command, CommandId};
 use omnivox_tts::presentation::decode_presentation_frame;
+use omnivox_tts::timeline_protocol::{
+    decode_presentation_timeline, PresentationTimelineEnvelope,
+};
 
 use crate::text::parse_resource_path;
 
@@ -12,6 +15,12 @@ const MAX_PRESENTATION_COMMANDS: usize = 4096;
 pub struct PreparedPresentation {
     pub generation: u64,
     pub commands: Vec<Command>,
+}
+
+#[derive(Debug)]
+pub struct PreparedStructuredPresentation {
+    pub generation: u64,
+    pub timeline: PresentationTimelineEnvelope,
 }
 
 #[derive(Debug, Default)]
@@ -41,6 +50,20 @@ impl PresentationGenerations {
         }))
     }
 
+    pub fn prepare_timeline(
+        &self,
+        payload: &str,
+    ) -> Result<Option<PreparedStructuredPresentation>, String> {
+        let timeline = decode_presentation_timeline(payload).map_err(|error| error.to_string())?;
+        if timeline.generation <= self.latest {
+            return Ok(None);
+        }
+        Ok(Some(PreparedStructuredPresentation {
+            generation: timeline.generation,
+            timeline,
+        }))
+    }
+
     pub fn commit(&mut self, generation: u64) {
         self.latest = self.latest.max(generation);
     }
@@ -48,6 +71,17 @@ impl PresentationGenerations {
     #[cfg(test)]
     fn latest(&self) -> u64 {
         self.latest
+    }
+}
+
+pub fn prefer_newer_timeline(
+    current: PreparedStructuredPresentation,
+    candidate: PreparedStructuredPresentation,
+) -> PreparedStructuredPresentation {
+    if candidate.generation > current.generation {
+        candidate
+    } else {
+        current
     }
 }
 
@@ -135,6 +169,7 @@ fn validate_command(command: &Command) -> Result<(), String> {
         | CommandId::Version
         | CommandId::OmnivoxControl
         | CommandId::EmacsvoxTx
+        | CommandId::EmacsvoxTimeline
         | CommandId::EmacsvoxTrackedDispatch
         | CommandId::EmacsvoxMarkerDispatch
         | CommandId::TtsExit => false,
@@ -156,7 +191,12 @@ fn valid_float(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use omnivox_tts::contracts::NormalizedAcss;
     use omnivox_tts::presentation::encode_presentation_script;
+    use omnivox_tts::timeline_protocol::{
+        encode_presentation_timeline, PresentationEffectDirective, PresentationSpeechSpan,
+        PresentationTimelineEnvelope, PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+    };
 
     use super::*;
 
@@ -165,6 +205,23 @@ mod tests {
             "{generation} {{{}}}",
             encode_presentation_script(script).unwrap()
         )
+    }
+
+    fn timeline_payload(generation: u64, dispatch_id: u64, text: &str) -> String {
+        encode_presentation_timeline(&PresentationTimelineEnvelope {
+            protocol_version: PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+            generation,
+            dispatch_id,
+            spans: vec![PresentationSpeechSpan {
+                id: 1,
+                text: text.to_owned(),
+                logical_voice_id: None,
+                acss: NormalizedAcss::default(),
+                effects: PresentationEffectDirective::Retain,
+            }],
+            actions: Vec::new(),
+        })
+        .unwrap()
     }
 
     #[test]
@@ -255,5 +312,25 @@ mod tests {
         generations.commit(selected.generation);
 
         assert!(generations.prepare(&arguments(5, "q {return}\nd\n")).unwrap().is_none());
+    }
+
+    #[test]
+    fn structured_and_legacy_presentations_share_one_generation_clock() {
+        let mut generations = PresentationGenerations::default();
+        let structured = generations
+            .prepare_timeline(&timeline_payload(8, 42, "structured"))
+            .unwrap()
+            .unwrap();
+        generations.commit(structured.generation);
+
+        assert!(generations
+            .prepare(&arguments(7, "q {legacy}\nd\n"))
+            .unwrap()
+            .is_none());
+        let newer = generations
+            .prepare_timeline(&timeline_payload(9, 43, "newer"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(newer.timeline.dispatch_id, 43);
     }
 }

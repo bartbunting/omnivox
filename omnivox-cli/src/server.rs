@@ -20,6 +20,7 @@ use omnivox_tts::control::{
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
+use omnivox_tts::timeline_protocol::PresentationTimelineEnvelope;
 use omnivox_tts::{TtsEngine, TtsSettings};
 use std::io::{self, BufRead, Write};
 use std::mem;
@@ -31,8 +32,8 @@ use tracing::{debug, error, info, warn};
 use crate::health::RuntimeEngineHealth;
 use crate::marker_events::{MarkerDispatchContext, MarkerEventOutput};
 use crate::pipeline::{
-    build_sound_pipeline, process_batch, process_preview, synthesize_chunk_with_tones, BatchStatus,
-    SynthCtx,
+    build_sound_pipeline, process_batch, process_presentation_timeline, process_preview,
+    synthesize_chunk_with_tones, BatchStatus, SynthCtx,
 };
 use crate::routing::LogicalVoiceRoutingSnapshot;
 use crate::text::{
@@ -40,7 +41,8 @@ use crate::text::{
     CapitalizationTone, CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ,
 };
 use crate::transaction::{
-    prefer_newer, PreparedPresentation, PresentationGenerations,
+    prefer_newer, prefer_newer_timeline, PreparedPresentation, PreparedStructuredPresentation,
+    PresentationGenerations,
 };
 
 const PRESENTATION_COALESCE_WINDOW: Duration = Duration::from_millis(2);
@@ -64,6 +66,13 @@ pub enum SynthRequest {
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
         tracking: Option<DispatchTracking>,
+        gen: u64,
+    },
+    /// Render one atomic structured presentation with marker v2 tracking.
+    Timeline {
+        timeline: PresentationTimelineEnvelope,
+        state: TtsState,
+        logical_voice_routing: LogicalVoiceRoutingSnapshot,
         gen: u64,
     },
     /// Synthesize one explicitly selected voice without mutating server state.
@@ -336,6 +345,62 @@ pub fn synthesis_worker(
                     if tracked_playback_tx.send(playback).is_err() {
                         warn!("Tracked playback reporter stopped before dispatch {identifier}");
                     }
+                }
+            }
+
+            SynthRequest::Timeline {
+                timeline,
+                state,
+                mut logical_voice_routing,
+                gen,
+            } => {
+                let runtime_inventory = runtime_health.snapshot(
+                    engine_registry.generation(),
+                    engine_registry.inventory(),
+                );
+                logical_voice_routing.replace_inventory(runtime_inventory.engines);
+                let batch_engine = logical_voice_routing
+                    .preferred_legacy_engine(&engine_registry, &engine);
+                let tickets = Mutex::new(Vec::new());
+                let presentation_clock = Mutex::new(Vec::new());
+                let pending_overlays = Mutex::new(Vec::new());
+                let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+                let failed = AtomicBool::new(false);
+                let marker_dispatch = MarkerDispatchContext::with_timeline_events(
+                    timeline.dispatch_id,
+                    marker_output.clone(),
+                );
+                let ctx = SynthCtx {
+                    gen,
+                    gen_counter: &gen_counter,
+                    engine: &*batch_engine,
+                    control: &control,
+                    playback_tickets: Some(&tickets),
+                    presentation_clock: Some(&presentation_clock),
+                    pending_overlays: Some(&pending_overlays),
+                    timeline_renderer: Some(&timeline_renderer),
+                    effect_processor: Some(&effect_processor),
+                    marker_dispatch: Some(&marker_dispatch),
+                    batch_failed: Some(&failed),
+                };
+                let dispatch_id = timeline.dispatch_id;
+                let status = process_presentation_timeline(
+                    timeline,
+                    state,
+                    &ctx,
+                    &loader,
+                    &engine_registry,
+                    &runtime_health,
+                    logical_voice_routing,
+                );
+                let playback = TrackedPlayback {
+                    completion: PlaybackCompletion::Tracked(dispatch_id),
+                    status,
+                    tickets: tickets.into_inner().unwrap(),
+                };
+                if tracked_playback_tx.send(playback).is_err() {
+                    warn!("Tracked playback reporter stopped before timeline {dispatch_id}");
                 }
             }
 
@@ -635,6 +700,103 @@ pub fn run_server(
             None => break,
         };
 
+        if command.id == CommandId::EmacsvoxTimeline {
+            let Some(mut selected) = prepare_structured_presentation(
+                &presentation_generations,
+                &command,
+            ) else {
+                continue;
+            };
+            loop {
+                match receive_command_until(
+                    &input_rx,
+                    Instant::now() + PRESENTATION_COALESCE_WINDOW,
+                )? {
+                    TimedCommand::Command(next) if next.id == CommandId::EmacsvoxTimeline => {
+                        if let Some(candidate) =
+                            prepare_structured_presentation(&presentation_generations, &next)
+                        {
+                            let superseded_dispatch = if candidate.generation > selected.generation {
+                                selected.timeline.dispatch_id
+                            } else {
+                                candidate.timeline.dispatch_id
+                            };
+                            selected = prefer_newer_timeline(selected, candidate);
+                            write_tracked_status(superseded_dispatch, BatchStatus::Cancelled);
+                        }
+                    }
+                    TimedCommand::Command(next) if next.id == CommandId::Stop => {
+                        debug!(
+                            "Stop barrier discarded structured Emacsvox presentation {}",
+                            selected.generation
+                        );
+                        presentation_generations.commit(selected.generation);
+                        write_tracked_status(
+                            selected.timeline.dispatch_id,
+                            BatchStatus::Cancelled,
+                        );
+                        handle_command(
+                            next,
+                            &mut state,
+                            &mut pending,
+                            &mut current_gen,
+                            &gen_counter,
+                            &engine_registry,
+                            &runtime_health,
+                            &preferred_engine_id,
+                            &mut routing_policy,
+                            &mut logical_voices,
+                            &control,
+                            &tx,
+                        );
+                        break;
+                    }
+                    TimedCommand::Command(next) => {
+                        execute_structured_presentation(
+                            selected,
+                            &mut presentation_generations,
+                            &state,
+                            current_gen,
+                            &engine_registry,
+                            &routing_policy,
+                            &logical_voices,
+                            &tx,
+                        );
+                        deferred_command = Some(next);
+                        break;
+                    }
+                    TimedCommand::Timeout => {
+                        execute_structured_presentation(
+                            selected,
+                            &mut presentation_generations,
+                            &state,
+                            current_gen,
+                            &engine_registry,
+                            &routing_policy,
+                            &logical_voices,
+                            &tx,
+                        );
+                        break;
+                    }
+                    TimedCommand::Closed => {
+                        execute_structured_presentation(
+                            selected,
+                            &mut presentation_generations,
+                            &state,
+                            current_gen,
+                            &engine_registry,
+                            &routing_policy,
+                            &logical_voices,
+                            &tx,
+                        );
+                        input_closed = true;
+                        break;
+                    }
+                }
+            }
+            continue;
+        }
+
         if command.id != CommandId::EmacsvoxTx {
             handle_command(
                 command,
@@ -834,6 +996,57 @@ fn prepare_presentation(
             warn!("Invalid Emacsvox presentation transaction: {}", error);
             None
         }
+    }
+}
+
+fn prepare_structured_presentation(
+    generations: &PresentationGenerations,
+    command: &Command,
+) -> Option<PreparedStructuredPresentation> {
+    match generations.prepare_timeline(command.args.as_deref().unwrap_or("")) {
+        Ok(Some(presentation)) => Some(presentation),
+        Ok(None) => {
+            debug!("Ignored stale structured Emacsvox presentation");
+            None
+        }
+        Err(error) => {
+            warn!("Invalid structured Emacsvox presentation: {error}");
+            None
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn execute_structured_presentation(
+    presentation: PreparedStructuredPresentation,
+    generations: &mut PresentationGenerations,
+    state: &TtsState,
+    current_gen: u64,
+    engine_registry: &EngineRegistry,
+    routing_policy: &RoutingPolicyRegistry,
+    logical_voices: &LogicalVoiceRegistry,
+    tx: &mpsc::Sender<SynthRequest>,
+) {
+    debug!(
+        "Accepted structured Emacsvox presentation {}",
+        presentation.generation
+    );
+    generations.commit(presentation.generation);
+    let dispatch_id = presentation.timeline.dispatch_id;
+    if tx
+        .send(SynthRequest::Timeline {
+            timeline: presentation.timeline,
+            state: state.clone(),
+            logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
+                logical_voices,
+                engine_registry,
+                routing_policy,
+            ),
+            gen: current_gen,
+        })
+        .is_err()
+    {
+        write_tracked_status(dispatch_id, BatchStatus::Failed);
     }
 }
 
@@ -1294,6 +1507,10 @@ fn handle_command(
 
         CommandId::EmacsvoxTx => {
             warn!("Nested Emacsvox presentation transaction was ignored");
+        }
+
+        CommandId::EmacsvoxTimeline => {
+            warn!("Structured Emacsvox timeline is not available in legacy command batches");
         }
 
         // --- State management ---

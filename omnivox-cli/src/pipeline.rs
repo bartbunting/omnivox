@@ -11,23 +11,32 @@ use omnivox_core::timeline::{
 };
 use omnivox_core::{QueueItem, TtsState};
 use omnivox_tts::contracts::{
-    AcssDimension, PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle,
+    AcssDimension, NormalizedAcss, PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
+use omnivox_tts::timeline_protocol::{
+    PresentationAction, PresentationAffinity, PresentationAudioMode, PresentationEffectBus,
+    PresentationEffectDirective, PresentationSpeechSpan, PresentationTimelineAction,
+    PresentationTimelineEnvelope, PresentationTimelinePosition,
+};
 use omnivox_tts::{
     AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisMarker,
     SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
 };
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use tracing::{debug, warn};
 
 use crate::health::RuntimeEngineHealth;
-use crate::marker_events::MarkerDispatchContext;
+use crate::marker_events::{
+    MarkerDispatchContext, PlaybackSemanticEvent, PlaybackTimelineResolution,
+};
 use crate::routing::{LogicalRoute, LogicalVoiceRoutingSnapshot, RuntimeSynthesisOutcome};
 use crate::text::{
     chunk_prepared_speech, extract_logical_voice, extract_pitch, extract_voice,
-    prepare_speech_text, rate_scaled_padding, CapitalizationTone,
+    prepare_speech_text, prepare_speech_text_with_offsets, rate_scaled_padding,
+    CapitalizationTone, PreparedSpeechChunk,
 };
 
 // ---------------------------------------------------------------------------
@@ -250,6 +259,25 @@ pub enum BatchStatus {
 // Synthesis helpers
 // ---------------------------------------------------------------------------
 
+#[derive(Debug, Clone)]
+struct TimelineChunkAction {
+    id: String,
+    text_offset: u32,
+    affinity: AnchorAffinity,
+    kind: TimelineChunkActionKind,
+}
+
+#[derive(Debug, Clone)]
+enum TimelineChunkActionKind {
+    Audio {
+        audio: AudioBuffer,
+        mode: AudioActionMode,
+        volume: f32,
+        effect_bus: EffectBus,
+    },
+    SemanticEvent,
+}
+
 pub fn synthesize_chunk_with_tones(
     chunk: &str,
     capitalization_tones: &[CapitalizationTone],
@@ -264,7 +292,7 @@ pub fn synthesize_chunk_with_tones(
     }
 
     let request = SynthesisRequest::new(chunk, settings.clone())
-        .with_anchors(requested_capitalization_anchors(capitalization_tones))
+        .with_anchors(requested_timeline_anchors(capitalization_tones, &[]))
         .expect("prepared capitalization offsets are valid");
     match ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(
@@ -283,7 +311,9 @@ pub fn synthesize_chunk_with_tones(
                 chunk,
                 None,
                 capitalization_tones,
+                &[],
                 &PostSynthesisStyle::default(),
+                &[],
                 state,
                 is_last_speech,
                 final_timeline_window,
@@ -305,7 +335,9 @@ fn queue_synthesis_result(
     utterance_text: &str,
     logical_voice_id: Option<&str>,
     capitalization_tones: &[CapitalizationTone],
+    timeline_actions: &[TimelineChunkAction],
     effects: &PostSynthesisStyle,
+    degraded_effects: &[PostSynthesisDimension],
     state: &TtsState,
     is_last_speech: bool,
     final_timeline_window: bool,
@@ -337,32 +369,67 @@ fn queue_synthesis_result(
             None
         }
     };
-    let overlay_tail = match render_capitalization_timeline(
+    let (overlay_tail, semantic_events) = match render_speech_timeline(
         &mut result,
         capitalization_tones,
+        timeline_actions,
+        effects,
         state,
         final_timeline_window,
         ctx,
     ) {
-        Ok(tail) => tail,
+        Ok(rendered) => rendered,
         Err(error) => {
             ctx.mark_failed();
             warn!("Timeline render error; queueing dry speech: {}", error);
-            None
+            (None, Vec::new())
         }
     };
     if let Some(marker_dispatch) = ctx.marker_dispatch.filter(|_| !result.audio.is_empty()) {
         ctx.flush_overlays();
-        let prepared = marker_dispatch.prepare_utterance(
-            utterance_text,
-            &result.engine_id,
-            result.actual_voice.as_ref(),
-            logical_voice_id,
-            result.audio.sample_rate(),
-            result.audio.frame_count(),
-            &result.markers,
-            &[],
-        );
+        let prepared = if marker_dispatch.supports_timeline_events() {
+            let resolutions = timeline_actions
+                .iter()
+                .filter_map(|action| {
+                    result
+                        .anchors
+                        .iter()
+                        .find(|anchor| anchor.id == action.id)
+                        .and_then(|anchor| {
+                            TimelineActionId::new(action.id.clone()).ok().map(|action_id| {
+                                PlaybackTimelineResolution {
+                                    action_id,
+                                    resolution: anchor.resolution,
+                                }
+                            })
+                        })
+                })
+                .collect::<Vec<_>>();
+            marker_dispatch.prepare_timeline_utterance(
+                utterance_text,
+                &result.engine_id,
+                result.actual_voice.as_ref(),
+                logical_voice_id,
+                result.audio.sample_rate(),
+                result.audio.frame_count(),
+                &result.markers,
+                &semantic_events,
+                &resolutions,
+                &result.degraded_acss,
+                degraded_effects,
+            )
+        } else {
+            marker_dispatch.prepare_utterance(
+                utterance_text,
+                &result.engine_id,
+                result.actual_voice.as_ref(),
+                logical_voice_id,
+                result.audio.sample_rate(),
+                result.audio.frame_count(),
+                &result.markers,
+                &semantic_events,
+            )
+        };
         match prepared.queue(ctx.control, &result.audio) {
             Ok(Some(ticket)) => {
                 ctx.record_ticket(StreamType::Speech, ticket);
@@ -426,23 +493,31 @@ fn process_effect_window(
     Ok(processed.tail)
 }
 
-fn requested_capitalization_anchors(tones: &[CapitalizationTone]) -> Vec<RequestedAnchor> {
+fn requested_timeline_anchors(
+    tones: &[CapitalizationTone],
+    actions: &[TimelineChunkAction],
+) -> Vec<RequestedAnchor> {
     tones
         .iter()
         .map(|tone| {
             RequestedAnchor::new(tone.id.clone(), tone.text_offset, AnchorAffinity::Before)
         })
+        .chain(actions.iter().map(|action| {
+            RequestedAnchor::new(action.id.clone(), action.text_offset, action.affinity)
+        }))
         .collect()
 }
 
-fn render_capitalization_timeline(
+fn render_speech_timeline(
     result: &mut CanonicalSynthesisResult,
     tones: &[CapitalizationTone],
+    actions: &[TimelineChunkAction],
+    effects: &PostSynthesisStyle,
     state: &TtsState,
     final_window: bool,
     ctx: &SynthCtx,
-) -> Result<Option<AudioBuffer>, omnivox_audio::AudioError> {
-    let (timeline, resources) = prepare_capitalization_timeline(result, tones, state)?;
+) -> Result<(Option<AudioBuffer>, Vec<PlaybackSemanticEvent>), omnivox_audio::AudioError> {
+    let (timeline, resources) = prepare_speech_timeline(result, tones, actions, effects, state)?;
     let renderer = ctx.timeline_renderer.ok_or_else(|| {
         omnivox_audio::AudioError::TimelineError("synthesis context has no timeline renderer".into())
     })?;
@@ -459,16 +534,28 @@ fn render_capitalization_timeline(
         }
     }
     result.audio = rendered.audio;
-    Ok(rendered.overlay_tail)
+    Ok((
+        rendered.overlay_tail,
+        rendered
+            .semantic_events
+            .into_iter()
+            .map(|event| PlaybackSemanticEvent {
+                action_id: event.id,
+                frame_offset: event.frame_offset,
+            })
+            .collect(),
+    ))
 }
 
-fn prepare_capitalization_timeline(
+fn prepare_speech_timeline(
     result: &CanonicalSynthesisResult,
     tones: &[CapitalizationTone],
+    timeline_actions: &[TimelineChunkAction],
+    effects: &PostSynthesisStyle,
     state: &TtsState,
 ) -> Result<(ScheduledTimeline, Vec<PreparedAudioResource>), omnivox_audio::AudioError> {
-    let mut actions = Vec::with_capacity(tones.len());
-    let mut resources = Vec::with_capacity(tones.len());
+    let mut actions = Vec::with_capacity(tones.len() + timeline_actions.len());
+    let mut resources = Vec::with_capacity(tones.len() + timeline_actions.len());
     for tone in tones {
         let resolved = result
             .anchors
@@ -507,6 +594,76 @@ fn prepare_capitalization_timeline(
             source_frame: frame_offset,
         });
         resources.push(PreparedAudioResource::new(id, audio));
+    }
+    for action in timeline_actions {
+        let resolved = result
+            .anchors
+            .iter()
+            .find(|anchor| anchor.id == action.id)
+            .expect("validated synthesis result contains every requested anchor");
+        let frame_offset = resolved.frame_offset.unwrap_or_else(|| {
+            if action.affinity == AnchorAffinity::After {
+                result.audio.frame_count() as u64
+            } else {
+                0
+            }
+        });
+        if resolved.resolution != AnchorResolution::Exact {
+            debug!(
+                anchor = %action.id,
+                resolution = ?resolved.resolution,
+                frame_offset,
+                "structured timeline placement degraded"
+            );
+        }
+        let id = TimelineActionId::new(action.id.clone())
+            .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
+        let kind = match &action.kind {
+            TimelineChunkActionKind::Audio {
+                audio,
+                mode,
+                volume,
+                effect_bus,
+            } => {
+                let mut audio = audio.clone();
+                if *effect_bus == EffectBus::Speech {
+                    let mut processor = PostSynthesisProcessor::new();
+                    let processed = processor.process_window(
+                        &audio,
+                        post_synthesis_parameters(effects),
+                        true,
+                    );
+                    audio = processed.audio;
+                    if let Some(tail) = processed.tail {
+                        audio.append(&tail);
+                    }
+                }
+                let duration_frames = audio.frame_count() as u64;
+                resources.push(PreparedAudioResource::new(id.clone(), audio));
+                TimelineActionKind::Audio {
+                    mode: *mode,
+                    duration_frames,
+                    volume: *volume,
+                    effect_bus: *effect_bus,
+                }
+            }
+            TimelineChunkActionKind::SemanticEvent => TimelineActionKind::SemanticEvent,
+        };
+        actions.push(ResolvedTimelineAction {
+            action: TimelineAction {
+                id,
+                position: PresentationPosition::TextOffset {
+                    span_id: 0,
+                    utf8_offset: action.text_offset,
+                    affinity: match action.affinity {
+                        AnchorAffinity::Before => ActionAffinity::Before,
+                        AnchorAffinity::After => ActionAffinity::After,
+                    },
+                },
+                kind,
+            },
+            source_frame: frame_offset,
+        });
     }
     let timeline = ScheduledTimeline::build(result.audio.frame_count() as u64, actions)
         .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
@@ -602,6 +759,9 @@ enum RoutedChunkOutcome {
 fn synthesize_routed_chunk(
     chunk: &str,
     capitalization_tones: &[CapitalizationTone],
+    timeline_actions: &[TimelineChunkAction],
+    requested_acss: Option<&NormalizedAcss>,
+    requested_effects: Option<&PostSynthesisStyle>,
     state: &TtsState,
     is_last_speech: bool,
     final_timeline_window: bool,
@@ -617,30 +777,59 @@ fn synthesize_routed_chunk(
         pitch: state.pitch_multiplier,
         volume: 1.0,
     };
-    match crate::routing::synthesize_with_runtime_fallback_anchored(
-        chunk,
-        &requested_capitalization_anchors(capitalization_tones),
-        &settings,
-        route,
-        routing,
-        engine_registry,
-        runtime_health,
-        ctx.gen,
-        ctx.gen_counter,
-    ) {
+    let anchors = requested_timeline_anchors(capitalization_tones, timeline_actions);
+    let outcome = if let Some(requested_acss) = requested_acss {
+        crate::routing::synthesize_with_runtime_fallback_anchored_styled(
+            chunk,
+            &anchors,
+            &settings,
+            requested_acss,
+            route,
+            routing,
+            engine_registry,
+            runtime_health,
+            ctx.gen,
+            ctx.gen_counter,
+        )
+    } else {
+        crate::routing::synthesize_with_runtime_fallback_anchored(
+            chunk,
+            &anchors,
+            &settings,
+            route,
+            routing,
+            engine_registry,
+            runtime_health,
+            ctx.gen,
+            ctx.gen_counter,
+        )
+    };
+    match outcome {
         RuntimeSynthesisOutcome::Ready(result) => {
             let realized = result
                 .actual_voice
                 .clone()
                 .unwrap_or_else(|| route.realized.clone());
             let degraded_acss = result.degraded_acss.clone();
-            let degraded_effects = route.effects.omitted.clone();
+            let effect_application = requested_effects
+                .cloned()
+                .unwrap_or_else(|| route.effects.style.clone())
+                .degrade_for(
+                    &route
+                        .engine
+                        .descriptor()
+                        .capabilities
+                        .post_synthesis_dimensions,
+                );
+            let degraded_effects = effect_application.omitted.clone();
             queue_synthesis_result(
                 *result,
                 chunk,
                 Some(&route.logical_voice_id),
                 capitalization_tones,
-                &route.effects.style,
+                timeline_actions,
+                &effect_application.style,
+                &degraded_effects,
                 state,
                 is_last_speech,
                 final_timeline_window,
@@ -704,6 +893,9 @@ pub fn process_preview(
         match synthesize_routed_chunk(
             &chunk.text,
             &chunk.capitalization_tones,
+            &[],
+            None,
+            None,
             &state,
             index + 1 == chunk_count,
             index + 1 == chunk_count,
@@ -786,6 +978,391 @@ fn preview_result(
     }
 }
 
+#[derive(Debug)]
+struct PreparedTimelineSpan {
+    id: u64,
+    logical_voice_id: Option<String>,
+    acss: NormalizedAcss,
+    effects: PresentationEffectDirective,
+    chunks: Vec<PreparedSpeechChunk>,
+    actions: Vec<Vec<TimelineChunkAction>>,
+}
+
+/// Validate resources up front, then synthesize and queue one structured,
+/// tracked presentation timeline.
+pub fn process_presentation_timeline(
+    timeline: PresentationTimelineEnvelope,
+    state: TtsState,
+    ctx: &SynthCtx,
+    loader: &AudioFileLoader,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    mut logical_voice_routing: LogicalVoiceRoutingSnapshot,
+) -> BatchStatus {
+    if ctx.is_stale() {
+        return BatchStatus::Cancelled;
+    }
+    let resources = match preload_timeline_resources(&timeline.actions, &state, loader) {
+        Ok(resources) => resources,
+        Err(error) => {
+            ctx.mark_failed();
+            warn!("Structured presentation resource validation failed: {error}");
+            return BatchStatus::Failed;
+        }
+    };
+    let spans = match prepare_timeline_spans(&timeline, &state, &resources) {
+        Ok(spans) => spans,
+        Err(error) => {
+            ctx.mark_failed();
+            warn!("Structured presentation preparation failed: {error}");
+            return BatchStatus::Failed;
+        }
+    };
+    let total_chunks = spans.iter().map(|span| span.chunks.len()).sum::<usize>();
+    let mut chunk_index = 0_usize;
+    let mut active_effects: Option<PostSynthesisStyle> = None;
+
+    for span in spans {
+        match span.effects {
+            PresentationEffectDirective::Retain => {}
+            PresentationEffectDirective::Replace { style, .. } => active_effects = Some(style),
+            PresentationEffectDirective::End => {
+                active_effects = Some(PostSynthesisStyle::default())
+            }
+        }
+        let mut route = span
+            .logical_voice_id
+            .as_deref()
+            .and_then(|logical_voice_id| {
+                match logical_voice_routing.initial_route(logical_voice_id, engine_registry) {
+                    Ok(route) => Some(route),
+                    Err(error) => {
+                        warn!("{error}; using the preferred legacy engine for span {}", span.id);
+                        None
+                    }
+                }
+            });
+        let requested_acss = acss_has_values(&span.acss).then_some(&span.acss);
+        for (chunk, actions) in span.chunks.into_iter().zip(span.actions) {
+            if ctx.is_stale() {
+                return BatchStatus::Cancelled;
+            }
+            let final_window = chunk_index + 1 == total_chunks;
+            let queued = if let Some(route) = &mut route {
+                match synthesize_routed_chunk(
+                    &chunk.text,
+                    &chunk.capitalization_tones,
+                    &actions,
+                    requested_acss,
+                    active_effects.as_ref(),
+                    &state,
+                    final_window,
+                    final_window,
+                    route,
+                    &mut logical_voice_routing,
+                    engine_registry,
+                    runtime_health,
+                    ctx,
+                ) {
+                    RoutedChunkOutcome::Queued { .. } => true,
+                    RoutedChunkOutcome::Cancelled => return BatchStatus::Cancelled,
+                    RoutedChunkOutcome::Failed | RoutedChunkOutcome::Exhausted => {
+                        ctx.mark_failed();
+                        true
+                    }
+                }
+            } else {
+                synthesize_direct_timeline_chunk(
+                    &chunk,
+                    &actions,
+                    requested_acss,
+                    active_effects.as_ref(),
+                    &state,
+                    final_window,
+                    ctx,
+                )
+            };
+            if !queued {
+                return BatchStatus::Cancelled;
+            }
+            chunk_index += 1;
+        }
+    }
+
+    finish_effect_tail(ctx);
+    finish_timeline_tail(ctx);
+    ctx.flush_overlays();
+    if ctx.failed() {
+        BatchStatus::Failed
+    } else {
+        BatchStatus::Completed
+    }
+}
+
+fn synthesize_direct_timeline_chunk(
+    chunk: &PreparedSpeechChunk,
+    actions: &[TimelineChunkAction],
+    requested_acss: Option<&NormalizedAcss>,
+    requested_effects: Option<&PostSynthesisStyle>,
+    state: &TtsState,
+    final_window: bool,
+    ctx: &SynthCtx,
+) -> bool {
+    if ctx.is_stale() {
+        return false;
+    }
+    let descriptor = ctx.engine.descriptor();
+    let acss = requested_acss
+        .cloned()
+        .unwrap_or_default()
+        .degrade_for(&descriptor.capabilities.acss);
+    let effects = requested_effects
+        .cloned()
+        .unwrap_or_default()
+        .degrade_for(&descriptor.capabilities.post_synthesis_dimensions);
+    let mut settings = TtsSettings {
+        voice: state.current_voice.clone(),
+        rate: state.speech_rate,
+        pitch: state.pitch_multiplier,
+        volume: 1.0,
+    };
+    crate::routing::apply_normalized_acss(&mut settings, &acss.style);
+    let request = SynthesisRequest::new(&chunk.text, settings)
+        .with_anchors(requested_timeline_anchors(
+            &chunk.capitalization_tones,
+            actions,
+        ))
+        .expect("prepared timeline offsets are valid");
+    match ctx.engine.synthesize(&request).and_then(|mut result| {
+        result.resolve_anchors(
+            &request,
+            descriptor.capabilities.markers.requested_anchors,
+        );
+        result.degraded_acss = acss.omitted.clone();
+        result.validate(&request)?;
+        Ok(result)
+    }) {
+        Ok(result) => {
+            if ctx.is_stale() {
+                return false;
+            }
+            queue_synthesis_result(
+                result,
+                &chunk.text,
+                None,
+                &chunk.capitalization_tones,
+                actions,
+                &effects.style,
+                &effects.omitted,
+                state,
+                final_window,
+                final_window,
+                ctx,
+            );
+            true
+        }
+        Err(error) => {
+            ctx.mark_failed();
+            warn!("Structured timeline synthesis error: {error}");
+            true
+        }
+    }
+}
+
+fn preload_timeline_resources(
+    actions: &[PresentationTimelineAction],
+    state: &TtsState,
+    loader: &AudioFileLoader,
+) -> Result<HashMap<String, AudioBuffer>, String> {
+    let mut resources = HashMap::new();
+    for action in actions {
+        let audio = match &action.action {
+            PresentationAction::Audio { path, .. } => {
+                let mut audio = loader
+                    .load(std::path::Path::new(path))
+                    .map_err(|error| format!("action {}: {error}", action.id))?;
+                build_sound_pipeline(state)
+                    .process(&mut audio)
+                    .map_err(|error| format!("action {}: {error}", action.id))?;
+                audio
+            }
+            PresentationAction::Tone {
+                frequency_hz,
+                duration_ms,
+                ..
+            } => {
+                let mut audio = ToneGenerator::generate(*frequency_hz, *duration_ms, 1.0);
+                build_tone_pipeline(state)
+                    .process(&mut audio)
+                    .map_err(|error| format!("action {}: {error}", action.id))?;
+                audio
+            }
+            PresentationAction::Silence { duration_ms } => {
+                AudioBuffer::silence(*duration_ms as f32 / 1000.0)
+            }
+            PresentationAction::SemanticEvent => continue,
+        };
+        if audio.is_empty() {
+            return Err(format!("action {} decoded to empty audio", action.id));
+        }
+        resources.insert(action.id.clone(), audio);
+    }
+    Ok(resources)
+}
+
+fn prepare_timeline_spans(
+    timeline: &PresentationTimelineEnvelope,
+    state: &TtsState,
+    resources: &HashMap<String, AudioBuffer>,
+) -> Result<Vec<PreparedTimelineSpan>, String> {
+    timeline
+        .spans
+        .iter()
+        .map(|span| prepare_timeline_span(span, &timeline.actions, state, resources))
+        .collect()
+}
+
+fn prepare_timeline_span(
+    span: &PresentationSpeechSpan,
+    actions: &[PresentationTimelineAction],
+    state: &TtsState,
+    resources: &HashMap<String, AudioBuffer>,
+) -> Result<PreparedTimelineSpan, String> {
+    let span_actions = actions
+        .iter()
+        .filter(|action| action.position.span_id() == span.id)
+        .collect::<Vec<_>>();
+    let source_offsets = span_actions
+        .iter()
+        .filter_map(|action| match action.position {
+            PresentationTimelinePosition::TextOffset { utf8_offset, .. } => Some(utf8_offset),
+            PresentationTimelinePosition::SpanBoundary { .. } => None,
+        })
+        .collect::<Vec<_>>();
+    let (mut prepared, mapped_offsets) =
+        prepare_speech_text_with_offsets(&span.text, state, &source_offsets);
+    for (index, tone) in prepared.capitalization_tones.iter_mut().enumerate() {
+        tone.id = format!("omnivox.cap.{}.{}", span.id, index);
+    }
+    let chunks = chunk_prepared_speech(prepared, 15);
+    let mut mapped_offset_index = 0_usize;
+    let mut actions_by_chunk = vec![Vec::new(); chunks.len()];
+    for action in span_actions {
+        let (prepared_offset, affinity) = match action.position {
+            PresentationTimelinePosition::SpanBoundary { affinity, .. } => match affinity {
+                PresentationAffinity::Before => (0, AnchorAffinity::Before),
+                PresentationAffinity::After => (
+                    chunks.last().map_or(0, |chunk| chunk.source_end),
+                    AnchorAffinity::After,
+                ),
+            },
+            PresentationTimelinePosition::TextOffset { affinity, .. } => {
+                let offset = mapped_offsets[mapped_offset_index];
+                mapped_offset_index += 1;
+                (
+                    offset,
+                    match affinity {
+                        PresentationAffinity::Before => AnchorAffinity::Before,
+                        PresentationAffinity::After => AnchorAffinity::After,
+                    },
+                )
+            }
+        };
+        let chunk_index = locate_timeline_chunk(&chunks, prepared_offset, affinity);
+        let chunk = &chunks[chunk_index];
+        let local_offset = prepared_offset.clamp(chunk.source_start, chunk.source_end)
+            - chunk.source_start;
+        let kind = match &action.action {
+            PresentationAction::Audio {
+                mode,
+                volume,
+                effect_bus,
+                ..
+            }
+            | PresentationAction::Tone {
+                mode,
+                volume,
+                effect_bus,
+                ..
+            } => TimelineChunkActionKind::Audio {
+                audio: resources
+                    .get(&action.id)
+                    .cloned()
+                    .ok_or_else(|| format!("action {} has no prepared resource", action.id))?,
+                mode: convert_audio_mode(*mode),
+                volume: *volume,
+                effect_bus: convert_effect_bus(*effect_bus),
+            },
+            PresentationAction::Silence { .. } => TimelineChunkActionKind::Audio {
+                audio: resources
+                    .get(&action.id)
+                    .cloned()
+                    .ok_or_else(|| format!("action {} has no prepared silence", action.id))?,
+                mode: AudioActionMode::Insert,
+                volume: 1.0,
+                effect_bus: EffectBus::Dry,
+            },
+            PresentationAction::SemanticEvent => TimelineChunkActionKind::SemanticEvent,
+        };
+        actions_by_chunk[chunk_index].push(TimelineChunkAction {
+            id: action.id.clone(),
+            text_offset: local_offset,
+            affinity,
+            kind,
+        });
+    }
+    Ok(PreparedTimelineSpan {
+        id: span.id,
+        logical_voice_id: span.logical_voice_id.clone(),
+        acss: span.acss.clone(),
+        effects: span.effects.clone(),
+        chunks,
+        actions: actions_by_chunk,
+    })
+}
+
+fn locate_timeline_chunk(
+    chunks: &[PreparedSpeechChunk],
+    offset: u32,
+    affinity: AnchorAffinity,
+) -> usize {
+    match affinity {
+        AnchorAffinity::Before => chunks
+            .iter()
+            .position(|chunk| offset >= chunk.source_start && offset < chunk.source_end)
+            .or_else(|| chunks.iter().position(|chunk| chunk.source_start >= offset))
+            .unwrap_or(chunks.len() - 1),
+        AnchorAffinity::After => chunks
+            .iter()
+            .rposition(|chunk| offset > chunk.source_start && offset <= chunk.source_end)
+            .or_else(|| chunks.iter().rposition(|chunk| chunk.source_end <= offset))
+            .unwrap_or(0),
+    }
+}
+
+fn convert_audio_mode(mode: PresentationAudioMode) -> AudioActionMode {
+    match mode {
+        PresentationAudioMode::Insert => AudioActionMode::Insert,
+        PresentationAudioMode::Overlay => AudioActionMode::Overlay,
+    }
+}
+
+fn convert_effect_bus(bus: PresentationEffectBus) -> EffectBus {
+    match bus {
+        PresentationEffectBus::Dry => EffectBus::Dry,
+        PresentationEffectBus::Speech => EffectBus::Speech,
+    }
+}
+
+fn acss_has_values(style: &NormalizedAcss) -> bool {
+    style.rate.is_some()
+        || style.average_pitch.is_some()
+        || style.pitch_range.is_some()
+        || style.stress.is_some()
+        || style.richness.is_some()
+        || style.volume.is_some()
+}
+
 /// Process a dispatched batch of queue items in the worker thread.
 pub fn process_batch(
     items: Vec<QueueItem>,
@@ -842,6 +1419,9 @@ pub fn process_batch(
                         match synthesize_routed_chunk(
                             &chunk.text,
                             &chunk.capitalization_tones,
+                            &[],
+                            None,
+                            None,
                             &state,
                             is_last_speech,
                             final_timeline_window,
@@ -1153,8 +1733,14 @@ mod tests {
             duration_ms: CAPITAL_TONE_DURATION_MS,
         }];
 
-        let (timeline, resources) =
-            prepare_capitalization_timeline(&result, &tones, &TtsState::default()).unwrap();
+        let (timeline, resources) = prepare_speech_timeline(
+            &result,
+            &tones,
+            &[],
+            &PostSynthesisStyle::default(),
+            &TtsState::default(),
+        )
+        .unwrap();
         let rendered = TimelineAudioRenderer::new()
             .render_window(&result.audio, &timeline, &resources, true)
             .unwrap();
@@ -1186,13 +1772,72 @@ mod tests {
             duration_ms: CAPITAL_TONE_DURATION_MS,
         }];
 
-        let (timeline, resources) =
-            prepare_capitalization_timeline(&result, &tones, &TtsState::default()).unwrap();
+        let (timeline, resources) = prepare_speech_timeline(
+            &result,
+            &tones,
+            &[],
+            &PostSynthesisStyle::default(),
+            &TtsState::default(),
+        )
+        .unwrap();
         let rendered = TimelineAudioRenderer::new()
             .render_window(&result.audio, &timeline, &resources, true)
             .unwrap();
 
         assert_eq!(timeline.actions[0].output_frame, 0);
         assert!(rendered.audio.samples.iter().any(|sample| *sample != 0.0));
+    }
+
+    #[test]
+    fn structured_actions_follow_preprocessed_offsets_across_chunks() {
+        let text = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen";
+        let span = PresentationSpeechSpan {
+            id: 7,
+            text: text.to_owned(),
+            logical_voice_id: Some("comment".to_owned()),
+            acss: NormalizedAcss::default(),
+            effects: PresentationEffectDirective::Retain,
+        };
+        let actions = vec![
+            PresentationTimelineAction {
+                id: "opening-cue".to_owned(),
+                position: PresentationTimelinePosition::SpanBoundary {
+                    span_id: 7,
+                    affinity: PresentationAffinity::Before,
+                },
+                lifecycle_anchor:
+                    omnivox_tts::timeline_protocol::PresentationLifecycleAnchor::Object,
+                action: PresentationAction::Audio {
+                    path: "/unused/test.ogg".to_owned(),
+                    mode: PresentationAudioMode::Overlay,
+                    volume: 1.0,
+                    effect_bus: PresentationEffectBus::Dry,
+                },
+            },
+            PresentationTimelineAction {
+                id: "sixteenth-word".to_owned(),
+                position: PresentationTimelinePosition::TextOffset {
+                    span_id: 7,
+                    utf8_offset: text.find("sixteen").unwrap() as u32,
+                    affinity: PresentationAffinity::Before,
+                },
+                lifecycle_anchor:
+                    omnivox_tts::timeline_protocol::PresentationLifecycleAnchor::Run,
+                action: PresentationAction::SemanticEvent,
+            },
+        ];
+        let resources = HashMap::from([(
+            "opening-cue".to_owned(),
+            AudioBuffer::silence(0.01),
+        )]);
+
+        let prepared =
+            prepare_timeline_span(&span, &actions, &TtsState::default(), &resources).unwrap();
+
+        assert_eq!(prepared.chunks.len(), 2);
+        assert_eq!(prepared.actions[0][0].id, "opening-cue");
+        assert_eq!(prepared.actions[0][0].text_offset, 0);
+        assert_eq!(prepared.actions[1][0].id, "sixteenth-word");
+        assert_eq!(prepared.actions[1][0].text_offset, 0);
     }
 }

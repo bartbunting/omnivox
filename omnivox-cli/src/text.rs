@@ -26,6 +26,9 @@ pub struct PreparedSpeechText {
 pub struct PreparedSpeechChunk {
     pub text: String,
     pub capitalization_tones: Vec<CapitalizationTone>,
+    /// UTF-8 range in the complete prepared speech text.
+    pub source_start: u32,
+    pub source_end: u32,
 }
 
 // ---------------------------------------------------------------------------
@@ -55,6 +58,8 @@ pub fn chunk_prepared_speech(
     let spans = word_spans(&prepared.text);
     if spans.len() <= max_words || max_words == 0 {
         return vec![PreparedSpeechChunk {
+            source_start: 0,
+            source_end: prepared.text.len() as u32,
             text: prepared.text,
             capitalization_tones: prepared.capitalization_tones,
         }];
@@ -81,6 +86,8 @@ pub fn chunk_prepared_speech(
             PreparedSpeechChunk {
                 text: prepared.text[start..end].to_owned(),
                 capitalization_tones,
+                source_start: start as u32,
+                source_end: end as u32,
             }
         })
         .collect()
@@ -113,71 +120,7 @@ pub fn apply_punctuation(text: &str, level: PunctuationLevel) -> String {
     let mut result = String::with_capacity(text.len());
 
     for ch in text.chars() {
-        let replacement = match level {
-            PunctuationLevel::None => match ch {
-                '$' => Some(" dollar "),
-                '%' => Some(" percent "),
-                _ => None,
-            },
-            PunctuationLevel::Some => match ch {
-                '$' => Some(" dollar "),
-                '%' => Some(" percent "),
-                '#' => Some(" pound "),
-                '-' => Some(" dash "),
-                '"' => Some(" quote "),
-                '(' => Some(" left paren "),
-                ')' => Some(" right paren "),
-                '*' => Some(" star "),
-                ';' => Some(" semicolon "),
-                ':' => Some(" colon "),
-                '<' => Some(" less than "),
-                '>' => Some(" greater than "),
-                '\\' => Some(" backslash "),
-                '/' => Some(" slash "),
-                '+' => Some(" plus "),
-                '=' => Some(" equals "),
-                '~' => Some(" tilde "),
-                '`' => Some(" backquote "),
-                '!' => Some(" bang "),
-                '^' => Some(" caret "),
-                _ => None,
-            },
-            PunctuationLevel::All => match ch {
-                '$' => Some(" dollar "),
-                '%' => Some(" percent "),
-                '#' => Some(" pound "),
-                '-' => Some(" dash "),
-                '"' => Some(" quote "),
-                '(' => Some(" left paren "),
-                ')' => Some(" right paren "),
-                '*' => Some(" star "),
-                ';' => Some(" semicolon "),
-                ':' => Some(" colon "),
-                '<' => Some(" less than "),
-                '>' => Some(" greater than "),
-                '\\' => Some(" backslash "),
-                '/' => Some(" slash "),
-                '+' => Some(" plus "),
-                '=' => Some(" equals "),
-                '~' => Some(" tilde "),
-                '`' => Some(" backquote "),
-                '!' => Some(" bang "),
-                '^' => Some(" caret "),
-                '@' => Some(" at "),
-                '_' => Some(" underline "),
-                '\'' => Some(" apostrophe "),
-                '.' => Some(" dot "),
-                ',' => Some(" comma "),
-                '&' => Some(" ampersand "),
-                '|' => Some(" pipe "),
-                '[' => Some(" left bracket "),
-                ']' => Some(" right bracket "),
-                '{' => Some(" left brace "),
-                '}' => Some(" right brace "),
-                '?' => Some(" question "),
-                _ => None,
-            },
-        };
+        let replacement = punctuation_replacement(ch, level);
 
         match replacement {
             Some(spoken) => result.push_str(spoken),
@@ -186,6 +129,74 @@ pub fn apply_punctuation(text: &str, level: PunctuationLevel) -> String {
     }
 
     result
+}
+
+fn punctuation_replacement(character: char, level: PunctuationLevel) -> Option<&'static str> {
+    match level {
+        PunctuationLevel::None => match character {
+            '$' => Some(" dollar "),
+            '%' => Some(" percent "),
+            _ => None,
+        },
+        PunctuationLevel::Some => match character {
+            '$' => Some(" dollar "),
+            '%' => Some(" percent "),
+            '#' => Some(" pound "),
+            '-' => Some(" dash "),
+            '"' => Some(" quote "),
+            '(' => Some(" left paren "),
+            ')' => Some(" right paren "),
+            '*' => Some(" star "),
+            ';' => Some(" semicolon "),
+            ':' => Some(" colon "),
+            '<' => Some(" less than "),
+            '>' => Some(" greater than "),
+            '\\' => Some(" backslash "),
+            '/' => Some(" slash "),
+            '+' => Some(" plus "),
+            '=' => Some(" equals "),
+            '~' => Some(" tilde "),
+            '`' => Some(" backquote "),
+            '!' => Some(" bang "),
+            '^' => Some(" caret "),
+            _ => None,
+        },
+        PunctuationLevel::All => match character {
+            '$' => Some(" dollar "),
+            '%' => Some(" percent "),
+            '#' => Some(" pound "),
+            '-' => Some(" dash "),
+            '"' => Some(" quote "),
+            '(' => Some(" left paren "),
+            ')' => Some(" right paren "),
+            '*' => Some(" star "),
+            ';' => Some(" semicolon "),
+            ':' => Some(" colon "),
+            '<' => Some(" less than "),
+            '>' => Some(" greater than "),
+            '\\' => Some(" backslash "),
+            '/' => Some(" slash "),
+            '+' => Some(" plus "),
+            '=' => Some(" equals "),
+            '~' => Some(" tilde "),
+            '`' => Some(" backquote "),
+            '!' => Some(" bang "),
+            '^' => Some(" caret "),
+            '@' => Some(" at "),
+            '_' => Some(" underline "),
+            '\'' => Some(" apostrophe "),
+            '.' => Some(" dot "),
+            ',' => Some(" comma "),
+            '&' => Some(" ampersand "),
+            '|' => Some(" pipe "),
+            '[' => Some(" left bracket "),
+            ']' => Some(" right bracket "),
+            '{' => Some(" left brace "),
+            '}' => Some(" right brace "),
+            '?' => Some(" question "),
+            _ => None,
+        },
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +237,138 @@ pub fn prepare_speech_text(text: &str, state: &TtsState) -> PreparedSpeechText {
         PreparedSpeechText {
             text: processed,
             capitalization_tones: Vec::new(),
+        }
+    }
+}
+
+/// Apply speech preprocessing and remap caller-requested UTF-8 boundaries.
+///
+/// The returned offsets are in the prepared text and retain input order.
+/// Callers must supply valid UTF-8 boundaries in `text`.
+pub fn prepare_speech_text_with_offsets(
+    text: &str,
+    state: &TtsState,
+    offsets: &[u32],
+) -> (PreparedSpeechText, Vec<u32>) {
+    debug_assert!(offsets.iter().all(|offset| {
+        let offset = *offset as usize;
+        offset <= text.len() && text.is_char_boundary(offset)
+    }));
+    let (punctuated, offsets) =
+        apply_punctuation_with_offsets(text, state.punctuation_level, offsets);
+    let (split, offsets) = if state.split_caps {
+        insert_space_before_uppercase_with_offsets(&punctuated, &offsets)
+    } else {
+        (punctuated, offsets)
+    };
+    if state.allcaps_beep {
+        annotate_capitalization_with_offsets(&split, &offsets)
+    } else {
+        (
+            PreparedSpeechText {
+                text: split,
+                capitalization_tones: Vec::new(),
+            },
+            offsets,
+        )
+    }
+}
+
+fn apply_punctuation_with_offsets(
+    text: &str,
+    level: PunctuationLevel,
+    offsets: &[u32],
+) -> (String, Vec<u32>) {
+    let mut output = String::with_capacity(text.len());
+    let mut mapped = vec![0_u32; offsets.len()];
+    for (position, character) in text.char_indices() {
+        record_offsets(offsets, position, output.len(), &mut mapped);
+        if let Some(replacement) = punctuation_replacement(character, level) {
+            output.push_str(replacement);
+        } else {
+            output.push(character);
+        }
+    }
+    record_offsets(offsets, text.len(), output.len(), &mut mapped);
+    (output, mapped)
+}
+
+fn insert_space_before_uppercase_with_offsets(text: &str, offsets: &[u32]) -> (String, Vec<u32>) {
+    let mut output = String::with_capacity(text.len() * 2);
+    let mut mapped = vec![0_u32; offsets.len()];
+    let mut previous_lower = false;
+    for (position, character) in text.char_indices() {
+        if character.is_uppercase() && previous_lower {
+            output.push(' ');
+        }
+        record_offsets(offsets, position, output.len(), &mut mapped);
+        previous_lower = character.is_lowercase();
+        output.push(character);
+    }
+    record_offsets(offsets, text.len(), output.len(), &mut mapped);
+    (output, mapped)
+}
+
+fn annotate_capitalization_with_offsets(
+    text: &str,
+    offsets: &[u32],
+) -> (PreparedSpeechText, Vec<u32>) {
+    let mut output = String::with_capacity(text.len());
+    let mut mapped = vec![0_u32; offsets.len()];
+    let mut tones = Vec::new();
+    let mut position = 0;
+    while position < text.len() {
+        let character = text[position..]
+            .chars()
+            .next()
+            .expect("position remains on a character boundary");
+        let all_caps_end = (character.is_uppercase() && is_word_start(text, position))
+            .then(|| all_caps_run_end(text, position))
+            .flatten();
+        if let Some(end) = all_caps_end {
+            tones.push(CapitalizationTone {
+                id: format!("capitalization-{}", tones.len()),
+                text_offset: output.len() as u32,
+                frequency_hz: ALL_CAPS_TONE_HZ,
+                duration_ms: CAPITAL_TONE_DURATION_MS,
+            });
+            while position < end {
+                record_offsets(offsets, position, output.len(), &mut mapped);
+                let character = text[position..]
+                    .chars()
+                    .next()
+                    .expect("all-caps range ends on a character boundary");
+                output.extend(character.to_lowercase());
+                position += character.len_utf8();
+            }
+            continue;
+        }
+        record_offsets(offsets, position, output.len(), &mut mapped);
+        if character.is_uppercase() {
+            tones.push(CapitalizationTone {
+                id: format!("capitalization-{}", tones.len()),
+                text_offset: output.len() as u32,
+                frequency_hz: CAPITAL_TONE_HZ,
+                duration_ms: CAPITAL_TONE_DURATION_MS,
+            });
+        }
+        output.push(character);
+        position += character.len_utf8();
+    }
+    record_offsets(offsets, text.len(), output.len(), &mut mapped);
+    (
+        PreparedSpeechText {
+            text: output,
+            capitalization_tones: tones,
+        },
+        mapped,
+    )
+}
+
+fn record_offsets(offsets: &[u32], input: usize, output: usize, mapped: &mut [u32]) {
+    for (index, offset) in offsets.iter().enumerate() {
+        if *offset as usize == input {
+            mapped[index] = output as u32;
         }
     }
 }
@@ -502,9 +645,35 @@ mod tests {
         let chunks = chunk_prepared_speech(prepared, 2);
 
         assert_eq!(chunks[0].text, "One two");
+        assert_eq!((chunks[0].source_start, chunks[0].source_end), (0, 7));
         assert_eq!(chunks[0].capitalization_tones[0].text_offset, 0);
         assert_eq!(chunks[1].text, "Three four");
+        assert_eq!((chunks[1].source_start, chunks[1].source_end), (9, 19));
         assert_eq!(chunks[1].capitalization_tones[0].text_offset, 0);
+    }
+
+    #[test]
+    fn speech_preprocessing_remaps_requested_utf8_boundaries() {
+        let state = TtsState {
+            punctuation_level: PunctuationLevel::None,
+            split_caps: true,
+            allcaps_beep: true,
+            ..TtsState::default()
+        };
+        let input = "cash$Value ABC";
+        let (prepared, offsets) =
+            prepare_speech_text_with_offsets(input, &state, &[4, 5, 11, input.len() as u32]);
+
+        assert_eq!(prepared.text, "cash dollar Value abc");
+        assert!(prepared.text[offsets[0] as usize..].starts_with(" dollar "));
+        assert!(prepared.text[offsets[1] as usize..].starts_with("Value"));
+        assert!(prepared.text[offsets[2] as usize..].starts_with("abc"));
+        assert_eq!(offsets[3] as usize, prepared.text.len());
+        assert_eq!(
+            prepared,
+            prepare_speech_text(input, &state),
+            "tracking offsets must not change speech preparation"
+        );
     }
 
     #[test]
