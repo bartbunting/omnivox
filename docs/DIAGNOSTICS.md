@@ -61,7 +61,10 @@ WER LocalDumps; per-process settings override global settings. See Microsoft’s
 ## Expected failure behaviour
 
 Helper transport failures invalidate the child, open the engine circuit, and
-retry the same chunk through the configured fallback route. After cooldown,
+retry the same chunk through the configured fallback route. This includes
+ordinary speech without a named logical voice. If a helper does not finish a
+requested cancellation within 250 milliseconds, OmniVox terminates it so the
+synthesis worker cannot remain blocked behind a native call. After cooldown,
 one request reconnects the helper and acts as a recovery probe. If the Rust
 synthesis worker itself panics, OmniVox writes a forced backtrace and exits
 with status 70. Emacs retires that failed process and initializes a replacement

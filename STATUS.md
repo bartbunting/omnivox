@@ -44,6 +44,8 @@
 - Safe preferred-engine fallback for missing or unresolved logical routes
 - Batch-local runtime voice/engine failure exclusion and deterministic re-resolution
 - Same-chunk routed synthesis retry with a four-attempt cap and stop checks
+- Ordinary unnamed speech uses the same engine circuit and same-chunk fallback
+- Helper cancellation watchdog terminates native calls that remain stuck after stop
 - Persistent engine failure circuits with bounded cooldowns and single recovery probes
 - Runtime health and recovery transitions projected into structured inventory
 - Independent generation-safe preferred, fallback, and disabled engine policy

@@ -761,7 +761,9 @@ it will need revision to use the common capability and completion contracts.
   unsupported capabilities, engine failures, and fallback exhaustion.
 - Add parser/framing fuzz and malformed-input tests with strict payload bounds.
 - Test mixed-engine ordering, cancellation, stale-result rejection, tracked
-  completion, and helper restart behavior.
+  completion, and helper restart behavior. Cancellation now has a bounded
+  helper-termination watchdog, and both logical and unnamed speech use runtime
+  fallback; real-engine repetition and recovery remain release gates.
 - Test inserted and overlaid icons, cross-chunk effect spans and tails,
   requested-anchor degradation, and cancellation of unreached semantic events.
 - Run the Emacs 31 suite and real WSL-to-Windows tests for each Windows engine.
