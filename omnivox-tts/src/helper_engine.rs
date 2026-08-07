@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex, RwLock};
-use std::thread::JoinHandle;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use thiserror::Error;
@@ -27,6 +27,8 @@ use crate::{
     AnchorResolution, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest,
     SynthesisResult, TtsEngine, TtsError, VoiceInfo,
 };
+
+const HELPER_CANCEL_GRACE: Duration = Duration::from_millis(250);
 
 #[derive(Debug, Error)]
 pub enum HelperEngineError {
@@ -532,7 +534,7 @@ pub struct HelperTtsEngine {
     descriptor: RwLock<Option<EngineDescriptor>>,
     protocol_version: AtomicU64,
     next_request_id: AtomicU64,
-    active_request_id: AtomicU64,
+    active_request_id: Arc<AtomicU64>,
     pending_cancellations: Mutex<HashMap<u64, u64>>,
     lifecycle: Mutex<()>,
     dispatch: Mutex<()>,
@@ -569,7 +571,7 @@ impl HelperTtsEngine {
             descriptor: RwLock::new(None),
             protocol_version: AtomicU64::new(0),
             next_request_id: AtomicU64::new(1),
-            active_request_id: AtomicU64::new(0),
+            active_request_id: Arc::new(AtomicU64::new(0)),
             pending_cancellations: Mutex::new(HashMap::new()),
             lifecycle: Mutex::new(()),
             dispatch: Mutex::new(()),
@@ -1049,6 +1051,15 @@ impl TtsEngine for HelperTtsEngine {
         let Ok(connection) = self.current_connection() else {
             return;
         };
+        if self
+            .pending_cancellations
+            .lock()
+            .unwrap()
+            .values()
+            .any(|pending| *pending == target_request_id)
+        {
+            return;
+        }
         let request_id = self.allocate_request_id();
         let request = HelperRequest::with_version(
             self.protocol_version.load(Ordering::Acquire) as u16,
@@ -1066,6 +1077,34 @@ impl TtsEngine for HelperTtsEngine {
                 .remove(&request_id);
             warn!("Could not cancel helper synthesis {target_request_id}: {error}");
             self.invalidate_connection(&connection);
+            return;
+        }
+
+        let active_request_id = Arc::clone(&self.active_request_id);
+        let watchdog_connection = Arc::clone(&connection);
+        let engine_id = self.config.engine_id.clone();
+        let watchdog = thread::Builder::new()
+            .name(format!("omnivox-{engine_id}-cancel-watchdog"))
+            .spawn(move || {
+                thread::sleep(HELPER_CANCEL_GRACE);
+                if active_request_id.load(Ordering::Acquire) == target_request_id {
+                    warn!(
+                        engine_id,
+                        target_request_id,
+                        grace_ms = HELPER_CANCEL_GRACE.as_millis(),
+                        "TTS helper did not finish cancellation; terminating it"
+                    );
+                    watchdog_connection.terminate();
+                }
+            });
+        if let Err(error) = watchdog {
+            warn!(
+                engine_id = self.config.engine_id,
+                target_request_id,
+                %error,
+                "Could not start TTS helper cancellation watchdog; terminating it"
+            );
+            connection.terminate();
         }
     }
 
@@ -1125,6 +1164,7 @@ mod tests {
     enum MockSynthesisMode {
         Complete,
         WaitForCancel,
+        IgnoreCancel,
         VoiceMissing,
     }
 
@@ -1266,18 +1306,20 @@ mod tests {
                             HelperResponseBody::SynthesisCompleted { frame_count: 4 },
                         ));
                     }
-                    MockSynthesisMode::WaitForCancel => self.push(HelperResponse::for_request_version(
-                        self.protocol_version,
-                        request.request_id,
-                        HelperResponseBody::SynthesisStarted {
-                            format: HelperAudioFormat {
-                                sample_rate: 22_050,
-                                channels: 1,
-                                sample_format: HelperSampleFormat::PcmS16Le,
+                    MockSynthesisMode::WaitForCancel | MockSynthesisMode::IgnoreCancel => {
+                        self.push(HelperResponse::for_request_version(
+                            self.protocol_version,
+                            request.request_id,
+                            HelperResponseBody::SynthesisStarted {
+                                format: HelperAudioFormat {
+                                    sample_rate: 22_050,
+                                    channels: 1,
+                                    sample_format: HelperSampleFormat::PcmS16Le,
+                                },
+                                actual_voice_id: "reed".to_owned(),
                             },
-                            actual_voice_id: "reed".to_owned(),
-                        },
-                    )),
+                        ))
+                    }
                     MockSynthesisMode::VoiceMissing => self.push(self.response(
                         request.request_id,
                         HelperResponseBody::Error {
@@ -1288,6 +1330,9 @@ mod tests {
                     )),
                 },
                 HelperRequestBody::Cancel { target_request_id } => {
+                    if matches!(self.mode, MockSynthesisMode::IgnoreCancel) {
+                        return Ok(());
+                    }
                     self.push(self.response(
                         request.request_id,
                         HelperResponseBody::CancelAccepted {
@@ -1316,6 +1361,9 @@ mod tests {
             let deadline = Instant::now() + timeout;
             let mut responses = self.responses.lock().unwrap();
             loop {
+                if self.terminated.load(Ordering::Acquire) {
+                    return Err(HelperEngineError::Exited);
+                }
                 if let Some(response) = responses.pop_front() {
                     return Ok(response);
                 }
@@ -1787,6 +1835,36 @@ mod tests {
             .unwrap()
             .iter()
             .any(|request| matches!(request.body, HelperRequestBody::Cancel { .. })));
+    }
+
+    #[test]
+    fn stop_terminates_a_helper_that_ignores_cancellation() {
+        let connection = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.0"),
+            MockSynthesisMode::IgnoreCancel,
+        ));
+        let engine = Arc::new(mock_engine(vec![Arc::clone(&connection)]).unwrap());
+        let worker_engine = Arc::clone(&engine);
+        let synthesis = std::thread::spawn(move || {
+            worker_engine.synthesize(&synthesis_request("hung utterance"))
+        });
+
+        let deadline = Instant::now() + Duration::from_secs(1);
+        while !engine.is_speaking() && Instant::now() < deadline {
+            std::thread::yield_now();
+        }
+        assert!(engine.is_speaking());
+        let started_at = Instant::now();
+        engine.stop();
+
+        let error = synthesis.join().unwrap().unwrap_err();
+        assert!(matches!(
+            error,
+            TtsError::SynthesisFailed(message) if message.contains("exited")
+        ));
+        assert!(started_at.elapsed() < Duration::from_secs(1));
+        assert!(connection.terminated.load(Ordering::Acquire));
+        assert!(!engine.is_speaking());
     }
 
     #[test]
