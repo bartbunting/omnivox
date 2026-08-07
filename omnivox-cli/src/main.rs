@@ -29,9 +29,12 @@ use anyhow::Result;
 use omnivox_audio::AudioFileLoader;
 use omnivox_audio::AudioStreams;
 use omnivox_core::TtsState;
+use std::any::Any;
+use std::backtrace::Backtrace;
+use std::panic::{self, AssertUnwindSafe};
 use std::sync::atomic::AtomicU64;
 use std::sync::{mpsc, Arc};
-use tracing::info;
+use tracing::{error, info};
 
 use cli::{apply_cli_flags, parse_args};
 use engine::{apply_audio_target_env, create_engine, create_engines};
@@ -42,6 +45,8 @@ use server::{
 };
 
 pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+const SYNTHESIS_WORKER_FAILURE_EXIT_CODE: i32 = 70;
 
 pub(crate) const SPEECH_MAX_DEPTH: usize = 100;
 pub(crate) const TONE_MAX_DEPTH: usize = 10;
@@ -100,6 +105,7 @@ fn main() -> Result<()> {
         .with_target(false)
         .with_level(true)
         .init();
+    install_panic_diagnostics();
 
     info!("Omnivox v{} starting", VERSION);
 
@@ -143,17 +149,27 @@ fn main() -> Result<()> {
         std::thread::Builder::new()
             .name("omnivox-synth".to_string())
             .spawn(move || {
-                synthesis_worker(
-                    rx,
-                    worker_gen,
-                    worker_engine,
-                    worker_engine_registry,
-                    worker_runtime_health,
-                    worker_control,
-                    loader,
-                    tracked_playback_tx,
-                    marker_output,
-                )
+                let result = panic::catch_unwind(AssertUnwindSafe(|| {
+                    synthesis_worker(
+                        rx,
+                        worker_gen,
+                        worker_engine,
+                        worker_engine_registry,
+                        worker_runtime_health,
+                        worker_control,
+                        loader,
+                        tracked_playback_tx,
+                        marker_output,
+                    )
+                }));
+                if let Err(payload) = result {
+                    error!(
+                        panic = panic_payload_message(&*payload),
+                        exit_code = SYNTHESIS_WORKER_FAILURE_EXIT_CODE,
+                        "Synthesis worker panicked; terminating the speech server"
+                    );
+                    std::process::exit(SYNTHESIS_WORKER_FAILURE_EXIT_CODE);
+                }
             })
             .expect("Failed to spawn synthesis worker thread")
     };
@@ -204,4 +220,36 @@ fn main() -> Result<()> {
         tracked_playback_handle,
         marker_event_handle,
     )
+}
+
+fn install_panic_diagnostics() {
+    let previous = panic::take_hook();
+    panic::set_hook(Box::new(move |information| {
+        let location = information
+            .location()
+            .map(|location| {
+                format!(
+                    "{}:{}:{}",
+                    location.file(),
+                    location.line(),
+                    location.column()
+                )
+            })
+            .unwrap_or_else(|| "unknown".to_owned());
+        error!(
+            panic = panic_payload_message(information.payload()),
+            %location,
+            backtrace = %Backtrace::force_capture(),
+            "Omnivox panic"
+        );
+        previous(information);
+    }));
+}
+
+fn panic_payload_message(payload: &(dyn Any + Send)) -> &str {
+    payload
+        .downcast_ref::<&str>()
+        .copied()
+        .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
+        .unwrap_or("non-string panic payload")
 }
