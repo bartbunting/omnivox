@@ -8,10 +8,10 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use thiserror::Error;
-use tracing::warn;
+use tracing::{info, warn};
 
 use crate::contracts::{
     AudioOutputMode, CancellationSupport, ConcurrencyModel, EngineDescriptor, PhysicalVoiceId,
@@ -120,6 +120,7 @@ trait HelperConnector: Send + Sync {
 }
 
 struct ProcessHelperConnector {
+    engine_id: String,
     program: PathBuf,
     arguments: Vec<OsString>,
 }
@@ -127,6 +128,7 @@ struct ProcessHelperConnector {
 impl ProcessHelperConnector {
     fn new(config: &HelperEngineConfig) -> Self {
         Self {
+            engine_id: config.engine_id.clone(),
             program: config.program.clone(),
             arguments: config.arguments.clone(),
         }
@@ -136,6 +138,7 @@ impl ProcessHelperConnector {
 impl HelperConnector for ProcessHelperConnector {
     fn connect(&self) -> Result<Arc<dyn HelperConnection>, HelperEngineError> {
         Ok(Arc::new(ProcessHelperConnection::spawn(
+            &self.engine_id,
             &self.program,
             &self.arguments,
         )?))
@@ -145,6 +148,8 @@ impl HelperConnector for ProcessHelperConnector {
 type HelperReadResult = Result<HelperResponse, HelperEngineError>;
 
 struct ProcessHelperConnection {
+    engine_id: String,
+    child_id: u32,
     writer: Mutex<Option<BufWriter<ChildStdin>>>,
     responses: Mutex<mpsc::Receiver<HelperReadResult>>,
     child: Mutex<Child>,
@@ -152,7 +157,16 @@ struct ProcessHelperConnection {
 }
 
 impl ProcessHelperConnection {
-    fn spawn(program: &Path, arguments: &[OsString]) -> Result<Self, HelperEngineError> {
+    fn spawn(
+        engine_id: &str,
+        program: &Path,
+        arguments: &[OsString],
+    ) -> Result<Self, HelperEngineError> {
+        info!(
+            engine_id,
+            program = %program.display(),
+            "Starting TTS helper process"
+        );
         let mut child = Command::new(program)
             .args(arguments)
             .stdin(Stdio::piped())
@@ -165,6 +179,8 @@ impl ProcessHelperConnection {
                     program.display()
                 ))
             })?;
+        let child_id = child.id();
+        info!(engine_id, child_id, "TTS helper process started");
         let stdin = child
             .stdin
             .take()
@@ -173,6 +189,7 @@ impl ProcessHelperConnection {
             HelperEngineError::Transport("helper stdout was not piped".to_owned())
         })?;
         let (response_sender, response_receiver) = mpsc::channel();
+        let reader_engine_id = engine_id.to_owned();
         let reader_handle = std::thread::Builder::new()
             .name("omnivox-helper-reader".to_owned())
             .spawn(move || {
@@ -180,8 +197,23 @@ impl ProcessHelperConnection {
                 loop {
                     let result = match read_frame(&mut reader) {
                         Ok(Some(response)) => Ok(response),
-                        Ok(None) => Err(HelperEngineError::Exited),
-                        Err(error) => Err(error.into()),
+                        Ok(None) => {
+                            info!(
+                                engine_id = reader_engine_id,
+                                child_id,
+                                "TTS helper stdout closed"
+                            );
+                            Err(HelperEngineError::Exited)
+                        }
+                        Err(error) => {
+                            warn!(
+                                engine_id = reader_engine_id,
+                                child_id,
+                                %error,
+                                "Could not read TTS helper response"
+                            );
+                            Err(error.into())
+                        }
                     };
                     let terminal = result.is_err();
                     if response_sender.send(result).is_err() || terminal {
@@ -198,6 +230,8 @@ impl ProcessHelperConnection {
             })?;
 
         Ok(Self {
+            engine_id: engine_id.to_owned(),
+            child_id,
             writer: Mutex::new(Some(BufWriter::new(stdin))),
             responses: Mutex::new(response_receiver),
             child: Mutex::new(child),
@@ -227,13 +261,19 @@ impl HelperConnection for ProcessHelperConnection {
 
     fn terminate(&self) {
         self.writer.lock().unwrap().take();
-        {
+        let exit_status = {
             let mut child = self.child.lock().unwrap();
             if child.try_wait().ok().flatten().is_none() {
                 let _ = child.kill();
             }
-            let _ = child.wait();
-        }
+            child.wait().ok()
+        };
+        info!(
+            engine_id = self.engine_id,
+            child_id = self.child_id,
+            status = ?exit_status,
+            "TTS helper process reaped"
+        );
         if let Some(handle) = self.reader_handle.lock().unwrap().take() {
             let _ = handle.join();
         }
@@ -548,6 +588,10 @@ impl HelperTtsEngine {
     }
 
     fn install_fresh_connection(&self) -> Result<(), HelperEngineError> {
+        info!(
+            engine_id = self.config.engine_id,
+            "Installing fresh TTS helper connection"
+        );
         if let Some(connection) = self.connection.write().unwrap().take() {
             connection.terminate();
         }
@@ -565,6 +609,11 @@ impl HelperTtsEngine {
         self.protocol_version
             .store(u64::from(protocol_version), Ordering::Release);
         *self.connection.write().unwrap() = Some(connection);
+        info!(
+            engine_id = self.config.engine_id,
+            protocol_version,
+            "TTS helper connection ready"
+        );
         Ok(())
     }
 
@@ -756,8 +805,15 @@ impl HelperTtsEngine {
     fn synthesis_error(
         &self,
         connection: &Arc<dyn HelperConnection>,
+        request_id: u64,
         error: HelperEngineError,
     ) -> TtsError {
+        warn!(
+            engine_id = self.config.engine_id,
+            request_id,
+            %error,
+            "TTS helper synthesis failed"
+        );
         if !matches!(error, HelperEngineError::Remote { .. }) {
             self.invalidate_connection(connection);
         }
@@ -833,8 +889,20 @@ impl TtsEngine for HelperTtsEngine {
     }
 
     fn prepare_recovery_probe(&self) -> Result<(), TtsError> {
+        info!(
+            engine_id = self.config.engine_id,
+            "Preparing TTS helper recovery probe"
+        );
         let _lifecycle = self.lifecycle.lock().unwrap();
-        self.install_fresh_connection().map_err(Self::map_error)
+        self.install_fresh_connection()
+            .map_err(|error| {
+                warn!(
+                    engine_id = self.config.engine_id,
+                    %error,
+                    "TTS helper recovery preparation failed"
+                );
+                Self::map_error(error)
+            })
     }
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
@@ -843,6 +911,7 @@ impl TtsEngine for HelperTtsEngine {
         let descriptor = self.descriptor();
         let protocol_version = self.protocol_version.load(Ordering::Acquire) as u16;
         let request_id = self.allocate_request_id();
+        let started_at = Instant::now();
         let voice_id = request.voice_id_for_engine(&descriptor.id)?;
         let requested_voice_id = if voice_id.is_empty() {
             None
@@ -867,11 +936,19 @@ impl TtsEngine for HelperTtsEngine {
         helper_request.validate().map_err(|error| {
             TtsError::InvalidParameter(format!("invalid helper synthesis request: {error}"))
         })?;
+        info!(
+            engine_id = self.config.engine_id,
+            request_id,
+            voice_id,
+            text_bytes = request.text.len(),
+            anchors = request.anchors.len(),
+            "Sending TTS helper synthesis request"
+        );
 
         {
             let _dispatch = self.dispatch.lock().unwrap();
             if let Err(error) = connection.send(&helper_request) {
-                return Err(self.synthesis_error(&connection, error));
+                return Err(self.synthesis_error(&connection, request_id, error));
             }
             self.active_request_id.store(request_id, Ordering::Release);
         }
@@ -885,11 +962,14 @@ impl TtsEngine for HelperTtsEngine {
         loop {
             let response = match connection.receive(self.config.synthesis_idle_timeout) {
                 Ok(response) => response,
-                Err(error) => return Err(self.synthesis_error(&connection, error)),
+                Err(error) => {
+                    return Err(self.synthesis_error(&connection, request_id, error));
+                }
             };
             if response.protocol_version != protocol_version {
                 return Err(self.synthesis_error(
                     &connection,
+                    request_id,
                     HelperEngineError::UnexpectedResponse(
                         "response uses a different negotiated protocol version",
                     ),
@@ -897,15 +977,18 @@ impl TtsEngine for HelperTtsEngine {
             }
             if response.request_id != Some(request_id) {
                 if let Err(error) = response.validate() {
-                    return Err(self.synthesis_error(&connection, error.into()));
+                    return Err(self.synthesis_error(&connection, request_id, error.into()));
                 }
                 match self.consume_cancel_response(&response) {
                     Ok(true) => continue,
                     Ok(false) => {}
-                    Err(error) => return Err(self.synthesis_error(&connection, error)),
+                    Err(error) => {
+                        return Err(self.synthesis_error(&connection, request_id, error));
+                    }
                 }
                 return Err(self.synthesis_error(
                     &connection,
+                    request_id,
                     HelperEngineError::RequestMismatch {
                         expected: request_id,
                         received: response.request_id,
@@ -914,7 +997,9 @@ impl TtsEngine for HelperTtsEngine {
             }
             let progress = match collector.accept(response) {
                 Ok(progress) => progress,
-                Err(error) => return Err(self.synthesis_error(&connection, error)),
+                Err(error) => {
+                    return Err(self.synthesis_error(&connection, request_id, error));
+                }
             };
             match progress {
                 Some(HelperSynthesisResult::Completed(completed)) => {
@@ -935,6 +1020,14 @@ impl TtsEngine for HelperTtsEngine {
                         descriptor.capabilities.markers.requested_anchors,
                     );
                     result.validate(request)?;
+                    info!(
+                        engine_id = self.config.engine_id,
+                        request_id,
+                        frames = result.audio.frame_count(),
+                        markers = result.markers.len(),
+                        elapsed_ms = started_at.elapsed().as_millis(),
+                        "TTS helper synthesis completed"
+                    );
                     return Ok(result);
                 }
                 Some(HelperSynthesisResult::Cancelled) => {

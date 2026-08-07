@@ -2,6 +2,7 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::Instant;
 
 use omnivox_tts::contracts::{
     AcssApplication, Availability, EngineDescriptor, EngineHealth, FallbackPolicy,
@@ -14,7 +15,7 @@ use omnivox_tts::routing_policy::RoutingPolicyRegistry;
 use omnivox_tts::{
     RequestedAnchor, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, TtsSettings,
 };
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
 use crate::health::{EngineAccess, EnginePermit, RuntimeEngineHealth};
 
@@ -394,6 +395,16 @@ fn synthesize_with_runtime_fallback_anchored_inner(
         let mut request = SynthesisRequest::new(chunk, routed_settings)
             .with_route(route.logical_voice_id.clone(), route.realized.clone());
         request.anchors = anchors.to_vec();
+        let started_at = Instant::now();
+        info!(
+            logical_voice = route.logical_voice_id,
+            engine_id = route.realized.engine_id,
+            voice_id = route.realized.voice_id,
+            attempt,
+            text_bytes = chunk.len(),
+            recovery_probe = permit == EnginePermit::RecoveryProbe,
+            "Starting routed synthesis"
+        );
         let synthesis = route.engine.synthesize(&request).and_then(|mut result| {
             result.resolve_anchors(
                 &request,
@@ -411,6 +422,16 @@ fn synthesize_with_runtime_fallback_anchored_inner(
         match synthesis {
             Ok(result) => {
                 runtime_health.record_success(&route.realized.engine_id, permit);
+                info!(
+                    logical_voice = route.logical_voice_id,
+                    engine_id = route.realized.engine_id,
+                    voice_id = route.realized.voice_id,
+                    attempt,
+                    frames = result.audio.frame_count(),
+                    elapsed_ms = started_at.elapsed().as_millis(),
+                    recovered = permit == EnginePermit::RecoveryProbe,
+                    "Routed synthesis completed"
+                );
                 return if stale(generation, generation_counter) {
                     RuntimeSynthesisOutcome::Cancelled
                 } else {
@@ -473,7 +494,7 @@ fn select_retry(
     }
     match reroute {
         RuntimeReroute::Retry(retry) => {
-            debug!(
+            info!(
                 "Logical voice {} retrying on engine {} voice {}",
                 retry.logical_voice_id, retry.realized.engine_id, retry.realized.voice_id
             );

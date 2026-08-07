@@ -105,6 +105,42 @@ pub enum SynthRequest {
     PlaySound { path: std::path::PathBuf, state: TtsState, gen: u64 },
 }
 
+impl SynthRequest {
+    fn diagnostic_kind(&self) -> &'static str {
+        match self {
+            Self::Batch { .. } => "batch",
+            Self::Timeline { .. } => "timeline",
+            Self::Preview { .. } => "preview",
+            Self::Immediate { .. } => "immediate",
+            Self::Letter { .. } => "letter",
+            Self::PlaySound { .. } => "sound",
+        }
+    }
+
+    fn diagnostic_identifier(&self) -> Option<u64> {
+        match self {
+            Self::Batch {
+                tracking: Some(tracking),
+                ..
+            } => Some(tracking.identifier()),
+            Self::Timeline { timeline, .. } => Some(timeline.dispatch_id),
+            Self::Preview { request_id, .. } => Some(*request_id),
+            _ => None,
+        }
+    }
+
+    fn generation(&self) -> u64 {
+        match self {
+            Self::Batch { gen, .. }
+            | Self::Timeline { gen, .. }
+            | Self::Preview { gen, .. }
+            | Self::Immediate { gen, .. }
+            | Self::Letter { gen, .. }
+            | Self::PlaySound { gen, .. } => *gen,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DispatchTracking {
     Completion(u64),
@@ -288,6 +324,16 @@ pub fn synthesis_worker(
     marker_output: MarkerEventOutput,
 ) {
     for request in rx {
+        let request_kind = request.diagnostic_kind();
+        let request_identifier = request.diagnostic_identifier();
+        let request_generation = request.generation();
+        let request_started_at = Instant::now();
+        info!(
+            request_kind,
+            request_identifier = ?request_identifier,
+            generation = request_generation,
+            "Synthesis worker accepted request"
+        );
         match request {
             SynthRequest::Batch {
                 items,
@@ -625,6 +671,13 @@ pub fn synthesis_worker(
                 }
             }
         }
+        info!(
+            request_kind,
+            request_identifier = ?request_identifier,
+            generation = request_generation,
+            elapsed_ms = request_started_at.elapsed().as_millis(),
+            "Synthesis worker finished request"
+        );
     }
 }
 
