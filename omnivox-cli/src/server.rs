@@ -21,7 +21,7 @@ use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
 use omnivox_tts::timeline_protocol::PresentationTimelineEnvelope;
-use omnivox_tts::{TtsEngine, TtsSettings};
+use omnivox_tts::TtsEngine;
 use std::io::{self, BufRead, Write};
 use std::mem;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -32,14 +32,11 @@ use tracing::{debug, error, info, warn};
 use crate::health::RuntimeEngineHealth;
 use crate::marker_events::{MarkerDispatchContext, MarkerEventOutput};
 use crate::pipeline::{
-    build_sound_pipeline, build_tone_pipeline, process_batch, process_presentation_timeline,
-    process_preview, synthesize_chunk_with_tones, BatchStatus, SynthCtx,
+    build_sound_pipeline, build_tone_pipeline, process_batch, process_letter,
+    process_presentation_timeline, process_preview, BatchStatus, SynthCtx,
 };
-use crate::routing::{legacy_voice_for_engine, LogicalVoiceRoutingSnapshot};
-use crate::text::{
-    chunk_prepared_speech, normalize_rate, parse_resource_path, prepare_speech_text,
-    CapitalizationTone, CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ,
-};
+use crate::routing::LogicalVoiceRoutingSnapshot;
+use crate::text::{normalize_rate, parse_resource_path};
 use crate::transaction::{
     prefer_newer, prefer_newer_timeline, PreparedPresentation, PreparedStructuredPresentation,
     PresentationGenerations,
@@ -542,32 +539,15 @@ pub fn synthesis_worker(
                     batch_failed: None,
                 };
                 if ctx.is_stale() { continue; }
-                let settings = TtsSettings {
-                    voice: legacy_voice_for_engine(
-                        &*preferred_engine,
-                        &state.current_voice,
-                    ),
-                    rate: state.speech_rate,
-                    pitch: state.pitch_multiplier,
-                    volume: 1.0,
-                };
-                let prepared = prepare_speech_text(&text, &state);
-                let chunks = chunk_prepared_speech(prepared, 15);
-                let count = chunks.len();
-                for (i, chunk) in chunks.into_iter().enumerate() {
-                    if !synthesize_chunk_with_tones(
-                        &chunk.text,
-                        &chunk.capitalization_tones,
-                        &settings,
-                        &state,
-                        i == count - 1,
-                        i == count - 1,
-                        &ctx,
-                    ) {
-                        break;
-                    }
-                }
-                ctx.flush_overlays();
+                process_batch(
+                    vec![QueueItem::Speech(text)],
+                    state,
+                    &ctx,
+                    &loader,
+                    &engine_registry,
+                    &runtime_health,
+                    preferred_routing,
+                );
             }
 
             SynthRequest::Letter {
@@ -601,45 +581,14 @@ pub fn synthesis_worker(
                     batch_failed: None,
                 };
                 if ctx.is_stale() { continue; }
-
-                let mut letter_state = state.clone();
-                letter_state.speech_rate = state.character_rate();
-
-                let is_upper = text.chars().next().is_some_and(|c| c.is_uppercase());
-                let capitalization_tones = if is_upper && state.allcaps_beep {
-                    vec![CapitalizationTone {
-                        id: "capitalization-letter".to_string(),
-                        text_offset: 0,
-                        frequency_hz: CAPITAL_TONE_HZ,
-                        duration_ms: CAPITAL_TONE_DURATION_MS,
-                    }]
-                } else {
-                    Vec::new()
-                };
-                if is_upper && !state.allcaps_beep {
-                    letter_state.pitch_multiplier = 1.5;
-                }
-
-                let settings = TtsSettings {
-                    voice: legacy_voice_for_engine(
-                        &*preferred_engine,
-                        &letter_state.current_voice,
-                    ),
-                    rate: letter_state.speech_rate,
-                    pitch: letter_state.pitch_multiplier,
-                    volume: 1.0,
-                };
-                let lowered = text.chars().flat_map(char::to_lowercase).collect::<String>();
-                synthesize_chunk_with_tones(
-                    &lowered,
-                    &capitalization_tones,
-                    &settings,
-                    &letter_state,
-                    true,
-                    true,
+                process_letter(
+                    &text,
+                    state,
                     &ctx,
+                    &engine_registry,
+                    &runtime_health,
+                    preferred_routing,
                 );
-                ctx.flush_overlays();
             }
 
             SynthRequest::PlaySound { path, state, gen } => {

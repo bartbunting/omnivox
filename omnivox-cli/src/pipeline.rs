@@ -38,7 +38,7 @@ use crate::routing::{
 use crate::text::{
     chunk_prepared_speech, extract_logical_voice, extract_pitch, extract_voice,
     prepare_speech_text, prepare_speech_text_with_offsets, rate_scaled_padding,
-    CapitalizationTone, PreparedSpeechChunk,
+    CapitalizationTone, PreparedSpeechChunk, CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ,
 };
 
 // ---------------------------------------------------------------------------
@@ -864,6 +864,82 @@ fn initial_legacy_route(
             None
         }
     }
+}
+
+/// Speak one character through the same runtime fallback path as queued speech.
+pub fn process_letter(
+    text: &str,
+    mut state: TtsState,
+    ctx: &SynthCtx,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    mut routing: LogicalVoiceRoutingSnapshot,
+) -> BatchStatus {
+    if ctx.is_stale() {
+        return BatchStatus::Cancelled;
+    }
+    state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
+    state.speech_rate = state.character_rate();
+    let is_upper = text.chars().next().is_some_and(char::is_uppercase);
+    let capitalization_tones = if is_upper && state.allcaps_beep {
+        vec![CapitalizationTone {
+            id: "capitalization-letter".to_owned(),
+            text_offset: 0,
+            frequency_hz: CAPITAL_TONE_HZ,
+            duration_ms: CAPITAL_TONE_DURATION_MS,
+        }]
+    } else {
+        Vec::new()
+    };
+    if is_upper && !state.allcaps_beep {
+        state.pitch_multiplier = 1.5;
+    }
+    let lowered = text.chars().flat_map(char::to_lowercase).collect::<String>();
+    let status = if let Some(mut route) =
+        initial_legacy_route(&state, ctx, &mut routing, engine_registry)
+    {
+        match synthesize_routed_chunk(
+            &lowered,
+            &capitalization_tones,
+            &[],
+            None,
+            None,
+            &state,
+            true,
+            true,
+            &mut route,
+            &mut routing,
+            engine_registry,
+            runtime_health,
+            ctx,
+        ) {
+            RoutedChunkOutcome::Queued { .. } => BatchStatus::Completed,
+            RoutedChunkOutcome::Cancelled => BatchStatus::Cancelled,
+            RoutedChunkOutcome::Failed | RoutedChunkOutcome::Exhausted => BatchStatus::Failed,
+        }
+    } else {
+        let settings = TtsSettings {
+            voice: state.current_voice.clone(),
+            rate: state.speech_rate,
+            pitch: state.pitch_multiplier,
+            volume: 1.0,
+        };
+        if synthesize_chunk_with_tones(
+            &lowered,
+            &capitalization_tones,
+            &settings,
+            &state,
+            true,
+            true,
+            ctx,
+        ) {
+            BatchStatus::Completed
+        } else {
+            BatchStatus::Cancelled
+        }
+    };
+    ctx.flush_overlays();
+    status
 }
 
 /// Terminal synthesis metadata for a non-mutating one-shot preview.
