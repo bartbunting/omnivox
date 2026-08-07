@@ -102,6 +102,8 @@ fn main() -> Result<()> {
     }
 
     tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
+        .with_ansi(false)
         .with_target(false)
         .with_level(true)
         .init();
