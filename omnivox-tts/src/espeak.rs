@@ -60,7 +60,7 @@ struct EspeakNativeMarker {
 
 /// espeak-ng TTS engine
 pub struct EspeakTtsEngine {
-    _private: (),
+    descriptor: EngineDescriptor,
 }
 
 // SAFETY: All espeak-ng access is serialized through the ESPEAK_LOCK mutex
@@ -284,7 +284,11 @@ impl EspeakTtsEngine {
             return Err(TtsError::NotAvailable);
         }
 
-        Ok(Self { _private: () })
+        drop(guard);
+
+        Ok(Self {
+            descriptor: Self::discover_descriptor(),
+        })
     }
 
     /// Map TtsSettings rate (0.0..1.0, 0.5=normal) to espeak-ng rate (80..450, 175=normal)
@@ -390,12 +394,9 @@ impl EspeakTtsEngine {
             .or_else(|| voices.first())
             .map(|voice| voice.id.voice_id.clone())
     }
-}
 
-impl TtsEngine for EspeakTtsEngine {
-    fn descriptor(&self) -> EngineDescriptor {
-        let voices = self
-            .available_voices()
+    fn discover_descriptor() -> EngineDescriptor {
+        let voices = Self::discover_available_voices()
             .into_iter()
             .map(|voice| VoiceDescriptor::from_voice_info("espeak", voice))
             .collect::<Vec<_>>();
@@ -412,6 +413,75 @@ impl TtsEngine for EspeakTtsEngine {
             voices,
             default_voice_id,
         }
+    }
+
+    fn discover_available_voices() -> Vec<VoiceInfo> {
+        let state = match ESPEAK_LOCK.get() {
+            Some(s) => s,
+            None => return Vec::new(),
+        };
+        let _guard = match state.lock() {
+            Ok(g) => g,
+            Err(_) => return Vec::new(),
+        };
+
+        let mut voices = Vec::new();
+
+        unsafe {
+            let voice_list = espeak_rs_sys::espeak_ListVoices(std::ptr::null_mut());
+            if voice_list.is_null() {
+                return voices;
+            }
+
+            let mut i = 0;
+            loop {
+                let voice_ptr = *voice_list.offset(i);
+                if voice_ptr.is_null() {
+                    break;
+                }
+                i += 1;
+
+                let voice = &*voice_ptr;
+
+                let name = if !voice.name.is_null() {
+                    CStr::from_ptr(voice.name).to_string_lossy().to_string()
+                } else {
+                    continue;
+                };
+
+                let identifier = if !voice.identifier.is_null() {
+                    CStr::from_ptr(voice.identifier)
+                        .to_string_lossy()
+                        .to_string()
+                } else {
+                    name.clone()
+                };
+
+                let language = if !voice.languages.is_null() {
+                    // The languages field is a string with priority byte prefix.
+                    let lang_ptr = voice.languages.offset(1);
+                    CStr::from_ptr(lang_ptr).to_string_lossy().to_string()
+                } else {
+                    String::new()
+                };
+
+                voices.push(VoiceInfo {
+                    identifier: format!("espeak:{}", identifier),
+                    name,
+                    language,
+                    quality: VoiceQuality::Compact,
+                });
+            }
+        }
+
+        debug!("espeak-ng found {} voices", voices.len());
+        voices
+    }
+}
+
+impl TtsEngine for EspeakTtsEngine {
+    fn descriptor(&self) -> EngineDescriptor {
+        self.descriptor.clone()
     }
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
@@ -580,67 +650,16 @@ impl TtsEngine for EspeakTtsEngine {
     }
 
     fn available_voices(&self) -> Vec<VoiceInfo> {
-        let state = match ESPEAK_LOCK.get() {
-            Some(s) => s,
-            None => return Vec::new(),
-        };
-        let _guard = match state.lock() {
-            Ok(g) => g,
-            Err(_) => return Vec::new(),
-        };
-
-        let mut voices = Vec::new();
-
-        unsafe {
-            let voice_list = espeak_rs_sys::espeak_ListVoices(std::ptr::null_mut());
-            if voice_list.is_null() {
-                return voices;
-            }
-
-            let mut i = 0;
-            loop {
-                let voice_ptr = *voice_list.offset(i);
-                if voice_ptr.is_null() {
-                    break;
-                }
-                i += 1;
-
-                let voice = &*voice_ptr;
-
-                let name = if !voice.name.is_null() {
-                    CStr::from_ptr(voice.name).to_string_lossy().to_string()
-                } else {
-                    continue;
-                };
-
-                let identifier = if !voice.identifier.is_null() {
-                    CStr::from_ptr(voice.identifier)
-                        .to_string_lossy()
-                        .to_string()
-                } else {
-                    name.clone()
-                };
-
-                let language = if !voice.languages.is_null() {
-                    // The languages field is a string with priority byte prefix
-                    // Format: priority_byte + language_string, null-separated
-                    let lang_ptr = voice.languages.offset(1); // skip priority byte
-                    CStr::from_ptr(lang_ptr).to_string_lossy().to_string()
-                } else {
-                    String::new()
-                };
-
-                voices.push(VoiceInfo {
-                    identifier: format!("espeak:{}", identifier),
-                    name,
-                    language,
-                    quality: VoiceQuality::Compact,
-                });
-            }
-        }
-
-        debug!("espeak-ng found {} voices", voices.len());
-        voices
+        self.descriptor
+            .voices
+            .iter()
+            .map(|voice| VoiceInfo {
+                identifier: voice.id.voice_id.clone(),
+                name: voice.display_name.clone(),
+                language: voice.language.clone().unwrap_or_default(),
+                quality: voice.quality,
+            })
+            .collect()
     }
 
     fn voice_info(&self, identifier: &str) -> Option<VoiceInfo> {
