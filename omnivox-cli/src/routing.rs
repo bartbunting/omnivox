@@ -7,6 +7,7 @@ use std::time::Instant;
 use omnivox_tts::contracts::{
     AcssApplication, Availability, EngineDescriptor, EngineHealth, FallbackPolicy,
     LogicalVoiceDefinition, NormalizedAcss, PhysicalVoiceId, PostSynthesisApplication,
+    PostSynthesisStyle, VoiceSelector,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
@@ -21,6 +22,7 @@ use crate::health::{EngineAccess, EnginePermit, RuntimeEngineHealth};
 
 /// Maximum synthesis attempts for one routed chunk, including the first try.
 pub const MAX_RUNTIME_SYNTHESIS_ATTEMPTS: usize = 4;
+const IMPLICIT_LEGACY_VOICE_ID: &str = "__omnivox_internal_legacy__";
 
 /// Immutable registration state plus a batch-local mutable inventory.
 #[derive(Clone)]
@@ -119,6 +121,26 @@ impl LogicalVoiceRoutingSnapshot {
         self.resolve_current(logical_voice_id, engine_registry)
     }
 
+    /// Route engine-local legacy state through the normal runtime fallback path.
+    pub fn initial_legacy_route(
+        &mut self,
+        requested_voice: PhysicalVoiceId,
+        engine_registry: &EngineRegistry,
+    ) -> Result<LogicalRoute, String> {
+        self.definitions
+            .retain(|definition| definition.id != IMPLICIT_LEGACY_VOICE_ID);
+        self.definitions.push(LogicalVoiceDefinition {
+            id: IMPLICIT_LEGACY_VOICE_ID.to_owned(),
+            language: None,
+            preferences: vec![VoiceSelector::Exact(requested_voice)],
+            acss: NormalizedAcss::default(),
+            effects: PostSynthesisStyle::default(),
+        });
+        let mut route = self.resolve_current(IMPLICIT_LEGACY_VOICE_ID, engine_registry)?;
+        route.reported_logical_voice_id = None;
+        Ok(route)
+    }
+
     /// Exclude the failed runtime target locally and resolve the same logical
     /// voice again. Invalid settings are not route failures and are not retried.
     pub fn reroute_after_failure(
@@ -131,7 +153,8 @@ impl LogicalVoiceRoutingSnapshot {
             return RuntimeReroute::NotRetryable;
         }
         match self.resolve_current(&route.logical_voice_id, engine_registry) {
-            Ok(retry) if retry.realized != route.realized => {
+            Ok(mut retry) if retry.realized != route.realized => {
+                retry.reported_logical_voice_id = route.reported_logical_voice_id.clone();
                 RuntimeReroute::Retry(Box::new(retry))
             }
             Ok(_) => RuntimeReroute::Exhausted(format!(
@@ -214,6 +237,7 @@ pub(crate) fn legacy_voice_for_engine(engine: &dyn TtsEngine, requested: &str) -
 /// Physical route selected for one logical voice within a dispatched batch.
 pub struct LogicalRoute {
     pub logical_voice_id: String,
+    pub reported_logical_voice_id: Option<String>,
     pub engine: Arc<dyn TtsEngine>,
     pub realized: PhysicalVoiceId,
     pub acss: AcssApplication,
@@ -392,8 +416,9 @@ fn synthesize_with_runtime_fallback_anchored_inner(
             },
         );
         apply_normalized_acss(&mut routed_settings, &acss.style);
-        let mut request = SynthesisRequest::new(chunk, routed_settings)
-            .with_route(route.logical_voice_id.clone(), route.realized.clone());
+        let mut request = SynthesisRequest::new(chunk, routed_settings);
+        request.requested_voice = Some(route.realized.clone());
+        request.logical_voice_id = route.reported_logical_voice_id.clone();
         request.anchors = anchors.to_vec();
         let started_at = Instant::now();
         info!(
@@ -570,6 +595,7 @@ fn route_from_resolution(
     }
 
     Ok(LogicalRoute {
+        reported_logical_voice_id: Some(resolution.logical_voice_id.clone()),
         logical_voice_id: resolution.logical_voice_id,
         engine,
         realized: resolution.realized,
@@ -666,6 +692,7 @@ mod tests {
         recovery_preparations: AtomicUsize,
         calls: Mutex<Vec<(String, String)>>,
         settings: Mutex<Vec<TtsSettings>>,
+        logical_voice_ids: Mutex<Vec<Option<String>>>,
     }
 
     impl TtsEngine for MockEngine {
@@ -684,6 +711,10 @@ mod tests {
                 .unwrap()
                 .push((request.text.clone(), request.settings.voice.clone()));
             self.settings.lock().unwrap().push(request.settings.clone());
+            self.logical_voice_ids
+                .lock()
+                .unwrap()
+                .push(request.logical_voice_id.clone());
             let success = || {
                 Ok(SynthesisResult::audio(
                     self.descriptor.id.clone(),
@@ -765,6 +796,7 @@ mod tests {
                 recovery_preparations: AtomicUsize::new(0),
                 calls: Mutex::new(Vec::new()),
                 settings: Mutex::new(Vec::new()),
+                logical_voice_ids: Mutex::new(Vec::new()),
             }))
             .unwrap();
     }
@@ -780,6 +812,7 @@ mod tests {
             recovery_preparations: AtomicUsize::new(0),
             calls: Mutex::new(Vec::new()),
             settings: Mutex::new(Vec::new()),
+            logical_voice_ids: Mutex::new(Vec::new()),
         })
     }
 
@@ -796,6 +829,7 @@ mod tests {
             recovery_preparations: AtomicUsize::new(0),
             calls: Mutex::new(Vec::new()),
             settings: Mutex::new(Vec::new()),
+            logical_voice_ids: Mutex::new(Vec::new()),
         })
     }
 
@@ -1235,6 +1269,48 @@ mod tests {
                 .realized,
             PhysicalVoiceId::new("espeak", "en-us")
         );
+    }
+
+    #[test]
+    fn implicit_legacy_route_falls_back_without_reporting_a_logical_voice() {
+        let primary = synthesis_engine("eloquence", "reed", Some(MockFailure::Synthesis));
+        let fallback = synthesis_engine("espeak", "en-us", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(Vec::new()),
+            FallbackPolicy {
+                fallback_engines: vec!["espeak".to_owned()],
+                ..FallbackPolicy::default()
+            },
+        );
+        let mut route = routes
+            .initial_legacy_route(PhysicalVoiceId::new("eloquence", "reed"), &engines)
+            .unwrap();
+        let health = RuntimeEngineHealth::new();
+        let counter = AtomicU64::new(3);
+
+        let outcome = synthesize_with_runtime_fallback(
+            "plain speech",
+            &TtsSettings::default(),
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            3,
+            &counter,
+        );
+
+        assert!(matches!(outcome, RuntimeSynthesisOutcome::Ready(_)));
+        assert_eq!(route.realized, PhysicalVoiceId::new("espeak", "en-us"));
+        assert_eq!(*primary.logical_voice_ids.lock().unwrap(), [None]);
+        assert_eq!(*fallback.logical_voice_ids.lock().unwrap(), [None]);
     }
 
     #[test]

@@ -825,7 +825,7 @@ fn synthesize_routed_chunk(
             queue_synthesis_result(
                 *result,
                 chunk,
-                Some(&route.logical_voice_id),
+                route.reported_logical_voice_id.as_deref(),
                 capitalization_tones,
                 timeline_actions,
                 &effect_application.style,
@@ -844,6 +844,25 @@ fn synthesize_routed_chunk(
         RuntimeSynthesisOutcome::Cancelled => RoutedChunkOutcome::Cancelled,
         RuntimeSynthesisOutcome::Failed => RoutedChunkOutcome::Failed,
         RuntimeSynthesisOutcome::Exhausted => RoutedChunkOutcome::Exhausted,
+    }
+}
+
+fn initial_legacy_route(
+    state: &TtsState,
+    ctx: &SynthCtx,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engine_registry: &EngineRegistry,
+) -> Option<LogicalRoute> {
+    let engine_id = ctx.engine.descriptor().id;
+    match routing.initial_legacy_route(
+        PhysicalVoiceId::new(engine_id, state.current_voice.clone()),
+        engine_registry,
+    ) {
+        Ok(route) => Some(route),
+        Err(error) => {
+            warn!("Could not establish implicit legacy route: {error}");
+            None
+        }
     }
 }
 
@@ -1031,10 +1050,8 @@ pub fn process_presentation_timeline(
                 active_effects = Some(PostSynthesisStyle::default())
             }
         }
-        let mut route = span
-            .logical_voice_id
-            .as_deref()
-            .and_then(|logical_voice_id| {
+        let mut route = match span.logical_voice_id.as_deref() {
+            Some(logical_voice_id) => {
                 match logical_voice_routing.initial_route(logical_voice_id, engine_registry) {
                     Ok(route) => Some(route),
                     Err(error) => {
@@ -1042,7 +1059,17 @@ pub fn process_presentation_timeline(
                         None
                     }
                 }
-            });
+            }
+            None => None,
+        };
+        if route.is_none() {
+            route = initial_legacy_route(
+                &state,
+                ctx,
+                &mut logical_voice_routing,
+                engine_registry,
+            );
+        }
         let requested_acss = acss_has_values(&span.acss).then_some(&span.acss);
         for (chunk, actions) in span.chunks.into_iter().zip(span.actions) {
             if ctx.is_stale() {
@@ -1412,7 +1439,12 @@ pub fn process_batch(
 
     let mut speech_chunk_index: usize = 0;
     let mut primary_window_index: usize = 0;
-    let mut logical_route: Option<LogicalRoute> = None;
+    let mut logical_route = initial_legacy_route(
+        &state,
+        ctx,
+        &mut logical_voice_routing,
+        engine_registry,
+    );
     let mut logical_route_exhausted = false;
 
     for item in items {
@@ -1482,7 +1514,12 @@ pub fn process_batch(
             QueueItem::Code(codes) => {
                 if let Some(voice) = extract_voice(&codes) {
                     state.current_voice = legacy_voice_for_engine(ctx.engine, &voice);
-                    logical_route = None;
+                    logical_route = initial_legacy_route(
+                        &state,
+                        ctx,
+                        &mut logical_voice_routing,
+                        engine_registry,
+                    );
                     logical_route_exhausted = false;
                 }
                 if let Some(logical_voice_id) = extract_logical_voice(&codes) {
@@ -1497,7 +1534,12 @@ pub fn process_batch(
                         }
                         Err(error) => {
                             warn!("{}; using preferred legacy engine", error);
-                            logical_route = None;
+                            logical_route = initial_legacy_route(
+                                &state,
+                                ctx,
+                                &mut logical_voice_routing,
+                                engine_registry,
+                            );
                             logical_route_exhausted = false;
                         }
                     }
