@@ -32,7 +32,9 @@ use crate::health::RuntimeEngineHealth;
 use crate::marker_events::{
     MarkerDispatchContext, PlaybackSemanticEvent, PlaybackTimelineResolution,
 };
-use crate::routing::{LogicalRoute, LogicalVoiceRoutingSnapshot, RuntimeSynthesisOutcome};
+use crate::routing::{
+    legacy_voice_for_engine, LogicalRoute, LogicalVoiceRoutingSnapshot, RuntimeSynthesisOutcome,
+};
 use crate::text::{
     chunk_prepared_speech, extract_logical_voice, extract_pitch, extract_voice,
     prepare_speech_text, prepare_speech_text_with_offsets, rate_scaled_padding,
@@ -990,7 +992,7 @@ struct PreparedTimelineSpan {
 /// tracked presentation timeline.
 pub fn process_presentation_timeline(
     timeline: PresentationTimelineEnvelope,
-    state: TtsState,
+    mut state: TtsState,
     ctx: &SynthCtx,
     loader: &AudioFileLoader,
     engine_registry: &EngineRegistry,
@@ -1000,6 +1002,7 @@ pub fn process_presentation_timeline(
     if ctx.is_stale() {
         return BatchStatus::Cancelled;
     }
+    state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
     let resources = match preload_timeline_resources(&timeline.actions, &state, loader) {
         Ok(resources) => resources,
         Err(error) => {
@@ -1388,6 +1391,7 @@ pub fn process_batch(
     if ctx.is_stale() {
         return BatchStatus::Cancelled;
     }
+    state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
 
     // Pre-count speech chunks for trailing padding and all primary windows for
     // final overlay-tail placement.
@@ -1477,7 +1481,7 @@ pub fn process_batch(
 
             QueueItem::Code(codes) => {
                 if let Some(voice) = extract_voice(&codes) {
-                    state.current_voice = voice;
+                    state.current_voice = legacy_voice_for_engine(ctx.engine, &voice);
                     logical_route = None;
                     logical_route_exhausted = false;
                 }

@@ -159,6 +159,57 @@ impl LogicalVoiceRoutingSnapshot {
     }
 }
 
+/// Resolve legacy, engine-neutral voice state against the selected engine.
+///
+/// Legacy protocol state carries one unscoped selector, so changing the
+/// preferred engine can leave a WinRT language or voice ID in front of a
+/// helper which only accepts its own native IDs.  Preserve selectors the
+/// selected engine advertises, canonicalize name/language matches to a
+/// physical ID, and otherwise degrade to that engine's advertised default.
+pub(crate) fn legacy_voice_for_engine(engine: &dyn TtsEngine, requested: &str) -> String {
+    let descriptor = engine.descriptor();
+    let engine_prefix = format!("{}:", descriptor.id);
+    let requested_without_prefix = requested.strip_prefix(&engine_prefix);
+    let exact = descriptor
+        .voices
+        .iter()
+        .filter(|voice| matches!(&voice.availability, Availability::Available))
+        .find(|voice| {
+            voice.id.voice_id == requested
+                || voice
+                    .id
+                    .voice_id
+                    .strip_prefix(&engine_prefix)
+                    .is_some_and(|voice_id| voice_id == requested)
+                || requested_without_prefix
+                    .is_some_and(|requested| requested == voice.id.voice_id)
+        });
+    let named = exact.or_else(|| {
+        descriptor
+            .voices
+            .iter()
+            .filter(|voice| matches!(&voice.availability, Availability::Available))
+            .find(|voice| {
+                voice.display_name == requested
+                    || voice
+                        .language
+                        .as_deref()
+                        .is_some_and(|language| language.eq_ignore_ascii_case(requested))
+            })
+    });
+    let selected = named
+        .map(|voice| voice.id.voice_id.clone())
+        .or_else(|| descriptor.default_voice_id.filter(|voice| !voice.is_empty()))
+        .unwrap_or_else(|| requested.to_owned());
+    if selected != requested {
+        debug!(
+            "Legacy voice selector {:?} resolved to engine {} voice {:?}",
+            requested, descriptor.id, selected
+        );
+    }
+    selected
+}
+
 /// Physical route selected for one logical voice within a dispatched batch.
 pub struct LogicalRoute {
     pub logical_voice_id: String,
@@ -808,6 +859,17 @@ mod tests {
                 .id,
             "winrt"
         );
+    }
+
+    #[test]
+    fn legacy_voice_state_degrades_to_each_selected_engines_native_default() {
+        let dectalk = synthesis_engine("dectalk", "paul", None);
+        let eloquence = synthesis_engine("eloquence", "v1", None);
+
+        assert_eq!(legacy_voice_for_engine(&*dectalk, "en-US"), "paul");
+        assert_eq!(legacy_voice_for_engine(&*eloquence, "en-US"), "v1");
+        assert_eq!(legacy_voice_for_engine(&*dectalk, "paul"), "paul");
+        assert_eq!(legacy_voice_for_engine(&*eloquence, "paul"), "v1");
     }
 
     #[test]

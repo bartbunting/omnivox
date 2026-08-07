@@ -35,7 +35,7 @@ use crate::pipeline::{
     build_sound_pipeline, process_batch, process_presentation_timeline, process_preview,
     synthesize_chunk_with_tones, BatchStatus, SynthCtx,
 };
-use crate::routing::LogicalVoiceRoutingSnapshot;
+use crate::routing::{legacy_voice_for_engine, LogicalVoiceRoutingSnapshot};
 use crate::text::{
     chunk_prepared_speech, normalize_rate, parse_resource_path, prepare_speech_text,
     CapitalizationTone, CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ,
@@ -494,7 +494,10 @@ pub fn synthesis_worker(
                 };
                 if ctx.is_stale() { continue; }
                 let settings = TtsSettings {
-                    voice: state.current_voice.clone(),
+                    voice: legacy_voice_for_engine(
+                        &*preferred_engine,
+                        &state.current_voice,
+                    ),
                     rate: state.speech_rate,
                     pitch: state.pitch_multiplier,
                     volume: 1.0,
@@ -569,7 +572,10 @@ pub fn synthesis_worker(
                 }
 
                 let settings = TtsSettings {
-                    voice: letter_state.current_voice.clone(),
+                    voice: legacy_voice_for_engine(
+                        &*preferred_engine,
+                        &letter_state.current_voice,
+                    ),
                     rate: letter_state.speech_rate,
                     pitch: letter_state.pitch_multiplier,
                     volume: 1.0,
