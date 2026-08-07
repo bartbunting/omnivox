@@ -30,6 +30,14 @@ Without options, starts the Emacspeak protocol server on stdin.
 
 Omnivox recognizes these environment variables:
 
+**OMNIVOX_LOG_DIRECTORY** (Emacsvox WSL launcher only)
+
+- Linux directory used for one persistent stderr log per OmniVox launch
+- Default: `$XDG_STATE_HOME/emacsvox/omnivox`, falling back to
+  `~/.local/state/emacsvox/omnivox`
+- Logs contain request metadata and failure details but not synthesized text
+- See [`docs/DIAGNOSTICS.md`](docs/DIAGNOSTICS.md)
+
 **OMNIVOX_ENGINE**
 
 - Values: `espeak`, `native`, or empty

@@ -750,8 +750,10 @@ it will need revision to use the common capability and completion contracts.
   underlying state model.
 - Create a Homebrew formula/tap that installs the binary and Emacs module and
   prints integration instructions.
-- Improve diagnostics for engine selection, fallback, chunking, voice
-  resolution, and audio-device failures.
+- Improve diagnostics for chunking, voice resolution, and audio-device
+  failures. Persistent per-session logs, helper/native-call correlation,
+  engine selection, runtime fallback/recovery traces, panic backtraces, a
+  bounded diagnostic bundle, and opt-in WER helper dumps are implemented.
 
 ### Phase 10: Hardening and Release Readiness
 
@@ -765,7 +767,8 @@ it will need revision to use the common capability and completion contracts.
 - Run the Emacs 31 suite and real WSL-to-Windows tests for each Windows engine.
 - Measure first-audio latency, memory growth, long-session stability, and helper
   process overhead.
-- Add user-facing engine/voice diagnostics and troubleshooting documentation.
+- Expand user-facing engine/voice diagnostics beyond the implemented runtime
+  inventory status and failure-capture workflow.
 - Exercise the generic Emacsvox Voice Workbench against live Omnivox,
   standalone static inventories, changing health, missing voices, and
   divergent speaker/notification inventories.

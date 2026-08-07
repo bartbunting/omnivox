@@ -1,5 +1,13 @@
 # Developer Tools
 
+## Failure diagnostics
+
+`collect_diagnostics.sh` creates a bounded archive containing recent OmniVox
+session logs, build/runtime identity, process inventory, and relevant Windows
+events. It does not include Windows memory dumps. See
+[`docs/DIAGNOSTICS.md`](../docs/DIAGNOSTICS.md) for the failure workflow and the
+opt-in `configure_windows_crash_dumps.ps1` helper.
+
 ## Windows helper session stress
 
 `stress_helper.py` keeps one protocol-v2 helper process alive across repeated
