@@ -2,8 +2,8 @@
 
 use anyhow::Result;
 use omnivox_audio::{
-    AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, PostSynthesisProcessor,
-    StreamType, TimelineAudioRenderer,
+    AudioBuffer, AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket,
+    PostSynthesisProcessor, StreamType, TimelineAudioRenderer, ToneGenerator,
 };
 use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
@@ -32,8 +32,8 @@ use tracing::{debug, error, info, warn};
 use crate::health::RuntimeEngineHealth;
 use crate::marker_events::{MarkerDispatchContext, MarkerEventOutput};
 use crate::pipeline::{
-    build_sound_pipeline, process_batch, process_presentation_timeline, process_preview,
-    synthesize_chunk_with_tones, BatchStatus, SynthCtx,
+    build_sound_pipeline, build_tone_pipeline, process_batch, process_presentation_timeline,
+    process_preview, synthesize_chunk_with_tones, BatchStatus, SynthCtx,
 };
 use crate::routing::{legacy_voice_for_engine, LogicalVoiceRoutingSnapshot};
 use crate::text::{
@@ -48,6 +48,9 @@ use crate::transaction::{
 const PRESENTATION_COALESCE_WINDOW: Duration = Duration::from_millis(2);
 const TRACKED_STATUS_PREFIX: &str = "__EMACSVOX_TRACKED__";
 const PREVIEW_LOGICAL_VOICE_ID: &str = "omnivox.preview";
+const READY_TUNE_NOTES: &[(f32, u32)] = &[(523.25, 55), (659.25, 55), (783.99, 85)];
+const READY_TUNE_GAP_SECONDS: f32 = 0.018;
+const READY_TUNE_VOLUME: f32 = 0.35;
 
 // ---------------------------------------------------------------------------
 // Synthesis request types
@@ -655,6 +658,29 @@ pub fn interrupt(
     }
 }
 
+fn ready_tune() -> AudioBuffer {
+    let mut samples = Vec::new();
+    for (index, (frequency_hz, duration_ms)) in READY_TUNE_NOTES.iter().enumerate() {
+        let note = ToneGenerator::generate(*frequency_hz, *duration_ms, READY_TUNE_VOLUME);
+        samples.extend(note.samples);
+        if index + 1 < READY_TUNE_NOTES.len() {
+            samples.extend(AudioBuffer::silence(READY_TUNE_GAP_SECONDS).samples);
+        }
+    }
+    AudioBuffer::new(samples)
+}
+
+fn play_ready_tune(control: &AudioControl, state: &TtsState) {
+    let mut tune = ready_tune();
+    if let Err(error) = build_tone_pipeline(state).process(&mut tune) {
+        warn!("Could not prepare Omnivox ready tune: {}", error);
+        return;
+    }
+    if let Err(error) = control.queue(StreamType::Tone, &tune) {
+        warn!("Could not play Omnivox ready tune: {}", error);
+    }
+}
+
 /// Reader loop: process stdin commands and drive the synthesis worker.
 ///
 /// Does not own `AudioStreams` — the caller keeps it alive so the `OutputStream`
@@ -679,8 +705,6 @@ pub fn run_server(
     let preferred_engine_id = engine.descriptor().id;
     let mut routing_policy = RoutingPolicyRegistry::new(preferred_engine_id.clone());
 
-    info!("Ready to accept commands from stdin");
-
     let (input_tx, input_rx) = mpsc::channel::<io::Result<String>>();
     let input_handle = std::thread::Builder::new()
         .name("omnivox-stdin".to_owned())
@@ -694,6 +718,8 @@ pub fn run_server(
             }
         })
         .expect("Failed to spawn stdin reader thread");
+    play_ready_tune(&control, &state);
+    info!("Ready to accept commands from stdin");
     let mut deferred_command = None;
     let mut input_closed = false;
 
@@ -1706,5 +1732,13 @@ mod tests {
             } if actual_requested == requested
                 && degraded_acss == vec![AcssDimension::Richness]
         ));
+    }
+
+    #[test]
+    fn ready_tune_is_short_and_audible() {
+        let tune = ready_tune();
+
+        assert!((0.22..0.25).contains(&tune.duration_secs()));
+        assert!(tune.samples.iter().any(|sample| sample.abs() > 0.1));
     }
 }
