@@ -37,7 +37,8 @@ Version 1 has this shape:
       "id": 1,
       "text": "Example",
       "logical_voice_id": "voice-annotate",
-      "acss": {"rate": 0.6, "average_pitch": 0.4},
+      "acss": {"average_pitch": 0.4},
+      "rate_offset": -4,
       "effects": {
         "mode": "replace",
         "state_id": "room.1",
@@ -80,6 +81,13 @@ fallbacks, and reports the engine and physical voice actually used.
 `acss` contains normalized `0.0..1.0` engine-rendered dimensions: rate,
 average pitch, pitch range, stress, richness, and volume. Unsupported values
 do not prevent speech; they are omitted and reported as degradation.
+
+`rate_offset`, when present, is a signed integer from `-20` through `20`. It
+adjusts the server's current speech rate by that many points on its `0..100`
+rate scale before engine-specific conversion: at a current rate of 75, `-1`
+means 74 and `4` means 79. It does not change the current global rate. A span
+must not contain both `rate_offset` and the absolute `acss.rate`. An offset of
+zero is neutral and clients should normally omit it.
 
 `effects` is one complete-state operation:
 

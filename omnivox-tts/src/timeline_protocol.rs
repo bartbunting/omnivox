@@ -7,7 +7,9 @@ use base64::Engine;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::contracts::{NormalizedAcss, PostSynthesisStyle};
+use crate::contracts::{
+    NormalizedAcss, PostSynthesisStyle, MAX_RATE_OFFSET_POINTS, MIN_RATE_OFFSET_POINTS,
+};
 
 /// Current structured presentation-timeline protocol version.
 pub const PRESENTATION_TIMELINE_PROTOCOL_VERSION: u32 = 1;
@@ -44,6 +46,10 @@ pub struct PresentationSpeechSpan {
     pub logical_voice_id: Option<String>,
     #[serde(default)]
     pub acss: NormalizedAcss,
+    /// Signed points relative to the server's current normalized speech rate.
+    /// This is intentionally separate from the absolute `acss.rate` value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rate_offset: Option<i16>,
     #[serde(default)]
     pub effects: PresentationEffectDirective,
 }
@@ -251,6 +257,22 @@ pub fn validate_presentation_timeline(
             validate_id(logical_voice_id, "logical voice")?;
         }
         validate_acss(&span.acss, span.id)?;
+        if let Some(rate_offset) = span.rate_offset {
+            invalid_if(
+                !(MIN_RATE_OFFSET_POINTS..=MAX_RATE_OFFSET_POINTS).contains(&rate_offset),
+                format!(
+                    "speech span {} rate offset must be between {} and {} points",
+                    span.id, MIN_RATE_OFFSET_POINTS, MAX_RATE_OFFSET_POINTS
+                ),
+            )?;
+            invalid_if(
+                span.acss.rate.is_some(),
+                format!(
+                    "speech span {} cannot combine absolute rate and rate offset",
+                    span.id
+                ),
+            )?;
+        }
         if let PresentationEffectDirective::Replace { state_id, style } = &span.effects {
             validate_id(state_id, "effect state")?;
             validate_effects(style, span.id)?;
@@ -418,6 +440,7 @@ mod tests {
                     rate: Some(0.7),
                     ..NormalizedAcss::default()
                 },
+                rate_offset: None,
                 effects: PresentationEffectDirective::Replace {
                     state_id: "comment-effects".to_owned(),
                     style: PostSynthesisStyle {
@@ -459,7 +482,9 @@ mod tests {
 
     #[test]
     fn timeline_round_trip_preserves_unicode_and_separate_anchors() {
-        let timeline = timeline();
+        let mut timeline = timeline();
+        timeline.spans[0].acss.rate = None;
+        timeline.spans[0].rate_offset = Some(-4);
         let encoded = encode_presentation_timeline(&timeline).unwrap();
 
         assert_eq!(decode_presentation_timeline(&encoded).unwrap(), timeline);
@@ -506,6 +531,24 @@ mod tests {
         nan.spans[0].acss.rate = Some(f32::NAN);
         assert!(matches!(
             validate_presentation_timeline(&nan),
+            Err(PresentationTimelineError::InvalidTimeline(_))
+        ));
+    }
+
+    #[test]
+    fn validation_rejects_invalid_or_ambiguous_rate_offsets() {
+        let mut out_of_range = timeline();
+        out_of_range.spans[0].acss.rate = None;
+        out_of_range.spans[0].rate_offset = Some(MAX_RATE_OFFSET_POINTS + 1);
+        assert!(matches!(
+            validate_presentation_timeline(&out_of_range),
+            Err(PresentationTimelineError::InvalidTimeline(_))
+        ));
+
+        let mut ambiguous = timeline();
+        ambiguous.spans[0].rate_offset = Some(1);
+        assert!(matches!(
+            validate_presentation_timeline(&ambiguous),
             Err(PresentationTimelineError::InvalidTimeline(_))
         ));
     }

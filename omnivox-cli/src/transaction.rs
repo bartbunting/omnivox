@@ -217,6 +217,7 @@ mod tests {
                 text: text.to_owned(),
                 logical_voice_id: None,
                 acss: NormalizedAcss::default(),
+                rate_offset: None,
                 effects: PresentationEffectDirective::Retain,
             }],
             actions: Vec::new(),

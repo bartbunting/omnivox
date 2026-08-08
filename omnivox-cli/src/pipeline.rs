@@ -11,7 +11,8 @@ use omnivox_core::timeline::{
 };
 use omnivox_core::{QueueItem, TtsState};
 use omnivox_tts::contracts::{
-    AcssDimension, NormalizedAcss, PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle,
+    apply_rate_offset, AcssDimension, NormalizedAcss, PhysicalVoiceId, PostSynthesisDimension,
+    PostSynthesisStyle,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::timeline_protocol::{
@@ -1346,6 +1347,10 @@ fn prepare_timeline_span(
     state: &TtsState,
     resources: &HashMap<String, AudioBuffer>,
 ) -> Result<PreparedTimelineSpan, String> {
+    let mut acss = span.acss.clone();
+    if let Some(rate_offset) = span.rate_offset.filter(|offset| *offset != 0) {
+        acss.rate = Some(apply_rate_offset(state.speech_rate, rate_offset));
+    }
     let span_actions = actions
         .iter()
         .filter(|action| action.position.span_id() == span.id)
@@ -1432,7 +1437,7 @@ fn prepare_timeline_span(
     Ok(PreparedTimelineSpan {
         id: span.id,
         logical_voice_id: span.logical_voice_id.clone(),
-        acss: span.acss.clone(),
+        acss,
         effects: span.effects.clone(),
         chunks,
         actions: actions_by_chunk,
@@ -1918,6 +1923,7 @@ mod tests {
             text: text.to_owned(),
             logical_voice_id: Some("comment".to_owned()),
             acss: NormalizedAcss::default(),
+            rate_offset: None,
             effects: PresentationEffectDirective::Retain,
         };
         let actions = vec![

@@ -288,6 +288,22 @@ pub struct NormalizedAcss {
     pub volume: Option<f32>,
 }
 
+/// Smallest portable voice-rate adjustment, in points on the normalized
+/// 0..=100 speech-rate scale.
+pub const MIN_RATE_OFFSET_POINTS: i16 = -20;
+
+/// Largest portable voice-rate adjustment, in points on the normalized
+/// 0..=100 speech-rate scale.
+pub const MAX_RATE_OFFSET_POINTS: i16 = 20;
+
+/// Apply a signed point adjustment to a normalized speech rate.
+///
+/// For example, a base rate of `0.75` with an offset of `-1` produces
+/// `0.74`; an offset of `4` produces `0.79`.
+pub fn apply_rate_offset(base_rate: f32, offset_points: i16) -> f32 {
+    (base_rate + f32::from(offset_points) / 100.0).clamp(0.0, 1.0)
+}
+
 impl NormalizedAcss {
     /// Clamp all present values into the normalized range.
     pub fn clamped(mut self) -> Self {
@@ -524,6 +540,14 @@ mod tests {
         assert_eq!(style.rate, Some(0.0));
         assert_eq!(style.average_pitch, Some(1.0));
         assert_eq!(style.stress, Some(0.5));
+    }
+
+    #[test]
+    fn relative_rate_uses_direct_points_and_clamps_at_scale_edges() {
+        assert!((apply_rate_offset(0.75, -1) - 0.74).abs() < f32::EPSILON);
+        assert!((apply_rate_offset(0.75, 4) - 0.79).abs() < f32::EPSILON);
+        assert_eq!(apply_rate_offset(0.03, -20), 0.0);
+        assert_eq!(apply_rate_offset(0.95, 20), 1.0);
     }
 
     #[test]
