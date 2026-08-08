@@ -34,7 +34,8 @@ failure inside `ECI.DLL` or `DECtalk.dll` can terminate the 32-bit helper
 without running managed exception handlers. Windows Error Reporting can retain
 a full dump for that case.
 
-From an elevated PowerShell, run:
+From an elevated PowerShell (a PowerShell started with **Run as
+administrator**), run:
 
 ```powershell
 & "\\wsl.localhost\Ubuntu-26.04\home\bart\src\omnivox\tools\configure_windows_crash_dumps.ps1"
@@ -58,15 +59,32 @@ requires administrator privileges and `HKEY_LOCAL_MACHINE` configuration for
 WER LocalDumps; per-process settings override global settings. See Microsoft’s
 [WER settings documentation](https://learn.microsoft.com/windows/win32/wer/wer-settings).
 
+If administrator access is unavailable, skip LocalDumps. The ordinary session
+log and `tools/collect_diagnostics.sh` still capture the request, native-call
+boundary, helper exit or forced termination, fallback, recovery, process list,
+and available Windows Application events. That is normally enough to identify
+whether the Rust server, its helper transport, or a native engine failed; only
+native stack and memory inspection require a dump.
+
 ## Expected failure behaviour
 
 Helper transport failures invalidate the child, open the engine circuit, and
 retry the same chunk through the configured fallback route. This includes
-ordinary speech without a named logical voice. If a helper does not finish a
-requested cancellation within 250 milliseconds, OmniVox terminates it so the
-synthesis worker cannot remain blocked behind a native call. After cooldown,
-one request reconnects the helper and acts as a recovery probe. If the Rust
-synthesis worker itself panics, OmniVox writes a forced backtrace and exits
-with status 70. Emacs retires that failed process and initializes a replacement
-when speech is next requested, rather than leaving a live control channel with
-a dead synthesis queue.
+ordinary speech without a named logical voice. A retryable native synthesis
+failure also retires the helper so a potentially damaged Eloquence or DECtalk
+session is never reused.
+
+If a helper does not finish a requested cancellation within 250 milliseconds,
+Omnivox terminates it so the synthesis worker cannot remain blocked behind a
+native call. Cancellation belongs to the superseded request and does not by
+itself make the engine unhealthy: the next live request negotiates a fresh
+helper immediately. A genuine runtime failure still uses the circuit breaker;
+after cooldown, one request reconnects the helper and acts as a recovery
+probe. Voice identifiers reported by eSpeak are matched case-insensitively
+against its inventory so backend language-tag normalization cannot prevent
+fallback.
+
+If the Rust synthesis worker itself panics, Omnivox writes a forced backtrace
+and exits with status 70. Emacs retires that failed process and initializes a
+replacement when speech is next requested, rather than leaving a live control
+channel with a dead synthesis queue.
