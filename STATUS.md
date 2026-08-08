@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Last Updated:** 2026-08-07
+**Last Updated:** 2026-08-08
 **Version:** 1.3.0
 
 ## Current State
@@ -64,6 +64,8 @@
 - Speech-overlaid 440 Hz capital and 1300 Hz all-caps tones resolved through
   requested anchors with word-boundary and chunk-boundary degradation
 - Per-engine rate, average-pitch, and volume degradation for logical ACSS routes
+- Capability-gated signed per-voice rate offsets relative to the live global
+  zero-to-100 rate, shared by timelines and exact previews
 - Canonical PCM conversion before helper audio enters the effects/playback pipeline
 - Structured synthesis requests and results with realized engine/voice metadata
 - WinRT word and sentence boundaries mapped to playback-synchronized markers

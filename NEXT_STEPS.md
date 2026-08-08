@@ -503,6 +503,17 @@ complete presentation stays on the established legacy path; it is never split
 between protocols. Engines without markers still provide normal ordered
 speech, fallback, whole-span effects, completion, and boundary-level actions.
 
+Relative-rate status on 2026-08-08: implemented end to end. The
+`relative_rate_v1` capability adds a signed `-20..20` point offset to both
+structured speech spans and exact previews without changing global state. At a
+global rate of 75, `-1` produces 74 and `4` produces 79; the effective
+normalized rate then follows the selected WinRT, Eloquence, DECtalk, or eSpeak
+engine's existing mapping. Absolute `acss.rate` remains available to lower-level
+protocol clients, but a request cannot combine it with a relative offset.
+Unsupported engine rate degrades through the existing ACSS diagnostic. Older
+servers receive no fallback absolute value, so the Emacsvox palette setting is
+retained and reported as omitted rather than unexpectedly slowing speech.
+
 ### Phase 5: Complete the Emacsvox Protocol
 
 - Add capability/version negotiation so Emacsvox enables extensions only when
