@@ -324,6 +324,15 @@ impl EspeakTtsEngine {
         voice_id.strip_prefix("espeak:").unwrap_or(voice_id)
     }
 
+    fn reported_voice_id(requested_voice_id: &str, backend_identifier: &str) -> String {
+        let reported = format!("espeak:{backend_identifier}");
+        if reported.eq_ignore_ascii_case(requested_voice_id) {
+            requested_voice_id.to_owned()
+        } else {
+            reported
+        }
+    }
+
     fn markers_from_native(
         text: &str,
         native_markers: &[EspeakNativeMarker],
@@ -528,7 +537,10 @@ impl TtsEngine for EspeakTtsEngine {
                 (!identifier.is_null()).then(|| {
                     PhysicalVoiceId::new(
                         "espeak",
-                        format!("espeak:{}", CStr::from_ptr(identifier).to_string_lossy()),
+                        Self::reported_voice_id(
+                            &voice_id,
+                            &CStr::from_ptr(identifier).to_string_lossy(),
+                        ),
                     )
                 })
             };
@@ -770,6 +782,18 @@ mod tests {
             r"gmw\en-US"
         );
         assert_eq!(EspeakTtsEngine::backend_voice_name("en"), "en");
+    }
+
+    #[test]
+    fn reported_voice_preserves_inventory_case_after_backend_normalization() {
+        assert_eq!(
+            EspeakTtsEngine::reported_voice_id(r"espeak:gmw\en-US", r"gmw\en-us"),
+            r"espeak:gmw\en-US"
+        );
+        assert_eq!(
+            EspeakTtsEngine::reported_voice_id("en", r"gmw\en-us"),
+            r"espeak:gmw\en-us"
+        );
     }
 
     #[test]
