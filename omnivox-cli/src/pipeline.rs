@@ -867,6 +867,30 @@ fn initial_legacy_route(
     }
 }
 
+fn prepare_letter_presentation(
+    text: &str,
+    state: &TtsState,
+) -> (String, Vec<CapitalizationTone>) {
+    let is_upper = text.chars().next().is_some_and(char::is_uppercase);
+    let capitalization_tones = if is_upper && state.capitalization_presentation.includes_tone() {
+        vec![CapitalizationTone {
+            id: "capitalization-letter".to_owned(),
+            text_offset: 0,
+            frequency_hz: CAPITAL_TONE_HZ,
+            duration_ms: CAPITAL_TONE_DURATION_MS,
+        }]
+    } else {
+        Vec::new()
+    };
+    let lowered = text.chars().flat_map(char::to_lowercase).collect::<String>();
+    let presented = if is_upper && state.capitalization_presentation.includes_spoken() {
+        format!("cap {lowered}")
+    } else {
+        lowered
+    };
+    (presented, capitalization_tones)
+}
+
 /// Speak one character through the same runtime fallback path as queued speech.
 pub fn process_letter(
     text: &str,
@@ -881,26 +905,12 @@ pub fn process_letter(
     }
     state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
     state.speech_rate = state.character_rate();
-    let is_upper = text.chars().next().is_some_and(char::is_uppercase);
-    let capitalization_tones = if is_upper && state.allcaps_beep {
-        vec![CapitalizationTone {
-            id: "capitalization-letter".to_owned(),
-            text_offset: 0,
-            frequency_hz: CAPITAL_TONE_HZ,
-            duration_ms: CAPITAL_TONE_DURATION_MS,
-        }]
-    } else {
-        Vec::new()
-    };
-    if is_upper && !state.allcaps_beep {
-        state.pitch_multiplier = 1.5;
-    }
-    let lowered = text.chars().flat_map(char::to_lowercase).collect::<String>();
+    let (presented, capitalization_tones) = prepare_letter_presentation(text, &state);
     let status = if let Some(mut route) =
         initial_legacy_route(&state, ctx, &mut routing, engine_registry)
     {
         match synthesize_routed_chunk(
-            &lowered,
+            &presented,
             &capitalization_tones,
             &[],
             None,
@@ -926,7 +936,7 @@ pub fn process_letter(
             volume: 1.0,
         };
         if synthesize_chunk_with_tones(
-            &lowered,
+            &presented,
             &capitalization_tones,
             &settings,
             &state,
@@ -1704,6 +1714,7 @@ pub fn process_batch(
 mod tests {
     use super::*;
     use crate::text::{CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ};
+    use omnivox_core::state::CapitalizationPresentation;
 
     fn result(audio: AudioBuffer) -> SynthesisResult {
         SynthesisResult::audio("mock", None, audio)
@@ -1715,6 +1726,32 @@ mod tests {
         let audio_buf = canonicalize_synthesis_result(result(tts_buf)).audio;
         assert_eq!(audio_buf.samples, vec![0.1, -0.1, 0.2, -0.2]);
         assert_eq!(audio_buf.frame_count(), 2);
+    }
+
+    #[test]
+    fn isolated_capital_uses_selected_presentation() {
+        let mut state = TtsState::default();
+        for (presentation, expected_text, expected_tones) in [
+            (CapitalizationPresentation::None, "a", 0),
+            (CapitalizationPresentation::Spoken, "cap a", 0),
+            (CapitalizationPresentation::Tone, "a", 1),
+            (CapitalizationPresentation::SpokenTone, "cap a", 1),
+            (CapitalizationPresentation::Custom, "a", 0),
+        ] {
+            state.capitalization_presentation = presentation;
+            let (text, tones) = prepare_letter_presentation("A", &state);
+            assert_eq!(text, expected_text);
+            assert_eq!(tones.len(), expected_tones);
+            if let Some(tone) = tones.first() {
+                assert_eq!(tone.frequency_hz, CAPITAL_TONE_HZ);
+                assert_eq!(tone.duration_ms, CAPITAL_TONE_DURATION_MS);
+            }
+        }
+
+        state.capitalization_presentation = CapitalizationPresentation::SpokenTone;
+        let (text, tones) = prepare_letter_presentation("a", &state);
+        assert_eq!(text, "a");
+        assert!(tones.is_empty());
     }
 
     #[test]

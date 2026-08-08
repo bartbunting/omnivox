@@ -246,6 +246,7 @@ pub fn process_control_request(
                     server_version: server_version.to_owned(),
                     supported_protocol_versions: vec![CONTROL_PROTOCOL_VERSION],
                     features: vec![
+                        "capitalization_presentation_v1".to_owned(),
                         "control_v1".to_owned(),
                         "emacsvox_tx".to_owned(),
                         "engine_inventory".to_owned(),
@@ -537,6 +538,9 @@ mod tests {
                 ref features,
                 ..
             } if server_version == "1.3.0"
+                && features
+                    .iter()
+                    .any(|feature| feature == "capitalization_presentation_v1")
                 && features.iter().any(|feature| feature == "emacsvox_tx")
                 && features
                     .iter()

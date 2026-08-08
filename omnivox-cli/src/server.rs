@@ -6,7 +6,9 @@ use omnivox_audio::{
     PostSynthesisProcessor, StreamType, TimelineAudioRenderer, ToneGenerator,
 };
 use omnivox_core::{
-    parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
+    parse_command,
+    state::{CapitalizationPresentation, ChannelMode, PunctuationLevel},
+    Command, CommandId, QueueItem, TtsState,
 };
 use omnivox_tts::contracts::{
     apply_rate_offset, AcssDimension, EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition,
@@ -1642,9 +1644,11 @@ fn handle_command(
             }
         }
 
-        CommandId::TtsAllCapsBeep => {
-            if let Some(flag) = command.args {
-                state.allcaps_beep = flag == "1";
+        CommandId::TtsSetCapitalizationPresentation => {
+            if let Some(presentation) = command.args {
+                if let Some(presentation) = CapitalizationPresentation::parse(&presentation) {
+                    state.capitalization_presentation = presentation;
+                }
             }
         }
 
@@ -1664,7 +1668,6 @@ fn handle_command(
                         state.punctuation_level = punct;
                     }
                     state.split_caps = parts[1] == "1";
-                    state.allcaps_beep = parts[2] == "1";
                     if let Ok(r) = parts[3].parse::<f32>() {
                         state.speech_rate = normalize_rate(r);
                     }

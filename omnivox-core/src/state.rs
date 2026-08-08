@@ -26,6 +26,42 @@ impl PunctuationLevel {
     }
 }
 
+/// Presentation selected for an uppercase character spoken in isolation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CapitalizationPresentation {
+    /// Speak the character without an additional capitalization cue.
+    None,
+    /// Say "cap" before the character.
+    Spoken,
+    /// Overlay the standard capital tone at the character boundary.
+    Tone,
+    /// Say "cap" and overlay the standard capital tone.
+    SpokenTone,
+    /// Reserve presentation for caller-supplied semantic actions.
+    Custom,
+}
+
+impl CapitalizationPresentation {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "none" => Some(Self::None),
+            "spoken" => Some(Self::Spoken),
+            "tone" => Some(Self::Tone),
+            "spoken-tone" => Some(Self::SpokenTone),
+            "custom" => Some(Self::Custom),
+            _ => None,
+        }
+    }
+
+    pub fn includes_spoken(self) -> bool {
+        matches!(self, Self::Spoken | Self::SpokenTone)
+    }
+
+    pub fn includes_tone(self) -> bool {
+        matches!(self, Self::Tone | Self::SpokenTone)
+    }
+}
+
 /// Audio channel mode for stereo panning
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChannelMode {
@@ -90,7 +126,7 @@ pub struct TtsState {
     // Punctuation
     pub punctuation_level: PunctuationLevel,
     pub split_caps: bool,
-    pub allcaps_beep: bool,
+    pub capitalization_presentation: CapitalizationPresentation,
 
     // Volume controls (0.0 to 1.0)
     pub voice_volume: f32,
@@ -120,7 +156,7 @@ impl Default for TtsState {
             speech_rate: 0.5,
             punctuation_level: PunctuationLevel::All,
             split_caps: true,
-            allcaps_beep: false,
+            capitalization_presentation: CapitalizationPresentation::None,
             voice_volume: 1.0,
             tone_volume: 1.0,
             sound_volume: 1.0,
@@ -172,7 +208,10 @@ mod tests {
         assert_eq!(state.speech_rate, 0.5);
         assert_eq!(state.punctuation_level, PunctuationLevel::All);
         assert!(state.split_caps);
-        assert!(!state.allcaps_beep);
+        assert_eq!(
+            state.capitalization_presentation,
+            CapitalizationPresentation::None
+        );
     }
 
     #[test]
@@ -214,6 +253,19 @@ mod tests {
         );
         assert_eq!(PunctuationLevel::parse("all"), Some(PunctuationLevel::All));
         assert_eq!(PunctuationLevel::parse("invalid"), None);
+    }
+
+    #[test]
+    fn test_capitalization_presentation_parse_and_components() {
+        assert_eq!(
+            CapitalizationPresentation::parse("spoken-tone"),
+            Some(CapitalizationPresentation::SpokenTone)
+        );
+        assert!(CapitalizationPresentation::Spoken.includes_spoken());
+        assert!(!CapitalizationPresentation::Spoken.includes_tone());
+        assert!(CapitalizationPresentation::Tone.includes_tone());
+        assert!(!CapitalizationPresentation::Tone.includes_spoken());
+        assert!(CapitalizationPresentation::parse("beep").is_none());
     }
 
     #[test]

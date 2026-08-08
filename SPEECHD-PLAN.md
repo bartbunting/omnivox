@@ -44,7 +44,7 @@ No code changes needed — the existing Linux audio infrastructure handles it.
 | Generation counter | ✅ Full | Worker checks staleness between chunks |
 | Split caps | ✅ Full | Text preprocessed before SD sees it |
 | Punctuation expansion | ✅ Full | Text preprocessed before SD sees it |
-| Capital letters | ✅ Bonus | `spd_set_capital_letters()` — map allcaps_beep to `SPD_CAP_ICON` |
+| Capital letters | ✅ Full | Semantic timelines carry queued cues; isolated letters use the selected capitalization presentation |
 | Tones | ✅ Full | Still through rodio (unchanged) |
 | Audio icons | ✅ Full | Still through rodio (unchanged) |
 | Channel routing | ✅ Via env | `PULSE_SINK` / `ALSA_DEFAULT` on process, SD inherits it |

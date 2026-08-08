@@ -1,6 +1,6 @@
 //! Atomic validation and generation tracking for framed presentations.
 
-use omnivox_core::state::{ChannelMode, PunctuationLevel};
+use omnivox_core::state::{CapitalizationPresentation, ChannelMode, PunctuationLevel};
 use omnivox_core::{parse_command, Command, CommandId};
 use omnivox_tts::presentation::decode_presentation_frame;
 use omnivox_tts::timeline_protocol::{
@@ -142,9 +142,9 @@ fn validate_command(command: &Command) -> Result<(), String> {
         | CommandId::TtsSetSoundVolume
         | CommandId::TtsSetToneVolume
         | CommandId::TtsSetVoiceVolume => arguments.is_some_and(valid_float),
-        CommandId::TtsSplitCaps | CommandId::TtsAllCapsBeep => {
-            matches!(arguments, Some("0" | "1"))
-        }
+        CommandId::TtsSplitCaps => matches!(arguments, Some("0" | "1")),
+        CommandId::TtsSetCapitalizationPresentation => arguments
+            .is_some_and(|value| CapitalizationPresentation::parse(value).is_some()),
         CommandId::TtsSyncState => arguments.is_some_and(|arguments| {
             let fields = arguments.split_whitespace().collect::<Vec<_>>();
             fields.len() == 4

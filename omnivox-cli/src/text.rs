@@ -5,7 +5,6 @@ use once_cell::sync::Lazy;
 use std::path::PathBuf;
 
 pub const CAPITAL_TONE_HZ: f32 = 440.0;
-pub const ALL_CAPS_TONE_HZ: f32 = 1300.0;
 pub const CAPITAL_TONE_DURATION_MS: u32 = 20;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -289,19 +288,18 @@ pub fn insert_space_before_uppercase(input: &str) -> String {
 // Text preprocessing
 // ---------------------------------------------------------------------------
 
-/// Apply speech preprocessing while retaining capitalization tone positions.
+/// Apply speech preprocessing without inferring capitalization presentation.
+///
+/// Semantic presentations carry capitalization actions explicitly.  The
+/// legacy text path therefore preserves case and leaves the tone list empty.
 pub fn prepare_speech_text(text: &str, state: &TtsState) -> PreparedSpeechText {
     let mut processed = apply_punctuation(text, state.punctuation_level);
     if state.split_caps {
         processed = insert_space_before_uppercase(&processed);
     }
-    if state.allcaps_beep {
-        annotate_capitalization(&processed)
-    } else {
-        PreparedSpeechText {
-            text: processed,
-            capitalization_tones: Vec::new(),
-        }
+    PreparedSpeechText {
+        text: processed,
+        capitalization_tones: Vec::new(),
     }
 }
 
@@ -325,17 +323,13 @@ pub fn prepare_speech_text_with_offsets(
     } else {
         (punctuated, offsets)
     };
-    if state.allcaps_beep {
-        annotate_capitalization_with_offsets(&split, &offsets)
-    } else {
-        (
-            PreparedSpeechText {
-                text: split,
-                capitalization_tones: Vec::new(),
-            },
-            offsets,
-        )
-    }
+    (
+        PreparedSpeechText {
+            text: split,
+            capitalization_tones: Vec::new(),
+        },
+        offsets,
+    )
 }
 
 fn apply_punctuation_with_offsets(
@@ -373,142 +367,12 @@ fn insert_space_before_uppercase_with_offsets(text: &str, offsets: &[u32]) -> (S
     (output, mapped)
 }
 
-fn annotate_capitalization_with_offsets(
-    text: &str,
-    offsets: &[u32],
-) -> (PreparedSpeechText, Vec<u32>) {
-    let mut output = String::with_capacity(text.len());
-    let mut mapped = vec![0_u32; offsets.len()];
-    let mut tones = Vec::new();
-    let mut position = 0;
-    while position < text.len() {
-        let character = text[position..]
-            .chars()
-            .next()
-            .expect("position remains on a character boundary");
-        let all_caps_end = (character.is_uppercase() && is_word_start(text, position))
-            .then(|| all_caps_run_end(text, position))
-            .flatten();
-        if let Some(end) = all_caps_end {
-            tones.push(CapitalizationTone {
-                id: format!("capitalization-{}", tones.len()),
-                text_offset: output.len() as u32,
-                frequency_hz: ALL_CAPS_TONE_HZ,
-                duration_ms: CAPITAL_TONE_DURATION_MS,
-            });
-            while position < end {
-                record_offsets(offsets, position, output.len(), &mut mapped);
-                let character = text[position..]
-                    .chars()
-                    .next()
-                    .expect("all-caps range ends on a character boundary");
-                output.extend(character.to_lowercase());
-                position += character.len_utf8();
-            }
-            continue;
-        }
-        record_offsets(offsets, position, output.len(), &mut mapped);
-        if character.is_uppercase() {
-            tones.push(CapitalizationTone {
-                id: format!("capitalization-{}", tones.len()),
-                text_offset: output.len() as u32,
-                frequency_hz: CAPITAL_TONE_HZ,
-                duration_ms: CAPITAL_TONE_DURATION_MS,
-            });
-        }
-        output.push(character);
-        position += character.len_utf8();
-    }
-    record_offsets(offsets, text.len(), output.len(), &mut mapped);
-    (
-        PreparedSpeechText {
-            text: output,
-            capitalization_tones: tones,
-        },
-        mapped,
-    )
-}
-
 fn record_offsets(offsets: &[u32], input: usize, output: usize, mapped: &mut [u32]) {
     for (index, offset) in offsets.iter().enumerate() {
         if *offset as usize == input {
             mapped[index] = output as u32;
         }
     }
-}
-
-fn annotate_capitalization(input: &str) -> PreparedSpeechText {
-    let mut text = String::with_capacity(input.len());
-    let mut tones = Vec::new();
-    let mut position = 0;
-    while position < input.len() {
-        let character = input[position..]
-            .chars()
-            .next()
-            .expect("position remains on a character boundary");
-        if character.is_uppercase() && is_word_start(input, position) {
-            if let Some(end) = all_caps_run_end(input, position) {
-                let id = format!("capitalization-{}", tones.len());
-                tones.push(CapitalizationTone {
-                    id,
-                    text_offset: text.len() as u32,
-                    frequency_hz: ALL_CAPS_TONE_HZ,
-                    duration_ms: CAPITAL_TONE_DURATION_MS,
-                });
-                text.extend(input[position..end].chars().flat_map(char::to_lowercase));
-                position = end;
-                continue;
-            }
-        }
-        if character.is_uppercase() {
-            let id = format!("capitalization-{}", tones.len());
-            tones.push(CapitalizationTone {
-                id,
-                text_offset: text.len() as u32,
-                frequency_hz: CAPITAL_TONE_HZ,
-                duration_ms: CAPITAL_TONE_DURATION_MS,
-            });
-        }
-        text.push(character);
-        position += character.len_utf8();
-    }
-    PreparedSpeechText {
-        text,
-        capitalization_tones: tones,
-    }
-}
-
-fn is_word_start(text: &str, position: usize) -> bool {
-    text[..position]
-        .chars()
-        .next_back()
-        .is_none_or(|character| !is_word_character(character))
-}
-
-fn all_caps_run_end(text: &str, start: usize) -> Option<usize> {
-    let mut end = start;
-    let mut count = 0;
-    for character in text[start..].chars() {
-        if character.is_uppercase()
-            || character.is_numeric()
-            || character == '_'
-            || character == '-'
-        {
-            end += character.len_utf8();
-            count += 1;
-        } else {
-            break;
-        }
-    }
-    let has_word_end = text[end..]
-        .chars()
-        .next()
-        .is_none_or(|character| !is_word_character(character));
-    (count >= 2 && has_word_end).then_some(end)
-}
-
-fn is_word_character(character: char) -> bool {
-    character.is_alphanumeric() || character == '_'
 }
 
 // ---------------------------------------------------------------------------
@@ -662,28 +526,16 @@ mod tests {
     }
 
     #[test]
-    fn capitalization_preparation_distinguishes_caps_and_all_caps() {
+    fn queued_preparation_does_not_infer_capitalization_actions() {
         let state = TtsState {
             punctuation_level: PunctuationLevel::None,
             split_caps: false,
-            allcaps_beep: true,
             ..TtsState::default()
         };
         let prepared = prepare_speech_text("Hello camelCase ABC A1", &state);
 
-        assert_eq!(prepared.text, "Hello camelCase abc a1");
-        assert_eq!(
-            prepared
-                .capitalization_tones
-                .iter()
-                .map(|tone| (tone.text_offset, tone.frequency_hz))
-                .collect::<Vec<_>>(),
-            vec![(0, 440.0), (11, 440.0), (16, 1300.0), (20, 1300.0)]
-        );
-        assert!(prepared
-            .capitalization_tones
-            .iter()
-            .all(|tone| tone.duration_ms == 20));
+        assert_eq!(prepared.text, "Hello camelCase ABC A1");
+        assert!(prepared.capitalization_tones.is_empty());
     }
 
     #[test]
@@ -785,17 +637,16 @@ mod tests {
         let state = TtsState {
             punctuation_level: PunctuationLevel::None,
             split_caps: true,
-            allcaps_beep: true,
             ..TtsState::default()
         };
         let input = "cash$Value ABC";
         let (prepared, offsets) =
             prepare_speech_text_with_offsets(input, &state, &[4, 5, 11, input.len() as u32]);
 
-        assert_eq!(prepared.text, "cash dollar Value abc");
+        assert_eq!(prepared.text, "cash dollar Value ABC");
         assert!(prepared.text[offsets[0] as usize..].starts_with(" dollar "));
         assert!(prepared.text[offsets[1] as usize..].starts_with("Value"));
-        assert!(prepared.text[offsets[2] as usize..].starts_with("abc"));
+        assert!(prepared.text[offsets[2] as usize..].starts_with("ABC"));
         assert_eq!(offsets[3] as usize, prepared.text.len());
         assert_eq!(
             prepared,

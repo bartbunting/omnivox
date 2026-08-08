@@ -42,7 +42,7 @@ pub enum CommandId {
     TtsSetSpeechRate,     // tts_set_speech_rate
     TtsSetCharacterScale, // tts_set_character_scale
     TtsSplitCaps,         // tts_split_caps
-    TtsAllCapsBeep,       // tts_allcaps_beep
+    TtsSetCapitalizationPresentation, // tts_set_capitalization_presentation
     TtsSyncState,         // tts_sync_state
     TtsReset,             // tts_reset
     Version,              // version
@@ -87,7 +87,9 @@ impl CommandId {
             "tts_set_speech_rate" => Some(Self::TtsSetSpeechRate),
             "tts_set_character_scale" => Some(Self::TtsSetCharacterScale),
             "tts_split_caps" => Some(Self::TtsSplitCaps),
-            "tts_allcaps_beep" => Some(Self::TtsAllCapsBeep),
+            "tts_set_capitalization_presentation" => {
+                Some(Self::TtsSetCapitalizationPresentation)
+            }
             "tts_sync_state" => Some(Self::TtsSyncState),
             "tts_reset" => Some(Self::TtsReset),
             "version" => Some(Self::Version),
@@ -342,6 +344,13 @@ mod tests {
         let cmd = parse_command("tts_sync_state all 1 0 225").unwrap();
         assert_eq!(cmd.id, CommandId::TtsSyncState);
         assert_eq!(cmd.args, Some("all 1 0 225".to_string()));
+    }
+
+    #[test]
+    fn test_parse_capitalization_presentation() {
+        let cmd = parse_command("tts_set_capitalization_presentation spoken-tone").unwrap();
+        assert_eq!(cmd.id, CommandId::TtsSetCapitalizationPresentation);
+        assert_eq!(cmd.args, Some("spoken-tone".to_string()));
     }
 
     #[test]
