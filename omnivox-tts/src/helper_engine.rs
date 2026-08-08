@@ -831,7 +831,16 @@ impl HelperTtsEngine {
             %error,
             "TTS helper synthesis failed"
         );
-        if !matches!(error, HelperEngineError::Remote { .. }) {
+        let invalidates_connection = match &error {
+            HelperEngineError::Remote {
+                code: HelperErrorCode::SynthesisFailed,
+                retryable: true,
+                ..
+            } => true,
+            HelperEngineError::Remote { .. } => false,
+            _ => true,
+        };
+        if invalidates_connection {
             self.invalidate_connection(connection);
         }
         Self::map_error(error)
@@ -1181,6 +1190,7 @@ mod tests {
         WaitForCancel,
         IgnoreCancel,
         VoiceMissing,
+        RetryableSynthesisFailure,
     }
 
     struct MockConnection {
@@ -1341,6 +1351,14 @@ mod tests {
                             code: HelperErrorCode::VoiceNotFound,
                             message: "requested voice is missing".to_owned(),
                             retryable: false,
+                        },
+                    )),
+                    MockSynthesisMode::RetryableSynthesisFailure => self.push(self.response(
+                        request.request_id,
+                        HelperResponseBody::Error {
+                            code: HelperErrorCode::SynthesisFailed,
+                            message: "native synchronization failed".to_owned(),
+                            retryable: true,
                         },
                     )),
                 },
@@ -1808,7 +1826,7 @@ mod tests {
             helper_descriptor("eloquence", "1.0"),
             MockSynthesisMode::VoiceMissing,
         ));
-        let engine = mock_engine(vec![connection]).unwrap();
+        let engine = mock_engine(vec![Arc::clone(&connection)]).unwrap();
 
         let error = engine
             .synthesize(&synthesis_request("hello"))
@@ -1817,6 +1835,34 @@ mod tests {
             error,
             TtsError::VoiceNotFound(message) if message == "requested voice is missing"
         ));
+        assert!(!connection.terminated.load(Ordering::Acquire));
+    }
+
+    #[test]
+    fn retryable_native_failure_retires_the_helper_before_next_synthesis() {
+        let failed = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.0"),
+            MockSynthesisMode::RetryableSynthesisFailure,
+        ));
+        let recovered = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.1"),
+            MockSynthesisMode::Complete,
+        ));
+        let engine = mock_engine(vec![Arc::clone(&failed), Arc::clone(&recovered)]).unwrap();
+
+        let error = engine
+            .synthesize(&synthesis_request("failing utterance"))
+            .unwrap_err();
+        assert!(matches!(
+            error,
+            TtsError::SynthesisFailed(message) if message.contains("native synchronization failed")
+        ));
+        assert!(failed.terminated.load(Ordering::Acquire));
+
+        assert!(engine
+            .synthesize(&synthesis_request("next utterance"))
+            .is_ok());
+        assert!(!recovered.terminated.load(Ordering::Acquire));
     }
 
     #[test]
