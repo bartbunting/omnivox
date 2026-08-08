@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Last Updated:** 2026-08-08
+**Last Updated:** 2026-08-09
 **Version:** 1.3.0
 
 ## Current State
@@ -59,11 +59,16 @@
 - DECtalk native phoneme changes and caller indexes mapped to audio-frame markers
 - Bounded requested synthesis anchors with exact, word-boundary, span-boundary,
   and omitted resolution grades
-- Helper protocol v2 exact Eloquence anchors with automatic v1 negotiation fallback
+- Helper protocol v2 exact Eloquence anchors and v3 extended ACSS with automatic
+  fallback through older protocol versions
 - Anchor frames retained through canonical resampling and silence trimming
 - Speech-overlaid 440 Hz capital and 1300 Hz all-caps tones resolved through
   requested anchors with word-boundary and chunk-boundary degradation
-- Per-engine rate, average-pitch, and volume degradation for logical ACSS routes
+- Per-engine degradation for all six logical ACSS dimensions
+- Eloquence pitch-range, stress, and richness mapped to ECI `vf`, `vr`, and
+  paired `vy`/`vv` controls
+- DECtalk pitch-range, stress, and richness mapped to native `pr/as`,
+  `hr/sr/qu/bf`, and `ri/sm` controls
 - Capability-gated signed per-voice rate offsets relative to the live global
   zero-to-100 rate, shared by timelines and exact previews
 - Canonical PCM conversion before helper audio enters the effects/playback pipeline
@@ -99,8 +104,6 @@
 
 - Logical routing for immediate `tts_say` and letter commands
 - Structured timeline transport, semantic actions, and timeline-aware effects
-- Eloquence pitch-range, stress, richness, and sentence-marker support
-- DECtalk native pitch-range, stress, richness, and sentence-marker support
 - Linux Speech Dispatcher TTS backend
 - Network mode (-p TCP flag)
 - Multi-device audio routing

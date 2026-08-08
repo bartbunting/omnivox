@@ -18,7 +18,7 @@ import threading
 import time
 
 
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
 FRAME_TIMEOUT_SECONDS = 30.0
 TEST_TEXTS = (
     "First sentence has several words. Second sentence checks completion!",
@@ -131,13 +131,20 @@ def validate_marker(marker, frame_count, text_size):
         raise RuntimeError(f"marker source range is invalid: {marker}")
 
 
-def synthesize(session, request_id, text, voice_id, iteration):
+def synthesize(session, request_id, text, voice_id, iteration, acss_capabilities):
     settings = {
         "voice_id": voice_id,
         "rate": (0.35, 0.5, 0.7)[iteration % 3],
         "pitch": (0.8, 1.0, 1.2)[iteration % 3],
         "volume": (0.35, 0.65, 1.0)[iteration % 3],
     }
+    for dimension, values in (
+        ("pitch_range", (0.1, 5.0 / 9.0, 0.9)),
+        ("stress", (0.2, 5.0 / 9.0, 0.8)),
+        ("richness", (0.3, 5.0 / 9.0, 0.7)),
+    ):
+        if acss_capabilities.get(dimension):
+            settings[dimension] = values[iteration % len(values)]
     session.send(
         request(
             request_id,
@@ -219,6 +226,20 @@ def parse_args():
     parser.add_argument("--voice-id", help="voice to exercise; defaults to helper default")
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument(
+        "--require-acss",
+        action="append",
+        default=[],
+        choices=(
+            "rate",
+            "average_pitch",
+            "pitch_range",
+            "stress",
+            "richness",
+            "volume",
+        ),
+        help="fail unless the descriptor advertises this ACSS dimension",
+    )
+    parser.add_argument(
         "--helper-arg",
         action="append",
         default=[],
@@ -241,10 +262,13 @@ def main():
     total_bytes = 0
     try:
         session.send(
-            request(1, "hello", supported_protocol_versions=[PROTOCOL_VERSION, 1])
+            request(1, "hello", supported_protocol_versions=[PROTOCOL_VERSION, 2, 1])
         )
         hello = session.receive(1)
-        if hello.get("type") != "hello" or hello.get("selected_protocol_version") != 2:
+        if (
+            hello.get("type") != "hello"
+            or hello.get("selected_protocol_version") != PROTOCOL_VERSION
+        ):
             raise RuntimeError(f"helper failed protocol negotiation: {hello}")
 
         session.send(request(2, "describe"))
@@ -255,6 +279,16 @@ def main():
         voice_id = args.voice_id or descriptor.get("default_voice_id")
         if not voice_id:
             raise RuntimeError("helper descriptor has no usable default voice")
+        acss_capabilities = descriptor.get("capabilities", {}).get("acss", {})
+        missing_acss = [
+            dimension
+            for dimension in args.require_acss
+            if not acss_capabilities.get(dimension)
+        ]
+        if missing_acss:
+            raise RuntimeError(
+                f"helper omitted required ACSS capabilities: {missing_acss}"
+            )
 
         next_request_id = 3
         for iteration in range(args.iterations):
@@ -265,6 +299,7 @@ def main():
                 text,
                 voice_id,
                 iteration,
+                acss_capabilities,
             )
             next_request_id += 1
             total_frames += frames

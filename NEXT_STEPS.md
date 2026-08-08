@@ -236,11 +236,11 @@ Machine-specific exact IDs stay optional; property selectors late-bind against
 each server's inventory. Registered bindings now drive queued per-span routing;
 semantic Emacs voice preferences resolve to their generated ACSS voice IDs.
 Queued logical voices now re-resolve and retry after bounded runtime failures.
-Their normalized rate, average pitch, and volume now apply when the selected
-engine advertises those dimensions; unsupported values degrade away, and a
-runtime fallback recomputes degradation against the replacement engine.
-Pitch range, stress, and richness still require the structured synthesis result
-work in Phase 4.
+Normalized ACSS values now apply when the selected engine advertises each
+dimension; unsupported values degrade away, and a runtime fallback recomputes
+degradation against the replacement engine. Helper protocol v3 carries pitch
+range, stress, and richness to Eloquence and DECtalk, whose adapters reproduce
+the original Emacspeak native-control tables.
 
 ### Phase 3: Add an Engine Registry and Per-Span Routing
 
@@ -679,20 +679,20 @@ loading those libraries into the Rust process.
 - Keep the existing standalone `windows-outloud` and `windows-dtk` servers as
   fallbacks until Omnivox reaches practical parity.
 
-The version 1 transport plus the version 2 requested-anchor extension,
-request/response types, PCM and marker framing,
+The version 1 transport, version 2 requested-anchor extension, and version 3
+extended-ACSS settings, request/response types, PCM and marker framing,
 bounds, cancellation terminal states, and recovery contract are defined in
 [HELPER-PROTOCOL.md](HELPER-PROTOCOL.md). The generic helper-backed engine now
 negotiates inventory, validates exact voice and PCM results, cancels active
 synthesis, invalidates failed children, and reconnects for recovery probes.
 The Emacsvox tree now builds a separate 32-bit Eloquence capture helper without
 changing its existing WaveOut bridge. It exposes ECI voices `v1` through `v8`,
-bounded 11.025 kHz mono PCM, normalized rate/average pitch/volume, responsive
-cancellation, and truthful reduced capabilities. Windows Omnivox discovers
+bounded 11.025 kHz mono PCM, all six normalized ACSS dimensions, responsive
+cancellation, and truthful capabilities. Windows Omnivox discovers
 that helper beside its executable or through `OMNIVOX_ELOQUENCE_HELPER`, negotiates it through the
 generic host, and adds it to the registry without changing the WinRT legacy
 default. The same shared host now drives a DECtalk capture adapter with nine
-named voices, bounded in-memory PCM, rate/average-pitch/volume mapping, and
+named voices, bounded in-memory PCM, all six ACSS dimensions, and
 native cancellation; Windows discovery treats its startup and failure
 independently. The Windows
 staging target packages both helper executables and copies an already-installed
@@ -718,14 +718,15 @@ command embedded in a word; a comparison with the uninstrumented helper
 produced identical PCM. Routed playback delivered the rescaled DECtalk word
 events before tracked completion. Both adapters now insert native indexes at
 conservative source sentence boundaries and return timed UTF-8 sentence ranges.
-Eloquence maps normalized average pitch and volume to native ECI controls;
-DECtalk maps average pitch to its native voice parameter and applies volume to
-captured PCM. Real-helper smoke tests exercised both controls and sentence
-tracks. A reusable protocol stress driver completed 100 consecutive syntheses
+Eloquence maps pitch range, stress, and richness to ECI's `vf`, `vr`, and
+`vy/vv` controls. DECtalk maps them to `pr/as`, `hr/sr/qu/bf`, and `ri/sm`,
+while applying volume to captured PCM. Real-helper smoke tests exercised all
+controls and sentence tracks. A reusable protocol stress driver completed 100
+consecutive syntheses
 in one Eloquence helper process and 100 in one DECtalk helper process while
 validating PCM totals, word/sentence marker bounds, periodic health pings, and
-clean shutdown. Pitch range, stress, richness, native Windows working-set
-profiling, and broader malformed helper-output testing remain.
+clean shutdown. Native Windows working-set profiling and broader malformed
+helper-output testing remain.
 
 ### Phase 8: Bring Other Engines Into the Same Model
 

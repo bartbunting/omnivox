@@ -147,8 +147,9 @@ merges bounded requested anchors with its Unicode word indexes, inserts both
 through ECI's index API without splitting synthesis, and emits each native
 callback frame. Before/after anchors at a shared source position retain
 deterministic insertion order. It also inserts indexes at conservative source
-sentence boundaries and maps normalized average pitch and volume to ECI's
-native controls. The DECtalk adapter captures its native
+sentence boundaries. Protocol v3 maps pitch range to ECI `vf`, stress to `vr`,
+and richness to paired `vy` breathiness and `vv` compensation while preserving
+independent normalized volume. The DECtalk adapter captures its native
 phoneme-change and inserted-index records at DECtalk's utterance-relative sample
 positions. It emits their numeric engine values without source ranges because
 the native records do not identify request-text spans. For words, it inserts
@@ -156,9 +157,10 @@ collision-avoiding private indexes outside balanced DECtalk command/phonetic
 spans and maps those callbacks to bounded UTF-8 source ranges. Existing caller
 indexes remain distinct `native_index` markers, and words crossing native spans
 are conservatively left unmarked. The same private-index path times conservative
-source sentence boundaries. DECtalk rate and average pitch use native controls;
-normalized volume scales the captured PCM because DECtalk's speech-to-memory
-output is not affected by its native playback-volume command.
+source sentence boundaries. DECtalk rate and average pitch use native controls,
+while protocol v3 maps pitch range to `pr/as`, stress to `hr/sr/qu/bf`, and
+richness to `ri/sm`. Normalized volume scales the captured PCM because DECtalk's
+speech-to-memory output is not affected by its native playback-volume command.
 
 The Eloquence and DECtalk adapters share one C# protocol host while retaining
 separate native capture implementations and executables. Windows Omnivox
