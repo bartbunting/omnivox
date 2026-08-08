@@ -1233,6 +1233,7 @@ fn synthesize_direct_timeline_chunk(
     };
     crate::routing::apply_normalized_acss(&mut settings, &acss.style);
     let request = SynthesisRequest::new(&chunk.text, settings)
+        .with_normalized_acss(acss.style.clone())
         .with_anchors(requested_timeline_anchors(
             &chunk.capitalization_tones,
             actions,

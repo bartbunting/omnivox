@@ -20,7 +20,7 @@ use crate::engine_registry::validate_descriptor;
 use crate::helper_protocol::{
     read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
     HelperRequest, HelperRequestBody, HelperResponse, HelperResponseBody, HelperSynthesisSettings,
-    HELPER_PROTOCOL_V1, HELPER_PROTOCOL_VERSION, MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES,
+    HELPER_PROTOCOL_V2, HELPER_PROTOCOL_VERSION, MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES,
     SUPPORTED_HELPER_PROTOCOL_VERSIONS,
 };
 use crate::{
@@ -623,34 +623,33 @@ impl HelperTtsEngine {
         &self,
         connection: &Arc<dyn HelperConnection>,
     ) -> Result<(EngineDescriptor, u16), HelperEngineError> {
-        let hello_id = self.allocate_request_id();
-        let hello = HelperRequest::new(
-            hello_id,
-            HelperRequestBody::Hello {
-                supported_protocol_versions: SUPPORTED_HELPER_PROTOCOL_VERSIONS.to_vec(),
-            },
-        );
-        connection.send(&hello)?;
-        let mut response =
-            receive_owned_response(connection, hello_id, self.config.startup_timeout)?;
-        if matches!(
-            response.body,
-            HelperResponseBody::Error {
-                code: HelperErrorCode::UnsupportedVersion,
-                ..
-            }
-        ) {
-            let fallback_id = self.allocate_request_id();
+        let mut negotiated_response = None;
+        for (index, protocol_version) in SUPPORTED_HELPER_PROTOCOL_VERSIONS.iter().enumerate() {
+            let hello_id = self.allocate_request_id();
             connection.send(&HelperRequest::with_version(
-                HELPER_PROTOCOL_V1,
-                fallback_id,
+                *protocol_version,
+                hello_id,
                 HelperRequestBody::Hello {
-                    supported_protocol_versions: vec![HELPER_PROTOCOL_V1],
+                    supported_protocol_versions: SUPPORTED_HELPER_PROTOCOL_VERSIONS[index..]
+                        .to_vec(),
                 },
             ))?;
-            response =
-                receive_owned_response(connection, fallback_id, self.config.startup_timeout)?;
+            let response =
+                receive_owned_response(connection, hello_id, self.config.startup_timeout)?;
+            let try_older = matches!(
+                response.body,
+                HelperResponseBody::Error {
+                    code: HelperErrorCode::UnsupportedVersion,
+                    ..
+                }
+            ) && index + 1 < SUPPORTED_HELPER_PROTOCOL_VERSIONS.len();
+            if try_older {
+                continue;
+            }
+            negotiated_response = Some(response);
+            break;
         }
+        let response = negotiated_response.expect("helper protocol version list is nonempty");
         let response_version = response.protocol_version;
         let selected_protocol_version = match response.body {
             HelperResponseBody::Hello {
@@ -944,6 +943,9 @@ impl TtsEngine for HelperTtsEngine {
         } else {
             Some(voice_id.to_owned())
         };
+        let acss = &request.normalized_acss;
+        let supported_acss = &descriptor.capabilities.acss;
+        let extended_acss = protocol_version >= HELPER_PROTOCOL_VERSION;
         let helper_request = HelperRequest::with_version(
             protocol_version,
             request_id,
@@ -954,8 +956,17 @@ impl TtsEngine for HelperTtsEngine {
                     rate: request.settings.rate,
                     pitch: request.settings.pitch,
                     volume: request.settings.volume,
+                    pitch_range: (extended_acss && supported_acss.pitch_range)
+                        .then_some(acss.pitch_range)
+                        .flatten(),
+                    stress: (extended_acss && supported_acss.stress)
+                        .then_some(acss.stress)
+                        .flatten(),
+                    richness: (extended_acss && supported_acss.richness)
+                        .then_some(acss.richness)
+                        .flatten(),
                 },
-                anchors: (protocol_version >= HELPER_PROTOCOL_VERSION)
+                anchors: (protocol_version >= HELPER_PROTOCOL_V2)
                     .then(|| request.anchors.clone()),
             },
         );
@@ -1176,11 +1187,11 @@ mod tests {
     use super::*;
     use crate::contracts::{
         AcssCapabilities, AnchorSupport, Availability, EngineCapabilities, EngineHealth,
-        MarkerCapabilities, PhysicalVoiceId, VoiceDescriptor,
+        MarkerCapabilities, NormalizedAcss, PhysicalVoiceId, VoiceDescriptor,
     };
     use crate::helper_protocol::{
         HelperMarkerKind, HelperPcmChunk, HelperResponseBody, HelperSampleFormat,
-        HELPER_PROTOCOL_VERSION,
+        HELPER_PROTOCOL_V1, HELPER_PROTOCOL_VERSION,
     };
     use crate::{AnchorAffinity, RequestedAnchor, TtsSettings, VoiceQuality};
 
@@ -1238,14 +1249,15 @@ mod tests {
             request.validate()?;
             self.sent.lock().unwrap().push(request.clone());
             if request.protocol_version != self.protocol_version {
-                if matches!(request.body, HelperRequestBody::Hello { .. })
-                    && self.protocol_version == HELPER_PROTOCOL_V1
-                {
+                if matches!(request.body, HelperRequestBody::Hello { .. }) {
                     self.push(self.response(
                         request.request_id,
                         HelperResponseBody::Error {
                             code: HelperErrorCode::UnsupportedVersion,
-                            message: "mock helper supports protocol v1".to_owned(),
+                            message: format!(
+                                "mock helper supports protocol v{}",
+                                self.protocol_version
+                            ),
                             retryable: false,
                         },
                     ));
@@ -1455,6 +1467,9 @@ mod tests {
                 acss: AcssCapabilities {
                     rate: true,
                     average_pitch: true,
+                    pitch_range: true,
+                    stress: true,
+                    richness: true,
                     volume: true,
                     ..AcssCapabilities::default()
                 },
@@ -1725,6 +1740,12 @@ mod tests {
                         volume: 0.8,
                     },
                 )
+                .with_normalized_acss(NormalizedAcss {
+                    pitch_range: Some(0.2),
+                    stress: Some(0.6),
+                    richness: Some(0.8),
+                    ..NormalizedAcss::default()
+                })
                 .with_route("logical-reed", PhysicalVoiceId::new("eloquence", "reed")),
             )
             .unwrap();
@@ -1747,10 +1768,13 @@ mod tests {
             panic!("expected synthesis request");
         };
         assert_eq!(settings.voice_id.as_deref(), Some("reed"));
+        assert_eq!(settings.pitch_range, Some(0.2));
+        assert_eq!(settings.stress, Some(0.6));
+        assert_eq!(settings.richness, Some(0.8));
     }
 
     #[test]
-    fn helper_v2_returns_exact_requested_anchors() {
+    fn helper_v3_returns_exact_requested_anchors() {
         let connection = Arc::new(MockConnection::new(
             helper_descriptor("eloquence", "1.0"),
             MockSynthesisMode::Complete,
@@ -1812,12 +1836,16 @@ mod tests {
         );
         let sent = connection.sent.lock().unwrap();
         assert_eq!(sent[0].protocol_version, HELPER_PROTOCOL_VERSION);
-        assert_eq!(sent[1].protocol_version, HELPER_PROTOCOL_V1);
-        assert_eq!(sent[2].body, HelperRequestBody::Describe);
-        let HelperRequestBody::Synthesize { anchors, .. } = &sent[3].body else {
+        assert_eq!(sent[1].protocol_version, HELPER_PROTOCOL_V2);
+        assert_eq!(sent[2].protocol_version, HELPER_PROTOCOL_V1);
+        assert_eq!(sent[3].body, HelperRequestBody::Describe);
+        let HelperRequestBody::Synthesize { anchors, settings, .. } = &sent[4].body else {
             panic!("expected synthesis request");
         };
         assert!(anchors.is_none());
+        assert!(settings.pitch_range.is_none());
+        assert!(settings.stress.is_none());
+        assert!(settings.richness.is_none());
     }
 
     #[test]

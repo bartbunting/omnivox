@@ -1,6 +1,6 @@
 //! Structured synthesis request and result contracts.
 
-use crate::contracts::{AcssDimension, AnchorSupport, PhysicalVoiceId};
+use crate::contracts::{AcssDimension, AnchorSupport, NormalizedAcss, PhysicalVoiceId};
 use crate::{AudioBuffer, TtsError, TtsSettings, STANDARD_SAMPLE_RATE};
 
 /// Maximum number of requested anchors in one engine synthesis call.
@@ -13,6 +13,8 @@ pub const MAX_SYNTHESIS_ANCHOR_ID_BYTES: usize = 128;
 pub struct SynthesisRequest {
     pub text: String,
     pub settings: TtsSettings,
+    /// Engine-applicable ACSS values not represented by [`TtsSettings`].
+    pub normalized_acss: NormalizedAcss,
     /// Exact physical target selected by logical routing, when applicable.
     pub requested_voice: Option<PhysicalVoiceId>,
     /// Logical Emacs voice that caused this request, when applicable.
@@ -28,6 +30,7 @@ impl SynthesisRequest {
         Self {
             text: text.into(),
             settings,
+            normalized_acss: NormalizedAcss::default(),
             requested_voice: None,
             logical_voice_id: None,
             language: None,
@@ -35,6 +38,11 @@ impl SynthesisRequest {
         }
     }
 
+    /// Attach normalized ACSS values selected for the target engine.
+    pub fn with_normalized_acss(mut self, style: NormalizedAcss) -> Self {
+        self.normalized_acss = style.clamped();
+        self
+    }
 
     /// Attach and validate source-text anchors for this request.
     pub fn with_anchors(mut self, anchors: Vec<RequestedAnchor>) -> Result<Self, TtsError> {
@@ -449,6 +457,20 @@ mod tests {
 
     fn request(text: &str) -> SynthesisRequest {
         SynthesisRequest::new(text, TtsSettings::default())
+    }
+
+    #[test]
+    fn normalized_acss_sidecar_clamps_engine_values() {
+        let request = request("hello").with_normalized_acss(NormalizedAcss {
+            pitch_range: Some(-0.2),
+            stress: Some(0.6),
+            richness: Some(1.2),
+            ..NormalizedAcss::default()
+        });
+
+        assert_eq!(request.normalized_acss.pitch_range, Some(0.0));
+        assert_eq!(request.normalized_acss.stress, Some(0.6));
+        assert_eq!(request.normalized_acss.richness, Some(1.0));
     }
 
     #[test]

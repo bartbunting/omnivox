@@ -8,7 +8,7 @@ completion, and runtime health policy.
 
 ## Transport and Compatibility
 
-Versions 1 and 2 use a bidirectional stream of newline-terminated UTF-8 JSON objects.
+Versions 1 through 3 use a bidirectional stream of newline-terminated UTF-8 JSON objects.
 The helper reserves standard output for protocol frames and writes diagnostics
 only to standard error. Each frame contains `protocol_version`, a tagged
 `type`, and normally a positive `request_id`; only an error caused before an
@@ -18,28 +18,26 @@ The host starts every session with `hello` and supplies the versions it
 supports:
 
 ```json
-{"protocol_version":2,"request_id":1,"type":"hello","supported_protocol_versions":[2,1]}
+{"protocol_version":3,"request_id":1,"type":"hello","supported_protocol_versions":[3,2,1]}
 ```
 
 The helper selects a common version and describes its implementation:
 
 ```json
-{"protocol_version":2,"request_id":1,"type":"hello","selected_protocol_version":2,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
+{"protocol_version":3,"request_id":1,"type":"hello","selected_protocol_version":3,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
 ```
 
 No inventory or synthesis request is valid until this exchange succeeds.
 Unknown types or fields added by a later incompatible contract require a new
 protocol version; helpers must not guess at incompatible semantics.
 
-Omnivox offers version 2 first. If an installed version-1 helper rejects that
-envelope as unsupported, the host retries `hello` with a version-1 envelope on
-the same connection. Every later frame uses the selected version. Version 1
-remains byte-compatible: it has no requested-anchor synthesis field or anchor
-capability entry.
+Omnivox offers version 3 first and retries each older supported envelope after
+an `unsupported_version` response. Every later frame uses the selected version.
+Versions 1 and 2 remain byte-compatible with their original contracts.
 
 ## Requests
 
-Both versions define these request types:
+All versions define these request types:
 
 - `hello`: negotiate a protocol version;
 - `describe`: return the complete structured `EngineDescriptor`;
@@ -59,6 +57,12 @@ a unique non-empty opaque ID of at most 128 UTF-8 bytes, a `text_offset` on a
 UTF-8 boundary in the exact request text, and `before` or `after` affinity. One
 request carries at most 4096 anchors. The descriptor reports
 `markers.requested_anchors` as `exact`, `word_boundary`, or `none`.
+
+Version 3 adds optional `pitch_range`, `stress`, and `richness` synthesis
+settings. Each uses the inclusive normalized zero-to-one ACSS range. Omnivox
+only sends a value when the selected logical style supplies it and the helper
+advertises support for that dimension; absence preserves the native voice's
+default. Versions 1 and 2 omit these fields.
 
 ## Synthesis Responses
 
@@ -88,7 +92,7 @@ engine with no usable placement explicitly reports the anchor as omitted.
 Resampling and silence trimming transform anchor frames alongside ordinary
 marker frames.
 
-Both versions permit one active synthesis per helper because the initial native
+All versions permit one active synthesis per helper because the initial native
 engines are serialized. The helper must continue reading commands while its
 native synthesis worker runs so `cancel`, `ping`, and `shutdown` do not wait
 behind synthesis. A `cancel` request receives `cancel_accepted`; the target

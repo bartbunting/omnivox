@@ -416,7 +416,8 @@ fn synthesize_with_runtime_fallback_anchored_inner(
             },
         );
         apply_normalized_acss(&mut routed_settings, &acss.style);
-        let mut request = SynthesisRequest::new(chunk, routed_settings);
+        let mut request = SynthesisRequest::new(chunk, routed_settings)
+            .with_normalized_acss(acss.style.clone());
         request.requested_voice = Some(route.realized.clone());
         request.logical_voice_id = route.reported_logical_voice_id.clone();
         request.anchors = anchors.to_vec();
@@ -692,6 +693,7 @@ mod tests {
         recovery_preparations: AtomicUsize,
         calls: Mutex<Vec<(String, String)>>,
         settings: Mutex<Vec<TtsSettings>>,
+        normalized_acss: Mutex<Vec<NormalizedAcss>>,
         logical_voice_ids: Mutex<Vec<Option<String>>>,
     }
 
@@ -711,6 +713,10 @@ mod tests {
                 .unwrap()
                 .push((request.text.clone(), request.settings.voice.clone()));
             self.settings.lock().unwrap().push(request.settings.clone());
+            self.normalized_acss
+                .lock()
+                .unwrap()
+                .push(request.normalized_acss.clone());
             self.logical_voice_ids
                 .lock()
                 .unwrap()
@@ -796,6 +802,7 @@ mod tests {
                 recovery_preparations: AtomicUsize::new(0),
                 calls: Mutex::new(Vec::new()),
                 settings: Mutex::new(Vec::new()),
+                normalized_acss: Mutex::new(Vec::new()),
                 logical_voice_ids: Mutex::new(Vec::new()),
             }))
             .unwrap();
@@ -812,6 +819,7 @@ mod tests {
             recovery_preparations: AtomicUsize::new(0),
             calls: Mutex::new(Vec::new()),
             settings: Mutex::new(Vec::new()),
+            normalized_acss: Mutex::new(Vec::new()),
             logical_voice_ids: Mutex::new(Vec::new()),
         })
     }
@@ -829,6 +837,7 @@ mod tests {
             recovery_preparations: AtomicUsize::new(0),
             calls: Mutex::new(Vec::new()),
             settings: Mutex::new(Vec::new()),
+            normalized_acss: Mutex::new(Vec::new()),
             logical_voice_ids: Mutex::new(Vec::new()),
         })
     }
@@ -935,6 +944,9 @@ mod tests {
             AcssCapabilities {
                 rate: true,
                 average_pitch: true,
+                pitch_range: true,
+                stress: true,
+                richness: true,
                 ..AcssCapabilities::default()
             },
         );
@@ -946,6 +958,8 @@ mod tests {
         logical_definition.acss = NormalizedAcss {
             rate: Some(0.8),
             average_pitch: Some(5.0 / 9.0),
+            pitch_range: Some(0.3),
+            stress: Some(0.4),
             richness: Some(0.7),
             volume: Some(0.2),
             ..NormalizedAcss::default()
@@ -975,10 +989,7 @@ mod tests {
         assert!(matches!(outcome, RuntimeSynthesisOutcome::Ready(_)));
         assert_eq!(
             route.acss.omitted,
-            [
-                omnivox_tts::contracts::AcssDimension::Richness,
-                omnivox_tts::contracts::AcssDimension::Volume,
-            ]
+            [omnivox_tts::contracts::AcssDimension::Volume]
         );
         let settings = engine.settings.lock().unwrap();
         assert_eq!(settings.len(), 1);
@@ -986,6 +997,17 @@ mod tests {
         assert!((settings[0].rate - 0.8).abs() < f32::EPSILON);
         assert!((settings[0].pitch - 1.0).abs() < f32::EPSILON);
         assert!((settings[0].volume - 0.9).abs() < f32::EPSILON);
+        assert_eq!(
+            engine.normalized_acss.lock().unwrap()[0],
+            NormalizedAcss {
+                rate: Some(0.8),
+                average_pitch: Some(5.0 / 9.0),
+                pitch_range: Some(0.3),
+                stress: Some(0.4),
+                richness: Some(0.7),
+                volume: None,
+            }
+        );
     }
 
     #[test]

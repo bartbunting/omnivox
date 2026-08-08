@@ -14,10 +14,11 @@ use thiserror::Error;
 use crate::contracts::EngineDescriptor;
 use crate::{RequestedAnchor, MAX_SYNTHESIS_ANCHORS, MAX_SYNTHESIS_ANCHOR_ID_BYTES};
 
-pub const HELPER_PROTOCOL_VERSION: u16 = 2;
+pub const HELPER_PROTOCOL_VERSION: u16 = 3;
+pub const HELPER_PROTOCOL_V2: u16 = 2;
 pub const HELPER_PROTOCOL_V1: u16 = 1;
 pub const SUPPORTED_HELPER_PROTOCOL_VERSIONS: &[u16] =
-    &[HELPER_PROTOCOL_VERSION, HELPER_PROTOCOL_V1];
+    &[HELPER_PROTOCOL_VERSION, HELPER_PROTOCOL_V2, HELPER_PROTOCOL_V1];
 pub const MAX_HELPER_FRAME_BYTES: usize = 1024 * 1024;
 pub const MAX_HELPER_TEXT_BYTES: usize = 256 * 1024;
 pub const MAX_HELPER_AUDIO_CHUNK_BYTES: usize = 256 * 1024;
@@ -176,10 +177,10 @@ impl HelperRequest {
                 if text.len() > MAX_HELPER_TEXT_BYTES {
                     return Err(HelperProtocolError::TextTooLarge);
                 }
-                settings.validate()?;
+                settings.validate(self.protocol_version)?;
                 match (self.protocol_version, anchors) {
                     (HELPER_PROTOCOL_V1, None) => {}
-                    (HELPER_PROTOCOL_VERSION, Some(anchors)) => {
+                    (HELPER_PROTOCOL_V2 | HELPER_PROTOCOL_VERSION, Some(anchors)) => {
                         validate_requested_anchors(anchors, text)?;
                     }
                     (HELPER_PROTOCOL_V1, Some(_)) => {
@@ -229,10 +230,16 @@ pub struct HelperSynthesisSettings {
     pub rate: f32,
     pub pitch: f32,
     pub volume: f32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pitch_range: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stress: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub richness: Option<f32>,
 }
 
 impl HelperSynthesisSettings {
-    pub fn validate(&self) -> Result<(), HelperProtocolError> {
+    pub fn validate(&self, protocol_version: u16) -> Result<(), HelperProtocolError> {
         if self
             .voice_id
             .as_ref()
@@ -248,6 +255,18 @@ impl HelperSynthesisSettings {
         }
         if !self.volume.is_finite() || !(0.0..=1.0).contains(&self.volume) {
             return Err(HelperProtocolError::InvalidField("volume"));
+        }
+        for (field, value) in [
+            ("pitch_range", self.pitch_range),
+            ("stress", self.stress),
+            ("richness", self.richness),
+        ] {
+            if protocol_version < HELPER_PROTOCOL_VERSION && value.is_some() {
+                return Err(HelperProtocolError::InvalidField(field));
+            }
+            if value.is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value)) {
+                return Err(HelperProtocolError::InvalidField(field));
+            }
         }
         Ok(())
     }
@@ -573,6 +592,9 @@ mod tests {
                     rate: 0.6,
                     pitch: 1.1,
                     volume: 0.8,
+                    pitch_range: Some(0.2),
+                    stress: Some(0.7),
+                    richness: Some(0.9),
                 },
                 anchors: Some(Vec::new()),
             },
@@ -585,11 +607,15 @@ mod tests {
         let encoded = encode_frame(&request).unwrap();
         assert_eq!(encoded.last(), Some(&b'\n'));
 
-        let decoded: HelperRequest = read_frame(&mut BufReader::new(Cursor::new(encoded)))
+        let decoded: HelperRequest = read_frame(&mut BufReader::new(Cursor::new(&encoded)))
             .unwrap()
             .unwrap();
         assert_eq!(decoded, request);
         decoded.validate().unwrap();
+        let json = String::from_utf8(encoded).unwrap();
+        assert!(json.contains("\"pitch_range\":0.2"));
+        assert!(json.contains("\"stress\":0.7"));
+        assert!(json.contains("\"richness\":0.9"));
     }
 
     #[test]
@@ -604,6 +630,9 @@ mod tests {
                     rate: 0.5,
                     pitch: 1.0,
                     volume: 1.0,
+                    pitch_range: None,
+                    stress: None,
+                    richness: None,
                 },
                 anchors: None,
             },
@@ -615,7 +644,7 @@ mod tests {
     }
 
     #[test]
-    fn protocol_v2_validates_utf8_anchor_boundaries_and_ids() {
+    fn protocol_v3_validates_utf8_anchor_boundaries_and_ids() {
         let mut request = synthesis_request();
         if let HelperRequestBody::Synthesize { anchors, .. } = &mut request.body {
             *anchors = Some(vec![RequestedAnchor::new(
@@ -633,6 +662,24 @@ mod tests {
             request.validate(),
             Err(HelperProtocolError::InvalidField("anchors.text_offset"))
         ));
+    }
+
+    #[test]
+    fn protocol_v2_rejects_v3_acss_fields() {
+        let mut request = synthesis_request();
+        request.protocol_version = HELPER_PROTOCOL_V2;
+
+        assert!(matches!(
+            request.validate(),
+            Err(HelperProtocolError::InvalidField("pitch_range"))
+        ));
+
+        if let HelperRequestBody::Synthesize { settings, .. } = &mut request.body {
+            settings.pitch_range = None;
+            settings.stress = None;
+            settings.richness = None;
+        }
+        request.validate().unwrap();
     }
 
     #[test]
@@ -696,6 +743,15 @@ mod tests {
         assert!(matches!(
             request.validate(),
             Err(HelperProtocolError::InvalidField("rate"))
+        ));
+
+        if let HelperRequestBody::Synthesize { settings, .. } = &mut request.body {
+            settings.rate = 0.5;
+            settings.richness = Some(1.1);
+        }
+        assert!(matches!(
+            request.validate(),
+            Err(HelperProtocolError::InvalidField("richness"))
         ));
     }
 
