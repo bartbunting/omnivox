@@ -9,8 +9,9 @@ use omnivox_core::{
     parse_command, state::{ChannelMode, PunctuationLevel}, Command, CommandId, QueueItem, TtsState,
 };
 use omnivox_tts::contracts::{
-    AcssDimension, EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition, NormalizedAcss,
-    PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle, VoiceSelector,
+    apply_rate_offset, AcssDimension, EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition,
+    NormalizedAcss, PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle, VoiceSelector,
+    MAX_RATE_OFFSET_POINTS, MIN_RATE_OFFSET_POINTS,
 };
 use omnivox_tts::control::{
     decode_request, format_control_event, process_control_request, ControlRequest,
@@ -1133,7 +1134,8 @@ fn dispatch_preview(
     text: String,
     selector: VoiceSelector,
     language: Option<String>,
-    acss: NormalizedAcss,
+    mut acss: NormalizedAcss,
+    rate_offset: Option<i16>,
     effects: PostSynthesisStyle,
     state: &TtsState,
     gen: u64,
@@ -1161,6 +1163,10 @@ fn dispatch_preview(
         reject(format!(
             "preview text exceeds the {MAX_PREVIEW_TEXT_BYTES}-byte limit"
         ));
+        return;
+    }
+    if let Err(message) = apply_preview_rate_offset(&mut acss, rate_offset, state.speech_rate) {
+        reject(message);
         return;
     }
 
@@ -1211,6 +1217,28 @@ fn dispatch_preview(
     if tx.send(request).is_err() {
         reject("synthesis worker is unavailable".to_owned());
     }
+}
+
+fn apply_preview_rate_offset(
+    acss: &mut NormalizedAcss,
+    rate_offset: Option<i16>,
+    base_rate: f32,
+) -> Result<(), String> {
+    let Some(rate_offset) = rate_offset else {
+        return Ok(());
+    };
+    if !(MIN_RATE_OFFSET_POINTS..=MAX_RATE_OFFSET_POINTS).contains(&rate_offset) {
+        return Err(format!(
+            "preview rate offset must be between {MIN_RATE_OFFSET_POINTS} and {MAX_RATE_OFFSET_POINTS} points"
+        ));
+    }
+    if acss.rate.is_some() {
+        return Err("preview cannot combine absolute rate and rate offset".to_owned());
+    }
+    if rate_offset != 0 {
+        acss.rate = Some(apply_rate_offset(base_rate, rate_offset));
+    }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1455,6 +1483,7 @@ fn handle_command(
                     selector,
                     language,
                     acss,
+                    rate_offset,
                     effects,
                 })) => {
                     let projected =
@@ -1465,6 +1494,7 @@ fn handle_command(
                         selector,
                         language,
                         acss,
+                        rate_offset,
                         effects,
                         state,
                         *current_gen,
@@ -1734,6 +1764,34 @@ mod tests {
             } if actual_requested == requested
                 && degraded_acss == vec![AcssDimension::Richness]
         ));
+    }
+
+    #[test]
+    fn preview_rate_offset_uses_current_rate_without_mutating_it() {
+        let mut acss = NormalizedAcss::default();
+
+        apply_preview_rate_offset(&mut acss, Some(-1), 0.75).unwrap();
+        assert!((acss.rate.unwrap() - 0.74).abs() < f32::EPSILON);
+
+        let mut faster = NormalizedAcss::default();
+        apply_preview_rate_offset(&mut faster, Some(4), 0.75).unwrap();
+        assert!((faster.rate.unwrap() - 0.79).abs() < f32::EPSILON);
+
+        let mut neutral = NormalizedAcss::default();
+        apply_preview_rate_offset(&mut neutral, Some(0), 0.75).unwrap();
+        assert_eq!(neutral.rate, None);
+    }
+
+    #[test]
+    fn preview_rate_offset_rejects_invalid_or_ambiguous_values() {
+        let mut out_of_range = NormalizedAcss::default();
+        assert!(apply_preview_rate_offset(&mut out_of_range, Some(21), 0.75).is_err());
+
+        let mut ambiguous = NormalizedAcss {
+            rate: Some(0.5),
+            ..NormalizedAcss::default()
+        };
+        assert!(apply_preview_rate_offset(&mut ambiguous, Some(1), 0.75).is_err());
     }
 
     #[test]

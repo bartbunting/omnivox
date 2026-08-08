@@ -71,6 +71,10 @@ pub enum ControlRequest {
         language: Option<String>,
         #[serde(default)]
         acss: NormalizedAcss,
+        /// Signed points relative to the server's current normalized speech
+        /// rate. Mutually exclusive with `acss.rate`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        rate_offset: Option<i16>,
         #[serde(default)]
         effects: PostSynthesisStyle,
     },
@@ -255,6 +259,7 @@ pub fn process_control_request(
                         "presentation_timeline_v1".to_owned(),
                         "post_synthesis_effects_v1".to_owned(),
                         "preferred_engine".to_owned(),
+                        "relative_rate_v1".to_owned(),
                         "runtime_routing_policy".to_owned(),
                         "stable_voice_ids".to_owned(),
                         "tracked_playback_completion".to_owned(),
@@ -537,6 +542,7 @@ mod tests {
                     .iter()
                     .any(|feature| feature == "exact_voice_preview")
                 && features.iter().any(|feature| feature == "logical_voice_routing")
+                && features.iter().any(|feature| feature == "relative_rate_v1")
                 && features.iter().any(|feature| feature == "runtime_routing_policy")
                 && features.iter().any(|feature| feature == "engine_recovery_probe")
                 && features
@@ -623,10 +629,10 @@ mod tests {
                 selector: VoiceSelector::Exact(PhysicalVoiceId::new("winrt", "winrt:David")),
                 language: Some("en-US".to_owned()),
                 acss: NormalizedAcss {
-                    rate: Some(0.7),
                     richness: Some(0.4),
                     ..NormalizedAcss::default()
                 },
+                rate_offset: Some(-4),
                 effects: PostSynthesisStyle {
                     reverb: Some(0.4),
                     ..PostSynthesisStyle::default()

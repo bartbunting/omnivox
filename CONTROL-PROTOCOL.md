@@ -126,7 +126,8 @@ voices or persistent speech state:
     "voice_id": "eci:Reed"
   },
   "language": "en-AU",
-  "acss": { "rate": 0.6, "average_pitch": 0.4 }
+  "acss": { "average_pitch": 0.4 },
+  "rate_offset": -4
 }
 ```
 
@@ -134,6 +135,13 @@ The preview text is limited to 16 KiB. An exact selector is strict: it does not
 inherit the active logical registry or its fallback policy. A property or
 engine-default selector remains portable and may resolve again within that
 same selector if its first runtime target fails.
+
+When `relative_rate_v1` is advertised, previews and presentation speech spans
+may include a signed integer `rate_offset` from `-20` through `20`. It adjusts
+the current server rate by direct points on the `0..100` scale without changing
+that global rate: base 75 plus `-1` is 74; base 75 plus `4` is 79. A request
+must not combine `rate_offset` with the absolute `acss.rate` field. Zero is
+neutral and should normally be omitted.
 
 ## Response Record
 
@@ -163,6 +171,7 @@ A successful capability response decodes to this shape:
     "logical_voice_routing",
     "playback_marker_events_v1",
     "preferred_engine",
+    "relative_rate_v1",
     "runtime_routing_policy",
     "stable_voice_ids",
     "tracked_playback_completion"
