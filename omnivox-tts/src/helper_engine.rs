@@ -755,6 +755,21 @@ impl HelperTtsEngine {
             .ok_or(HelperEngineError::Exited)
     }
 
+    fn connection_for_synthesis(&self) -> Result<Arc<dyn HelperConnection>, HelperEngineError> {
+        match self.current_connection() {
+            Ok(connection) => Ok(connection),
+            Err(HelperEngineError::Exited) => {
+                info!(
+                    engine_id = self.config.engine_id,
+                    "Restarting invalidated TTS helper before synthesis"
+                );
+                self.install_fresh_connection()?;
+                self.current_connection()
+            }
+            Err(error) => Err(error),
+        }
+    }
+
     fn consume_cancel_response(
         &self,
         response: &HelperResponse,
@@ -909,7 +924,7 @@ impl TtsEngine for HelperTtsEngine {
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         let _lifecycle = self.lifecycle.lock().unwrap();
-        let connection = self.current_connection().map_err(Self::map_error)?;
+        let connection = self.connection_for_synthesis().map_err(Self::map_error)?;
         let descriptor = self.descriptor();
         let protocol_version = self.protocol_version.load(Ordering::Acquire) as u16;
         let request_id = self.allocate_request_id();
@@ -1838,12 +1853,18 @@ mod tests {
     }
 
     #[test]
-    fn stop_terminates_a_helper_that_ignores_cancellation() {
+    fn stop_restarts_a_helper_that_ignores_cancellation_before_next_synthesis() {
         let connection = Arc::new(MockConnection::new(
             helper_descriptor("eloquence", "1.0"),
             MockSynthesisMode::IgnoreCancel,
         ));
-        let engine = Arc::new(mock_engine(vec![Arc::clone(&connection)]).unwrap());
+        let recovered = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.1"),
+            MockSynthesisMode::Complete,
+        ));
+        let engine = Arc::new(
+            mock_engine(vec![Arc::clone(&connection), Arc::clone(&recovered)]).unwrap(),
+        );
         let worker_engine = Arc::clone(&engine);
         let synthesis = std::thread::spawn(move || {
             worker_engine.synthesize(&synthesis_request("hung utterance"))
@@ -1865,6 +1886,8 @@ mod tests {
         assert!(started_at.elapsed() < Duration::from_secs(1));
         assert!(connection.terminated.load(Ordering::Acquire));
         assert!(!engine.is_speaking());
+        assert!(engine.synthesize(&synthesis_request("next utterance")).is_ok());
+        assert!(!recovered.terminated.load(Ordering::Acquire));
     }
 
     #[test]
