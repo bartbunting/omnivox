@@ -257,6 +257,7 @@ mod tests {
                 concurrency: ConcurrencyModel::Serialized,
                 markers: MarkerCapabilities::default(),
                 language_switching: false,
+                text_repertoire: crate::contracts::TextRepertoire::Unicode,
                 post_synthesis_dimensions: Vec::new(),
                 native_extensions: Vec::new(),
             },

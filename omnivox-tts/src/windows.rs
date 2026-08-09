@@ -34,6 +34,7 @@ fn windows_capabilities() -> EngineCapabilities {
             ..MarkerCapabilities::default()
         },
         language_switching: true,
+        text_repertoire: crate::contracts::TextRepertoire::Unicode,
         post_synthesis_dimensions: buffered_post_synthesis_dimensions(),
         native_extensions: Vec::new(),
     }

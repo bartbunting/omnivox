@@ -174,6 +174,7 @@ A successful capability response decodes to this shape:
     "relative_rate_v1",
     "runtime_routing_policy",
     "stable_voice_ids",
+    "text_repertoire_routing_v1",
     "tracked_playback_completion"
   ]
 }
@@ -230,6 +231,12 @@ inventory is sorted by stable engine ID, and its generation advances when
 engines or their descriptor state change. Persistent runtime circuit state is
 overlaid on those snapshots; inventory generation also advances when an engine
 fails, becomes probe-ready, starts probing, or recovers.
+
+Engine capabilities include `text_repertoire`: `unicode`, `windows_1252`,
+`iso_8859_1`, or `unknown`. The last value is also the compatibility default for
+an older descriptor that omitted the field and guarantees only ASCII to the
+router. This capability describes lossless input encoding, not pronunciation
+quality or language support.
 
 A successful policy update returns `routing_policy_applied`, the effective
 policy generation and content, and every logical voice re-resolved against the
@@ -488,6 +495,16 @@ that physical voice and an unavailable
 or failed synthesis call excludes that engine from the dispatched batch's
 inventory snapshot. Omnivox then re-runs the registered definition and fallback
 policy and retries the identical text chunk on the newly resolved route.
+
+Before each synthesis call, Omnivox projects engines that cannot encode that
+chunk as unavailable and resolves the same logical definition against the
+remaining inventory. This does not mark an engine unhealthy: a later compatible
+chunk returns to the preferred route. The exact UTF-8 text and requested anchor
+offsets are retained on the fallback route, and marker events expose the
+realized engine and voice. If no configured route can preserve the text, the
+chunk fails explicitly without calling an incapable engine.
+`text_repertoire_routing_v1` advertises this behavior so a client can stop
+compatibility name expansion only after every live speech stream confirms it.
 
 Each chunk is limited to four total synthesis attempts, with the request
 generation checked before and after every attempt. A stop therefore prevents a

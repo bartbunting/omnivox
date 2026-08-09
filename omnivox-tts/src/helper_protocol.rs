@@ -732,6 +732,16 @@ mod tests {
     }
 
     #[test]
+    fn reader_rejects_a_lone_unicode_surrogate() {
+        let malformed = br#"{"protocol_version":4,"request_id":1,"type":"ping","text":"\ud800"}
+"#;
+        let error = read_frame::<_, HelperRequest>(&mut BufReader::new(Cursor::new(malformed)))
+            .unwrap_err();
+
+        assert!(matches!(error, HelperProtocolError::Json(_)));
+    }
+
+    #[test]
     fn reader_rejects_oversized_and_truncated_frames() {
         let oversized = vec![b'x'; MAX_HELPER_FRAME_BYTES + 2];
         let error = read_frame::<_, HelperRequest>(&mut BufReader::new(Cursor::new(oversized)))

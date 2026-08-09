@@ -264,6 +264,7 @@ pub fn process_control_request(
                         "relative_rate_v1".to_owned(),
                         "runtime_routing_policy".to_owned(),
                         "stable_voice_ids".to_owned(),
+                        "text_repertoire_routing_v1".to_owned(),
                         "tracked_playback_completion".to_owned(),
                     ],
                 },
@@ -473,6 +474,7 @@ mod tests {
                 concurrency: ConcurrencyModel::Serialized,
                 markers: MarkerCapabilities::default(),
                 language_switching: true,
+                text_repertoire: crate::contracts::TextRepertoire::Unicode,
                 post_synthesis_dimensions: Vec::new(),
                 native_extensions: Vec::new(),
             },
@@ -559,6 +561,9 @@ mod tests {
                 && features
                     .iter()
                     .any(|feature| feature == "tracked_playback_completion")
+                && features
+                    .iter()
+                    .any(|feature| feature == "text_repertoire_routing_v1")
         ));
     }
 

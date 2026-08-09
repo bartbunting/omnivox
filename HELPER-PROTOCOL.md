@@ -112,6 +112,14 @@ and health contract exposed by Omnivox control inventory. The host validates it
 before registration and never combines engine and native voice IDs into one
 opaque identifier.
 
+`capabilities.text_repertoire` declares the source characters the helper can
+encode without replacement: `unicode`, `windows_1252`, or `iso_8859_1`. This is
+additive descriptor metadata in every protocol version. A missing field is
+`unknown`, for which Omnivox assumes only ASCII is safe. The Eloquence and
+DECtalk helpers advertise their actual single-byte native boundaries, and their
+encoders use exception fallback as a final guard against silent `?`
+substitution.
+
 Errors carry a stable code, bounded human-readable message, and `retryable`
 flag. Error codes cover malformed requests, unsupported versions, oversized
 payloads, unavailable engines, missing voices, invalid parameters, busy

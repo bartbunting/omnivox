@@ -2,7 +2,7 @@
 
 use crate::contracts::{
     Availability, EngineDescriptor, EngineHealth, FallbackPolicy, LogicalVoiceDefinition,
-    PhysicalVoiceId, VoiceDescriptor, VoiceSelector,
+    PhysicalVoiceId, TextRepertoire, VoiceDescriptor, VoiceSelector,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -22,11 +22,30 @@ pub enum ResolutionStage {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ResolutionFailure {
-    EngineNotFound { engine_id: String },
-    EngineUnavailable { engine_id: String, reason: String },
-    EngineFailed { engine_id: String, reason: String },
-    VoiceNotFound { id: PhysicalVoiceId },
-    VoiceUnavailable { id: PhysicalVoiceId, reason: String },
+    EngineNotFound {
+        engine_id: String,
+    },
+    EngineUnavailable {
+        engine_id: String,
+        reason: String,
+    },
+    EngineFailed {
+        engine_id: String,
+        reason: String,
+    },
+    VoiceNotFound {
+        id: PhysicalVoiceId,
+    },
+    VoiceUnavailable {
+        id: PhysicalVoiceId,
+        reason: String,
+    },
+    TextUnsupported {
+        engine_id: String,
+        text_repertoire: TextRepertoire,
+        utf8_offset: usize,
+        codepoint: u32,
+    },
     NoMatchingVoice,
 }
 
@@ -77,12 +96,31 @@ pub fn resolve_voice(
     definition: &LogicalVoiceDefinition,
     policy: &FallbackPolicy,
 ) -> Result<VoiceResolution, VoiceResolutionError> {
+    resolve_voice_inner(engines, definition, policy, None)
+}
+
+/// Resolve a logical voice while excluding engines that cannot preserve TEXT.
+pub fn resolve_voice_for_text(
+    engines: &[EngineDescriptor],
+    definition: &LogicalVoiceDefinition,
+    policy: &FallbackPolicy,
+    text: &str,
+) -> Result<VoiceResolution, VoiceResolutionError> {
+    resolve_voice_inner(engines, definition, policy, Some(text))
+}
+
+fn resolve_voice_inner(
+    engines: &[EngineDescriptor],
+    definition: &LogicalVoiceDefinition,
+    policy: &FallbackPolicy,
+    text: Option<&str>,
+) -> Result<VoiceResolution, VoiceResolutionError> {
     let requested = definition.preferences.first().cloned();
     let mut attempts = Vec::new();
 
     for (index, selector) in definition.preferences.iter().enumerate() {
         let stage = ResolutionStage::Preference { index };
-        match evaluate_selector(engines, selector, &policy.preferred_engines) {
+        match evaluate_selector(engines, selector, &policy.preferred_engines, text) {
             Ok(realized) => {
                 let reason = if index == 0 {
                     ResolutionReason::Preferred
@@ -111,7 +149,7 @@ pub fn resolve_voice(
                 language: Some(language.clone()),
                 gender: None,
             };
-            match evaluate_selector(engines, &selector, &policy.preferred_engines) {
+            match evaluate_selector(engines, &selector, &policy.preferred_engines, text) {
                 Ok(realized) => {
                     return Ok(success(
                         definition,
@@ -134,7 +172,7 @@ pub fn resolve_voice(
         let selector = VoiceSelector::EngineDefault {
             engine_id: engine_id.clone(),
         };
-        match evaluate_selector(engines, &selector, &policy.preferred_engines) {
+        match evaluate_selector(engines, &selector, &policy.preferred_engines, text) {
             Ok(realized) => {
                 return Ok(success(
                     definition,
@@ -155,7 +193,7 @@ pub fn resolve_voice(
     }
 
     if let Some(selector) = &policy.global_default {
-        match evaluate_selector(engines, selector, &policy.preferred_engines) {
+        match evaluate_selector(engines, selector, &policy.preferred_engines, text) {
             Ok(realized) => {
                 return Ok(success(
                     definition,
@@ -177,7 +215,7 @@ pub fn resolve_voice(
         let selector = VoiceSelector::EngineDefault {
             engine_id: engine_id.clone(),
         };
-        match evaluate_selector(engines, &selector, &policy.preferred_engines) {
+        match evaluate_selector(engines, &selector, &policy.preferred_engines, text) {
             Ok(realized) => {
                 return Ok(success(
                     definition,
@@ -223,12 +261,15 @@ fn evaluate_selector(
     engines: &[EngineDescriptor],
     selector: &VoiceSelector,
     preferred_engines: &[String],
+    text: Option<&str>,
 ) -> Result<PhysicalVoiceId, ResolutionFailure> {
     match selector {
-        VoiceSelector::Exact(id) => evaluate_exact(engines, id),
+        VoiceSelector::Exact(id) => evaluate_exact(engines, id, text),
         VoiceSelector::EngineDefault { engine_id } => {
             let engine = find_usable_engine(engines, engine_id)?;
-            choose_voice(engine, None, None)
+            let voice = choose_voice(engine, None, None)?;
+            ensure_text_supported(engine, text)?;
+            Ok(voice)
         }
         VoiceSelector::Properties {
             engine_id,
@@ -237,13 +278,16 @@ fn evaluate_selector(
         } => {
             if let Some(engine_id) = engine_id {
                 let engine = find_usable_engine(engines, engine_id)?;
-                choose_voice(engine, language.as_deref(), *gender)
+                let voice = choose_voice(engine, language.as_deref(), *gender)?;
+                ensure_text_supported(engine, text)?;
+                Ok(voice)
             } else {
                 choose_across_engines(
                     engines,
                     language.as_deref(),
                     *gender,
                     preferred_engines,
+                    text,
                 )
             }
         }
@@ -253,6 +297,7 @@ fn evaluate_selector(
 fn evaluate_exact(
     engines: &[EngineDescriptor],
     id: &PhysicalVoiceId,
+    text: Option<&str>,
 ) -> Result<PhysicalVoiceId, ResolutionFailure> {
     let engine = find_usable_engine(engines, &id.engine_id)?;
     let voice = engine
@@ -262,7 +307,10 @@ fn evaluate_exact(
         .ok_or_else(|| ResolutionFailure::VoiceNotFound { id: id.clone() })?;
 
     match &voice.availability {
-        Availability::Available => Ok(voice.id.clone()),
+        Availability::Available => {
+            ensure_text_supported(engine, text)?;
+            Ok(voice.id.clone())
+        }
         Availability::Unavailable { reason } => Err(ResolutionFailure::VoiceUnavailable {
             id: id.clone(),
             reason: reason.clone(),
@@ -291,13 +339,39 @@ fn find_usable_engine<'a>(
         Availability::Available => {}
     }
 
-    match &engine.health {
-        EngineHealth::Failed { reason } => Err(ResolutionFailure::EngineFailed {
+    if let EngineHealth::Failed { reason } = &engine.health {
+        return Err(ResolutionFailure::EngineFailed {
             engine_id: engine_id.to_owned(),
             reason: reason.clone(),
-        }),
-        EngineHealth::Healthy | EngineHealth::Degraded { .. } => Ok(engine),
+        });
     }
+
+    Ok(engine)
+}
+
+fn ensure_text_supported(
+    engine: &EngineDescriptor,
+    text: Option<&str>,
+) -> Result<(), ResolutionFailure> {
+    match text.and_then(|text| text_failure(engine, text)) {
+        Some(failure) => Err(failure),
+        None => Ok(()),
+    }
+}
+
+fn text_failure(engine: &EngineDescriptor, text: &str) -> Option<ResolutionFailure> {
+    engine
+        .capabilities
+        .text_repertoire
+        .first_unsupported(text)
+        .map(
+            |(utf8_offset, character)| ResolutionFailure::TextUnsupported {
+                engine_id: engine.id.clone(),
+                text_repertoire: engine.capabilities.text_repertoire,
+                utf8_offset,
+                codepoint: u32::from(character),
+            },
+        )
 }
 
 fn choose_across_engines(
@@ -305,6 +379,7 @@ fn choose_across_engines(
     language: Option<&str>,
     gender: Option<crate::contracts::VoiceGender>,
     preferred_engines: &[String],
+    text: Option<&str>,
 ) -> Result<PhysicalVoiceId, ResolutionFailure> {
     let mut candidates: Vec<&EngineDescriptor> = engines
         .iter()
@@ -324,13 +399,19 @@ fn choose_across_engines(
             .then_with(|| left.id.cmp(&right.id))
     });
 
+    let mut first_text_failure = None;
     for engine in candidates {
-        if let Ok(voice) = choose_voice(engine, language, gender) {
-            return Ok(voice);
+        let Ok(voice) = choose_voice(engine, language, gender) else {
+            continue;
+        };
+        if let Some(failure) = text.and_then(|text| text_failure(engine, text)) {
+            first_text_failure.get_or_insert(failure);
+            continue;
         }
+        return Ok(voice);
     }
 
-    Err(ResolutionFailure::NoMatchingVoice)
+    Err(first_text_failure.unwrap_or(ResolutionFailure::NoMatchingVoice))
 }
 
 fn choose_voice(
@@ -402,6 +483,7 @@ mod tests {
                 concurrency: ConcurrencyModel::Serialized,
                 markers: MarkerCapabilities::default(),
                 language_switching: false,
+                text_repertoire: crate::contracts::TextRepertoire::Unicode,
                 post_synthesis_dimensions: Vec::new(),
                 native_extensions: Vec::new(),
             },
@@ -442,6 +524,37 @@ mod tests {
         assert_eq!(resolution.realized, PhysicalVoiceId::new("dectalk", "paul"));
         assert_eq!(resolution.reason, ResolutionReason::Preferred);
         assert!(resolution.failed_attempts.is_empty());
+    }
+
+    #[test]
+    fn text_resolution_records_repertoire_degradation_before_fallback() {
+        let mut helper = engine("eloquence", "v1", vec![voice("eloquence", "v1", "en-US")]);
+        helper.capabilities.text_repertoire = TextRepertoire::Windows1252;
+        let mut unicode = engine("espeak", "en-us", vec![voice("espeak", "en-us", "en-US")]);
+        unicode.capabilities.text_repertoire = TextRepertoire::Unicode;
+        let policy = FallbackPolicy {
+            fallback_engines: vec!["espeak".to_owned()],
+            ..FallbackPolicy::default()
+        };
+
+        let resolution = resolve_voice_for_text(
+            &[helper, unicode],
+            &logical(vec![exact("eloquence", "v1")]),
+            &policy,
+            "Élan 日本",
+        )
+        .unwrap();
+
+        assert_eq!(resolution.realized, PhysicalVoiceId::new("espeak", "en-us"));
+        assert!(matches!(
+            resolution.failed_attempts[0].failure,
+            ResolutionFailure::TextUnsupported {
+                ref engine_id,
+                text_repertoire: TextRepertoire::Windows1252,
+                utf8_offset: 6,
+                codepoint: 0x65e5,
+            } if engine_id == "eloquence"
+        ));
     }
 
     #[test]

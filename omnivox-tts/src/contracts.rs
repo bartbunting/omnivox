@@ -396,6 +396,82 @@ pub struct NativeExtensionDescriptor {
     pub description: String,
 }
 
+/// Source-text repertoire an engine accepts without replacement or loss.
+///
+/// `Unknown` is the backward-compatible default for descriptors that predate
+/// this capability.  Routing treats it as an ASCII-only guarantee rather than
+/// assuming that arbitrary Unicode will survive an undocumented conversion.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TextRepertoire {
+    #[default]
+    Unknown,
+    Unicode,
+    #[serde(rename = "windows_1252")]
+    Windows1252,
+    #[serde(rename = "iso_8859_1")]
+    Iso8859_1,
+}
+
+impl TextRepertoire {
+    /// Return the first source character this repertoire cannot encode.
+    ///
+    /// The offset is a UTF-8 byte offset, matching synthesis anchors and
+    /// source-text marker ranges throughout the public engine contract.
+    pub fn first_unsupported(self, text: &str) -> Option<(usize, char)> {
+        text.char_indices()
+            .find(|(_, character)| !self.supports_character(*character))
+    }
+
+    pub fn supports_text(self, text: &str) -> bool {
+        self.first_unsupported(text).is_none()
+    }
+
+    fn supports_character(self, character: char) -> bool {
+        match self {
+            Self::Unicode => true,
+            Self::Iso8859_1 => u32::from(character) <= 0xff,
+            Self::Windows1252 => windows_1252_supports(character),
+            Self::Unknown => character.is_ascii(),
+        }
+    }
+}
+
+fn windows_1252_supports(character: char) -> bool {
+    character.is_ascii()
+        || ('\u{00a0}'..='\u{00ff}').contains(&character)
+        || matches!(
+            character,
+            '\u{20ac}'
+                | '\u{201a}'
+                | '\u{0192}'
+                | '\u{201e}'
+                | '\u{2026}'
+                | '\u{2020}'
+                | '\u{2021}'
+                | '\u{02c6}'
+                | '\u{2030}'
+                | '\u{0160}'
+                | '\u{2039}'
+                | '\u{0152}'
+                | '\u{017d}'
+                | '\u{2018}'
+                | '\u{2019}'
+                | '\u{201c}'
+                | '\u{201d}'
+                | '\u{2022}'
+                | '\u{2013}'
+                | '\u{2014}'
+                | '\u{02dc}'
+                | '\u{2122}'
+                | '\u{0161}'
+                | '\u{203a}'
+                | '\u{0153}'
+                | '\u{017e}'
+                | '\u{0178}'
+        )
+}
+
 /// Capabilities used to route requests and degrade unsupported features.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EngineCapabilities {
@@ -405,6 +481,9 @@ pub struct EngineCapabilities {
     pub concurrency: ConcurrencyModel,
     pub markers: MarkerCapabilities,
     pub language_switching: bool,
+    /// Exact repertoire accepted by the engine's text input boundary.
+    #[serde(default)]
+    pub text_repertoire: TextRepertoire,
     /// Omnivox-owned dimensions available after this engine returns audio.
     #[serde(default)]
     pub post_synthesis_dimensions: Vec<PostSynthesisDimension>,
@@ -616,5 +695,65 @@ mod tests {
         .unwrap();
 
         assert_eq!(capabilities.requested_anchors, AnchorSupport::None);
+    }
+
+    #[test]
+    fn text_repertoires_distinguish_single_byte_inputs_from_unicode() {
+        assert!(TextRepertoire::Unicode.supports_text("日本 👋 e\u{301}"));
+        assert!(TextRepertoire::Windows1252.supports_text("Élan — € Œ"));
+        assert!(!TextRepertoire::Windows1252.supports_text("日本"));
+        assert!(!TextRepertoire::Windows1252.supports_text("e\u{301}"));
+        assert!(TextRepertoire::Iso8859_1.supports_text("café ÿ"));
+        assert!(!TextRepertoire::Iso8859_1.supports_text("€"));
+        assert!(TextRepertoire::Unknown.supports_text("ASCII only"));
+        assert!(!TextRepertoire::Unknown.supports_text("café"));
+        assert_eq!(
+            serde_json::to_string(&TextRepertoire::Windows1252).unwrap(),
+            "\"windows_1252\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TextRepertoire::Iso8859_1).unwrap(),
+            "\"iso_8859_1\""
+        );
+    }
+
+    #[test]
+    fn unsupported_text_position_uses_utf8_byte_offsets() {
+        assert_eq!(
+            TextRepertoire::Windows1252.first_unsupported("Élan 日本"),
+            Some((6, '日'))
+        );
+    }
+
+    #[test]
+    fn legacy_capability_descriptors_default_to_an_ascii_only_guarantee() {
+        let capabilities: EngineCapabilities = serde_json::from_str(
+            r#"{
+                "acss": {
+                    "rate": false,
+                    "average_pitch": false,
+                    "pitch_range": false,
+                    "stress": false,
+                    "richness": false,
+                    "volume": false
+                },
+                "audio_output": "buffered_pcm",
+                "cancellation": "none",
+                "concurrency": {"mode": "serialized"},
+                "markers": {
+                    "word": false,
+                    "sentence": false,
+                    "phoneme": false,
+                    "native_index": false
+                },
+                "language_switching": false,
+                "native_extensions": []
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(capabilities.text_repertoire, TextRepertoire::Unknown);
+        assert!(capabilities.text_repertoire.supports_text("legacy ASCII"));
+        assert!(!capabilities.text_repertoire.supports_text("café"));
     }
 }

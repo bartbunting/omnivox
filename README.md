@@ -15,6 +15,7 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 - **Full Emacspeak protocol**: Command parsing, queue dispatch, voice switching, state management
 - **Engine fallback**: Tries platform-native TTS first, falls back to espeak-ng
 - **Portable multi-engine voices**: Structured descriptors and late-bound logical voices route queued spans to engine/voice pairs with deterministic degradation, persistent engine health, and bounded same-chunk runtime retry
+- **Lossless text routing**: Per-engine repertoire metadata keeps Unicode text and source anchors intact by selecting a capable fallback before synthesis
 - **Classic voice dimensions**: Helper protocol v3 maps pitch range, stress, and richness to native Eloquence and DECtalk controls
 - **Policy-preserving presentations**: Capability-gated timeline V2 frames retain ordered, urgent, and keyed-replaceable delivery semantics behind explicit stop barriers
 - **Tracked playback**: Capability-gated dispatch reports completed, cancelled, or failed only after its queued audio reaches a terminal state

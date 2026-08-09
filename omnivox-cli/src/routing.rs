@@ -11,7 +11,7 @@ use omnivox_tts::contracts::{
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
-use omnivox_tts::resolver::{resolve_voice, VoiceResolution};
+use omnivox_tts::resolver::{resolve_voice, resolve_voice_for_text, VoiceResolution};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
 use omnivox_tts::{
     RequestedAnchor, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, TtsSettings,
@@ -165,9 +165,58 @@ impl LogicalVoiceRoutingSnapshot {
         }
     }
 
+    /// Resolve a route whose documented input repertoire can preserve TEXT.
+    ///
+    /// This is deliberately batch-local and does not mark an otherwise healthy
+    /// engine failed.  A later compatible chunk can therefore return to the
+    /// preferred route.
+    fn route_for_text(
+        &self,
+        route: &LogicalRoute,
+        text: &str,
+        engine_registry: &EngineRegistry,
+    ) -> Result<LogicalRoute, String> {
+        let current_incompatibility = self.text_incompatibility(route, text);
+
+        let mut resolved = self
+            .resolve_current_with_text(&route.logical_voice_id, Some(text), engine_registry)
+            .map_err(|error| match current_incompatibility {
+                Some((utf8_offset, character)) => format!(
+                    "{error}; current engine {} cannot encode U+{:04X} at UTF-8 byte offset {}",
+                    route.realized.engine_id,
+                    u32::from(character),
+                    utf8_offset
+                ),
+                None => error,
+            })?;
+        resolved.reported_logical_voice_id = route.reported_logical_voice_id.clone();
+        Ok(resolved)
+    }
+
+    fn text_incompatibility(&self, route: &LogicalRoute, text: &str) -> Option<(usize, char)> {
+        self.inventory
+            .iter()
+            .find(|descriptor| descriptor.id == route.realized.engine_id)
+            .and_then(|descriptor| {
+                descriptor
+                    .capabilities
+                    .text_repertoire
+                    .first_unsupported(text)
+            })
+    }
+
     fn resolve_current(
         &self,
         logical_voice_id: &str,
+        engine_registry: &EngineRegistry,
+    ) -> Result<LogicalRoute, String> {
+        self.resolve_current_with_text(logical_voice_id, None, engine_registry)
+    }
+
+    fn resolve_current_with_text(
+        &self,
+        logical_voice_id: &str,
+        text: Option<&str>,
         engine_registry: &EngineRegistry,
     ) -> Result<LogicalRoute, String> {
         let definition = self
@@ -177,8 +226,13 @@ impl LogicalVoiceRoutingSnapshot {
             .ok_or_else(|| {
                 format!("logical voice {logical_voice_id} no longer has a definition")
             })?;
-        let resolution = resolve_voice(&self.inventory, definition, &self.fallback_policy)
-            .map_err(|error| error.to_string())?;
+        let resolution = match text {
+            Some(text) => {
+                resolve_voice_for_text(&self.inventory, definition, &self.fallback_policy, text)
+            }
+            None => resolve_voice(&self.inventory, definition, &self.fallback_policy),
+        }
+        .map_err(|error| error.to_string())?;
         route_from_resolution(resolution, definition, &self.inventory, engine_registry)
     }
 }
@@ -354,6 +408,45 @@ fn synthesize_with_runtime_fallback_anchored_inner(
     generation: u64,
     generation_counter: &AtomicU64,
 ) -> RuntimeSynthesisOutcome {
+    if stale(generation, generation_counter) {
+        return RuntimeSynthesisOutcome::Cancelled;
+    }
+    let previous_incompatibility = routing.text_incompatibility(route, chunk);
+    let compatible_route = match routing.route_for_text(route, chunk, engine_registry) {
+        Ok(compatible_route) => compatible_route,
+        Err(error) => {
+            warn!(
+                "Logical voice {} has no route capable of preserving this chunk: {}",
+                route.logical_voice_id, error
+            );
+            return RuntimeSynthesisOutcome::Exhausted;
+        }
+    };
+    if compatible_route.realized != route.realized {
+        if let Some((utf8_offset, character)) = previous_incompatibility {
+            info!(
+                logical_voice = route.logical_voice_id,
+                previous_engine_id = route.realized.engine_id,
+                previous_voice_id = route.realized.voice_id,
+                engine_id = compatible_route.realized.engine_id,
+                voice_id = compatible_route.realized.voice_id,
+                unsupported_codepoint = format_args!("U+{:04X}", u32::from(character)),
+                utf8_offset,
+                "Rerouted chunk to preserve source text"
+            );
+        } else {
+            debug!(
+                logical_voice = route.logical_voice_id,
+                previous_engine_id = route.realized.engine_id,
+                previous_voice_id = route.realized.voice_id,
+                engine_id = compatible_route.realized.engine_id,
+                voice_id = compatible_route.realized.voice_id,
+                "Restored preferred route for compatible text"
+            );
+        }
+    }
+    *route = compatible_route;
+
     for attempt in 1..=MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
         if stale(generation, generation_counter) {
             return RuntimeSynthesisOutcome::Cancelled;
@@ -674,7 +767,7 @@ mod tests {
     use omnivox_tts::contracts::{
         AcssCapabilities, AudioOutputMode, CancellationSupport, ConcurrencyModel,
         EngineCapabilities, MarkerCapabilities, NormalizedAcss, PostSynthesisDimension,
-        PostSynthesisStyle, VoiceDescriptor, VoiceSelector,
+        PostSynthesisStyle, TextRepertoire, VoiceDescriptor, VoiceSelector,
     };
     use omnivox_tts::routing_policy::RoutingPolicy;
     use omnivox_tts::{
@@ -692,6 +785,7 @@ mod tests {
         failure: Option<MockFailure>,
         recovery_preparations: AtomicUsize,
         calls: Mutex<Vec<(String, String)>>,
+        anchors: Mutex<Vec<Vec<RequestedAnchor>>>,
         settings: Mutex<Vec<TtsSettings>>,
         normalized_acss: Mutex<Vec<NormalizedAcss>>,
         logical_voice_ids: Mutex<Vec<Option<String>>>,
@@ -712,6 +806,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .push((request.text.clone(), request.settings.voice.clone()));
+            self.anchors.lock().unwrap().push(request.anchors.clone());
             self.settings.lock().unwrap().push(request.settings.clone());
             self.normalized_acss
                 .lock()
@@ -775,6 +870,7 @@ mod tests {
                 concurrency: ConcurrencyModel::Serialized,
                 markers: MarkerCapabilities::default(),
                 language_switching: false,
+                text_repertoire: omnivox_tts::contracts::TextRepertoire::Unicode,
                 post_synthesis_dimensions:
                     omnivox_tts::contracts::buffered_post_synthesis_dimensions(),
                 native_extensions: Vec::new(),
@@ -801,6 +897,7 @@ mod tests {
                 failure: None,
                 recovery_preparations: AtomicUsize::new(0),
                 calls: Mutex::new(Vec::new()),
+                anchors: Mutex::new(Vec::new()),
                 settings: Mutex::new(Vec::new()),
                 normalized_acss: Mutex::new(Vec::new()),
                 logical_voice_ids: Mutex::new(Vec::new()),
@@ -818,6 +915,7 @@ mod tests {
             failure,
             recovery_preparations: AtomicUsize::new(0),
             calls: Mutex::new(Vec::new()),
+            anchors: Mutex::new(Vec::new()),
             settings: Mutex::new(Vec::new()),
             normalized_acss: Mutex::new(Vec::new()),
             logical_voice_ids: Mutex::new(Vec::new()),
@@ -836,6 +934,26 @@ mod tests {
             failure: None,
             recovery_preparations: AtomicUsize::new(0),
             calls: Mutex::new(Vec::new()),
+            anchors: Mutex::new(Vec::new()),
+            settings: Mutex::new(Vec::new()),
+            normalized_acss: Mutex::new(Vec::new()),
+            logical_voice_ids: Mutex::new(Vec::new()),
+        })
+    }
+
+    fn synthesis_engine_with_repertoire(
+        engine_id: &str,
+        voice_id: &str,
+        text_repertoire: TextRepertoire,
+    ) -> Arc<MockEngine> {
+        let mut engine_descriptor = descriptor(engine_id, &[voice_id]);
+        engine_descriptor.capabilities.text_repertoire = text_repertoire;
+        Arc::new(MockEngine {
+            descriptor: engine_descriptor,
+            failure: None,
+            recovery_preparations: AtomicUsize::new(0),
+            calls: Mutex::new(Vec::new()),
+            anchors: Mutex::new(Vec::new()),
             settings: Mutex::new(Vec::new()),
             normalized_acss: Mutex::new(Vec::new()),
             logical_voice_ids: Mutex::new(Vec::new()),
@@ -1227,6 +1345,161 @@ mod tests {
             panic!("missing fallback was not reported as exhausted");
         };
         assert!(error.contains("no usable physical voice"));
+    }
+
+    #[test]
+    fn repertoire_routing_preserves_unicode_text_and_anchors_on_fallback() {
+        let helper =
+            synthesis_engine_with_repertoire("eloquence", "v1", TextRepertoire::Windows1252);
+        let unicode = synthesis_engine_with_repertoire("espeak", "en-us", TextRepertoire::Unicode);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&helper) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&unicode) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("eloquence", "v1")]),
+            FallbackPolicy {
+                fallback_engines: vec!["espeak".to_owned()],
+                ..FallbackPolicy::default()
+            },
+        );
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
+        let counter = AtomicU64::new(11);
+        let text = "Élan 日本 👋 e\u{301}";
+        let anchors = vec![
+            RequestedAnchor::new("start", 0, omnivox_tts::AnchorAffinity::Before),
+            RequestedAnchor::new("cjk", 6, omnivox_tts::AnchorAffinity::Before),
+            RequestedAnchor::new("end", text.len() as u32, omnivox_tts::AnchorAffinity::After),
+        ];
+
+        let outcome = synthesize_with_runtime_fallback_anchored(
+            text,
+            &anchors,
+            &TtsSettings::default(),
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            11,
+            &counter,
+        );
+
+        let RuntimeSynthesisOutcome::Ready(result) = outcome else {
+            panic!("Unicode-capable fallback did not synthesize the chunk");
+        };
+        assert_eq!(
+            result.actual_voice,
+            Some(PhysicalVoiceId::new("espeak", "en-us"))
+        );
+        assert_eq!(route.realized, PhysicalVoiceId::new("espeak", "en-us"));
+        assert!(helper.calls.lock().unwrap().is_empty());
+        assert_eq!(
+            *unicode.calls.lock().unwrap(),
+            [(text.to_owned(), "en-us".to_owned())]
+        );
+        assert_eq!(*unicode.anchors.lock().unwrap(), [anchors]);
+        assert!(matches!(
+            routes
+                .inventory
+                .iter()
+                .find(|engine| engine.id == "eloquence")
+                .unwrap()
+                .health,
+            EngineHealth::Healthy
+        ));
+    }
+
+    #[test]
+    fn repertoire_routing_returns_to_preferred_engine_for_compatible_text() {
+        let helper =
+            synthesis_engine_with_repertoire("eloquence", "v1", TextRepertoire::Windows1252);
+        let unicode = synthesis_engine_with_repertoire("espeak", "en-us", TextRepertoire::Unicode);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&helper) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&unicode) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("eloquence", "v1")]),
+            FallbackPolicy {
+                fallback_engines: vec!["espeak".to_owned()],
+                ..FallbackPolicy::default()
+            },
+        );
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
+        let counter = AtomicU64::new(3);
+
+        let unicode_outcome = synthesize_with_runtime_fallback(
+            "日本",
+            &TtsSettings::default(),
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            3,
+            &counter,
+        );
+        assert!(matches!(unicode_outcome, RuntimeSynthesisOutcome::Ready(_)));
+        assert_eq!(route.realized.engine_id, "espeak");
+
+        let compatible_outcome = synthesize_with_runtime_fallback(
+            "Élan — €",
+            &TtsSettings::default(),
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            3,
+            &counter,
+        );
+        assert!(matches!(
+            compatible_outcome,
+            RuntimeSynthesisOutcome::Ready(_)
+        ));
+        assert_eq!(route.realized.engine_id, "eloquence");
+        assert_eq!(helper.calls.lock().unwrap().len(), 1);
+        assert_eq!(unicode.calls.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn repertoire_routing_fails_without_calling_an_incapable_engine() {
+        let helper = synthesis_engine_with_repertoire("dectalk", "paul", TextRepertoire::Iso8859_1);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&helper) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("dectalk", "paul")]),
+            FallbackPolicy::default(),
+        );
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
+        let counter = AtomicU64::new(5);
+
+        let outcome = synthesize_with_runtime_fallback(
+            "emoji 👋",
+            &TtsSettings::default(),
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            5,
+            &counter,
+        );
+
+        assert!(matches!(outcome, RuntimeSynthesisOutcome::Exhausted));
+        assert!(helper.calls.lock().unwrap().is_empty());
+        assert!(matches!(routes.inventory[0].health, EngineHealth::Healthy));
     }
 
     #[test]

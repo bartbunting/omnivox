@@ -76,8 +76,8 @@ impl PiperTtsEngine {
             concurrency: ConcurrencyModel::Serialized,
             markers: MarkerCapabilities::default(),
             language_switching: false,
-            post_synthesis_dimensions:
-                crate::contracts::buffered_post_synthesis_dimensions(),
+            text_repertoire: crate::contracts::TextRepertoire::Unicode,
+            post_synthesis_dimensions: crate::contracts::buffered_post_synthesis_dimensions(),
             native_extensions: Vec::new(),
         }
     }
