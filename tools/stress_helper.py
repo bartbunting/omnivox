@@ -18,7 +18,7 @@ import threading
 import time
 
 
-PROTOCOL_VERSION = 3
+PROTOCOL_VERSION = 4
 FRAME_TIMEOUT_SECONDS = 30.0
 TEST_TEXTS = (
     "First sentence has several words. Second sentence checks completion!",
@@ -134,7 +134,7 @@ def validate_marker(marker, frame_count, text_size):
 def synthesize(session, request_id, text, voice_id, iteration, acss_capabilities):
     settings = {
         "voice_id": voice_id,
-        "rate": (0.35, 0.5, 0.7)[iteration % 3],
+        "rate": (0.35, 0.5, 0.7, 1.32)[iteration % 4],
         "pitch": (0.8, 1.0, 1.2)[iteration % 3],
         "volume": (0.35, 0.65, 1.0)[iteration % 3],
     }
@@ -262,7 +262,11 @@ def main():
     total_bytes = 0
     try:
         session.send(
-            request(1, "hello", supported_protocol_versions=[PROTOCOL_VERSION, 2, 1])
+            request(
+                1,
+                "hello",
+                supported_protocol_versions=[PROTOCOL_VERSION, 3, 2, 1],
+            )
         )
         hello = session.receive(1)
         if (

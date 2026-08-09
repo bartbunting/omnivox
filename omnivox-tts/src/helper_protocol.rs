@@ -14,11 +14,17 @@ use thiserror::Error;
 use crate::contracts::EngineDescriptor;
 use crate::{RequestedAnchor, MAX_SYNTHESIS_ANCHORS, MAX_SYNTHESIS_ANCHOR_ID_BYTES};
 
-pub const HELPER_PROTOCOL_VERSION: u16 = 3;
+pub const HELPER_PROTOCOL_V4: u16 = 4;
+pub const HELPER_PROTOCOL_VERSION: u16 = HELPER_PROTOCOL_V4;
+pub const HELPER_PROTOCOL_V3: u16 = 3;
 pub const HELPER_PROTOCOL_V2: u16 = 2;
 pub const HELPER_PROTOCOL_V1: u16 = 1;
-pub const SUPPORTED_HELPER_PROTOCOL_VERSIONS: &[u16] =
-    &[HELPER_PROTOCOL_VERSION, HELPER_PROTOCOL_V2, HELPER_PROTOCOL_V1];
+pub const SUPPORTED_HELPER_PROTOCOL_VERSIONS: &[u16] = &[
+    HELPER_PROTOCOL_VERSION,
+    HELPER_PROTOCOL_V3,
+    HELPER_PROTOCOL_V2,
+    HELPER_PROTOCOL_V1,
+];
 pub const MAX_HELPER_FRAME_BYTES: usize = 1024 * 1024;
 pub const MAX_HELPER_TEXT_BYTES: usize = 256 * 1024;
 pub const MAX_HELPER_AUDIO_CHUNK_BYTES: usize = 256 * 1024;
@@ -180,7 +186,7 @@ impl HelperRequest {
                 settings.validate(self.protocol_version)?;
                 match (self.protocol_version, anchors) {
                     (HELPER_PROTOCOL_V1, None) => {}
-                    (HELPER_PROTOCOL_V2 | HELPER_PROTOCOL_VERSION, Some(anchors)) => {
+                    (version, Some(anchors)) if version >= HELPER_PROTOCOL_V2 => {
                         validate_requested_anchors(anchors, text)?;
                     }
                     (HELPER_PROTOCOL_V1, Some(_)) => {
@@ -247,7 +253,12 @@ impl HelperSynthesisSettings {
         {
             return Err(HelperProtocolError::InvalidField("voice_id"));
         }
-        if !self.rate.is_finite() || !(0.0..=1.0).contains(&self.rate) {
+        let maximum_rate = if protocol_version >= HELPER_PROTOCOL_V4 {
+            2.0
+        } else {
+            1.0
+        };
+        if !self.rate.is_finite() || !(0.0..=maximum_rate).contains(&self.rate) {
             return Err(HelperProtocolError::InvalidField("rate"));
         }
         if !self.pitch.is_finite() || !(0.5..=2.0).contains(&self.pitch) {
@@ -261,7 +272,7 @@ impl HelperSynthesisSettings {
             ("stress", self.stress),
             ("richness", self.richness),
         ] {
-            if protocol_version < HELPER_PROTOCOL_VERSION && value.is_some() {
+            if protocol_version < HELPER_PROTOCOL_V3 && value.is_some() {
                 return Err(HelperProtocolError::InvalidField(field));
             }
             if value.is_some_and(|value| !value.is_finite() || !(0.0..=1.0).contains(&value)) {
@@ -646,6 +657,7 @@ mod tests {
     #[test]
     fn protocol_v3_validates_utf8_anchor_boundaries_and_ids() {
         let mut request = synthesis_request();
+        request.protocol_version = HELPER_PROTOCOL_V3;
         if let HelperRequestBody::Synthesize { anchors, .. } = &mut request.body {
             *anchors = Some(vec![RequestedAnchor::new(
                 "accent",
@@ -680,6 +692,30 @@ mod tests {
             settings.richness = None;
         }
         request.validate().unwrap();
+    }
+
+    #[test]
+    fn protocol_v4_extends_the_normalized_rate_range() {
+        let mut request = synthesis_request();
+        if let HelperRequestBody::Synthesize { settings, .. } = &mut request.body {
+            settings.rate = 1.32;
+        }
+        request.validate().unwrap();
+
+        request.protocol_version = HELPER_PROTOCOL_V3;
+        assert!(matches!(
+            request.validate(),
+            Err(HelperProtocolError::InvalidField("rate"))
+        ));
+
+        request.protocol_version = HELPER_PROTOCOL_V4;
+        if let HelperRequestBody::Synthesize { settings, .. } = &mut request.body {
+            settings.rate = 2.01;
+        }
+        assert!(matches!(
+            request.validate(),
+            Err(HelperProtocolError::InvalidField("rate"))
+        ));
     }
 
     #[test]

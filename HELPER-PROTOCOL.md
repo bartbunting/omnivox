@@ -8,7 +8,7 @@ completion, and runtime health policy.
 
 ## Transport and Compatibility
 
-Versions 1 through 3 use a bidirectional stream of newline-terminated UTF-8 JSON objects.
+Versions 1 through 4 use a bidirectional stream of newline-terminated UTF-8 JSON objects.
 The helper reserves standard output for protocol frames and writes diagnostics
 only to standard error. Each frame contains `protocol_version`, a tagged
 `type`, and normally a positive `request_id`; only an error caused before an
@@ -18,22 +18,22 @@ The host starts every session with `hello` and supplies the versions it
 supports:
 
 ```json
-{"protocol_version":3,"request_id":1,"type":"hello","supported_protocol_versions":[3,2,1]}
+{"protocol_version":4,"request_id":1,"type":"hello","supported_protocol_versions":[4,3,2,1]}
 ```
 
 The helper selects a common version and describes its implementation:
 
 ```json
-{"protocol_version":3,"request_id":1,"type":"hello","selected_protocol_version":3,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
+{"protocol_version":4,"request_id":1,"type":"hello","selected_protocol_version":4,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
 ```
 
 No inventory or synthesis request is valid until this exchange succeeds.
 Unknown types or fields added by a later incompatible contract require a new
 protocol version; helpers must not guess at incompatible semantics.
 
-Omnivox offers version 3 first and retries each older supported envelope after
+Omnivox offers version 4 first and retries each older supported envelope after
 an `unsupported_version` response. Every later frame uses the selected version.
-Versions 1 and 2 remain byte-compatible with their original contracts.
+Versions 1 through 3 remain byte-compatible with their original contracts.
 
 ## Requests
 
@@ -47,10 +47,11 @@ All versions define these request types:
 - `ping`: check whether the helper protocol loop is responsive;
 - `shutdown`: request orderly helper termination.
 
-Synthesis text is limited to 256 KiB. Rate and volume use the inclusive
-zero-to-one range; pitch uses 0.5 through 2.0. A missing voice selects the
-helper's advertised default. The helper reports the actual physical voice in
-its `synthesis_started` response.
+Synthesis text is limited to 256 KiB. Volume uses the inclusive zero-to-one
+range; pitch uses 0.5 through 2.0. Rate uses zero-to-one in versions 1 through
+3 and zero-to-two in version 4. A missing voice selects the helper's advertised
+default. The helper reports the actual physical voice in its
+`synthesis_started` response.
 
 Version 2 adds a required `anchors` array to `synthesize`. Each entry carries
 a unique non-empty opaque ID of at most 128 UTF-8 bytes, a `text_offset` on a
@@ -63,6 +64,11 @@ settings. Each uses the inclusive normalized zero-to-one ACSS range. Omnivox
 only sends a value when the selected logical style supplies it and the helper
 advertises support for that dimension; absence preserves the native voice's
 default. Versions 1 and 2 omit these fields.
+
+Version 4 extends normalized rate through 2.0 for engines with native headroom.
+The host constrains requests negotiated with older helpers to their original
+1.0 maximum. Each helper adapter remains responsible for clamping to a lower
+native engine limit where necessary.
 
 ## Synthesis Responses
 

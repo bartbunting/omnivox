@@ -20,8 +20,8 @@ use crate::engine_registry::validate_descriptor;
 use crate::helper_protocol::{
     read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
     HelperRequest, HelperRequestBody, HelperResponse, HelperResponseBody, HelperSynthesisSettings,
-    HELPER_PROTOCOL_V2, HELPER_PROTOCOL_VERSION, MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES,
-    SUPPORTED_HELPER_PROTOCOL_VERSIONS,
+    HELPER_PROTOCOL_V2, HELPER_PROTOCOL_V3, HELPER_PROTOCOL_V4, MAX_HELPER_MARKERS,
+    MAX_HELPER_SYNTHESIS_BYTES, SUPPORTED_HELPER_PROTOCOL_VERSIONS,
 };
 use crate::{
     AnchorResolution, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest,
@@ -945,7 +945,17 @@ impl TtsEngine for HelperTtsEngine {
         };
         let acss = &request.normalized_acss;
         let supported_acss = &descriptor.capabilities.acss;
-        let extended_acss = protocol_version >= HELPER_PROTOCOL_VERSION;
+        let extended_acss = protocol_version >= HELPER_PROTOCOL_V3;
+        let maximum_rate = if protocol_version >= HELPER_PROTOCOL_V4 {
+            2.0
+        } else {
+            1.0
+        };
+        let helper_rate = if request.settings.rate > maximum_rate {
+            maximum_rate
+        } else {
+            request.settings.rate
+        };
         let helper_request = HelperRequest::with_version(
             protocol_version,
             request_id,
@@ -953,7 +963,7 @@ impl TtsEngine for HelperTtsEngine {
                 text: request.text.clone(),
                 settings: HelperSynthesisSettings {
                     voice_id: requested_voice_id.clone(),
-                    rate: request.settings.rate,
+                    rate: helper_rate,
                     pitch: request.settings.pitch,
                     volume: request.settings.volume,
                     pitch_range: (extended_acss && supported_acss.pitch_range)
@@ -1735,7 +1745,7 @@ mod tests {
                     "hello",
                     TtsSettings {
                         voice: "reed".to_owned(),
-                        rate: 0.6,
+                        rate: 1.32,
                         pitch: 1.1,
                         volume: 0.8,
                     },
@@ -1768,25 +1778,27 @@ mod tests {
             panic!("expected synthesis request");
         };
         assert_eq!(settings.voice_id.as_deref(), Some("reed"));
+        assert_eq!(settings.rate, 1.32);
         assert_eq!(settings.pitch_range, Some(0.2));
         assert_eq!(settings.stress, Some(0.6));
         assert_eq!(settings.richness, Some(0.8));
     }
 
     #[test]
-    fn helper_v3_returns_exact_requested_anchors() {
+    fn current_helper_protocol_returns_exact_requested_anchors() {
         let connection = Arc::new(MockConnection::new(
             helper_descriptor("eloquence", "1.0"),
             MockSynthesisMode::Complete,
         ));
         let engine = mock_engine(vec![Arc::clone(&connection)]).unwrap();
-        let request = synthesis_request("hello")
+        let mut request = synthesis_request("hello")
             .with_anchors(vec![RequestedAnchor::new(
                 "capital-1",
                 3,
                 AnchorAffinity::Before,
             )])
             .unwrap();
+        request.settings.rate = 1.32;
 
         let result = engine.synthesize(&request).unwrap();
 
@@ -1812,13 +1824,14 @@ mod tests {
             MockSynthesisMode::Complete,
         ));
         let engine = mock_engine(vec![Arc::clone(&connection)]).unwrap();
-        let request = synthesis_request("hello")
+        let mut request = synthesis_request("hello")
             .with_anchors(vec![RequestedAnchor::new(
                 "legacy-anchor",
                 2,
                 AnchorAffinity::After,
             )])
             .unwrap();
+        request.settings.rate = 1.32;
 
         let result = engine.synthesize(&request).unwrap();
 
@@ -1836,13 +1849,15 @@ mod tests {
         );
         let sent = connection.sent.lock().unwrap();
         assert_eq!(sent[0].protocol_version, HELPER_PROTOCOL_VERSION);
-        assert_eq!(sent[1].protocol_version, HELPER_PROTOCOL_V2);
-        assert_eq!(sent[2].protocol_version, HELPER_PROTOCOL_V1);
-        assert_eq!(sent[3].body, HelperRequestBody::Describe);
-        let HelperRequestBody::Synthesize { anchors, settings, .. } = &sent[4].body else {
+        assert_eq!(sent[1].protocol_version, HELPER_PROTOCOL_V3);
+        assert_eq!(sent[2].protocol_version, HELPER_PROTOCOL_V2);
+        assert_eq!(sent[3].protocol_version, HELPER_PROTOCOL_V1);
+        assert_eq!(sent[4].body, HelperRequestBody::Describe);
+        let HelperRequestBody::Synthesize { anchors, settings, .. } = &sent[5].body else {
             panic!("expected synthesis request");
         };
         assert!(anchors.is_none());
+        assert_eq!(settings.rate, 1.0);
         assert!(settings.pitch_range.is_none());
         assert!(settings.stress.is_none());
         assert!(settings.richness.is_none());
