@@ -258,6 +258,7 @@ pub fn process_control_request(
                         "playback_marker_events_v1".to_owned(),
                         "playback_marker_events_v2".to_owned(),
                         "presentation_timeline_v1".to_owned(),
+                        "presentation_timeline_v2".to_owned(),
                         "post_synthesis_effects_v1".to_owned(),
                         "preferred_engine".to_owned(),
                         "relative_rate_v1".to_owned(),
@@ -546,6 +547,9 @@ mod tests {
                     .iter()
                     .any(|feature| feature == "exact_voice_preview")
                 && features.iter().any(|feature| feature == "logical_voice_routing")
+                && features
+                    .iter()
+                    .any(|feature| feature == "presentation_timeline_v2")
                 && features.iter().any(|feature| feature == "relative_rate_v1")
                 && features.iter().any(|feature| feature == "runtime_routing_policy")
                 && features.iter().any(|feature| feature == "engine_recovery_probe")

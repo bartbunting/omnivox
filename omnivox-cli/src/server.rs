@@ -41,8 +41,8 @@ use crate::pipeline::{
 use crate::routing::LogicalVoiceRoutingSnapshot;
 use crate::text::{normalize_rate, parse_resource_path};
 use crate::transaction::{
-    prefer_newer, prefer_newer_timeline, PreparedPresentation, PreparedStructuredPresentation,
-    PresentationGenerations,
+    prefer_newer, select_adjacent_timeline, AdjacentTimelineSelection, PreparedPresentation,
+    PreparedStructuredPresentation, PresentationGenerations,
 };
 
 const PRESENTATION_COALESCE_WINDOW: Duration = Duration::from_millis(2);
@@ -738,10 +738,9 @@ pub fn run_server(
         };
 
         if command.id == CommandId::EmacsvoxTimeline {
-            let Some(mut selected) = prepare_structured_presentation(
-                &presentation_generations,
-                &command,
-            ) else {
+            let Some(mut selected) =
+                prepare_structured_presentation(&presentation_generations, &command)
+            else {
                 continue;
             };
             loop {
@@ -753,13 +752,32 @@ pub fn run_server(
                         if let Some(candidate) =
                             prepare_structured_presentation(&presentation_generations, &next)
                         {
-                            let superseded_dispatch = if candidate.generation > selected.generation {
-                                selected.timeline.dispatch_id
-                            } else {
-                                candidate.timeline.dispatch_id
-                            };
-                            selected = prefer_newer_timeline(selected, candidate);
-                            write_tracked_status(superseded_dispatch, BatchStatus::Cancelled);
+                            match select_adjacent_timeline(selected, candidate) {
+                                AdjacentTimelineSelection::Coalesced {
+                                    selected: replacement,
+                                    cancelled_dispatch_id,
+                                } => {
+                                    selected = replacement;
+                                    write_tracked_status(
+                                        cancelled_dispatch_id,
+                                        BatchStatus::Cancelled,
+                                    );
+                                }
+                                AdjacentTimelineSelection::PreserveOrder { current } => {
+                                    execute_structured_presentation(
+                                        current,
+                                        &mut presentation_generations,
+                                        &state,
+                                        current_gen,
+                                        &engine_registry,
+                                        &routing_policy,
+                                        &logical_voices,
+                                        &tx,
+                                    );
+                                    deferred_command = Some(next);
+                                    break;
+                                }
+                            }
                         }
                     }
                     TimedCommand::Command(next) if next.id == CommandId::Stop => {
@@ -768,10 +786,7 @@ pub fn run_server(
                             selected.generation
                         );
                         presentation_generations.commit(selected.generation);
-                        write_tracked_status(
-                            selected.timeline.dispatch_id,
-                            BatchStatus::Cancelled,
-                        );
+                        write_tracked_status(selected.timeline.dispatch_id, BatchStatus::Cancelled);
                         handle_command(
                             next,
                             &mut state,

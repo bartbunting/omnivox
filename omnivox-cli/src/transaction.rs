@@ -3,9 +3,7 @@
 use omnivox_core::state::{CapitalizationPresentation, ChannelMode, PunctuationLevel};
 use omnivox_core::{parse_command, Command, CommandId};
 use omnivox_tts::presentation::decode_presentation_frame;
-use omnivox_tts::timeline_protocol::{
-    decode_presentation_timeline, PresentationTimelineEnvelope,
-};
+use omnivox_tts::timeline_protocol::{decode_presentation_timeline, PresentationTimelineEnvelope};
 
 use crate::text::parse_resource_path;
 
@@ -21,6 +19,17 @@ pub struct PreparedPresentation {
 pub struct PreparedStructuredPresentation {
     pub generation: u64,
     pub timeline: PresentationTimelineEnvelope,
+}
+
+#[derive(Debug)]
+pub enum AdjacentTimelineSelection {
+    Coalesced {
+        selected: PreparedStructuredPresentation,
+        cancelled_dispatch_id: u64,
+    },
+    PreserveOrder {
+        current: PreparedStructuredPresentation,
+    },
 }
 
 #[derive(Debug, Default)]
@@ -82,6 +91,28 @@ pub fn prefer_newer_timeline(
         candidate
     } else {
         current
+    }
+}
+
+pub fn select_adjacent_timeline(
+    current: PreparedStructuredPresentation,
+    candidate: PreparedStructuredPresentation,
+) -> AdjacentTimelineSelection {
+    if !current
+        .timeline
+        .shares_replacement_domain(&candidate.timeline)
+    {
+        return AdjacentTimelineSelection::PreserveOrder { current };
+    }
+
+    let cancelled_dispatch_id = if candidate.generation > current.generation {
+        current.timeline.dispatch_id
+    } else {
+        candidate.timeline.dispatch_id
+    };
+    AdjacentTimelineSelection::Coalesced {
+        selected: prefer_newer_timeline(current, candidate),
+        cancelled_dispatch_id,
     }
 }
 
@@ -194,8 +225,9 @@ mod tests {
     use omnivox_tts::contracts::NormalizedAcss;
     use omnivox_tts::presentation::encode_presentation_script;
     use omnivox_tts::timeline_protocol::{
-        encode_presentation_timeline, PresentationEffectDirective, PresentationSpeechSpan,
-        PresentationTimelineEnvelope, PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+        encode_presentation_timeline, PresentationDeliveryPolicy, PresentationEffectDirective,
+        PresentationSpeechSpan, PresentationTimelineEnvelope,
+        PRESENTATION_TIMELINE_PROTOCOL_VERSION,
     };
 
     use super::*;
@@ -208,10 +240,28 @@ mod tests {
     }
 
     fn timeline_payload(generation: u64, dispatch_id: u64, text: &str) -> String {
+        timeline_payload_with_delivery(
+            generation,
+            dispatch_id,
+            text,
+            PresentationDeliveryPolicy::Replaceable,
+            Some("speaker"),
+        )
+    }
+
+    fn timeline_payload_with_delivery(
+        generation: u64,
+        dispatch_id: u64,
+        text: &str,
+        delivery_policy: PresentationDeliveryPolicy,
+        replacement_key: Option<&str>,
+    ) -> String {
         encode_presentation_timeline(&PresentationTimelineEnvelope {
             protocol_version: PRESENTATION_TIMELINE_PROTOCOL_VERSION,
             generation,
             dispatch_id,
+            delivery_policy: Some(delivery_policy),
+            replacement_key: replacement_key.map(str::to_owned),
             spans: vec![PresentationSpeechSpan {
                 id: 1,
                 text: text.to_owned(),
@@ -333,5 +383,117 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(newer.timeline.dispatch_id, 43);
+    }
+
+    #[test]
+    fn adjacent_timelines_coalesce_only_with_the_same_replacement_key() {
+        let generations = PresentationGenerations::default();
+        let current = generations
+            .prepare_timeline(&timeline_payload(10, 40, "first"))
+            .unwrap()
+            .unwrap();
+        let same_key = generations
+            .prepare_timeline(&timeline_payload(11, 41, "latest"))
+            .unwrap()
+            .unwrap();
+
+        assert!(matches!(
+            select_adjacent_timeline(current, same_key),
+            AdjacentTimelineSelection::Coalesced {
+                selected,
+                cancelled_dispatch_id: 40,
+            } if selected.generation == 11 && selected.timeline.dispatch_id == 41
+        ));
+
+        let current = generations
+            .prepare_timeline(&timeline_payload(12, 42, "navigation"))
+            .unwrap()
+            .unwrap();
+        let other_key = generations
+            .prepare_timeline(&timeline_payload_with_delivery(
+                13,
+                43,
+                "completion",
+                PresentationDeliveryPolicy::Replaceable,
+                Some("completion"),
+            ))
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            select_adjacent_timeline(current, other_key),
+            AdjacentTimelineSelection::PreserveOrder { current }
+                if current.timeline.dispatch_id == 42
+        ));
+    }
+
+    #[test]
+    fn adjacent_ordered_and_urgent_timelines_preserve_order() {
+        let generations = PresentationGenerations::default();
+        for (policy, dispatch_id) in [
+            (PresentationDeliveryPolicy::Ordered, 50),
+            (PresentationDeliveryPolicy::Urgent, 51),
+        ] {
+            let current = generations
+                .prepare_timeline(&timeline_payload_with_delivery(
+                    dispatch_id,
+                    dispatch_id,
+                    "important",
+                    policy,
+                    None,
+                ))
+                .unwrap()
+                .unwrap();
+            let candidate = generations
+                .prepare_timeline(&timeline_payload(
+                    dispatch_id + 1,
+                    dispatch_id + 1,
+                    "navigation",
+                ))
+                .unwrap()
+                .unwrap();
+
+            assert!(matches!(
+                select_adjacent_timeline(current, candidate),
+                AdjacentTimelineSelection::PreserveOrder { current }
+                    if current.timeline.dispatch_id == dispatch_id
+            ));
+        }
+    }
+
+    #[test]
+    fn older_same_key_candidate_is_cancelled_without_reordering() {
+        let generations = PresentationGenerations::default();
+        let current = generations
+            .prepare_timeline(&timeline_payload(20, 60, "current"))
+            .unwrap()
+            .unwrap();
+        let older = generations
+            .prepare_timeline(&timeline_payload(19, 59, "late arrival"))
+            .unwrap()
+            .unwrap();
+
+        assert!(matches!(
+            select_adjacent_timeline(current, older),
+            AdjacentTimelineSelection::Coalesced {
+                selected,
+                cancelled_dispatch_id: 59,
+            } if selected.generation == 20 && selected.timeline.dispatch_id == 60
+        ));
+    }
+
+    #[test]
+    fn stop_barrier_consumes_a_structured_generation() {
+        let mut generations = PresentationGenerations::default();
+        let selected = generations
+            .prepare_timeline(&timeline_payload(30, 70, "cancelled"))
+            .unwrap()
+            .unwrap();
+
+        generations.commit(selected.generation);
+
+        assert!(generations
+            .prepare_timeline(&timeline_payload(30, 71, "cannot return"))
+            .unwrap()
+            .is_none());
     }
 }

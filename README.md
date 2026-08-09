@@ -16,7 +16,7 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 - **Engine fallback**: Tries platform-native TTS first, falls back to espeak-ng
 - **Portable multi-engine voices**: Structured descriptors and late-bound logical voices route queued spans to engine/voice pairs with deterministic degradation, persistent engine health, and bounded same-chunk runtime retry
 - **Classic voice dimensions**: Helper protocol v3 maps pitch range, stress, and richness to native Eloquence and DECtalk controls
-- **Replaceable presentations**: Capability-gated, bounded `emacsvox_tx` frames validate atomically and coalesce stale navigation output behind a stop barrier
+- **Policy-preserving presentations**: Capability-gated timeline V2 frames retain ordered, urgent, and keyed-replaceable delivery semantics behind explicit stop barriers
 - **Tracked playback**: Capability-gated dispatch reports completed, cancelled, or failed only after its queued audio reaches a terminal state
 - **Failure diagnostics**: Persistent privacy-safe session logs correlate the synthesis worker, routing, and native helpers; optional WER dumps capture native Windows crashes
 - **Self-registering Emacs module**: `omnivox-voices.el` hooks into emacspeak via advice -- no need to modify emacspeak files

@@ -6,10 +6,11 @@ control protocol in [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md).
 
 ## Negotiation and Command
 
-A client may send a structured timeline only after the server advertises
-`presentation_timeline_v1`. Playback-bound action and degradation events use
-`playback_marker_events_v2`; terminal completion uses the existing tracked
-completion contract.
+A client may send a version 2 structured timeline only after the server
+advertises `presentation_timeline_v2`. The server also advertises and accepts
+version 1 for decoding compatibility. Playback-bound action and degradation
+events use `playback_marker_events_v2`; terminal completion uses the existing
+tracked completion contract.
 
 The command is one newline-terminated record:
 
@@ -25,13 +26,15 @@ not play a valid prefix.
 
 ## Envelope
 
-Version 1 has this shape:
+Version 2 has this shape:
 
 ```json
 {
-  "protocol_version": 1,
+  "protocol_version": 2,
   "generation": 27,
   "dispatch_id": 91,
+  "delivery_policy": "replaceable",
+  "replacement_key": "speaker",
   "spans": [
     {
       "id": 1,
@@ -70,6 +73,34 @@ Version 1 has this shape:
 framed legacy transactions. `dispatch_id` identifies marker-v2 and terminal
 records. Span and action IDs are bounded and unique in their respective
 namespaces.
+
+## Delivery Policy
+
+`delivery_policy` is `ordered`, `replaceable`, or `urgent`. Ordered and urgent
+envelopes omit `replacement_key` and are never coalesced with an adjacent
+timeline. A replaceable envelope requires a nonempty replacement key of at
+most 128 UTF-8 bytes. Omnivox may coalesce adjacent replaceable envelopes only
+when both use version 2 and their keys are identical; the discarded dispatch
+receives `cancelled` before the selected dispatch can complete.
+
+Urgent interruption remains an explicit stop barrier sent immediately before
+the urgent timeline. The policy field prevents a later adjacent timeline from
+silently superseding that urgent work. A stop encountered while any timeline
+is still in the coalescing window cancels that timeline and consumes its
+generation.
+
+Version 1 omits both delivery fields and retains its original interpretation:
+every version 1 envelope is replaceable in one implicit domain. Version 1 and
+version 2 envelopes never coalesce with one another.
+
+The cross-repository UTF-8 interoperability fixtures use generation 27,
+dispatch 91, one span containing `café 日本`, and no actions. Their unwrapped
+Base64 payloads are:
+
+```text
+V1 eyJwcm90b2NvbF92ZXJzaW9uIjoxLCJnZW5lcmF0aW9uIjoyNywiZGlzcGF0Y2hfaWQiOjkxLCJzcGFucyI6W3siaWQiOjEsInRleHQiOiJjYWbDqSDml6XmnKwifV0sImFjdGlvbnMiOltdfQ==
+V2 eyJwcm90b2NvbF92ZXJzaW9uIjoyLCJnZW5lcmF0aW9uIjoyNywiZGlzcGF0Y2hfaWQiOjkxLCJkZWxpdmVyeV9wb2xpY3kiOiJyZXBsYWNlYWJsZSIsInJlcGxhY2VtZW50X2tleSI6InNwZWFrZXIiLCJzcGFucyI6W3siaWQiOjEsInRleHQiOiJjYWbDqSDml6XmnKwifV0sImFjdGlvbnMiOltdfQ==
+```
 
 ## Speech Spans
 
@@ -150,11 +181,13 @@ and rejoins it only when the corresponding event arrives.
 
 ## Compatibility and Degradation
 
-Older servers continue to receive legacy commands. Emacsvox converts a frozen
-Aural presentation only when every captured operation is representable; an
-unmodelled operation keeps the whole presentation on the legacy path so
-speech, icons, and state cannot be duplicated or reordered by partial
-conversion.
+Current Emacsvox requires the version 2 capability for Aural structured
+delivery. A server advertising only version 1 is an installation mismatch and
+must be upgraded; Emacsvox does not silently lower ordered or urgent Aural
+semantics to the legacy protocol. Within a negotiated version 2 transaction,
+an unmodelled operation still keeps the whole presentation on the explicit
+legacy path so speech, icons, and state cannot be duplicated or reordered by
+partial conversion.
 
 A buffered engine without markers remains a useful TTS engine. It still
 provides ordered speech, per-span voice routing and fallback, ACSS it supports,

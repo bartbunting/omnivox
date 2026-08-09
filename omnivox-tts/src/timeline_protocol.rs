@@ -11,8 +11,12 @@ use crate::contracts::{
     NormalizedAcss, PostSynthesisStyle, MAX_RATE_OFFSET_POINTS, MIN_RATE_OFFSET_POINTS,
 };
 
+/// Original structured presentation-timeline protocol version.
+pub const PRESENTATION_TIMELINE_PROTOCOL_V1: u32 = 1;
+/// Structured timeline version carrying delivery policy and replacement identity.
+pub const PRESENTATION_TIMELINE_PROTOCOL_V2: u32 = 2;
 /// Current structured presentation-timeline protocol version.
-pub const PRESENTATION_TIMELINE_PROTOCOL_VERSION: u32 = 1;
+pub const PRESENTATION_TIMELINE_PROTOCOL_VERSION: u32 = PRESENTATION_TIMELINE_PROTOCOL_V2;
 /// Maximum decoded JSON accepted in one timeline request.
 pub const MAX_TIMELINE_PAYLOAD_BYTES: usize = 256 * 1024;
 /// Conservative maximum encoded size for the decoded request bound.
@@ -26,15 +30,55 @@ pub const MAX_TIMELINE_ID_BYTES: usize = 128;
 /// Maximum UTF-8 size of one resource path.
 pub const MAX_TIMELINE_RESOURCE_PATH_BYTES: usize = 4096;
 
-/// One atomic, replaceable presentation and its tracked playback identity.
+/// One atomic presentation and its tracked playback identity.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PresentationTimelineEnvelope {
     pub protocol_version: u32,
     pub generation: u64,
     pub dispatch_id: u64,
+    /// Version 2 delivery policy. Version 1 omits this and is replaceable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delivery_policy: Option<PresentationDeliveryPolicy>,
+    /// Version 2 replacement domain, present only for replaceable work.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replacement_key: Option<String>,
     pub spans: Vec<PresentationSpeechSpan>,
     #[serde(default)]
     pub actions: Vec<PresentationTimelineAction>,
+}
+
+impl PresentationTimelineEnvelope {
+    /// Return the validated effective delivery policy.
+    pub fn effective_delivery_policy(&self) -> PresentationDeliveryPolicy {
+        self.delivery_policy
+            .unwrap_or(PresentationDeliveryPolicy::Replaceable)
+    }
+
+    /// Return whether adjacent validated envelopes share one replacement domain.
+    pub fn shares_replacement_domain(&self, other: &Self) -> bool {
+        if self.effective_delivery_policy() != PresentationDeliveryPolicy::Replaceable
+            || other.effective_delivery_policy() != PresentationDeliveryPolicy::Replaceable
+        {
+            return false;
+        }
+
+        match (self.protocol_version, other.protocol_version) {
+            (PRESENTATION_TIMELINE_PROTOCOL_V1, PRESENTATION_TIMELINE_PROTOCOL_V1) => true,
+            (PRESENTATION_TIMELINE_PROTOCOL_V2, PRESENTATION_TIMELINE_PROTOCOL_V2) => {
+                self.replacement_key == other.replacement_key
+            }
+            _ => false,
+        }
+    }
+}
+
+/// Scheduling contract for one complete structured presentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PresentationDeliveryPolicy {
+    Ordered,
+    Replaceable,
+    Urgent,
 }
 
 /// One ordered speech span with an independently routable logical voice.
@@ -223,10 +267,42 @@ pub fn decode_presentation_timeline(
 pub fn validate_presentation_timeline(
     timeline: &PresentationTimelineEnvelope,
 ) -> Result<(), PresentationTimelineError> {
-    invalid_if(
-        timeline.protocol_version != PRESENTATION_TIMELINE_PROTOCOL_VERSION,
-        format!("unsupported protocol version {}", timeline.protocol_version),
-    )?;
+    match timeline.protocol_version {
+        PRESENTATION_TIMELINE_PROTOCOL_V1 => {
+            invalid_if(
+                timeline.delivery_policy.is_some() || timeline.replacement_key.is_some(),
+                "version 1 timelines cannot contain version 2 delivery fields",
+            )?;
+        }
+        PRESENTATION_TIMELINE_PROTOCOL_V2 => {
+            let Some(delivery_policy) = timeline.delivery_policy else {
+                return Err(PresentationTimelineError::InvalidTimeline(
+                    "version 2 timelines require a delivery policy".to_owned(),
+                ));
+            };
+            match delivery_policy {
+                PresentationDeliveryPolicy::Replaceable => {
+                    let Some(replacement_key) = timeline.replacement_key.as_deref() else {
+                        return Err(PresentationTimelineError::InvalidTimeline(
+                            "replaceable timelines require a replacement key".to_owned(),
+                        ));
+                    };
+                    validate_id(replacement_key, "replacement key")?;
+                }
+                PresentationDeliveryPolicy::Ordered | PresentationDeliveryPolicy::Urgent => {
+                    invalid_if(
+                        timeline.replacement_key.is_some(),
+                        "ordered and urgent timelines cannot contain a replacement key",
+                    )?;
+                }
+            }
+        }
+        version => {
+            return Err(PresentationTimelineError::InvalidTimeline(format!(
+                "unsupported protocol version {version}"
+            )));
+        }
+    }
     invalid_if(timeline.generation == 0, "generation must be positive")?;
     invalid_if(timeline.dispatch_id == 0, "dispatch ID must be positive")?;
     invalid_if(
@@ -427,11 +503,18 @@ fn center() -> f32 {
 mod tests {
     use super::*;
 
+    const VERSION_ONE_INTEROP_FIXTURE: &str =
+        "eyJwcm90b2NvbF92ZXJzaW9uIjoxLCJnZW5lcmF0aW9uIjoyNywiZGlzcGF0Y2hfaWQiOjkxLCJzcGFucyI6W3siaWQiOjEsInRleHQiOiJjYWbDqSDml6XmnKwifV0sImFjdGlvbnMiOltdfQ==";
+    const VERSION_TWO_INTEROP_FIXTURE: &str =
+        "eyJwcm90b2NvbF92ZXJzaW9uIjoyLCJnZW5lcmF0aW9uIjoyNywiZGlzcGF0Y2hfaWQiOjkxLCJkZWxpdmVyeV9wb2xpY3kiOiJyZXBsYWNlYWJsZSIsInJlcGxhY2VtZW50X2tleSI6InNwZWFrZXIiLCJzcGFucyI6W3siaWQiOjEsInRleHQiOiJjYWbDqSDml6XmnKwifV0sImFjdGlvbnMiOltdfQ==";
+
     fn timeline() -> PresentationTimelineEnvelope {
         PresentationTimelineEnvelope {
             protocol_version: PRESENTATION_TIMELINE_PROTOCOL_VERSION,
             generation: 7,
             dispatch_id: 19,
+            delivery_policy: Some(PresentationDeliveryPolicy::Replaceable),
+            replacement_key: Some("speaker".to_owned()),
             spans: vec![PresentationSpeechSpan {
                 id: 1,
                 text: "café 日本".to_owned(),
@@ -492,6 +575,95 @@ mod tests {
             decode_presentation_timeline(&format!("{{{encoded}}}")).unwrap(),
             timeline
         );
+    }
+
+    #[test]
+    fn documented_emacsvox_fixtures_decode_for_both_versions() {
+        let version_one = decode_presentation_timeline(VERSION_ONE_INTEROP_FIXTURE).unwrap();
+        assert_eq!(
+            version_one.protocol_version,
+            PRESENTATION_TIMELINE_PROTOCOL_V1
+        );
+        assert_eq!(version_one.spans[0].text, "café 日本");
+        assert_eq!(
+            version_one.effective_delivery_policy(),
+            PresentationDeliveryPolicy::Replaceable
+        );
+
+        let version_two = decode_presentation_timeline(VERSION_TWO_INTEROP_FIXTURE).unwrap();
+        assert_eq!(
+            version_two.protocol_version,
+            PRESENTATION_TIMELINE_PROTOCOL_V2
+        );
+        assert_eq!(
+            version_two.delivery_policy,
+            Some(PresentationDeliveryPolicy::Replaceable)
+        );
+        assert_eq!(version_two.replacement_key.as_deref(), Some("speaker"));
+    }
+
+    #[test]
+    fn version_one_remains_implicitly_replaceable() {
+        let mut version_one = timeline();
+        version_one.protocol_version = PRESENTATION_TIMELINE_PROTOCOL_V1;
+        version_one.delivery_policy = None;
+        version_one.replacement_key = None;
+
+        let encoded = encode_presentation_timeline(&version_one).unwrap();
+        let decoded = decode_presentation_timeline(&encoded).unwrap();
+
+        assert_eq!(
+            decoded.effective_delivery_policy(),
+            PresentationDeliveryPolicy::Replaceable
+        );
+        assert!(decoded.shares_replacement_domain(&version_one));
+    }
+
+    #[test]
+    fn version_two_validates_policy_and_replacement_identity() {
+        let mut missing_policy = timeline();
+        missing_policy.delivery_policy = None;
+        assert!(matches!(
+            validate_presentation_timeline(&missing_policy),
+            Err(PresentationTimelineError::InvalidTimeline(_))
+        ));
+
+        let mut missing_key = timeline();
+        missing_key.replacement_key = None;
+        assert!(matches!(
+            validate_presentation_timeline(&missing_key),
+            Err(PresentationTimelineError::InvalidTimeline(_))
+        ));
+
+        let mut ordered_with_key = timeline();
+        ordered_with_key.delivery_policy = Some(PresentationDeliveryPolicy::Ordered);
+        assert!(matches!(
+            validate_presentation_timeline(&ordered_with_key),
+            Err(PresentationTimelineError::InvalidTimeline(_))
+        ));
+
+        let mut ordered = ordered_with_key;
+        ordered.replacement_key = None;
+        assert!(validate_presentation_timeline(&ordered).is_ok());
+    }
+
+    #[test]
+    fn only_same_key_replaceable_timelines_share_a_domain() {
+        let navigation = timeline();
+        let mut same_key = timeline();
+        same_key.generation += 1;
+        let mut different_key = same_key.clone();
+        different_key.replacement_key = Some("completion".to_owned());
+        let mut ordered = same_key.clone();
+        ordered.delivery_policy = Some(PresentationDeliveryPolicy::Ordered);
+        ordered.replacement_key = None;
+        let mut urgent = ordered.clone();
+        urgent.delivery_policy = Some(PresentationDeliveryPolicy::Urgent);
+
+        assert!(navigation.shares_replacement_domain(&same_key));
+        assert!(!navigation.shares_replacement_domain(&different_key));
+        assert!(!navigation.shares_replacement_domain(&ordered));
+        assert!(!navigation.shares_replacement_domain(&urgent));
     }
 
     #[test]
