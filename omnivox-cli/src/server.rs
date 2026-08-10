@@ -6,9 +6,9 @@ use omnivox_audio::{
     PostSynthesisProcessor, StreamType, TimelineAudioRenderer, ToneGenerator,
 };
 use omnivox_core::{
-    parse_command,
+    parse_command, parse_presentation_tone_arguments, parse_tone_arguments,
     state::{CapitalizationPresentation, ChannelMode, PunctuationLevel},
-    Command, CommandId, QueueItem, TtsState,
+    Command, CommandId, QueueItem, TonePlacement, TtsState,
 };
 use omnivox_tts::contracts::{
     apply_rate_offset, AcssDimension, EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition,
@@ -1485,12 +1485,35 @@ fn handle_command(
 
         CommandId::Tone => {
             if let Some(args) = command.args {
-                let parts: Vec<&str> = args.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    if let (Ok(freq), Ok(dur)) = (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
-                        debug!("Queue tone: {}Hz {}ms", freq, dur);
-                        pending.push(QueueItem::Tone { frequency: freq, duration: dur });
+                match parse_tone_arguments(&args) {
+                    Ok(tone) => {
+                        debug!("Queue tone: {}Hz {}ms", tone.frequency_hz, tone.duration_ms);
+                        pending.push(QueueItem::Tone {
+                            frequency: tone.frequency_hz,
+                            duration: tone.duration_ms,
+                            placement: TonePlacement::Independent,
+                        });
                     }
+                    Err(error) => warn!("Invalid tone: {error}"),
+                }
+            }
+        }
+
+        CommandId::EmacsvoxTone => {
+            if let Some(args) = command.args {
+                match parse_presentation_tone_arguments(&args) {
+                    Ok(tone) => {
+                        debug!(
+                            "Queue {:?} presentation tone: {}Hz {}ms",
+                            tone.placement, tone.frequency_hz, tone.duration_ms
+                        );
+                        pending.push(QueueItem::Tone {
+                            frequency: tone.frequency_hz,
+                            duration: tone.duration_ms,
+                            placement: tone.placement,
+                        });
+                    }
+                    Err(error) => warn!("Invalid presentation tone: {error}"),
                 }
             }
         }

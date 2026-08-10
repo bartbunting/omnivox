@@ -5,6 +5,17 @@
 use std::collections::VecDeque;
 use std::path::PathBuf;
 
+/// How a queued tone participates in presentation time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TonePlacement {
+    /// Play immediately on the independent tone stream.
+    Independent,
+    /// Serialize with speech and advance the primary presentation clock.
+    Insert,
+    /// Start at the current presentation boundary without advancing speech.
+    Overlay,
+}
+
 /// Items that can be queued for processing
 #[derive(Debug, Clone, PartialEq)]
 pub enum QueueItem {
@@ -14,8 +25,12 @@ pub enum QueueItem {
     /// Inline codes (voice changes, pitch adjustments, etc.)
     Code(String),
 
-    /// Tone with frequency (Hz) and duration (ms)
-    Tone { frequency: u32, duration: u32 },
+    /// Tone with frequency (Hz), duration (ms), and explicit clock placement.
+    Tone {
+        frequency: f32,
+        duration: u32,
+        placement: TonePlacement,
+    },
 
     /// Silence/pause for specified duration (ms)
     Silence { duration: u32 },
@@ -153,8 +168,9 @@ mod tests {
     fn test_queue_tone() {
         let mut queue = CommandQueue::new();
         queue.enqueue(QueueItem::Tone {
-            frequency: 440,
+            frequency: 440.0,
             duration: 50,
+            placement: TonePlacement::Independent,
         });
         assert_eq!(queue.len(), 1);
     }

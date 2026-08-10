@@ -7,7 +7,7 @@
 
 ### Working
 
-- Full Emacspeak protocol parser (32 commands)
+- Full Emacspeak protocol parser plus bounded Emacsvox extensions
 - Command queue system with dispatch (depth: speech 100, tone 10, sound 10)
 - State management (voice, rate, pitch, volume, punctuation, split caps)
 - macOS native TTS (AVSpeechSynthesizer via ObjC bridge, buffer capture)
@@ -142,7 +142,8 @@ omnivox-cli:    59 unit
 | `d` | Working | Dispatch queue |
 | `s` | Working | Stop (persistent synth) |
 | `l {letter}` | Working | Anchored cap tone when enabled; pitch raise otherwise |
-| `t {freq} {dur}` | Working | Tone generation |
+| `t {freq} {dur}` | Working | Independent tone generation |
+| `emacsvox_tone 1 {mode} {freq} {dur}` | Working | Capability-gated insert/overlay tone on the presentation clock |
 | `a {path}` | Working | Queue-boundary overlay; complete tail is tracked |
 | `p {path}` | Working | Immediate sound |
 | `sh {duration}` | Working | Silence |

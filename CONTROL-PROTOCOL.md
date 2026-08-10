@@ -10,6 +10,9 @@ not need Tcl escaping and remain separate structured fields.
 - Existing clients and legacy commands continue to work unchanged.
 - `emacsvox_tx` is an optional presentation-transaction frame. It is not used
   for persistent logical-voice configuration or discovery.
+- `presentation_tone_v1` gates `emacsvox_tone 1 MODE FREQUENCY DURATION`;
+  `insert` advances the speech clock and `overlay` starts at its current
+  boundary. The ordinary `t` command remains an independent beep.
 - A client must successfully request capabilities before using later control
   extensions.
 - The server advertises only features it currently implements. Version 1
@@ -170,6 +173,7 @@ A successful capability response decodes to this shape:
     "logical_voice_registration",
     "logical_voice_routing",
     "playback_marker_events_v1",
+    "presentation_tone_v1",
     "preferred_engine",
     "relative_rate_v1",
     "runtime_routing_policy",

@@ -319,7 +319,8 @@ Omnivox implements the standard Emacspeak speech server protocol:
 | `d` | Dispatch queued items |
 | `s` | Stop all speech |
 | `l char` | Speak letter immediately |
-| `t freq dur` | Queue tone |
+| `t freq dur` | Queue an independent tone |
+| `emacsvox_tone 1 MODE freq dur` | Queue a capability-negotiated `insert` or `overlay` presentation tone |
 | `a path` | Queue an icon overlay at the current presentation boundary |
 | `p path` | Play sound immediately |
 | `sh dur` | Queue silence |
@@ -335,6 +336,10 @@ Omnivox implements the standard Emacspeak speech server protocol:
 | `tts_reset` | Reset all state |
 | `tts_exit` | Shut down |
 | `version` | Speak version |
+
+Presentation tone gain is applied once in every delivery path. This corrects
+older legacy behavior that effectively squared `tts_set_tone_volume`; users
+who raised tone volume to compensate may want to restore their intended value.
 
 ## License
 

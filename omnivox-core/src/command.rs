@@ -9,6 +9,17 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use thiserror::Error;
 
+use crate::queue::TonePlacement;
+
+/// Version of the capability-gated presentation-tone command.
+pub const PRESENTATION_TONE_PROTOCOL_VERSION: u8 = 1;
+
+/// Upper frequency accepted by both structured and queued presentation tones.
+pub const MAX_PRESENTATION_TONE_FREQUENCY_HZ: f32 = 24_000.0;
+
+/// Longest queued presentation tone accepted on the wire.
+pub const MAX_PRESENTATION_TONE_DURATION_MS: u32 = 60_000;
+
 /// Command parse errors
 #[derive(Debug, Error, PartialEq)]
 pub enum ParseError {
@@ -50,6 +61,7 @@ pub enum CommandId {
     EmacsvoxTx,           // emacsvox_tx - replaceable Base64 presentation transaction
     EmacsvoxTimeline,     // emacsvox_timeline - structured Base64-JSON presentation
     EmacsvoxTimelinePart, // emacsvox_timeline_part - one bounded V3 transport fragment
+    EmacsvoxTone,         // emacsvox_tone - versioned presentation-clock tone
     EmacsvoxTrackedDispatch, // emacsvox_tracked_dispatch - dispatch with terminal playback status
     EmacsvoxMarkerDispatch, // emacsvox_marker_dispatch - dispatch with playback marker events
 
@@ -98,6 +110,7 @@ impl CommandId {
             "emacsvox_tx" => Some(Self::EmacsvoxTx),
             "emacsvox_timeline" => Some(Self::EmacsvoxTimeline),
             "emacsvox_timeline_part" => Some(Self::EmacsvoxTimelinePart),
+            "emacsvox_tone" => Some(Self::EmacsvoxTone),
             "emacsvox_tracked_dispatch" => Some(Self::EmacsvoxTrackedDispatch),
             "emacsvox_marker_dispatch" => Some(Self::EmacsvoxMarkerDispatch),
             "tts_set_voice" => Some(Self::TtsSetVoice),
@@ -122,6 +135,21 @@ impl CommandId {
 pub struct Command {
     pub id: CommandId,
     pub args: Option<String>,
+}
+
+/// Validated bounded tone values carried by the command protocol.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ToneCommand {
+    pub frequency_hz: f32,
+    pub duration_ms: u32,
+}
+
+/// Validated presentation-clock tone carried by `emacsvox_tone`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PresentationToneCommand {
+    pub placement: TonePlacement,
+    pub frequency_hz: f32,
+    pub duration_ms: u32,
 }
 
 impl Command {
@@ -208,6 +236,70 @@ pub fn parse_command(line: &str) -> Result<Command, ParseError> {
     Err(ParseError::InvalidFormat(line.to_string()))
 }
 
+fn parse_bounded_tone_values(frequency: &str, duration: &str) -> Result<ToneCommand, String> {
+    let frequency_hz = frequency
+        .parse::<f32>()
+        .map_err(|_| "tone frequency must be numeric".to_owned())?;
+    if !frequency_hz.is_finite()
+        || frequency_hz <= 0.0
+        || frequency_hz > MAX_PRESENTATION_TONE_FREQUENCY_HZ
+    {
+        return Err(format!(
+            "tone frequency must be greater than zero and at most {MAX_PRESENTATION_TONE_FREQUENCY_HZ} Hz"
+        ));
+    }
+    let duration_ms = duration
+        .parse::<u32>()
+        .map_err(|_| "tone duration must be an integer".to_owned())?;
+    if duration_ms == 0 || duration_ms > MAX_PRESENTATION_TONE_DURATION_MS {
+        return Err(format!(
+            "tone duration must be from 1 through {MAX_PRESENTATION_TONE_DURATION_MS} ms"
+        ));
+    }
+    Ok(ToneCommand {
+        frequency_hz,
+        duration_ms,
+    })
+}
+
+/// Parse and bound `FREQUENCY_HZ DURATION_MS` for the independent `t` command.
+pub fn parse_tone_arguments(arguments: &str) -> Result<ToneCommand, String> {
+    let fields = arguments.split_whitespace().collect::<Vec<_>>();
+    if fields.len() != 2 {
+        return Err("tone requires FREQUENCY_HZ DURATION_MS".to_owned());
+    }
+    parse_bounded_tone_values(fields[0], fields[1])
+}
+
+/// Parse and bound `VERSION MODE FREQUENCY_HZ DURATION_MS` tone arguments.
+pub fn parse_presentation_tone_arguments(
+    arguments: &str,
+) -> Result<PresentationToneCommand, String> {
+    let fields = arguments.split_whitespace().collect::<Vec<_>>();
+    if fields.len() != 4 {
+        return Err("presentation tone requires VERSION MODE FREQUENCY_HZ DURATION_MS".to_owned());
+    }
+    let version = fields[0]
+        .parse::<u8>()
+        .map_err(|_| "presentation tone version must be an integer".to_owned())?;
+    if version != PRESENTATION_TONE_PROTOCOL_VERSION {
+        return Err(format!(
+            "unsupported presentation tone version {version}; supported version is {PRESENTATION_TONE_PROTOCOL_VERSION}"
+        ));
+    }
+    let placement = match fields[1] {
+        "insert" => TonePlacement::Insert,
+        "overlay" => TonePlacement::Overlay,
+        _ => return Err("presentation tone mode must be insert or overlay".to_owned()),
+    };
+    let tone = parse_bounded_tone_values(fields[2], fields[3])?;
+    Ok(PresentationToneCommand {
+        placement,
+        frequency_hz: tone.frequency_hz,
+        duration_ms: tone.duration_ms,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,6 +330,58 @@ mod tests {
         let cmd = parse_command("t 440 50").unwrap();
         assert_eq!(cmd.id, CommandId::Tone);
         assert_eq!(cmd.args, Some("440 50".to_string()));
+    }
+
+    #[test]
+    fn tone_parser_accepts_fractional_frequency_and_rejects_unbounded_audio() {
+        let tone = parse_tone_arguments("297.3018 150").unwrap();
+        assert!((tone.frequency_hz - 297.3018).abs() < f32::EPSILON);
+        assert_eq!(tone.duration_ms, 150);
+
+        for arguments in [
+            "NaN 50",
+            "-440 50",
+            "24001 50",
+            "440 0",
+            "440 60001",
+            "440 50 ignored",
+        ] {
+            assert!(
+                parse_tone_arguments(arguments).is_err(),
+                "unexpectedly accepted {arguments:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn presentation_tone_parser_preserves_explicit_clock_mode() {
+        let cmd = parse_command("emacsvox_tone 1 insert 297.3018 150").unwrap();
+        assert_eq!(cmd.id, CommandId::EmacsvoxTone);
+        let tone = parse_presentation_tone_arguments(cmd.args.as_deref().unwrap()).unwrap();
+        assert_eq!(tone.placement, TonePlacement::Insert);
+        assert!((tone.frequency_hz - 297.3018).abs() < f32::EPSILON);
+        assert_eq!(tone.duration_ms, 150);
+
+        let overlay = parse_presentation_tone_arguments("1 overlay 880 35").unwrap();
+        assert_eq!(overlay.placement, TonePlacement::Overlay);
+    }
+
+    #[test]
+    fn presentation_tone_parser_rejects_versions_modes_and_unbounded_audio() {
+        for arguments in [
+            "2 insert 440 50",
+            "1 independent 440 50",
+            "1 insert NaN 50",
+            "1 insert 24001 50",
+            "1 insert 440 0",
+            "1 insert 440 60001",
+            "1 insert 440",
+        ] {
+            assert!(
+                parse_presentation_tone_arguments(arguments).is_err(),
+                "unexpectedly accepted {arguments:?}"
+            );
+        }
     }
 
     #[test]

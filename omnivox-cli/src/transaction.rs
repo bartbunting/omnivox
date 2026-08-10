@@ -1,7 +1,9 @@
 //! Atomic validation and generation tracking for framed presentations.
 
 use omnivox_core::state::{CapitalizationPresentation, ChannelMode, PunctuationLevel};
-use omnivox_core::{parse_command, Command, CommandId};
+use omnivox_core::{
+    parse_command, parse_presentation_tone_arguments, parse_tone_arguments, Command, CommandId,
+};
 use omnivox_tts::presentation::decode_presentation_frame;
 use omnivox_tts::timeline_protocol::{
     decode_multipart_presentation_timeline, decode_presentation_timeline,
@@ -263,12 +265,10 @@ fn validate_command(command: &Command) -> Result<(), String> {
     let valid = match command.id {
         CommandId::Queue | CommandId::Code => arguments.is_some(),
         CommandId::Dispatch => arguments.is_none(),
-        CommandId::Tone => arguments.is_some_and(|arguments| {
-            let fields = arguments.split_whitespace().collect::<Vec<_>>();
-            fields.len() == 2
-                && fields[0].parse::<u32>().is_ok()
-                && fields[1].parse::<u32>().is_ok()
-        }),
+        CommandId::Tone => arguments.is_some_and(|value| parse_tone_arguments(value).is_ok()),
+        CommandId::EmacsvoxTone => {
+            arguments.is_some_and(|value| parse_presentation_tone_arguments(value).is_ok())
+        }
         CommandId::Silence => arguments.is_some_and(|value| value.parse::<u32>().is_ok()),
         CommandId::AudioIcon => arguments.is_some_and(|value| parse_resource_path(value).is_ok()),
         CommandId::TtsSetPunctuations => {
@@ -330,12 +330,16 @@ fn valid_float(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use omnivox_core::command::{
+        MAX_PRESENTATION_TONE_DURATION_MS, MAX_PRESENTATION_TONE_FREQUENCY_HZ,
+    };
     use omnivox_tts::contracts::NormalizedAcss;
     use omnivox_tts::presentation::encode_presentation_script;
     use omnivox_tts::timeline_protocol::{
         encode_multipart_presentation_timeline, encode_presentation_timeline,
         PresentationDeliveryPolicy, PresentationEffectDirective, PresentationSpeechSpan,
         PresentationTimelineEnvelope, MAX_TIMELINE_ENCODED_BYTES,
+        MAX_TIMELINE_TONE_DURATION_MS, MAX_TIMELINE_TONE_FREQUENCY_HZ,
         PRESENTATION_TIMELINE_PROTOCOL_VERSION,
     };
 
@@ -428,6 +432,41 @@ mod tests {
         generations.commit(prepared.generation);
         assert_eq!(generations.latest(), 7);
         assert!(generations.prepare(&arguments(7, "q {retry}\nd\n")).unwrap().is_none());
+    }
+
+    #[test]
+    fn framed_presentations_validate_tone_modes_atomically() {
+        assert_eq!(
+            MAX_PRESENTATION_TONE_FREQUENCY_HZ,
+            MAX_TIMELINE_TONE_FREQUENCY_HZ
+        );
+        assert_eq!(
+            MAX_PRESENTATION_TONE_DURATION_MS,
+            MAX_TIMELINE_TONE_DURATION_MS
+        );
+        let generations = PresentationGenerations::default();
+        let prepared = generations
+            .prepare(&arguments(
+                8,
+                "q {before}\nemacsvox_tone 1 insert 297.3018 150\nq {after}\nd\n",
+            ))
+            .unwrap()
+            .unwrap();
+        assert_eq!(prepared.commands[1].id, CommandId::EmacsvoxTone);
+
+        for command in [
+            "emacsvox_tone 2 insert 440 50",
+            "emacsvox_tone 1 independent 440 50",
+            "emacsvox_tone 1 insert 440 60001",
+            "t NaN 50",
+            "t -440 50",
+            "t 440 50 ignored",
+        ] {
+            assert!(generations
+                .prepare(&arguments(9, &format!("q {{before}}\n{command}\nd\n")))
+                .is_err());
+        }
+        assert_eq!(generations.latest(), 0);
     }
 
     #[test]

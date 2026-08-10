@@ -9,7 +9,7 @@ use omnivox_core::timeline::{
     ActionAffinity, AudioActionMode, EffectBus, PresentationPosition, ResolvedTimelineAction,
     ScheduledTimeline, TimelineAction, TimelineActionId, TimelineActionKind,
 };
-use omnivox_core::{QueueItem, TtsState};
+use omnivox_core::{QueueItem, TonePlacement, TtsState};
 use omnivox_tts::contracts::{
     apply_rate_offset, AcssDimension, NormalizedAcss, PhysicalVoiceId, PostSynthesisDimension,
     PostSynthesisStyle,
@@ -108,6 +108,30 @@ pub fn build_tone_pipeline(state: &TtsState) -> AudioPipeline {
         state.tone_routing.channel_mode,
     )));
     pipeline
+}
+
+fn prepare_tone_audio(
+    frequency_hz: f32,
+    duration_ms: u32,
+    state: &TtsState,
+) -> Result<AudioBuffer, omnivox_audio::AudioError> {
+    let mut audio = ToneGenerator::generate(frequency_hz, duration_ms, 1.0);
+    build_tone_pipeline(state).process(&mut audio)?;
+    Ok(audio)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ToneQueueTarget {
+    Stream(StreamType),
+    Overlay,
+}
+
+fn tone_queue_target(placement: TonePlacement) -> ToneQueueTarget {
+    match placement {
+        TonePlacement::Independent => ToneQueueTarget::Stream(StreamType::Tone),
+        TonePlacement::Insert => ToneQueueTarget::Stream(StreamType::Speech),
+        TonePlacement::Overlay => ToneQueueTarget::Overlay,
+    }
 }
 
 pub fn build_sound_pipeline(state: &TtsState) -> AudioPipeline {
@@ -574,8 +598,7 @@ fn prepare_speech_timeline(
         }
         let id = TimelineActionId::new(tone.id.clone())
             .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
-        let mut audio = ToneGenerator::generate(tone.frequency_hz, tone.duration_ms, 1.0);
-        build_tone_pipeline(state).process(&mut audio)?;
+        let audio = prepare_tone_audio(tone.frequency_hz, tone.duration_ms, state)?;
         let action = TimelineAction {
             id: id.clone(),
             position: PresentationPosition::TextOffset {
@@ -1380,9 +1403,7 @@ fn preload_timeline_resources(
                 pan,
                 ..
             } => {
-                let mut audio = ToneGenerator::generate(*frequency_hz, *duration_ms, 1.0);
-                build_tone_pipeline(state)
-                    .process(&mut audio)
+                let mut audio = prepare_tone_audio(*frequency_hz, *duration_ms, state)
                     .map_err(|error| format!("action {}: {error}", action.id))?;
                 apply_action_pan(&mut audio, *pan);
                 audio
@@ -1715,16 +1736,17 @@ pub fn process_batch(
             QueueItem::Tone {
                 frequency,
                 duration,
-            } => {
-                let mut buf =
-                    ToneGenerator::generate(frequency as f32, duration, state.tone_volume);
-                let pipeline = build_tone_pipeline(&state);
-                if let Err(e) = pipeline.process(&mut buf) {
+                placement,
+            } => match prepare_tone_audio(frequency, duration, &state) {
+                Ok(buf) => match tone_queue_target(placement) {
+                    ToneQueueTarget::Stream(stream) => ctx.queue(stream, &buf),
+                    ToneQueueTarget::Overlay => ctx.queue_overlay(buf),
+                },
+                Err(error) => {
                     ctx.mark_failed();
-                    warn!("Tone pipeline error: {}", e);
+                    warn!("Tone pipeline error: {error}");
                 }
-                ctx.queue(StreamType::Tone, &buf);
-            }
+            },
 
             QueueItem::Silence { duration } => {
                 let buf = AudioBuffer::silence(duration as f32 / 1000.0);
@@ -1932,6 +1954,108 @@ mod tests {
         assert!(!is_stale(5, &counter));
         assert!(is_stale(4, &counter));
         assert!(is_stale(6, &counter));
+    }
+
+    #[test]
+    fn presentation_tone_modes_select_the_required_playback_clock() {
+        assert_eq!(
+            tone_queue_target(TonePlacement::Independent),
+            ToneQueueTarget::Stream(StreamType::Tone)
+        );
+        assert_eq!(
+            tone_queue_target(TonePlacement::Insert),
+            ToneQueueTarget::Stream(StreamType::Speech)
+        );
+        assert_eq!(
+            tone_queue_target(TonePlacement::Overlay),
+            ToneQueueTarget::Overlay
+        );
+    }
+
+    #[test]
+    fn tone_gain_is_applied_once_across_legacy_structured_and_capital_paths() {
+        let frequency_hz = 440.0;
+        let duration_ms = 50;
+        let unity = ToneGenerator::generate(frequency_hz, duration_ms, 1.0);
+        let unity_peak = unity
+            .samples
+            .iter()
+            .copied()
+            .map(f32::abs)
+            .fold(0.0, f32::max);
+
+        for volume in [0.0, 0.1, 0.5, 1.0] {
+            let mut state = TtsState::default();
+            state.tone_volume = volume;
+            let legacy = prepare_tone_audio(frequency_hz, duration_ms, &state).unwrap();
+
+            let capital_result = CanonicalSynthesisResult {
+                audio: AudioBuffer::silence(0.1),
+                engine_id: "mock".to_owned(),
+                actual_voice: None,
+                markers: Vec::new(),
+                anchors: vec![ResolvedAnchor {
+                    id: "capital".to_owned(),
+                    frame_offset: Some(0),
+                    resolution: AnchorResolution::Exact,
+                }],
+                degraded_acss: Vec::new(),
+            };
+            let (_, capital_resources) = prepare_speech_timeline(
+                &capital_result,
+                &[CapitalizationTone {
+                    id: "capital".to_owned(),
+                    text_offset: 0,
+                    frequency_hz,
+                    duration_ms,
+                }],
+                &[],
+                &PostSynthesisStyle::default(),
+                &state,
+            )
+            .unwrap();
+
+            let structured = preload_timeline_resources(
+                &[PresentationTimelineAction {
+                    id: "structured".to_owned(),
+                    position: PresentationTimelinePosition::SpanBoundary {
+                        span_id: 1,
+                        affinity: PresentationAffinity::Before,
+                    },
+                    lifecycle_anchor:
+                        omnivox_tts::timeline_protocol::PresentationLifecycleAnchor::Run,
+                    action: PresentationAction::Tone {
+                        frequency_hz,
+                        duration_ms,
+                        mode: PresentationAudioMode::Insert,
+                        volume: 1.0,
+                        pan: 0.5,
+                        effect_bus: PresentationEffectBus::Dry,
+                    },
+                }],
+                &state,
+                &AudioFileLoader::new(),
+            )
+            .unwrap();
+
+            let expected_peak = unity_peak * volume;
+            for (path, audio) in [
+                ("legacy", &legacy),
+                ("capital", &capital_resources[0].audio),
+                ("structured", structured.get("structured").unwrap()),
+            ] {
+                let actual_peak = audio
+                    .samples
+                    .iter()
+                    .copied()
+                    .map(f32::abs)
+                    .fold(0.0, f32::max);
+                assert!(
+                    (actual_peak - expected_peak).abs() < 0.000_001,
+                    "{path} peak {actual_peak} did not match one {volume} gain application ({expected_peak})"
+                );
+            }
+        }
     }
 
     #[test]

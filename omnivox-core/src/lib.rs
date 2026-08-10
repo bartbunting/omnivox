@@ -8,8 +8,11 @@ pub mod queue;
 pub mod state;
 pub mod timeline;
 
-pub use command::{parse_command, Command, CommandId, ParseError};
-pub use queue::{CommandQueue, QueueItem};
+pub use command::{
+    parse_command, parse_presentation_tone_arguments, parse_tone_arguments, Command, CommandId,
+    ParseError, PresentationToneCommand, ToneCommand,
+};
+pub use queue::{CommandQueue, QueueItem, TonePlacement};
 pub use state::{AudioRouting, ChannelMode, PunctuationLevel, TtsState};
 pub use timeline::{
     ActionAffinity, AudioActionMode, EffectBus, EffectStateChange, EffectStateId, FrameMap,

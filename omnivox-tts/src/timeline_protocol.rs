@@ -42,6 +42,10 @@ pub const MAX_TIMELINE_AGGREGATE_ACTIONS: usize = MAX_TIMELINE_ACTIONS * MAX_TIM
 pub const MAX_TIMELINE_ID_BYTES: usize = 128;
 /// Maximum UTF-8 size of one resource path.
 pub const MAX_TIMELINE_RESOURCE_PATH_BYTES: usize = 4096;
+/// Highest frequency accepted by a structured tone action.
+pub const MAX_TIMELINE_TONE_FREQUENCY_HZ: f32 = 24_000.0;
+/// Longest duration accepted by a structured tone action.
+pub const MAX_TIMELINE_TONE_DURATION_MS: u32 = 60_000;
 
 /// One atomic presentation and its tracked playback identity.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -638,11 +642,13 @@ fn validate_action(action: &PresentationTimelineAction) -> Result<(), Presentati
             ..
         } => {
             invalid_if(
-                !frequency_hz.is_finite() || *frequency_hz <= 0.0 || *frequency_hz > 24_000.0,
+                !frequency_hz.is_finite()
+                    || *frequency_hz <= 0.0
+                    || *frequency_hz > MAX_TIMELINE_TONE_FREQUENCY_HZ,
                 format!("tone action {} has an invalid frequency", action.id),
             )?;
             invalid_if(
-                *duration_ms == 0 || *duration_ms > 60_000,
+                *duration_ms == 0 || *duration_ms > MAX_TIMELINE_TONE_DURATION_MS,
                 format!("tone action {} has an invalid duration", action.id),
             )?;
             validate_normalized(*volume, &format!("tone action {} volume", action.id))?;

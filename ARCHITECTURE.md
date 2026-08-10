@@ -101,7 +101,8 @@ their UTF-8 offsets, synthesis resolves them, and the renderer sample-mixes a
 word boundaries; markerless engines place the tone at the chunk start. The
 tone uses normal tone volume/channel processing and stop cancels all mixed or
 unreached output. Structured resource transport is added at the Emacsvox
-timeline-negotiation layer rather than to the legacy command stream.
+timeline-negotiation layer. Capability-gated compatibility lowering uses an
+explicit presentation-tone mode; standalone legacy tones remain independent.
 
 Semantic timeline actions render as zero-duration output-frame cues. Protocol
 v2 carries only their bounded opaque IDs; the corresponding Lisp meaning stays
