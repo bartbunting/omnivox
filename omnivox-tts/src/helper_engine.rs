@@ -5,7 +5,7 @@ use std::ffi::OsString;
 use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
@@ -152,6 +152,7 @@ type HelperReadResult = Result<HelperResponse, HelperEngineError>;
 struct ProcessHelperConnection {
     engine_id: String,
     child_id: u32,
+    terminated: AtomicBool,
     writer: Mutex<Option<BufWriter<ChildStdin>>>,
     responses: Mutex<mpsc::Receiver<HelperReadResult>>,
     child: Mutex<Child>,
@@ -234,6 +235,7 @@ impl ProcessHelperConnection {
         Ok(Self {
             engine_id: engine_id.to_owned(),
             child_id,
+            terminated: AtomicBool::new(false),
             writer: Mutex::new(Some(BufWriter::new(stdin))),
             responses: Mutex::new(response_receiver),
             child: Mutex::new(child),
@@ -262,6 +264,9 @@ impl HelperConnection for ProcessHelperConnection {
     }
 
     fn terminate(&self) {
+        if self.terminated.swap(true, Ordering::AcqRel) {
+            return;
+        }
         self.writer.lock().unwrap().take();
         let exit_status = {
             let mut child = self.child.lock().unwrap();
@@ -527,6 +532,45 @@ impl HelperSynthesisCollector {
     }
 }
 
+const CANCELLATION_ACTIVE: u8 = 0;
+const CANCELLATION_TERMINAL: u8 = 1;
+const CANCELLATION_RETIRING: u8 = 2;
+
+/// One cancellation/watchdog owner retained until its synthesis is terminal.
+struct TargetCancellation {
+    cancel_request_id: u64,
+    state: AtomicU8,
+}
+
+impl TargetCancellation {
+    fn new(cancel_request_id: u64) -> Self {
+        Self {
+            cancel_request_id,
+            state: AtomicU8::new(CANCELLATION_ACTIVE),
+        }
+    }
+
+    fn mark_target_terminal(&self) {
+        let _ = self.state.compare_exchange(
+            CANCELLATION_ACTIVE,
+            CANCELLATION_TERMINAL,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        );
+    }
+
+    fn begin_retirement(&self) -> bool {
+        self.state
+            .compare_exchange(
+                CANCELLATION_ACTIVE,
+                CANCELLATION_RETIRING,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            )
+            .is_ok()
+    }
+}
+
 pub struct HelperTtsEngine {
     config: HelperEngineConfig,
     connector: Arc<dyn HelperConnector>,
@@ -535,7 +579,7 @@ pub struct HelperTtsEngine {
     protocol_version: AtomicU64,
     next_request_id: AtomicU64,
     active_request_id: Arc<AtomicU64>,
-    pending_cancellations: Mutex<HashMap<u64, u64>>,
+    cancellations_by_target: Mutex<HashMap<u64, Arc<TargetCancellation>>>,
     lifecycle: Mutex<()>,
     dispatch: Mutex<()>,
 }
@@ -572,7 +616,7 @@ impl HelperTtsEngine {
             protocol_version: AtomicU64::new(0),
             next_request_id: AtomicU64::new(1),
             active_request_id: Arc::new(AtomicU64::new(0)),
-            pending_cancellations: Mutex::new(HashMap::new()),
+            cancellations_by_target: Mutex::new(HashMap::new()),
             lifecycle: Mutex::new(()),
             dispatch: Mutex::new(()),
         };
@@ -597,7 +641,7 @@ impl HelperTtsEngine {
         if let Some(connection) = self.connection.write().unwrap().take() {
             connection.terminate();
         }
-        self.pending_cancellations.lock().unwrap().clear();
+        self.cancellations_by_target.lock().unwrap().clear();
 
         let connection = self.connector.connect()?;
         let (descriptor, protocol_version) = match self.negotiate(&connection) {
@@ -776,15 +820,18 @@ impl HelperTtsEngine {
         let Some(request_id) = response.request_id else {
             return Ok(false);
         };
-        let mut pending = self.pending_cancellations.lock().unwrap();
-        let Some(expected_target) = pending.get(&request_id).copied() else {
+        let cancellations = self.cancellations_by_target.lock().unwrap();
+        let Some(expected_target) = cancellations.iter().find_map(|(target, cancellation)| {
+            (cancellation.cancel_request_id == request_id).then_some(*target)
+        }) else {
             return Ok(false);
         };
         match &response.body {
             HelperResponseBody::CancelAccepted { target_request_id }
                 if *target_request_id == expected_target =>
             {
-                pending.remove(&request_id);
+                // Acceptance terminates only the cancel request.  The target
+                // remains owned until its synthesis response is terminal.
                 Ok(true)
             }
             HelperResponseBody::CancelAccepted { target_request_id } => {
@@ -793,10 +840,9 @@ impl HelperTtsEngine {
                     received: *target_request_id,
                 })
             }
-            HelperResponseBody::Error { .. } => {
-                pending.remove(&request_id);
-                Ok(true)
-            }
+            // A failed cancel still retains the target owner so its one
+            // watchdog can retire a helper that never becomes terminal.
+            HelperResponseBody::Error { .. } => Ok(true),
             _ => Ok(false),
         }
     }
@@ -888,12 +934,34 @@ fn receive_owned_response(
 struct ActiveRequestGuard<'a> {
     request_id: u64,
     active_request_id: &'a AtomicU64,
+    cancellations_by_target: &'a Mutex<HashMap<u64, Arc<TargetCancellation>>>,
     dispatch: &'a Mutex<()>,
+}
+
+impl ActiveRequestGuard<'_> {
+    fn mark_target_terminal(&self) {
+        if let Some(cancellation) = self
+            .cancellations_by_target
+            .lock()
+            .unwrap()
+            .get(&self.request_id)
+        {
+            cancellation.mark_target_terminal();
+        }
+    }
 }
 
 impl Drop for ActiveRequestGuard<'_> {
     fn drop(&mut self) {
         let _dispatch = self.dispatch.lock().unwrap();
+        if let Some(cancellation) = self
+            .cancellations_by_target
+            .lock()
+            .unwrap()
+            .remove(&self.request_id)
+        {
+            cancellation.mark_target_terminal();
+        }
         let _ = self.active_request_id.compare_exchange(
             self.request_id,
             0,
@@ -999,9 +1067,10 @@ impl TtsEngine for HelperTtsEngine {
             }
             self.active_request_id.store(request_id, Ordering::Release);
         }
-        let _active = ActiveRequestGuard {
+        let active = ActiveRequestGuard {
             request_id,
             active_request_id: &self.active_request_id,
+            cancellations_by_target: &self.cancellations_by_target,
             dispatch: &self.dispatch,
         };
         let mut collector =
@@ -1042,12 +1111,19 @@ impl TtsEngine for HelperTtsEngine {
                     },
                 ));
             }
+            let target_is_terminal = response.body.is_synthesis_terminal();
             let progress = match collector.accept(response) {
                 Ok(progress) => progress,
                 Err(error) => {
+                    if target_is_terminal {
+                        active.mark_target_terminal();
+                    }
                     return Err(self.synthesis_error(&connection, request_id, error));
                 }
             };
+            if target_is_terminal {
+                active.mark_target_terminal();
+            }
             match progress {
                 Some(HelperSynthesisResult::Completed(completed)) => {
                     let actual_voice =
@@ -1097,42 +1173,43 @@ impl TtsEngine for HelperTtsEngine {
             return;
         };
         if self
-            .pending_cancellations
+            .cancellations_by_target
             .lock()
             .unwrap()
-            .values()
-            .any(|pending| *pending == target_request_id)
+            .contains_key(&target_request_id)
         {
             return;
         }
         let request_id = self.allocate_request_id();
+        let cancellation = Arc::new(TargetCancellation::new(request_id));
         let request = HelperRequest::with_version(
             self.protocol_version.load(Ordering::Acquire) as u16,
             request_id,
             HelperRequestBody::Cancel { target_request_id },
         );
-        self.pending_cancellations
+        self.cancellations_by_target
             .lock()
             .unwrap()
-            .insert(request_id, target_request_id);
+            .insert(target_request_id, Arc::clone(&cancellation));
         if let Err(error) = connection.send(&request) {
-            self.pending_cancellations
+            self.cancellations_by_target
                 .lock()
                 .unwrap()
-                .remove(&request_id);
+                .remove(&target_request_id);
+            cancellation.mark_target_terminal();
             warn!("Could not cancel helper synthesis {target_request_id}: {error}");
             self.invalidate_connection(&connection);
             return;
         }
 
-        let active_request_id = Arc::clone(&self.active_request_id);
         let watchdog_connection = Arc::clone(&connection);
+        let watchdog_cancellation = Arc::clone(&cancellation);
         let engine_id = self.config.engine_id.clone();
         let watchdog = thread::Builder::new()
             .name(format!("omnivox-{engine_id}-cancel-watchdog"))
             .spawn(move || {
                 thread::sleep(HELPER_CANCEL_GRACE);
-                if active_request_id.load(Ordering::Acquire) == target_request_id {
+                if watchdog_cancellation.begin_retirement() {
                     warn!(
                         engine_id,
                         target_request_id,
@@ -1149,7 +1226,9 @@ impl TtsEngine for HelperTtsEngine {
                 %error,
                 "Could not start TTS helper cancellation watchdog; terminating it"
             );
-            connection.terminate();
+            if cancellation.begin_retirement() {
+                connection.terminate();
+            }
         }
     }
 
@@ -1190,7 +1269,7 @@ impl Drop for HelperTtsEngine {
 #[cfg(test)]
 mod tests {
     use std::collections::VecDeque;
-    use std::sync::atomic::AtomicBool;
+    use std::sync::atomic::{AtomicBool, AtomicUsize};
     use std::sync::Condvar;
     use std::time::Instant;
 
@@ -1209,6 +1288,7 @@ mod tests {
     enum MockSynthesisMode {
         Complete,
         WaitForCancel,
+        DelayAfterCancelAccepted,
         IgnoreCancel,
         VoiceMissing,
         RetryableSynthesisFailure,
@@ -1217,11 +1297,13 @@ mod tests {
     struct MockConnection {
         descriptor: EngineDescriptor,
         protocol_version: u16,
-        mode: MockSynthesisMode,
+        mode: Mutex<MockSynthesisMode>,
         sent: Mutex<Vec<HelperRequest>>,
         responses: Mutex<VecDeque<HelperResponse>>,
         response_ready: Condvar,
+        cancel_accepted_received: AtomicBool,
         terminated: AtomicBool,
+        termination_count: AtomicUsize,
     }
 
     impl MockConnection {
@@ -1229,11 +1311,13 @@ mod tests {
             Self {
                 descriptor,
                 protocol_version: HELPER_PROTOCOL_VERSION,
-                mode,
+                mode: Mutex::new(mode),
                 sent: Mutex::new(Vec::new()),
                 responses: Mutex::new(VecDeque::new()),
                 response_ready: Condvar::new(),
+                cancel_accepted_received: AtomicBool::new(false),
                 terminated: AtomicBool::new(false),
+                termination_count: AtomicUsize::new(0),
             }
         }
 
@@ -1248,6 +1332,9 @@ mod tests {
             self.response_ready.notify_all();
         }
 
+        fn set_mode(&self, mode: MockSynthesisMode) {
+            *self.mode.lock().unwrap() = mode;
+        }
 
         fn response(&self, request_id: u64, body: HelperResponseBody) -> HelperResponse {
             HelperResponse::for_request_version(self.protocol_version, request_id, body)
@@ -1258,6 +1345,7 @@ mod tests {
         fn send(&self, request: &HelperRequest) -> Result<(), HelperEngineError> {
             request.validate()?;
             self.sent.lock().unwrap().push(request.clone());
+            let mode = *self.mode.lock().unwrap();
             if request.protocol_version != self.protocol_version {
                 if matches!(request.body, HelperRequestBody::Hello { .. }) {
                     self.push(self.response(
@@ -1300,7 +1388,7 @@ mod tests {
                     settings,
                     anchors,
                     ..
-                } => match self.mode {
+                } => match mode {
                     MockSynthesisMode::Complete => {
                         self.push(self.response(
                             request.request_id,
@@ -1353,7 +1441,9 @@ mod tests {
                             HelperResponseBody::SynthesisCompleted { frame_count: 4 },
                         ));
                     }
-                    MockSynthesisMode::WaitForCancel | MockSynthesisMode::IgnoreCancel => {
+                    MockSynthesisMode::WaitForCancel
+                    | MockSynthesisMode::IgnoreCancel
+                    | MockSynthesisMode::DelayAfterCancelAccepted => {
                         self.push(HelperResponse::for_request_version(
                             self.protocol_version,
                             request.request_id,
@@ -1385,7 +1475,7 @@ mod tests {
                     )),
                 },
                 HelperRequestBody::Cancel { target_request_id } => {
-                    if matches!(self.mode, MockSynthesisMode::IgnoreCancel) {
+                    if matches!(mode, MockSynthesisMode::IgnoreCancel) {
                         return Ok(());
                     }
                     self.push(self.response(
@@ -1394,10 +1484,12 @@ mod tests {
                             target_request_id: *target_request_id,
                         },
                     ));
-                    self.push(self.response(
-                        *target_request_id,
-                        HelperResponseBody::SynthesisCancelled,
-                    ));
+                    if !matches!(mode, MockSynthesisMode::DelayAfterCancelAccepted) {
+                        self.push(self.response(
+                            *target_request_id,
+                            HelperResponseBody::SynthesisCancelled,
+                        ));
+                    }
                 }
                 HelperRequestBody::Ping => {
                     self.push(self.response(request.request_id, HelperResponseBody::Pong));
@@ -1420,6 +1512,9 @@ mod tests {
                     return Err(HelperEngineError::Exited);
                 }
                 if let Some(response) = responses.pop_front() {
+                    if matches!(&response.body, HelperResponseBody::CancelAccepted { .. }) {
+                        self.cancel_accepted_received.store(true, Ordering::Release);
+                    }
                     return Ok(response);
                 }
                 let now = Instant::now();
@@ -1438,7 +1533,10 @@ mod tests {
         }
 
         fn terminate(&self) {
-            self.terminated.store(true, Ordering::Release);
+            if self.terminated.swap(true, Ordering::AcqRel) {
+                return;
+            }
+            self.termination_count.fetch_add(1, Ordering::AcqRel);
             self.response_ready.notify_all();
         }
     }
@@ -1910,6 +2008,51 @@ mod tests {
     }
 
     #[test]
+    fn cancel_acceptance_does_not_release_the_target_owner() {
+        let connection = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.0"),
+            MockSynthesisMode::Complete,
+        ));
+        let engine = mock_engine(vec![connection]).unwrap();
+        engine
+            .cancellations_by_target
+            .lock()
+            .unwrap()
+            .insert(444, Arc::new(TargetCancellation::new(445)));
+
+        assert!(engine
+            .consume_cancel_response(&response(
+                445,
+                HelperResponseBody::CancelAccepted {
+                    target_request_id: 444,
+                },
+            ))
+            .unwrap());
+        assert!(engine
+            .cancellations_by_target
+            .lock()
+            .unwrap()
+            .contains_key(&444));
+    }
+
+    #[test]
+    fn target_cancellation_has_one_terminal_or_retirement_winner() {
+        let completed = TargetCancellation::new(1);
+        completed.mark_target_terminal();
+        assert!(!completed.begin_retirement());
+        assert_eq!(
+            completed.state.load(Ordering::Acquire),
+            CANCELLATION_TERMINAL
+        );
+
+        let expired = TargetCancellation::new(2);
+        assert!(expired.begin_retirement());
+        assert!(!expired.begin_retirement());
+        expired.mark_target_terminal();
+        assert_eq!(expired.state.load(Ordering::Acquire), CANCELLATION_RETIRING);
+    }
+
+    #[test]
     fn stop_cancels_an_active_helper_request_without_waiting_for_synthesis() {
         let connection = Arc::new(MockConnection::new(
             helper_descriptor("eloquence", "1.0"),
@@ -1934,12 +2077,76 @@ mod tests {
             TtsError::SynthesisFailed(message) if message.contains("cancelled")
         ));
         assert!(!engine.is_speaking());
-        assert!(connection
-            .sent
-            .lock()
-            .unwrap()
-            .iter()
-            .any(|request| matches!(request.body, HelperRequestBody::Cancel { .. })));
+        assert_eq!(
+            connection
+                .sent
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|request| matches!(request.body, HelperRequestBody::Cancel { .. }))
+                .count(),
+            1
+        );
+        assert!(engine.cancellations_by_target.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn repeated_stop_after_cancel_acceptance_keeps_one_target_owner() {
+        let connection = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.0"),
+            MockSynthesisMode::DelayAfterCancelAccepted,
+        ));
+        let engine = Arc::new(mock_engine(vec![Arc::clone(&connection)]).unwrap());
+        let worker_engine = Arc::clone(&engine);
+        let synthesis = std::thread::spawn(move || {
+            worker_engine.synthesize(&synthesis_request("long utterance"))
+        });
+
+        let deadline = Instant::now() + Duration::from_secs(1);
+        while !engine.is_speaking() && Instant::now() < deadline {
+            std::thread::yield_now();
+        }
+        assert!(engine.is_speaking());
+        let target_request_id = engine.active_request_id.load(Ordering::Acquire);
+        engine.stop();
+
+        let deadline = Instant::now() + Duration::from_secs(1);
+        while !connection.cancel_accepted_received.load(Ordering::Acquire)
+            && Instant::now() < deadline
+        {
+            std::thread::yield_now();
+        }
+        assert!(connection.cancel_accepted_received.load(Ordering::Acquire));
+        engine.stop();
+        engine.stop();
+        assert_eq!(
+            connection
+                .sent
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|request| matches!(request.body, HelperRequestBody::Cancel { .. }))
+                .count(),
+            1
+        );
+        assert_eq!(engine.cancellations_by_target.lock().unwrap().len(), 1);
+
+        connection
+            .push(connection.response(target_request_id, HelperResponseBody::SynthesisCancelled));
+        let error = synthesis.join().unwrap().unwrap_err();
+        assert!(matches!(
+            error,
+            TtsError::SynthesisFailed(message) if message.contains("cancelled")
+        ));
+        assert!(engine.cancellations_by_target.lock().unwrap().is_empty());
+
+        connection.set_mode(MockSynthesisMode::Complete);
+        assert!(engine
+            .synthesize(&synthesis_request("next utterance"))
+            .is_ok());
+        std::thread::sleep(HELPER_CANCEL_GRACE + Duration::from_millis(25));
+        assert!(!connection.terminated.load(Ordering::Acquire));
+        assert_eq!(connection.termination_count.load(Ordering::Acquire), 0);
     }
 
     #[test]
@@ -1967,6 +2174,18 @@ mod tests {
         assert!(engine.is_speaking());
         let started_at = Instant::now();
         engine.stop();
+        engine.stop();
+        engine.stop();
+        assert_eq!(
+            connection
+                .sent
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|request| matches!(request.body, HelperRequestBody::Cancel { .. }))
+                .count(),
+            1
+        );
 
         let error = synthesis.join().unwrap().unwrap_err();
         assert!(matches!(
@@ -1975,6 +2194,7 @@ mod tests {
         ));
         assert!(started_at.elapsed() < Duration::from_secs(1));
         assert!(connection.terminated.load(Ordering::Acquire));
+        assert_eq!(connection.termination_count.load(Ordering::Acquire), 1);
         assert!(!engine.is_speaking());
         assert!(engine.synthesize(&synthesis_request("next utterance")).is_ok());
         assert!(!recovered.terminated.load(Ordering::Acquire));
