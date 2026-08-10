@@ -1,0 +1,23 @@
+[package]
+name = "omnivox-piper-helper"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[features]
+default = []
+piper = ["omnivox-tts/piper", "dep:omnivox-piper-sys"]
+
+[lib]
+name = "omnivox_piper_helper"
+
+[[bin]]
+name = "omnivox-piper-helper"
+path = "src/main.rs"
+required-features = ["piper"]
+
+[dependencies]
+omnivox-tts = { path = "../omnivox-tts" }
+omnivox-piper-sys = { path = "../omnivox-piper-sys", optional = true }
+thiserror.workspace = true

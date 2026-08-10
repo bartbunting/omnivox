@@ -18,6 +18,7 @@
 
 mod cli;
 mod engine;
+mod engine_execution;
 mod health;
 mod marker_events;
 mod pipeline;
@@ -110,11 +111,16 @@ fn main() -> Result<()> {
     install_panic_diagnostics();
 
     info!("Omnivox v{} starting", VERSION);
+    let gen_counter = Arc::new(AtomicU64::new(0));
 
     let created_engines = {
         #[cfg(target_os = "macos")]
         { info!("Initializing macOS TTS engine (ObjC bridge)"); }
-        create_engines(&cli.engine, cli.piper_model.as_deref())?
+        create_engines(
+            &cli.engine,
+            cli.piper_model.as_deref(),
+            Arc::clone(&gen_counter),
+        )?
     };
     let engine = created_engines.preferred;
     let engine_registry = Arc::new(created_engines.registry);
@@ -135,7 +141,6 @@ fn main() -> Result<()> {
     apply_cli_flags(&cli, &mut state);
 
     let (tx, rx) = synthesis_channel();
-    let gen_counter = Arc::new(AtomicU64::new(0));
     let runtime_health = Arc::new(RuntimeEngineHealth::new());
     let (marker_output, marker_event_handle) = spawn_marker_event_reporter();
     let (tracked_playback_tx, tracked_playback_handle) =

@@ -9,6 +9,7 @@
 
 OMNIVOX="${OMNIVOX_BIN:-omnivox}"
 PIPER_MODEL="${PIPER_MODEL:-$HOME/piper-models/en_US-lessac-medium.onnx}"
+PIPER_HELPER="${OMNIVOX_PIPER_HELPER:-}"
 
 # Resolve to absolute path if given as relative
 if [[ "$OMNIVOX" != omnivox && ! -f "$OMNIVOX" ]]; then
@@ -17,10 +18,25 @@ if [[ "$OMNIVOX" != omnivox && ! -f "$OMNIVOX" ]]; then
     exit 1
 fi
 
-# Detect whether piper is available
+# Detect whether the model and adjacent/explicit helper are available.
+if [ -z "$PIPER_HELPER" ]; then
+    omnivox_path="$(command -v "$OMNIVOX" 2>/dev/null || true)"
+    if [ -z "$omnivox_path" ] && [[ "$OMNIVOX" == */* ]]; then
+        omnivox_path="$OMNIVOX"
+    fi
+    if [ -n "$omnivox_path" ]; then
+        PIPER_HELPER="$(dirname "$omnivox_path")/omnivox-piper-helper"
+        if [ ! -f "$PIPER_HELPER" ] && [ -f "$PIPER_HELPER.exe" ]; then
+            PIPER_HELPER="$PIPER_HELPER.exe"
+        fi
+    fi
+fi
 HAS_PIPER=false
-if [ -f "$PIPER_MODEL" ]; then
+PIPER_SKIP_REASON="no model at $PIPER_MODEL"
+if [ -f "$PIPER_MODEL" ] && [ -f "$PIPER_HELPER" ]; then
     HAS_PIPER=true
+elif [ -f "$PIPER_MODEL" ]; then
+    PIPER_SKIP_REASON="no helper at ${PIPER_HELPER:-<unresolved>}"
 fi
 
 pass=0
@@ -142,7 +158,7 @@ if $HAS_PIPER; then
 tts_say {This is the piper neural voice speaking at normal speed.}
 EOF
 else
-    echo "  2.3  Piper neural engine                                SKIPPED (no model at $PIPER_MODEL)"
+    echo "  2.3  Piper neural engine                                SKIPPED ($PIPER_SKIP_REASON)"
 fi
 
 # ---------------------------------------------------------------------------

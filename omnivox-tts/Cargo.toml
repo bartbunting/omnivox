@@ -6,8 +6,9 @@ authors.workspace = true
 license.workspace = true
 
 [features]
-# Opt-in piper neural TTS backend. Requires cmake, a C++17 compiler, and
-# network access on first build to download onnxruntime + piper-phonemize.
+# Opt-in helper-local Piper adapter. The main server does not enable this
+# feature. Requires cmake, a C++17 compiler, and network access on first build
+# to download onnxruntime + piper-phonemize.
 piper = ["omnivox-piper-sys"]
 
 [dependencies]
@@ -22,7 +23,7 @@ omnivox-audio = { path = "../omnivox-audio" }
 # espeak-ng (always compiled in as cross-platform fallback)
 espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"] }
 
-# piper neural TTS (optional — enabled with --features piper)
+# Piper neural TTS for the out-of-process helper only
 omnivox-piper-sys = { path = "../omnivox-piper-sys", optional = true }
 
 [target.'cfg(windows)'.dependencies]

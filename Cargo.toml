@@ -5,19 +5,18 @@ members = [
     "omnivox-tts",
     "omnivox-audio",
     "omnivox-cli",
+    "omnivox-piper-helper",
     "omnivox-piper-sys",
 ]
-# Normal builds (cargo build / make build) only compile these crates.
-# omnivox-piper-sys is excluded because its build requires cmake + network
-# access to download onnxruntime on first use. Build it explicitly with:
-#   cargo build -p omnivox-piper-sys
-# or via the piper feature:
-#   cargo build --features piper -p omnivox-cli
+# Normal builds compile the helper protocol library and its tests, but not the
+# Piper executable or native bridge; those require cmake and network access on
+# first use. `make build-piper` builds the executable beside the main binary.
 default-members = [
     "omnivox-core",
     "omnivox-tts",
     "omnivox-audio",
     "omnivox-cli",
+    "omnivox-piper-helper",
 ]
 
 [workspace.dependencies]
@@ -37,4 +36,3 @@ version = "1.3.0"
 edition = "2021"
 authors = ["Robert Melton <rmelton@users.noreply.github.com>"]
 license = "MIT"
-

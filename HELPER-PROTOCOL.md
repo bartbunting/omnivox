@@ -1,10 +1,10 @@
 # Omnivox Engine Helper Protocol
 
-Omnivox uses this protocol to host speech engines that cannot be loaded into
-the main process. Its first consumers are the 32-bit Windows Eloquence and
-DECtalk capture helpers built by Emacsvox. The protocol is engine-neutral so
-the main process keeps voice routing, fallback, effects, mixing, playback
-completion, and runtime health policy.
+Omnivox uses this protocol to host speech engines that cannot safely be loaded
+into the main process. Its consumers include the 32-bit Windows Eloquence and
+DECtalk capture helpers built by Emacsvox and the cross-platform Piper helper.
+The protocol is engine-neutral so the main process keeps voice routing,
+fallback, effects, mixing, playback completion, and runtime health policy.
 
 ## Transport and Compatibility
 
@@ -104,6 +104,12 @@ native synthesis worker runs so `cancel`, `ping`, and `shutdown` do not wait
 behind synthesis. A `cancel` request receives `cancel_accepted`; the target
 request independently ends with `synthesis_cancelled`. Cancellation is not
 reported as successful completion.
+
+Piper has no native in-call cancellation. Its helper acknowledges cancellation
+on the protocol thread and suppresses stale PCM if the call returns promptly.
+If it does not, the host's 250 ms cancellation watchdog kills and reaps the
+helper process; a later recovery starts a fresh model process. Piper native
+code and dynamic libraries are therefore never loaded into the main server.
 
 ## Inventory and Errors
 

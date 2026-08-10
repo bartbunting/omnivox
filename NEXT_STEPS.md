@@ -735,8 +735,9 @@ helper-output testing remain.
   implemented; native mark/phoneme events remain optional future enrichment.
 - **macOS AVSpeechSynthesizer**: expose native voice/language capabilities and
   markers where available.
-- **Piper**: stabilize the existing opt-in backend, revisit dependency and model
-  packaging, and test supported cross-compilation targets.
+- **Piper**: the opt-in backend now runs behind a killable helper process;
+  stabilize dependency/model packaging and test supported cross-compilation
+  targets plus real cancellation/restart latency.
 - **Speech Dispatcher**: implement the planned Linux backend after a focused API
   spike. Speech Dispatcher normally owns audio playback rather than returning
   PCM, so advertise it as an external-playback engine with reduced centralized
@@ -817,8 +818,9 @@ Two older documentation entries are stale:
   preserved. If the audible symptom is reproduced, investigate preprocessing
   and the selected TTS engine rather than describing it as a confirmed parser
   defect.
-- Piper is no longer merely an evaluated/rejected idea. An opt-in Piper backend
-  exists; the remaining work is stabilization, packaging, and portability.
+- Piper is no longer merely an evaluated/rejected idea. An opt-in,
+  out-of-process helper backend exists; the remaining work is native build
+  stabilization, model packaging, portability, and real-platform timing.
 
 ## Milestones
 

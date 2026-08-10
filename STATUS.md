@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Last Updated:** 2026-08-09
+**Last Updated:** 2026-08-10
 **Version:** 1.3.0
 
 ## Current State
@@ -15,7 +15,10 @@
 - macOS native TTS (AVSpeechSynthesizer via ObjC bridge, buffer capture)
 - Windows native TTS (WinRT SpeechSynthesizer via windows-rs)
 - espeak-ng TTS (always compiled in, cross-platform fallback)
-- Optional Piper neural TTS backend
+- Optional Piper neural TTS helper, isolated from the main server and killable
+  after a 250 ms cancellation grace period
+- Generation-aware native-call isolation: one call per engine, two globally;
+  occupied engines route through normal fallback without queuing stale PCM
 - Audio pipeline with extensible effects (SilenceTrimmer, VolumeAdjust, ChannelRouter)
 - Rubato sinc resampler (256-tap BlackmanHarris2, replaces linear interpolation)
 - Tone generation (pure Rust sine wave, fade envelopes, stereo spatial)

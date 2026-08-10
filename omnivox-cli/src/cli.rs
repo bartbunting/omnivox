@@ -174,13 +174,14 @@ pub fn print_help() {
     println!("ENGINES:");
     println!("    native    Platform-native TTS: {}", native);
     println!("    espeak    espeak-ng (cross-platform, always available)");
-    println!("    piper     Piper neural TTS (build with --features piper; requires --piper-model)");
+    println!("    piper     Piper neural TTS (make build-piper; requires adjacent helper and model)");
     println!();
     println!("Without options, starts the Emacspeak protocol server on stdin.");
     println!();
     println!("ENVIRONMENT (for Emacspeak integration only):");
     println!("    OMNIVOX_ENGINE         Same as --engine");
     println!("    OMNIVOX_PIPER_MODEL    Path to piper .onnx model (same as --piper-model)");
+    println!("    OMNIVOX_PIPER_HELPER   Override path to omnivox-piper-helper");
     println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (set by Emacspeak notification mode)");
     println!();
     println!("EMACSPEAK SETUP:");

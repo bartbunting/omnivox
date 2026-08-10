@@ -5,21 +5,22 @@ use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::espeak::EspeakTtsEngine;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", feature = "piper"))]
 use omnivox_tts::helper_engine::{HelperEngineConfig, HelperTtsEngine};
 #[cfg(target_os = "macos")]
 use omnivox_tts::macos::MacOsTtsEngine;
-#[cfg(feature = "piper")]
-use omnivox_tts::piper::PiperTtsEngine;
 #[cfg(target_os = "windows")]
 use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::TtsEngine;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", feature = "piper"))]
 use std::path::PathBuf;
+use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", feature = "piper"))]
 use std::time::Duration;
 use tracing::{info, warn};
+
+use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
 
 /// Engines initialized for one server session.
 pub struct CreatedEngines {
@@ -32,15 +33,24 @@ pub struct CreatedEngines {
 /// Windows eagerly initializes WinRT and eSpeak so that the registry can expose
 /// both engines. Other platforms retain the current single-engine startup until
 /// their multi-engine policy is defined.
-pub fn create_engines(engine_name: &str, piper_model: Option<&str>) -> Result<CreatedEngines> {
+pub fn create_engines(
+    engine_name: &str,
+    piper_model: Option<&str>,
+    generation: Arc<AtomicU64>,
+) -> Result<CreatedEngines> {
+    let isolation_budget = Arc::new(IsolationBudget::new());
     #[cfg(target_os = "windows")]
     {
-        create_windows_engines(engine_name, piper_model)
+        create_windows_engines(engine_name, piper_model, generation, isolation_budget)
     }
 
     #[cfg(not(target_os = "windows"))]
     {
-        let preferred = create_engine(engine_name, piper_model)?;
+        let preferred = isolate_server_engine(
+            create_engine(engine_name, piper_model)?,
+            generation,
+            isolation_budget,
+        );
         let mut registry = EngineRegistry::new();
         registry.register(Arc::clone(&preferred))?;
         Ok(CreatedEngines {
@@ -51,13 +61,23 @@ pub fn create_engines(engine_name: &str, piper_model: Option<&str>) -> Result<Cr
 }
 
 #[cfg(target_os = "windows")]
-fn create_windows_engines(engine_name: &str, _piper_model: Option<&str>) -> Result<CreatedEngines> {
+fn create_windows_engines(
+    engine_name: &str,
+    piper_model: Option<&str>,
+    generation: Arc<AtomicU64>,
+    isolation_budget: Arc<IsolationBudget>,
+) -> Result<CreatedEngines> {
     let forced = requested_engine(engine_name);
     let mut registry = EngineRegistry::new();
 
     match WindowsTtsEngine::new() {
         Ok(engine) => {
-            registry.register(Arc::new(engine))?;
+            let engine: Arc<dyn TtsEngine> = Arc::new(engine);
+            registry.register(Arc::new(IsolatedTtsEngine::new(
+                engine,
+                Arc::clone(&generation),
+                Arc::clone(&isolation_budget),
+            )))?;
             info!("Registered Windows WinRT engine");
         }
         Err(error) => warn!("Windows WinRT not available: {}", error),
@@ -78,6 +98,8 @@ fn create_windows_engines(engine_name: &str, _piper_model: Option<&str>) -> Resu
             "OMNIVOX_ELOQUENCE_HELPER",
             "OmnivoxEloquenceHelper32.exe",
         ),
+        Arc::clone(&generation),
+        Arc::clone(&isolation_budget),
     )?;
     register_optional_helper(
         &mut registry,
@@ -86,26 +108,21 @@ fn create_windows_engines(engine_name: &str, _piper_model: Option<&str>) -> Resu
             "OMNIVOX_DECTALK_HELPER",
             "OmnivoxDectalkHelper32.exe",
         ),
+        Arc::clone(&generation),
+        Arc::clone(&isolation_budget),
     )?;
 
     if forced == "piper" {
         #[cfg(feature = "piper")]
         {
-            let model = _piper_model
-                .map(str::to_string)
-                .or_else(|| std::env::var("OMNIVOX_PIPER_MODEL").ok());
-            match model {
-                Some(ref path) => match PiperTtsEngine::new(path) {
-                    Ok(engine) => {
-                        registry.register(Arc::new(engine))?;
-                        info!("Registered piper neural TTS engine: {}", path);
-                    }
-                    Err(error) => warn!("Piper TTS not available: {}", error),
-                },
-                None => warn!(
-                    "OMNIVOX_ENGINE=piper but no model path given. \
-                     Set OMNIVOX_PIPER_MODEL or use --piper-model."
-                ),
+            match piper_helper_config(piper_model) {
+                Ok(config) => register_optional_helper(
+                    &mut registry,
+                    Some(config),
+                    Arc::clone(&generation),
+                    Arc::clone(&isolation_budget),
+                )?,
+                Err(error) => warn!("Piper TTS helper not available: {error}"),
             }
         }
         #[cfg(not(feature = "piper"))]
@@ -130,7 +147,7 @@ fn create_windows_engines(engine_name: &str, _piper_model: Option<&str>) -> Resu
     })
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", feature = "piper"))]
 fn helper_config(
     engine_id: &str,
     environment_variable: &str,
@@ -165,6 +182,8 @@ fn helper_config(
 fn register_optional_helper(
     registry: &mut EngineRegistry,
     config: Option<HelperEngineConfig>,
+    generation: Arc<AtomicU64>,
+    isolation_budget: Arc<IsolationBudget>,
 ) -> Result<()> {
     let Some(config) = config else {
         return Ok(());
@@ -173,7 +192,12 @@ fn register_optional_helper(
     let helper_path = config.program.clone();
     match HelperTtsEngine::new(config) {
         Ok(engine) => {
-            registry.register(Arc::new(engine))?;
+            let engine: Arc<dyn TtsEngine> = Arc::new(engine);
+            registry.register(Arc::new(IsolatedTtsEngine::new(
+                engine,
+                generation,
+                isolation_budget,
+            )))?;
             info!(
                 "Registered {} helper engine: {}",
                 engine_id,
@@ -223,23 +247,16 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
     if forced == "piper" {
         #[cfg(feature = "piper")]
         {
-            let model = _piper_model
-                .map(str::to_string)
-                .or_else(|| std::env::var("OMNIVOX_PIPER_MODEL").ok());
-
-            match model {
-                Some(ref path) => match PiperTtsEngine::new(path) {
-                    Ok(engine) => {
-                        info!("Using piper neural TTS engine: {}", path);
-                        return Ok(Arc::new(engine));
-                    }
-                    Err(e) => warn!("Piper TTS not available: {}, falling back to espeak-ng", e),
-                },
-                None => warn!(
-                    "OMNIVOX_ENGINE=piper but no model path given. \
-                     Set OMNIVOX_PIPER_MODEL or use --piper-model. \
-                     Falling back to espeak-ng."
-                ),
+            match piper_helper_config(_piper_model)
+                .and_then(|config| HelperTtsEngine::new(config).map_err(anyhow::Error::from))
+            {
+                Ok(engine) => {
+                    info!("Using Piper neural TTS helper");
+                    return Ok(Arc::new(engine));
+                }
+                Err(error) => {
+                    warn!("Piper TTS helper not available: {error}; falling back to espeak-ng")
+                }
             }
         }
         #[cfg(not(feature = "piper"))]
@@ -279,6 +296,44 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
         }
         Err(e) => anyhow::bail!("No TTS engine available: {}", e),
     }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn isolate_server_engine(
+    engine: Arc<dyn TtsEngine>,
+    generation: Arc<AtomicU64>,
+    isolation_budget: Arc<IsolationBudget>,
+) -> Arc<dyn TtsEngine> {
+    if engine.descriptor().id != "piper" {
+        return engine;
+    }
+    Arc::new(IsolatedTtsEngine::new(engine, generation, isolation_budget))
+}
+
+#[cfg(feature = "piper")]
+fn piper_helper_config(model: Option<&str>) -> Result<HelperEngineConfig> {
+    let model = model
+        .map(str::to_owned)
+        .or_else(|| std::env::var("OMNIVOX_PIPER_MODEL").ok())
+        .filter(|model| !model.is_empty())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "no model path was provided; set OMNIVOX_PIPER_MODEL or use --piper-model"
+            )
+        })?;
+    let helper_filename = format!("omnivox-piper-helper{}", std::env::consts::EXE_SUFFIX);
+    let mut config =
+        helper_config("piper", "OMNIVOX_PIPER_HELPER", &helper_filename).ok_or_else(|| {
+            anyhow::anyhow!(
+                "{} was not found beside Omnivox; set OMNIVOX_PIPER_HELPER",
+                helper_filename
+            )
+        })?;
+    config.arguments.push("--model".into());
+    config.arguments.push(model.into());
+    config.startup_timeout = Duration::from_secs(60);
+    config.synthesis_idle_timeout = Duration::from_secs(60);
+    Ok(config)
 }
 
 /// Human-readable name of the platform-native TTS backend.

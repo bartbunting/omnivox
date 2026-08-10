@@ -6,11 +6,9 @@ authors.workspace = true
 license.workspace = true
 
 [features]
-# Opt-in piper neural TTS backend (propagates to omnivox-tts).
-# Requires cmake, a C++17 compiler, and network access on first build.
-# omnivox-piper-sys is listed as a direct dep so DEP_PIPER_RPATH propagates
-# to this crate's build.rs (DEP_ only works for direct dependencies).
-piper = ["omnivox-tts/piper", "omnivox-piper-sys"]
+# Enable discovery of the out-of-process Piper helper. Native Piper code is
+# linked only into `omnivox-piper-helper`, never into the speech server.
+piper = []
 
 [[bin]]
 name = "omnivox"
@@ -20,7 +18,6 @@ path = "src/main.rs"
 omnivox-core = { path = "../omnivox-core" }
 omnivox-tts = { path = "../omnivox-tts" }
 omnivox-audio = { path = "../omnivox-audio" }
-omnivox-piper-sys = { path = "../omnivox-piper-sys", optional = true }
 anyhow.workspace = true
 once_cell.workspace = true
 tracing.workspace = true

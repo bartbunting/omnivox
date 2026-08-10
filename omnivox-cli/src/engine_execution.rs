@@ -1,0 +1,586 @@
+//! Generation-aware isolation for native synthesis calls that cannot be preempted.
+
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{mpsc, Arc};
+use std::thread;
+use std::time::Duration;
+
+use omnivox_tts::contracts::EngineDescriptor;
+use omnivox_tts::{SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo};
+use tracing::{info, warn};
+
+const CANCELLATION_POLL_INTERVAL: Duration = Duration::from_millis(10);
+pub const MAX_ISOLATED_CALLS: usize = 2;
+
+/// Process-wide admission control for isolated native calls.
+///
+/// The limit deliberately covers active calls as well as quarantined calls.
+/// This is stricter than merely counting abandoned work and guarantees that
+/// cancellation can never leave more than two native calls resident.
+pub struct IsolationBudget {
+    in_flight: AtomicUsize,
+    quarantined: AtomicUsize,
+}
+
+impl IsolationBudget {
+    pub fn new() -> Self {
+        Self {
+            in_flight: AtomicUsize::new(0),
+            quarantined: AtomicUsize::new(0),
+        }
+    }
+
+    fn try_acquire(self: &Arc<Self>, engine_active: &Arc<AtomicBool>) -> Option<IsolationLease> {
+        if engine_active
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            return None;
+        }
+
+        let mut current = self.in_flight.load(Ordering::Acquire);
+        loop {
+            if current >= MAX_ISOLATED_CALLS {
+                engine_active.store(false, Ordering::Release);
+                return None;
+            }
+            match self.in_flight.compare_exchange_weak(
+                current,
+                current + 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => break,
+                Err(observed) => current = observed,
+            }
+        }
+
+        Some(IsolationLease(Arc::new(IsolationLeaseInner {
+            budget: Arc::clone(self),
+            engine_active: Arc::clone(engine_active),
+            quarantined: AtomicBool::new(false),
+        })))
+    }
+
+    #[cfg(test)]
+    fn in_flight(&self) -> usize {
+        self.in_flight.load(Ordering::Acquire)
+    }
+
+    #[cfg(test)]
+    fn quarantined(&self) -> usize {
+        self.quarantined.load(Ordering::Acquire)
+    }
+}
+
+impl Default for IsolationBudget {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Clone)]
+struct IsolationLease(Arc<IsolationLeaseInner>);
+
+impl IsolationLease {
+    fn mark_quarantined(&self) {
+        if !self.0.quarantined.swap(true, Ordering::AcqRel) {
+            self.0.budget.quarantined.fetch_add(1, Ordering::AcqRel);
+        }
+    }
+}
+
+struct IsolationLeaseInner {
+    budget: Arc<IsolationBudget>,
+    engine_active: Arc<AtomicBool>,
+    quarantined: AtomicBool,
+}
+
+impl Drop for IsolationLeaseInner {
+    fn drop(&mut self) {
+        if self.quarantined.load(Ordering::Acquire) {
+            self.budget.quarantined.fetch_sub(1, Ordering::AcqRel);
+        }
+        self.budget.in_flight.fetch_sub(1, Ordering::AcqRel);
+        self.engine_active.store(false, Ordering::Release);
+    }
+}
+
+/// Run one engine call away from the sole synthesis worker so a new generation
+/// can proceed while an obsolete native call finishes or its helper is killed.
+///
+/// Only one active-or-quarantined call is permitted for this engine. If that
+/// slot, or the process-wide two-call budget, is occupied, synthesis reports
+/// the engine unavailable and the ordinary routing layer selects a fallback.
+pub struct IsolatedTtsEngine {
+    engine: Arc<dyn TtsEngine>,
+    generation: Arc<AtomicU64>,
+    stop_epoch: AtomicU64,
+    engine_active: Arc<AtomicBool>,
+    budget: Arc<IsolationBudget>,
+    recover_before_next_call: AtomicBool,
+}
+
+impl IsolatedTtsEngine {
+    pub fn new(
+        engine: Arc<dyn TtsEngine>,
+        generation: Arc<AtomicU64>,
+        budget: Arc<IsolationBudget>,
+    ) -> Self {
+        Self {
+            engine,
+            generation,
+            stop_epoch: AtomicU64::new(0),
+            engine_active: Arc::new(AtomicBool::new(false)),
+            budget,
+            recover_before_next_call: AtomicBool::new(false),
+        }
+    }
+
+    fn was_cancelled(&self, generation: u64, stop_epoch: u64) -> bool {
+        self.generation.load(Ordering::Acquire) != generation
+            || self.stop_epoch.load(Ordering::Acquire) != stop_epoch
+    }
+
+    fn cancellation_error(&self) -> TtsError {
+        TtsError::SynthesisFailed(format!(
+            "{} synthesis was superseded; its native call is quarantined",
+            self.engine.descriptor().id
+        ))
+    }
+}
+
+impl TtsEngine for IsolatedTtsEngine {
+    fn descriptor(&self) -> EngineDescriptor {
+        self.engine.descriptor()
+    }
+
+    fn prepare_recovery_probe(&self) -> Result<(), TtsError> {
+        // Connection setup can itself block. Defer it into the same isolated
+        // task as synthesis so a newer generation can quarantine it safely.
+        self.recover_before_next_call.store(true, Ordering::Release);
+        Ok(())
+    }
+
+    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+        let engine_id = self.engine.descriptor().id;
+        let Some(lease) = self.budget.try_acquire(&self.engine_active) else {
+            warn!(
+                engine_id,
+                global_limit = MAX_ISOLATED_CALLS,
+                "Isolated synthesis capacity is occupied; routing through fallback"
+            );
+            return Err(TtsError::NotAvailable);
+        };
+
+        let generation = self.generation.load(Ordering::Acquire);
+        let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
+        let prepare_recovery = self.recover_before_next_call.swap(false, Ordering::AcqRel);
+        let engine = Arc::clone(&self.engine);
+        let owned_request = request.clone();
+        let task_lease = lease.clone();
+        let (result_sender, result_receiver) = mpsc::sync_channel(1);
+        let task = thread::Builder::new()
+            .name(format!("omnivox-{engine_id}-isolated"))
+            .spawn(move || {
+                let result = if prepare_recovery {
+                    engine
+                        .prepare_recovery_probe()
+                        .and_then(|()| engine.synthesize(&owned_request))
+                } else {
+                    engine.synthesize(&owned_request)
+                };
+                // The caller retains its lease until after it receives this
+                // result. Drop the task's clone first so the engine slot is
+                // released deterministically when synthesize() returns.
+                drop(task_lease);
+                let _ = result_sender.send(result);
+            });
+        if let Err(error) = task {
+            if prepare_recovery {
+                self.recover_before_next_call.store(true, Ordering::Release);
+            }
+            return Err(TtsError::SynthesisFailed(format!(
+                "could not start isolated {engine_id} synthesis: {error}"
+            )));
+        }
+
+        loop {
+            match result_receiver.recv_timeout(CANCELLATION_POLL_INTERVAL) {
+                Ok(result) => {
+                    if self.was_cancelled(generation, stop_epoch) {
+                        return Err(self.cancellation_error());
+                    }
+                    return result;
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    if !self.was_cancelled(generation, stop_epoch) {
+                        continue;
+                    }
+                    self.engine.stop();
+                    lease.mark_quarantined();
+                    info!(
+                        engine_id,
+                        generation,
+                        global_limit = MAX_ISOLATED_CALLS,
+                        "Quarantined superseded native synthesis"
+                    );
+                    return Err(self.cancellation_error());
+                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                    return Err(TtsError::SynthesisFailed(format!(
+                        "isolated {engine_id} synthesis task terminated without a result"
+                    )));
+                }
+            }
+        }
+    }
+
+    fn stop(&self) {
+        self.stop_epoch.fetch_add(1, Ordering::AcqRel);
+        self.engine.stop();
+    }
+
+    fn is_speaking(&self) -> bool {
+        self.engine_active.load(Ordering::Acquire) || self.engine.is_speaking()
+    }
+
+    fn available_voices(&self) -> Vec<VoiceInfo> {
+        self.engine.available_voices()
+    }
+
+    fn voice_info(&self, identifier: &str) -> Option<VoiceInfo> {
+        self.engine.voice_info(identifier)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Condvar, Mutex};
+    use std::time::{Duration, Instant};
+
+    use omnivox_tts::contracts::{
+        AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
+        EngineCapabilities, EngineHealth, MarkerCapabilities,
+    };
+    use omnivox_tts::{AudioBuffer, TtsSettings, VoiceQuality};
+
+    use super::*;
+
+    struct BlockingState {
+        started: usize,
+        completed: usize,
+        releases: usize,
+    }
+
+    struct BlockingEngine {
+        id: String,
+        state: Mutex<BlockingState>,
+        changed: Condvar,
+        concurrent: AtomicUsize,
+        maximum_concurrent: AtomicUsize,
+        stops: AtomicUsize,
+    }
+
+    impl BlockingEngine {
+        fn new(id: &str) -> Self {
+            Self {
+                id: id.to_owned(),
+                state: Mutex::new(BlockingState {
+                    started: 0,
+                    completed: 0,
+                    releases: 0,
+                }),
+                changed: Condvar::new(),
+                concurrent: AtomicUsize::new(0),
+                maximum_concurrent: AtomicUsize::new(0),
+                stops: AtomicUsize::new(0),
+            }
+        }
+
+        fn wait_for_started(&self, count: usize) {
+            let deadline = Instant::now() + Duration::from_secs(2);
+            let mut state = self.state.lock().unwrap();
+            while state.started < count {
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                assert!(!remaining.is_zero(), "native synthesis did not start");
+                let (next, timeout) = self.changed.wait_timeout(state, remaining).unwrap();
+                state = next;
+                assert!(!timeout.timed_out() || state.started >= count);
+            }
+        }
+
+        fn wait_for_completed(&self, count: usize) {
+            let deadline = Instant::now() + Duration::from_secs(2);
+            let mut state = self.state.lock().unwrap();
+            while state.completed < count {
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                assert!(!remaining.is_zero(), "native synthesis did not finish");
+                let (next, timeout) = self.changed.wait_timeout(state, remaining).unwrap();
+                state = next;
+                assert!(!timeout.timed_out() || state.completed >= count);
+            }
+        }
+
+        fn release(&self) {
+            let mut state = self.state.lock().unwrap();
+            state.releases += 1;
+            self.changed.notify_all();
+        }
+    }
+
+    impl TtsEngine for BlockingEngine {
+        fn descriptor(&self) -> EngineDescriptor {
+            EngineDescriptor {
+                id: self.id.clone(),
+                display_name: self.id.clone(),
+                version: None,
+                availability: Availability::Available,
+                health: EngineHealth::Healthy,
+                capabilities: EngineCapabilities {
+                    acss: AcssCapabilities::default(),
+                    audio_output: AudioOutputMode::BufferedPcm,
+                    cancellation: CancellationSupport::PlaybackOnly,
+                    concurrency: ConcurrencyModel::Serialized,
+                    markers: MarkerCapabilities::default(),
+                    language_switching: false,
+                    text_repertoire: omnivox_tts::contracts::TextRepertoire::Unicode,
+                    post_synthesis_dimensions: Vec::new(),
+                    native_extensions: Vec::new(),
+                },
+                voices: Vec::new(),
+                default_voice_id: None,
+            }
+        }
+
+        fn synthesize(&self, _request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+            let concurrent = self.concurrent.fetch_add(1, Ordering::AcqRel) + 1;
+            self.maximum_concurrent
+                .fetch_max(concurrent, Ordering::AcqRel);
+            let mut state = self.state.lock().unwrap();
+            state.started += 1;
+            self.changed.notify_all();
+            while state.releases == 0 {
+                state = self.changed.wait(state).unwrap();
+            }
+            state.releases -= 1;
+            state.completed += 1;
+            self.changed.notify_all();
+            self.concurrent.fetch_sub(1, Ordering::AcqRel);
+            Ok(SynthesisResult::audio(
+                self.id.clone(),
+                None,
+                AudioBuffer::empty(),
+            ))
+        }
+
+        fn stop(&self) {
+            self.stops.fetch_add(1, Ordering::AcqRel);
+        }
+
+        fn is_speaking(&self) -> bool {
+            self.concurrent.load(Ordering::Acquire) != 0
+        }
+
+        fn available_voices(&self) -> Vec<VoiceInfo> {
+            vec![VoiceInfo {
+                identifier: "default".to_owned(),
+                name: "Default".to_owned(),
+                language: "en-US".to_owned(),
+                quality: VoiceQuality::Compact,
+            }]
+        }
+
+        fn voice_info(&self, identifier: &str) -> Option<VoiceInfo> {
+            self.available_voices()
+                .into_iter()
+                .find(|voice| voice.identifier == identifier)
+        }
+    }
+
+    fn request() -> SynthesisRequest {
+        SynthesisRequest::new("blocking", TtsSettings::default())
+    }
+
+    fn isolated(
+        engine: Arc<BlockingEngine>,
+        generation: Arc<AtomicU64>,
+        budget: Arc<IsolationBudget>,
+    ) -> Arc<IsolatedTtsEngine> {
+        let erased: Arc<dyn TtsEngine> = engine;
+        Arc::new(IsolatedTtsEngine::new(erased, generation, budget))
+    }
+
+    fn wait_for_budget(budget: &IsolationBudget, expected: usize) {
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while budget.in_flight() != expected {
+            assert!(Instant::now() < deadline, "isolation slot was not released");
+            thread::yield_now();
+        }
+    }
+
+    #[test]
+    fn newer_generation_returns_without_waiting_and_stale_result_is_discarded() {
+        let generation = Arc::new(AtomicU64::new(7));
+        let budget = Arc::new(IsolationBudget::new());
+        let native = Arc::new(BlockingEngine::new("blocked"));
+        let engine = isolated(
+            Arc::clone(&native),
+            Arc::clone(&generation),
+            Arc::clone(&budget),
+        );
+        let (finished_tx, finished_rx) = mpsc::channel();
+        let caller = Arc::clone(&engine);
+        thread::spawn(move || {
+            let _ = finished_tx.send(caller.synthesize(&request()));
+        });
+
+        native.wait_for_started(1);
+        generation.store(8, Ordering::Release);
+        let cancelled = finished_rx
+            .recv_timeout(Duration::from_millis(250))
+            .expect("isolated caller remained blocked");
+        assert!(matches!(cancelled, Err(TtsError::SynthesisFailed(_))));
+        assert_eq!(budget.in_flight(), 1);
+        assert_eq!(budget.quarantined(), 1);
+
+        let fallback_signal = engine.synthesize(&request());
+        assert!(matches!(fallback_signal, Err(TtsError::NotAvailable)));
+        assert_eq!(native.state.lock().unwrap().started, 1);
+
+        native.release();
+        native.wait_for_completed(1);
+        wait_for_budget(&budget, 0);
+        assert_eq!(budget.in_flight(), 0);
+        assert_eq!(budget.quarantined(), 0);
+
+        native.release();
+        assert!(engine.synthesize(&request()).is_ok());
+        assert_eq!(native.maximum_concurrent.load(Ordering::Acquire), 1);
+    }
+
+    #[test]
+    fn repeated_stop_never_creates_a_second_abandoned_call_for_an_engine() {
+        let generation = Arc::new(AtomicU64::new(1));
+        let budget = Arc::new(IsolationBudget::new());
+        let native = Arc::new(BlockingEngine::new("serial"));
+        let engine = isolated(Arc::clone(&native), generation, Arc::clone(&budget));
+        let (finished_tx, finished_rx) = mpsc::channel();
+        let caller = Arc::clone(&engine);
+        thread::spawn(move || {
+            let _ = finished_tx.send(caller.synthesize(&request()));
+        });
+
+        native.wait_for_started(1);
+        engine.stop();
+        engine.stop();
+        assert!(matches!(
+            finished_rx
+                .recv_timeout(Duration::from_millis(250))
+                .unwrap(),
+            Err(TtsError::SynthesisFailed(_))
+        ));
+        assert!(matches!(
+            engine.synthesize(&request()),
+            Err(TtsError::NotAvailable)
+        ));
+        assert_eq!(native.state.lock().unwrap().started, 1);
+        assert_eq!(budget.quarantined(), 1);
+        assert_eq!(native.stops.load(Ordering::Acquire), 3);
+
+        native.release();
+        native.wait_for_completed(1);
+    }
+
+    #[test]
+    fn global_budget_rejects_a_third_native_call() {
+        let generation = Arc::new(AtomicU64::new(3));
+        let budget = Arc::new(IsolationBudget::new());
+        let first_native = Arc::new(BlockingEngine::new("first"));
+        let second_native = Arc::new(BlockingEngine::new("second"));
+        let third_native = Arc::new(BlockingEngine::new("third"));
+        let first = isolated(
+            Arc::clone(&first_native),
+            Arc::clone(&generation),
+            Arc::clone(&budget),
+        );
+        let second = isolated(
+            Arc::clone(&second_native),
+            Arc::clone(&generation),
+            Arc::clone(&budget),
+        );
+        let third = isolated(
+            Arc::clone(&third_native),
+            Arc::clone(&generation),
+            Arc::clone(&budget),
+        );
+
+        let (finished_tx, finished_rx) = mpsc::channel();
+        for engine in [first, second] {
+            let finished_tx = finished_tx.clone();
+            thread::spawn(move || {
+                let _ = finished_tx.send(engine.synthesize(&request()));
+            });
+        }
+        first_native.wait_for_started(1);
+        second_native.wait_for_started(1);
+        assert_eq!(budget.in_flight(), MAX_ISOLATED_CALLS);
+        assert!(matches!(
+            third.synthesize(&request()),
+            Err(TtsError::NotAvailable)
+        ));
+        assert_eq!(third_native.state.lock().unwrap().started, 0);
+
+        generation.store(4, Ordering::Release);
+        for _ in 0..2 {
+            assert!(matches!(
+                finished_rx
+                    .recv_timeout(Duration::from_millis(250))
+                    .unwrap(),
+                Err(TtsError::SynthesisFailed(_))
+            ));
+        }
+        first_native.release();
+        second_native.release();
+        first_native.wait_for_completed(1);
+        second_native.wait_for_completed(1);
+        wait_for_budget(&budget, 0);
+        assert_eq!(budget.in_flight(), 0);
+    }
+
+    #[test]
+    fn dropping_the_wrapper_does_not_join_a_quarantined_native_call() {
+        let generation = Arc::new(AtomicU64::new(11));
+        let budget = Arc::new(IsolationBudget::new());
+        let native = Arc::new(BlockingEngine::new("shutdown"));
+        let engine = isolated(
+            Arc::clone(&native),
+            Arc::clone(&generation),
+            Arc::clone(&budget),
+        );
+        let weak = Arc::downgrade(&engine);
+        let (finished_tx, finished_rx) = mpsc::channel();
+        let caller = Arc::clone(&engine);
+        thread::spawn(move || {
+            let _ = finished_tx.send(caller.synthesize(&request()));
+        });
+
+        native.wait_for_started(1);
+        generation.store(12, Ordering::Release);
+        assert!(matches!(
+            finished_rx
+                .recv_timeout(Duration::from_millis(250))
+                .unwrap(),
+            Err(TtsError::SynthesisFailed(_))
+        ));
+        let started_at = Instant::now();
+        drop(engine);
+        assert!(started_at.elapsed() < Duration::from_millis(100));
+        assert!(weak.upgrade().is_none());
+        assert_eq!(budget.quarantined(), 1);
+
+        native.release();
+        native.wait_for_completed(1);
+        wait_for_budget(&budget, 0);
+    }
+}

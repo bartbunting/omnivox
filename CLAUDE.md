@@ -6,17 +6,19 @@ Omnivox is a cross-platform Emacspeak speech server written in Rust. It is a dro
 
 ## Architecture
 
-4-crate Cargo workspace:
+Six-crate Cargo workspace:
 
 - **omnivox-core** - Command parsing (27 Emacspeak protocol commands), queue management, state types. Pure Rust, no platform dependencies.
-- **omnivox-tts** - TTS engine trait + backends. `TtsEngine::synthesize()` accepts a `SynthesisRequest` and returns a `SynthesisResult` containing audio, realized voice, markers, and degradation metadata. Backends: macOS AVSpeechSynthesizer (via ObjC bridge), Windows WinRT SpeechSynthesizer (via windows-rs), espeak-ng (via espeak-rs-sys), and optional helper/Piper engines. espeak-ng is always compiled in as cross-platform fallback.
+- **omnivox-tts** - TTS engine trait + backends. `TtsEngine::synthesize()` accepts a `SynthesisRequest` and returns a `SynthesisResult` containing audio, realized voice, markers, and degradation metadata. Backends: macOS AVSpeechSynthesizer (via ObjC bridge), Windows WinRT SpeechSynthesizer (via windows-rs), espeak-ng (via espeak-rs-sys), generic helper engines, and the helper-local Piper adapter. espeak-ng is always compiled in as cross-platform fallback.
 - **omnivox-audio** - Audio buffer (stereo f32 @ 44100Hz canonical format), effects pipeline (`AudioEffect` trait), tone generator, OGG/WAV file loader with LRU cache, rodio-based output.
 - **omnivox-cli** - Main binary wiring everything together. Reads Emacspeak protocol from stdin, dispatches to TTS/tone/audio-icon sources, runs through pipeline, plays via rodio.
+- **omnivox-piper-sys** - Optional native Piper bridge and its build integration.
+- **omnivox-piper-helper** - Versioned helper-protocol host and optional Piper executable. Native Piper libraries are confined to this process.
 
 ### Key Design Decisions
 
 - **Stereo f32 @ 44100Hz** is the universal internal buffer format. All sources convert to this before pipeline processing.
-- **Everything statically linked** - no external process calls (no sox, no CLI tools).
+- **Audio processing stays in-process** - no sox or other audio CLI tools. Engines that need fault or architecture isolation use the bounded helper protocol.
 - **espeak-ng always compiled in** (not feature-gated) as guaranteed cross-platform fallback.
 - **ObjC bridge** for macOS: `macos_bridge.m` compiled via `cc` crate in build.rs. This was necessary because Rust `block` crate produces blocks incompatible with AVSpeechSynthesizer's `writeUtterance:toBufferCallback:`.
 - **Persistent singleton AVSpeechSynthesizer** in the ObjC bridge for stop() support.
@@ -28,6 +30,7 @@ Omnivox is a cross-platform Emacspeak speech server written in Rust. It is a dro
 - **Three-thread model (macOS)**: `main()` runs the NSRunLoop on the main thread (required by AVSpeechSynthesizer). A reader thread processes stdin. A synthesis worker thread receives `SynthRequest` via `mpsc::channel`, synthesizes chunks, checks generation counter, queues audio. On non-macOS, reader runs on main thread (two-thread model). Stop commands (`s`) take effect in microseconds.
 - **macOS RunLoop requirement**: `AVSpeechSynthesizer.writeUtterance:toBufferCallback:` internally dispatches via the main GCD queue. If the main thread blocks on raw I/O instead of running a NSRunLoop, synthesis deadlocks. Fixed by spawning the reader on a background thread and calling `[[NSRunLoop mainRunLoop] run]` on main. `omnivox_run_main_runloop()` / `omnivox_stop_main_runloop()` in `macos_bridge.m` manage the lifecycle.
 - **Generation counter** (`Arc<AtomicU64>`): incremented on every stop/interrupt. Worker checks `gen_counter.load() != request_gen` before and after each `engine.synthesize()` call; stale results are discarded without queuing.
+- **Uncancellable-engine isolation**: WinRT and helper synthesis run off the sole worker behind one slot per engine and a conservative two-slot process cap. A newer generation quarantines the stale call, immediately returns control to the worker, and routes later speech through ordinary fallback until the slot clears. Piper's helper is killed and reaped if it does not cancel within 250 ms.
 - **`AudioControl`** (`Arc<Sink>` fields, `Send+Sync`): split from `AudioStreams` so sinks can be shared with the worker thread. `AudioStreams` (owns `!Send OutputStream`) stays on main thread; worker holds `Arc<AudioControl>`.
 - **espeak `stop()` no-lock**: `espeak_Cancel()` called without acquiring `ESPEAK_LOCK` — avoids deadlock when reader calls `stop()` while worker holds the lock in `synthesize()`.
 - **`engine.stop()` only on hard stop**: `interrupt()` takes a `stop_engine: bool` parameter. `TtsSay` and `Letter` pass `false` — the generation counter already discards stale results, and cross-thread `[synth stopSpeakingAtBoundary:immediate]` corrupts AVSpeechSynthesizer state. Only the `s` (Stop) and reset commands pass `true`.
@@ -153,11 +156,12 @@ omnivox --check
 
 ### Optional Backend
 
-- **Piper neural TTS** - Implemented behind the `piper` Cargo feature. It
-  requires CMake, a C++17 compiler, model files, and network access for the
-  first dependency build. Remaining work includes dependency stabilization,
-  model packaging, cross-compilation coverage, and integration with the richer
-  engine capability model described in `NEXT_STEPS.md`.
+- **Piper neural TTS** - Implemented behind the `piper` Cargo feature as an
+  adjacent helper executable. `make build-piper` builds both processes; only
+  the helper links Piper, ONNX Runtime, and its phonemizer. It requires CMake,
+  a C++17 compiler, model files, and network access for the first dependency
+  build. Remaining work includes dependency stabilization, model packaging,
+  cross-compilation coverage, and real-platform cancellation timing.
 
 ## Roadmap
 
@@ -179,13 +183,18 @@ and will print any warnings that caused a fallback.
 Common causes and fixes:
 
 - **`OMNIVOX_ENGINE=piper` (or `espeak`) set in Emacs init.el** — If `OMNIVOX_ENGINE`
-  is set to a value that fails (e.g. `piper` without a `--features piper` build, or
-  `piper` with a missing/bad model path), omnivox silently falls back to espeak-ng.
+  is set to a value that fails (for example, Piper support was not enabled, its
+  adjacent helper is missing, or the model path is bad), Omnivox warns and
+  falls back to espeak-ng.
   Comment out the `setenv` call in your init.el. macOS native TTS is the default; no
   env var is needed to enable it.
 
 - **`OMNIVOX_PIPER_MODEL` missing or invalid path** — If `OMNIVOX_ENGINE=piper` but
   the model file doesn't exist, omnivox warns and falls back to espeak-ng.
+
+- **`omnivox-piper-helper` missing** — Run `make build-piper` or set
+  `OMNIVOX_PIPER_HELPER` to the helper executable. The helper must be deployed
+  beside `omnivox` when no override is set.
 
 - **Build was done without native TTS support** — Unlikely on macOS (the ObjC bridge
   always compiles), but `cargo build` vs `make build` should both include it.

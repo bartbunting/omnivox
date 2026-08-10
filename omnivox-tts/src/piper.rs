@@ -15,9 +15,9 @@
 //! # Thread Safety
 //!
 //! `PiperState*` is a C++ object accessed through a `Mutex`. All synthesis
-//! calls are serialized. `stop()` is a no-op because piper synthesis is
-//! synchronous (cancellation requires killing the ongoing call, which the
-//! bridge does not currently support).
+//! calls are serialized. This adapter runs in `omnivox-piper-helper`, not the
+//! main speech server. `stop()` is a no-op because piper synthesis is
+//! synchronous; the host cancels it by retiring the helper process.
 
 use crate::contracts::{
     AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
@@ -301,8 +301,8 @@ impl TtsEngine for PiperTtsEngine {
 
     fn stop(&self) {
         // Piper synthesis is synchronous; there is no cancel mechanism in the
-        // current bridge. The synthesis worker will complete the current chunk
-        // and the generation counter will prevent it from playing the result.
+        // current bridge. The helper suppresses a promptly returned stale
+        // result, while the host retires the process after its cancel grace.
         debug!("piper: stop requested (no-op — synthesis is synchronous)");
     }
 
