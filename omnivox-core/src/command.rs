@@ -20,6 +20,20 @@ pub const MAX_PRESENTATION_TONE_FREQUENCY_HZ: f32 = 24_000.0;
 /// Longest queued presentation tone accepted on the wire.
 pub const MAX_PRESENTATION_TONE_DURATION_MS: u32 = 60_000;
 
+/// Legacy commands retained only so migration failures are explicit.
+///
+/// Omnivox routes language through registered logical voices and routes a
+/// distinct notification stream through a second process. Keep parsing these
+/// historical commands until clients have had a deprecation cycle, but never
+/// imply that they mutate server state.
+pub const DEPRECATED_PROTOCOL_COMMANDS: &[&str] = &[
+    "set_lang",
+    "set_next_lang",
+    "set_previous_lang",
+    "set_preferred_lang",
+    "tts_set_notification_channel",
+];
+
 /// Command parse errors
 #[derive(Debug, Error, PartialEq)]
 pub enum ParseError {
@@ -72,10 +86,10 @@ pub enum CommandId {
     TtsSetToneVolume,          // tts_set_tone_volume
     TtsSetVoiceVolume,         // tts_set_voice_volume
     TtsSetSpeechChannel,       // tts_set_speech_channel
-    TtsSetNotificationChannel, // tts_set_notification_channel
+    TtsSetNotificationChannel, // deprecated tts_set_notification_channel
     TtsExit,                   // tts_exit
 
-    // Phase 2: Language switching
+    // Deprecated global language state; logical voices own language routing.
     SetLang,          // set_lang
     SetNextLang,      // set_next_lang
     SetPreviousLang,  // set_previous_lang
@@ -546,5 +560,20 @@ mod tests {
         let args = cmd.args.unwrap();
         assert!(args.contains(";;"), "semicolons preserved in dtk format: {args}");
         assert!(args.contains("set x to 1"), "comment text preserved: {args}");
+    }
+
+    #[test]
+    fn deprecated_commands_remain_parseable_during_migration() {
+        for name in DEPRECATED_PROTOCOL_COMMANDS {
+            let command = parse_command(name).unwrap();
+            assert!(matches!(
+                command.id,
+                CommandId::SetLang
+                    | CommandId::SetNextLang
+                    | CommandId::SetPreviousLang
+                    | CommandId::SetPreferredLang
+                    | CommandId::TtsSetNotificationChannel
+            ));
+        }
     }
 }

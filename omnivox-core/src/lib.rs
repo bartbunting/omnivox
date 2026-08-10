@@ -10,7 +10,7 @@ pub mod timeline;
 
 pub use command::{
     parse_command, parse_presentation_tone_arguments, parse_tone_arguments, Command, CommandId,
-    ParseError, PresentationToneCommand, ToneCommand,
+    ParseError, PresentationToneCommand, ToneCommand, DEPRECATED_PROTOCOL_COMMANDS,
 };
 pub use queue::{CommandQueue, QueueItem, TonePlacement};
 pub use state::{AudioRouting, ChannelMode, PunctuationLevel, TtsState};

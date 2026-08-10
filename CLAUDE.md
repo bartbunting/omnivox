@@ -291,3 +291,8 @@ When Emacspeak's `dtk-set-notification-mode` is enabled, it spawns two omnivox p
 2. Notification process - Emacspeak sets `OMNIVOX_AUDIO_TARGET=left` for this process
 
 This enables concurrent notifications (e.g., "50 percent" in left ear) while main content continues in both ears.
+
+Routing is owned by each process: `OMNIVOX_AUDIO_TARGET` applies to that
+process's speech, tones, and sounds.  There is no in-process notification
+channel; `tts_set_notification_channel` is a deprecated, explicitly unsupported
+command.

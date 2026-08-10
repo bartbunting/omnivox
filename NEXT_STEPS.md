@@ -542,7 +542,8 @@ retained and reported as omitted rather than unexpectedly slowing speech.
   selector preview, playback completion, realized-route reporting, and ACSS
   degradation are implemented; post-synthesis effect preview follows the
   timeline/effects contract below.
-- Make language commands functional and include language in synchronized state.
+- Keep global language commands deprecated and route language exclusively
+  through registered logical voices.
 - Map Emacs logical voices and ACSS styles to Omnivox logical voice definitions,
   including ordered physical voice fallbacks.
 - Retain graceful behavior with clients that only send the legacy protocol.
@@ -568,7 +569,8 @@ independent runtime routing-policy and explicit engine-recovery-probe requests;
 Emacsvox workbench integration follows in the paired UI slices. Structured
 presentation timelines and marker protocol v2 are now negotiated and used by
 ordinary Aural presentation, with an all-or-nothing legacy fallback for older
-servers and unmodelled client operations. Functional language commands remain.
+servers and unmodelled client operations. Global language commands are retained
+only as explicit deprecations; logical-voice definitions own language routing.
 
 Completion criterion: Emacsvox can assign DECtalk Paul to one logical voice and
 an Eloquence voice to another, use both within a dispatch, and continue speaking
@@ -759,8 +761,8 @@ it will need revision to use the common capability and completion contracts.
   exposure risks documented before enabling non-loopback listeners.
 - Expand the common post-synthesis effect set after the Phase 4 timeline work,
   without compromising latency, marker accuracy, or effect-state continuity.
-- Complete language switching tables; the protocol work in Phase 5 supplies the
-  underlying state model.
+- Exercise logical-voice language routing against live multilingual backends;
+  do not add a second global language state machine.
 - Create a Homebrew formula/tap that installs the binary and Emacs module and
   prints integration instructions.
 - Improve diagnostics for chunking, voice resolution, and audio-device
@@ -808,7 +810,7 @@ The following previously documented goals remain in this roadmap:
 - TCP/network mode;
 - multi-device routing;
 - the common timeline renderer and optional reverb, echo, and chorus effects;
-- language switching tables;
+- live multilingual logical-voice verification;
 - smart/configurable text chunking, benchmarks, and integration tests;
 - Homebrew packaging.
 

@@ -143,7 +143,6 @@ pub struct TtsState {
 
     // Audio routing
     pub speech_routing: AudioRouting,
-    pub notification_routing: AudioRouting,
     pub tone_routing: AudioRouting,
     pub sound_routing: AudioRouting,
 }
@@ -165,7 +164,6 @@ impl Default for TtsState {
             post_delay: Duration::ZERO,
             next_pre_delay: Duration::ZERO,
             speech_routing: AudioRouting::default(),
-            notification_routing: AudioRouting::new(0, ChannelMode::Left),
             tone_routing: AudioRouting::default(),
             sound_routing: AudioRouting::default(),
         }
@@ -186,6 +184,16 @@ impl TtsState {
     /// Get the character speaking rate (speech_rate * character_scale)
     pub fn character_rate(&self) -> f32 {
         self.speech_rate * self.character_scale
+    }
+
+    /// Route every real output stream owned by this server process.
+    ///
+    /// A separately routed notification stream is a second process with its
+    /// own state, not a write-only routing slot in this one.
+    pub fn set_process_channel_mode(&mut self, channel_mode: ChannelMode) {
+        self.speech_routing.channel_mode = channel_mode;
+        self.tone_routing.channel_mode = channel_mode;
+        self.sound_routing.channel_mode = channel_mode;
     }
 
     /// Consume and return the next pre-delay, resetting it to zero
@@ -218,6 +226,17 @@ mod tests {
     fn test_character_rate() {
         let state = TtsState::default();
         assert_eq!(state.character_rate(), 0.5 * 1.2);
+    }
+
+    #[test]
+    fn process_channel_mode_routes_every_owned_output_stream() {
+        let mut state = TtsState::default();
+
+        state.set_process_channel_mode(ChannelMode::Right);
+
+        assert_eq!(state.speech_routing.channel_mode, ChannelMode::Right);
+        assert_eq!(state.tone_routing.channel_mode, ChannelMode::Right);
+        assert_eq!(state.sound_routing.channel_mode, ChannelMode::Right);
     }
 
     #[test]

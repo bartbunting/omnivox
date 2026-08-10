@@ -32,6 +32,18 @@ pub const MAX_CONTROL_ENCODED_BYTES: usize = (MAX_CONTROL_PAYLOAD_BYTES / 3) * 4
 /// Maximum UTF-8 text accepted by one transactional preview request.
 pub const MAX_PREVIEW_TEXT_BYTES: usize = 16 * 1024;
 
+/// Legacy commands reported as parsed but unsupported by current policy.
+///
+/// The CLI has a cross-layer test against the parser crate's corresponding
+/// list so capability negotiation cannot drift from command admission.
+pub const DEPRECATED_PROTOCOL_COMMANDS: &[&str] = &[
+    "set_lang",
+    "set_next_lang",
+    "set_previous_lang",
+    "set_preferred_lang",
+    "tts_set_notification_channel",
+];
+
 /// Prefix used for machine-readable server events on stdout.
 pub const CONTROL_EVENT_PREFIX: &str = "__OMNIVOX_CONTROL__";
 
@@ -97,6 +109,9 @@ pub enum ControlResponse {
         server_version: String,
         supported_protocol_versions: Vec<u32>,
         features: Vec<String>,
+        /// Parsed commands that return an explicit unsupported response.
+        #[serde(default)]
+        deprecated_commands: Vec<String>,
     },
     Inventory {
         inventory_generation: u64,
@@ -167,6 +182,7 @@ pub struct EngineRuntimeStatus {
 pub enum ControlErrorCode {
     MalformedRequest,
     UnsupportedVersion,
+    UnsupportedOperation,
     PayloadTooLarge,
     InvalidConfiguration,
     StaleGeneration,
@@ -254,6 +270,7 @@ pub fn process_control_request(
                         "exact_voice_preview".to_owned(),
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
+                        "logical_voice_language_routing".to_owned(),
                         "logical_voice_routing".to_owned(),
                         "playback_marker_events_v1".to_owned(),
                         "playback_marker_events_v2".to_owned(),
@@ -263,12 +280,17 @@ pub fn process_control_request(
                         "presentation_tone_v1".to_owned(),
                         "post_synthesis_effects_v1".to_owned(),
                         "preferred_engine".to_owned(),
+                        "process_audio_routing".to_owned(),
                         "relative_rate_v1".to_owned(),
                         "runtime_routing_policy".to_owned(),
                         "stable_voice_ids".to_owned(),
                         "text_repertoire_routing_v1".to_owned(),
                         "tracked_playback_completion".to_owned(),
                     ],
+                    deprecated_commands: DEPRECATED_PROTOCOL_COMMANDS
+                        .iter()
+                        .map(|command| (*command).to_owned())
+                        .collect(),
                 },
             },
             ControlRequest::Inventory => {
@@ -541,6 +563,7 @@ mod tests {
             ControlResponse::Capabilities {
                 ref server_version,
                 ref features,
+                ref deprecated_commands,
                 ..
             } if server_version == "1.3.0"
                 && features
@@ -553,6 +576,9 @@ mod tests {
                 && features.iter().any(|feature| feature == "logical_voice_routing")
                 && features
                     .iter()
+                    .any(|feature| feature == "logical_voice_language_routing")
+                && features
+                    .iter()
                     .any(|feature| feature == "presentation_timeline_v2")
                 && features
                     .iter()
@@ -562,6 +588,7 @@ mod tests {
                     .any(|feature| feature == "presentation_tone_v1")
                 && features.iter().any(|feature| feature == "relative_rate_v1")
                 && features.iter().any(|feature| feature == "runtime_routing_policy")
+                && features.iter().any(|feature| feature == "process_audio_routing")
                 && features.iter().any(|feature| feature == "engine_recovery_probe")
                 && features
                     .iter()
@@ -572,6 +599,11 @@ mod tests {
                 && features
                     .iter()
                     .any(|feature| feature == "text_repertoire_routing_v1")
+                && deprecated_commands
+                    == &DEPRECATED_PROTOCOL_COMMANDS
+                        .iter()
+                        .map(|command| (*command).to_owned())
+                        .collect::<Vec<_>>()
         ));
     }
 

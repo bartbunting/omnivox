@@ -352,15 +352,12 @@ pub fn native_engine_name() -> &'static str {
     }
 }
 
-/// Apply `OMNIVOX_AUDIO_TARGET` env var to the state's channel routing fields.
+/// Apply `OMNIVOX_AUDIO_TARGET` to every output stream in this process.
 pub fn apply_audio_target_env(state: &mut TtsState) {
     if let Ok(target) = std::env::var("OMNIVOX_AUDIO_TARGET") {
         if let Some(channel_mode) = ChannelMode::parse(&target) {
             info!("Setting audio target from env: {}", target);
-            state.speech_routing.channel_mode = channel_mode;
-            state.notification_routing.channel_mode = channel_mode;
-            state.tone_routing.channel_mode = channel_mode;
-            state.sound_routing.channel_mode = channel_mode;
+            state.set_process_channel_mode(channel_mode);
         } else {
             warn!("Invalid OMNIVOX_AUDIO_TARGET value: {}", target);
         }

@@ -292,10 +292,11 @@ fn validate_command(command: &Command) -> Result<(), String> {
                 && valid_float(fields[3])
         }),
         CommandId::TtsSetVoice => arguments.is_some_and(|value| !value.is_empty()),
-        CommandId::TtsSetSpeechChannel | CommandId::TtsSetNotificationChannel => {
+        CommandId::TtsSetSpeechChannel => {
             arguments.is_some_and(|value| ChannelMode::parse(value).is_some())
         }
-        CommandId::SetLang
+        CommandId::TtsSetNotificationChannel
+        | CommandId::SetLang
         | CommandId::SetNextLang
         | CommandId::SetPreviousLang
         | CommandId::SetPreferredLang => true,
@@ -467,6 +468,21 @@ mod tests {
                 .is_err());
         }
         assert_eq!(generations.latest(), 0);
+    }
+
+    #[test]
+    fn deprecated_commands_reach_dispatch_for_explicit_rejection() {
+        let generations = PresentationGenerations::default();
+        let prepared = generations
+            .prepare(&arguments(
+                10,
+                "tts_set_notification_channel invalid\nset_lang fr true\nd\n",
+            ))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(prepared.commands[0].id, CommandId::TtsSetNotificationChannel);
+        assert_eq!(prepared.commands[1].id, CommandId::SetLang);
     }
 
     #[test]

@@ -486,6 +486,40 @@ fn write_control_response(response: &ControlResponseEnvelope) {
     }
 }
 
+fn deprecated_command_response(command: &CommandId) -> Option<ControlResponseEnvelope> {
+    let (name, replacement) = match command {
+        CommandId::SetLang => ("set_lang", "register language-aware logical voices"),
+        CommandId::SetNextLang =>
+            ("set_next_lang", "select a language-aware logical voice"),
+        CommandId::SetPreviousLang =>
+            ("set_previous_lang", "select a language-aware logical voice"),
+        CommandId::SetPreferredLang =>
+            ("set_preferred_lang", "configure logical-voice language selectors"),
+        CommandId::TtsSetNotificationChannel => (
+            "tts_set_notification_channel",
+            "start a separate Omnivox process with OMNIVOX_AUDIO_TARGET",
+        ),
+        _ => return None,
+    };
+    Some(ControlResponseEnvelope {
+        protocol_version: CONTROL_PROTOCOL_VERSION,
+        request_id: None,
+        response: ControlResponse::Error {
+            code: ControlErrorCode::UnsupportedOperation,
+            message: format!("deprecated command {name} is unsupported; {replacement}"),
+        },
+    })
+}
+
+fn reject_deprecated_command(command: &CommandId) {
+    if let Some(response) = deprecated_command_response(command) {
+        if let ControlResponse::Error { message, .. } = &response.response {
+            warn!("{message}");
+        }
+        write_control_response(&response);
+    }
+}
+
 fn write_preview_status(
     request_id: u64,
     status: BatchStatus,
@@ -2395,17 +2429,6 @@ fn handle_command(
             }
         }
 
-        CommandId::TtsSetNotificationChannel => {
-            if let Some(target) = command.args {
-                if let Some(mode) = ChannelMode::parse(&target) {
-                    state.notification_routing.channel_mode = mode;
-                    debug!("Notification channel: {}", target);
-                } else {
-                    warn!("Invalid tts_set_notification_channel value: {}", target);
-                }
-            }
-        }
-
         CommandId::TtsReset => {
             debug!("Reset");
             interrupt(current_gen, gen_counter, control, engine_registry, false, true);
@@ -2419,9 +2442,11 @@ fn handle_command(
             std::process::exit(0);
         }
 
-        CommandId::SetLang | CommandId::SetNextLang | CommandId::SetPreviousLang | CommandId::SetPreferredLang => {
-            debug!("Language switching not yet implemented: {:?} {:?}", command.id, command.args);
-        }
+        deprecated @ (CommandId::TtsSetNotificationChannel
+        | CommandId::SetLang
+        | CommandId::SetNextLang
+        | CommandId::SetPreviousLang
+        | CommandId::SetPreferredLang) => reject_deprecated_command(&deprecated),
     }
 }
 
@@ -2731,6 +2756,34 @@ mod tests {
             } if actual_requested == requested
                 && degraded_acss == vec![AcssDimension::Richness]
         ));
+    }
+
+    #[test]
+    fn deprecated_commands_return_actionable_unsupported_errors() {
+        assert_eq!(
+            omnivox_core::DEPRECATED_PROTOCOL_COMMANDS,
+            omnivox_tts::control::DEPRECATED_PROTOCOL_COMMANDS
+        );
+        let language = deprecated_command_response(&CommandId::SetLang).unwrap();
+        assert!(matches!(
+            language.response,
+            ControlResponse::Error {
+                code: ControlErrorCode::UnsupportedOperation,
+                ref message,
+            } if message.contains("set_lang") && message.contains("logical voices")
+        ));
+
+        let notification =
+            deprecated_command_response(&CommandId::TtsSetNotificationChannel).unwrap();
+        assert!(matches!(
+            notification.response,
+            ControlResponse::Error {
+                code: ControlErrorCode::UnsupportedOperation,
+                ref message,
+            } if message.contains("tts_set_notification_channel")
+                && message.contains("OMNIVOX_AUDIO_TARGET")
+        ));
+        assert!(deprecated_command_response(&CommandId::TtsSetSpeechChannel).is_none());
     }
 
     #[test]

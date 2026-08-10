@@ -33,6 +33,8 @@
 - Engine selection via OMNIVOX_ENGINE env var or --engine flag
 - Concurrent audio streams (speech/tones/sounds overlap, serialized within each stream)
 - Channel routing (left/right/both) for dual-server notification mode
+- Logical-voice language routing; global legacy language commands are
+  explicitly deprecated and unsupported
 - Per-stream volume control (voice, tone, sound)
 - CLI flags for all settings (--voice, --rate, --pitch, --voice-volume, etc.)
 - Self-registering Emacs voice module (elisp/omnivox-voices.el)
@@ -157,6 +159,8 @@ omnivox-cli:    59 unit
 | `tts_set_voice` | Working | Voice selection |
 | `tts_set_pitch_multiplier` | Working | Pitch control |
 | `tts_set_*_volume` | Working | Volume per stream type |
+| `set_lang`, `set_next_lang`, `set_previous_lang`, `set_preferred_lang` | Deprecated | Explicit unsupported response; logical voices own language |
+| `tts_set_notification_channel` | Deprecated | Explicit unsupported response; use a separately targeted process |
 | `tts_set_punctuations` | Working | none/some/all |
 | `tts_split_caps` | Working | camelCase spacing |
 | `tts_sync_state` | Working | Atomic state update |
@@ -172,6 +176,6 @@ omnivox-cli:    59 unit
 
 1. Add persistent post-synthesis effects.
 2. Add structured Emacsvox timeline transport and degradation reporting.
-3. Make language commands functional and include language in synchronized state.
+3. Verify logical-voice language selection against live multilingual engines.
 
 The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).

@@ -49,7 +49,7 @@ Omnivox recognizes these environment variables:
 
 - Values: `left`, `right`, `both`, or empty
 - Default: empty (both channels)
-- Controls channel routing for all audio output
+- Controls speech, tone, and sound routing for all output owned by that process
 - Used by Emacspeak for dual-server notification mode
 - Normally set automatically by Emacspeak, not manually
 - Equivalent to `--audio-target`
@@ -139,6 +139,10 @@ spawns two omnivox processes:
 This allows notifications to play in one ear while main content continues.
 Emacspeak sets `OMNIVOX_AUDIO_TARGET` automatically for the notification
 process.
+
+Omnivox has no hidden notification stream inside either process.  The legacy
+`tts_set_notification_channel` command is parsed during migration but returns
+`unsupported_operation`; change the second process's environment instead.
 
 ## Technical Details
 

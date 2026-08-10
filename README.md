@@ -12,7 +12,7 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 - **Audio icon playback**: Bounded OGG/WAV loading with decoded LRU caching
 - **Timeline mixing**: Serial insertion and sample-aligned overlays render in bounded chunks with cross-chunk tails
 - **Playback events**: Engine markers and opaque semantic actions follow mixed-audio frame positions and cancellation
-- **Full Emacspeak protocol**: Command parsing, queue dispatch, voice switching, state management
+- **Emacspeak presentation protocol**: Command parsing, queue dispatch, voice switching, and state management; deprecated global-language and single-process notification commands return explicit unsupported errors
 - **Engine fallback**: Tries platform-native TTS first, falls back to espeak-ng
 - **Portable multi-engine voices**: Structured descriptors and late-bound logical voices route queued spans to engine/voice pairs with deterministic degradation, persistent engine health, and bounded same-chunk runtime retry
 - **Lossless text routing**: Per-engine repertoire metadata keeps Unicode text and source anchors intact by selecting a capable fallback before synthesis
@@ -285,6 +285,20 @@ fallbacks when a helper, runtime, or requested voice is unavailable.
 Proprietary speech runtimes are not distributed with Omnivox.
 
 All other settings use CLI flags (terminal) or protocol commands via Emacs defcustoms.
+
+### Language and notification ownership
+
+Emacsvox logical voices own language selection.  Give a logical voice a BCP 47
+language and ordered physical selectors; Omnivox resolves that language for
+each queued span.  The legacy global commands `set_lang`, `set_next_lang`,
+`set_previous_lang`, and `set_preferred_lang` remain parseable for one
+migration cycle but return a machine-readable `unsupported_operation` error.
+
+Notification separation is process-based.  With one process, notifications
+share its queue owner and channel route.  To isolate them, start a second
+Omnivox process with `OMNIVOX_AUDIO_TARGET=left`, `right`, or `both`.
+`tts_set_notification_channel` is likewise retained only as an explicitly
+unsupported migration command.
 
 ## Architecture
 

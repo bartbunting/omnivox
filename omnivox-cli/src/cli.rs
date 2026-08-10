@@ -131,10 +131,7 @@ pub fn apply_cli_flags(cli: &CliArgs, state: &mut TtsState) {
     if let Some(ref target) = cli.audio_target {
         if let Some(channel_mode) = ChannelMode::parse(target) {
             info!("Setting audio target from flag: {}", target);
-            state.speech_routing.channel_mode = channel_mode;
-            state.notification_routing.channel_mode = channel_mode;
-            state.tone_routing.channel_mode = channel_mode;
-            state.sound_routing.channel_mode = channel_mode;
+            state.set_process_channel_mode(channel_mode);
         } else {
             warn!("Invalid --audio-target value: {}", target);
         }
@@ -531,5 +528,28 @@ mod tests {
             escape_elisp_string("line\ncarriage\rtab\tcontrol\u{1f}"),
             "line\\ncarriage\\rtab\\tcontrol\\u001f"
         );
+    }
+
+    #[test]
+    fn audio_target_routes_every_stream_owned_by_the_process() {
+        let cli = CliArgs {
+            engine: String::new(),
+            action: "server".to_owned(),
+            voice: None,
+            rate: None,
+            pitch: None,
+            voice_volume: None,
+            tone_volume: None,
+            sound_volume: None,
+            audio_target: Some("left".to_owned()),
+            piper_model: None,
+        };
+        let mut state = TtsState::default();
+
+        apply_cli_flags(&cli, &mut state);
+
+        assert_eq!(state.speech_routing.channel_mode, ChannelMode::Left);
+        assert_eq!(state.tone_routing.channel_mode, ChannelMode::Left);
+        assert_eq!(state.sound_routing.channel_mode, ChannelMode::Left);
     }
 }
