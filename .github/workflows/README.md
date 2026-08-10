@@ -31,7 +31,8 @@ Each platform build:
 1. Checks out the code
 2. Installs Rust with the target triple
 3. Installs platform-specific build dependencies
-4. Builds with `cargo build --release --target <triple>`
+4. Builds with `cargo build --locked --release --target <triple>` using the
+   exact Rust release in `rust-toolchain.toml`
 5. Uploads the binary as an artifact
 
 ## Platform-Specific Details
@@ -97,12 +98,12 @@ To test cross-compilation locally:
 rustup target add x86_64-pc-windows-msvc
 
 # Build for target
-cargo build --release --target x86_64-pc-windows-msvc
+cargo build --locked --release --target x86_64-pc-windows-msvc
 
 # Linux ARM64 (requires cross-compilation setup)
 rustup target add aarch64-unknown-linux-gnu
 sudo apt-get install gcc-aarch64-linux-gnu
-cargo build --release --target aarch64-unknown-linux-gnu
+cargo build --locked --release --target aarch64-unknown-linux-gnu
 ```
 
 ## Troubleshooting

@@ -5,27 +5,27 @@ all: build
 
 # Build release binary
 build:
-	cargo build --release
+	cargo build --locked --release
 
 # Build debug binary
 dev:
-	cargo build
+	cargo build --locked
 
 # Run tests
 test:
-	cargo test
+	cargo test --locked
 
 # Run with debug output
 run:
-	cargo run
+	cargo run --locked
 
 # Check code without building
 check:
-	cargo check
+	cargo check --locked
 
 # Lint with clippy
 lint:
-	cargo clippy -- -D warnings
+	cargo clippy --locked -- -D warnings
 
 # Format code
 fmt:
@@ -33,7 +33,7 @@ fmt:
 
 # Generate documentation
 doc:
-	cargo doc --no-deps --open
+	cargo doc --locked --no-deps --open
 
 # Clean build artifacts
 clean:
@@ -46,15 +46,15 @@ watch:
 
 # Install binary to ~/.cargo/bin
 install:
-	cargo install --path omnivox-cli
+	cargo install --locked --path omnivox-cli
 
 # Build the main server and adjacent Piper helper. Native dependencies are
 # linked only into the helper (requires cmake + network on first run).
 build-piper:
-	cargo build --release -p omnivox-piper-helper --features piper
-	cargo build --release -p omnivox-cli --features piper
+	cargo build --locked --release -p omnivox-piper-helper --features piper
+	cargo build --locked --release -p omnivox-cli --features piper
 
 # Install both executables beside one another in ~/.cargo/bin
 install-piper:
-	cargo install --path omnivox-piper-helper --features piper
-	cargo install --path omnivox-cli --features piper
+	cargo install --locked --path omnivox-piper-helper --features piper
+	cargo install --locked --path omnivox-cli --features piper

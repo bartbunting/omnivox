@@ -26,7 +26,8 @@ Cross-platform Emacspeak speech server written in Rust. A drop-in replacement fo
 
 ### All Platforms
 
-- [Rust toolchain](https://rustup.rs/) (1.70+)
+- [rustup](https://rustup.rs/).  The checked-in `rust-toolchain.toml` selects
+  the exact Rust release used for builds and CI.
 - C compiler (for espeak-ng build)
 - CMake (for espeak-ng build)
 
@@ -61,6 +62,12 @@ sudo pacman -S espeak-ng cmake
 Install CMake and a C compiler (MSVC or MinGW). espeak-ng is compiled from source.
 
 ## Building
+
+`Cargo.lock` is part of the release contract because Omnivox is an application
+workspace.  Normal build, test, and release entry points use `--locked`;
+dependency and Rust-toolchain updates must therefore be explicit, reviewable
+changes.  Emacsvox additionally owns the pinned Windows GNU environment and
+the provenance manifest for its staged Omnivox bundle.
 
 ```bash
 # Build release binary
@@ -157,8 +164,8 @@ Windows requires extra steps because Emacspeak looks for speech servers in its `
    ```bash
    export LIBCLANG_PATH="C:\\LLVM\\bin"
    cd /path/to/omnivox
-   cargo build --release
-   cargo install --path omnivox-cli
+   cargo build --locked --release
+   cargo install --locked --path omnivox-cli
    ```
 
 3. **Copy omnivox into Emacspeak's servers directory** (symlinks require admin on Windows):

@@ -111,29 +111,29 @@ To test the cross-compilation setup locally:
 ### Windows (on Windows)
 ```powershell
 rustup target add x86_64-pc-windows-msvc
-cargo build --release --target x86_64-pc-windows-msvc
+cargo build --locked --release --target x86_64-pc-windows-msvc
 ```
 
 ### Linux (on Linux)
 ```bash
 # Native build
-cargo build --release --target x86_64-unknown-linux-gnu
+cargo build --locked --release --target x86_64-unknown-linux-gnu
 
 # ARM64 cross-compilation
 sudo apt-get install gcc-aarch64-linux-gnu
 rustup target add aarch64-unknown-linux-gnu
-cargo build --release --target aarch64-unknown-linux-gnu
+cargo build --locked --release --target aarch64-unknown-linux-gnu
 ```
 
 ### macOS (on macOS)
 ```bash
 # Intel build
 rustup target add x86_64-apple-darwin
-cargo build --release --target x86_64-apple-darwin
+cargo build --locked --release --target x86_64-apple-darwin
 
 # Apple Silicon build
 rustup target add aarch64-apple-darwin
-cargo build --release --target aarch64-apple-darwin
+cargo build --locked --release --target aarch64-apple-darwin
 ```
 
 ## Triggering Manual Builds
@@ -174,7 +174,8 @@ matrix:
 Each build job:
 1. Installs Rust with the target triple
 2. Installs platform-specific build tools
-3. Builds with `cargo build --release --target <triple>`
+3. Builds with `cargo build --locked --release --target <triple>` using the
+   exact Rust release in `rust-toolchain.toml`
 4. Uploads the binary as an artifact
 
 ## Caching
