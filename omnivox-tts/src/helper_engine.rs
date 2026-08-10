@@ -536,10 +536,11 @@ const CANCELLATION_ACTIVE: u8 = 0;
 const CANCELLATION_TERMINAL: u8 = 1;
 const CANCELLATION_RETIRING: u8 = 2;
 
-/// One cancellation/watchdog owner retained until its synthesis is terminal.
+/// One cancellation/watchdog owner retained until both protocol requests finish.
 struct TargetCancellation {
     cancel_request_id: u64,
     state: AtomicU8,
+    response_consumed: AtomicBool,
 }
 
 impl TargetCancellation {
@@ -547,6 +548,7 @@ impl TargetCancellation {
         Self {
             cancel_request_id,
             state: AtomicU8::new(CANCELLATION_ACTIVE),
+            response_consumed: AtomicBool::new(false),
         }
     }
 
@@ -568,6 +570,22 @@ impl TargetCancellation {
                 Ordering::Acquire,
             )
             .is_ok()
+    }
+
+    fn mark_response_consumed(&self) {
+        self.response_consumed.store(true, Ordering::Release);
+    }
+
+    fn response_consumed(&self) -> bool {
+        self.response_consumed.load(Ordering::Acquire)
+    }
+
+    fn target_is_terminal(&self) -> bool {
+        self.state.load(Ordering::Acquire) != CANCELLATION_ACTIVE
+    }
+
+    fn retirement_started(&self) -> bool {
+        self.state.load(Ordering::Acquire) == CANCELLATION_RETIRING
     }
 }
 
@@ -820,7 +838,7 @@ impl HelperTtsEngine {
         let Some(request_id) = response.request_id else {
             return Ok(false);
         };
-        let cancellations = self.cancellations_by_target.lock().unwrap();
+        let mut cancellations = self.cancellations_by_target.lock().unwrap();
         let Some(expected_target) = cancellations.iter().find_map(|(target, cancellation)| {
             (cancellation.cancel_request_id == request_id).then_some(*target)
         }) else {
@@ -829,22 +847,30 @@ impl HelperTtsEngine {
         match &response.body {
             HelperResponseBody::CancelAccepted { target_request_id }
                 if *target_request_id == expected_target =>
-            {
-                // Acceptance terminates only the cancel request.  The target
-                // remains owned until its synthesis response is terminal.
-                Ok(true)
-            }
+            {}
             HelperResponseBody::CancelAccepted { target_request_id } => {
-                Err(HelperEngineError::CancelTargetMismatch {
+                return Err(HelperEngineError::CancelTargetMismatch {
                     expected: expected_target,
                     received: *target_request_id,
-                })
+                });
             }
             // A failed cancel still retains the target owner so its one
             // watchdog can retire a helper that never becomes terminal.
-            HelperResponseBody::Error { .. } => Ok(true),
-            _ => Ok(false),
+            HelperResponseBody::Error { .. } => {}
+            _ => return Ok(false),
         }
+        let remove = cancellations
+            .get(&expected_target)
+            .is_some_and(|cancellation| {
+                // A target may finish before this response is read.  Retain
+                // its tombstone until both sides of the cancellation finish.
+                cancellation.mark_response_consumed();
+                cancellation.target_is_terminal()
+            });
+        if remove {
+            cancellations.remove(&expected_target);
+        }
+        Ok(true)
     }
 
     fn invalidate_connection(&self, connection: &Arc<dyn HelperConnection>) {
@@ -940,13 +966,16 @@ struct ActiveRequestGuard<'a> {
 
 impl ActiveRequestGuard<'_> {
     fn mark_target_terminal(&self) {
-        if let Some(cancellation) = self
-            .cancellations_by_target
-            .lock()
-            .unwrap()
+        let mut cancellations = self.cancellations_by_target.lock().unwrap();
+        let remove = cancellations
             .get(&self.request_id)
-        {
-            cancellation.mark_target_terminal();
+            .is_some_and(|cancellation| {
+                cancellation.mark_target_terminal();
+                cancellation.response_consumed()
+                    || cancellation.retirement_started()
+            });
+        if remove {
+            cancellations.remove(&self.request_id);
         }
     }
 }
@@ -954,14 +983,7 @@ impl ActiveRequestGuard<'_> {
 impl Drop for ActiveRequestGuard<'_> {
     fn drop(&mut self) {
         let _dispatch = self.dispatch.lock().unwrap();
-        if let Some(cancellation) = self
-            .cancellations_by_target
-            .lock()
-            .unwrap()
-            .remove(&self.request_id)
-        {
-            cancellation.mark_target_terminal();
-        }
+        self.mark_target_terminal();
         let _ = self.active_request_id.compare_exchange(
             self.request_id,
             0,
@@ -1287,6 +1309,7 @@ mod tests {
     #[derive(Debug, Clone, Copy)]
     enum MockSynthesisMode {
         Complete,
+        CompleteBeforeCancelResponse,
         WaitForCancel,
         DelayAfterCancelAccepted,
         IgnoreCancel,
@@ -1441,7 +1464,8 @@ mod tests {
                             HelperResponseBody::SynthesisCompleted { frame_count: 4 },
                         ));
                     }
-                    MockSynthesisMode::WaitForCancel
+                    MockSynthesisMode::CompleteBeforeCancelResponse
+                    | MockSynthesisMode::WaitForCancel
                     | MockSynthesisMode::IgnoreCancel
                     | MockSynthesisMode::DelayAfterCancelAccepted => {
                         self.push(HelperResponse::for_request_version(
@@ -1476,6 +1500,37 @@ mod tests {
                 },
                 HelperRequestBody::Cancel { target_request_id } => {
                     if matches!(mode, MockSynthesisMode::IgnoreCancel) {
+                        return Ok(());
+                    }
+                    if matches!(mode, MockSynthesisMode::CompleteBeforeCancelResponse) {
+                        let bytes = [-32_768_i16, 0, 16_384, 32_767]
+                            .into_iter()
+                            .flat_map(i16::to_le_bytes)
+                            .collect::<Vec<_>>();
+                        self.push(self.response(
+                            *target_request_id,
+                            HelperResponseBody::AudioChunk {
+                                chunk: HelperPcmChunk::from_bytes(0, &bytes).unwrap(),
+                            },
+                        ));
+                        self.push(self.response(
+                            *target_request_id,
+                            HelperResponseBody::Markers {
+                                markers: Vec::new(),
+                            },
+                        ));
+                        self.push(self.response(
+                            *target_request_id,
+                            HelperResponseBody::SynthesisCompleted { frame_count: 4 },
+                        ));
+                        self.push(self.response(
+                            request.request_id,
+                            HelperResponseBody::Error {
+                                code: HelperErrorCode::InvalidRequest,
+                                message: "target synthesis is not active".to_owned(),
+                                retryable: false,
+                            },
+                        ));
                         return Ok(());
                     }
                     self.push(self.response(
@@ -2088,6 +2143,38 @@ mod tests {
             1
         );
         assert!(engine.cancellations_by_target.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn completed_target_retains_late_cancel_response_ownership() {
+        let connection = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.0"),
+            MockSynthesisMode::CompleteBeforeCancelResponse,
+        ));
+        let engine = Arc::new(mock_engine(vec![Arc::clone(&connection)]).unwrap());
+        let worker_engine = Arc::clone(&engine);
+        let synthesis = std::thread::spawn(move || {
+            worker_engine.synthesize(&synthesis_request("finishing utterance"))
+        });
+
+        let deadline = Instant::now() + Duration::from_secs(1);
+        while !engine.is_speaking() && Instant::now() < deadline {
+            std::thread::yield_now();
+        }
+        assert!(engine.is_speaking());
+        engine.stop();
+
+        assert!(synthesis.join().unwrap().is_ok());
+        assert_eq!(engine.cancellations_by_target.lock().unwrap().len(), 1);
+
+        connection.set_mode(MockSynthesisMode::Complete);
+        assert!(engine
+            .synthesize(&synthesis_request("next utterance"))
+            .is_ok());
+        assert!(engine.cancellations_by_target.lock().unwrap().is_empty());
+        std::thread::sleep(HELPER_CANCEL_GRACE + Duration::from_millis(25));
+        assert!(!connection.terminated.load(Ordering::Acquire));
+        assert_eq!(connection.termination_count.load(Ordering::Acquire), 0);
     }
 
     #[test]
