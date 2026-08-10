@@ -41,11 +41,12 @@ use crate::pipeline::{
 use crate::routing::LogicalVoiceRoutingSnapshot;
 use crate::text::{normalize_rate, parse_resource_path};
 use crate::transaction::{
-    prefer_newer, select_adjacent_timeline, AdjacentTimelineSelection, PreparedPresentation,
-    PreparedStructuredPresentation, PresentationGenerations,
+    prefer_newer, select_adjacent_timeline, AdjacentTimelineSelection, MultipartTimelineAssembler,
+    PreparedPresentation, PreparedStructuredPresentation, PresentationGenerations,
 };
 
 const PRESENTATION_COALESCE_WINDOW: Duration = Duration::from_millis(2);
+const TIMELINE_MULTIPART_TIMEOUT: Duration = Duration::from_secs(5);
 const TRACKED_STATUS_PREFIX: &str = "__EMACSVOX_TRACKED__";
 const PREVIEW_LOGICAL_VOICE_ID: &str = "omnivox.preview";
 const READY_TUNE_NOTES: &[(f32, u32)] = &[(523.25, 55), (659.25, 55), (783.99, 85)];
@@ -737,35 +738,93 @@ pub fn run_server(
             None => break,
         };
 
-        if command.id == CommandId::EmacsvoxTimeline {
-            let Some(mut selected) =
-                prepare_structured_presentation(&presentation_generations, &command)
-            else {
-                continue;
-            };
+        if matches!(
+            command.id,
+            CommandId::EmacsvoxTimeline | CommandId::EmacsvoxTimelinePart
+        ) {
+            let mut selected =
+                match read_structured_submission(&presentation_generations, command, &input_rx)? {
+                    StructuredSubmissionRead::Prepared(Some(presentation)) => presentation,
+                    StructuredSubmissionRead::Prepared(None) => continue,
+                    StructuredSubmissionRead::Aborted(abort) => {
+                        retire_aborted_structured_submission(&mut presentation_generations, &abort);
+                        deferred_command = abort.deferred_command;
+                        input_closed = abort.input_closed;
+                        continue;
+                    }
+                };
             loop {
                 match receive_command_until(
                     &input_rx,
                     Instant::now() + PRESENTATION_COALESCE_WINDOW,
                 )? {
-                    TimedCommand::Command(next) if next.id == CommandId::EmacsvoxTimeline => {
-                        if let Some(candidate) =
-                            prepare_structured_presentation(&presentation_generations, &next)
-                        {
-                            match select_adjacent_timeline(selected, candidate) {
-                                AdjacentTimelineSelection::Coalesced {
-                                    selected: replacement,
-                                    cancelled_dispatch_id,
-                                } => {
-                                    selected = replacement;
+                    TimedCommand::Command(next)
+                        if matches!(
+                            next.id,
+                            CommandId::EmacsvoxTimeline | CommandId::EmacsvoxTimelinePart
+                        ) =>
+                    {
+                        match read_structured_submission(
+                            &presentation_generations,
+                            next,
+                            &input_rx,
+                        )? {
+                            StructuredSubmissionRead::Prepared(Some(candidate)) => {
+                                if candidate.generation <= selected.generation {
                                     write_tracked_status(
-                                        cancelled_dispatch_id,
+                                        candidate.timeline.dispatch_id,
                                         BatchStatus::Cancelled,
                                     );
+                                } else {
+                                    match select_adjacent_timeline(selected, candidate) {
+                                        AdjacentTimelineSelection::Coalesced {
+                                            selected: replacement,
+                                            cancelled_dispatch_id,
+                                        } => {
+                                            selected = replacement;
+                                            write_tracked_status(
+                                                cancelled_dispatch_id,
+                                                BatchStatus::Cancelled,
+                                            );
+                                        }
+                                        AdjacentTimelineSelection::PreserveOrder {
+                                            current,
+                                            candidate,
+                                        } => {
+                                            execute_structured_presentation(
+                                                current,
+                                                &mut presentation_generations,
+                                                &state,
+                                                current_gen,
+                                                &engine_registry,
+                                                &routing_policy,
+                                                &logical_voices,
+                                                &tx,
+                                            );
+                                            selected = candidate;
+                                        }
+                                    }
                                 }
-                                AdjacentTimelineSelection::PreserveOrder { current } => {
+                            }
+                            StructuredSubmissionRead::Prepared(None) => {}
+                            StructuredSubmissionRead::Aborted(abort) => {
+                                let stop_barrier = abort
+                                    .deferred_command
+                                    .as_ref()
+                                    .is_some_and(|command| command.id == CommandId::Stop);
+                                retire_aborted_structured_submission(
+                                    &mut presentation_generations,
+                                    &abort,
+                                );
+                                if stop_barrier {
+                                    presentation_generations.commit(selected.generation);
+                                    write_tracked_status(
+                                        selected.timeline.dispatch_id,
+                                        BatchStatus::Cancelled,
+                                    );
+                                } else {
                                     execute_structured_presentation(
-                                        current,
+                                        selected,
                                         &mut presentation_generations,
                                         &state,
                                         current_gen,
@@ -774,9 +833,10 @@ pub fn run_server(
                                         &logical_voices,
                                         &tx,
                                     );
-                                    deferred_command = Some(next);
-                                    break;
                                 }
+                                deferred_command = abort.deferred_command;
+                                input_closed = abort.input_closed;
+                                break;
                             }
                         }
                     }
@@ -989,11 +1049,13 @@ fn parse_input_line(line: &str) -> Option<Command> {
     if line.is_empty() {
         return None;
     }
-    debug!("Received: {}", line);
     match parse_command(line) {
-        Ok(command) => Some(command),
+        Ok(command) => {
+            debug!(command = ?command.id, bytes = line.len(), "Received protocol command");
+            Some(command)
+        }
         Err(error) => {
-            error!("Parse error '{}': {}", line, error);
+            error!(bytes = line.len(), %error, "Protocol command parse error");
             None
         }
     }
@@ -1032,6 +1094,137 @@ fn receive_command_until(
             Err(mpsc::RecvTimeoutError::Disconnected) => return Ok(TimedCommand::Closed),
         }
     }
+}
+
+enum StructuredSubmissionRead {
+    Prepared(Option<PreparedStructuredPresentation>),
+    Aborted(AbortedStructuredSubmission),
+}
+
+struct AbortedStructuredSubmission {
+    generation: u64,
+    dispatch_id: u64,
+    status: BatchStatus,
+    deferred_command: Option<Command>,
+    input_closed: bool,
+}
+
+fn read_structured_submission(
+    generations: &PresentationGenerations,
+    first: Command,
+    receiver: &mpsc::Receiver<io::Result<String>>,
+) -> Result<StructuredSubmissionRead> {
+    if first.id == CommandId::EmacsvoxTimeline {
+        return Ok(StructuredSubmissionRead::Prepared(
+            prepare_structured_presentation(generations, &first),
+        ));
+    }
+
+    let mut assembler = match MultipartTimelineAssembler::start(first.args.as_deref().unwrap_or(""))
+    {
+        Ok(assembler) => assembler,
+        Err(error) => {
+            warn!("Invalid first multipart Emacsvox timeline frame: {error}");
+            return Ok(StructuredSubmissionRead::Prepared(None));
+        }
+    };
+    let generation = assembler.generation();
+    let dispatch_id = assembler.dispatch_id();
+    let deadline = Instant::now() + TIMELINE_MULTIPART_TIMEOUT;
+    loop {
+        if assembler.is_complete() {
+            return Ok(match assembler.finish(generations) {
+                Ok(Some(presentation)) => StructuredSubmissionRead::Prepared(Some(presentation)),
+                Ok(None) => StructuredSubmissionRead::Aborted(AbortedStructuredSubmission {
+                    generation,
+                    dispatch_id,
+                    status: BatchStatus::Cancelled,
+                    deferred_command: None,
+                    input_closed: false,
+                }),
+                Err(error) => {
+                    warn!("Invalid multipart Emacsvox timeline: {error}");
+                    StructuredSubmissionRead::Aborted(AbortedStructuredSubmission {
+                        generation,
+                        dispatch_id,
+                        status: BatchStatus::Failed,
+                        deferred_command: None,
+                        input_closed: false,
+                    })
+                }
+            });
+        }
+        match receive_command_until(receiver, deadline)? {
+            TimedCommand::Command(next) if next.id == CommandId::EmacsvoxTimelinePart => {
+                if let Err(error) = assembler.push(next.args.as_deref().unwrap_or("")) {
+                    warn!("Invalid multipart Emacsvox timeline sequence: {error}");
+                    let starts_new_submission =
+                        MultipartTimelineAssembler::start(next.args.as_deref().unwrap_or(""))
+                            .ok()
+                            .is_some_and(|next_assembler| {
+                                next_assembler.generation() != generation
+                                    || next_assembler.dispatch_id() != dispatch_id
+                            });
+                    return Ok(StructuredSubmissionRead::Aborted(
+                        AbortedStructuredSubmission {
+                            generation,
+                            dispatch_id,
+                            status: BatchStatus::Failed,
+                            deferred_command: starts_new_submission.then_some(next),
+                            input_closed: false,
+                        },
+                    ));
+                }
+            }
+            TimedCommand::Command(next) => {
+                let status = if next.id == CommandId::Stop {
+                    BatchStatus::Cancelled
+                } else {
+                    BatchStatus::Failed
+                };
+                return Ok(StructuredSubmissionRead::Aborted(
+                    AbortedStructuredSubmission {
+                        generation,
+                        dispatch_id,
+                        status,
+                        deferred_command: Some(next),
+                        input_closed: false,
+                    },
+                ));
+            }
+            TimedCommand::Timeout => {
+                warn!("Timed out after receiving an incomplete multipart Emacsvox timeline");
+                return Ok(StructuredSubmissionRead::Aborted(
+                    AbortedStructuredSubmission {
+                        generation,
+                        dispatch_id,
+                        status: BatchStatus::Failed,
+                        deferred_command: None,
+                        input_closed: false,
+                    },
+                ));
+            }
+            TimedCommand::Closed => {
+                return Ok(StructuredSubmissionRead::Aborted(
+                    AbortedStructuredSubmission {
+                        generation,
+                        dispatch_id,
+                        status: BatchStatus::Failed,
+                        deferred_command: None,
+                        input_closed: true,
+                    },
+                ));
+            }
+        }
+    }
+}
+
+fn retire_aborted_structured_submission(
+    generations: &mut PresentationGenerations,
+    abort: &AbortedStructuredSubmission,
+) {
+    generations.commit(abort.generation);
+    write_tracked_status(abort.dispatch_id, abort.status);
 }
 
 fn prepare_presentation(
@@ -1590,7 +1783,7 @@ fn handle_command(
             warn!("Nested Emacsvox presentation transaction was ignored");
         }
 
-        CommandId::EmacsvoxTimeline => {
+        CommandId::EmacsvoxTimeline | CommandId::EmacsvoxTimelinePart => {
             warn!("Structured Emacsvox timeline is not available in legacy command batches");
         }
 
@@ -1732,7 +1925,53 @@ fn handle_command(
 
 #[cfg(test)]
 mod tests {
+    use omnivox_tts::contracts::NormalizedAcss;
+    use omnivox_tts::timeline_protocol::{
+        encode_multipart_presentation_timeline, PresentationDeliveryPolicy,
+        PresentationEffectDirective, PresentationSpeechSpan, PresentationTimelineEnvelope,
+        PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+    };
+
     use super::*;
+
+    fn multipart_commands(generation: u64, dispatch_id: u64) -> Vec<Command> {
+        let timeline = PresentationTimelineEnvelope {
+            protocol_version: PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+            generation,
+            dispatch_id,
+            delivery_policy: Some(PresentationDeliveryPolicy::Ordered),
+            replacement_key: None,
+            spans: vec![PresentationSpeechSpan {
+                id: 1,
+                text: "café 日本".to_owned(),
+                logical_voice_id: None,
+                acss: NormalizedAcss::default(),
+                rate_offset: None,
+                effects: PresentationEffectDirective::Retain,
+            }],
+            actions: Vec::new(),
+        };
+        let encoded = encode_multipart_presentation_timeline(&timeline).unwrap();
+        let padding = encoded
+            .bytes()
+            .rev()
+            .take_while(|byte| *byte == b'=')
+            .count();
+        let decoded_bytes = (encoded.len() / 4) * 3 - padding;
+        let split = ((encoded.len() / 2) / 4) * 4;
+        [&encoded[..split], &encoded[split..]]
+            .into_iter()
+            .enumerate()
+            .map(|(index, fragment)| {
+                Command::new(
+                    CommandId::EmacsvoxTimelinePart,
+                    Some(format!(
+                        "{PRESENTATION_TIMELINE_PROTOCOL_VERSION} {generation} {dispatch_id} {index} 2 {decoded_bytes} {fragment}"
+                    )),
+                )
+            })
+            .collect()
+    }
 
     #[test]
     fn empty_tracked_dispatch_preserves_worker_terminal_status() {
@@ -1818,5 +2057,154 @@ mod tests {
 
         assert!((0.22..0.25).contains(&tune.duration_secs()));
         assert!(tune.samples.iter().any(|sample| sample.abs() > 0.1));
+    }
+
+    #[test]
+    fn reader_reassembles_multipart_before_returning_one_presentation() {
+        let mut commands = multipart_commands(12, 34).into_iter();
+        let first = commands.next().unwrap();
+        let second = commands.next().unwrap();
+        let (sender, receiver) = mpsc::channel();
+        sender
+            .send(Ok(format!(
+                "emacsvox_timeline_part {}",
+                second.args.unwrap()
+            )))
+            .unwrap();
+
+        let read =
+            read_structured_submission(&PresentationGenerations::default(), first, &receiver)
+                .unwrap();
+
+        assert!(matches!(
+            read,
+            StructuredSubmissionRead::Prepared(Some(presentation))
+                if presentation.generation == 12
+                    && presentation.timeline.dispatch_id == 34
+                    && presentation.timeline.spans[0].text == "café 日本"
+        ));
+    }
+
+    #[test]
+    fn stop_between_multipart_frames_cancels_the_logical_dispatch() {
+        let first = multipart_commands(13, 35).into_iter().next().unwrap();
+        let (sender, receiver) = mpsc::channel();
+        sender.send(Ok("s".to_owned())).unwrap();
+
+        let read =
+            read_structured_submission(&PresentationGenerations::default(), first, &receiver)
+                .unwrap();
+
+        assert!(matches!(
+            read,
+            StructuredSubmissionRead::Aborted(AbortedStructuredSubmission {
+                generation: 13,
+                dispatch_id: 35,
+                status: BatchStatus::Cancelled,
+                deferred_command: Some(Command {
+                    id: CommandId::Stop,
+                    ..
+                }),
+                input_closed: false,
+            })
+        ));
+    }
+
+    #[test]
+    fn malformed_multipart_part_is_consumed_with_the_failed_submission() {
+        let first = multipart_commands(14, 36).into_iter().next().unwrap();
+        let duplicate = first.clone();
+        let (sender, receiver) = mpsc::channel();
+        sender
+            .send(Ok(format!(
+                "emacsvox_timeline_part {}",
+                duplicate.args.unwrap()
+            )))
+            .unwrap();
+
+        let read =
+            read_structured_submission(&PresentationGenerations::default(), first, &receiver)
+                .unwrap();
+
+        assert!(matches!(
+            read,
+            StructuredSubmissionRead::Aborted(AbortedStructuredSubmission {
+                generation: 14,
+                dispatch_id: 36,
+                status: BatchStatus::Failed,
+                deferred_command: None,
+                input_closed: false,
+            })
+        ));
+    }
+
+    #[test]
+    fn new_part_zero_after_incomplete_submission_is_preserved() {
+        let old_first = multipart_commands(15, 37).into_iter().next().unwrap();
+        let mut new_commands = multipart_commands(16, 38).into_iter();
+        let new_first = new_commands.next().unwrap();
+        let new_second = new_commands.next().unwrap();
+        let (sender, receiver) = mpsc::channel();
+        sender
+            .send(Ok(format!(
+                "emacsvox_timeline_part {}",
+                new_first.args.clone().unwrap()
+            )))
+            .unwrap();
+        sender
+            .send(Ok(format!(
+                "emacsvox_timeline_part {}",
+                new_second.args.unwrap()
+            )))
+            .unwrap();
+
+        let aborted =
+            read_structured_submission(&PresentationGenerations::default(), old_first, &receiver)
+                .unwrap();
+        let StructuredSubmissionRead::Aborted(abort) = aborted else {
+            panic!("old incomplete submission was not rejected");
+        };
+        assert_eq!(abort.status, BatchStatus::Failed);
+        let deferred = abort.deferred_command.unwrap();
+        assert_eq!(deferred, new_first);
+
+        let replacement =
+            read_structured_submission(&PresentationGenerations::default(), deferred, &receiver)
+                .unwrap();
+        assert!(matches!(
+            replacement,
+            StructuredSubmissionRead::Prepared(Some(presentation))
+                if presentation.generation == 16
+                    && presentation.timeline.dispatch_id == 38
+        ));
+    }
+
+    #[test]
+    fn stale_complete_multipart_submission_is_cancelled() {
+        let mut commands = multipart_commands(17, 39).into_iter();
+        let first = commands.next().unwrap();
+        let second = commands.next().unwrap();
+        let (sender, receiver) = mpsc::channel();
+        sender
+            .send(Ok(format!(
+                "emacsvox_timeline_part {}",
+                second.args.unwrap()
+            )))
+            .unwrap();
+        let mut generations = PresentationGenerations::default();
+        generations.commit(17);
+
+        let read = read_structured_submission(&generations, first, &receiver).unwrap();
+
+        assert!(matches!(
+            read,
+            StructuredSubmissionRead::Aborted(AbortedStructuredSubmission {
+                generation: 17,
+                dispatch_id: 39,
+                status: BatchStatus::Cancelled,
+                deferred_command: None,
+                input_closed: false,
+            })
+        ));
     }
 }

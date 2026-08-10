@@ -15,16 +15,29 @@ use crate::contracts::{
 pub const PRESENTATION_TIMELINE_PROTOCOL_V1: u32 = 1;
 /// Structured timeline version carrying delivery policy and replacement identity.
 pub const PRESENTATION_TIMELINE_PROTOCOL_V2: u32 = 2;
+/// Structured timeline version supporting bounded multipart transport.
+pub const PRESENTATION_TIMELINE_PROTOCOL_V3: u32 = 3;
 /// Current structured presentation-timeline protocol version.
-pub const PRESENTATION_TIMELINE_PROTOCOL_VERSION: u32 = PRESENTATION_TIMELINE_PROTOCOL_V2;
+pub const PRESENTATION_TIMELINE_PROTOCOL_VERSION: u32 = PRESENTATION_TIMELINE_PROTOCOL_V3;
 /// Maximum decoded JSON accepted in one timeline request.
 pub const MAX_TIMELINE_PAYLOAD_BYTES: usize = 256 * 1024;
 /// Conservative maximum encoded size for the decoded request bound.
 pub const MAX_TIMELINE_ENCODED_BYTES: usize = (MAX_TIMELINE_PAYLOAD_BYTES / 3) * 4 + 8;
+/// Maximum decoded JSON accepted across one multipart timeline.
+pub const MAX_TIMELINE_AGGREGATE_BYTES: usize = 16 * 1024 * 1024;
+/// Exact maximum Base64 size of one aggregate at the decoded request bound.
+pub const MAX_TIMELINE_AGGREGATE_ENCODED_BYTES: usize =
+    MAX_TIMELINE_AGGREGATE_BYTES.div_ceil(3) * 4;
+/// Maximum number of transport fragments in one multipart timeline.
+pub const MAX_TIMELINE_PARTS: usize = 64;
 /// Maximum number of speech spans in one request.
 pub const MAX_TIMELINE_SPANS: usize = 4096;
 /// Maximum number of non-speech actions in one request.
 pub const MAX_TIMELINE_ACTIONS: usize = 4096;
+/// Maximum number of spans in one bounded V3 aggregate.
+pub const MAX_TIMELINE_AGGREGATE_SPANS: usize = MAX_TIMELINE_SPANS * MAX_TIMELINE_PARTS;
+/// Maximum number of actions in one bounded V3 aggregate.
+pub const MAX_TIMELINE_AGGREGATE_ACTIONS: usize = MAX_TIMELINE_ACTIONS * MAX_TIMELINE_PARTS;
 /// Maximum UTF-8 size of a logical voice, action, or effect-state ID.
 pub const MAX_TIMELINE_ID_BYTES: usize = 128;
 /// Maximum UTF-8 size of one resource path.
@@ -36,10 +49,10 @@ pub struct PresentationTimelineEnvelope {
     pub protocol_version: u32,
     pub generation: u64,
     pub dispatch_id: u64,
-    /// Version 2 delivery policy. Version 1 omits this and is replaceable.
+    /// Version 2+ delivery policy. Version 1 omits this and is replaceable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub delivery_policy: Option<PresentationDeliveryPolicy>,
-    /// Version 2 replacement domain, present only for replaceable work.
+    /// Version 2+ replacement domain, present only for replaceable work.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub replacement_key: Option<String>,
     pub spans: Vec<PresentationSpeechSpan>,
@@ -64,12 +77,24 @@ impl PresentationTimelineEnvelope {
 
         match (self.protocol_version, other.protocol_version) {
             (PRESENTATION_TIMELINE_PROTOCOL_V1, PRESENTATION_TIMELINE_PROTOCOL_V1) => true,
-            (PRESENTATION_TIMELINE_PROTOCOL_V2, PRESENTATION_TIMELINE_PROTOCOL_V2) => {
+            (PRESENTATION_TIMELINE_PROTOCOL_V2, PRESENTATION_TIMELINE_PROTOCOL_V2)
+            | (PRESENTATION_TIMELINE_PROTOCOL_V3, PRESENTATION_TIMELINE_PROTOCOL_V3) => {
                 self.replacement_key == other.replacement_key
             }
             _ => false,
         }
     }
+}
+
+/// One bounded fragment of the Base64 encoding of a V3 timeline JSON document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PresentationTimelinePart {
+    pub generation: u64,
+    pub dispatch_id: u64,
+    pub part_index: usize,
+    pub part_count: usize,
+    pub decoded_bytes: usize,
+    pub encoded_fragment: String,
 }
 
 /// Scheduling contract for one complete structured presentation.
@@ -218,6 +243,11 @@ pub enum PresentationTimelineError {
     #[error("timeline payload exceeds the {MAX_TIMELINE_PAYLOAD_BYTES}-byte limit")]
     PayloadTooLarge,
 
+    #[error(
+        "multipart timeline payload exceeds the {MAX_TIMELINE_AGGREGATE_BYTES}-byte aggregate limit"
+    )]
+    AggregatePayloadTooLarge,
+
     #[error("timeline payload is not valid Base64: {0}")]
     InvalidBase64(#[source] base64::DecodeError),
 
@@ -240,27 +270,197 @@ pub fn encode_presentation_timeline(
     Ok(STANDARD.encode(json))
 }
 
+/// Encode one complete V3 timeline for subsequent bounded transport framing.
+pub fn encode_multipart_presentation_timeline(
+    timeline: &PresentationTimelineEnvelope,
+) -> Result<String, PresentationTimelineError> {
+    validate_presentation_timeline(timeline)?;
+    invalid_if(
+        timeline.protocol_version != PRESENTATION_TIMELINE_PROTOCOL_V3,
+        "multipart transport requires a version 3 timeline",
+    )?;
+    let json = serde_json::to_vec(timeline).map_err(PresentationTimelineError::InvalidJson)?;
+    if json.len() > MAX_TIMELINE_AGGREGATE_BYTES {
+        return Err(PresentationTimelineError::AggregatePayloadTooLarge);
+    }
+    Ok(STANDARD.encode(json))
+}
+
 /// Decode, validate, and bound one structured presentation payload.
 pub fn decode_presentation_timeline(
     payload: &str,
 ) -> Result<PresentationTimelineEnvelope, PresentationTimelineError> {
-    let payload = payload
-        .trim()
-        .strip_prefix('{')
-        .and_then(|payload| payload.strip_suffix('}'))
-        .unwrap_or_else(|| payload.trim());
-    if payload.len() > MAX_TIMELINE_ENCODED_BYTES {
-        return Err(PresentationTimelineError::PayloadTooLarge);
+    decode_presentation_timeline_with_limit(
+        payload,
+        MAX_TIMELINE_ENCODED_BYTES,
+        MAX_TIMELINE_PAYLOAD_BYTES,
+        false,
+    )
+}
+
+/// Decode one reassembled V3 payload under the aggregate transport bounds.
+pub fn decode_multipart_presentation_timeline(
+    payload: &str,
+    declared_decoded_bytes: usize,
+) -> Result<PresentationTimelineEnvelope, PresentationTimelineError> {
+    if declared_decoded_bytes > MAX_TIMELINE_AGGREGATE_BYTES
+        || payload.len() > MAX_TIMELINE_AGGREGATE_ENCODED_BYTES
+    {
+        return Err(PresentationTimelineError::AggregatePayloadTooLarge);
+    }
+    let timeline = decode_presentation_timeline_with_limit(
+        payload,
+        MAX_TIMELINE_AGGREGATE_ENCODED_BYTES,
+        MAX_TIMELINE_AGGREGATE_BYTES,
+        true,
+    )?;
+    let actual_decoded_bytes = decoded_base64_length(payload)?;
+    invalid_if(
+        actual_decoded_bytes != declared_decoded_bytes,
+        format!(
+            "multipart timeline declared {declared_decoded_bytes} decoded bytes but contained {actual_decoded_bytes}"
+        ),
+    )?;
+    invalid_if(
+        timeline.protocol_version != PRESENTATION_TIMELINE_PROTOCOL_V3,
+        "multipart transport requires a version 3 timeline",
+    )?;
+    Ok(timeline)
+}
+
+fn decode_presentation_timeline_with_limit(
+    payload: &str,
+    encoded_limit: usize,
+    decoded_limit: usize,
+    aggregate: bool,
+) -> Result<PresentationTimelineEnvelope, PresentationTimelineError> {
+    let payload = unbrace_payload(payload);
+    if payload.len() > encoded_limit {
+        return Err(if aggregate {
+            PresentationTimelineError::AggregatePayloadTooLarge
+        } else {
+            PresentationTimelineError::PayloadTooLarge
+        });
     }
     let json = STANDARD
         .decode(payload)
         .map_err(PresentationTimelineError::InvalidBase64)?;
-    if json.len() > MAX_TIMELINE_PAYLOAD_BYTES {
-        return Err(PresentationTimelineError::PayloadTooLarge);
+    if json.len() > decoded_limit {
+        return Err(if aggregate {
+            PresentationTimelineError::AggregatePayloadTooLarge
+        } else {
+            PresentationTimelineError::PayloadTooLarge
+        });
     }
     let timeline = serde_json::from_slice(&json).map_err(PresentationTimelineError::InvalidJson)?;
     validate_presentation_timeline(&timeline)?;
     Ok(timeline)
+}
+
+fn unbrace_payload(payload: &str) -> &str {
+    payload
+        .trim()
+        .strip_prefix('{')
+        .and_then(|payload| payload.strip_suffix('}'))
+        .unwrap_or_else(|| payload.trim())
+}
+
+fn decoded_base64_length(payload: &str) -> Result<usize, PresentationTimelineError> {
+    let payload = unbrace_payload(payload);
+    let padding = payload
+        .as_bytes()
+        .iter()
+        .rev()
+        .take_while(|byte| **byte == b'=')
+        .count();
+    invalid_if(
+        !payload.len().is_multiple_of(4) || padding > 2,
+        "multipart timeline has an invalid Base64 length",
+    )?;
+    Ok((payload.len() / 4) * 3 - padding)
+}
+
+/// Parse and validate one `emacsvox_timeline_part` argument list.
+pub fn decode_presentation_timeline_part(
+    arguments: &str,
+) -> Result<PresentationTimelinePart, PresentationTimelineError> {
+    let fields = arguments.split_whitespace().collect::<Vec<_>>();
+    invalid_if(
+        fields.len() != 7,
+        "timeline part requires version, generation, dispatch ID, index, count, decoded bytes, and fragment",
+    )?;
+    let parse_number = |field: &str, name: &str| {
+        field.parse::<u64>().map_err(|_| {
+            PresentationTimelineError::InvalidTimeline(format!(
+                "timeline part {name} must be an unsigned integer"
+            ))
+        })
+    };
+    let version = parse_number(fields[0], "version")?;
+    let generation = parse_number(fields[1], "generation")?;
+    let dispatch_id = parse_number(fields[2], "dispatch ID")?;
+    let part_index = usize::try_from(parse_number(fields[3], "index")?).map_err(|_| {
+        PresentationTimelineError::InvalidTimeline(
+            "timeline part index does not fit this server".to_owned(),
+        )
+    })?;
+    let part_count = usize::try_from(parse_number(fields[4], "count")?).map_err(|_| {
+        PresentationTimelineError::InvalidTimeline(
+            "timeline part count does not fit this server".to_owned(),
+        )
+    })?;
+    let decoded_bytes =
+        usize::try_from(parse_number(fields[5], "decoded byte count")?).map_err(|_| {
+            PresentationTimelineError::InvalidTimeline(
+                "timeline decoded byte count does not fit this server".to_owned(),
+            )
+        })?;
+    let encoded_fragment = fields[6];
+
+    invalid_if(
+        version != u64::from(PRESENTATION_TIMELINE_PROTOCOL_V3),
+        format!("unsupported timeline part version {version}"),
+    )?;
+    invalid_if(generation == 0, "timeline part generation must be positive")?;
+    invalid_if(
+        dispatch_id == 0,
+        "timeline part dispatch ID must be positive",
+    )?;
+    invalid_if(
+        part_count == 0 || part_count > MAX_TIMELINE_PARTS,
+        format!("timeline part count must be between 1 and {MAX_TIMELINE_PARTS}"),
+    )?;
+    invalid_if(
+        part_index >= part_count,
+        "timeline part index must be less than its count",
+    )?;
+    invalid_if(
+        decoded_bytes == 0 || decoded_bytes > MAX_TIMELINE_AGGREGATE_BYTES,
+        format!("timeline decoded byte count must be between 1 and {MAX_TIMELINE_AGGREGATE_BYTES}"),
+    )?;
+    invalid_if(
+        encoded_fragment.is_empty() || encoded_fragment.len() > MAX_TIMELINE_ENCODED_BYTES,
+        format!("timeline encoded fragment must contain 1 to {MAX_TIMELINE_ENCODED_BYTES} bytes"),
+    )?;
+    invalid_if(
+        !encoded_fragment
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'+' | b'/' | b'=')),
+        "timeline part fragment contains a non-Base64 character",
+    )?;
+    invalid_if(
+        part_index + 1 < part_count && encoded_fragment.contains('='),
+        "only the final timeline part may contain Base64 padding",
+    )?;
+
+    Ok(PresentationTimelinePart {
+        generation,
+        dispatch_id,
+        part_index,
+        part_count,
+        decoded_bytes,
+        encoded_fragment: encoded_fragment.to_owned(),
+    })
 }
 
 /// Validate all cross-references and resource bounds before playback changes.
@@ -271,14 +471,15 @@ pub fn validate_presentation_timeline(
         PRESENTATION_TIMELINE_PROTOCOL_V1 => {
             invalid_if(
                 timeline.delivery_policy.is_some() || timeline.replacement_key.is_some(),
-                "version 1 timelines cannot contain version 2 delivery fields",
+                "version 1 timelines cannot contain policy-bearing delivery fields",
             )?;
         }
-        PRESENTATION_TIMELINE_PROTOCOL_V2 => {
+        PRESENTATION_TIMELINE_PROTOCOL_V2 | PRESENTATION_TIMELINE_PROTOCOL_V3 => {
             let Some(delivery_policy) = timeline.delivery_policy else {
-                return Err(PresentationTimelineError::InvalidTimeline(
-                    "version 2 timelines require a delivery policy".to_owned(),
-                ));
+                return Err(PresentationTimelineError::InvalidTimeline(format!(
+                    "version {} timelines require a delivery policy",
+                    timeline.protocol_version
+                )));
             };
             match delivery_policy {
                 PresentationDeliveryPolicy::Replaceable => {
@@ -310,12 +511,36 @@ pub fn validate_presentation_timeline(
         "at least one speech span is required",
     )?;
     invalid_if(
-        timeline.spans.len() > MAX_TIMELINE_SPANS,
-        format!("more than {MAX_TIMELINE_SPANS} speech spans"),
+        timeline.spans.len()
+            > if timeline.protocol_version == PRESENTATION_TIMELINE_PROTOCOL_V3 {
+                MAX_TIMELINE_AGGREGATE_SPANS
+            } else {
+                MAX_TIMELINE_SPANS
+            },
+        format!(
+            "more than {} speech spans",
+            if timeline.protocol_version == PRESENTATION_TIMELINE_PROTOCOL_V3 {
+                MAX_TIMELINE_AGGREGATE_SPANS
+            } else {
+                MAX_TIMELINE_SPANS
+            }
+        ),
     )?;
     invalid_if(
-        timeline.actions.len() > MAX_TIMELINE_ACTIONS,
-        format!("more than {MAX_TIMELINE_ACTIONS} actions"),
+        timeline.actions.len()
+            > if timeline.protocol_version == PRESENTATION_TIMELINE_PROTOCOL_V3 {
+                MAX_TIMELINE_AGGREGATE_ACTIONS
+            } else {
+                MAX_TIMELINE_ACTIONS
+            },
+        format!(
+            "more than {} actions",
+            if timeline.protocol_version == PRESENTATION_TIMELINE_PROTOCOL_V3 {
+                MAX_TIMELINE_AGGREGATE_ACTIONS
+            } else {
+                MAX_TIMELINE_ACTIONS
+            }
+        ),
     )?;
 
     let mut span_ids = HashSet::with_capacity(timeline.spans.len());
@@ -620,7 +845,7 @@ mod tests {
     }
 
     #[test]
-    fn version_two_validates_policy_and_replacement_identity() {
+    fn current_version_validates_policy_and_replacement_identity() {
         let mut missing_policy = timeline();
         missing_policy.delivery_policy = None;
         assert!(matches!(
@@ -732,5 +957,68 @@ mod tests {
             decode_presentation_timeline(&encoded),
             Err(PresentationTimelineError::PayloadTooLarge)
         ));
+    }
+
+    #[test]
+    fn multipart_decoder_reassembles_one_large_v3_timeline() {
+        let mut large = timeline();
+        large.spans[0].text = "café 日本 ".repeat(40_000);
+        let json = serde_json::to_vec(&large).unwrap();
+        assert!(json.len() > MAX_TIMELINE_PAYLOAD_BYTES);
+        assert!(json.len() < MAX_TIMELINE_AGGREGATE_BYTES);
+        let encoded = STANDARD.encode(&json);
+
+        assert!(matches!(
+            decode_presentation_timeline(&encoded),
+            Err(PresentationTimelineError::PayloadTooLarge)
+        ));
+        assert_eq!(
+            decode_multipart_presentation_timeline(&encoded, json.len()).unwrap(),
+            large
+        );
+    }
+
+    #[test]
+    fn multipart_decoder_requires_exact_size_and_v3() {
+        let current = timeline();
+        let json = serde_json::to_vec(&current).unwrap();
+        let encoded = STANDARD.encode(&json);
+        assert!(matches!(
+            decode_multipart_presentation_timeline(&encoded, json.len() + 1),
+            Err(PresentationTimelineError::InvalidTimeline(_))
+        ));
+
+        let mut version_two = current;
+        version_two.protocol_version = PRESENTATION_TIMELINE_PROTOCOL_V2;
+        let json = serde_json::to_vec(&version_two).unwrap();
+        let encoded = STANDARD.encode(&json);
+        assert!(matches!(
+            decode_multipart_presentation_timeline(&encoded, json.len()),
+            Err(PresentationTimelineError::InvalidTimeline(_))
+        ));
+    }
+
+    #[test]
+    fn timeline_part_parser_enforces_transport_bounds() {
+        let part = decode_presentation_timeline_part("3 7 19 0 2 300000 eyJwYXJ0").unwrap();
+        assert_eq!(part.generation, 7);
+        assert_eq!(part.dispatch_id, 19);
+        assert_eq!(part.part_index, 0);
+        assert_eq!(part.part_count, 2);
+        assert_eq!(part.decoded_bytes, 300_000);
+        assert_eq!(part.encoded_fragment, "eyJwYXJ0");
+
+        for invalid in [
+            "2 7 19 0 2 300000 eyJwYXJ0",
+            "3 7 19 2 2 300000 eyJwYXJ0",
+            "3 7 19 0 65 300000 eyJwYXJ0",
+            "3 7 19 0 2 300000 bad!",
+            "3 7 19 0 2 300000 YQ==",
+        ] {
+            assert!(matches!(
+                decode_presentation_timeline_part(invalid),
+                Err(PresentationTimelineError::InvalidTimeline(_))
+            ));
+        }
     }
 }

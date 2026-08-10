@@ -4,33 +4,57 @@ This document specifies the capability-gated structured presentation command
 used by Emacsvox and Omnivox. It complements the legacy line protocol and the
 control protocol in [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md).
 
-## Negotiation and Command
+## Negotiation and Commands
 
-A client may send a version 2 structured timeline only after the server
-advertises `presentation_timeline_v2`. The server also advertises and accepts
-version 1 for decoding compatibility. Playback-bound action and degradation
-events use `playback_marker_events_v2`; terminal completion uses the existing
-tracked completion contract.
+A current client may send a version 3 structured timeline only after the
+server advertises `presentation_timeline_v3`. The server also advertises and
+accepts versions 1 and 2 for decoding compatibility, but current Emacsvox
+requires version 3. Playback-bound action and degradation events use
+`playback_marker_events_v2`; terminal completion uses the existing tracked
+completion contract.
 
-The command is one newline-terminated record:
+A decoded JSON document of at most 256 KiB uses one newline-terminated record:
 
 ```text
 emacsvox_timeline {BASE64_UTF8_JSON}
 ```
 
-The decoded JSON is limited to 256 KiB. The complete envelope is decoded,
-bounded, cross-referenced, and validated before it can affect playback. Audio
-resources are also loaded and decoded before the first span is submitted. A
-bad field or unavailable resource rejects the whole command; the server does
-not play a valid prefix.
+Larger version 3 documents use consecutive newline-terminated records:
+
+```text
+emacsvox_timeline_part 3 GENERATION DISPATCH_ID INDEX COUNT DECODED_BYTES BASE64_FRAGMENT
+```
+
+`INDEX` is zero-based. `COUNT` is from 1 through 64, the decoded aggregate is
+at most 16 MiB, and every nonempty Base64 fragment is bounded to the encoded
+size of one 256 KiB frame. All records repeat identical generation, dispatch,
+count, and decoded-size fields. They must arrive in exact index order within
+five seconds of the first part. Only the final fragment may contain Base64
+padding.
+
+Fragments are transport slices of one Base64 encoding, not independently
+decoded envelopes. Omnivox concatenates them, checks the exact decoded byte
+count, decodes the original JSON once, and requires the envelope generation
+and dispatch ID to match the outer header. This preserves span identity,
+UTF-8 offsets, action anchors, effect state, and one presentation clock across
+transport boundaries.
+
+The complete envelope is decoded, bounded, cross-referenced, and validated
+before it can affect playback. Audio resources are also loaded and decoded
+before the first span is submitted. A bad field, missing/reordered fragment,
+timeout, or unavailable resource rejects the whole logical submission; the
+server does not play a valid prefix. Once a valid part-zero header has been
+accepted, assembly failure reports `failed`; a stop between parts reports
+`cancelled`. A complete aggregate whose generation is already stale also
+reports `cancelled`. Each case retires the declared generation.
 
 ## Envelope
 
-Version 2 has this shape:
+Version 3 has the same semantic fields introduced by version 2 and this shape:
 
 ```json
 {
-  "protocol_version": 2,
+  "protocol_version": 3,
   "generation": 27,
   "dispatch_id": 91,
   "delivery_policy": "replaceable",
@@ -72,7 +96,9 @@ Version 2 has this shape:
 `generation` participates in the same stale-work and stop-barrier policy as
 framed legacy transactions. `dispatch_id` identifies marker-v2 and terminal
 records. Span and action IDs are bounded and unique in their respective
-namespaces.
+namespaces. Version 3 permits at most 262,144 spans and 262,144 actions inside
+the 16 MiB aggregate. Logical voice, action, replacement, and effect-state IDs
+are at most 128 UTF-8 bytes; audio paths are at most 4096 UTF-8 bytes.
 
 ## Delivery Policy
 
@@ -80,8 +106,10 @@ namespaces.
 envelopes omit `replacement_key` and are never coalesced with an adjacent
 timeline. A replaceable envelope requires a nonempty replacement key of at
 most 128 UTF-8 bytes. Omnivox may coalesce adjacent replaceable envelopes only
-when both use version 2 and their keys are identical; the discarded dispatch
-receives `cancelled` before the selected dispatch can complete.
+when both use the same policy-bearing protocol version and their keys are
+identical; the discarded dispatch receives `cancelled` before the selected
+dispatch can complete. Version 2 and version 3 envelopes do not coalesce with
+one another.
 
 Urgent interruption remains an explicit stop barrier sent immediately before
 the urgent timeline. The policy field prevents a later adjacent timeline from
@@ -90,8 +118,8 @@ is still in the coalescing window cancels that timeline and consumes its
 generation.
 
 Version 1 omits both delivery fields and retains its original interpretation:
-every version 1 envelope is replaceable in one implicit domain. Version 1 and
-version 2 envelopes never coalesce with one another.
+every version 1 envelope is replaceable in one implicit domain. Version 1 does
+not coalesce with either policy-bearing version.
 
 The cross-repository UTF-8 interoperability fixtures use generation 27,
 dispatch 91, one span containing `café 日本`, and no actions. Their unwrapped
@@ -181,13 +209,15 @@ and rejoins it only when the corresponding event arrives.
 
 ## Compatibility and Degradation
 
-Current Emacsvox requires the version 2 capability for Aural structured
-delivery. A server advertising only version 1 is an installation mismatch and
-must be upgraded; Emacsvox does not silently lower ordered or urgent Aural
-semantics to the legacy protocol. Within a negotiated version 2 transaction,
-an unmodelled operation still keeps the whole presentation on the explicit
-legacy path so speech, icons, and state cannot be duplicated or reordered by
-partial conversion.
+Current Emacsvox requires the version 3 capability for Aural structured
+delivery. A server advertising only version 1 or version 2 is an installation
+mismatch and must be upgraded; Emacsvox does not silently lower ordered,
+urgent, multipart, or insert-action semantics to the legacy protocol. Within a
+negotiated version 3 transaction, an unmodelled operation still keeps the whole
+presentation on the explicit legacy path so speech, icons, and state cannot be
+duplicated or reordered by partial conversion. A resource or action that
+cannot satisfy the declared bounds rejects the logical presentation before any
+part is written rather than degrading it to legacy output.
 
 A buffered engine without markers remains a useful TTS engine. It still
 provides ordered speech, per-span voice routing and fallback, ACSS it supports,

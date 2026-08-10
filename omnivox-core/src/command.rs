@@ -49,6 +49,7 @@ pub enum CommandId {
     OmnivoxControl,       // omnivox_control - versioned Base64-JSON control request
     EmacsvoxTx,           // emacsvox_tx - replaceable Base64 presentation transaction
     EmacsvoxTimeline,     // emacsvox_timeline - structured Base64-JSON presentation
+    EmacsvoxTimelinePart, // emacsvox_timeline_part - one bounded V3 transport fragment
     EmacsvoxTrackedDispatch, // emacsvox_tracked_dispatch - dispatch with terminal playback status
     EmacsvoxMarkerDispatch, // emacsvox_marker_dispatch - dispatch with playback marker events
 
@@ -96,6 +97,7 @@ impl CommandId {
             "omnivox_control" => Some(Self::OmnivoxControl),
             "emacsvox_tx" => Some(Self::EmacsvoxTx),
             "emacsvox_timeline" => Some(Self::EmacsvoxTimeline),
+            "emacsvox_timeline_part" => Some(Self::EmacsvoxTimelinePart),
             "emacsvox_tracked_dispatch" => Some(Self::EmacsvoxTrackedDispatch),
             "emacsvox_marker_dispatch" => Some(Self::EmacsvoxMarkerDispatch),
             "tts_set_voice" => Some(Self::TtsSetVoice),
@@ -270,6 +272,13 @@ mod tests {
             cmd.args,
             Some("eyJwcm90b2NvbF92ZXJzaW9uIjoxfQ==".to_string())
         );
+    }
+
+    #[test]
+    fn test_parse_emacsvox_timeline_part() {
+        let cmd = parse_command("emacsvox_timeline_part 3 17 29 0 2 300000 eyJwYXJ0").unwrap();
+        assert_eq!(cmd.id, CommandId::EmacsvoxTimelinePart);
+        assert_eq!(cmd.args.as_deref(), Some("3 17 29 0 2 300000 eyJwYXJ0"));
     }
 
     #[test]
