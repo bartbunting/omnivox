@@ -76,6 +76,32 @@ stdin (Emacspeak protocol)
 └──────────────────────────────────────────┘
 ```
 
+### Protocol admission and synthesis backlog
+
+The stdin boundary accepts at most 512 KiB of UTF-8 per protocol line,
+excluding the newline and an optional carriage return. The reader drains an
+oversized record while retaining no more than 512 KiB plus one detection byte,
+rejects it, and continues at the next line. Invalid UTF-8 records are likewise
+rejected without terminating the server. A bounded handoff holds at most 32
+complete input lines, so a producer is backpressured before input memory can
+grow without limit.
+
+The unframed legacy queue is also atomic and bounded: one pending transaction
+may contain at most 4,096 items and 16 MiB of text/resource payload. Crossing
+either limit poisons and clears that transaction; its next dispatch fails
+instead of synthesizing a partial prefix. Stop and reset clear the rejection.
+
+The protocol loop hands synthesis off without blocking. At most 32 requests
+and 32 MiB of estimated owned payload may wait behind the active request.
+Matching replaceable timelines coalesce atomically. Under pressure, older
+replaceable timelines may be cancelled to admit newer work, but ordered and
+urgent requests are never evicted. If only nonreplaceable work remains, the
+incoming request fails explicitly. Tracked timelines/batches and previews
+receive a terminal `cancelled` or `failed` response; untracked legacy failures
+are written to the server diagnostic log. An interrupt immediately removes
+queued older generations, leaving the protocol loop responsive to stop,
+control, and subsequent speech.
+
 For a dispatched batch, speech and silence tickets form the primary
 presentation clock. Legacy queued audio icons are buffered at their queue
 boundary, mixed when several share that boundary, and scheduled on the sound

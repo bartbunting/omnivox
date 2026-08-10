@@ -8,9 +8,10 @@
 //! - **Reader thread** (main): reads stdin and parses commands in a tight loop.
 //!   Never blocks on synthesis. Stop/reset commands take effect immediately.
 //!
-//! - **Synthesis worker** (spawned): receives `SynthRequest`s via an unbounded
-//!   channel, synthesizes each chunk, checks the generation counter between
-//!   chunks, and queues audio to rodio. Stale requests are discarded.
+//! - **Synthesis worker** (spawned): receives requests through a bounded,
+//!   nonblocking queue. Replaceable navigation may be coalesced or evicted;
+//!   ordered and urgent work is never evicted. The worker checks the generation
+//!   counter between chunks and queues current audio to rodio.
 //!
 //! Audio is played on three concurrent streams (speech, tones, sounds).
 //! Items within each stream serialize; different streams overlap.
@@ -24,6 +25,7 @@ mod routing;
 mod server;
 mod text;
 mod transaction;
+mod work_queue;
 
 use anyhow::Result;
 use omnivox_audio::AudioFileLoader;
@@ -33,16 +35,14 @@ use std::any::Any;
 use std::backtrace::Backtrace;
 use std::panic::{self, AssertUnwindSafe};
 use std::sync::atomic::AtomicU64;
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 use tracing::{error, info};
 
 use cli::{apply_cli_flags, parse_args};
 use engine::{apply_audio_target_env, create_engine, create_engines};
 use health::RuntimeEngineHealth;
 use marker_events::spawn_marker_event_reporter;
-use server::{
-    run_server, spawn_tracked_playback_reporter, synthesis_worker, SynthRequest,
-};
+use server::{run_server, spawn_tracked_playback_reporter, synthesis_channel, synthesis_worker};
 
 pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -134,7 +134,7 @@ fn main() -> Result<()> {
     apply_audio_target_env(&mut state);
     apply_cli_flags(&cli, &mut state);
 
-    let (tx, rx) = mpsc::channel::<SynthRequest>();
+    let (tx, rx) = synthesis_channel();
     let gen_counter = Arc::new(AtomicU64::new(0));
     let runtime_health = Arc::new(RuntimeEngineHealth::new());
     let (marker_output, marker_event_handle) = spawn_marker_event_reporter();

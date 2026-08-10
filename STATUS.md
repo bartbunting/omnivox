@@ -8,6 +8,8 @@
 ### Working
 
 - Full Emacspeak protocol parser plus bounded Emacsvox extensions
+- Bounded 512 KiB/32-line protocol admission, atomic 4,096-item/16 MiB legacy
+  transactions, and nonblocking 32-request/32 MiB synthesis handoff
 - Command queue system with dispatch (depth: speech 100, tone 10, sound 10)
 - State management (voice, rate, pitch, volume, punctuation, split caps)
 - macOS native TTS (AVSpeechSynthesizer via ObjC bridge, buffer capture)

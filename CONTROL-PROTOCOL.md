@@ -46,6 +46,24 @@ ID, and a tagged request body. The current request is:
 The Base64 field must not contain line breaks. Omnivox rejects an encoded field
 before decoding if it cannot fit within the 256 KiB decoded-payload limit.
 
+Every main-protocol record, including `omnivox_control`, is limited to 512 KiB
+of UTF-8 before the line ending. This is above the maximum valid single-frame
+Base64 control and presentation records. Omnivox drains and rejects an
+oversized or non-UTF-8 line, then resumes with the next record. Its reader
+handoff buffers at most 32 complete lines.
+
+Pending unframed legacy transactions are limited to 4,096 queue items and 16
+MiB of text/resource payload. A transaction that exceeds either limit is
+discarded atomically at dispatch. The synthesis handoff admits at most 32
+waiting requests and 32 MiB of estimated owned payload without blocking the
+protocol loop. Matching replaceable timelines can coalesce, and other queued
+replaceable timelines can be cancelled under capacity pressure. Ordered and
+urgent work is not evicted; if it occupies the available capacity, incoming
+work fails. Tracked requests receive `cancelled` or `failed`, previews receive
+their corresponding terminal control response, and untracked legacy rejection
+is reported on standard error. Stop/reset cancels queued older generations
+before accepting subsequent work.
+
 The structured inventory request uses the same envelope with `"type":
 "inventory"`.
 

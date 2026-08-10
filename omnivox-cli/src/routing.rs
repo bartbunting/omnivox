@@ -7,7 +7,7 @@ use std::time::Instant;
 use omnivox_tts::contracts::{
     AcssApplication, Availability, EngineDescriptor, EngineHealth, FallbackPolicy,
     LogicalVoiceDefinition, NormalizedAcss, PhysicalVoiceId, PostSynthesisApplication,
-    PostSynthesisStyle, VoiceSelector,
+    PostSynthesisDimension, PostSynthesisStyle, VoiceSelector,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
@@ -90,6 +90,36 @@ impl LogicalVoiceRoutingSnapshot {
                 descriptor
             })
             .collect();
+    }
+
+    /// Estimate the owned heap payload retained while this routing snapshot is
+    /// waiting in the synthesis queue. The work queue also applies an item
+    /// limit, so fixed-size request fields do not need separate accounting.
+    pub fn queued_payload_bytes(&self) -> usize {
+        let definitions = self
+            .definitions
+            .iter()
+            .map(logical_voice_definition_payload_bytes)
+            .fold(
+                self.definitions
+                    .len()
+                    .saturating_mul(std::mem::size_of::<LogicalVoiceDefinition>()),
+                usize::saturating_add,
+            );
+        let inventory = self
+            .inventory
+            .iter()
+            .map(engine_descriptor_payload_bytes)
+            .fold(
+                self.inventory
+                    .len()
+                    .saturating_mul(std::mem::size_of::<EngineDescriptor>()),
+                usize::saturating_add,
+            );
+        definitions
+            .saturating_add(fallback_policy_payload_bytes(&self.fallback_policy))
+            .saturating_add(inventory)
+            .saturating_add(string_vec_payload_bytes(&self.disabled_engine_ids))
     }
 
     /// Return the first currently usable engine in global preferred/fallback
@@ -235,6 +265,127 @@ impl LogicalVoiceRoutingSnapshot {
         .map_err(|error| error.to_string())?;
         route_from_resolution(resolution, definition, &self.inventory, engine_registry)
     }
+}
+
+fn logical_voice_definition_payload_bytes(definition: &LogicalVoiceDefinition) -> usize {
+    definition
+        .id
+        .len()
+        .saturating_add(definition.language.as_ref().map_or(0, String::len))
+        .saturating_add(
+            definition
+                .preferences
+                .len()
+                .saturating_mul(std::mem::size_of::<VoiceSelector>()),
+        )
+        .saturating_add(
+            definition
+                .preferences
+                .iter()
+                .map(voice_selector_payload_bytes)
+                .fold(0usize, usize::saturating_add),
+        )
+}
+
+fn fallback_policy_payload_bytes(policy: &FallbackPolicy) -> usize {
+    string_vec_payload_bytes(&policy.preferred_engines)
+        .saturating_add(string_vec_payload_bytes(&policy.fallback_engines))
+        .saturating_add(
+            policy
+                .global_default
+                .as_ref()
+                .map_or(0, voice_selector_payload_bytes),
+        )
+}
+
+fn voice_selector_payload_bytes(selector: &VoiceSelector) -> usize {
+    match selector {
+        VoiceSelector::Exact(id) => id.engine_id.len().saturating_add(id.voice_id.len()),
+        VoiceSelector::EngineDefault { engine_id } => engine_id.len(),
+        VoiceSelector::Properties {
+            engine_id,
+            language,
+            ..
+        } => engine_id
+            .as_ref()
+            .map_or(0, String::len)
+            .saturating_add(language.as_ref().map_or(0, String::len)),
+    }
+}
+
+fn engine_descriptor_payload_bytes(descriptor: &EngineDescriptor) -> usize {
+    let voices = descriptor
+        .voices
+        .iter()
+        .map(|voice| {
+            voice
+                .id
+                .engine_id
+                .len()
+                .saturating_add(voice.id.voice_id.len())
+                .saturating_add(voice.display_name.len())
+                .saturating_add(voice.language.as_ref().map_or(0, String::len))
+                .saturating_add(availability_payload_bytes(&voice.availability))
+        })
+        .fold(
+            std::mem::size_of_val(descriptor.voices.as_slice()),
+            usize::saturating_add,
+        );
+    descriptor
+        .id
+        .len()
+        .saturating_add(descriptor.display_name.len())
+        .saturating_add(descriptor.version.as_ref().map_or(0, String::len))
+        .saturating_add(availability_payload_bytes(&descriptor.availability))
+        .saturating_add(engine_health_payload_bytes(&descriptor.health))
+        .saturating_add(
+            descriptor
+                .capabilities
+                .post_synthesis_dimensions
+                .len()
+                .saturating_mul(std::mem::size_of::<PostSynthesisDimension>()),
+        )
+        .saturating_add(
+            descriptor
+                .capabilities
+                .native_extensions
+                .iter()
+                .map(|extension| extension.id.len().saturating_add(extension.description.len()))
+                .fold(
+                    std::mem::size_of_val(
+                        descriptor.capabilities.native_extensions.as_slice(),
+                    ),
+                    usize::saturating_add,
+                ),
+        )
+        .saturating_add(voices)
+        .saturating_add(descriptor.default_voice_id.as_ref().map_or(0, String::len))
+}
+
+fn availability_payload_bytes(availability: &Availability) -> usize {
+    match availability {
+        Availability::Available => 0,
+        Availability::Unavailable { reason } => reason.len(),
+    }
+}
+
+fn engine_health_payload_bytes(health: &EngineHealth) -> usize {
+    match health {
+        EngineHealth::Healthy => 0,
+        EngineHealth::Degraded { reason } | EngineHealth::Failed { reason } => reason.len(),
+    }
+}
+
+fn string_vec_payload_bytes(values: &[String]) -> usize {
+    values
+        .iter()
+        .map(String::len)
+        .fold(
+            values
+                .len()
+                .saturating_mul(std::mem::size_of::<String>()),
+            usize::saturating_add,
+        )
 }
 
 /// Resolve legacy, engine-neutral voice state against the selected engine.

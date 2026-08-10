@@ -23,7 +23,10 @@ use omnivox_tts::control::{
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
-use omnivox_tts::timeline_protocol::PresentationTimelineEnvelope;
+use omnivox_tts::timeline_protocol::{
+    PresentationAction, PresentationDeliveryPolicy, PresentationEffectDirective,
+    PresentationTimelineEnvelope,
+};
 use omnivox_tts::TtsEngine;
 use std::io::{self, BufRead, Write};
 use std::mem;
@@ -44,9 +47,21 @@ use crate::transaction::{
     prefer_newer, select_adjacent_timeline, AdjacentTimelineSelection, MultipartTimelineAssembler,
     PreparedPresentation, PreparedStructuredPresentation, PresentationGenerations,
 };
+use crate::work_queue::{
+    bounded_work_queue, BoundedWork, RetiredWork, RetirementReason, WorkQueueLimits,
+    WorkQueueReceiver, WorkQueueSender,
+};
 
 const PRESENTATION_COALESCE_WINDOW: Duration = Duration::from_millis(2);
 const TIMELINE_MULTIPART_TIMEOUT: Duration = Duration::from_secs(5);
+const MAX_PROTOCOL_LINE_BYTES: usize = 512 * 1024;
+const INPUT_QUEUE_CAPACITY: usize = 32;
+const MAX_PENDING_ITEMS: usize = 4_096;
+const MAX_PENDING_PAYLOAD_BYTES: usize = 16 * 1024 * 1024;
+const SYNTHESIS_QUEUE_LIMITS: WorkQueueLimits = WorkQueueLimits {
+    max_items: 32,
+    max_payload_bytes: 32 * 1024 * 1024,
+};
 const TRACKED_STATUS_PREFIX: &str = "__EMACSVOX_TRACKED__";
 const PREVIEW_LOGICAL_VOICE_ID: &str = "omnivox.preview";
 const READY_TUNE_NOTES: &[(f32, u32)] = &[(523.25, 55), (659.25, 55), (783.99, 85)];
@@ -142,6 +157,163 @@ impl SynthRequest {
     }
 }
 
+impl BoundedWork for SynthRequest {
+    fn queued_payload_bytes(&self) -> usize {
+        match self {
+            Self::Batch {
+                items,
+                state,
+                logical_voice_routing,
+                ..
+            } => queue_items_payload_bytes(items)
+                .saturating_add(state.current_voice.len())
+                .saturating_add(logical_voice_routing.queued_payload_bytes()),
+            Self::Timeline {
+                timeline,
+                state,
+                logical_voice_routing,
+                ..
+            } => timeline_payload_bytes(timeline)
+                .saturating_add(state.current_voice.len())
+                .saturating_add(logical_voice_routing.queued_payload_bytes()),
+            Self::Preview {
+                text,
+                requested,
+                state,
+                logical_voice_routing,
+                ..
+            } => text
+                .len()
+                .saturating_add(voice_selector_payload_bytes(requested))
+                .saturating_add(state.current_voice.len())
+                .saturating_add(logical_voice_routing.queued_payload_bytes()),
+            Self::Immediate {
+                text,
+                state,
+                preferred_routing,
+                ..
+            }
+            | Self::Letter {
+                text,
+                state,
+                preferred_routing,
+                ..
+            } => text
+                .len()
+                .saturating_add(state.current_voice.len())
+                .saturating_add(preferred_routing.queued_payload_bytes()),
+            Self::PlaySound { path, state, .. } => path
+                .as_os_str()
+                .to_string_lossy()
+                .len()
+                .saturating_add(state.current_voice.len()),
+        }
+    }
+
+    fn generation(&self) -> u64 {
+        SynthRequest::generation(self)
+    }
+
+    fn is_replaceable(&self) -> bool {
+        matches!(
+            self,
+            Self::Timeline { timeline, .. }
+                if timeline.effective_delivery_policy()
+                    == PresentationDeliveryPolicy::Replaceable
+        )
+    }
+
+    fn shares_replacement_domain(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (
+                Self::Timeline { timeline, .. },
+                Self::Timeline {
+                    timeline: other,
+                    ..
+                }
+            ) if timeline.shares_replacement_domain(other)
+        )
+    }
+}
+
+pub(crate) fn synthesis_channel() -> (
+    WorkQueueSender<SynthRequest>,
+    WorkQueueReceiver<SynthRequest>,
+) {
+    bounded_work_queue(SYNTHESIS_QUEUE_LIMITS)
+}
+
+fn queue_items_payload_bytes(items: &[QueueItem]) -> usize {
+    items.iter().map(queue_item_payload_bytes).fold(
+        std::mem::size_of_val(items),
+        usize::saturating_add,
+    )
+}
+
+fn queue_item_payload_bytes(item: &QueueItem) -> usize {
+    match item {
+        QueueItem::Speech(text) | QueueItem::Code(text) => text.len(),
+        QueueItem::AudioIcon { path } => path.as_os_str().to_string_lossy().len(),
+        QueueItem::Tone { .. } | QueueItem::Silence { .. } => 0,
+    }
+}
+
+fn timeline_payload_bytes(timeline: &PresentationTimelineEnvelope) -> usize {
+    let spans = timeline
+        .spans
+        .iter()
+        .map(|span| {
+            span.text
+                .len()
+                .saturating_add(span.logical_voice_id.as_ref().map_or(0, String::len))
+                .saturating_add(match &span.effects {
+                    PresentationEffectDirective::Replace { state_id, .. } => state_id.len(),
+                    PresentationEffectDirective::Retain | PresentationEffectDirective::End => 0,
+                })
+        })
+        .fold(
+            std::mem::size_of_val(timeline.spans.as_slice()),
+            usize::saturating_add,
+        );
+    let actions = timeline
+        .actions
+        .iter()
+        .map(|action| {
+            action.id.len().saturating_add(match &action.action {
+                PresentationAction::Audio { path, .. } => path.len(),
+                PresentationAction::Tone { .. }
+                | PresentationAction::Silence { .. }
+                | PresentationAction::SemanticEvent => 0,
+            })
+        })
+        .fold(
+            std::mem::size_of_val(timeline.actions.as_slice()),
+            usize::saturating_add,
+        );
+    timeline
+        .replacement_key
+        .as_ref()
+        .map_or(0, String::len)
+        .saturating_add(spans)
+        .saturating_add(actions)
+}
+
+fn voice_selector_payload_bytes(selector: &VoiceSelector) -> usize {
+    match selector {
+        VoiceSelector::Exact(id) => id.engine_id.len().saturating_add(id.voice_id.len()),
+        VoiceSelector::EngineDefault { engine_id } => engine_id.len(),
+        VoiceSelector::Properties {
+            engine_id,
+            language,
+            ..
+        } => engine_id
+            .as_ref()
+            .map_or(0, String::len)
+            .saturating_add(language.as_ref().map_or(0, String::len)),
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DispatchTracking {
     Completion(u64),
@@ -153,6 +325,93 @@ impl DispatchTracking {
         match self {
             Self::Completion(identifier) | Self::Markers(identifier) => identifier,
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PendingOverflow {
+    ItemCount { attempted: usize },
+    PayloadBytes { attempted: usize },
+}
+
+impl std::fmt::Display for PendingOverflow {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ItemCount { attempted } => write!(
+                formatter,
+                "legacy transaction has {attempted} items; limit is {MAX_PENDING_ITEMS}"
+            ),
+            Self::PayloadBytes { attempted } => write!(
+                formatter,
+                "legacy transaction has {attempted} payload bytes; limit is {MAX_PENDING_PAYLOAD_BYTES}"
+            ),
+        }
+    }
+}
+
+#[derive(Default)]
+struct PendingBatch {
+    items: Vec<QueueItem>,
+    payload_bytes: usize,
+    overflow: Option<PendingOverflow>,
+}
+
+impl PendingBatch {
+    /// Queue one item or atomically poison the pending transaction. Once a
+    /// transaction exceeds a limit, later items are ignored until dispatch,
+    /// stop, or reset; a partial transaction is never synthesized.
+    fn push(&mut self, item: QueueItem) -> Option<PendingOverflow> {
+        if self.overflow.is_some() {
+            return None;
+        }
+        let attempted_items = self.items.len().saturating_add(1);
+        let attempted_bytes = self
+            .payload_bytes
+            .saturating_add(queue_item_payload_bytes(&item));
+        let overflow = if attempted_items > MAX_PENDING_ITEMS {
+            Some(PendingOverflow::ItemCount {
+                attempted: attempted_items,
+            })
+        } else if attempted_bytes > MAX_PENDING_PAYLOAD_BYTES {
+            Some(PendingOverflow::PayloadBytes {
+                attempted: attempted_bytes,
+            })
+        } else {
+            None
+        };
+        if let Some(overflow) = overflow {
+            self.items.clear();
+            self.payload_bytes = 0;
+            self.overflow = Some(overflow);
+            return Some(overflow);
+        }
+        self.items.push(item);
+        self.payload_bytes = attempted_bytes;
+        None
+    }
+
+    fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.items.is_empty() && self.overflow.is_none()
+    }
+
+    fn take(&mut self) -> Result<Vec<QueueItem>, PendingOverflow> {
+        if let Some(overflow) = self.overflow.take() {
+            self.items.clear();
+            self.payload_bytes = 0;
+            return Err(overflow);
+        }
+        self.payload_bytes = 0;
+        Ok(mem::take(&mut self.items))
+    }
+
+    fn clear(&mut self) {
+        self.items.clear();
+        self.payload_bytes = 0;
+        self.overflow = None;
     }
 }
 
@@ -290,6 +549,93 @@ fn write_tracked_status(identifier: u64, status: BatchStatus) {
     }
 }
 
+fn enqueue_synthesis(tx: &WorkQueueSender<SynthRequest>, request: SynthRequest) -> bool {
+    let outcome = tx.try_send(request);
+    for retired in outcome.retired {
+        report_retired_synthesis(retired);
+    }
+    outcome.accepted
+}
+
+fn cancel_queued_synthesis_before(tx: &WorkQueueSender<SynthRequest>, generation: u64) {
+    for retired in tx.retire_before_generation(generation) {
+        report_retired_synthesis(retired);
+    }
+}
+
+fn report_retired_synthesis(retired: RetiredWork<SynthRequest>) {
+    let RetiredWork { work, reason } = retired;
+    let status = retirement_status(reason);
+    let message = retirement_message(reason);
+    let request_kind = work.diagnostic_kind();
+    let request_identifier = work.diagnostic_identifier();
+    match status {
+        BatchStatus::Cancelled => info!(
+            request_kind,
+            request_identifier = ?request_identifier,
+            reason = message,
+            "Retired queued synthesis request"
+        ),
+        BatchStatus::Failed => error!(
+            request_kind,
+            request_identifier = ?request_identifier,
+            reason = message,
+            "Rejected synthesis request"
+        ),
+        BatchStatus::Completed => unreachable!("queue retirement cannot complete a request"),
+    }
+
+    match work {
+        SynthRequest::Batch {
+            tracking: Some(tracking),
+            ..
+        } => write_tracked_status(tracking.identifier(), status),
+        SynthRequest::Timeline { timeline, .. } => {
+            write_tracked_status(timeline.dispatch_id, status);
+        }
+        SynthRequest::Preview {
+            request_id,
+            requested,
+            ..
+        } => write_preview_status(
+            request_id,
+            status,
+            requested,
+            None,
+            Vec::new(),
+            Vec::new(),
+            Some(message.to_owned()),
+        ),
+        SynthRequest::Batch { tracking: None, .. }
+        | SynthRequest::Immediate { .. }
+        | SynthRequest::Letter { .. }
+        | SynthRequest::PlaySound { .. } => {}
+    }
+}
+
+fn retirement_status(reason: RetirementReason) -> BatchStatus {
+    match reason {
+        RetirementReason::Replaced
+        | RetirementReason::EvictedForCapacity
+        | RetirementReason::StaleGeneration => BatchStatus::Cancelled,
+        RetirementReason::Saturated | RetirementReason::ReceiverClosed => BatchStatus::Failed,
+    }
+}
+
+fn retirement_message(reason: RetirementReason) -> &'static str {
+    match reason {
+        RetirementReason::Replaced => "superseded by newer replaceable presentation",
+        RetirementReason::EvictedForCapacity => {
+            "evicted replaceable presentation to preserve bounded queue capacity"
+        }
+        RetirementReason::StaleGeneration => "cancelled by a newer interrupt generation",
+        RetirementReason::Saturated => {
+            "synthesis queue is full of ordered or urgent work, or payload limit was exceeded"
+        }
+        RetirementReason::ReceiverClosed => "synthesis worker is unavailable",
+    }
+}
+
 fn await_tracked_playback(mut status: BatchStatus, tickets: Vec<PlaybackTicket>) -> BatchStatus {
     for ticket in tickets {
         if ticket.wait() == PlaybackStatus::Cancelled && status == BatchStatus::Completed {
@@ -314,7 +660,7 @@ fn tracked_status_name(status: BatchStatus) -> &'static str {
 /// Worker thread: receive `SynthRequest`s and synthesize them one at a time.
 #[allow(clippy::too_many_arguments)]
 pub fn synthesis_worker(
-    rx: mpsc::Receiver<SynthRequest>,
+    rx: WorkQueueReceiver<SynthRequest>,
     gen_counter: Arc<AtomicU64>,
     engine: Arc<dyn TtsEngine>,
     engine_registry: Arc<EngineRegistry>,
@@ -324,7 +670,7 @@ pub fn synthesis_worker(
     tracked_playback_tx: mpsc::Sender<TrackedPlayback>,
     marker_output: MarkerEventOutput,
 ) {
-    for request in rx {
+    while let Some(request) = rx.recv() {
         let request_kind = request.diagnostic_kind();
         let request_identifier = request.diagnostic_identifier();
         let request_generation = request.generation();
@@ -687,6 +1033,70 @@ fn play_ready_tune(control: &AudioControl, state: &TtsState) {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum BoundedProtocolLine {
+    Line(String),
+    Oversized { bytes: usize },
+    InvalidUtf8 { bytes: usize },
+}
+
+/// Read and drain one newline-delimited record without ever retaining more
+/// than one byte beyond the accepted payload limit. The extra byte permits an
+/// exact-limit CRLF record while still detecting a true overflow.
+fn read_bounded_protocol_line<R: BufRead>(
+    reader: &mut R,
+) -> io::Result<Option<BoundedProtocolLine>> {
+    let mut stored = Vec::new();
+    let mut total_content_bytes = 0usize;
+    let mut last_content_byte = None;
+    let mut saw_input = false;
+
+    loop {
+        let available = reader.fill_buf()?;
+        if available.is_empty() {
+            if !saw_input {
+                return Ok(None);
+            }
+            break;
+        }
+        saw_input = true;
+        let newline = available.iter().position(|byte| *byte == b'\n');
+        let content_len = newline.unwrap_or(available.len());
+        let content = &available[..content_len];
+        total_content_bytes = total_content_bytes.saturating_add(content.len());
+        if let Some(last) = content.last() {
+            last_content_byte = Some(*last);
+        }
+        let retained_limit = MAX_PROTOCOL_LINE_BYTES.saturating_add(1);
+        let retain = content
+            .len()
+            .min(retained_limit.saturating_sub(stored.len()));
+        stored.extend_from_slice(&content[..retain]);
+        let consumed = content_len.saturating_add(usize::from(newline.is_some()));
+        reader.consume(consumed);
+        if newline.is_some() {
+            break;
+        }
+    }
+
+    let trailing_carriage_return = last_content_byte == Some(b'\r');
+    let logical_bytes = total_content_bytes.saturating_sub(usize::from(trailing_carriage_return));
+    if logical_bytes > MAX_PROTOCOL_LINE_BYTES {
+        return Ok(Some(BoundedProtocolLine::Oversized {
+            bytes: logical_bytes,
+        }));
+    }
+    if trailing_carriage_return {
+        stored.pop();
+    }
+    Ok(Some(match String::from_utf8(stored) {
+        Ok(line) => BoundedProtocolLine::Line(line),
+        Err(_) => BoundedProtocolLine::InvalidUtf8 {
+            bytes: logical_bytes,
+        },
+    }))
+}
+
 /// Reader loop: process stdin commands and drive the synthesis worker.
 ///
 /// Does not own `AudioStreams` — the caller keeps it alive so the `OutputStream`
@@ -697,29 +1107,48 @@ pub fn run_server(
     engine_registry: Arc<EngineRegistry>,
     runtime_health: Arc<RuntimeEngineHealth>,
     mut state: TtsState,
-    tx: mpsc::Sender<SynthRequest>,
+    tx: WorkQueueSender<SynthRequest>,
     control: Arc<AudioControl>,
     gen_counter: Arc<AtomicU64>,
     worker_handle: std::thread::JoinHandle<()>,
     tracked_playback_handle: std::thread::JoinHandle<()>,
     marker_event_handle: std::thread::JoinHandle<()>,
 ) -> Result<()> {
-    let mut pending: Vec<QueueItem> = Vec::new();
+    let mut pending = PendingBatch::default();
     let mut current_gen: u64 = 0;
     let mut logical_voices = LogicalVoiceRegistry::default();
     let mut presentation_generations = PresentationGenerations::default();
     let preferred_engine_id = engine.descriptor().id;
     let mut routing_policy = RoutingPolicyRegistry::new(preferred_engine_id.clone());
 
-    let (input_tx, input_rx) = mpsc::channel::<io::Result<String>>();
+    let (input_tx, input_rx) = mpsc::sync_channel::<io::Result<String>>(INPUT_QUEUE_CAPACITY);
     let input_handle = std::thread::Builder::new()
         .name("omnivox-stdin".to_owned())
         .spawn(move || {
             let stdin = io::stdin();
-            for line in stdin.lock().lines() {
-                let failed = line.is_err();
-                if input_tx.send(line).is_err() || failed {
-                    break;
+            let mut input = stdin.lock();
+            loop {
+                match read_bounded_protocol_line(&mut input) {
+                    Ok(Some(BoundedProtocolLine::Line(line))) => {
+                        if input_tx.send(Ok(line)).is_err() {
+                            break;
+                        }
+                    }
+                    Ok(Some(BoundedProtocolLine::Oversized { bytes })) => {
+                        error!(
+                            bytes,
+                            limit = MAX_PROTOCOL_LINE_BYTES,
+                            "Rejected oversized protocol line"
+                        );
+                    }
+                    Ok(Some(BoundedProtocolLine::InvalidUtf8 { bytes })) => {
+                        error!(bytes, "Rejected protocol line containing invalid UTF-8");
+                    }
+                    Ok(None) => break,
+                    Err(error) => {
+                        let _ = input_tx.send(Err(error));
+                        break;
+                    }
                 }
             }
         })
@@ -1270,16 +1699,16 @@ fn execute_structured_presentation(
     engine_registry: &EngineRegistry,
     routing_policy: &RoutingPolicyRegistry,
     logical_voices: &LogicalVoiceRegistry,
-    tx: &mpsc::Sender<SynthRequest>,
+    tx: &WorkQueueSender<SynthRequest>,
 ) {
     debug!(
         "Accepted structured Emacsvox presentation {}",
         presentation.generation
     );
     generations.commit(presentation.generation);
-    let dispatch_id = presentation.timeline.dispatch_id;
-    if tx
-        .send(SynthRequest::Timeline {
+    enqueue_synthesis(
+        tx,
+        SynthRequest::Timeline {
             timeline: presentation.timeline,
             state: state.clone(),
             logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
@@ -1288,11 +1717,8 @@ fn execute_structured_presentation(
                 routing_policy,
             ),
             gen: current_gen,
-        })
-        .is_err()
-    {
-        write_tracked_status(dispatch_id, BatchStatus::Failed);
-    }
+        },
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1300,7 +1726,7 @@ fn execute_presentation(
     presentation: PreparedPresentation,
     generations: &mut PresentationGenerations,
     state: &mut TtsState,
-    pending: &mut Vec<QueueItem>,
+    pending: &mut PendingBatch,
     current_gen: &mut u64,
     gen_counter: &Arc<AtomicU64>,
     engine_registry: &EngineRegistry,
@@ -1309,7 +1735,7 @@ fn execute_presentation(
     routing_policy: &mut RoutingPolicyRegistry,
     logical_voices: &mut LogicalVoiceRegistry,
     control: &Arc<AudioControl>,
-    tx: &mpsc::Sender<SynthRequest>,
+    tx: &WorkQueueSender<SynthRequest>,
 ) {
     debug!(
         "Accepted Emacsvox presentation transaction {}",
@@ -1352,7 +1778,7 @@ fn dispatch_preview(
     inventory: &[EngineDescriptor],
     engine_registry: &EngineRegistry,
     routing_policy: &RoutingPolicyRegistry,
-    tx: &mpsc::Sender<SynthRequest>,
+    tx: &WorkQueueSender<SynthRequest>,
 ) {
     let reject = |message: String| {
         write_preview_status(
@@ -1424,9 +1850,7 @@ fn dispatch_preview(
         ),
         gen,
     };
-    if tx.send(request).is_err() {
-        reject("synthesis worker is unavailable".to_owned());
-    }
+    enqueue_synthesis(tx, request);
 }
 
 fn apply_preview_rate_offset(
@@ -1451,11 +1875,17 @@ fn apply_preview_rate_offset(
     Ok(())
 }
 
+fn queue_pending_item(pending: &mut PendingBatch, item: QueueItem) {
+    if let Some(overflow) = pending.push(item) {
+        error!(%overflow, "Rejected oversized legacy transaction");
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn handle_command(
     command: Command,
     state: &mut TtsState,
-    pending: &mut Vec<QueueItem>,
+    pending: &mut PendingBatch,
     current_gen: &mut u64,
     gen_counter: &Arc<AtomicU64>,
     engine_registry: &EngineRegistry,
@@ -1464,7 +1894,7 @@ fn handle_command(
     routing_policy: &mut RoutingPolicyRegistry,
     logical_voices: &mut LogicalVoiceRegistry,
     control: &Arc<AudioControl>,
-    tx: &mpsc::Sender<SynthRequest>,
+    tx: &WorkQueueSender<SynthRequest>,
 ) {
     match command.id {
         // --- Queue accumulation (no synthesis yet) ---
@@ -1472,14 +1902,14 @@ fn handle_command(
         CommandId::Queue => {
             if let Some(text) = command.args {
                 debug!("Queue speech: {}", text);
-                pending.push(QueueItem::Speech(text));
+                queue_pending_item(pending, QueueItem::Speech(text));
             }
         }
 
         CommandId::Code => {
             if let Some(codes) = command.args {
                 debug!("Queue codes: {}", codes);
-                pending.push(QueueItem::Code(codes));
+                queue_pending_item(pending, QueueItem::Code(codes));
             }
         }
 
@@ -1488,11 +1918,14 @@ fn handle_command(
                 match parse_tone_arguments(&args) {
                     Ok(tone) => {
                         debug!("Queue tone: {}Hz {}ms", tone.frequency_hz, tone.duration_ms);
-                        pending.push(QueueItem::Tone {
-                            frequency: tone.frequency_hz,
-                            duration: tone.duration_ms,
-                            placement: TonePlacement::Independent,
-                        });
+                        queue_pending_item(
+                            pending,
+                            QueueItem::Tone {
+                                frequency: tone.frequency_hz,
+                                duration: tone.duration_ms,
+                                placement: TonePlacement::Independent,
+                            },
+                        );
                     }
                     Err(error) => warn!("Invalid tone: {error}"),
                 }
@@ -1507,11 +1940,14 @@ fn handle_command(
                             "Queue {:?} presentation tone: {}Hz {}ms",
                             tone.placement, tone.frequency_hz, tone.duration_ms
                         );
-                        pending.push(QueueItem::Tone {
-                            frequency: tone.frequency_hz,
-                            duration: tone.duration_ms,
-                            placement: tone.placement,
-                        });
+                        queue_pending_item(
+                            pending,
+                            QueueItem::Tone {
+                                frequency: tone.frequency_hz,
+                                duration: tone.duration_ms,
+                                placement: tone.placement,
+                            },
+                        );
                     }
                     Err(error) => warn!("Invalid presentation tone: {error}"),
                 }
@@ -1522,7 +1958,7 @@ fn handle_command(
             if let Some(dur_str) = command.args {
                 if let Ok(dur) = dur_str.parse::<u32>() {
                     debug!("Queue silence: {}ms", dur);
-                    pending.push(QueueItem::Silence { duration: dur });
+                    queue_pending_item(pending, QueueItem::Silence { duration: dur });
                 }
             }
         }
@@ -1532,7 +1968,7 @@ fn handle_command(
                 match parse_resource_path(&path) {
                     Ok(path) => {
                         debug!("Queue audio icon: {}", path.display());
-                        pending.push(QueueItem::AudioIcon { path });
+                        queue_pending_item(pending, QueueItem::AudioIcon { path });
                     }
                     Err(error) => warn!("Invalid audio icon path: {}", error),
                 }
@@ -1544,18 +1980,29 @@ fn handle_command(
         CommandId::Dispatch => {
             if !pending.is_empty() {
                 debug!("Dispatch {} items (gen={})", pending.len(), current_gen);
-                let items = mem::take(pending);
-                let _ = tx.send(SynthRequest::Batch {
-                    items,
-                    state: state.clone(),
-                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
-                        logical_voices,
-                        engine_registry,
-                        routing_policy,
-                    ),
-                    tracking: None,
-                    gen: *current_gen,
-                });
+                match pending.take() {
+                    Ok(items) if !items.is_empty() => {
+                        enqueue_synthesis(
+                            tx,
+                            SynthRequest::Batch {
+                                items,
+                                state: state.clone(),
+                                logical_voice_routing:
+                                    LogicalVoiceRoutingSnapshot::capture_with_policy(
+                                        logical_voices,
+                                        engine_registry,
+                                        routing_policy,
+                                    ),
+                                tracking: None,
+                                gen: *current_gen,
+                            },
+                        );
+                    }
+                    Ok(_) => {}
+                    Err(overflow) => {
+                        error!(%overflow, "Discarded oversized legacy transaction at dispatch");
+                    }
+                }
             }
         }
 
@@ -1572,20 +2019,28 @@ fn handle_command(
                     pending.len(),
                     current_gen
                 );
-                let request = SynthRequest::Batch {
-                    items: mem::take(pending),
-                    state: state.clone(),
-                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
-                        logical_voices,
-                        engine_registry,
-                        routing_policy,
+                match pending.take() {
+                    Ok(items) => enqueue_synthesis(
+                        tx,
+                        SynthRequest::Batch {
+                            items,
+                            state: state.clone(),
+                            logical_voice_routing:
+                                LogicalVoiceRoutingSnapshot::capture_with_policy(
+                                    logical_voices,
+                                    engine_registry,
+                                    routing_policy,
+                                ),
+                            tracking: Some(DispatchTracking::Completion(identifier)),
+                            gen: *current_gen,
+                        },
                     ),
-                    tracking: Some(DispatchTracking::Completion(identifier)),
-                    gen: *current_gen,
+                    Err(overflow) => {
+                        error!(%overflow, identifier, "Rejected oversized tracked transaction");
+                        write_tracked_status(identifier, BatchStatus::Failed);
+                        false
+                    }
                 };
-                if tx.send(request).is_err() {
-                    write_tracked_status(identifier, BatchStatus::Failed);
-                }
             } else {
                 warn!("Invalid tracked dispatch identifier");
             }
@@ -1604,20 +2059,28 @@ fn handle_command(
                     pending.len(),
                     current_gen
                 );
-                let request = SynthRequest::Batch {
-                    items: mem::take(pending),
-                    state: state.clone(),
-                    logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
-                        logical_voices,
-                        engine_registry,
-                        routing_policy,
+                match pending.take() {
+                    Ok(items) => enqueue_synthesis(
+                        tx,
+                        SynthRequest::Batch {
+                            items,
+                            state: state.clone(),
+                            logical_voice_routing:
+                                LogicalVoiceRoutingSnapshot::capture_with_policy(
+                                    logical_voices,
+                                    engine_registry,
+                                    routing_policy,
+                                ),
+                            tracking: Some(DispatchTracking::Markers(identifier)),
+                            gen: *current_gen,
+                        },
                     ),
-                    tracking: Some(DispatchTracking::Markers(identifier)),
-                    gen: *current_gen,
+                    Err(overflow) => {
+                        error!(%overflow, identifier, "Rejected oversized marker transaction");
+                        write_tracked_status(identifier, BatchStatus::Failed);
+                        false
+                    }
                 };
-                if tx.send(request).is_err() {
-                    write_tracked_status(identifier, BatchStatus::Failed);
-                }
             } else {
                 warn!("Invalid marker dispatch identifier");
             }
@@ -1628,6 +2091,7 @@ fn handle_command(
         CommandId::Stop => {
             debug!("Stop");
             interrupt(current_gen, gen_counter, control, engine_registry, false, true);
+            cancel_queued_synthesis_before(tx, *current_gen);
             pending.clear();
         }
 
@@ -1635,16 +2099,20 @@ fn handle_command(
             if let Some(text) = command.args {
                 debug!("tts_say: {}", text);
                 interrupt(current_gen, gen_counter, control, engine_registry, true, false);
-                let _ = tx.send(SynthRequest::Immediate {
-                    text,
-                    state: state.clone(),
-                    preferred_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
-                        logical_voices,
-                        engine_registry,
-                        routing_policy,
-                    ),
-                    gen: *current_gen,
-                });
+                cancel_queued_synthesis_before(tx, *current_gen);
+                enqueue_synthesis(
+                    tx,
+                    SynthRequest::Immediate {
+                        text,
+                        state: state.clone(),
+                        preferred_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
+                            logical_voices,
+                            engine_registry,
+                            routing_policy,
+                        ),
+                        gen: *current_gen,
+                    },
+                );
             }
         }
 
@@ -1652,16 +2120,20 @@ fn handle_command(
             if let Some(letter) = command.args {
                 debug!("Letter: {}", letter);
                 interrupt(current_gen, gen_counter, control, engine_registry, true, false);
-                let _ = tx.send(SynthRequest::Letter {
-                    text: letter,
-                    state: state.clone(),
-                    preferred_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
-                        logical_voices,
-                        engine_registry,
-                        routing_policy,
-                    ),
-                    gen: *current_gen,
-                });
+                cancel_queued_synthesis_before(tx, *current_gen);
+                enqueue_synthesis(
+                    tx,
+                    SynthRequest::Letter {
+                        text: letter,
+                        state: state.clone(),
+                        preferred_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
+                            logical_voices,
+                            engine_registry,
+                            routing_policy,
+                        ),
+                        gen: *current_gen,
+                    },
+                );
             }
         }
 
@@ -1670,11 +2142,14 @@ fn handle_command(
                 match parse_resource_path(&path) {
                     Ok(path) => {
                         debug!("Play sound: {}", path.display());
-                        let _ = tx.send(SynthRequest::PlaySound {
-                            path,
-                            state: state.clone(),
-                            gen: *current_gen,
-                        });
+                        enqueue_synthesis(
+                            tx,
+                            SynthRequest::PlaySound {
+                                path,
+                                state: state.clone(),
+                                gen: *current_gen,
+                            },
+                        );
                     }
                     Err(error) => warn!("Invalid sound path: {}", error),
                 }
@@ -1686,16 +2161,19 @@ fn handle_command(
                 "Omnivox version {}",
                 crate::VERSION.replace('.', " dot ")
             );
-            let _ = tx.send(SynthRequest::Immediate {
-                text: version_text,
-                state: state.clone(),
-                preferred_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
-                    logical_voices,
-                    engine_registry,
-                    routing_policy,
-                ),
-                gen: *current_gen,
-            });
+            enqueue_synthesis(
+                tx,
+                SynthRequest::Immediate {
+                    text: version_text,
+                    state: state.clone(),
+                    preferred_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
+                        logical_voices,
+                        engine_registry,
+                        routing_policy,
+                    ),
+                    gen: *current_gen,
+                },
+            );
         }
 
         CommandId::OmnivoxControl => {
@@ -1931,6 +2409,7 @@ fn handle_command(
         CommandId::TtsReset => {
             debug!("Reset");
             interrupt(current_gen, gen_counter, control, engine_registry, false, true);
+            cancel_queued_synthesis_before(tx, *current_gen);
             state.reset();
             pending.clear();
         }
@@ -1948,6 +2427,8 @@ fn handle_command(
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
     use omnivox_tts::contracts::NormalizedAcss;
     use omnivox_tts::timeline_protocol::{
         encode_multipart_presentation_timeline, PresentationDeliveryPolicy,
@@ -1956,6 +2437,153 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn protocol_reader_accepts_exact_limit_without_a_newline() {
+        let input = vec![b'x'; MAX_PROTOCOL_LINE_BYTES];
+        let mut reader = Cursor::new(input);
+
+        let line = read_bounded_protocol_line(&mut reader).unwrap();
+
+        assert!(matches!(
+            line,
+            Some(BoundedProtocolLine::Line(value))
+                if value.len() == MAX_PROTOCOL_LINE_BYTES
+        ));
+        assert_eq!(read_bounded_protocol_line(&mut reader).unwrap(), None);
+    }
+
+    #[test]
+    fn protocol_reader_counts_multibyte_utf8_bytes() {
+        let exact = "é".repeat(MAX_PROTOCOL_LINE_BYTES / 2);
+        let mut reader = Cursor::new(exact.as_bytes());
+
+        let line = read_bounded_protocol_line(&mut reader).unwrap();
+
+        assert_eq!(line, Some(BoundedProtocolLine::Line(exact)));
+    }
+
+    #[test]
+    fn protocol_reader_accepts_exact_limit_with_crlf() {
+        let mut input = vec![b'x'; MAX_PROTOCOL_LINE_BYTES];
+        input.extend_from_slice(b"\r\n");
+        let mut reader = Cursor::new(input);
+
+        let line = read_bounded_protocol_line(&mut reader).unwrap();
+
+        assert!(matches!(
+            line,
+            Some(BoundedProtocolLine::Line(value))
+                if value.len() == MAX_PROTOCOL_LINE_BYTES
+        ));
+    }
+
+    #[test]
+    fn protocol_reader_drains_an_oversized_line_before_the_next_command() {
+        let mut input = vec![b'x'; MAX_PROTOCOL_LINE_BYTES + 1];
+        input.extend_from_slice(b"\ns\r\n");
+        let mut reader = Cursor::new(input);
+
+        assert_eq!(
+            read_bounded_protocol_line(&mut reader).unwrap(),
+            Some(BoundedProtocolLine::Oversized {
+                bytes: MAX_PROTOCOL_LINE_BYTES + 1,
+            })
+        );
+        assert_eq!(
+            read_bounded_protocol_line(&mut reader).unwrap(),
+            Some(BoundedProtocolLine::Line("s".to_owned()))
+        );
+    }
+
+    #[test]
+    fn protocol_reader_rejects_invalid_utf8_and_resumes_at_the_next_line() {
+        let mut reader = Cursor::new([0xff, b'\n', b's', b'\n']);
+
+        let invalid = read_bounded_protocol_line(&mut reader).unwrap();
+
+        assert_eq!(
+            invalid,
+            Some(BoundedProtocolLine::InvalidUtf8 { bytes: 1 })
+        );
+        assert_eq!(
+            read_bounded_protocol_line(&mut reader).unwrap(),
+            Some(BoundedProtocolLine::Line("s".to_owned()))
+        );
+    }
+
+    #[test]
+    fn pending_legacy_transaction_enforces_item_limit_atomically() {
+        let mut pending = PendingBatch::default();
+        for _ in 0..MAX_PENDING_ITEMS {
+            assert_eq!(
+                pending.push(QueueItem::Silence { duration: 1 }),
+                None
+            );
+        }
+
+        let overflow = pending.push(QueueItem::Silence { duration: 1 });
+
+        assert_eq!(
+            overflow,
+            Some(PendingOverflow::ItemCount {
+                attempted: MAX_PENDING_ITEMS + 1,
+            })
+        );
+        assert!(matches!(
+            pending.take(),
+            Err(PendingOverflow::ItemCount { .. })
+        ));
+        assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn pending_legacy_transaction_enforces_payload_limit_atomically() {
+        let mut pending = PendingBatch::default();
+        assert_eq!(
+            pending.push(QueueItem::Speech(
+                "x".repeat(MAX_PENDING_PAYLOAD_BYTES)
+            )),
+            None
+        );
+
+        let overflow = pending.push(QueueItem::Speech("x".to_owned()));
+
+        assert_eq!(
+            overflow,
+            Some(PendingOverflow::PayloadBytes {
+                attempted: MAX_PENDING_PAYLOAD_BYTES + 1,
+            })
+        );
+        assert!(matches!(
+            pending.take(),
+            Err(PendingOverflow::PayloadBytes { .. })
+        ));
+    }
+
+    #[test]
+    fn synthesis_queue_limits_match_the_negotiated_operational_policy() {
+        assert_eq!(SYNTHESIS_QUEUE_LIMITS.max_items, 32);
+        assert_eq!(SYNTHESIS_QUEUE_LIMITS.max_payload_bytes, 32 * 1024 * 1024);
+        assert_eq!(INPUT_QUEUE_CAPACITY, 32);
+    }
+
+    #[test]
+    fn queue_retirement_maps_replacement_to_cancel_and_saturation_to_failure() {
+        for reason in [
+            RetirementReason::Replaced,
+            RetirementReason::EvictedForCapacity,
+            RetirementReason::StaleGeneration,
+        ] {
+            assert_eq!(retirement_status(reason), BatchStatus::Cancelled);
+        }
+        for reason in [
+            RetirementReason::Saturated,
+            RetirementReason::ReceiverClosed,
+        ] {
+            assert_eq!(retirement_status(reason), BatchStatus::Failed);
+        }
+    }
 
     fn multipart_commands(generation: u64, dispatch_id: u64) -> Vec<Command> {
         let timeline = PresentationTimelineEnvelope {
@@ -1994,6 +2622,65 @@ mod tests {
                 )
             })
             .collect()
+    }
+
+    fn timeline_request(
+        generation: u64,
+        dispatch_id: u64,
+        policy: PresentationDeliveryPolicy,
+        replacement_key: Option<&str>,
+    ) -> SynthRequest {
+        let engines = EngineRegistry::new();
+        SynthRequest::Timeline {
+            timeline: PresentationTimelineEnvelope {
+                protocol_version: PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+                generation,
+                dispatch_id,
+                delivery_policy: Some(policy),
+                replacement_key: replacement_key.map(str::to_owned),
+                spans: vec![PresentationSpeechSpan {
+                    id: 1,
+                    text: "queued text".to_owned(),
+                    logical_voice_id: None,
+                    acss: NormalizedAcss::default(),
+                    rate_offset: None,
+                    effects: PresentationEffectDirective::Retain,
+                }],
+                actions: Vec::new(),
+            },
+            state: TtsState::default(),
+            logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                &LogicalVoiceRegistry::default(),
+                &engines,
+            ),
+            gen: generation,
+        }
+    }
+
+    #[test]
+    fn synthesis_queue_coalesces_only_matching_replaceable_timelines() {
+        let first = timeline_request(
+            1,
+            11,
+            PresentationDeliveryPolicy::Replaceable,
+            Some("navigation"),
+        );
+        let same_domain = timeline_request(
+            2,
+            12,
+            PresentationDeliveryPolicy::Replaceable,
+            Some("navigation"),
+        );
+        let ordered = timeline_request(3, 13, PresentationDeliveryPolicy::Ordered, None);
+
+        assert!(BoundedWork::is_replaceable(&first));
+        assert!(BoundedWork::shares_replacement_domain(
+            &same_domain,
+            &first
+        ));
+        assert!(!BoundedWork::is_replaceable(&ordered));
+        assert!(!BoundedWork::shares_replacement_domain(&ordered, &first));
+        assert!(BoundedWork::queued_payload_bytes(&first) >= "queued text".len());
     }
 
     #[test]

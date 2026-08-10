@@ -103,19 +103,23 @@ are at most 128 UTF-8 bytes; audio paths are at most 4096 UTF-8 bytes.
 ## Delivery Policy
 
 `delivery_policy` is `ordered`, `replaceable`, or `urgent`. Ordered and urgent
-envelopes omit `replacement_key` and are never coalesced with an adjacent
-timeline. A replaceable envelope requires a nonempty replacement key of at
-most 128 UTF-8 bytes. Omnivox may coalesce adjacent replaceable envelopes only
-when both use the same policy-bearing protocol version and their keys are
-identical; the discarded dispatch receives `cancelled` before the selected
-dispatch can complete. Version 2 and version 3 envelopes do not coalesce with
-one another.
+envelopes omit `replacement_key` and are never coalesced or evicted. A
+replaceable envelope requires a nonempty replacement key of at most 128 UTF-8
+bytes. Omnivox coalesces adjacent reader submissions, and the bounded worker
+handoff atomically supersedes an older queued envelope, only when both use the
+same policy-bearing protocol version and their keys are identical. Under
+capacity pressure it may also cancel the oldest queued replaceable envelope
+from another domain before rejecting incoming work. Every discarded dispatch
+receives `cancelled`; a replacement that cannot itself be admitted leaves the
+older queued request intact. Version 2 and version 3 envelopes do not coalesce
+with one another.
 
 Urgent interruption remains an explicit stop barrier sent immediately before
-the urgent timeline. The policy field prevents a later adjacent timeline from
-silently superseding that urgent work. A stop encountered while any timeline
+the urgent timeline. The policy field prevents later work from silently
+superseding or evicting that urgent work. A stop encountered while any timeline
 is still in the coalescing window cancels that timeline and consumes its
-generation.
+generation; an accepted stop also cancels all older requests still waiting in
+the worker handoff.
 
 Version 1 omits both delivery fields and retains its original interpretation:
 every version 1 envelope is replaceable in one implicit domain. Version 1 does
