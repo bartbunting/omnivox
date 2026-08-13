@@ -22,6 +22,11 @@ pub struct IsolationBudget {
     quarantined: AtomicUsize,
 }
 
+enum IsolationPressure {
+    EngineOccupied,
+    ProcessLimit,
+}
+
 impl IsolationBudget {
     pub fn new() -> Self {
         Self {
@@ -30,19 +35,22 @@ impl IsolationBudget {
         }
     }
 
-    fn try_acquire(self: &Arc<Self>, engine_active: &Arc<AtomicBool>) -> Option<IsolationLease> {
+    fn try_acquire(
+        self: &Arc<Self>,
+        engine_active: &Arc<AtomicBool>,
+    ) -> Result<IsolationLease, IsolationPressure> {
         if engine_active
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
-            return None;
+            return Err(IsolationPressure::EngineOccupied);
         }
 
         let mut current = self.in_flight.load(Ordering::Acquire);
         loop {
             if current >= MAX_ISOLATED_CALLS {
                 engine_active.store(false, Ordering::Release);
-                return None;
+                return Err(IsolationPressure::ProcessLimit);
             }
             match self.in_flight.compare_exchange_weak(
                 current,
@@ -55,7 +63,7 @@ impl IsolationBudget {
             }
         }
 
-        Some(IsolationLease(Arc::new(IsolationLeaseInner {
+        Ok(IsolationLease(Arc::new(IsolationLeaseInner {
             budget: Arc::clone(self),
             engine_active: Arc::clone(engine_active),
             quarantined: AtomicBool::new(false),
@@ -164,13 +172,25 @@ impl TtsEngine for IsolatedTtsEngine {
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         let engine_id = self.engine.descriptor().id;
-        let Some(lease) = self.budget.try_acquire(&self.engine_active) else {
-            warn!(
-                engine_id,
-                global_limit = MAX_ISOLATED_CALLS,
-                "Isolated synthesis capacity is occupied; routing through fallback"
-            );
-            return Err(TtsError::NotAvailable);
+        let lease = match self.budget.try_acquire(&self.engine_active) {
+            Ok(lease) => lease,
+            Err(IsolationPressure::EngineOccupied) => {
+                warn!(
+                    engine_id,
+                    "Engine already has active or quarantined synthesis; routing through fallback"
+                );
+                return Err(TtsError::NotAvailable);
+            }
+            Err(IsolationPressure::ProcessLimit) => {
+                warn!(
+                    engine_id,
+                    in_flight = self.budget.in_flight.load(Ordering::Acquire),
+                    quarantined = self.budget.quarantined.load(Ordering::Acquire),
+                    global_limit = MAX_ISOLATED_CALLS,
+                    "Process-wide isolated synthesis capacity is occupied; routing through fallback"
+                );
+                return Err(TtsError::NotAvailable);
+            }
         };
 
         let generation = self.generation.load(Ordering::Acquire);

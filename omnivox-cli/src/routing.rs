@@ -675,6 +675,17 @@ fn synthesize_with_runtime_fallback_anchored_inner(
             recovery_probe = permit == EnginePermit::RecoveryProbe,
             "Starting routed synthesis"
         );
+        if crate::diagnostics::synthesis_text_logging_enabled() {
+            info!(
+                logical_voice = route.logical_voice_id,
+                engine_id = route.realized.engine_id,
+                voice_id = route.realized.voice_id,
+                attempt,
+                generation,
+                synthesis_text = ?chunk,
+                "Captured synthesis text"
+            );
+        }
         let synthesis = route.engine.synthesize(&request).and_then(|mut result| {
             result.resolve_anchors(
                 &request,
@@ -713,8 +724,9 @@ fn synthesize_with_runtime_fallback_anchored_inner(
                     release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
                     return RuntimeSynthesisOutcome::Cancelled;
                 }
-                match &error {
-                    TtsError::NotAvailable | TtsError::SynthesisFailed(_) => {
+                match (&error, permit) {
+                    (TtsError::SynthesisFailed(_), _)
+                    | (TtsError::NotAvailable, EnginePermit::RecoveryProbe) => {
                         let cooldown = runtime_health
                             .record_failure(&route.realized.engine_id, error.to_string());
                         warn!(
@@ -723,7 +735,9 @@ fn synthesize_with_runtime_fallback_anchored_inner(
                             cooldown.as_secs()
                         );
                     }
-                    TtsError::VoiceNotFound(_) | TtsError::InvalidParameter(_) => {
+                    (TtsError::NotAvailable, EnginePermit::Normal)
+                    | (TtsError::VoiceNotFound(_), _)
+                    | (TtsError::InvalidParameter(_), _) => {
                         release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
                     }
                 }
@@ -926,6 +940,7 @@ mod tests {
     };
 
     enum MockFailure {
+        NotAvailableOnce(AtomicUsize),
         Synthesis,
         SynthesisOnce(AtomicUsize),
         SynthesisAndCancel(Arc<AtomicU64>),
@@ -975,6 +990,11 @@ mod tests {
                 ))
             };
             match self.failure.as_ref() {
+                Some(MockFailure::NotAvailableOnce(remaining))
+                    if remaining.swap(0, Ordering::AcqRel) > 0 =>
+                {
+                    Err(TtsError::NotAvailable)
+                }
                 Some(MockFailure::Synthesis) => {
                     Err(TtsError::SynthesisFailed("mock failure".to_owned()))
                 }
@@ -987,7 +1007,9 @@ mod tests {
                     counter.fetch_add(1, Ordering::Release);
                     Err(TtsError::SynthesisFailed("cancelled mock".to_owned()))
                 }
-                Some(MockFailure::SynthesisOnce(_)) => success(),
+                Some(MockFailure::NotAvailableOnce(_) | MockFailure::SynthesisOnce(_)) => {
+                    success()
+                }
                 None => success(),
             }
         }
@@ -1715,6 +1737,87 @@ mod tests {
                 .realized,
             PhysicalVoiceId::new("espeak", "en-us")
         );
+    }
+
+    #[test]
+    fn temporary_unavailability_falls_back_without_opening_a_circuit() {
+        let primary = synthesis_engine(
+            "eloquence",
+            "reed",
+            Some(MockFailure::NotAvailableOnce(AtomicUsize::new(1))),
+        );
+        let fallback = synthesis_engine("espeak", "en-us", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let policy = FallbackPolicy {
+            fallback_engines: vec!["espeak".to_owned()],
+            ..FallbackPolicy::default()
+        };
+        let health = RuntimeEngineHealth::new();
+        let counter = AtomicU64::new(11);
+        let mut first_routes = snapshot(
+            &engines,
+            definition(vec![exact("eloquence", "reed")]),
+            policy.clone(),
+        );
+        let mut first_route = first_routes
+            .initial_route("source-code", &engines)
+            .unwrap();
+
+        let first = synthesize_with_runtime_fallback(
+            "temporarily blocked",
+            &TtsSettings::default(),
+            &mut first_route,
+            &mut first_routes,
+            &engines,
+            &health,
+            11,
+            &counter,
+        );
+
+        assert!(matches!(first, RuntimeSynthesisOutcome::Ready(_)));
+        assert_eq!(first_route.realized.engine_id, "espeak");
+        let runtime_inventory = health.snapshot(engines.generation(), engines.inventory());
+        assert!(matches!(
+            runtime_inventory
+                .engines
+                .iter()
+                .find(|engine| engine.id == "eloquence")
+                .unwrap()
+                .health,
+            EngineHealth::Healthy
+        ));
+
+        let mut next_routes = snapshot(
+            &engines,
+            definition(vec![exact("eloquence", "reed")]),
+            policy,
+        );
+        next_routes.replace_inventory(runtime_inventory.engines);
+        let mut next_route = next_routes
+            .initial_route("source-code", &engines)
+            .unwrap();
+        let next = synthesize_with_runtime_fallback(
+            "retry immediately",
+            &TtsSettings::default(),
+            &mut next_route,
+            &mut next_routes,
+            &engines,
+            &health,
+            11,
+            &counter,
+        );
+
+        assert!(matches!(next, RuntimeSynthesisOutcome::Ready(_)));
+        assert_eq!(next_route.realized.engine_id, "eloquence");
+        assert_eq!(primary.calls.lock().unwrap().len(), 2);
+        assert_eq!(fallback.calls.lock().unwrap().len(), 1);
+        assert_eq!(primary.recovery_preparations.load(Ordering::Acquire), 0);
     }
 
     #[test]
