@@ -35,8 +35,22 @@ Omnivox recognizes these environment variables:
 - Linux directory used for one persistent stderr log per OmniVox launch
 - Default: `$XDG_STATE_HOME/emacsvox/omnivox`, falling back to
   `~/.local/state/emacsvox/omnivox`
+- Logs are created with mode `0600`
 - Logs contain request metadata and failure details but not synthesized text
+  unless `OMNIVOX_LOG_SYNTHESIS_TEXT` is explicitly enabled
 - See [`docs/DIAGNOSTICS.md`](docs/DIAGNOSTICS.md)
+
+**OMNIVOX_LOG_SYNTHESIS_TEXT** (optional, sensitive)
+
+- Values `1`, `true`, `yes`, or `on`, ignoring ASCII case and surrounding
+  whitespace, enable full synthesis-text capture
+- Default: unset/disabled
+- Records each routed text chunk in the persistent diagnostic log, including
+  retries through fallback engines
+- Captured text can contain passwords, messages, document contents, and other
+  private data; enable it only while diagnosing a failure and protect or delete
+  collected logs when they are no longer needed
+- The Emacsvox WSL launcher passes this variable to the Windows process
 
 **OMNIVOX_ENGINE**
 

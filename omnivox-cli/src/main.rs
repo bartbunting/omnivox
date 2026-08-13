@@ -17,6 +17,7 @@
 //! Items within each stream serialize; different streams overlap.
 
 mod cli;
+mod diagnostics;
 mod engine;
 mod engine_execution;
 mod health;
@@ -37,7 +38,7 @@ use std::backtrace::Backtrace;
 use std::panic::{self, AssertUnwindSafe};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use cli::{apply_cli_flags, parse_args};
 use engine::{apply_audio_target_env, create_engine, create_engines};
@@ -111,6 +112,12 @@ fn main() -> Result<()> {
     install_panic_diagnostics();
 
     info!("Omnivox v{} starting", VERSION);
+    if diagnostics::synthesis_text_logging_enabled() {
+        warn!(
+            environment_variable = diagnostics::SYNTHESIS_TEXT_LOG_ENV,
+            "Full synthesis text logging is enabled; diagnostic logs contain spoken content"
+        );
+    }
     let gen_counter = Arc::new(AtomicU64::new(0));
 
     let created_engines = {

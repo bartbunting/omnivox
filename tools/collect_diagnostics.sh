@@ -109,5 +109,6 @@ if [ -d "$emacsvox_directory/servers/omnivox-bin/current" ]; then
 fi
 
 mkdir -p -- "$(dirname -- "$output")"
-tar -czf "$output" -C "$bundle_directory" .
+(umask 077 && tar -czf "$output" -C "$bundle_directory" .)
+chmod 600 -- "$output"
 printf '%s\n' "$output"

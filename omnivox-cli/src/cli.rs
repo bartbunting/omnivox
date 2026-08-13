@@ -180,6 +180,7 @@ pub fn print_help() {
     println!("    OMNIVOX_PIPER_MODEL    Path to piper .onnx model (same as --piper-model)");
     println!("    OMNIVOX_PIPER_HELPER   Override path to omnivox-piper-helper");
     println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (set by Emacspeak notification mode)");
+    println!("    OMNIVOX_LOG_SYNTHESIS_TEXT  Opt in to sensitive full-text diagnostics");
     println!();
     println!("EMACSPEAK SETUP:");
     println!("    (setq dtk-program \"omnivox\")");

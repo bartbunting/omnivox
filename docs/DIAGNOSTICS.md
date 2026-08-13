@@ -4,15 +4,23 @@ The Emacsvox WSL launcher writes each OmniVox session to a separate file under
 `$XDG_STATE_HOME/emacsvox/omnivox`, or
 `~/.local/state/emacsvox/omnivox` when `XDG_STATE_HOME` is unset. Set the
 launcher-only `OMNIVOX_LOG_DIRECTORY` variable to use a different Linux
-directory.
+directory. The launcher creates session logs with mode `0600`.
 
 The log correlates the Rust synthesis worker and 32-bit helper processes using
 UTC timestamps, process and thread IDs, helper request IDs, logical and
 physical voices, text byte counts, frame and marker counts, elapsed time,
 fallback decisions, recovery probes, native-call boundaries, and panic
-backtraces. It deliberately does not record synthesized text. Ordinary
-OmniVox logging remains at info level because existing debug messages can
-contain protocol text.
+backtraces. It does not record synthesized text by default. Set
+`OMNIVOX_LOG_SYNTHESIS_TEXT=1` before launching Emacsvox to add an escaped
+`synthesis_text` field for every routed engine attempt. The server emits a
+startup warning whenever this sensitive mode is active. Ordinary OmniVox
+logging remains at info level because existing debug messages can contain
+protocol text.
+
+Full synthesis-text logs can contain passwords, private messages, document
+contents, and other sensitive material. Keep them private, inspect diagnostic
+archives before sharing them, and unset `OMNIVOX_LOG_SYNTHESIS_TEXT` when the
+capture is no longer needed.
 
 If speech stops, collect evidence before manually restarting it:
 
@@ -24,8 +32,8 @@ tools/collect_diagnostics.sh
 The command prints the generated archive path. It includes bounded excerpts
 from logs written during the previous 24 hours, source and runtime versions,
 relevant WSL and Windows process inventory, Windows Application events, and a
-listing of available crash dumps. It does not include dump contents. Inspect
-the archive before sharing it.
+listing of available crash dumps. It does not include dump contents. The
+archive is created with mode `0600`; inspect it before sharing it.
 
 ## Native helper crashes
 

@@ -279,6 +279,7 @@ Relevant environment variables are:
 
 - **OMNIVOX_ENGINE**: Set to `espeak` to force espeak-ng on platforms with native TTS
 - **OMNIVOX_AUDIO_TARGET**: Set to `left`, `right`, or `both` for channel routing (used by Emacspeak for dual-server notification mode)
+- **OMNIVOX_LOG_SYNTHESIS_TEXT**: Set to `1`, `true`, `yes`, or `on` to include full spoken text in private diagnostic logs; disabled by default
 - **OMNIVOX_ELOQUENCE_HELPER**: Optional Windows path to `OmnivoxEloquenceHelper32.exe`; otherwise Omnivox looks beside its own executable
 - **OMNIVOX_ECI_DLL**: Optional path passed through to the Eloquence helper for a user-supplied 32-bit `ECI.DLL`
 - **OMNIVOX_DECTALK_HELPER**: Optional Windows path to `OmnivoxDectalkHelper32.exe`; otherwise Omnivox looks beside its own executable
