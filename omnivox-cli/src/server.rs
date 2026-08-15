@@ -1230,11 +1230,28 @@ pub fn run_server(
                         continue;
                     }
                 };
-            let burst_started = Instant::now();
+            let mut burst_started = Instant::now();
             loop {
+                if !structured_policy_uses_reader_coalescing(
+                    selected.timeline.effective_delivery_policy(),
+                ) {
+                    execute_structured_presentation(
+                        selected,
+                        &mut presentation_generations,
+                        &state,
+                        &mut current_gen,
+                        &gen_counter,
+                        &engine_registry,
+                        &routing_policy,
+                        &logical_voices,
+                        &control,
+                        &tx,
+                    );
+                    break;
+                }
                 match receive_command_until(
                     &input_rx,
-                    presentation_coalescing_deadline(burst_started, Instant::now()),
+                    replaceable_coalescing_deadline(burst_started, Instant::now()),
                 )? {
                     TimedCommand::Command(next)
                         if matches!(
@@ -1282,6 +1299,7 @@ pub fn run_server(
                                                 &tx,
                                             );
                                             selected = candidate;
+                                            burst_started = Instant::now();
                                         }
                                     }
                                 }
@@ -1422,7 +1440,7 @@ pub fn run_server(
         loop {
             match receive_command_until(
                 &input_rx,
-                presentation_coalescing_deadline(burst_started, Instant::now()),
+                replaceable_coalescing_deadline(burst_started, Instant::now()),
             )? {
                 TimedCommand::Command(next) if next.id == CommandId::EmacsvoxTx => {
                     if let Some(candidate) = prepare_presentation(&presentation_generations, &next)
@@ -1563,8 +1581,12 @@ fn receive_command(receiver: &mpsc::Receiver<io::Result<String>>) -> Result<Opti
     }
 }
 
-fn presentation_coalescing_deadline(burst_started: Instant, now: Instant) -> Instant {
+fn replaceable_coalescing_deadline(burst_started: Instant, now: Instant) -> Instant {
     (now + PRESENTATION_COALESCE_QUIET_WINDOW).min(burst_started + PRESENTATION_COALESCE_MAX_WINDOW)
+}
+
+fn structured_policy_uses_reader_coalescing(policy: PresentationDeliveryPolicy) -> bool {
+    policy == PresentationDeliveryPolicy::Replaceable
 }
 
 fn receive_command_until(
@@ -2531,27 +2553,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn presentation_coalescing_observes_quiet_and_maximum_windows() {
+    fn replaceable_coalescing_observes_quiet_and_maximum_windows() {
         let started = Instant::now();
 
         assert_eq!(
-            presentation_coalescing_deadline(started, started),
+            replaceable_coalescing_deadline(started, started),
             started + PRESENTATION_COALESCE_QUIET_WINDOW
         );
         assert_eq!(
-            presentation_coalescing_deadline(
+            replaceable_coalescing_deadline(
                 started,
                 started + PRESENTATION_COALESCE_MAX_WINDOW - Duration::from_millis(5),
             ),
             started + PRESENTATION_COALESCE_MAX_WINDOW
         );
         assert_eq!(
-            presentation_coalescing_deadline(
+            replaceable_coalescing_deadline(
                 started,
                 started + PRESENTATION_COALESCE_MAX_WINDOW + Duration::from_millis(5),
             ),
             started + PRESENTATION_COALESCE_MAX_WINDOW
         );
+    }
+
+    #[test]
+    fn only_replaceable_structured_work_uses_reader_coalescing() {
+        assert!(structured_policy_uses_reader_coalescing(
+            PresentationDeliveryPolicy::Replaceable
+        ));
+        assert!(!structured_policy_uses_reader_coalescing(
+            PresentationDeliveryPolicy::Ordered
+        ));
+        assert!(!structured_policy_uses_reader_coalescing(
+            PresentationDeliveryPolicy::Urgent
+        ));
     }
 
     #[test]
