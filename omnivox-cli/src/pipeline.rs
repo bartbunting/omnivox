@@ -40,7 +40,7 @@ use crate::routing::{
 use crate::text::{
     chunk_prepared_speech, extract_logical_voice, extract_pitch, extract_voice,
     prepare_speech_text, prepare_speech_text_with_offsets, rate_scaled_padding, CapitalizationTone,
-    PreparedSpeechChunk, CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ,
+    PreparedSpeechChunk,
 };
 
 // ---------------------------------------------------------------------------
@@ -991,45 +991,15 @@ fn initial_legacy_route(
     }
 }
 
-const CAPITAL_ANNOTATION_LOGICAL_VOICE: &str = "annotate";
+const ISOLATED_CAPITAL_PITCH_MULTIPLIER: f32 = 1.5;
 
-#[derive(Debug, Clone, PartialEq)]
-struct PreparedLetterChunk {
-    text: String,
-    capitalization_tones: Vec<CapitalizationTone>,
-    logical_voice_id: Option<&'static str>,
-}
-
-fn prepare_letter_presentation(text: &str, state: &TtsState) -> Vec<PreparedLetterChunk> {
-    let is_upper = text.chars().next().is_some_and(char::is_uppercase);
-    let capitalization_tones = if is_upper && state.capitalization_presentation.includes_tone() {
-        vec![CapitalizationTone {
-            id: "capitalization-letter".to_owned(),
-            text_offset: 0,
-            frequency_hz: CAPITAL_TONE_HZ,
-            duration_ms: CAPITAL_TONE_DURATION_MS,
-        }]
-    } else {
-        Vec::new()
-    };
-    let lowered = text
-        .chars()
-        .flat_map(char::to_lowercase)
-        .collect::<String>();
-    let mut chunks = Vec::with_capacity(2);
-    if is_upper && state.capitalization_presentation.includes_spoken() {
-        chunks.push(PreparedLetterChunk {
-            text: "cap".to_owned(),
-            capitalization_tones: Vec::new(),
-            logical_voice_id: Some(CAPITAL_ANNOTATION_LOGICAL_VOICE),
-        });
+fn prepare_isolated_letter(text: &str, state: &mut TtsState) -> String {
+    if text.chars().next().is_some_and(char::is_uppercase) {
+        // Preserve the established character-review cue independently of the
+        // Aural presentation selected for capitalization in words and lines.
+        state.pitch_multiplier = ISOLATED_CAPITAL_PITCH_MULTIPLIER;
     }
-    chunks.push(PreparedLetterChunk {
-        text: lowered,
-        capitalization_tones,
-        logical_voice_id: None,
-    });
-    chunks
+    text.chars().flat_map(char::to_lowercase).collect()
 }
 
 /// Speak one character through the same runtime fallback path as queued speech.
@@ -1046,79 +1016,29 @@ pub fn process_letter(
     }
     state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
     state.speech_rate = state.character_rate();
-    let chunks = prepare_letter_presentation(text, &state);
+    let letter = prepare_isolated_letter(text, &mut state);
     let status = if let Some(mut content_route) =
         initial_legacy_route(&state, ctx, &mut routing, engine_registry)
     {
-        let mut status = BatchStatus::Completed;
-        let chunk_count = chunks.len();
-        for (index, chunk) in chunks.iter().enumerate() {
-            let is_last = index + 1 == chunk_count;
-            let outcome = if let Some(logical_voice_id) = chunk.logical_voice_id {
-                match routing.initial_route(logical_voice_id, engine_registry) {
-                    Ok(mut annotation_route) => synthesize_routed_chunk(
-                        &chunk.text,
-                        &chunk.capitalization_tones,
-                        &[],
-                        None,
-                        None,
-                        &state,
-                        is_last,
-                        is_last,
-                        &mut annotation_route,
-                        &mut routing,
-                        engine_registry,
-                        runtime_health,
-                        ctx,
-                    ),
-                    Err(error) => {
-                        warn!(
-                            "Could not route capital annotation through logical voice {logical_voice_id}: {error}; using the content voice"
-                        );
-                        synthesize_routed_chunk(
-                            &chunk.text,
-                            &chunk.capitalization_tones,
-                            &[],
-                            None,
-                            None,
-                            &state,
-                            is_last,
-                            is_last,
-                            &mut content_route,
-                            &mut routing,
-                            engine_registry,
-                            runtime_health,
-                            ctx,
-                        )
-                    }
-                }
-            } else {
-                synthesize_routed_chunk(
-                    &chunk.text,
-                    &chunk.capitalization_tones,
-                    &[],
-                    None,
-                    None,
-                    &state,
-                    is_last,
-                    is_last,
-                    &mut content_route,
-                    &mut routing,
-                    engine_registry,
-                    runtime_health,
-                    ctx,
-                )
-            };
-            status = match outcome {
-                RoutedChunkOutcome::Queued { .. } => BatchStatus::Completed,
-                RoutedChunkOutcome::Cancelled => BatchStatus::Cancelled,
-                RoutedChunkOutcome::Failed | RoutedChunkOutcome::Exhausted => BatchStatus::Failed,
-            };
-            if status != BatchStatus::Completed {
-                break;
-            }
+        match synthesize_routed_chunk(
+            &letter,
+            &[],
+            &[],
+            None,
+            None,
+            &state,
+            true,
+            true,
+            &mut content_route,
+            &mut routing,
+            engine_registry,
+            runtime_health,
+            ctx,
+        ) {
+            RoutedChunkOutcome::Queued { .. } => BatchStatus::Completed,
+            RoutedChunkOutcome::Cancelled => BatchStatus::Cancelled,
+            RoutedChunkOutcome::Failed | RoutedChunkOutcome::Exhausted => BatchStatus::Failed,
         }
-        status
     } else {
         let settings = TtsSettings {
             voice: state.current_voice.clone(),
@@ -1126,19 +1046,7 @@ pub fn process_letter(
             pitch: state.pitch_multiplier,
             volume: 1.0,
         };
-        let chunk_count = chunks.len();
-        if chunks.iter().enumerate().all(|(index, chunk)| {
-            let is_last = index + 1 == chunk_count;
-            synthesize_chunk_with_tones(
-                &chunk.text,
-                &chunk.capitalization_tones,
-                &settings,
-                &state,
-                is_last,
-                is_last,
-                ctx,
-            )
-        }) {
+        if synthesize_chunk_with_tones(&letter, &[], &settings, &state, true, true, ctx) {
             BatchStatus::Completed
         } else {
             BatchStatus::Cancelled
@@ -1936,49 +1844,24 @@ mod tests {
     }
 
     #[test]
-    fn isolated_capital_uses_selected_presentation() {
+    fn isolated_capital_uses_pitch_without_presentation_actions() {
         let mut state = TtsState::default();
-        for (presentation, expected_chunks, expected_tones) in [
-            (CapitalizationPresentation::None, vec![("a", None)], 0),
-            (
-                CapitalizationPresentation::Spoken,
-                vec![("cap", Some("annotate")), ("a", None)],
-                0,
-            ),
-            (CapitalizationPresentation::Tone, vec![("a", None)], 1),
-            (
-                CapitalizationPresentation::SpokenTone,
-                vec![("cap", Some("annotate")), ("a", None)],
-                1,
-            ),
-            (CapitalizationPresentation::Custom, vec![("a", None)], 0),
+        for presentation in [
+            CapitalizationPresentation::None,
+            CapitalizationPresentation::Spoken,
+            CapitalizationPresentation::Tone,
+            CapitalizationPresentation::SpokenTone,
+            CapitalizationPresentation::Custom,
         ] {
             state.capitalization_presentation = presentation;
-            let chunks = prepare_letter_presentation("A", &state);
-            assert_eq!(
-                chunks
-                    .iter()
-                    .map(|chunk| (chunk.text.as_str(), chunk.logical_voice_id))
-                    .collect::<Vec<_>>(),
-                expected_chunks
-            );
-            let tones = chunks
-                .iter()
-                .flat_map(|chunk| &chunk.capitalization_tones)
-                .collect::<Vec<_>>();
-            assert_eq!(tones.len(), expected_tones);
-            if let Some(tone) = tones.first() {
-                assert_eq!(tone.frequency_hz, CAPITAL_TONE_HZ);
-                assert_eq!(tone.duration_ms, CAPITAL_TONE_DURATION_MS);
-            }
+            state.pitch_multiplier = 0.8;
+            assert_eq!(prepare_isolated_letter("A", &mut state), "a");
+            assert_eq!(state.pitch_multiplier, ISOLATED_CAPITAL_PITCH_MULTIPLIER);
         }
 
-        state.capitalization_presentation = CapitalizationPresentation::SpokenTone;
-        let chunks = prepare_letter_presentation("a", &state);
-        assert_eq!(chunks.len(), 1);
-        assert_eq!(chunks[0].text, "a");
-        assert_eq!(chunks[0].logical_voice_id, None);
-        assert!(chunks[0].capitalization_tones.is_empty());
+        state.pitch_multiplier = 0.8;
+        assert_eq!(prepare_isolated_letter("a", &mut state), "a");
+        assert_eq!(state.pitch_multiplier, 0.8);
     }
 
     #[test]

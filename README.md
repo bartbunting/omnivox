@@ -356,7 +356,7 @@ Omnivox implements the standard Emacspeak speech server protocol:
 | `tts_set_voice_volume N` | Set voice volume |
 | `tts_set_tone_volume N` | Set tone volume |
 | `tts_set_sound_volume N` | Set sound volume |
-| `tts_set_capitalization_presentation MODE` | Select `none`, `spoken`, `tone`, `spoken-tone`, or `custom` for isolated capitals |
+| `tts_set_capitalization_presentation MODE` | Accepted for compatibility; isolated capitals use a pitch rise and structured capitalization uses timeline actions |
 | `tts_sync_state punct split_caps legacy_caps rate` | Sync state (`legacy_caps` is retained as an ignored placeholder) |
 | `tts_reset` | Reset all state |
 | `tts_exit` | Shut down |

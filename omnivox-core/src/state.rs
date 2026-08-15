@@ -26,7 +26,10 @@ impl PunctuationLevel {
     }
 }
 
-/// Presentation selected for an uppercase character spoken in isolation.
+/// Legacy isolated-capital presentation retained for command compatibility.
+///
+/// Current isolated letters use a pitch rise. Structured capitalization
+/// presentation is carried by concrete timeline actions instead of this state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CapitalizationPresentation {
     /// Speak the character without an additional capitalization cue.
