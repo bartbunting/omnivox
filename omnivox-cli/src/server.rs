@@ -52,7 +52,12 @@ use crate::work_queue::{
     WorkQueueReceiver, WorkQueueSender,
 };
 
-const PRESENTATION_COALESCE_WINDOW: Duration = Duration::from_millis(2);
+/// Quiet window for collapsing replaceable interactive timelines.
+///
+/// This runs on the dedicated protocol reader. A separate maximum window
+/// prevents an unbroken key-repeat stream from postponing speech indefinitely.
+const PRESENTATION_COALESCE_QUIET_WINDOW: Duration = Duration::from_millis(20);
+const PRESENTATION_COALESCE_MAX_WINDOW: Duration = Duration::from_millis(80);
 const TIMELINE_MULTIPART_TIMEOUT: Duration = Duration::from_secs(5);
 const MAX_PROTOCOL_LINE_BYTES: usize = 512 * 1024;
 const INPUT_QUEUE_CAPACITY: usize = 32;
@@ -996,7 +1001,10 @@ pub fn synthesis_worker(
                         if let Err(e) = pipeline.process(&mut buf) {
                             warn!("Sound pipeline error: {}", e);
                         }
-                        if let Err(e) = ctx.control.queue(StreamType::Sound, &buf) {
+                        if let Err(e) = ctx
+                            .control
+                            .queue_if(StreamType::Sound, &buf, || !ctx.is_stale())
+                        {
                             warn!("Sound queue error: {}", e);
                         }
                     }
@@ -1216,10 +1224,11 @@ pub fn run_server(
                         continue;
                     }
                 };
+            let burst_started = Instant::now();
             loop {
                 match receive_command_until(
                     &input_rx,
-                    Instant::now() + PRESENTATION_COALESCE_WINDOW,
+                    presentation_coalescing_deadline(burst_started, Instant::now()),
                 )? {
                     TimedCommand::Command(next)
                         if matches!(
@@ -1258,10 +1267,12 @@ pub fn run_server(
                                                 current,
                                                 &mut presentation_generations,
                                                 &state,
-                                                current_gen,
+                                                &mut current_gen,
+                                                &gen_counter,
                                                 &engine_registry,
                                                 &routing_policy,
                                                 &logical_voices,
+                                                &control,
                                                 &tx,
                                             );
                                             selected = candidate;
@@ -1290,10 +1301,12 @@ pub fn run_server(
                                         selected,
                                         &mut presentation_generations,
                                         &state,
-                                        current_gen,
+                                        &mut current_gen,
+                                        &gen_counter,
                                         &engine_registry,
                                         &routing_policy,
                                         &logical_voices,
+                                        &control,
                                         &tx,
                                     );
                                 }
@@ -1331,10 +1344,12 @@ pub fn run_server(
                             selected,
                             &mut presentation_generations,
                             &state,
-                            current_gen,
+                            &mut current_gen,
+                            &gen_counter,
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
+                            &control,
                             &tx,
                         );
                         deferred_command = Some(next);
@@ -1345,10 +1360,12 @@ pub fn run_server(
                             selected,
                             &mut presentation_generations,
                             &state,
-                            current_gen,
+                            &mut current_gen,
+                            &gen_counter,
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
+                            &control,
                             &tx,
                         );
                         break;
@@ -1358,10 +1375,12 @@ pub fn run_server(
                             selected,
                             &mut presentation_generations,
                             &state,
-                            current_gen,
+                            &mut current_gen,
+                            &gen_counter,
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
+                            &control,
                             &tx,
                         );
                         input_closed = true;
@@ -1393,10 +1412,11 @@ pub fn run_server(
         let Some(mut selected) = prepare_presentation(&presentation_generations, &command) else {
             continue;
         };
+        let burst_started = Instant::now();
         loop {
             match receive_command_until(
                 &input_rx,
-                Instant::now() + PRESENTATION_COALESCE_WINDOW,
+                presentation_coalescing_deadline(burst_started, Instant::now()),
             )? {
                 TimedCommand::Command(next) if next.id == CommandId::EmacsvoxTx => {
                     if let Some(candidate) =
@@ -1536,6 +1556,11 @@ fn receive_command(receiver: &mpsc::Receiver<io::Result<String>>) -> Result<Opti
             Err(_) => return Ok(None),
         }
     }
+}
+
+fn presentation_coalescing_deadline(burst_started: Instant, now: Instant) -> Instant {
+    (now + PRESENTATION_COALESCE_QUIET_WINDOW)
+        .min(burst_started + PRESENTATION_COALESCE_MAX_WINDOW)
 }
 
 fn receive_command_until(
@@ -1729,10 +1754,12 @@ fn execute_structured_presentation(
     presentation: PreparedStructuredPresentation,
     generations: &mut PresentationGenerations,
     state: &TtsState,
-    current_gen: u64,
+    current_gen: &mut u64,
+    gen_counter: &AtomicU64,
     engine_registry: &EngineRegistry,
     routing_policy: &RoutingPolicyRegistry,
     logical_voices: &LogicalVoiceRegistry,
+    control: &AudioControl,
     tx: &WorkQueueSender<SynthRequest>,
 ) {
     debug!(
@@ -1740,6 +1767,22 @@ fn execute_structured_presentation(
         presentation.generation
     );
     generations.commit(presentation.generation);
+    if presentation.timeline.effective_delivery_policy() == PresentationDeliveryPolicy::Replaceable
+    {
+        // Replacement owns active as well as queued playback. Advance the
+        // synthesis generation and clear every presentation stream, but do
+        // not hard-stop the native engine: isolated synthesis gets a bounded
+        // grace period to finish and discard its stale result.
+        interrupt(
+            current_gen,
+            gen_counter,
+            control,
+            engine_registry,
+            false,
+            false,
+        );
+        cancel_queued_synthesis_before(tx, *current_gen);
+    }
     enqueue_synthesis(
         tx,
         SynthRequest::Timeline {
@@ -1750,7 +1793,7 @@ fn execute_structured_presentation(
                 engine_registry,
                 routing_policy,
             ),
-            gen: current_gen,
+            gen: *current_gen,
         },
     );
 }
@@ -2462,6 +2505,30 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn presentation_coalescing_observes_quiet_and_maximum_windows() {
+        let started = Instant::now();
+
+        assert_eq!(
+            presentation_coalescing_deadline(started, started),
+            started + PRESENTATION_COALESCE_QUIET_WINDOW
+        );
+        assert_eq!(
+            presentation_coalescing_deadline(
+                started,
+                started + PRESENTATION_COALESCE_MAX_WINDOW - Duration::from_millis(5),
+            ),
+            started + PRESENTATION_COALESCE_MAX_WINDOW
+        );
+        assert_eq!(
+            presentation_coalescing_deadline(
+                started,
+                started + PRESENTATION_COALESCE_MAX_WINDOW + Duration::from_millis(5),
+            ),
+            started + PRESENTATION_COALESCE_MAX_WINDOW
+        );
+    }
 
     #[test]
     fn protocol_reader_accepts_exact_limit_without_a_newline() {

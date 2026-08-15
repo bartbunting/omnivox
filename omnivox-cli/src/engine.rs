@@ -16,11 +16,25 @@ use omnivox_tts::TtsEngine;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
-#[cfg(any(target_os = "windows", feature = "piper"))]
+#[cfg(any(target_os = "windows", feature = "piper", test))]
 use std::time::Duration;
 use tracing::{info, warn};
 
 use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
+
+#[cfg(any(target_os = "windows", feature = "piper", test))]
+const ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_secs(3);
+#[cfg(any(target_os = "windows", feature = "piper", test))]
+const NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+
+#[cfg(any(target_os = "windows", feature = "piper", test))]
+fn helper_synthesis_idle_timeout(engine_id: &str) -> Duration {
+    if engine_id == "eloquence" {
+        ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT
+    } else {
+        NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT
+    }
+}
 
 /// Engines initialized for one server session.
 pub struct CreatedEngines {
@@ -172,9 +186,10 @@ fn helper_config(
 
     let mut config = HelperEngineConfig::new(engine_id, program);
     // Version-1 native helpers capture one complete utterance before emitting
-    // PCM. Allow ordinary long passages without weakening startup or control
-    // request timeouts.
-    config.synthesis_idle_timeout = Duration::from_secs(60);
+    // PCM. Eloquence normally returns in milliseconds, so fail over promptly
+    // when its native eciSynchronize call wedges. Other helpers retain the
+    // longer allowance needed by ordinary long passages.
+    config.synthesis_idle_timeout = helper_synthesis_idle_timeout(engine_id);
     Some(config)
 }
 
@@ -366,7 +381,24 @@ pub fn apply_audio_target_env(state: &mut TtsState) {
 
 #[cfg(test)]
 mod tests {
-    use super::windows_preference_order;
+    use super::{helper_synthesis_idle_timeout, windows_preference_order};
+    use std::time::Duration;
+
+    #[test]
+    fn eloquence_helper_fails_over_after_a_short_idle_timeout() {
+        assert_eq!(
+            helper_synthesis_idle_timeout("eloquence"),
+            Duration::from_secs(3)
+        );
+        assert_eq!(
+            helper_synthesis_idle_timeout("dectalk"),
+            Duration::from_secs(60)
+        );
+        assert_eq!(
+            helper_synthesis_idle_timeout("piper"),
+            Duration::from_secs(60)
+        );
+    }
 
     #[test]
     fn windows_defaults_to_winrt_with_espeak_fallback() {

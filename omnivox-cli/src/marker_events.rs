@@ -292,14 +292,18 @@ pub struct PreparedMarkerPlayback {
 }
 
 impl PreparedMarkerPlayback {
-    pub fn queue(
+    pub fn queue_if<F>(
         self,
         control: &AudioControl,
         buffer: &AudioBuffer,
-    ) -> Result<Option<PlaybackTicket>, AudioError> {
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
         let events = self.events;
         let output = self.output;
-        control.queue_tracked_with_cue_callback(
+        control.queue_tracked_with_cue_callback_if(
             StreamType::Speech,
             buffer,
             self.cues,
@@ -308,6 +312,7 @@ impl PreparedMarkerPlayback {
                     output.emit(event.clone());
                 }
             },
+            predicate,
         )
     }
 }

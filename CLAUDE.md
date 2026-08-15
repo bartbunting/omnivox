@@ -59,10 +59,19 @@ make build     # Release build
 make dev       # Debug build
 make test      # Run all tests (210 tests)
 make lint      # Clippy
-make fmt       # Format
+make fmt-check # Check formatting without changing the worktree
+make fmt       # Format only after the baseline check is clean
 make install   # Install binary to ~/.cargo/bin
 make clean     # Clean build artifacts
 ```
+
+The repository pins Rust and rustfmt in `rust-toolchain.toml`.  If
+`make fmt-check` reports changes in committed or untouched files, do not run a
+mutating repository-wide formatter as part of behavioral work; repair the
+formatting baseline separately.  Preserve dirty worktrees.  For a staged
+Windows development runtime from active changes, use
+`make windows-omnivox-dev` in the sibling Emacsvox repository; reserve
+`make windows-omnivox` for clean reproducible releases.
 
 ## Testing
 

@@ -1,4 +1,4 @@
-.PHONY: all build test clean run dev check lint fmt doc
+.PHONY: all build test clean run dev check lint fmt fmt-check doc
 
 # Default target
 all: build
@@ -30,6 +30,10 @@ lint:
 # Format code
 fmt:
 	cargo fmt
+
+# Check formatting without changing an active worktree
+fmt-check:
+	cargo fmt --all -- --check
 
 # Generate documentation
 doc:

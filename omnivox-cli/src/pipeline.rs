@@ -191,13 +191,17 @@ impl SynthCtx<'_> {
         let needs_ticket = self.playback_tickets.is_some()
             || (stream == StreamType::Speech && self.presentation_clock.is_some());
         let result = if needs_ticket {
-            self.control.queue_tracked(stream, buffer).map(|ticket| {
-                if let Some(ticket) = ticket {
-                    self.record_ticket(stream, ticket);
-                }
-            })
+            self.control
+                .queue_tracked_if(stream, buffer, || !self.is_stale())
+                .map(|ticket| {
+                    if let Some(ticket) = ticket {
+                        self.record_ticket(stream, ticket);
+                    }
+                })
         } else {
-            self.control.queue(stream, buffer).map(|_| ())
+            self.control
+                .queue_if(stream, buffer, || !self.is_stale())
+                .map(|_| ())
         };
         if let Err(error) = result {
             self.mark_failed();
@@ -217,6 +221,9 @@ impl SynthCtx<'_> {
     }
 
     pub fn queue_overlay(&self, buffer: AudioBuffer) {
+        if self.is_stale() {
+            return;
+        }
         if let Some(overlays) = self.pending_overlays {
             if !buffer.is_empty() {
                 overlays.lock().unwrap().push(buffer);
@@ -238,7 +245,10 @@ impl SynthCtx<'_> {
             .presentation_clock
             .map(|clock| clock.lock().unwrap().clone())
             .unwrap_or_default();
-        match self.control.queue_overlay_after(&buffer, barriers) {
+        match self
+            .control
+            .queue_overlay_after_if(&buffer, barriers, || !self.is_stale())
+        {
             Ok(Some(ticket)) => {
                 if let Some(tickets) = self.playback_tickets {
                     tickets.lock().unwrap().push(ticket);
@@ -344,7 +354,7 @@ pub fn synthesize_chunk_with_tones(
                 final_timeline_window,
                 ctx,
             );
-            true
+            !ctx.is_stale()
         }
         Err(e) => {
             ctx.mark_failed();
@@ -455,7 +465,7 @@ fn queue_synthesis_result(
                 &semantic_events,
             )
         };
-        match prepared.queue(ctx.control, &result.audio) {
+        match prepared.queue_if(ctx.control, &result.audio, || !ctx.is_stale()) {
             Ok(Some(ticket)) => {
                 ctx.record_ticket(StreamType::Speech, ticket);
             }
@@ -859,10 +869,14 @@ fn synthesize_routed_chunk(
                 final_timeline_window,
                 ctx,
             );
-            RoutedChunkOutcome::Queued {
-                realized,
-                degraded_acss,
-                degraded_effects,
+            if ctx.is_stale() {
+                RoutedChunkOutcome::Cancelled
+            } else {
+                RoutedChunkOutcome::Queued {
+                    realized,
+                    degraded_acss,
+                    degraded_effects,
+                }
             }
         }
         RuntimeSynthesisOutcome::Cancelled => RoutedChunkOutcome::Cancelled,
@@ -1298,10 +1312,15 @@ pub fn process_presentation_timeline(
         }
     }
 
+    if ctx.is_stale() {
+        return BatchStatus::Cancelled;
+    }
     finish_effect_tail(ctx);
     finish_timeline_tail(ctx);
     ctx.flush_overlays();
-    if ctx.failed() {
+    if ctx.is_stale() {
+        BatchStatus::Cancelled
+    } else if ctx.failed() {
         BatchStatus::Failed
     } else {
         BatchStatus::Completed
@@ -1369,7 +1388,7 @@ fn synthesize_direct_timeline_chunk(
                 final_window,
                 ctx,
             );
-            true
+            !ctx.is_stale()
         }
         Err(error) => {
             ctx.mark_failed();
@@ -1788,11 +1807,16 @@ pub fn process_batch(
         }
     }
 
+    if ctx.is_stale() {
+        return BatchStatus::Cancelled;
+    }
     finish_effect_tail(ctx);
     finish_timeline_tail(ctx);
     ctx.flush_overlays();
 
-    if ctx.failed() {
+    if ctx.is_stale() {
+        BatchStatus::Cancelled
+    } else if ctx.failed() {
         BatchStatus::Failed
     } else {
         BatchStatus::Completed

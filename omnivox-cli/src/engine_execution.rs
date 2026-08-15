@@ -3,13 +3,15 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use omnivox_tts::contracts::EngineDescriptor;
 use omnivox_tts::{SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo};
 use tracing::{info, warn};
 
 const CANCELLATION_POLL_INTERVAL: Duration = Duration::from_millis(10);
+const SOFT_SUPERSESSION_GRACE: Duration = Duration::from_millis(75);
+const TRANSIENT_ENGINE_WAIT: Duration = Duration::from_millis(350);
 pub const MAX_ISOLATED_CALLS: usize = 2;
 
 /// Process-wide admission control for isolated native calls.
@@ -152,9 +154,46 @@ impl IsolatedTtsEngine {
 
     fn cancellation_error(&self) -> TtsError {
         TtsError::SynthesisFailed(format!(
-            "{} synthesis was superseded; its native call is quarantined",
+            "{} synthesis was superseded; its result was discarded",
             self.engine.descriptor().id
         ))
+    }
+
+    fn acquire_for_current_generation(
+        &self,
+        engine_id: &str,
+        generation: u64,
+        stop_epoch: u64,
+    ) -> Result<IsolationLease, TtsError> {
+        let deadline = Instant::now() + TRANSIENT_ENGINE_WAIT;
+        loop {
+            let pressure = match self.budget.try_acquire(&self.engine_active) {
+                Ok(lease) => return Ok(lease),
+                Err(pressure) => pressure,
+            };
+            if self.was_cancelled(generation, stop_epoch) {
+                return Err(self.cancellation_error());
+            }
+            if Instant::now() >= deadline {
+                match pressure {
+                    IsolationPressure::EngineOccupied => warn!(
+                        engine_id,
+                        wait_ms = TRANSIENT_ENGINE_WAIT.as_millis(),
+                        "Engine remained occupied after bounded wait; routing through fallback"
+                    ),
+                    IsolationPressure::ProcessLimit => warn!(
+                        engine_id,
+                        in_flight = self.budget.in_flight.load(Ordering::Acquire),
+                        quarantined = self.budget.quarantined.load(Ordering::Acquire),
+                        global_limit = MAX_ISOLATED_CALLS,
+                        wait_ms = TRANSIENT_ENGINE_WAIT.as_millis(),
+                        "Process-wide isolated synthesis capacity remained occupied; routing through fallback"
+                    ),
+                }
+                return Err(TtsError::NotAvailable);
+            }
+            thread::sleep(CANCELLATION_POLL_INTERVAL);
+        }
     }
 }
 
@@ -172,29 +211,12 @@ impl TtsEngine for IsolatedTtsEngine {
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         let engine_id = self.engine.descriptor().id;
-        let lease = match self.budget.try_acquire(&self.engine_active) {
-            Ok(lease) => lease,
-            Err(IsolationPressure::EngineOccupied) => {
-                warn!(
-                    engine_id,
-                    "Engine already has active or quarantined synthesis; routing through fallback"
-                );
-                return Err(TtsError::NotAvailable);
-            }
-            Err(IsolationPressure::ProcessLimit) => {
-                warn!(
-                    engine_id,
-                    in_flight = self.budget.in_flight.load(Ordering::Acquire),
-                    quarantined = self.budget.quarantined.load(Ordering::Acquire),
-                    global_limit = MAX_ISOLATED_CALLS,
-                    "Process-wide isolated synthesis capacity is occupied; routing through fallback"
-                );
-                return Err(TtsError::NotAvailable);
-            }
-        };
-
         let generation = self.generation.load(Ordering::Acquire);
         let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
+        let lease = self.acquire_for_current_generation(&engine_id, generation, stop_epoch)?;
+        if self.was_cancelled(generation, stop_epoch) {
+            return Err(self.cancellation_error());
+        }
         let prepare_recovery = self.recover_before_next_call.swap(false, Ordering::AcqRel);
         let engine = Arc::clone(&self.engine);
         let owned_request = request.clone();
@@ -225,6 +247,7 @@ impl TtsEngine for IsolatedTtsEngine {
             )));
         }
 
+        let mut superseded_at = None;
         loop {
             match result_receiver.recv_timeout(CANCELLATION_POLL_INTERVAL) {
                 Ok(result) => {
@@ -237,11 +260,24 @@ impl TtsEngine for IsolatedTtsEngine {
                     if !self.was_cancelled(generation, stop_epoch) {
                         continue;
                     }
+                    let hard_stop = self.stop_epoch.load(Ordering::Acquire) != stop_epoch;
+                    if !hard_stop {
+                        let started = superseded_at.get_or_insert_with(Instant::now);
+                        if started.elapsed() < SOFT_SUPERSESSION_GRACE {
+                            continue;
+                        }
+                    }
                     self.engine.stop();
                     lease.mark_quarantined();
                     info!(
                         engine_id,
                         generation,
+                        hard_stop,
+                        grace_ms = if hard_stop {
+                            0
+                        } else {
+                            SOFT_SUPERSESSION_GRACE.as_millis()
+                        },
                         global_limit = MAX_ISOLATED_CALLS,
                         "Quarantined superseded native synthesis"
                     );
@@ -437,6 +473,91 @@ mod tests {
             assert!(Instant::now() < deadline, "isolation slot was not released");
             thread::yield_now();
         }
+    }
+
+    #[test]
+    fn soft_supersession_discards_a_natural_completion_without_stopping_engine() {
+        let generation = Arc::new(AtomicU64::new(5));
+        let budget = Arc::new(IsolationBudget::new());
+        let native = Arc::new(BlockingEngine::new("soft"));
+        let engine = isolated(
+            Arc::clone(&native),
+            Arc::clone(&generation),
+            Arc::clone(&budget),
+        );
+        let (finished_tx, finished_rx) = mpsc::channel();
+        let caller = Arc::clone(&engine);
+        thread::spawn(move || {
+            let _ = finished_tx.send(caller.synthesize(&request()));
+        });
+
+        native.wait_for_started(1);
+        generation.store(6, Ordering::Release);
+        thread::sleep(Duration::from_millis(20));
+        assert!(matches!(
+            finished_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+        native.release();
+        assert!(matches!(
+            finished_rx
+                .recv_timeout(Duration::from_millis(250))
+                .unwrap(),
+            Err(TtsError::SynthesisFailed(_))
+        ));
+        native.wait_for_completed(1);
+        wait_for_budget(&budget, 0);
+        assert_eq!(budget.quarantined(), 0);
+        assert_eq!(native.stops.load(Ordering::Acquire), 0);
+
+        native.release();
+        assert!(engine.synthesize(&request()).is_ok());
+    }
+
+    #[test]
+    fn current_generation_waits_for_a_transient_engine_occupant() {
+        let generation = Arc::new(AtomicU64::new(11));
+        let budget = Arc::new(IsolationBudget::new());
+        let native = Arc::new(BlockingEngine::new("transient"));
+        let engine = isolated(
+            Arc::clone(&native),
+            Arc::clone(&generation),
+            Arc::clone(&budget),
+        );
+
+        let (old_tx, old_rx) = mpsc::channel();
+        let old_caller = Arc::clone(&engine);
+        thread::spawn(move || {
+            let _ = old_tx.send(old_caller.synthesize(&request()));
+        });
+        native.wait_for_started(1);
+
+        generation.store(12, Ordering::Release);
+        let (current_tx, current_rx) = mpsc::channel();
+        let current_caller = Arc::clone(&engine);
+        thread::spawn(move || {
+            let _ = current_tx.send(current_caller.synthesize(&request()));
+        });
+        thread::sleep(Duration::from_millis(20));
+        assert!(matches!(
+            current_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+
+        native.release();
+        assert!(matches!(
+            old_rx.recv_timeout(Duration::from_millis(250)).unwrap(),
+            Err(TtsError::SynthesisFailed(_))
+        ));
+        native.wait_for_started(2);
+        native.release();
+        assert!(current_rx
+            .recv_timeout(Duration::from_millis(250))
+            .unwrap()
+            .is_ok());
+        wait_for_budget(&budget, 0);
+        assert_eq!(native.stops.load(Ordering::Acquire), 0);
+        assert_eq!(native.maximum_concurrent.load(Ordering::Acquire), 1);
     }
 
     #[test]

@@ -165,6 +165,7 @@ pub struct AudioControl {
     tone_max: usize,
     sound_max: usize,
     schedule_generations: Arc<[AtomicU64; 3]>,
+    stream_gates: Arc<[Mutex<()>; 3]>,
     scheduled_playback: Arc<ScheduledPlaybackState>,
 }
 
@@ -182,6 +183,27 @@ impl AudioControl {
     /// If the stream's backlog is at capacity, clears old items first.
     /// Returns `true` if audio was queued, `false` if the buffer was empty.
     pub fn queue(&self, stream: StreamType, buffer: &AudioBuffer) -> Result<bool, AudioError> {
+        self.queue_if(stream, buffer, || true)
+    }
+
+    /// Queue audio only while PREDICATE remains true at the stop/queue gate.
+    ///
+    /// Stop holds the same per-stream gate. This makes a generation check and
+    /// append atomic with respect to clearing playback: stale PCM can never be
+    /// appended immediately after a newer stop has cleared the sink.
+    pub fn queue_if<F>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        predicate: F,
+    ) -> Result<bool, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
+        let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
+        if !predicate() {
+            return Ok(false);
+        }
         let Some(sink) = self.prepare_queue(stream, buffer) else {
             return Ok(false);
         };
@@ -202,6 +224,23 @@ impl AudioControl {
         stream: StreamType,
         buffer: &AudioBuffer,
     ) -> Result<Option<PlaybackTicket>, AudioError> {
+        self.queue_tracked_if(stream, buffer, || true)
+    }
+
+    /// Queue tracked audio only while PREDICATE is true at the stop/queue gate.
+    pub fn queue_tracked_if<F>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
+        let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
+        if !predicate() {
+            return Ok(None);
+        }
         let Some(sink) = self.prepare_queue(stream, buffer) else {
             return Ok(None);
         };
@@ -223,7 +262,20 @@ impl AudioControl {
         buffer: &AudioBuffer,
         barriers: Vec<PlaybackTicket>,
     ) -> Result<Option<PlaybackTicket>, AudioError> {
-        self.queue_stream_after(StreamType::Sound, buffer, barriers)
+        self.queue_overlay_after_if(buffer, barriers, || true)
+    }
+
+    /// Queue an overlay after its barriers only while PREDICATE is current.
+    pub fn queue_overlay_after_if<F>(
+        &self,
+        buffer: &AudioBuffer,
+        barriers: Vec<PlaybackTicket>,
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
+        self.queue_stream_after_if(StreamType::Sound, buffer, barriers, predicate)
     }
 
     /// Queue one stream after every playback barrier completes.
@@ -238,15 +290,35 @@ impl AudioControl {
         buffer: &AudioBuffer,
         barriers: Vec<PlaybackTicket>,
     ) -> Result<Option<PlaybackTicket>, AudioError> {
+        self.queue_stream_after_if(stream, buffer, barriers, || true)
+    }
+
+    /// Queue one stream after its barriers only while PREDICATE is current.
+    pub fn queue_stream_after_if<F>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        barriers: Vec<PlaybackTicket>,
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
         if buffer.is_empty() {
             return Ok(None);
         }
         if barriers.is_empty() {
-            return self.queue_tracked(stream, buffer);
+            return self.queue_tracked_if(stream, buffer, predicate);
         }
 
         let stream_index = stream_index(stream);
-        let generation = self.schedule_generations[stream_index].load(Ordering::Acquire);
+        let generation = {
+            let _gate = self.stream_gates[stream_index].lock().unwrap();
+            if !predicate() {
+                return Ok(None);
+            }
+            self.schedule_generations[stream_index].load(Ordering::Acquire)
+        };
         let control = self.clone();
         let samples = buffer.samples.clone();
         let (mut completion, ticket) = PlaybackCompletion::pair();
@@ -265,7 +337,9 @@ impl AudioControl {
                     return;
                 }
                 let overlay = AudioBuffer::new(samples);
-                let status = match control.queue_tracked(stream, &overlay) {
+                let status = match control.queue_tracked_if(stream, &overlay, || {
+                    control.schedule_generations[stream_index].load(Ordering::Acquire) == generation
+                }) {
                     Ok(Some(actual)) => actual.wait(),
                     Ok(None) => PlaybackStatus::Completed,
                     Err(error) => {
@@ -297,6 +371,7 @@ impl AudioControl {
         cues: Vec<PlaybackCue>,
         cue_sender: Sender<PlaybackCue>,
     ) -> Result<Option<PlaybackTicket>, AudioError> {
+        let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
         let cues = prepare_playback_cues(cues, buffer.frame_count())?;
         let Some(sink) = self.prepare_queue(stream, buffer) else {
             return Ok(None);
@@ -327,6 +402,27 @@ impl AudioControl {
     where
         F: FnMut(PlaybackCue) + Send + 'static,
     {
+        self.queue_tracked_with_cue_callback_if(stream, buffer, cues, on_cue, || true)
+    }
+
+    /// Queue callback-tracked audio only while PREDICATE is true at the
+    /// stop/queue gate.
+    pub fn queue_tracked_with_cue_callback_if<F, P>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        cues: Vec<PlaybackCue>,
+        on_cue: F,
+        predicate: P,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnMut(PlaybackCue) + Send + 'static,
+        P: FnOnce() -> bool,
+    {
+        let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
+        if !predicate() {
+            return Ok(None);
+        }
         let cues = prepare_playback_cues(cues, buffer.frame_count())?;
         let Some(sink) = self.prepare_queue(stream, buffer) else {
             return Ok(None);
@@ -363,6 +459,7 @@ impl AudioControl {
 
     /// Stop a specific stream, clearing all queued and playing audio.
     pub fn stop(&self, stream: StreamType) {
+        let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
         self.schedule_generations[stream_index(stream)].fetch_add(1, Ordering::AcqRel);
         let (sink, _) = self.sink_and_max(stream);
         sink.clear();
@@ -450,6 +547,7 @@ impl AudioStreams {
                 AtomicU64::new(0),
                 AtomicU64::new(0),
             ]),
+            stream_gates: Arc::new([Mutex::new(()), Mutex::new(()), Mutex::new(())]),
             scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
         });
 
