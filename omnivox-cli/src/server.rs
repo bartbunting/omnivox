@@ -1239,12 +1239,10 @@ pub fn run_server(
                         selected,
                         &mut presentation_generations,
                         &state,
-                        &mut current_gen,
-                        &gen_counter,
+                        current_gen,
                         &engine_registry,
                         &routing_policy,
                         &logical_voices,
-                        &control,
                         &tx,
                     );
                     break;
@@ -1290,12 +1288,10 @@ pub fn run_server(
                                                 current,
                                                 &mut presentation_generations,
                                                 &state,
-                                                &mut current_gen,
-                                                &gen_counter,
+                                                current_gen,
                                                 &engine_registry,
                                                 &routing_policy,
                                                 &logical_voices,
-                                                &control,
                                                 &tx,
                                             );
                                             selected = candidate;
@@ -1325,12 +1321,10 @@ pub fn run_server(
                                         selected,
                                         &mut presentation_generations,
                                         &state,
-                                        &mut current_gen,
-                                        &gen_counter,
+                                        current_gen,
                                         &engine_registry,
                                         &routing_policy,
                                         &logical_voices,
-                                        &control,
                                         &tx,
                                     );
                                 }
@@ -1368,12 +1362,10 @@ pub fn run_server(
                             selected,
                             &mut presentation_generations,
                             &state,
-                            &mut current_gen,
-                            &gen_counter,
+                            current_gen,
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
-                            &control,
                             &tx,
                         );
                         deferred_command = Some(next);
@@ -1384,12 +1376,10 @@ pub fn run_server(
                             selected,
                             &mut presentation_generations,
                             &state,
-                            &mut current_gen,
-                            &gen_counter,
+                            current_gen,
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
-                            &control,
                             &tx,
                         );
                         break;
@@ -1399,12 +1389,10 @@ pub fn run_server(
                             selected,
                             &mut presentation_generations,
                             &state,
-                            &mut current_gen,
-                            &gen_counter,
+                            current_gen,
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
-                            &control,
                             &tx,
                         );
                         input_closed = true;
@@ -1780,12 +1768,10 @@ fn execute_structured_presentation(
     presentation: PreparedStructuredPresentation,
     generations: &mut PresentationGenerations,
     state: &TtsState,
-    current_gen: &mut u64,
-    gen_counter: &AtomicU64,
+    current_gen: u64,
     engine_registry: &EngineRegistry,
     routing_policy: &RoutingPolicyRegistry,
     logical_voices: &LogicalVoiceRegistry,
-    control: &AudioControl,
     tx: &WorkQueueSender<SynthRequest>,
 ) {
     debug!(
@@ -1793,22 +1779,6 @@ fn execute_structured_presentation(
         presentation.generation
     );
     generations.commit(presentation.generation);
-    if presentation.timeline.effective_delivery_policy() == PresentationDeliveryPolicy::Replaceable
-    {
-        // Replacement owns active as well as queued playback. Advance the
-        // synthesis generation and clear every presentation stream, but do
-        // not hard-stop the native engine: isolated synthesis gets a bounded
-        // grace period to finish and discard its stale result.
-        interrupt(
-            current_gen,
-            gen_counter,
-            control,
-            engine_registry,
-            false,
-            false,
-        );
-        cancel_queued_synthesis_before(tx, *current_gen);
-    }
     enqueue_synthesis(
         tx,
         SynthRequest::Timeline {
@@ -1819,7 +1789,7 @@ fn execute_structured_presentation(
                 engine_registry,
                 routing_policy,
             ),
-            gen: *current_gen,
+            gen: current_gen,
         },
     );
 }
@@ -2821,6 +2791,47 @@ mod tests {
         assert!(!BoundedWork::is_replaceable(&ordered));
         assert!(!BoundedWork::shares_replacement_domain(&ordered, &first));
         assert!(BoundedWork::queued_payload_bytes(&first) >= "queued text".len());
+    }
+
+    #[test]
+    fn keyed_replacement_preserves_protected_and_other_domain_work() {
+        let (sender, receiver) = synthesis_channel();
+        for request in [
+            timeline_request(1, 11, PresentationDeliveryPolicy::Ordered, None),
+            timeline_request(2, 12, PresentationDeliveryPolicy::Urgent, None),
+            timeline_request(
+                3,
+                13,
+                PresentationDeliveryPolicy::Replaceable,
+                Some("navigation"),
+            ),
+            timeline_request(
+                4,
+                14,
+                PresentationDeliveryPolicy::Replaceable,
+                Some("review"),
+            ),
+        ] {
+            assert!(sender.try_send(request).accepted);
+        }
+
+        let outcome = sender.try_send(timeline_request(
+            5,
+            15,
+            PresentationDeliveryPolicy::Replaceable,
+            Some("navigation"),
+        ));
+
+        assert!(outcome.accepted);
+        assert_eq!(outcome.retired.len(), 1);
+        assert_eq!(outcome.retired[0].reason, RetirementReason::Replaced);
+        assert_eq!(outcome.retired[0].work.diagnostic_identifier(), Some(13));
+        assert_eq!(
+            (0..4)
+                .map(|_| receiver.recv().unwrap().diagnostic_identifier().unwrap())
+                .collect::<Vec<_>>(),
+            vec![11, 12, 14, 15]
+        );
     }
 
     #[test]
