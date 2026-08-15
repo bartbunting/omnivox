@@ -29,7 +29,7 @@ lint:
 
 # Format code
 fmt:
-	cargo fmt
+	cargo fmt --all
 
 # Check formatting without changing an active worktree
 fmt-check:

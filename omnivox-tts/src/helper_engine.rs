@@ -5,7 +5,7 @@ use std::ffi::OsString;
 use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
-use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
@@ -203,8 +203,7 @@ impl ProcessHelperConnection {
                         Ok(None) => {
                             info!(
                                 engine_id = reader_engine_id,
-                                child_id,
-                                "TTS helper stdout closed"
+                                child_id, "TTS helper stdout closed"
                             );
                             Err(HelperEngineError::Exited)
                         }
@@ -308,9 +307,7 @@ pub(crate) struct HelperCompletedSynthesis {
     markers: Vec<HelperMarker>,
 }
 
-fn split_helper_markers(
-    markers: Vec<HelperMarker>,
-) -> (Vec<SynthesisMarker>, Vec<ResolvedAnchor>) {
+fn split_helper_markers(markers: Vec<HelperMarker>) -> (Vec<SynthesisMarker>, Vec<ResolvedAnchor>) {
     let mut synthesis_markers = Vec::new();
     let mut anchors = Vec::new();
     for marker in markers {
@@ -675,8 +672,7 @@ impl HelperTtsEngine {
         *self.connection.write().unwrap() = Some(connection);
         info!(
             engine_id = self.config.engine_id,
-            protocol_version,
-            "TTS helper connection ready"
+            protocol_version, "TTS helper connection ready"
         );
         Ok(())
     }
@@ -718,7 +714,10 @@ impl HelperTtsEngine {
                 selected_protocol_version,
                 ..
             } if SUPPORTED_HELPER_PROTOCOL_VERSIONS.contains(&selected_protocol_version)
-                && selected_protocol_version == response_version => selected_protocol_version,
+                && selected_protocol_version == response_version =>
+            {
+                selected_protocol_version
+            }
             HelperResponseBody::Error {
                 code,
                 message,
@@ -846,8 +845,7 @@ impl HelperTtsEngine {
         };
         match &response.body {
             HelperResponseBody::CancelAccepted { target_request_id }
-                if *target_request_id == expected_target =>
-            {}
+                if *target_request_id == expected_target => {}
             HelperResponseBody::CancelAccepted { target_request_id } => {
                 return Err(HelperEngineError::CancelTargetMismatch {
                     expected: expected_target,
@@ -971,8 +969,7 @@ impl ActiveRequestGuard<'_> {
             .get(&self.request_id)
             .is_some_and(|cancellation| {
                 cancellation.mark_target_terminal();
-                cancellation.response_consumed()
-                    || cancellation.retirement_started()
+                cancellation.response_consumed() || cancellation.retirement_started()
             });
         if remove {
             cancellations.remove(&self.request_id);
@@ -1009,15 +1006,14 @@ impl TtsEngine for HelperTtsEngine {
             "Preparing TTS helper recovery probe"
         );
         let _lifecycle = self.lifecycle.lock().unwrap();
-        self.install_fresh_connection()
-            .map_err(|error| {
-                warn!(
-                    engine_id = self.config.engine_id,
-                    %error,
-                    "TTS helper recovery preparation failed"
-                );
-                Self::map_error(error)
-            })
+        self.install_fresh_connection().map_err(|error| {
+            warn!(
+                engine_id = self.config.engine_id,
+                %error,
+                "TTS helper recovery preparation failed"
+            );
+            Self::map_error(error)
+        })
     }
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
@@ -1066,8 +1062,7 @@ impl TtsEngine for HelperTtsEngine {
                         .then_some(acss.richness)
                         .flatten(),
                 },
-                anchors: (protocol_version >= HELPER_PROTOCOL_V2)
-                    .then(|| request.anchors.clone()),
+                anchors: (protocol_version >= HELPER_PROTOCOL_V2).then(|| request.anchors.clone()),
             },
         );
         helper_request.validate().map_err(|error| {
@@ -1408,96 +1403,96 @@ mod tests {
                     ));
                 }
                 HelperRequestBody::Synthesize {
-                    settings,
-                    anchors,
-                    ..
-                } => match mode {
-                    MockSynthesisMode::Complete => {
-                        self.push(self.response(
-                            request.request_id,
-                            HelperResponseBody::SynthesisStarted {
-                                format: HelperAudioFormat {
-                                    sample_rate: 22_050,
-                                    channels: 1,
-                                    sample_format: HelperSampleFormat::PcmS16Le,
+                    settings, anchors, ..
+                } => {
+                    match mode {
+                        MockSynthesisMode::Complete => {
+                            self.push(
+                                self.response(
+                                    request.request_id,
+                                    HelperResponseBody::SynthesisStarted {
+                                        format: HelperAudioFormat {
+                                            sample_rate: 22_050,
+                                            channels: 1,
+                                            sample_format: HelperSampleFormat::PcmS16Le,
+                                        },
+                                        actual_voice_id: settings
+                                            .voice_id
+                                            .clone()
+                                            .unwrap_or_else(|| "reed".to_owned()),
+                                    },
+                                ),
+                            );
+                            let bytes = [-32_768_i16, 0, 16_384, 32_767]
+                                .into_iter()
+                                .flat_map(i16::to_le_bytes)
+                                .collect::<Vec<_>>();
+                            self.push(self.response(
+                                request.request_id,
+                                HelperResponseBody::AudioChunk {
+                                    chunk: HelperPcmChunk::from_bytes(0, &bytes).unwrap(),
                                 },
-                                actual_voice_id: settings
-                                    .voice_id
-                                    .clone()
-                                    .unwrap_or_else(|| "reed".to_owned()),
-                            },
-                        ));
-                        let bytes = [-32_768_i16, 0, 16_384, 32_767]
-                            .into_iter()
-                            .flat_map(i16::to_le_bytes)
-                            .collect::<Vec<_>>();
-                        self.push(self.response(
-                            request.request_id,
-                            HelperResponseBody::AudioChunk {
-                                chunk: HelperPcmChunk::from_bytes(0, &bytes).unwrap(),
-                            },
-                        ));
-                        let mut markers = vec![HelperMarker {
-                            kind: HelperMarkerKind::Word,
-                            frame_offset: 1,
-                            text_start: Some(0),
-                            text_length: Some(5),
-                            value: None,
-                        }];
-                        if let Some(anchors) = anchors {
-                            markers.extend(anchors.iter().map(|anchor| HelperMarker {
-                                kind: HelperMarkerKind::RequestedAnchor,
-                                frame_offset: u64::from(anchor.text_offset).min(4),
-                                text_start: Some(anchor.text_offset),
-                                text_length: Some(0),
-                                value: Some(anchor.id.clone()),
-                            }));
+                            ));
+                            let mut markers = vec![HelperMarker {
+                                kind: HelperMarkerKind::Word,
+                                frame_offset: 1,
+                                text_start: Some(0),
+                                text_length: Some(5),
+                                value: None,
+                            }];
+                            if let Some(anchors) = anchors {
+                                markers.extend(anchors.iter().map(|anchor| HelperMarker {
+                                    kind: HelperMarkerKind::RequestedAnchor,
+                                    frame_offset: u64::from(anchor.text_offset).min(4),
+                                    text_start: Some(anchor.text_offset),
+                                    text_length: Some(0),
+                                    value: Some(anchor.id.clone()),
+                                }));
+                            }
+                            self.push(self.response(
+                                request.request_id,
+                                HelperResponseBody::Markers { markers },
+                            ));
+                            self.push(self.response(
+                                request.request_id,
+                                HelperResponseBody::SynthesisCompleted { frame_count: 4 },
+                            ));
                         }
-                        self.push(self.response(
-                            request.request_id,
-                            HelperResponseBody::Markers {
-                                markers,
-                            },
-                        ));
-                        self.push(self.response(
-                            request.request_id,
-                            HelperResponseBody::SynthesisCompleted { frame_count: 4 },
-                        ));
-                    }
-                    MockSynthesisMode::CompleteBeforeCancelResponse
-                    | MockSynthesisMode::WaitForCancel
-                    | MockSynthesisMode::IgnoreCancel
-                    | MockSynthesisMode::DelayAfterCancelAccepted => {
-                        self.push(HelperResponse::for_request_version(
-                            self.protocol_version,
-                            request.request_id,
-                            HelperResponseBody::SynthesisStarted {
-                                format: HelperAudioFormat {
-                                    sample_rate: 22_050,
-                                    channels: 1,
-                                    sample_format: HelperSampleFormat::PcmS16Le,
+                        MockSynthesisMode::CompleteBeforeCancelResponse
+                        | MockSynthesisMode::WaitForCancel
+                        | MockSynthesisMode::IgnoreCancel
+                        | MockSynthesisMode::DelayAfterCancelAccepted => {
+                            self.push(HelperResponse::for_request_version(
+                                self.protocol_version,
+                                request.request_id,
+                                HelperResponseBody::SynthesisStarted {
+                                    format: HelperAudioFormat {
+                                        sample_rate: 22_050,
+                                        channels: 1,
+                                        sample_format: HelperSampleFormat::PcmS16Le,
+                                    },
+                                    actual_voice_id: "reed".to_owned(),
                                 },
-                                actual_voice_id: "reed".to_owned(),
+                            ))
+                        }
+                        MockSynthesisMode::VoiceMissing => self.push(self.response(
+                            request.request_id,
+                            HelperResponseBody::Error {
+                                code: HelperErrorCode::VoiceNotFound,
+                                message: "requested voice is missing".to_owned(),
+                                retryable: false,
                             },
-                        ))
+                        )),
+                        MockSynthesisMode::RetryableSynthesisFailure => self.push(self.response(
+                            request.request_id,
+                            HelperResponseBody::Error {
+                                code: HelperErrorCode::SynthesisFailed,
+                                message: "native synchronization failed".to_owned(),
+                                retryable: true,
+                            },
+                        )),
                     }
-                    MockSynthesisMode::VoiceMissing => self.push(self.response(
-                        request.request_id,
-                        HelperResponseBody::Error {
-                            code: HelperErrorCode::VoiceNotFound,
-                            message: "requested voice is missing".to_owned(),
-                            retryable: false,
-                        },
-                    )),
-                    MockSynthesisMode::RetryableSynthesisFailure => self.push(self.response(
-                        request.request_id,
-                        HelperResponseBody::Error {
-                            code: HelperErrorCode::SynthesisFailed,
-                            message: "native synchronization failed".to_owned(),
-                            retryable: true,
-                        },
-                    )),
-                },
+                }
                 HelperRequestBody::Cancel { target_request_id } => {
                     if matches!(mode, MockSynthesisMode::IgnoreCancel) {
                         return Ok(());
@@ -1540,20 +1535,19 @@ mod tests {
                         },
                     ));
                     if !matches!(mode, MockSynthesisMode::DelayAfterCancelAccepted) {
-                        self.push(self.response(
-                            *target_request_id,
-                            HelperResponseBody::SynthesisCancelled,
-                        ));
+                        self.push(
+                            self.response(
+                                *target_request_id,
+                                HelperResponseBody::SynthesisCancelled,
+                            ),
+                        );
                     }
                 }
                 HelperRequestBody::Ping => {
                     self.push(self.response(request.request_id, HelperResponseBody::Pong));
                 }
                 HelperRequestBody::Shutdown => {
-                    self.push(self.response(
-                        request.request_id,
-                        HelperResponseBody::ShuttingDown,
-                    ));
+                    self.push(self.response(request.request_id, HelperResponseBody::ShuttingDown));
                 }
             }
             Ok(())
@@ -1793,11 +1787,8 @@ mod tests {
 
     #[test]
     fn rejects_a_helper_that_synthesizes_with_the_wrong_voice() {
-        let mut collector = HelperSynthesisCollector::new(
-            HELPER_PROTOCOL_VERSION,
-            13,
-            Some("paul".to_owned()),
-        );
+        let mut collector =
+            HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 13, Some("paul".to_owned()));
         let error = collector.accept(started(13, 1)).unwrap_err();
         assert!(matches!(
             error,
@@ -1835,8 +1826,7 @@ mod tests {
 
     #[test]
     fn cancellation_and_remote_errors_are_terminal() {
-        let mut cancelled =
-            HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 4, None);
+        let mut cancelled = HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 4, None);
         assert!(matches!(
             cancelled
                 .accept(response(4, HelperResponseBody::SynthesisCancelled))
@@ -2007,7 +1997,10 @@ mod tests {
         assert_eq!(sent[2].protocol_version, HELPER_PROTOCOL_V2);
         assert_eq!(sent[3].protocol_version, HELPER_PROTOCOL_V1);
         assert_eq!(sent[4].body, HelperRequestBody::Describe);
-        let HelperRequestBody::Synthesize { anchors, settings, .. } = &sent[5].body else {
+        let HelperRequestBody::Synthesize {
+            anchors, settings, ..
+        } = &sent[5].body
+        else {
             panic!("expected synthesis request");
         };
         assert!(anchors.is_none());
@@ -2025,9 +2018,7 @@ mod tests {
         ));
         let engine = mock_engine(vec![Arc::clone(&connection)]).unwrap();
 
-        let error = engine
-            .synthesize(&synthesis_request("hello"))
-            .unwrap_err();
+        let error = engine.synthesize(&synthesis_request("hello")).unwrap_err();
         assert!(matches!(
             error,
             TtsError::VoiceNotFound(message) if message == "requested voice is missing"
@@ -2246,9 +2237,8 @@ mod tests {
             helper_descriptor("eloquence", "1.1"),
             MockSynthesisMode::Complete,
         ));
-        let engine = Arc::new(
-            mock_engine(vec![Arc::clone(&connection), Arc::clone(&recovered)]).unwrap(),
-        );
+        let engine =
+            Arc::new(mock_engine(vec![Arc::clone(&connection), Arc::clone(&recovered)]).unwrap());
         let worker_engine = Arc::clone(&engine);
         let synthesis = std::thread::spawn(move || {
             worker_engine.synthesize(&synthesis_request("hung utterance"))
@@ -2283,7 +2273,9 @@ mod tests {
         assert!(connection.terminated.load(Ordering::Acquire));
         assert_eq!(connection.termination_count.load(Ordering::Acquire), 1);
         assert!(!engine.is_speaking());
-        assert!(engine.synthesize(&synthesis_request("next utterance")).is_ok());
+        assert!(engine
+            .synthesize(&synthesis_request("next utterance"))
+            .is_ok());
         assert!(!recovered.terminated.load(Ordering::Acquire));
     }
 
@@ -2303,9 +2295,7 @@ mod tests {
 
         assert!(failed.terminated.load(Ordering::Acquire));
         assert_eq!(engine.descriptor().version.as_deref(), Some("1.1"));
-        assert!(engine
-            .synthesize(&synthesis_request("recovered"))
-            .is_ok());
+        assert!(engine.synthesize(&synthesis_request("recovered")).is_ok());
     }
 
     #[test]
@@ -2334,9 +2324,7 @@ mod tests {
         assert!(hung.terminated.load(Ordering::Acquire));
 
         engine.prepare_recovery_probe().unwrap();
-        assert!(engine
-            .synthesize(&synthesis_request("recovered"))
-            .is_ok());
+        assert!(engine.synthesize(&synthesis_request("recovered")).is_ok());
     }
 
     #[test]

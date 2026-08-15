@@ -55,7 +55,11 @@ impl PostSynthesisParameters {
 }
 
 fn finite_or(value: f32, fallback: f32) -> f32 {
-    if value.is_finite() { value } else { fallback }
+    if value.is_finite() {
+        value
+    } else {
+        fallback
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -193,11 +197,7 @@ impl PostSynthesisProcessor {
         (!tail.is_empty()).then(|| AudioBuffer::new(tail))
     }
 
-    fn process_frame(
-        &mut self,
-        mut frame: [f32; 2],
-        parameters: EffectiveParameters,
-    ) -> [f32; 2] {
+    fn process_frame(&mut self, mut frame: [f32; 2], parameters: EffectiveParameters) -> [f32; 2] {
         let source_audible = frame.iter().any(|sample| sample.abs() > QUIET_THRESHOLD);
         if source_audible && (parameters.echo > 0.0 || parameters.reverb > 0.0) {
             self.tail_active = true;
@@ -206,9 +206,7 @@ impl PostSynthesisProcessor {
         for (channel, sample) in frame.iter_mut().enumerate() {
             *sample *= parameters.gain;
             let low_alpha = 1.0
-                - (-2.0 * std::f32::consts::PI * parameters.low_pass_hz
-                    / SAMPLE_RATE as f32)
-                    .exp();
+                - (-2.0 * std::f32::consts::PI * parameters.low_pass_hz / SAMPLE_RATE as f32).exp();
             self.low_state[channel] += low_alpha * (*sample - self.low_state[channel]);
             *sample = *sample * (1.0 - parameters.low_pass_mix)
                 + self.low_state[channel] * parameters.low_pass_mix;
@@ -216,12 +214,11 @@ impl PostSynthesisProcessor {
             let dt = 1.0 / SAMPLE_RATE as f32;
             let rc = 1.0 / (2.0 * std::f32::consts::PI * parameters.high_pass_hz);
             let high_alpha = rc / (rc + dt);
-            let high = high_alpha
-                * (self.high_output[channel] + *sample - self.high_input[channel]);
+            let high =
+                high_alpha * (self.high_output[channel] + *sample - self.high_input[channel]);
             self.high_input[channel] = *sample;
             self.high_output[channel] = high;
-            *sample = *sample * (1.0 - parameters.high_pass_mix)
-                + high * parameters.high_pass_mix;
+            *sample = *sample * (1.0 - parameters.high_pass_mix) + high * parameters.high_pass_mix;
         }
 
         if parameters.pan < 0.0 {
@@ -306,11 +303,7 @@ mod tests {
         let input = AudioBuffer::new(vec![0.25, -0.25, 0.5, -0.5]);
         let mut processor = PostSynthesisProcessor::new();
 
-        let processed = processor.process_window(
-            &input,
-            PostSynthesisParameters::default(),
-            true,
-        );
+        let processed = processor.process_window(&input, PostSynthesisParameters::default(), true);
 
         assert_eq!(processed.audio.samples, input.samples);
         assert!(processed.tail.is_none());
@@ -353,7 +346,11 @@ mod tests {
         let second = processor.process_window(&second, parameters, true);
 
         assert!(first.tail.is_none());
-        assert!(second.audio.samples.iter().any(|sample| sample.abs() > 0.01));
+        assert!(second
+            .audio
+            .samples
+            .iter()
+            .any(|sample| sample.abs() > 0.01));
         let tail = second.tail.unwrap();
         assert!(!tail.is_empty());
         assert!(tail.frame_count() <= MAX_EFFECT_TAIL_FRAMES);
@@ -394,7 +391,11 @@ mod tests {
             true,
         );
 
-        assert!(processed.audio.samples.iter().all(|sample| sample.abs() < 0.0001));
+        assert!(processed
+            .audio
+            .samples
+            .iter()
+            .all(|sample| sample.abs() < 0.0001));
         assert!(processed.tail.is_none());
     }
 }

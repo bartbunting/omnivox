@@ -869,9 +869,13 @@ mod tests {
                 ..TtsSettings::default()
             };
             let request = SynthesisRequest::new(texts[iteration % texts.len()], settings);
-            let result = engine.synthesize(&request).expect("stress synthesis failed");
+            let result = engine
+                .synthesize(&request)
+                .expect("stress synthesis failed");
 
-            result.validate(&request).expect("stress result was invalid");
+            result
+                .validate(&request)
+                .expect("stress result was invalid");
             assert!(!result.audio.is_empty());
             assert_eq!(result.audio.sample_rate(), crate::STANDARD_SAMPLE_RATE);
             assert_eq!(result.audio.channels(), crate::STANDARD_CHANNELS);

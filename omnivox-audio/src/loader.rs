@@ -4,8 +4,8 @@
 //! using rodio decoders. Handles resampling, channel conversion,
 //! and format conversion automatically.
 
-use crate::AudioError;
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
+use crate::AudioError;
 use rodio::Source;
 use std::collections::HashMap;
 use std::fs::File;
@@ -46,7 +46,9 @@ impl AudioCache {
     fn insert(&mut self, key: String, buffer: AudioBuffer) {
         self.access_clock = self.access_clock.wrapping_add(1);
         if let Some(previous) = self.entries.remove(&key) {
-            self.total_samples = self.total_samples.saturating_sub(previous.buffer.samples.len());
+            self.total_samples = self
+                .total_samples
+                .saturating_sub(previous.buffer.samples.len());
         }
         self.total_samples = self.total_samples.saturating_add(buffer.samples.len());
         self.entries.insert(
@@ -68,7 +70,9 @@ impl AudioCache {
                 break;
             };
             if let Some(removed) = self.entries.remove(&oldest) {
-                self.total_samples = self.total_samples.saturating_sub(removed.buffer.samples.len());
+                self.total_samples = self
+                    .total_samples
+                    .saturating_sub(removed.buffer.samples.len());
             }
         }
     }
@@ -148,14 +152,12 @@ impl AudioFileLoader {
             )));
         }
 
-        let file = File::open(path).map_err(|e| {
-            AudioError::FileNotFound(format!("{}: {}", path.to_string_lossy(), e))
-        })?;
+        let file = File::open(path)
+            .map_err(|e| AudioError::FileNotFound(format!("{}: {}", path.to_string_lossy(), e)))?;
         let reader = BufReader::new(file);
 
-        let decoder = rodio::Decoder::new(reader).map_err(|e| {
-            AudioError::DecodeError(format!("{}: {}", path.to_string_lossy(), e))
-        })?;
+        let decoder = rodio::Decoder::new(reader)
+            .map_err(|e| AudioError::DecodeError(format!("{}: {}", path.to_string_lossy(), e)))?;
 
         let source_channels = decoder.channels();
         let source_sample_rate = decoder.sample_rate();
@@ -262,8 +264,7 @@ fn downmix_to_stereo(samples: &[f32], channels: u16) -> Vec<f32> {
 /// Linear interpolation resampling for stereo audio.
 fn resample_linear(samples: &[f32], from_rate: u32, to_rate: u32) -> Vec<f32> {
     let from_frames = samples.len() / CHANNELS as usize;
-    let to_frames =
-        (from_frames as f64 * to_rate as f64 / from_rate as f64).round() as usize;
+    let to_frames = (from_frames as f64 * to_rate as f64 / from_rate as f64).round() as usize;
 
     if to_frames == 0 {
         return Vec::new();

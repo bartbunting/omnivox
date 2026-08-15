@@ -41,10 +41,7 @@ fn main() {
                     let data_path = path.join("out").join("share");
                     let phontab = data_path.join("espeak-ng-data").join("phontab");
                     if phontab.exists() {
-                        println!(
-                            "cargo:rustc-env=ESPEAK_NG_DATA_DIR={}",
-                            data_path.display()
-                        );
+                        println!("cargo:rustc-env=ESPEAK_NG_DATA_DIR={}", data_path.display());
                         return;
                     }
                 }
@@ -53,11 +50,7 @@ fn main() {
     }
 
     // If we can't find it in the build dir, check system paths
-    let system_paths = [
-        "/usr/share",
-        "/usr/local/share",
-        "/opt/homebrew/share",
-    ];
+    let system_paths = ["/usr/share", "/usr/local/share", "/opt/homebrew/share"];
     for base in &system_paths {
         let data_path = PathBuf::from(base).join("espeak-ng-data").join("phontab");
         if data_path.exists() {

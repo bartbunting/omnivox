@@ -440,26 +440,23 @@ fn decode_tcl_resource_word(argument: &str) -> Result<String, String> {
             'u' => {
                 let mut value = 0_u32;
                 for _ in 0..4 {
-                    let digit = chars.next().ok_or_else(|| {
-                        "incomplete \\u escape in Tcl resource path".to_string()
-                    })?;
+                    let digit = chars
+                        .next()
+                        .ok_or_else(|| "incomplete \\u escape in Tcl resource path".to_string())?;
                     value = value * 16
-                        + digit.to_digit(16).ok_or_else(|| {
-                            "invalid \\u escape in Tcl resource path".to_string()
-                        })?;
+                        + digit
+                            .to_digit(16)
+                            .ok_or_else(|| "invalid \\u escape in Tcl resource path".to_string())?;
                 }
-                let character = char::from_u32(value).ok_or_else(|| {
-                    "invalid Unicode scalar in Tcl resource path".to_string()
-                })?;
+                let character = char::from_u32(value)
+                    .ok_or_else(|| "invalid Unicode scalar in Tcl resource path".to_string())?;
                 if character == '\0' {
                     return Err("Tcl resource path cannot contain NUL".to_string());
                 }
                 decoded.push(character);
             }
             other => {
-                return Err(format!(
-                    "unsupported Tcl escape \\{other} in resource path"
-                ));
+                return Err(format!("unsupported Tcl escape \\{other} in resource path"));
             }
         }
     }
@@ -519,9 +516,15 @@ mod tests {
     #[test]
     fn test_insert_space_before_uppercase() {
         assert_eq!(insert_space_before_uppercase("helloWorld"), "hello World");
-        assert_eq!(insert_space_before_uppercase("CamelCaseIdentifier"), "Camel Case Identifier");
+        assert_eq!(
+            insert_space_before_uppercase("CamelCaseIdentifier"),
+            "Camel Case Identifier"
+        );
         assert_eq!(insert_space_before_uppercase("HTTPServer"), "HTTPServer");
-        assert_eq!(insert_space_before_uppercase("isHTTPMethod"), "is HTTPMethod");
+        assert_eq!(
+            insert_space_before_uppercase("isHTTPMethod"),
+            "is HTTPMethod"
+        );
         assert_eq!(insert_space_before_uppercase("lowercase"), "lowercase");
     }
 
@@ -578,8 +581,15 @@ mod tests {
         let chunks = chunk_prepared_speech(prepared, 5);
 
         assert_eq!(
-            chunks.iter().map(|chunk| chunk.text.as_str()).collect::<Vec<_>>(),
-            vec!["One two three.", "Four five six seven,", "eight nine ten eleven twelve"]
+            chunks
+                .iter()
+                .map(|chunk| chunk.text.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "One two three.",
+                "Four five six seven,",
+                "eight nine ten eleven twelve"
+            ]
         );
         assert!(chunks
             .iter()
@@ -596,8 +606,15 @@ mod tests {
         let chunks = chunk_prepared_speech(prepared, 5);
 
         assert_eq!(
-            chunks.iter().map(|chunk| chunk.text.as_str()).collect::<Vec<_>>(),
-            vec!["First line", "Second line continues here. “Really?”", "Third tail words"]
+            chunks
+                .iter()
+                .map(|chunk| chunk.text.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "First line",
+                "Second line continues here. “Really?”",
+                "Third tail words"
+            ]
         );
         assert_eq!(
             chunks
@@ -627,7 +644,10 @@ mod tests {
         let chunks = chunk_prepared_speech(prepared, 2);
 
         assert_eq!(
-            chunks.iter().map(|chunk| chunk.text.as_str()).collect::<Vec<_>>(),
+            chunks
+                .iter()
+                .map(|chunk| chunk.text.as_str())
+                .collect::<Vec<_>>(),
             vec!["one two", "three four", "five six"]
         );
     }
@@ -679,13 +699,19 @@ mod tests {
     fn test_extract_logical_voice() {
         let codes = "[[logical_voice source-code]] [[pitch 1.2]]";
         assert_eq!(extract_logical_voice(codes).as_deref(), Some("source-code"));
-        assert_eq!(extract_logical_voice("[[logical_voice invalid voice]]"), None);
+        assert_eq!(
+            extract_logical_voice("[[logical_voice invalid voice]]"),
+            None
+        );
         assert_eq!(extract_logical_voice("[[logical_voice ../invalid]]"), None);
     }
 
     #[test]
     fn test_apply_punctuation_none() {
-        assert_eq!(apply_punctuation("hello $100", PunctuationLevel::None), "hello  dollar 100");
+        assert_eq!(
+            apply_punctuation("hello $100", PunctuationLevel::None),
+            "hello  dollar 100"
+        );
     }
 
     #[test]
@@ -719,7 +745,10 @@ mod tests {
 
     #[test]
     fn test_expand_tilde_no_tilde() {
-        assert_eq!(expand_tilde("/absolute/path"), PathBuf::from("/absolute/path"));
+        assert_eq!(
+            expand_tilde("/absolute/path"),
+            PathBuf::from("/absolute/path")
+        );
     }
 
     #[test]
@@ -727,7 +756,10 @@ mod tests {
         let encoded =
             r#""/tmp/cue space {brace} quote\" back\\slash; dollar\$ \[command] λ\n.ogg""#;
         let expected = "/tmp/cue space {brace} quote\" back\\slash; dollar$ [command] λ\n.ogg";
-        assert_eq!(parse_resource_path(encoded).unwrap(), PathBuf::from(expected));
+        assert_eq!(
+            parse_resource_path(encoded).unwrap(),
+            PathBuf::from(expected)
+        );
     }
 
     #[test]

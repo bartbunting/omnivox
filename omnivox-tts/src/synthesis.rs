@@ -197,10 +197,11 @@ impl SynthesisResult {
         markers: Vec<SynthesisMarker>,
         anchors: Vec<ResolvedAnchor>,
     ) -> Result<Self, TtsError> {
-        let audio = AudioBuffer::try_from_interleaved_i16(samples, sample_rate, channels)
-            .map_err(|error| {
+        let audio = AudioBuffer::try_from_interleaved_i16(samples, sample_rate, channels).map_err(
+            |error| {
                 TtsError::SynthesisFailed(format!("could not canonicalize engine PCM: {error}"))
-            })?;
+            },
+        )?;
         let mut result = Self::new(engine_id, actual_voice, audio, markers);
         result.anchors = anchors;
         result.rescale_timing(sample_rate);
@@ -213,11 +214,7 @@ impl SynthesisResult {
     /// use word-start markers when available, otherwise they are explicitly
     /// omitted. This method is idempotent so routed callers may apply it at the
     /// common engine boundary even when a helper already finalized its result.
-    pub fn resolve_anchors(
-        &mut self,
-        request: &SynthesisRequest,
-        support: AnchorSupport,
-    ) {
+    pub fn resolve_anchors(&mut self, request: &SynthesisRequest, support: AnchorSupport) {
         let frame_count = self.audio.frame_count() as u64;
         for requested in &request.anchors {
             if self.anchors.iter().any(|anchor| anchor.id == requested.id) {
@@ -229,11 +226,12 @@ impl SynthesisResult {
                     approximate_at_word_boundary(requested, &self.markers, frame_count)
                 }
             };
-            self.anchors.push(approximation.unwrap_or_else(|| ResolvedAnchor {
-                id: requested.id.clone(),
-                frame_offset: None,
-                resolution: AnchorResolution::Omitted,
-            }));
+            self.anchors
+                .push(approximation.unwrap_or_else(|| ResolvedAnchor {
+                    id: requested.id.clone(),
+                    frame_offset: None,
+                    resolution: AnchorResolution::Omitted,
+                }));
         }
         self.anchors.sort_by_key(|resolved| {
             request
@@ -529,10 +527,8 @@ mod tests {
 
     #[test]
     fn rejects_a_different_voice_for_an_exact_route() {
-        let request = SynthesisRequest::new("hello", TtsSettings::default()).with_route(
-            "logical",
-            PhysicalVoiceId::new("helper", "requested"),
-        );
+        let request = SynthesisRequest::new("hello", TtsSettings::default())
+            .with_route("logical", PhysicalVoiceId::new("helper", "requested"));
         let result = SynthesisResult::audio(
             "helper",
             Some(PhysicalVoiceId::new("helper", "different")),
@@ -606,11 +602,8 @@ mod tests {
             .iter()
             .all(|anchor| anchor.resolution == AnchorResolution::WordBoundary));
 
-        let mut unsupported = SynthesisResult::audio(
-            "markerless",
-            None,
-            AudioBuffer::new(vec![0.0; 80]),
-        );
+        let mut unsupported =
+            SynthesisResult::audio("markerless", None, AudioBuffer::new(vec![0.0; 80]));
         unsupported.resolve_anchors(&request, AnchorSupport::None);
         assert!(unsupported.anchors.iter().all(|anchor| {
             anchor.frame_offset.is_none() && anchor.resolution == AnchorResolution::Omitted

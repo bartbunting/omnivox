@@ -8,8 +8,7 @@ use thiserror::Error;
 pub const MAX_PRESENTATION_PAYLOAD_BYTES: usize = 256 * 1024;
 
 /// Conservative maximum encoded size for the decoded transaction bound.
-pub const MAX_PRESENTATION_ENCODED_BYTES: usize =
-    (MAX_PRESENTATION_PAYLOAD_BYTES / 3) * 4 + 8;
+pub const MAX_PRESENTATION_ENCODED_BYTES: usize = (MAX_PRESENTATION_PAYLOAD_BYTES / 3) * 4 + 8;
 
 /// One decoded `emacsvox_tx GENERATION {BASE64}` payload.
 #[derive(Debug, Clone, PartialEq, Eq)]

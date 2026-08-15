@@ -58,9 +58,18 @@ fn main() -> Result<()> {
     let cli = parse_args();
 
     match cli.action.as_str() {
-        "help" => { cli::print_help(); return Ok(()); }
-        "version" => { cli::print_version(); return Ok(()); }
-        "check" => { cli::cmd_check(&cli.engine); return Ok(()); }
+        "help" => {
+            cli::print_help();
+            return Ok(());
+        }
+        "version" => {
+            cli::print_version();
+            return Ok(());
+        }
+        "check" => {
+            cli::cmd_check(&cli.engine);
+            return Ok(());
+        }
         "list-voices" => {
             let engine = create_engine(&cli.engine, cli.piper_model.as_deref())?;
             cli::cmd_list_voices(engine.as_ref());
@@ -73,7 +82,10 @@ fn main() -> Result<()> {
         }
         "play-wav" => {
             let remaining: Vec<String> = std::env::args().collect();
-            let idx = remaining.iter().position(|a| a == "--play-wav").unwrap_or(0);
+            let idx = remaining
+                .iter()
+                .position(|a| a == "--play-wav")
+                .unwrap_or(0);
             if idx + 1 >= remaining.len() {
                 eprintln!("Usage: omnivox --play-wav <file.wav>");
                 std::process::exit(1);
@@ -83,8 +95,14 @@ fn main() -> Result<()> {
         }
         "dump-wav" => {
             let remaining: Vec<String> = std::env::args().collect();
-            let dump_idx = remaining.iter().position(|a| a == "--dump-wav").unwrap_or(0);
-            let dump_args: Vec<&str> = remaining[dump_idx + 1..].iter().map(|s| s.as_str()).collect();
+            let dump_idx = remaining
+                .iter()
+                .position(|a| a == "--dump-wav")
+                .unwrap_or(0);
+            let dump_args: Vec<&str> = remaining[dump_idx + 1..]
+                .iter()
+                .map(|s| s.as_str())
+                .collect();
             if dump_args.len() < 2 {
                 eprintln!("Usage: omnivox --dump-wav <voice> <output.wav> [text...]");
                 eprintln!("  Example: omnivox --dump-wav 'en-US:Alex' alex.wav Hello world");
@@ -122,7 +140,9 @@ fn main() -> Result<()> {
 
     let created_engines = {
         #[cfg(target_os = "macos")]
-        { info!("Initializing macOS TTS engine (ObjC bridge)"); }
+        {
+            info!("Initializing macOS TTS engine (ObjC bridge)");
+        }
         create_engines(
             &cli.engine,
             cli.piper_model.as_deref(),

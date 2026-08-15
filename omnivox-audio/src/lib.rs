@@ -16,8 +16,8 @@ pub mod tone;
 pub use buffer::AudioBuffer;
 pub use effects::{ChannelRouter, SilenceTrimReport, SilenceTrimmer, VolumeAdjust};
 pub use loader::{
-    AudioFileLoader, MAX_AUDIO_CACHE_ENTRIES, MAX_AUDIO_CACHE_SAMPLES,
-    MAX_AUDIO_DURATION_SECS, MAX_AUDIO_FILE_BYTES,
+    AudioFileLoader, MAX_AUDIO_CACHE_ENTRIES, MAX_AUDIO_CACHE_SAMPLES, MAX_AUDIO_DURATION_SECS,
+    MAX_AUDIO_FILE_BYTES,
 };
 pub use output::{
     AudioControl, AudioOutput, AudioStreams, PlaybackCue, PlaybackStatus, PlaybackTicket,

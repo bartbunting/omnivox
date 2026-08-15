@@ -72,22 +72,32 @@ pub fn parse_args() -> CliArgs {
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
-            "--help" | "-h"          => cli.action = String::from("help"),
-            "--version" | "-V"       => cli.action = String::from("version"),
-            "--check"                => cli.action = String::from("check"),
-            "--list-voices"          => cli.action = String::from("list-voices"),
-            "--list-voices-alist"    => cli.action = String::from("list-voices-alist"),
-            "--dump-wav"             => cli.action = String::from("dump-wav"),
-            "--play-wav"             => cli.action = String::from("play-wav"),
-            "--engine"       => cli.engine        = parse_string_flag("--engine",        &args, &mut i),
-            "--voice"        => cli.voice         = Some(parse_string_flag("--voice",        &args, &mut i)),
-            "--rate"         => cli.rate          = Some(parse_float_flag("--rate",          &args, &mut i)),
-            "--pitch"        => cli.pitch         = Some(parse_float_flag("--pitch",         &args, &mut i)),
-            "--voice-volume" => cli.voice_volume  = Some(parse_float_flag("--voice-volume",  &args, &mut i)),
-            "--tone-volume"  => cli.tone_volume   = Some(parse_float_flag("--tone-volume",   &args, &mut i)),
-            "--sound-volume" => cli.sound_volume  = Some(parse_float_flag("--sound-volume",  &args, &mut i)),
-            "--audio-target" => cli.audio_target  = Some(parse_string_flag("--audio-target", &args, &mut i)),
-            "--piper-model"  => cli.piper_model   = Some(parse_string_flag("--piper-model",  &args, &mut i)),
+            "--help" | "-h" => cli.action = String::from("help"),
+            "--version" | "-V" => cli.action = String::from("version"),
+            "--check" => cli.action = String::from("check"),
+            "--list-voices" => cli.action = String::from("list-voices"),
+            "--list-voices-alist" => cli.action = String::from("list-voices-alist"),
+            "--dump-wav" => cli.action = String::from("dump-wav"),
+            "--play-wav" => cli.action = String::from("play-wav"),
+            "--engine" => cli.engine = parse_string_flag("--engine", &args, &mut i),
+            "--voice" => cli.voice = Some(parse_string_flag("--voice", &args, &mut i)),
+            "--rate" => cli.rate = Some(parse_float_flag("--rate", &args, &mut i)),
+            "--pitch" => cli.pitch = Some(parse_float_flag("--pitch", &args, &mut i)),
+            "--voice-volume" => {
+                cli.voice_volume = Some(parse_float_flag("--voice-volume", &args, &mut i))
+            }
+            "--tone-volume" => {
+                cli.tone_volume = Some(parse_float_flag("--tone-volume", &args, &mut i))
+            }
+            "--sound-volume" => {
+                cli.sound_volume = Some(parse_float_flag("--sound-volume", &args, &mut i))
+            }
+            "--audio-target" => {
+                cli.audio_target = Some(parse_string_flag("--audio-target", &args, &mut i))
+            }
+            "--piper-model" => {
+                cli.piper_model = Some(parse_string_flag("--piper-model", &args, &mut i))
+            }
             other => {
                 if cli.action == "dump-wav" || cli.action == "play-wav" {
                     break;
@@ -144,7 +154,10 @@ pub fn apply_cli_flags(cli: &CliArgs, state: &mut TtsState) {
 
 pub fn print_help() {
     let native = native_engine_name();
-    println!("Omnivox v{} - Cross-platform Emacspeak speech server", crate::VERSION);
+    println!(
+        "Omnivox v{} - Cross-platform Emacspeak speech server",
+        crate::VERSION
+    );
     println!();
     println!("USAGE:");
     println!("    omnivox [OPTIONS]");
@@ -171,7 +184,9 @@ pub fn print_help() {
     println!("ENGINES:");
     println!("    native    Platform-native TTS: {}", native);
     println!("    espeak    espeak-ng (cross-platform, always available)");
-    println!("    piper     Piper neural TTS (make build-piper; requires adjacent helper and model)");
+    println!(
+        "    piper     Piper neural TTS (make build-piper; requires adjacent helper and model)"
+    );
     println!();
     println!("Without options, starts the Emacspeak protocol server on stdin.");
     println!();
@@ -179,7 +194,9 @@ pub fn print_help() {
     println!("    OMNIVOX_ENGINE         Same as --engine");
     println!("    OMNIVOX_PIPER_MODEL    Path to piper .onnx model (same as --piper-model)");
     println!("    OMNIVOX_PIPER_HELPER   Override path to omnivox-piper-helper");
-    println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (set by Emacspeak notification mode)");
+    println!(
+        "    OMNIVOX_AUDIO_TARGET   Same as --audio-target (set by Emacspeak notification mode)"
+    );
     println!("    OMNIVOX_LOG_SYNTHESIS_TEXT  Opt in to sensitive full-text diagnostics");
     println!();
     println!("EMACSPEAK SETUP:");
@@ -197,12 +214,18 @@ pub fn cmd_list_voices(engine: &dyn TtsEngine) {
 
     let mut by_lang: std::collections::BTreeMap<String, Vec<_>> = std::collections::BTreeMap::new();
     for voice in voices {
-        by_lang.entry(voice.language.clone()).or_default().push(voice);
+        by_lang
+            .entry(voice.language.clone())
+            .or_default()
+            .push(voice);
     }
     for (lang, voices) in by_lang {
         println!("{} ({} voices):", lang, voices.len());
         for voice in voices {
-            println!("  {:?} - {} [{}]", voice.quality, voice.name, voice.identifier);
+            println!(
+                "  {:?} - {} [{}]",
+                voice.quality, voice.name, voice.identifier
+            );
         }
         println!();
     }
@@ -262,7 +285,9 @@ pub fn cmd_check(engine_name: &str) {
     println!("[home]");
     match home_dir() {
         Some(h) => println!("  Home: {}", std::path::Path::new(&h).display()),
-        None => println!("  WARNING: Could not determine home directory (HOME/USERPROFILE not set)"),
+        None => {
+            println!("  WARNING: Could not determine home directory (HOME/USERPROFILE not set)")
+        }
     }
     println!();
 
@@ -319,7 +344,11 @@ pub fn cmd_check(engine_name: &str) {
     println!();
 
     println!("[audio output]");
-    match AudioStreams::new(crate::SPEECH_MAX_DEPTH, crate::TONE_MAX_DEPTH, crate::SOUND_MAX_DEPTH) {
+    match AudioStreams::new(
+        crate::SPEECH_MAX_DEPTH,
+        crate::TONE_MAX_DEPTH,
+        crate::SOUND_MAX_DEPTH,
+    ) {
         Ok(streams) => {
             println!("  Audio device: OK");
 
@@ -478,7 +507,11 @@ pub fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
 }
 
 pub fn cmd_play_wav(path: &str) {
-    let streams = match AudioStreams::new(crate::SPEECH_MAX_DEPTH, crate::TONE_MAX_DEPTH, crate::SOUND_MAX_DEPTH) {
+    let streams = match AudioStreams::new(
+        crate::SPEECH_MAX_DEPTH,
+        crate::TONE_MAX_DEPTH,
+        crate::SOUND_MAX_DEPTH,
+    ) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("Audio init failed: {}", e);

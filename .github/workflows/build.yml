@@ -8,6 +8,22 @@ on:
     branches: [main]
 
 jobs:
+  format:
+    name: Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pinned rustfmt
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -122,7 +138,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: [build, test]
+    needs: [format, build, test]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:

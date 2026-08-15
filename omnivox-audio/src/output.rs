@@ -10,8 +10,8 @@
 //! `AudioStreams::control()` and sent to other threads (e.g. a synthesis
 //! worker) to queue or stop audio independently.
 
-use crate::AudioError;
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
+use crate::AudioError;
 use rodio::{OutputStream, OutputStreamHandle, Sink, Source};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
@@ -377,11 +377,8 @@ impl AudioControl {
             return Ok(None);
         };
 
-        let (source, ticket) = TrackedBufferSource::new_with_cues(
-            buffer.samples.clone(),
-            cues,
-            cue_sender,
-        );
+        let (source, ticket) =
+            TrackedBufferSource::new_with_cues(buffer.samples.clone(), cues, cue_sender);
         sink.append(source);
         sink.play();
         Ok(Some(ticket))
@@ -428,11 +425,8 @@ impl AudioControl {
             return Ok(None);
         };
 
-        let (source, ticket) = TrackedBufferSource::new_with_cue_callback(
-            buffer.samples.clone(),
-            cues,
-            on_cue,
-        );
+        let (source, ticket) =
+            TrackedBufferSource::new_with_cue_callback(buffer.samples.clone(), cues, on_cue);
         sink.append(source);
         sink.play();
         Ok(Some(ticket))
@@ -637,11 +631,9 @@ impl AudioOutput {
     pub fn play(&self, buffer: &AudioBuffer) -> Result<PlaybackHandle, AudioError> {
         if buffer.is_empty() {
             return Ok(PlaybackHandle {
-                sink: Arc::new(
-                    Sink::try_new(&self.stream_handle).map_err(|e| {
-                        AudioError::PlaybackError(format!("failed to create sink: {}", e))
-                    })?,
-                ),
+                sink: Arc::new(Sink::try_new(&self.stream_handle).map_err(|e| {
+                    AudioError::PlaybackError(format!("failed to create sink: {}", e))
+                })?),
             });
         }
 
@@ -723,9 +715,7 @@ impl Source for BufferSource {
 
     fn total_duration(&self) -> Option<Duration> {
         let frames = self.samples.len() / CHANNELS as usize;
-        Some(Duration::from_secs_f64(
-            frames as f64 / SAMPLE_RATE as f64,
-        ))
+        Some(Duration::from_secs_f64(frames as f64 / SAMPLE_RATE as f64))
     }
 }
 
@@ -980,11 +970,17 @@ mod tests {
         );
         assert_eq!(source.next(), Some(0.1));
         assert_eq!(source.next(), Some(0.1));
-        assert_eq!(cue_receiver.try_iter().collect::<Vec<_>>(), vec![cue(2, 20)]);
+        assert_eq!(
+            cue_receiver.try_iter().collect::<Vec<_>>(),
+            vec![cue(2, 20)]
+        );
         assert_eq!(source.next(), Some(0.1));
 
         assert_eq!(source.next(), None);
-        assert_eq!(cue_receiver.try_iter().collect::<Vec<_>>(), vec![cue(3, 30)]);
+        assert_eq!(
+            cue_receiver.try_iter().collect::<Vec<_>>(),
+            vec![cue(3, 30)]
+        );
         assert_eq!(ticket.wait(), PlaybackStatus::Completed);
     }
 
@@ -1007,20 +1003,19 @@ mod tests {
         let error = prepare_playback_cues(vec![cue(4, 40)], 3).unwrap_err();
 
         assert!(matches!(error, AudioError::InvalidFormat(_)));
-        assert!(error.to_string().contains("offset 4 exceeds buffer frame count 3"));
+        assert!(error
+            .to_string()
+            .contains("offset 4 exceeds buffer frame count 3"));
     }
 
     #[test]
     fn tracked_source_invokes_cue_callback_without_changing_completion() {
         let cues = prepare_playback_cues(vec![cue(1, 10)], 2).unwrap();
         let (sender, receiver) = mpsc::channel();
-        let (mut source, ticket) = TrackedBufferSource::new_with_cue_callback(
-            vec![0.1; 4],
-            cues,
-            move |cue| {
+        let (mut source, ticket) =
+            TrackedBufferSource::new_with_cue_callback(vec![0.1; 4], cues, move |cue| {
                 let _ = sender.send(cue);
-            },
-        );
+            });
 
         assert_eq!(source.by_ref().collect::<Vec<_>>(), vec![0.1; 4]);
         assert_eq!(receiver.try_iter().collect::<Vec<_>>(), vec![cue(1, 10)]);

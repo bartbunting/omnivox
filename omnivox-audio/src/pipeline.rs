@@ -4,8 +4,8 @@
 //! effects together. The pipeline is extensible for future effects
 //! (phaser, echo, chorus, tremolo, reverb, pan).
 
-use crate::AudioError;
 use crate::buffer::AudioBuffer;
+use crate::AudioError;
 
 /// An audio effect that transforms an AudioBuffer in place.
 ///

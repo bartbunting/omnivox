@@ -665,12 +665,8 @@ mod tests {
         };
 
         let global = resolve_voice(&engines, &logical(Vec::new()), &policy).unwrap();
-        let explicit = resolve_voice(
-            &engines,
-            &logical(vec![exact("winrt", "david")]),
-            &policy,
-        )
-        .unwrap();
+        let explicit =
+            resolve_voice(&engines, &logical(vec![exact("winrt", "david")]), &policy).unwrap();
 
         assert_eq!(global.realized, PhysicalVoiceId::new("eloquence", "reed"));
         assert_eq!(

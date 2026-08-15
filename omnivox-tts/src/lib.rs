@@ -4,23 +4,23 @@
 
 use thiserror::Error;
 
-pub mod espeak;
-pub mod macos;
 pub mod contracts;
 pub mod control;
 pub mod engine_registry;
+pub mod espeak;
 pub mod helper_engine;
 pub mod helper_protocol;
 pub mod logical_voices;
+pub mod macos;
 pub mod marker_protocol;
+#[cfg(feature = "piper")]
+pub mod piper;
 pub mod presentation;
 pub mod resolver;
 pub mod routing_policy;
 pub mod synthesis;
 pub mod timeline_protocol;
 pub mod windows;
-#[cfg(feature = "piper")]
-pub mod piper;
 
 pub use omnivox_audio::AudioBuffer;
 pub use synthesis::{

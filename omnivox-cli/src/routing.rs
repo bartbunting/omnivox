@@ -350,11 +350,14 @@ fn engine_descriptor_payload_bytes(descriptor: &EngineDescriptor) -> usize {
                 .capabilities
                 .native_extensions
                 .iter()
-                .map(|extension| extension.id.len().saturating_add(extension.description.len()))
+                .map(|extension| {
+                    extension
+                        .id
+                        .len()
+                        .saturating_add(extension.description.len())
+                })
                 .fold(
-                    std::mem::size_of_val(
-                        descriptor.capabilities.native_extensions.as_slice(),
-                    ),
+                    std::mem::size_of_val(descriptor.capabilities.native_extensions.as_slice()),
                     usize::saturating_add,
                 ),
         )
@@ -377,15 +380,10 @@ fn engine_health_payload_bytes(health: &EngineHealth) -> usize {
 }
 
 fn string_vec_payload_bytes(values: &[String]) -> usize {
-    values
-        .iter()
-        .map(String::len)
-        .fold(
-            values
-                .len()
-                .saturating_mul(std::mem::size_of::<String>()),
-            usize::saturating_add,
-        )
+    values.iter().map(String::len).fold(
+        values.len().saturating_mul(std::mem::size_of::<String>()),
+        usize::saturating_add,
+    )
 }
 
 /// Resolve legacy, engine-neutral voice state against the selected engine.
@@ -410,8 +408,7 @@ pub(crate) fn legacy_voice_for_engine(engine: &dyn TtsEngine, requested: &str) -
                     .voice_id
                     .strip_prefix(&engine_prefix)
                     .is_some_and(|voice_id| voice_id == requested)
-                || requested_without_prefix
-                    .is_some_and(|requested| requested == voice.id.voice_id)
+                || requested_without_prefix.is_some_and(|requested| requested == voice.id.voice_id)
         });
     let named = exact.or_else(|| {
         descriptor
@@ -428,7 +425,11 @@ pub(crate) fn legacy_voice_for_engine(engine: &dyn TtsEngine, requested: &str) -
     });
     let selected = named
         .map(|voice| voice.id.voice_id.clone())
-        .or_else(|| descriptor.default_voice_id.filter(|voice| !voice.is_empty()))
+        .or_else(|| {
+            descriptor
+                .default_voice_id
+                .filter(|voice| !voice.is_empty())
+        })
         .unwrap_or_else(|| requested.to_owned());
     if selected != requested {
         debug!(
@@ -654,14 +655,14 @@ fn synthesize_with_runtime_fallback_anchored_inner(
         let acss = requested_acss.map_or_else(
             || route.acss.clone(),
             |style| {
-                style.clone().degrade_for(
-                    &route.engine.descriptor().capabilities.acss,
-                )
+                style
+                    .clone()
+                    .degrade_for(&route.engine.descriptor().capabilities.acss)
             },
         );
         apply_normalized_acss(&mut routed_settings, &acss.style);
-        let mut request = SynthesisRequest::new(chunk, routed_settings)
-            .with_normalized_acss(acss.style.clone());
+        let mut request =
+            SynthesisRequest::new(chunk, routed_settings).with_normalized_acss(acss.style.clone());
         request.requested_voice = Some(route.realized.clone());
         request.logical_voice_id = route.reported_logical_voice_id.clone();
         request.anchors = anchors.to_vec();
@@ -1007,9 +1008,7 @@ mod tests {
                     counter.fetch_add(1, Ordering::Release);
                     Err(TtsError::SynthesisFailed("cancelled mock".to_owned()))
                 }
-                Some(MockFailure::NotAvailableOnce(_) | MockFailure::SynthesisOnce(_)) => {
-                    success()
-                }
+                Some(MockFailure::NotAvailableOnce(_) | MockFailure::SynthesisOnce(_)) => success(),
                 None => success(),
             }
         }
@@ -1182,9 +1181,8 @@ mod tests {
                 },
             )
             .unwrap();
-        let preferred = LogicalVoiceRoutingSnapshot::capture_with_policy(
-            &logical, &engines, &policy,
-        );
+        let preferred =
+            LogicalVoiceRoutingSnapshot::capture_with_policy(&logical, &engines, &policy);
 
         assert_eq!(
             preferred
@@ -1204,9 +1202,8 @@ mod tests {
                 },
             )
             .unwrap();
-        let disabled = LogicalVoiceRoutingSnapshot::capture_with_policy(
-            &logical, &engines, &policy,
-        );
+        let disabled =
+            LogicalVoiceRoutingSnapshot::capture_with_policy(&logical, &engines, &policy);
         assert_eq!(
             disabled
                 .preferred_legacy_engine(&engines, &(winrt.clone() as Arc<dyn TtsEngine>))
@@ -1765,9 +1762,7 @@ mod tests {
             definition(vec![exact("eloquence", "reed")]),
             policy.clone(),
         );
-        let mut first_route = first_routes
-            .initial_route("source-code", &engines)
-            .unwrap();
+        let mut first_route = first_routes.initial_route("source-code", &engines).unwrap();
 
         let first = synthesize_with_runtime_fallback(
             "temporarily blocked",
@@ -1799,9 +1794,7 @@ mod tests {
             policy,
         );
         next_routes.replace_inventory(runtime_inventory.engines);
-        let mut next_route = next_routes
-            .initial_route("source-code", &engines)
-            .unwrap();
+        let mut next_route = next_routes.initial_route("source-code", &engines).unwrap();
         let next = synthesize_with_runtime_fallback(
             "retry immediately",
             &TtsSettings::default(),

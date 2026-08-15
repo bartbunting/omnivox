@@ -381,12 +381,9 @@ mod tests {
 
     #[test]
     fn tiny_native_buffers_do_not_disappear_during_resampling() {
-        let buffer = AudioBuffer::try_from_interleaved_i16(
-            &[-32_768, 0, 16_384, 32_767],
-            22_050,
-            1,
-        )
-        .unwrap();
+        let buffer =
+            AudioBuffer::try_from_interleaved_i16(&[-32_768, 0, 16_384, 32_767], 22_050, 1)
+                .unwrap();
 
         assert_eq!(buffer.frame_count(), 8);
         assert_eq!(buffer.samples.len(), 16);

@@ -4,9 +4,9 @@
 //! The pipeline is extensible for future effects (phaser, echo,
 //! chorus, tremolo, reverb, pan).
 
-use crate::AudioError;
 use crate::buffer::{AudioBuffer, SAMPLE_RATE};
 use crate::pipeline::AudioEffect;
+use crate::AudioError;
 use omnivox_core::ChannelMode;
 
 /// Removes leading and trailing silence from an AudioBuffer.

@@ -38,8 +38,8 @@ use crate::routing::{
 };
 use crate::text::{
     chunk_prepared_speech, extract_logical_voice, extract_pitch, extract_voice,
-    prepare_speech_text, prepare_speech_text_with_offsets, rate_scaled_padding,
-    CapitalizationTone, PreparedSpeechChunk, CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ,
+    prepare_speech_text, prepare_speech_text_with_offsets, rate_scaled_padding, CapitalizationTone,
+    PreparedSpeechChunk, CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ,
 };
 
 // ---------------------------------------------------------------------------
@@ -332,7 +332,11 @@ pub fn synthesize_chunk_with_tones(
     match ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(
             &request,
-            ctx.engine.descriptor().capabilities.markers.requested_anchors,
+            ctx.engine
+                .descriptor()
+                .capabilities
+                .markers
+                .requested_anchors,
         );
         result.validate(&request)?;
         Ok(result)
@@ -391,19 +395,18 @@ fn queue_synthesis_result(
         ctx.mark_failed();
         warn!("Pipeline error: {}", error);
     }
-    let effect_tail = match process_effect_window(
-        &mut result.audio,
-        effects,
-        final_timeline_window,
-        ctx,
-    ) {
-        Ok(tail) => tail,
-        Err(error) => {
-            ctx.mark_failed();
-            warn!("Post-synthesis effect error; queueing dry speech: {}", error);
-            None
-        }
-    };
+    let effect_tail =
+        match process_effect_window(&mut result.audio, effects, final_timeline_window, ctx) {
+            Ok(tail) => tail,
+            Err(error) => {
+                ctx.mark_failed();
+                warn!(
+                    "Post-synthesis effect error; queueing dry speech: {}",
+                    error
+                );
+                None
+            }
+        };
     let (overlay_tail, semantic_events) = match render_speech_timeline(
         &mut result,
         capitalization_tones,
@@ -431,12 +434,12 @@ fn queue_synthesis_result(
                         .iter()
                         .find(|anchor| anchor.id == action.id)
                         .and_then(|anchor| {
-                            TimelineActionId::new(action.id.clone()).ok().map(|action_id| {
-                                PlaybackTimelineResolution {
+                            TimelineActionId::new(action.id.clone())
+                                .ok()
+                                .map(|action_id| PlaybackTimelineResolution {
                                     action_id,
                                     resolution: anchor.resolution,
-                                }
-                            })
+                                })
                         })
                 })
                 .collect::<Vec<_>>();
@@ -488,9 +491,8 @@ fn queue_synthesis_result(
 
 fn post_synthesis_parameters(style: &PostSynthesisStyle) -> PostSynthesisParameters {
     let style = style.clone().clamped();
-    let logarithmic = |minimum: f32, maximum: f32, value: f32| {
-        minimum * (maximum / minimum).powf(value)
-    };
+    let logarithmic =
+        |minimum: f32, maximum: f32, value: f32| minimum * (maximum / minimum).powf(value);
     PostSynthesisParameters {
         gain: style
             .gain
@@ -534,9 +536,7 @@ fn requested_timeline_anchors(
 ) -> Vec<RequestedAnchor> {
     tones
         .iter()
-        .map(|tone| {
-            RequestedAnchor::new(tone.id.clone(), tone.text_offset, AnchorAffinity::Before)
-        })
+        .map(|tone| RequestedAnchor::new(tone.id.clone(), tone.text_offset, AnchorAffinity::Before))
         .chain(actions.iter().map(|action| {
             RequestedAnchor::new(action.id.clone(), action.text_offset, action.affinity)
         }))
@@ -554,12 +554,16 @@ fn render_speech_timeline(
 ) -> Result<(Option<AudioBuffer>, Vec<PlaybackSemanticEvent>), omnivox_audio::AudioError> {
     let (timeline, resources) = prepare_speech_timeline(result, tones, actions, effects, state)?;
     let renderer = ctx.timeline_renderer.ok_or_else(|| {
-        omnivox_audio::AudioError::TimelineError("synthesis context has no timeline renderer".into())
+        omnivox_audio::AudioError::TimelineError(
+            "synthesis context has no timeline renderer".into(),
+        )
     })?;
-    let rendered = renderer
-        .lock()
-        .unwrap()
-        .render_window(&result.audio, &timeline, &resources, final_window)?;
+    let rendered = renderer.lock().unwrap().render_window(
+        &result.audio,
+        &timeline,
+        &resources,
+        final_window,
+    )?;
     for marker in &mut result.markers {
         marker.frame_offset = rendered.map_primary_frame(marker.frame_offset)?;
     }
@@ -662,11 +666,8 @@ fn prepare_speech_timeline(
                 let mut audio = audio.clone();
                 if *effect_bus == EffectBus::Speech {
                     let mut processor = PostSynthesisProcessor::new();
-                    let processed = processor.process_window(
-                        &audio,
-                        post_synthesis_parameters(effects),
-                        true,
-                    );
+                    let processed =
+                        processor.process_window(&audio, post_synthesis_parameters(effects), true);
                     audio = processed.audio;
                     if let Some(tail) = processed.tail {
                         audio.append(&tail);
@@ -715,12 +716,15 @@ fn render_primary_window(
     let timeline = ScheduledTimeline::build(primary.frame_count() as u64, Vec::new())
         .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
     let renderer = ctx.timeline_renderer.ok_or_else(|| {
-        omnivox_audio::AudioError::TimelineError("synthesis context has no timeline renderer".into())
+        omnivox_audio::AudioError::TimelineError(
+            "synthesis context has no timeline renderer".into(),
+        )
     })?;
-    let rendered = renderer
-        .lock()
-        .unwrap()
-        .render_window(&primary, &timeline, &[], final_window)?;
+    let rendered =
+        renderer
+            .lock()
+            .unwrap()
+            .render_window(&primary, &timeline, &[], final_window)?;
     Ok((
         rendered.audio,
         [effect_tail, rendered.overlay_tail]
@@ -1250,7 +1254,10 @@ pub fn process_presentation_timeline(
                 match logical_voice_routing.initial_route(logical_voice_id, engine_registry) {
                     Ok(route) => Some(route),
                     Err(error) => {
-                        warn!("{error}; using the preferred legacy engine for span {}", span.id);
+                        warn!(
+                            "{error}; using the preferred legacy engine for span {}",
+                            span.id
+                        );
                         None
                     }
                 }
@@ -1258,12 +1265,7 @@ pub fn process_presentation_timeline(
             None => None,
         };
         if route.is_none() {
-            route = initial_legacy_route(
-                &state,
-                ctx,
-                &mut logical_voice_routing,
-                engine_registry,
-            );
+            route = initial_legacy_route(&state, ctx, &mut logical_voice_routing, engine_registry);
         }
         let requested_acss = acss_has_values(&span.acss).then_some(&span.acss);
         for (chunk, actions) in span.chunks.into_iter().zip(span.actions) {
@@ -1363,10 +1365,7 @@ fn synthesize_direct_timeline_chunk(
         ))
         .expect("prepared timeline offsets are valid");
     match ctx.engine.synthesize(&request).and_then(|mut result| {
-        result.resolve_anchors(
-            &request,
-            descriptor.capabilities.markers.requested_anchors,
-        );
+        result.resolve_anchors(&request, descriptor.capabilities.markers.requested_anchors);
         result.degraded_acss = acss.omitted.clone();
         result.validate(&request)?;
         Ok(result)
@@ -1515,8 +1514,8 @@ fn prepare_timeline_span(
         };
         let chunk_index = locate_timeline_chunk(&chunks, prepared_offset, affinity);
         let chunk = &chunks[chunk_index];
-        let local_offset = prepared_offset.clamp(chunk.source_start, chunk.source_end)
-            - chunk.source_start;
+        let local_offset =
+            prepared_offset.clamp(chunk.source_start, chunk.source_end) - chunk.source_start;
         let kind = match &action.action {
             PresentationAction::Audio {
                 mode,
@@ -1642,12 +1641,8 @@ pub fn process_batch(
 
     let mut speech_chunk_index: usize = 0;
     let mut primary_window_index: usize = 0;
-    let mut logical_route = initial_legacy_route(
-        &state,
-        ctx,
-        &mut logical_voice_routing,
-        engine_registry,
-    );
+    let mut logical_route =
+        initial_legacy_route(&state, ctx, &mut logical_voice_routing, engine_registry);
     let mut logical_route_exhausted = false;
 
     for item in items {
@@ -1783,7 +1778,10 @@ pub fn process_batch(
                     }
                     Err(error) => {
                         ctx.mark_failed();
-                        warn!("Silence timeline render error; queueing dry silence: {}", error);
+                        warn!(
+                            "Silence timeline render error; queueing dry silence: {}",
+                            error
+                        );
                         ctx.queue(StreamType::Speech, &buf);
                     }
                 }
@@ -2151,8 +2149,12 @@ mod tests {
 
         assert_eq!(timeline.actions[0].output_frame, 10);
         assert_eq!(rendered.audio.frame_count(), 44100);
-        assert!(rendered.audio.samples[..20].iter().all(|sample| *sample == 0.0));
-        assert!(rendered.audio.samples[20..].iter().any(|sample| *sample != 0.0));
+        assert!(rendered.audio.samples[..20]
+            .iter()
+            .all(|sample| *sample == 0.0));
+        assert!(rendered.audio.samples[20..]
+            .iter()
+            .any(|sample| *sample != 0.0));
     }
 
     #[test]
@@ -2227,15 +2229,11 @@ mod tests {
                     utf8_offset: text.find("sixteen").unwrap() as u32,
                     affinity: PresentationAffinity::Before,
                 },
-                lifecycle_anchor:
-                    omnivox_tts::timeline_protocol::PresentationLifecycleAnchor::Run,
+                lifecycle_anchor: omnivox_tts::timeline_protocol::PresentationLifecycleAnchor::Run,
                 action: PresentationAction::SemanticEvent,
             },
         ];
-        let resources = HashMap::from([(
-            "opening-cue".to_owned(),
-            AudioBuffer::silence(0.01),
-        )]);
+        let resources = HashMap::from([("opening-cue".to_owned(), AudioBuffer::silence(0.01))]);
 
         let prepared =
             prepare_timeline_span(&span, &actions, &TtsState::default(), &resources).unwrap();

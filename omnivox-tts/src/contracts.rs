@@ -176,10 +176,7 @@ impl PostSynthesisStyle {
     }
 
     /// Retain only dimensions available on the selected engine/audio path.
-    pub fn degrade_for(
-        self,
-        supported: &[PostSynthesisDimension],
-    ) -> PostSynthesisApplication {
+    pub fn degrade_for(self, supported: &[PostSynthesisDimension]) -> PostSynthesisApplication {
         let mut style = self.clamped();
         let mut omitted = Vec::new();
         omit_post_synthesis(
@@ -659,10 +656,7 @@ mod tests {
             reverb: Some(f32::NAN),
             ..PostSynthesisStyle::default()
         }
-        .degrade_for(&[
-            PostSynthesisDimension::Gain,
-            PostSynthesisDimension::Reverb,
-        ]);
+        .degrade_for(&[PostSynthesisDimension::Gain, PostSynthesisDimension::Reverb]);
 
         assert_eq!(application.style.gain, Some(1.0));
         assert_eq!(application.style.pan, None);

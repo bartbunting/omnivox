@@ -3,8 +3,7 @@
 pub const SYNTHESIS_TEXT_LOG_ENV: &str = "OMNIVOX_LOG_SYNTHESIS_TEXT";
 
 pub fn synthesis_text_logging_enabled() -> bool {
-    std::env::var(SYNTHESIS_TEXT_LOG_ENV)
-        .is_ok_and(|value| opt_in_value(&value))
+    std::env::var(SYNTHESIS_TEXT_LOG_ENV).is_ok_and(|value| opt_in_value(&value))
 }
 
 fn opt_in_value(value: &str) -> bool {
@@ -24,7 +23,10 @@ mod tests {
             assert!(opt_in_value(value), "{value:?} should enable text logging");
         }
         for value in ["", "0", "false", "no", "enabled", "garbage"] {
-            assert!(!opt_in_value(value), "{value:?} should not enable text logging");
+            assert!(
+                !opt_in_value(value),
+                "{value:?} should not enable text logging"
+            );
         }
     }
 }

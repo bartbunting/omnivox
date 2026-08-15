@@ -89,8 +89,9 @@ impl TimelineAudioRenderer {
         final_window: bool,
     ) -> Result<RenderedTimelineWindow, AudioError> {
         validate_window(primary, timeline, resources)?;
-        let primary_frames = usize::try_from(timeline.primary_output_frames)
-            .map_err(|_| AudioError::TimelineError("primary frame count does not fit memory".into()))?;
+        let primary_frames = usize::try_from(timeline.primary_output_frames).map_err(|_| {
+            AudioError::TimelineError("primary frame count does not fit memory".into())
+        })?;
         if primary_frames > MAX_TIMELINE_RENDER_FRAMES {
             return Err(AudioError::TimelineError(format!(
                 "primary render window has {primary_frames} frames; maximum is {MAX_TIMELINE_RENDER_FRAMES}"
@@ -137,10 +138,7 @@ impl TimelineAudioRenderer {
         let (next_carry, overlay_tail) = if final_window {
             (Vec::new(), tail)
         } else {
-            (
-                tail.map(|buffer| buffer.samples).unwrap_or_default(),
-                None,
-            )
+            (tail.map(|buffer| buffer.samples).unwrap_or_default(), None)
         };
         self.overlay_carry = next_carry;
         Ok(RenderedTimelineWindow {
@@ -198,10 +196,7 @@ fn validate_window(
         else {
             continue;
         };
-        let Some(resource) = resources
-            .iter()
-            .find(|resource| resource.id == action.id)
-        else {
+        let Some(resource) = resources.iter().find(|resource| resource.id == action.id) else {
             return Err(AudioError::TimelineError(format!(
                 "missing prepared audio resource {}",
                 action.id

@@ -25,8 +25,7 @@ pub const MARKER_EVENT_PREFIX: &str = "__EMACSVOX_MARKER__";
 pub const MAX_MARKER_EVENT_PAYLOAD_BYTES: usize = 2 * 1024 * 1024;
 
 /// Conservative maximum Base64 size for the decoded event bound.
-pub const MAX_MARKER_EVENT_ENCODED_BYTES: usize =
-    (MAX_MARKER_EVENT_PAYLOAD_BYTES / 3) * 4 + 8;
+pub const MAX_MARKER_EVENT_ENCODED_BYTES: usize = (MAX_MARKER_EVENT_PAYLOAD_BYTES / 3) * 4 + 8;
 
 /// One event emitted by a marker-aware dispatch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

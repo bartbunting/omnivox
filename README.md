@@ -82,7 +82,10 @@ make test
 # Run clippy lints
 make lint
 
-# Format code
+# Check formatting without changing files
+make fmt-check
+
+# Apply the pinned formatter
 make fmt
 ```
 

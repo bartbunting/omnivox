@@ -139,11 +139,7 @@ impl HelperRequest {
         Self::with_version(HELPER_PROTOCOL_VERSION, request_id, body)
     }
 
-    pub fn with_version(
-        protocol_version: u16,
-        request_id: u64,
-        body: HelperRequestBody,
-    ) -> Self {
+    pub fn with_version(protocol_version: u16, request_id: u64, body: HelperRequestBody) -> Self {
         Self {
             protocol_version,
             request_id,

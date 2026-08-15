@@ -186,12 +186,8 @@ impl TtsEngine for MacOsTtsEngine {
             .as_ref()
             .and_then(|n| std::ffi::CString::new(n.as_str()).ok());
 
-        let lang_ptr = c_lang
-            .as_ref()
-            .map_or(std::ptr::null(), |c| c.as_ptr());
-        let name_ptr = c_name
-            .as_ref()
-            .map_or(std::ptr::null(), |c| c.as_ptr());
+        let lang_ptr = c_lang.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
+        let name_ptr = c_name.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
 
         let result = unsafe {
             omnivox_synthesize(
@@ -226,19 +222,12 @@ impl TtsEngine for MacOsTtsEngine {
             vec
         };
 
-        let buffer = AudioBuffer::try_from_interleaved_f32(
-            samples,
-            result.sample_rate,
-            result.channels,
-        )
-        .map_err(|error| {
-            TtsError::SynthesisFailed(format!("could not canonicalize macOS PCM: {error}"))
-        })?;
-        Ok(SynthesisResult::audio(
-            "macos",
-            actual_voice,
-            buffer,
-        ))
+        let buffer =
+            AudioBuffer::try_from_interleaved_f32(samples, result.sample_rate, result.channels)
+                .map_err(|error| {
+                    TtsError::SynthesisFailed(format!("could not canonicalize macOS PCM: {error}"))
+                })?;
+        Ok(SynthesisResult::audio("macos", actual_voice, buffer))
     }
 
     fn stop(&self) {

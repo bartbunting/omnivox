@@ -440,12 +440,8 @@ mod impl_windows {
                 );
 
                 let native_frame_count = i16_samples.len() as u64 / u64::from(channels);
-                let markers = Self::collect_timed_markers(
-                    &stream,
-                    text,
-                    sample_rate,
-                    native_frame_count,
-                );
+                let markers =
+                    Self::collect_timed_markers(&stream, text, sample_rate, native_frame_count);
                 SynthesisResult::from_native_i16(
                     "winrt",
                     Some(actual_voice),

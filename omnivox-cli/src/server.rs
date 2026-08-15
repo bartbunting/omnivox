@@ -16,8 +16,8 @@ use omnivox_tts::contracts::{
     MAX_RATE_OFFSET_POINTS, MIN_RATE_OFFSET_POINTS,
 };
 use omnivox_tts::control::{
-    decode_request, format_control_event, process_control_request, ControlRequest,
-    ControlErrorCode, ControlResponse, ControlResponseEnvelope, PreviewStatus,
+    decode_request, format_control_event, process_control_request, ControlErrorCode,
+    ControlRequest, ControlResponse, ControlResponseEnvelope, PreviewStatus,
     CONTROL_PROTOCOL_VERSION, MAX_PREVIEW_TEXT_BYTES,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
@@ -123,7 +123,11 @@ pub enum SynthRequest {
         gen: u64,
     },
     /// Play a sound file immediately on the sound stream (`p`).
-    PlaySound { path: std::path::PathBuf, state: TtsState, gen: u64 },
+    PlaySound {
+        path: std::path::PathBuf,
+        state: TtsState,
+        gen: u64,
+    },
 }
 
 impl SynthRequest {
@@ -250,10 +254,10 @@ pub(crate) fn synthesis_channel() -> (
 }
 
 fn queue_items_payload_bytes(items: &[QueueItem]) -> usize {
-    items.iter().map(queue_item_payload_bytes).fold(
-        std::mem::size_of_val(items),
-        usize::saturating_add,
-    )
+    items
+        .iter()
+        .map(queue_item_payload_bytes)
+        .fold(std::mem::size_of_val(items), usize::saturating_add)
 }
 
 fn queue_item_payload_bytes(item: &QueueItem) -> usize {
@@ -454,7 +458,11 @@ fn tracked_playback_reporter(
     marker_output: MarkerEventOutput,
 ) {
     for playback in receiver {
-        let TrackedPlayback { completion, status, tickets } = playback;
+        let TrackedPlayback {
+            completion,
+            status,
+            tickets,
+        } = playback;
         let status = await_tracked_playback(status, tickets);
         marker_output.flush();
         match completion {
@@ -494,12 +502,14 @@ fn write_control_response(response: &ControlResponseEnvelope) {
 fn deprecated_command_response(command: &CommandId) -> Option<ControlResponseEnvelope> {
     let (name, replacement) = match command {
         CommandId::SetLang => ("set_lang", "register language-aware logical voices"),
-        CommandId::SetNextLang =>
-            ("set_next_lang", "select a language-aware logical voice"),
-        CommandId::SetPreviousLang =>
-            ("set_previous_lang", "select a language-aware logical voice"),
-        CommandId::SetPreferredLang =>
-            ("set_preferred_lang", "configure logical-voice language selectors"),
+        CommandId::SetNextLang => ("set_next_lang", "select a language-aware logical voice"),
+        CommandId::SetPreviousLang => {
+            ("set_previous_lang", "select a language-aware logical voice")
+        }
+        CommandId::SetPreferredLang => (
+            "set_preferred_lang",
+            "configure logical-voice language selectors",
+        ),
         CommandId::TtsSetNotificationChannel => (
             "tts_set_notification_channel",
             "start a separate Omnivox process with OMNIVOX_AUDIO_TARGET",
@@ -728,13 +738,11 @@ pub fn synthesis_worker(
                 tracking,
                 gen,
             } => {
-                let runtime_inventory = runtime_health.snapshot(
-                    engine_registry.generation(),
-                    engine_registry.inventory(),
-                );
+                let runtime_inventory = runtime_health
+                    .snapshot(engine_registry.generation(), engine_registry.inventory());
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
-                let batch_engine = logical_voice_routing
-                    .preferred_legacy_engine(&engine_registry, &engine);
+                let batch_engine =
+                    logical_voice_routing.preferred_legacy_engine(&engine_registry, &engine);
                 let tickets = Mutex::new(Vec::new());
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
@@ -789,13 +797,11 @@ pub fn synthesis_worker(
                 mut logical_voice_routing,
                 gen,
             } => {
-                let runtime_inventory = runtime_health.snapshot(
-                    engine_registry.generation(),
-                    engine_registry.inventory(),
-                );
+                let runtime_inventory = runtime_health
+                    .snapshot(engine_registry.generation(), engine_registry.inventory());
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
-                let batch_engine = logical_voice_routing
-                    .preferred_legacy_engine(&engine_registry, &engine);
+                let batch_engine =
+                    logical_voice_routing.preferred_legacy_engine(&engine_registry, &engine);
                 let tickets = Mutex::new(Vec::new());
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
@@ -847,10 +853,8 @@ pub fn synthesis_worker(
                 mut logical_voice_routing,
                 gen,
             } => {
-                let runtime_inventory = runtime_health.snapshot(
-                    engine_registry.generation(),
-                    engine_registry.inventory(),
-                );
+                let runtime_inventory = runtime_health
+                    .snapshot(engine_registry.generation(), engine_registry.inventory());
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
                 let tickets = Mutex::new(Vec::new());
                 let presentation_clock = Mutex::new(Vec::new());
@@ -903,13 +907,11 @@ pub fn synthesis_worker(
                 mut preferred_routing,
                 gen,
             } => {
-                let runtime_inventory = runtime_health.snapshot(
-                    engine_registry.generation(),
-                    engine_registry.inventory(),
-                );
+                let runtime_inventory = runtime_health
+                    .snapshot(engine_registry.generation(), engine_registry.inventory());
                 preferred_routing.replace_inventory(runtime_inventory.engines);
-                let preferred_engine = preferred_routing
-                    .preferred_legacy_engine(&engine_registry, &engine);
+                let preferred_engine =
+                    preferred_routing.preferred_legacy_engine(&engine_registry, &engine);
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
@@ -927,7 +929,9 @@ pub fn synthesis_worker(
                     marker_dispatch: None,
                     batch_failed: None,
                 };
-                if ctx.is_stale() { continue; }
+                if ctx.is_stale() {
+                    continue;
+                }
                 process_batch(
                     vec![QueueItem::Speech(text)],
                     state,
@@ -945,13 +949,11 @@ pub fn synthesis_worker(
                 mut preferred_routing,
                 gen,
             } => {
-                let runtime_inventory = runtime_health.snapshot(
-                    engine_registry.generation(),
-                    engine_registry.inventory(),
-                );
+                let runtime_inventory = runtime_health
+                    .snapshot(engine_registry.generation(), engine_registry.inventory());
                 preferred_routing.replace_inventory(runtime_inventory.engines);
-                let preferred_engine = preferred_routing
-                    .preferred_legacy_engine(&engine_registry, &engine);
+                let preferred_engine =
+                    preferred_routing.preferred_legacy_engine(&engine_registry, &engine);
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
@@ -969,7 +971,9 @@ pub fn synthesis_worker(
                     marker_dispatch: None,
                     batch_failed: None,
                 };
-                if ctx.is_stale() { continue; }
+                if ctx.is_stale() {
+                    continue;
+                }
                 process_letter(
                     &text,
                     state,
@@ -994,7 +998,9 @@ pub fn synthesis_worker(
                     marker_dispatch: None,
                     batch_failed: None,
                 };
-                if ctx.is_stale() { continue; }
+                if ctx.is_stale() {
+                    continue;
+                }
                 match loader.load(&path) {
                     Ok(mut buf) => {
                         let pipeline = build_sound_pipeline(&state);
@@ -1419,8 +1425,7 @@ pub fn run_server(
                 presentation_coalescing_deadline(burst_started, Instant::now()),
             )? {
                 TimedCommand::Command(next) if next.id == CommandId::EmacsvoxTx => {
-                    if let Some(candidate) =
-                        prepare_presentation(&presentation_generations, &next)
+                    if let Some(candidate) = prepare_presentation(&presentation_generations, &next)
                     {
                         selected = prefer_newer(selected, candidate);
                     }
@@ -1559,8 +1564,7 @@ fn receive_command(receiver: &mpsc::Receiver<io::Result<String>>) -> Result<Opti
 }
 
 fn presentation_coalescing_deadline(burst_started: Instant, now: Instant) -> Instant {
-    (now + PRESENTATION_COALESCE_QUIET_WINDOW)
-        .min(burst_started + PRESENTATION_COALESCE_MAX_WINDOW)
+    (now + PRESENTATION_COALESCE_QUIET_WINDOW).min(burst_started + PRESENTATION_COALESCE_MAX_WINDOW)
 }
 
 fn receive_command_until(
@@ -1975,7 +1979,6 @@ fn handle_command(
 ) {
     match command.id {
         // --- Queue accumulation (no synthesis yet) ---
-
         CommandId::Queue => {
             if let Some(text) = command.args {
                 debug!("Queue speech: {}", text);
@@ -2053,7 +2056,6 @@ fn handle_command(
         }
 
         // --- Dispatch: send accumulated items to worker ---
-
         CommandId::Dispatch => {
             if !pending.is_empty() {
                 debug!("Dispatch {} items (gen={})", pending.len(), current_gen);
@@ -2102,12 +2104,11 @@ fn handle_command(
                         SynthRequest::Batch {
                             items,
                             state: state.clone(),
-                            logical_voice_routing:
-                                LogicalVoiceRoutingSnapshot::capture_with_policy(
-                                    logical_voices,
-                                    engine_registry,
-                                    routing_policy,
-                                ),
+                            logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
+                                logical_voices,
+                                engine_registry,
+                                routing_policy,
+                            ),
                             tracking: Some(DispatchTracking::Completion(identifier)),
                             gen: *current_gen,
                         },
@@ -2142,12 +2143,11 @@ fn handle_command(
                         SynthRequest::Batch {
                             items,
                             state: state.clone(),
-                            logical_voice_routing:
-                                LogicalVoiceRoutingSnapshot::capture_with_policy(
-                                    logical_voices,
-                                    engine_registry,
-                                    routing_policy,
-                                ),
+                            logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
+                                logical_voices,
+                                engine_registry,
+                                routing_policy,
+                            ),
                             tracking: Some(DispatchTracking::Markers(identifier)),
                             gen: *current_gen,
                         },
@@ -2164,10 +2164,16 @@ fn handle_command(
         }
 
         // --- Interrupting commands ---
-
         CommandId::Stop => {
             debug!("Stop");
-            interrupt(current_gen, gen_counter, control, engine_registry, false, true);
+            interrupt(
+                current_gen,
+                gen_counter,
+                control,
+                engine_registry,
+                false,
+                true,
+            );
             cancel_queued_synthesis_before(tx, *current_gen);
             pending.clear();
         }
@@ -2175,7 +2181,14 @@ fn handle_command(
         CommandId::TtsSay => {
             if let Some(text) = command.args {
                 debug!("tts_say: {}", text);
-                interrupt(current_gen, gen_counter, control, engine_registry, true, false);
+                interrupt(
+                    current_gen,
+                    gen_counter,
+                    control,
+                    engine_registry,
+                    true,
+                    false,
+                );
                 cancel_queued_synthesis_before(tx, *current_gen);
                 enqueue_synthesis(
                     tx,
@@ -2196,7 +2209,14 @@ fn handle_command(
         CommandId::Letter => {
             if let Some(letter) = command.args {
                 debug!("Letter: {}", letter);
-                interrupt(current_gen, gen_counter, control, engine_registry, true, false);
+                interrupt(
+                    current_gen,
+                    gen_counter,
+                    control,
+                    engine_registry,
+                    true,
+                    false,
+                );
                 cancel_queued_synthesis_before(tx, *current_gen);
                 enqueue_synthesis(
                     tx,
@@ -2234,10 +2254,7 @@ fn handle_command(
         }
 
         CommandId::Version => {
-            let version_text = format!(
-                "Omnivox version {}",
-                crate::VERSION.replace('.', " dot ")
-            );
+            let version_text = format!("Omnivox version {}", crate::VERSION.replace('.', " dot "));
             enqueue_synthesis(
                 tx,
                 SynthRequest::Immediate {
@@ -2254,10 +2271,8 @@ fn handle_command(
         }
 
         CommandId::OmnivoxControl => {
-            let inventory = runtime_health.snapshot(
-                engine_registry.generation(),
-                engine_registry.inventory(),
-            );
+            let inventory =
+                runtime_health.snapshot(engine_registry.generation(), engine_registry.inventory());
             let payload = command.args.as_deref().unwrap_or("");
             let live_request = decode_request(payload).ok().and_then(|request| {
                 if request.protocol_version != CONTROL_PROTOCOL_VERSION {
@@ -2266,16 +2281,18 @@ fn handle_command(
                 Some(request)
             });
             match live_request.map(|request| (request.request_id, request.request)) {
-                Some((request_id, ControlRequest::Preview {
-                    text,
-                    selector,
-                    language,
-                    acss,
-                    rate_offset,
-                    effects,
-                })) => {
-                    let projected =
-                        routing_policy.project_inventory(inventory.engines.clone());
+                Some((
+                    request_id,
+                    ControlRequest::Preview {
+                        text,
+                        selector,
+                        language,
+                        acss,
+                        rate_offset,
+                        effects,
+                    },
+                )) => {
+                    let projected = routing_policy.project_inventory(inventory.engines.clone());
                     dispatch_preview(
                         request_id,
                         text,
@@ -2292,10 +2309,11 @@ fn handle_command(
                         tx,
                     );
                 }
-                Some((request_id, ControlRequest::RequestEngineRecoveryProbe {
-                    engine_id,
-                })) => {
-                    let response = if !inventory.engines.iter().any(|engine| engine.id == engine_id)
+                Some((request_id, ControlRequest::RequestEngineRecoveryProbe { engine_id })) => {
+                    let response = if !inventory
+                        .engines
+                        .iter()
+                        .any(|engine| engine.id == engine_id)
                     {
                         ControlResponse::Error {
                             code: ControlErrorCode::InvalidConfiguration,
@@ -2366,7 +2384,6 @@ fn handle_command(
         }
 
         // --- State management ---
-
         CommandId::TtsSetSpeechRate => {
             if let Some(rate) = command.args {
                 if let Ok(r) = rate.parse::<f32>() {
@@ -2474,7 +2491,14 @@ fn handle_command(
 
         CommandId::TtsReset => {
             debug!("Reset");
-            interrupt(current_gen, gen_counter, control, engine_registry, false, true);
+            interrupt(
+                current_gen,
+                gen_counter,
+                control,
+                engine_registry,
+                false,
+                true,
+            );
             cancel_queued_synthesis_before(tx, *current_gen);
             state.reset();
             pending.clear();
@@ -2594,10 +2618,7 @@ mod tests {
 
         let invalid = read_bounded_protocol_line(&mut reader).unwrap();
 
-        assert_eq!(
-            invalid,
-            Some(BoundedProtocolLine::InvalidUtf8 { bytes: 1 })
-        );
+        assert_eq!(invalid, Some(BoundedProtocolLine::InvalidUtf8 { bytes: 1 }));
         assert_eq!(
             read_bounded_protocol_line(&mut reader).unwrap(),
             Some(BoundedProtocolLine::Line("s".to_owned()))
@@ -2608,10 +2629,7 @@ mod tests {
     fn pending_legacy_transaction_enforces_item_limit_atomically() {
         let mut pending = PendingBatch::default();
         for _ in 0..MAX_PENDING_ITEMS {
-            assert_eq!(
-                pending.push(QueueItem::Silence { duration: 1 }),
-                None
-            );
+            assert_eq!(pending.push(QueueItem::Silence { duration: 1 }), None);
         }
 
         let overflow = pending.push(QueueItem::Silence { duration: 1 });
@@ -2633,9 +2651,7 @@ mod tests {
     fn pending_legacy_transaction_enforces_payload_limit_atomically() {
         let mut pending = PendingBatch::default();
         assert_eq!(
-            pending.push(QueueItem::Speech(
-                "x".repeat(MAX_PENDING_PAYLOAD_BYTES)
-            )),
+            pending.push(QueueItem::Speech("x".repeat(MAX_PENDING_PAYLOAD_BYTES))),
             None
         );
 
@@ -2766,10 +2782,7 @@ mod tests {
         let ordered = timeline_request(3, 13, PresentationDeliveryPolicy::Ordered, None);
 
         assert!(BoundedWork::is_replaceable(&first));
-        assert!(BoundedWork::shares_replacement_domain(
-            &same_domain,
-            &first
-        ));
+        assert!(BoundedWork::shares_replacement_domain(&same_domain, &first));
         assert!(!BoundedWork::is_replaceable(&ordered));
         assert!(!BoundedWork::shares_replacement_domain(&ordered, &first));
         assert!(BoundedWork::queued_payload_bytes(&first) >= "queued text".len());
@@ -2782,10 +2795,7 @@ mod tests {
             BatchStatus::Cancelled,
             BatchStatus::Failed,
         ] {
-            assert_eq!(
-                await_tracked_playback(status, Vec::new()),
-                status
-            );
+            assert_eq!(await_tracked_playback(status, Vec::new()), status);
         }
     }
 

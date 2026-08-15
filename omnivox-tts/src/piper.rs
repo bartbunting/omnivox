@@ -165,9 +165,7 @@ impl PiperTtsEngine {
 
     /// Create from the `OMNIVOX_PIPER_MODEL` environment variable.
     pub fn from_env() -> Result<Self, TtsError> {
-        let model = std::env::var("OMNIVOX_PIPER_MODEL").map_err(|_| {
-            TtsError::NotAvailable
-        })?;
+        let model = std::env::var("OMNIVOX_PIPER_MODEL").map_err(|_| TtsError::NotAvailable)?;
         if model.is_empty() {
             return Err(TtsError::NotAvailable);
         }
@@ -288,15 +286,10 @@ impl TtsEngine for PiperTtsEngine {
             num_samples, sample_rate
         );
 
-        let buffer = AudioBuffer::try_from_interleaved_i16(&i16_samples, sample_rate, 1)
-            .map_err(|error| {
-                TtsError::SynthesisFailed(format!("could not canonicalize Piper PCM: {error}"))
-            })?;
-        Ok(SynthesisResult::audio(
-            "piper",
-            actual_voice,
-            buffer,
-        ))
+        let buffer = AudioBuffer::try_from_interleaved_i16(&i16_samples, sample_rate, 1).map_err(
+            |error| TtsError::SynthesisFailed(format!("could not canonicalize Piper PCM: {error}")),
+        )?;
+        Ok(SynthesisResult::audio("piper", actual_voice, buffer))
     }
 
     fn stop(&self) {

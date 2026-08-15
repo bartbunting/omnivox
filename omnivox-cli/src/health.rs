@@ -109,7 +109,9 @@ impl RuntimeEngineHealth {
     pub fn request_probe(&self, engine_id: &str) -> Result<(), String> {
         let mut inner = self.inner.lock().unwrap();
         let Some(state) = inner.circuits.remove(engine_id) else {
-            return Err(format!("engine {engine_id} has no runtime failure to recover"));
+            return Err(format!(
+                "engine {engine_id} has no runtime failure to recover"
+            ));
         };
         let (failures, reason) = match state {
             CircuitState::Open {
@@ -118,7 +120,9 @@ impl RuntimeEngineHealth {
             | CircuitState::Ready { failures, reason } => (failures, reason),
             probing @ CircuitState::Probing { .. } => {
                 inner.circuits.insert(engine_id.to_owned(), probing);
-                return Err(format!("engine {engine_id} recovery probe is already in progress"));
+                return Err(format!(
+                    "engine {engine_id} recovery probe is already in progress"
+                ));
             }
         };
         inner.circuits.insert(
@@ -204,16 +208,12 @@ impl RuntimeEngineHealth {
                                     .unwrap_or(u64::MAX),
                             ),
                         ),
-                        Some(CircuitState::Ready { reason, .. }) => (
-                            EngineCircuitStatus::Ready,
-                            Some(reason.clone()),
-                            Some(0),
-                        ),
-                        Some(CircuitState::Probing { reason, .. }) => (
-                            EngineCircuitStatus::Probing,
-                            Some(reason.clone()),
-                            None,
-                        ),
+                        Some(CircuitState::Ready { reason, .. }) => {
+                            (EngineCircuitStatus::Ready, Some(reason.clone()), Some(0))
+                        }
+                        Some(CircuitState::Probing { reason, .. }) => {
+                            (EngineCircuitStatus::Probing, Some(reason.clone()), None)
+                        }
                     };
                 EngineRuntimeStatus {
                     engine_id: descriptor.id.clone(),

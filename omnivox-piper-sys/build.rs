@@ -50,8 +50,10 @@ fn cmake_build(manifest_dir: &Path, build_dir: &Path) {
     // Build (--parallel lets cmake use all cores)
     let mut build = Command::new("cmake");
     build.args([
-        "--build", build_dir.to_str().unwrap(),
-        "--config", "Release",
+        "--build",
+        build_dir.to_str().unwrap(),
+        "--config",
+        "Release",
         "--parallel",
     ]);
     run(&mut build);
@@ -59,8 +61,10 @@ fn cmake_build(manifest_dir: &Path, build_dir: &Path) {
     // Install libpiper_bridge.a into build_dir/install/lib
     let mut install = Command::new("cmake");
     install.args([
-        "--install", build_dir.to_str().unwrap(),
-        "--config", "Release",
+        "--install",
+        build_dir.to_str().unwrap(),
+        "--config",
+        "Release",
     ]);
     run(&mut install);
 }
@@ -168,7 +172,9 @@ fn walkdir_libs(root: &Path) -> Vec<PathBuf> {
 }
 
 fn collect_lib_dirs(dir: &Path, out: &mut Vec<PathBuf>) {
-    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
@@ -197,7 +203,9 @@ fn find_piper_espeak_data(build_dir: &Path) -> Option<PathBuf> {
 
 /// Find the first file with the given name anywhere under `root`.
 fn find_file(dir: &Path, name: &str) -> Option<PathBuf> {
-    let Ok(entries) = std::fs::read_dir(dir) else { return None };
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return None;
+    };
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {

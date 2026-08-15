@@ -281,8 +281,9 @@ fn validate_command(command: &Command) -> Result<(), String> {
         | CommandId::TtsSetToneVolume
         | CommandId::TtsSetVoiceVolume => arguments.is_some_and(valid_float),
         CommandId::TtsSplitCaps => matches!(arguments, Some("0" | "1")),
-        CommandId::TtsSetCapitalizationPresentation => arguments
-            .is_some_and(|value| CapitalizationPresentation::parse(value).is_some()),
+        CommandId::TtsSetCapitalizationPresentation => {
+            arguments.is_some_and(|value| CapitalizationPresentation::parse(value).is_some())
+        }
         CommandId::TtsSyncState => arguments.is_some_and(|arguments| {
             let fields = arguments.split_whitespace().collect::<Vec<_>>();
             fields.len() == 4
@@ -339,9 +340,8 @@ mod tests {
     use omnivox_tts::timeline_protocol::{
         encode_multipart_presentation_timeline, encode_presentation_timeline,
         PresentationDeliveryPolicy, PresentationEffectDirective, PresentationSpeechSpan,
-        PresentationTimelineEnvelope, MAX_TIMELINE_ENCODED_BYTES,
-        MAX_TIMELINE_TONE_DURATION_MS, MAX_TIMELINE_TONE_FREQUENCY_HZ,
-        PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+        PresentationTimelineEnvelope, MAX_TIMELINE_ENCODED_BYTES, MAX_TIMELINE_TONE_DURATION_MS,
+        MAX_TIMELINE_TONE_FREQUENCY_HZ, PRESENTATION_TIMELINE_PROTOCOL_VERSION,
     };
 
     use super::*;
@@ -432,7 +432,10 @@ mod tests {
 
         generations.commit(prepared.generation);
         assert_eq!(generations.latest(), 7);
-        assert!(generations.prepare(&arguments(7, "q {retry}\nd\n")).unwrap().is_none());
+        assert!(generations
+            .prepare(&arguments(7, "q {retry}\nd\n"))
+            .unwrap()
+            .is_none());
     }
 
     #[test]
@@ -481,7 +484,10 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        assert_eq!(prepared.commands[0].id, CommandId::TtsSetNotificationChannel);
+        assert_eq!(
+            prepared.commands[0].id,
+            CommandId::TtsSetNotificationChannel
+        );
         assert_eq!(prepared.commands[1].id, CommandId::SetLang);
     }
 
@@ -509,16 +515,10 @@ mod tests {
             .prepare(&arguments(1, "omnivox_control {payload}\nd\n"))
             .is_err());
         assert!(generations
-            .prepare(&arguments(
-                1,
-                "q {hello}\nemacsvox_tracked_dispatch 1\nd\n"
-            ))
+            .prepare(&arguments(1, "q {hello}\nemacsvox_tracked_dispatch 1\nd\n"))
             .is_err());
         assert!(generations
-            .prepare(&arguments(
-                1,
-                "q {hello}\nemacsvox_marker_dispatch 1\nd\n"
-            ))
+            .prepare(&arguments(1, "q {hello}\nemacsvox_marker_dispatch 1\nd\n"))
             .is_err());
         assert_eq!(generations.latest(), 0);
     }
@@ -555,7 +555,10 @@ mod tests {
 
         generations.commit(selected.generation);
 
-        assert!(generations.prepare(&arguments(5, "q {return}\nd\n")).unwrap().is_none());
+        assert!(generations
+            .prepare(&arguments(5, "q {return}\nd\n"))
+            .unwrap()
+            .is_none());
     }
 
     #[test]

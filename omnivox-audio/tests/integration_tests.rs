@@ -477,7 +477,12 @@ fn wav_file_loads_as_stereo_44100() {
     assert_eq!(buf.samples.len() % 2, 0);
     // Mono source -> stereo: L == R
     for i in 0..buf.frame_count() {
-        assert_eq!(buf.left(i), buf.right(i), "mono->stereo mismatch at frame {}", i);
+        assert_eq!(
+            buf.left(i),
+            buf.right(i),
+            "mono->stereo mismatch at frame {}",
+            i
+        );
     }
 
     let _ = std::fs::remove_file(&tmp);
@@ -517,7 +522,11 @@ fn load_nonexistent_file_returns_file_not_found() {
     assert!(result.is_err());
     match result.unwrap_err() {
         omnivox_audio::AudioError::FileNotFound(msg) => {
-            assert!(msg.contains("nonexistent"), "error should contain path: {}", msg);
+            assert!(
+                msg.contains("nonexistent"),
+                "error should contain path: {}",
+                msg
+            );
         }
         other => panic!("expected FileNotFound, got: {:?}", other),
     }

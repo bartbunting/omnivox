@@ -325,10 +325,10 @@ pub fn process_control_request(
             ) {
                 Ok(_) => {
                     let projected = routing_policy.project_inventory(engines.to_vec());
-                    let effective = routing_policy
-                        .effective_fallback_policy(logical_voices.fallback_policy());
-                    let registration = logical_voices
-                        .resolve_and_store_with_policy(&projected, &effective);
+                    let effective =
+                        routing_policy.effective_fallback_policy(logical_voices.fallback_policy());
+                    let registration =
+                        logical_voices.resolve_and_store_with_policy(&projected, &effective);
                     ControlResponseEnvelope {
                         protocol_version: CONTROL_PROTOCOL_VERSION,
                         request_id: Some(request.request_id),
@@ -351,10 +351,10 @@ pub fn process_control_request(
             } => match routing_policy.register(routing_policy_generation, policy) {
                 Ok(registration) => {
                     let projected = routing_policy.project_inventory(engines.to_vec());
-                    let effective = routing_policy
-                        .effective_fallback_policy(logical_voices.fallback_policy());
-                    let logical_registration = logical_voices
-                        .resolve_and_store_with_policy(&projected, &effective);
+                    let effective =
+                        routing_policy.effective_fallback_policy(logical_voices.fallback_policy());
+                    let logical_registration =
+                        logical_voices.resolve_and_store_with_policy(&projected, &effective);
                     ControlResponseEnvelope {
                         protocol_version: CONTROL_PROTOCOL_VERSION,
                         request_id: Some(request.request_id),
@@ -372,12 +372,13 @@ pub fn process_control_request(
                     error.to_string(),
                 ),
             },
-            ControlRequest::Preview { .. }
-            | ControlRequest::RequestEngineRecoveryProbe { .. } => error_response(
-                Some(request.request_id),
-                ControlErrorCode::InvalidConfiguration,
-                "request requires a live playback server".to_owned(),
-            ),
+            ControlRequest::Preview { .. } | ControlRequest::RequestEngineRecoveryProbe { .. } => {
+                error_response(
+                    Some(request.request_id),
+                    ControlErrorCode::InvalidConfiguration,
+                    "request requires a live playback server".to_owned(),
+                )
+            }
         },
         Err(error) => error_response(None, error.code(), error.to_string()),
     }

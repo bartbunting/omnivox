@@ -3,13 +3,13 @@
 use omnivox_audio::{
     AudioBuffer, AudioControl, AudioError, PlaybackCue, PlaybackTicket, StreamType,
 };
+use omnivox_core::timeline::TimelineActionId;
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId, PostSynthesisDimension};
 use omnivox_tts::marker_protocol::{
     format_marker_event, MarkerEvent, MarkerEventEnvelope, MARKER_PROTOCOL_VERSION,
     TIMELINE_EVENT_PROTOCOL_VERSION,
 };
 use omnivox_tts::{AnchorResolution, SynthesisMarker};
-use omnivox_core::timeline::TimelineActionId;
 use std::cell::Cell;
 use std::io::{self, Write};
 use std::sync::{mpsc, Arc};
@@ -45,8 +45,7 @@ impl MarkerEventOutput {
 }
 
 /// Spawn the single writer that serializes marker events to stdout.
-pub fn spawn_marker_event_reporter(
-) -> (MarkerEventOutput, std::thread::JoinHandle<()>) {
+pub fn spawn_marker_event_reporter() -> (MarkerEventOutput, std::thread::JoinHandle<()>) {
     let (sender, receiver) = mpsc::channel();
     let handle = std::thread::Builder::new()
         .name("omnivox-marker-reporter".to_owned())
@@ -61,8 +60,7 @@ fn marker_event_reporter(receiver: mpsc::Receiver<MarkerReporterMessage>) {
             MarkerReporterMessage::Event(event) => match format_marker_event(&event) {
                 Ok(record) => {
                     let mut stdout = io::stdout().lock();
-                    if let Err(error) =
-                        writeln!(stdout, "{}", record).and_then(|_| stdout.flush())
+                    if let Err(error) = writeln!(stdout, "{}", record).and_then(|_| stdout.flush())
                     {
                         warn!("Could not write playback marker event: {}", error);
                     }
@@ -318,7 +316,10 @@ impl PreparedMarkerPlayback {
 }
 
 fn increment(counter: &Cell<u64>) -> u64 {
-    let next = counter.get().checked_add(1).expect("marker sequence overflow");
+    let next = counter
+        .get()
+        .checked_add(1)
+        .expect("marker sequence overflow");
     counter.set(next);
     next
 }
@@ -363,7 +364,11 @@ mod tests {
             Some("source-code"),
             44100,
             100,
-            &[marker(50, "second"), marker(10, "first"), marker(10, "same")],
+            &[
+                marker(50, "second"),
+                marker(10, "first"),
+                marker(10, "same"),
+            ],
             &[],
         );
 
@@ -413,10 +418,7 @@ mod tests {
     #[test]
     fn v2_semantic_events_are_stably_merged_at_playback_frames() {
         let (sender, _receiver) = mpsc::channel();
-        let context = MarkerDispatchContext::with_timeline_events(
-            91,
-            MarkerEventOutput { sender },
-        );
+        let context = MarkerDispatchContext::with_timeline_events(91, MarkerEventOutput { sender });
         let prepared = context.prepare_utterance(
             "hello",
             "helper",
@@ -445,9 +447,10 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![0, 10, 20, 20]
         );
-        assert!(prepared.events.iter().all(|event| {
-            event.protocol_version == TIMELINE_EVENT_PROTOCOL_VERSION
-        }));
+        assert!(prepared
+            .events
+            .iter()
+            .all(|event| { event.protocol_version == TIMELINE_EVENT_PROTOCOL_VERSION }));
         assert!(matches!(
             prepared.events[1].event,
             MarkerEvent::SemanticEventReached { ref action_id, .. }
@@ -467,10 +470,7 @@ mod tests {
     #[test]
     fn v2_reports_anchor_and_style_degradation_at_utterance_start() {
         let (sender, _receiver) = mpsc::channel();
-        let context = MarkerDispatchContext::with_timeline_events(
-            92,
-            MarkerEventOutput { sender },
-        );
+        let context = MarkerDispatchContext::with_timeline_events(92, MarkerEventOutput { sender });
         let prepared = context.prepare_timeline_utterance(
             "hello",
             "helper",

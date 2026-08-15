@@ -62,22 +62,22 @@ pub enum CommandId {
     Silence,   // sh - queue silence
 
     // State management
-    TtsSay,               // tts_say - speak immediately
-    TtsSetPunctuations,   // tts_set_punctuations
-    TtsSetSpeechRate,     // tts_set_speech_rate
-    TtsSetCharacterScale, // tts_set_character_scale
-    TtsSplitCaps,         // tts_split_caps
+    TtsSay,                           // tts_say - speak immediately
+    TtsSetPunctuations,               // tts_set_punctuations
+    TtsSetSpeechRate,                 // tts_set_speech_rate
+    TtsSetCharacterScale,             // tts_set_character_scale
+    TtsSplitCaps,                     // tts_split_caps
     TtsSetCapitalizationPresentation, // tts_set_capitalization_presentation
-    TtsSyncState,         // tts_sync_state
-    TtsReset,             // tts_reset
-    Version,              // version
-    OmnivoxControl,       // omnivox_control - versioned Base64-JSON control request
-    EmacsvoxTx,           // emacsvox_tx - replaceable Base64 presentation transaction
-    EmacsvoxTimeline,     // emacsvox_timeline - structured Base64-JSON presentation
-    EmacsvoxTimelinePart, // emacsvox_timeline_part - one bounded V3 transport fragment
-    EmacsvoxTone,         // emacsvox_tone - versioned presentation-clock tone
+    TtsSyncState,                     // tts_sync_state
+    TtsReset,                         // tts_reset
+    Version,                          // version
+    OmnivoxControl,                   // omnivox_control - versioned Base64-JSON control request
+    EmacsvoxTx,                       // emacsvox_tx - replaceable Base64 presentation transaction
+    EmacsvoxTimeline,                 // emacsvox_timeline - structured Base64-JSON presentation
+    EmacsvoxTimelinePart,             // emacsvox_timeline_part - one bounded V3 transport fragment
+    EmacsvoxTone,                     // emacsvox_tone - versioned presentation-clock tone
     EmacsvoxTrackedDispatch, // emacsvox_tracked_dispatch - dispatch with terminal playback status
-    EmacsvoxMarkerDispatch, // emacsvox_marker_dispatch - dispatch with playback marker events
+    EmacsvoxMarkerDispatch,  // emacsvox_marker_dispatch - dispatch with playback marker events
 
     // SwiftMac extensions
     TtsSetVoice,               // tts_set_voice
@@ -114,9 +114,7 @@ impl CommandId {
             "tts_set_speech_rate" => Some(Self::TtsSetSpeechRate),
             "tts_set_character_scale" => Some(Self::TtsSetCharacterScale),
             "tts_split_caps" => Some(Self::TtsSplitCaps),
-            "tts_set_capitalization_presentation" => {
-                Some(Self::TtsSetCapitalizationPresentation)
-            }
+            "tts_set_capitalization_presentation" => Some(Self::TtsSetCapitalizationPresentation),
             "tts_sync_state" => Some(Self::TtsSyncState),
             "tts_reset" => Some(Self::TtsReset),
             "version" => Some(Self::Version),
@@ -549,8 +547,14 @@ mod tests {
         // Full text must be preserved
         let args = cmd.args.unwrap();
         assert!(args.contains(";;"), "semicolons must be preserved: {args}");
-        assert!(args.contains("bar"), "text after ;; must be preserved: {args}");
-        assert!(args.contains("baz"), "quoted text must be preserved: {args}");
+        assert!(
+            args.contains("bar"),
+            "text after ;; must be preserved: {args}"
+        );
+        assert!(
+            args.contains("baz"),
+            "quoted text must be preserved: {args}"
+        );
     }
 
     #[test]
@@ -558,8 +562,14 @@ mod tests {
         // dtk-speak.el sends: (format "q {%s }\n" text) -- trailing space before }
         let cmd = parse_command(r#"q {(setq x 1) ;; set x to 1 }"#).unwrap();
         let args = cmd.args.unwrap();
-        assert!(args.contains(";;"), "semicolons preserved in dtk format: {args}");
-        assert!(args.contains("set x to 1"), "comment text preserved: {args}");
+        assert!(
+            args.contains(";;"),
+            "semicolons preserved in dtk format: {args}"
+        );
+        assert!(
+            args.contains("set x to 1"),
+            "comment text preserved: {args}"
+        );
     }
 
     #[test]
