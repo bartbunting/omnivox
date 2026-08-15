@@ -21,8 +21,8 @@ use omnivox_tts::timeline_protocol::{
     PresentationTimelineEnvelope, PresentationTimelinePosition,
 };
 use omnivox_tts::{
-    AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisMarker,
-    SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
+    AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisCancellationToken,
+    SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
 };
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -157,6 +157,7 @@ pub fn is_stale(request_gen: u64, gen_counter: &AtomicU64) -> bool {
 pub struct SynthCtx<'a> {
     pub gen: u64,
     pub gen_counter: &'a AtomicU64,
+    pub cancellation: Option<&'a SynthesisCancellationToken>,
     pub engine: &'a dyn TtsEngine,
     pub control: &'a AudioControl,
     pub playback_tickets: Option<&'a Mutex<Vec<PlaybackTicket>>>,
@@ -171,6 +172,9 @@ pub struct SynthCtx<'a> {
 impl SynthCtx<'_> {
     pub fn is_stale(&self) -> bool {
         is_stale(self.gen, self.gen_counter)
+            || self
+                .cancellation
+                .is_some_and(SynthesisCancellationToken::is_cancelled)
     }
 
     pub fn mark_failed(&self) {
@@ -263,6 +267,14 @@ impl SynthCtx<'_> {
     }
 }
 
+fn attach_synthesis_cancellation(
+    mut request: SynthesisRequest,
+    ctx: &SynthCtx,
+) -> SynthesisRequest {
+    request.cancellation = ctx.cancellation.cloned();
+    request
+}
+
 fn mix_overlays(buffers: Vec<AudioBuffer>) -> Option<AudioBuffer> {
     let sample_count = buffers
         .iter()
@@ -326,9 +338,12 @@ pub fn synthesize_chunk_with_tones(
         return false;
     }
 
-    let request = SynthesisRequest::new(chunk, settings.clone())
-        .with_anchors(requested_timeline_anchors(capitalization_tones, &[]))
-        .expect("prepared capitalization offsets are valid");
+    let request = attach_synthesis_cancellation(
+        SynthesisRequest::new(chunk, settings.clone())
+            .with_anchors(requested_timeline_anchors(capitalization_tones, &[]))
+            .expect("prepared capitalization offsets are valid"),
+        ctx,
+    );
     match ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(
             &request,
@@ -828,6 +843,7 @@ fn synthesize_routed_chunk(
             runtime_health,
             ctx.gen,
             ctx.gen_counter,
+            ctx.cancellation,
         )
     } else {
         crate::routing::synthesize_with_runtime_fallback_anchored(
@@ -840,6 +856,7 @@ fn synthesize_routed_chunk(
             runtime_health,
             ctx.gen,
             ctx.gen_counter,
+            ctx.cancellation,
         )
     };
     match outcome {
@@ -1357,13 +1374,16 @@ fn synthesize_direct_timeline_chunk(
         volume: 1.0,
     };
     crate::routing::apply_normalized_acss(&mut settings, &acss.style);
-    let request = SynthesisRequest::new(&chunk.text, settings)
-        .with_normalized_acss(acss.style.clone())
-        .with_anchors(requested_timeline_anchors(
-            &chunk.capitalization_tones,
-            actions,
-        ))
-        .expect("prepared timeline offsets are valid");
+    let request = attach_synthesis_cancellation(
+        SynthesisRequest::new(&chunk.text, settings)
+            .with_normalized_acss(acss.style.clone())
+            .with_anchors(requested_timeline_anchors(
+                &chunk.capitalization_tones,
+                actions,
+            ))
+            .expect("prepared timeline offsets are valid"),
+        ctx,
+    );
     match ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(&request, descriptor.capabilities.markers.requested_anchors);
         result.degraded_acss = acss.omitted.clone();

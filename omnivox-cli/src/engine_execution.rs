@@ -6,7 +6,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use omnivox_tts::contracts::EngineDescriptor;
-use omnivox_tts::{SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo};
+use omnivox_tts::{
+    SynthesisCancellationToken, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo,
+};
 use tracing::{info, warn};
 
 const CANCELLATION_POLL_INTERVAL: Duration = Duration::from_millis(10);
@@ -147,9 +149,15 @@ impl IsolatedTtsEngine {
         }
     }
 
-    fn was_cancelled(&self, generation: u64, stop_epoch: u64) -> bool {
+    fn was_cancelled(
+        &self,
+        generation: u64,
+        stop_epoch: u64,
+        cancellation: Option<&SynthesisCancellationToken>,
+    ) -> bool {
         self.generation.load(Ordering::Acquire) != generation
             || self.stop_epoch.load(Ordering::Acquire) != stop_epoch
+            || cancellation.is_some_and(SynthesisCancellationToken::is_cancelled)
     }
 
     fn cancellation_error(&self) -> TtsError {
@@ -164,6 +172,7 @@ impl IsolatedTtsEngine {
         engine_id: &str,
         generation: u64,
         stop_epoch: u64,
+        cancellation: Option<&SynthesisCancellationToken>,
     ) -> Result<IsolationLease, TtsError> {
         let deadline = Instant::now() + TRANSIENT_ENGINE_WAIT;
         loop {
@@ -171,7 +180,7 @@ impl IsolatedTtsEngine {
                 Ok(lease) => return Ok(lease),
                 Err(pressure) => pressure,
             };
-            if self.was_cancelled(generation, stop_epoch) {
+            if self.was_cancelled(generation, stop_epoch, cancellation) {
                 return Err(self.cancellation_error());
             }
             if Instant::now() >= deadline {
@@ -213,8 +222,10 @@ impl TtsEngine for IsolatedTtsEngine {
         let engine_id = self.engine.descriptor().id;
         let generation = self.generation.load(Ordering::Acquire);
         let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
-        let lease = self.acquire_for_current_generation(&engine_id, generation, stop_epoch)?;
-        if self.was_cancelled(generation, stop_epoch) {
+        let cancellation = request.cancellation.as_ref();
+        let lease =
+            self.acquire_for_current_generation(&engine_id, generation, stop_epoch, cancellation)?;
+        if self.was_cancelled(generation, stop_epoch, cancellation) {
             return Err(self.cancellation_error());
         }
         let prepare_recovery = self.recover_before_next_call.swap(false, Ordering::AcqRel);
@@ -251,13 +262,13 @@ impl TtsEngine for IsolatedTtsEngine {
         loop {
             match result_receiver.recv_timeout(CANCELLATION_POLL_INTERVAL) {
                 Ok(result) => {
-                    if self.was_cancelled(generation, stop_epoch) {
+                    if self.was_cancelled(generation, stop_epoch, cancellation) {
                         return Err(self.cancellation_error());
                     }
                     return result;
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => {
-                    if !self.was_cancelled(generation, stop_epoch) {
+                    if !self.was_cancelled(generation, stop_epoch, cancellation) {
                         continue;
                     }
                     let hard_stop = self.stop_epoch.load(Ordering::Acquire) != stop_epoch;
@@ -510,6 +521,43 @@ mod tests {
         assert_eq!(budget.quarantined(), 0);
         assert_eq!(native.stops.load(Ordering::Acquire), 0);
 
+        native.release();
+        assert!(engine.synthesize(&request()).is_ok());
+    }
+
+    #[test]
+    fn request_token_cancels_one_isolated_call_without_advancing_global_generation() {
+        let generation = Arc::new(AtomicU64::new(9));
+        let budget = Arc::new(IsolationBudget::new());
+        let native = Arc::new(BlockingEngine::new("keyed"));
+        let engine = isolated(
+            Arc::clone(&native),
+            Arc::clone(&generation),
+            Arc::clone(&budget),
+        );
+        let cancellation = SynthesisCancellationToken::new();
+        let cancellable = request().with_cancellation(cancellation.clone());
+        let (finished_tx, finished_rx) = mpsc::channel();
+        let caller = Arc::clone(&engine);
+        thread::spawn(move || {
+            let _ = finished_tx.send(caller.synthesize(&cancellable));
+        });
+
+        native.wait_for_started(1);
+        cancellation.cancel();
+        assert!(matches!(
+            finished_rx
+                .recv_timeout(Duration::from_millis(250))
+                .unwrap(),
+            Err(TtsError::SynthesisFailed(_))
+        ));
+        assert_eq!(generation.load(Ordering::Acquire), 9);
+        assert_eq!(native.stops.load(Ordering::Acquire), 1);
+        assert_eq!(budget.quarantined(), 1);
+
+        native.release();
+        native.wait_for_completed(1);
+        wait_for_budget(&budget, 0);
         native.release();
         assert!(engine.synthesize(&request()).is_ok());
     }

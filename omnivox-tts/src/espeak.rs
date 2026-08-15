@@ -11,8 +11,8 @@ use crate::contracts::{
 #[cfg(test)]
 use crate::TtsSettings;
 use crate::{
-    AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
-    TtsEngine, TtsError, VoiceInfo, VoiceQuality,
+    AudioBuffer, SynthesisCancellationToken, SynthesisMarker, SynthesisMarkerKind,
+    SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
 };
 use once_cell::sync::OnceCell;
 use std::ffi::{CStr, CString};
@@ -40,6 +40,7 @@ static SYNTH_CAPTURE: Mutex<Option<EspeakSynthesisCapture>> = Mutex::new(None);
 struct EspeakSynthesisCapture {
     samples: Vec<i16>,
     markers: Vec<EspeakNativeMarker>,
+    cancellation: Option<SynthesisCancellationToken>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,6 +77,13 @@ unsafe extern "C" fn synth_callback(
 ) -> c_int {
     if let Ok(mut slot) = SYNTH_CAPTURE.lock() {
         if let Some(capture) = slot.as_mut() {
+            if capture
+                .cancellation
+                .as_ref()
+                .is_some_and(SynthesisCancellationToken::is_cancelled)
+            {
+                return 1;
+            }
             if !wav.is_null() && sample_count > 0 {
                 let samples = std::slice::from_raw_parts(wav as *const i16, sample_count as usize);
                 capture.samples.extend_from_slice(samples);
@@ -497,6 +505,15 @@ impl TtsEngine for EspeakTtsEngine {
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         let text = request.text.as_str();
         let settings = &request.settings;
+        if request
+            .cancellation
+            .as_ref()
+            .is_some_and(SynthesisCancellationToken::is_cancelled)
+        {
+            return Err(TtsError::SynthesisFailed(
+                "espeak synthesis was cancelled".to_owned(),
+            ));
+        }
         if text.is_empty() {
             return Ok(SynthesisResult::audio("espeak", None, AudioBuffer::empty()));
         }
@@ -572,7 +589,10 @@ impl TtsEngine for EspeakTtsEngine {
                 let mut capture = SYNTH_CAPTURE.lock().map_err(|e| {
                     TtsError::SynthesisFailed(format!("Capture lock poisoned: {}", e))
                 })?;
-                *capture = Some(EspeakSynthesisCapture::default());
+                *capture = Some(EspeakSynthesisCapture {
+                    cancellation: request.cancellation.clone(),
+                    ..EspeakSynthesisCapture::default()
+                });
             }
 
             // Synthesize
@@ -608,6 +628,16 @@ impl TtsEngine for EspeakTtsEngine {
                 .map_err(|e| TtsError::SynthesisFailed(format!("Capture lock poisoned: {}", e)))?;
             capture.take().unwrap_or_default()
         };
+
+        if capture
+            .cancellation
+            .as_ref()
+            .is_some_and(SynthesisCancellationToken::is_cancelled)
+        {
+            return Err(TtsError::SynthesisFailed(
+                "espeak synthesis was cancelled".to_owned(),
+            ));
+        }
 
         if capture.samples.is_empty() {
             debug!("espeak-ng produced no audio");
@@ -848,6 +878,20 @@ mod tests {
             .markers
             .iter()
             .any(|marker| marker.kind == SynthesisMarkerKind::Sentence));
+    }
+
+    #[test]
+    fn espeak_rejects_an_already_cancelled_request() {
+        let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        let cancellation = SynthesisCancellationToken::new();
+        cancellation.cancel();
+        let request = SynthesisRequest::new("obsolete", TtsSettings::default())
+            .with_cancellation(cancellation);
+
+        assert!(matches!(
+            engine.synthesize(&request),
+            Err(TtsError::SynthesisFailed(message)) if message.contains("cancelled")
+        ));
     }
 
     #[test]

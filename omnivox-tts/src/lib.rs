@@ -24,8 +24,8 @@ pub mod windows;
 
 pub use omnivox_audio::AudioBuffer;
 pub use synthesis::{
-    AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisMarker,
-    SynthesisMarkerKind, SynthesisRequest, SynthesisResult, MAX_SYNTHESIS_ANCHORS,
+    AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisCancellationToken,
+    SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult, MAX_SYNTHESIS_ANCHORS,
     MAX_SYNTHESIS_ANCHOR_ID_BYTES,
 };
 

@@ -27,7 +27,8 @@ use omnivox_tts::timeline_protocol::{
     PresentationAction, PresentationDeliveryPolicy, PresentationEffectDirective,
     PresentationTimelineEnvelope,
 };
-use omnivox_tts::TtsEngine;
+use omnivox_tts::{SynthesisCancellationToken, TtsEngine};
+use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
 use std::mem;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -73,6 +74,71 @@ const READY_TUNE_NOTES: &[(f32, u32)] = &[(523.25, 55), (659.25, 55), (783.99, 8
 const READY_TUNE_GAP_SECONDS: f32 = 0.018;
 const READY_TUNE_VOLUME: f32 = 0.35;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ReplacementDomain {
+    protocol_version: u32,
+    replacement_key: Option<String>,
+}
+
+impl ReplacementDomain {
+    fn from_timeline(timeline: &PresentationTimelineEnvelope) -> Option<Self> {
+        (timeline.effective_delivery_policy() == PresentationDeliveryPolicy::Replaceable).then(
+            || Self {
+                protocol_version: timeline.protocol_version,
+                replacement_key: timeline.replacement_key.clone(),
+            },
+        )
+    }
+}
+
+#[derive(Clone, Default)]
+struct KeyedCancellationRegistry {
+    active: Arc<Mutex<HashMap<ReplacementDomain, SynthesisCancellationToken>>>,
+}
+
+impl KeyedCancellationRegistry {
+    fn supersede(&self, domain: ReplacementDomain) -> KeyedCancellationLease {
+        let token = SynthesisCancellationToken::new();
+        if let Some(previous) = self
+            .active
+            .lock()
+            .unwrap()
+            .insert(domain.clone(), token.clone())
+        {
+            previous.cancel();
+        }
+        KeyedCancellationLease {
+            domain,
+            token,
+            registry: self.clone(),
+        }
+    }
+}
+
+pub(crate) struct KeyedCancellationLease {
+    domain: ReplacementDomain,
+    token: SynthesisCancellationToken,
+    registry: KeyedCancellationRegistry,
+}
+
+impl KeyedCancellationLease {
+    fn token(&self) -> &SynthesisCancellationToken {
+        &self.token
+    }
+}
+
+impl Drop for KeyedCancellationLease {
+    fn drop(&mut self) {
+        let mut active = self.registry.active.lock().unwrap();
+        if active
+            .get(&self.domain)
+            .is_some_and(|current| current.same_token(&self.token))
+        {
+            active.remove(&self.domain);
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Synthesis request types
 // ---------------------------------------------------------------------------
@@ -97,6 +163,7 @@ pub enum SynthRequest {
         timeline: PresentationTimelineEnvelope,
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
+        cancellation: Option<KeyedCancellationLease>,
         gen: u64,
     },
     /// Synthesize one explicitly selected voice without mutating server state.
@@ -759,6 +826,7 @@ pub fn synthesis_worker(
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
+                    cancellation: None,
                     engine: &*batch_engine,
                     control: &control,
                     playback_tickets: tracking.map(|_| &tickets),
@@ -795,6 +863,7 @@ pub fn synthesis_worker(
                 timeline,
                 state,
                 mut logical_voice_routing,
+                cancellation,
                 gen,
             } => {
                 let runtime_inventory = runtime_health
@@ -815,6 +884,7 @@ pub fn synthesis_worker(
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
+                    cancellation: cancellation.as_ref().map(KeyedCancellationLease::token),
                     engine: &*batch_engine,
                     control: &control,
                     playback_tickets: Some(&tickets),
@@ -865,6 +935,7 @@ pub fn synthesis_worker(
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
+                    cancellation: None,
                     engine: &*engine,
                     control: &control,
                     playback_tickets: Some(&tickets),
@@ -919,6 +990,7 @@ pub fn synthesis_worker(
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
+                    cancellation: None,
                     engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
@@ -961,6 +1033,7 @@ pub fn synthesis_worker(
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
+                    cancellation: None,
                     engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
@@ -988,6 +1061,7 @@ pub fn synthesis_worker(
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
+                    cancellation: None,
                     engine: &*engine,
                     control: &control,
                     playback_tickets: None,
@@ -1166,6 +1240,7 @@ pub fn run_server(
     let mut current_gen: u64 = 0;
     let mut logical_voices = LogicalVoiceRegistry::default();
     let mut presentation_generations = PresentationGenerations::default();
+    let keyed_cancellations = KeyedCancellationRegistry::default();
     let preferred_engine_id = engine.descriptor().id;
     let mut routing_policy = RoutingPolicyRegistry::new(preferred_engine_id.clone());
 
@@ -1230,6 +1305,8 @@ pub fn run_server(
                         continue;
                     }
                 };
+            let mut selected_cancellation =
+                begin_keyed_cancellation(&keyed_cancellations, &selected.timeline);
             let mut burst_started = Instant::now();
             loop {
                 if !structured_policy_uses_reader_coalescing(
@@ -1240,6 +1317,7 @@ pub fn run_server(
                         &mut presentation_generations,
                         &state,
                         current_gen,
+                        selected_cancellation.take(),
                         &engine_registry,
                         &routing_policy,
                         &logical_voices,
@@ -1269,12 +1347,17 @@ pub fn run_server(
                                         BatchStatus::Cancelled,
                                     );
                                 } else {
+                                    let candidate_cancellation = begin_keyed_cancellation(
+                                        &keyed_cancellations,
+                                        &candidate.timeline,
+                                    );
                                     match select_adjacent_timeline(selected, candidate) {
                                         AdjacentTimelineSelection::Coalesced {
                                             selected: replacement,
                                             cancelled_dispatch_id,
                                         } => {
                                             selected = replacement;
+                                            selected_cancellation = candidate_cancellation;
                                             write_tracked_status(
                                                 cancelled_dispatch_id,
                                                 BatchStatus::Cancelled,
@@ -1289,12 +1372,14 @@ pub fn run_server(
                                                 &mut presentation_generations,
                                                 &state,
                                                 current_gen,
+                                                selected_cancellation.take(),
                                                 &engine_registry,
                                                 &routing_policy,
                                                 &logical_voices,
                                                 &tx,
                                             );
                                             selected = candidate;
+                                            selected_cancellation = candidate_cancellation;
                                             burst_started = Instant::now();
                                         }
                                     }
@@ -1322,6 +1407,7 @@ pub fn run_server(
                                         &mut presentation_generations,
                                         &state,
                                         current_gen,
+                                        selected_cancellation.take(),
                                         &engine_registry,
                                         &routing_policy,
                                         &logical_voices,
@@ -1363,6 +1449,7 @@ pub fn run_server(
                             &mut presentation_generations,
                             &state,
                             current_gen,
+                            selected_cancellation.take(),
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
@@ -1377,6 +1464,7 @@ pub fn run_server(
                             &mut presentation_generations,
                             &state,
                             current_gen,
+                            selected_cancellation.take(),
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
@@ -1390,6 +1478,7 @@ pub fn run_server(
                             &mut presentation_generations,
                             &state,
                             current_gen,
+                            selected_cancellation.take(),
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
@@ -1575,6 +1664,13 @@ fn replaceable_coalescing_deadline(burst_started: Instant, now: Instant) -> Inst
 
 fn structured_policy_uses_reader_coalescing(policy: PresentationDeliveryPolicy) -> bool {
     policy == PresentationDeliveryPolicy::Replaceable
+}
+
+fn begin_keyed_cancellation(
+    registry: &KeyedCancellationRegistry,
+    timeline: &PresentationTimelineEnvelope,
+) -> Option<KeyedCancellationLease> {
+    ReplacementDomain::from_timeline(timeline).map(|domain| registry.supersede(domain))
 }
 
 fn receive_command_until(
@@ -1769,6 +1865,7 @@ fn execute_structured_presentation(
     generations: &mut PresentationGenerations,
     state: &TtsState,
     current_gen: u64,
+    cancellation: Option<KeyedCancellationLease>,
     engine_registry: &EngineRegistry,
     routing_policy: &RoutingPolicyRegistry,
     logical_voices: &LogicalVoiceRegistry,
@@ -1789,6 +1886,7 @@ fn execute_structured_presentation(
                 engine_registry,
                 routing_policy,
             ),
+            cancellation,
             gen: current_gen,
         },
     );
@@ -2737,6 +2835,30 @@ mod tests {
             .collect()
     }
 
+    fn timeline_envelope(
+        generation: u64,
+        dispatch_id: u64,
+        policy: PresentationDeliveryPolicy,
+        replacement_key: Option<&str>,
+    ) -> PresentationTimelineEnvelope {
+        PresentationTimelineEnvelope {
+            protocol_version: PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+            generation,
+            dispatch_id,
+            delivery_policy: Some(policy),
+            replacement_key: replacement_key.map(str::to_owned),
+            spans: vec![PresentationSpeechSpan {
+                id: 1,
+                text: "queued text".to_owned(),
+                logical_voice_id: None,
+                acss: NormalizedAcss::default(),
+                rate_offset: None,
+                effects: PresentationEffectDirective::Retain,
+            }],
+            actions: Vec::new(),
+        }
+    }
+
     fn timeline_request(
         generation: u64,
         dispatch_id: u64,
@@ -2745,29 +2867,67 @@ mod tests {
     ) -> SynthRequest {
         let engines = EngineRegistry::new();
         SynthRequest::Timeline {
-            timeline: PresentationTimelineEnvelope {
-                protocol_version: PRESENTATION_TIMELINE_PROTOCOL_VERSION,
-                generation,
-                dispatch_id,
-                delivery_policy: Some(policy),
-                replacement_key: replacement_key.map(str::to_owned),
-                spans: vec![PresentationSpeechSpan {
-                    id: 1,
-                    text: "queued text".to_owned(),
-                    logical_voice_id: None,
-                    acss: NormalizedAcss::default(),
-                    rate_offset: None,
-                    effects: PresentationEffectDirective::Retain,
-                }],
-                actions: Vec::new(),
-            },
+            timeline: timeline_envelope(generation, dispatch_id, policy, replacement_key),
             state: TtsState::default(),
             logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
                 &LogicalVoiceRegistry::default(),
                 &engines,
             ),
+            cancellation: None,
             gen: generation,
         }
+    }
+
+    #[test]
+    fn keyed_cancellation_advances_on_valid_receipt_and_is_domain_scoped() {
+        let registry = KeyedCancellationRegistry::default();
+        let first = begin_keyed_cancellation(
+            &registry,
+            &timeline_envelope(
+                1,
+                11,
+                PresentationDeliveryPolicy::Replaceable,
+                Some("navigation"),
+            ),
+        )
+        .unwrap();
+        let other = begin_keyed_cancellation(
+            &registry,
+            &timeline_envelope(
+                2,
+                12,
+                PresentationDeliveryPolicy::Replaceable,
+                Some("review"),
+            ),
+        )
+        .unwrap();
+
+        let replacement = begin_keyed_cancellation(
+            &registry,
+            &timeline_envelope(
+                3,
+                13,
+                PresentationDeliveryPolicy::Replaceable,
+                Some("navigation"),
+            ),
+        )
+        .unwrap();
+
+        assert!(first.token().is_cancelled());
+        assert!(!other.token().is_cancelled());
+        assert!(!replacement.token().is_cancelled());
+        assert!(begin_keyed_cancellation(
+            &registry,
+            &timeline_envelope(4, 14, PresentationDeliveryPolicy::Ordered, None),
+        )
+        .is_none());
+
+        drop(first);
+        assert_eq!(registry.active.lock().unwrap().len(), 2);
+        drop(replacement);
+        assert_eq!(registry.active.lock().unwrap().len(), 1);
+        drop(other);
+        assert!(registry.active.lock().unwrap().is_empty());
     }
 
     #[test]

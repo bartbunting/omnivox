@@ -14,7 +14,8 @@ use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::resolver::{resolve_voice, resolve_voice_for_text, VoiceResolution};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
 use omnivox_tts::{
-    RequestedAnchor, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, TtsSettings,
+    RequestedAnchor, SynthesisCancellationToken, SynthesisRequest, SynthesisResult, TtsEngine,
+    TtsError, TtsSettings,
 };
 use tracing::{debug, info, warn};
 
@@ -477,6 +478,7 @@ pub fn synthesize_with_runtime_fallback(
     runtime_health: &RuntimeEngineHealth,
     generation: u64,
     generation_counter: &AtomicU64,
+    cancellation: Option<&SynthesisCancellationToken>,
 ) -> RuntimeSynthesisOutcome {
     synthesize_with_runtime_fallback_anchored(
         chunk,
@@ -488,6 +490,7 @@ pub fn synthesize_with_runtime_fallback(
         runtime_health,
         generation,
         generation_counter,
+        cancellation,
     )
 }
 
@@ -503,6 +506,7 @@ pub fn synthesize_with_runtime_fallback_anchored(
     runtime_health: &RuntimeEngineHealth,
     generation: u64,
     generation_counter: &AtomicU64,
+    cancellation: Option<&SynthesisCancellationToken>,
 ) -> RuntimeSynthesisOutcome {
     synthesize_with_runtime_fallback_anchored_inner(
         chunk,
@@ -515,6 +519,7 @@ pub fn synthesize_with_runtime_fallback_anchored(
         runtime_health,
         generation,
         generation_counter,
+        cancellation,
     )
 }
 
@@ -532,6 +537,7 @@ pub fn synthesize_with_runtime_fallback_anchored_styled(
     runtime_health: &RuntimeEngineHealth,
     generation: u64,
     generation_counter: &AtomicU64,
+    cancellation: Option<&SynthesisCancellationToken>,
 ) -> RuntimeSynthesisOutcome {
     synthesize_with_runtime_fallback_anchored_inner(
         chunk,
@@ -544,6 +550,7 @@ pub fn synthesize_with_runtime_fallback_anchored_styled(
         runtime_health,
         generation,
         generation_counter,
+        cancellation,
     )
 }
 
@@ -559,8 +566,9 @@ fn synthesize_with_runtime_fallback_anchored_inner(
     runtime_health: &RuntimeEngineHealth,
     generation: u64,
     generation_counter: &AtomicU64,
+    cancellation: Option<&SynthesisCancellationToken>,
 ) -> RuntimeSynthesisOutcome {
-    if stale(generation, generation_counter) {
+    if stale(generation, generation_counter, cancellation) {
         return RuntimeSynthesisOutcome::Cancelled;
     }
     let previous_incompatibility = routing.text_incompatibility(route, chunk);
@@ -600,7 +608,7 @@ fn synthesize_with_runtime_fallback_anchored_inner(
     *route = compatible_route;
 
     for attempt in 1..=MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
-        if stale(generation, generation_counter) {
+        if stale(generation, generation_counter, cancellation) {
             return RuntimeSynthesisOutcome::Cancelled;
         }
         let permit = match runtime_health.acquire(&route.realized.engine_id) {
@@ -620,13 +628,13 @@ fn synthesize_with_runtime_fallback_anchored_inner(
                 }
             }
         };
-        if stale(generation, generation_counter) {
+        if stale(generation, generation_counter, cancellation) {
             release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
             return RuntimeSynthesisOutcome::Cancelled;
         }
         if permit == EnginePermit::RecoveryProbe {
             if let Err(preparation_error) = route.engine.prepare_recovery_probe() {
-                if stale(generation, generation_counter) {
+                if stale(generation, generation_counter, cancellation) {
                     release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
                     return RuntimeSynthesisOutcome::Cancelled;
                 }
@@ -663,6 +671,7 @@ fn synthesize_with_runtime_fallback_anchored_inner(
         apply_normalized_acss(&mut routed_settings, &acss.style);
         let mut request =
             SynthesisRequest::new(chunk, routed_settings).with_normalized_acss(acss.style.clone());
+        request.cancellation = cancellation.cloned();
         request.requested_voice = Some(route.realized.clone());
         request.logical_voice_id = route.reported_logical_voice_id.clone();
         request.anchors = anchors.to_vec();
@@ -714,14 +723,14 @@ fn synthesize_with_runtime_fallback_anchored_inner(
                     recovered = permit == EnginePermit::RecoveryProbe,
                     "Routed synthesis completed"
                 );
-                return if stale(generation, generation_counter) {
+                return if stale(generation, generation_counter, cancellation) {
                     RuntimeSynthesisOutcome::Cancelled
                 } else {
                     RuntimeSynthesisOutcome::Ready(Box::new(result))
                 };
             }
             Err(error) => {
-                if stale(generation, generation_counter) {
+                if stale(generation, generation_counter, cancellation) {
                     release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
                     return RuntimeSynthesisOutcome::Cancelled;
                 }
@@ -806,8 +815,13 @@ fn release_probe_if_held(
     }
 }
 
-fn stale(generation: u64, generation_counter: &AtomicU64) -> bool {
+fn stale(
+    generation: u64,
+    generation_counter: &AtomicU64,
+    cancellation: Option<&SynthesisCancellationToken>,
+) -> bool {
     generation_counter.load(Ordering::Acquire) != generation
+        || cancellation.is_some_and(SynthesisCancellationToken::is_cancelled)
 }
 
 fn route_from_resolution(
@@ -944,7 +958,7 @@ mod tests {
         NotAvailableOnce(AtomicUsize),
         Synthesis,
         SynthesisOnce(AtomicUsize),
-        SynthesisAndCancel(Arc<AtomicU64>),
+        SynthesisAndCancel(SynthesisCancellationToken),
     }
 
     struct MockEngine {
@@ -1004,8 +1018,8 @@ mod tests {
                 {
                     Err(TtsError::SynthesisFailed("one mock failure".to_owned()))
                 }
-                Some(MockFailure::SynthesisAndCancel(counter)) => {
-                    counter.fetch_add(1, Ordering::Release);
+                Some(MockFailure::SynthesisAndCancel(cancellation)) => {
+                    cancellation.cancel();
                     Err(TtsError::SynthesisFailed("cancelled mock".to_owned()))
                 }
                 Some(MockFailure::NotAvailableOnce(_) | MockFailure::SynthesisOnce(_)) => success(),
@@ -1272,6 +1286,7 @@ mod tests {
             &health,
             1,
             &counter,
+            None,
         );
 
         assert!(matches!(outcome, RuntimeSynthesisOutcome::Ready(_)));
@@ -1557,6 +1572,7 @@ mod tests {
             &health,
             11,
             &counter,
+            None,
         );
 
         let RuntimeSynthesisOutcome::Ready(result) = outcome else {
@@ -1617,6 +1633,7 @@ mod tests {
             &health,
             3,
             &counter,
+            None,
         );
         assert!(matches!(unicode_outcome, RuntimeSynthesisOutcome::Ready(_)));
         assert_eq!(route.realized.engine_id, "espeak");
@@ -1630,6 +1647,7 @@ mod tests {
             &health,
             3,
             &counter,
+            None,
         );
         assert!(matches!(
             compatible_outcome,
@@ -1665,6 +1683,7 @@ mod tests {
             &health,
             5,
             &counter,
+            None,
         );
 
         assert!(matches!(outcome, RuntimeSynthesisOutcome::Exhausted));
@@ -1704,6 +1723,7 @@ mod tests {
             &health,
             7,
             &counter,
+            None,
         );
 
         assert!(matches!(outcome, RuntimeSynthesisOutcome::Ready(_)));
@@ -1773,6 +1793,7 @@ mod tests {
             &health,
             11,
             &counter,
+            None,
         );
 
         assert!(matches!(first, RuntimeSynthesisOutcome::Ready(_)));
@@ -1804,6 +1825,7 @@ mod tests {
             &health,
             11,
             &counter,
+            None,
         );
 
         assert!(matches!(next, RuntimeSynthesisOutcome::Ready(_)));
@@ -1847,6 +1869,7 @@ mod tests {
             &health,
             3,
             &counter,
+            None,
         );
 
         assert!(matches!(outcome, RuntimeSynthesisOutcome::Ready(_)));
@@ -1894,6 +1917,7 @@ mod tests {
             &health,
             9,
             &counter,
+            None,
         );
         assert!(matches!(first, RuntimeSynthesisOutcome::Ready(_)));
         assert_eq!(failed_route.realized.engine_id, "espeak");
@@ -1915,6 +1939,7 @@ mod tests {
             &health,
             9,
             &counter,
+            None,
         );
 
         assert!(matches!(probe, RuntimeSynthesisOutcome::Ready(_)));
@@ -1953,6 +1978,7 @@ mod tests {
             &health,
             3,
             &counter,
+            None,
         );
 
         assert!(matches!(outcome, RuntimeSynthesisOutcome::Exhausted));
@@ -1972,11 +1998,12 @@ mod tests {
 
     #[test]
     fn cancellation_after_a_failed_attempt_prevents_the_retry() {
-        let counter = Arc::new(AtomicU64::new(11));
+        let counter = AtomicU64::new(11);
+        let cancellation = SynthesisCancellationToken::new();
         let primary = synthesis_engine(
             "dectalk",
             "paul",
-            Some(MockFailure::SynthesisAndCancel(Arc::clone(&counter))),
+            Some(MockFailure::SynthesisAndCancel(cancellation.clone())),
         );
         let fallback = synthesis_engine("espeak", "en-us", None);
         let mut engines = EngineRegistry::new();
@@ -2006,6 +2033,7 @@ mod tests {
             &health,
             11,
             &counter,
+            Some(&cancellation),
         );
 
         assert!(matches!(outcome, RuntimeSynthesisOutcome::Cancelled));
