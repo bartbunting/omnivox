@@ -195,7 +195,17 @@ impl SynthCtx<'_> {
         }
         let needs_ticket = self.playback_tickets.is_some()
             || (stream == StreamType::Speech && self.presentation_clock.is_some());
-        let result = if needs_ticket {
+        let result = if let Some(cancellation) = self.cancellation {
+            self.control
+                .queue_tracked_cancellable_if(stream, buffer, cancellation.clone(), || {
+                    !self.is_stale()
+                })
+                .map(|ticket| {
+                    if let Some(ticket) = ticket {
+                        self.record_ticket(stream, ticket);
+                    }
+                })
+        } else if needs_ticket {
             self.control
                 .queue_tracked_if(stream, buffer, || !self.is_stale())
                 .map(|ticket| {
@@ -250,10 +260,18 @@ impl SynthCtx<'_> {
             .presentation_clock
             .map(|clock| clock.lock().unwrap().clone())
             .unwrap_or_default();
-        match self
-            .control
-            .queue_overlay_after_if(&buffer, barriers, || !self.is_stale())
-        {
+        let queued = if let Some(cancellation) = self.cancellation {
+            self.control.queue_overlay_after_cancellable_if(
+                &buffer,
+                barriers,
+                cancellation.clone(),
+                || !self.is_stale(),
+            )
+        } else {
+            self.control
+                .queue_overlay_after_if(&buffer, barriers, || !self.is_stale())
+        };
+        match queued {
             Ok(Some(ticket)) => {
                 if let Some(tickets) = self.playback_tickets {
                     tickets.lock().unwrap().push(ticket);
@@ -517,7 +535,14 @@ fn queue_synthesis_result(
                 &semantic_events,
             )
         };
-        match prepared.queue_if(ctx.control, &result.audio, || !ctx.is_stale()) {
+        let queued = if let Some(cancellation) = ctx.cancellation {
+            prepared.queue_cancellable_if(ctx.control, &result.audio, cancellation.clone(), || {
+                !ctx.is_stale()
+            })
+        } else {
+            prepared.queue_if(ctx.control, &result.audio, || !ctx.is_stale())
+        };
+        match queued {
             Ok(Some(ticket)) => {
                 ctx.record_ticket(StreamType::Speech, ticket);
             }

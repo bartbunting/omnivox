@@ -1,7 +1,8 @@
 //! Playback marker event preparation and asynchronous stdout delivery.
 
 use omnivox_audio::{
-    AudioBuffer, AudioControl, AudioError, PlaybackCue, PlaybackTicket, StreamType,
+    AudioBuffer, AudioControl, AudioError, CancellationToken, PlaybackCue, PlaybackTicket,
+    StreamType,
 };
 use omnivox_core::timeline::TimelineActionId;
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId, PostSynthesisDimension};
@@ -299,19 +300,57 @@ impl PreparedMarkerPlayback {
     where
         F: FnOnce() -> bool,
     {
+        self.queue_if_with_cancellation(control, buffer, None, predicate)
+    }
+
+    pub fn queue_cancellable_if<F>(
+        self,
+        control: &AudioControl,
+        buffer: &AudioBuffer,
+        cancellation: CancellationToken,
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
+        self.queue_if_with_cancellation(control, buffer, Some(cancellation), predicate)
+    }
+
+    fn queue_if_with_cancellation<F>(
+        self,
+        control: &AudioControl,
+        buffer: &AudioBuffer,
+        cancellation: Option<CancellationToken>,
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
         let events = self.events;
         let output = self.output;
-        control.queue_tracked_with_cue_callback_if(
-            StreamType::Speech,
-            buffer,
-            self.cues,
-            move |cue| {
-                if let Some(event) = events.get(cue.identifier as usize) {
-                    output.emit(event.clone());
-                }
-            },
-            predicate,
-        )
+        let on_cue = move |cue: PlaybackCue| {
+            if let Some(event) = events.get(cue.identifier as usize) {
+                output.emit(event.clone());
+            }
+        };
+        if let Some(cancellation) = cancellation {
+            control.queue_tracked_with_cue_callback_cancellable_if(
+                StreamType::Speech,
+                buffer,
+                self.cues,
+                on_cue,
+                cancellation,
+                predicate,
+            )
+        } else {
+            control.queue_tracked_with_cue_callback_if(
+                StreamType::Speech,
+                buffer,
+                self.cues,
+                on_cue,
+                predicate,
+            )
+        }
     }
 }
 

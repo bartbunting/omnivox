@@ -496,6 +496,7 @@ pub(crate) struct TrackedPlayback {
     completion: PlaybackCompletion,
     status: BatchStatus,
     tickets: Vec<PlaybackTicket>,
+    cancellation: Option<KeyedCancellationLease>,
 }
 
 pub(crate) enum PlaybackCompletion {
@@ -530,6 +531,7 @@ fn tracked_playback_reporter(
             completion,
             status,
             tickets,
+            cancellation,
         } = playback;
         let status = await_tracked_playback(status, tickets);
         marker_output.flush();
@@ -552,6 +554,7 @@ fn tracked_playback_reporter(
                 message,
             ),
         }
+        drop(cancellation);
     }
 }
 
@@ -853,6 +856,7 @@ pub fn synthesis_worker(
                         completion: PlaybackCompletion::Tracked(identifier),
                         status,
                         tickets: tickets.into_inner().unwrap(),
+                        cancellation: None,
                     };
                     if tracked_playback_tx.send(playback).is_err() {
                         warn!("Tracked playback reporter stopped before dispatch {identifier}");
@@ -910,6 +914,7 @@ pub fn synthesis_worker(
                     completion: PlaybackCompletion::Tracked(dispatch_id),
                     status,
                     tickets: tickets.into_inner().unwrap(),
+                    cancellation,
                 };
                 if tracked_playback_tx.send(playback).is_err() {
                     warn!("Tracked playback reporter stopped before timeline {dispatch_id}");
@@ -967,6 +972,7 @@ pub fn synthesis_worker(
                     },
                     status: result.status,
                     tickets: tickets.into_inner().unwrap(),
+                    cancellation: None,
                 };
                 if tracked_playback_tx.send(playback).is_err() {
                     warn!("Preview playback reporter stopped before request {request_id}");
