@@ -1154,6 +1154,62 @@ mod tests {
     }
 
     #[test]
+    fn token_cancellation_is_scoped_across_active_and_queued_sources() {
+        let navigation = CancellationToken::new();
+        let review = CancellationToken::new();
+        let (mut active, active_ticket) =
+            TrackedBufferSource::new_cancellable(vec![0.1, -0.1, 0.2, -0.2], navigation.clone());
+        let (mut queued, queued_ticket) =
+            TrackedBufferSource::new_cancellable(vec![0.3, -0.3], navigation.clone());
+        let (mut protected, protected_ticket) = TrackedBufferSource::new(vec![0.5, -0.5]);
+        let (mut other_domain, other_ticket) =
+            TrackedBufferSource::new_cancellable(vec![0.7, -0.7], review.clone());
+
+        assert_eq!(active.next(), Some(0.1));
+        navigation.cancel();
+
+        assert_eq!(active.next(), None);
+        assert_eq!(queued.next(), None);
+        assert_eq!(protected.by_ref().collect::<Vec<_>>(), vec![0.5, -0.5]);
+        assert_eq!(other_domain.by_ref().collect::<Vec<_>>(), vec![0.7, -0.7]);
+        assert_eq!(active_ticket.wait(), PlaybackStatus::Cancelled);
+        assert_eq!(queued_ticket.wait(), PlaybackStatus::Cancelled);
+        assert_eq!(protected_ticket.wait(), PlaybackStatus::Completed);
+        assert_eq!(other_ticket.wait(), PlaybackStatus::Completed);
+        assert!(!review.is_cancelled());
+    }
+
+    #[test]
+    fn rapid_replacement_burst_leaves_only_the_latest_source_playable() {
+        let mut current: Option<CancellationToken> = None;
+        let mut playback = Vec::new();
+
+        for request in 0..256 {
+            if let Some(previous) = current.take() {
+                previous.cancel();
+            }
+            let cancellation = CancellationToken::new();
+            let (source, ticket) = TrackedBufferSource::new_cancellable(
+                vec![request as f32, -(request as f32)],
+                cancellation.clone(),
+            );
+            playback.push((source, ticket));
+            current = Some(cancellation);
+        }
+
+        let last = playback.len() - 1;
+        for (index, (mut source, ticket)) in playback.into_iter().enumerate() {
+            if index == last {
+                assert_eq!(source.by_ref().collect::<Vec<_>>(), vec![255.0, -255.0]);
+                assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+            } else {
+                assert_eq!(source.next(), None);
+                assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+            }
+        }
+    }
+
+    #[test]
     fn tracked_source_reports_only_one_terminal_state() {
         let (mut source, ticket) = TrackedBufferSource::new(vec![0.1]);
 

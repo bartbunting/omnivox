@@ -496,6 +496,7 @@ pub(crate) struct TrackedPlayback {
     completion: PlaybackCompletion,
     status: BatchStatus,
     tickets: Vec<PlaybackTicket>,
+    // Keep the registry lease alive until every tagged source is terminal.
     cancellation: Option<KeyedCancellationLease>,
 }
 
@@ -2971,6 +2972,50 @@ mod tests {
         drop(replacement);
         assert_eq!(registry.active.lock().unwrap().len(), 1);
         drop(other);
+        assert!(registry.active.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn tracked_playback_retains_keyed_cancellation_across_worker_handoff() {
+        let registry = KeyedCancellationRegistry::default();
+        let first = begin_keyed_cancellation(
+            &registry,
+            &timeline_envelope(
+                1,
+                11,
+                PresentationDeliveryPolicy::Replaceable,
+                Some("navigation"),
+            ),
+        )
+        .unwrap();
+        let playback = TrackedPlayback {
+            completion: PlaybackCompletion::Tracked(11),
+            status: BatchStatus::Completed,
+            tickets: Vec::new(),
+            cancellation: Some(first),
+        };
+
+        let replacement = begin_keyed_cancellation(
+            &registry,
+            &timeline_envelope(
+                2,
+                12,
+                PresentationDeliveryPolicy::Replaceable,
+                Some("navigation"),
+            ),
+        )
+        .unwrap();
+
+        assert!(playback
+            .cancellation
+            .as_ref()
+            .unwrap()
+            .token()
+            .is_cancelled());
+        assert!(!replacement.token().is_cancelled());
+        drop(playback);
+        assert_eq!(registry.active.lock().unwrap().len(), 1);
+        drop(replacement);
         assert!(registry.active.lock().unwrap().is_empty());
     }
 
