@@ -11,7 +11,7 @@
 //! worker) to queue or stop audio independently.
 
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
-use crate::AudioError;
+use crate::{AudioError, CancellationToken};
 use rodio::{OutputStream, OutputStreamHandle, Sink, Source};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
@@ -237,6 +237,37 @@ impl AudioControl {
     where
         F: FnOnce() -> bool,
     {
+        self.queue_tracked_if_with_cancellation(stream, buffer, None, predicate)
+    }
+
+    /// Queue tracked audio with cooperative cancellation while PREDICATE is
+    /// true at the stop/queue gate.
+    ///
+    /// Cancelling `cancellation` ends this source without clearing unrelated
+    /// sources from the same stream. The returned ticket reports cancellation.
+    pub fn queue_tracked_cancellable_if<F>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        cancellation: CancellationToken,
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
+        self.queue_tracked_if_with_cancellation(stream, buffer, Some(cancellation), predicate)
+    }
+
+    fn queue_tracked_if_with_cancellation<F>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        cancellation: Option<CancellationToken>,
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
         let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
         if !predicate() {
             return Ok(None);
@@ -245,7 +276,12 @@ impl AudioControl {
             return Ok(None);
         };
 
-        let (source, ticket) = TrackedBufferSource::new(buffer.samples.clone());
+        let samples = buffer.samples.clone();
+        let (source, ticket) = if let Some(cancellation) = cancellation {
+            TrackedBufferSource::new_cancellable(samples, cancellation)
+        } else {
+            TrackedBufferSource::new(samples)
+        };
         sink.append(source);
         sink.play();
         Ok(Some(ticket))
@@ -275,7 +311,33 @@ impl AudioControl {
     where
         F: FnOnce() -> bool,
     {
-        self.queue_stream_after_if(StreamType::Sound, buffer, barriers, predicate)
+        self.queue_stream_after_if_with_cancellation(
+            StreamType::Sound,
+            buffer,
+            barriers,
+            None,
+            predicate,
+        )
+    }
+
+    /// Queue an overlay after its barriers with cooperative cancellation.
+    pub fn queue_overlay_after_cancellable_if<F>(
+        &self,
+        buffer: &AudioBuffer,
+        barriers: Vec<PlaybackTicket>,
+        cancellation: CancellationToken,
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
+        self.queue_stream_after_if_with_cancellation(
+            StreamType::Sound,
+            buffer,
+            barriers,
+            Some(cancellation),
+            predicate,
+        )
     }
 
     /// Queue one stream after every playback barrier completes.
@@ -304,11 +366,30 @@ impl AudioControl {
     where
         F: FnOnce() -> bool,
     {
+        self.queue_stream_after_if_with_cancellation(stream, buffer, barriers, None, predicate)
+    }
+
+    fn queue_stream_after_if_with_cancellation<F>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        barriers: Vec<PlaybackTicket>,
+        cancellation: Option<CancellationToken>,
+        predicate: F,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnOnce() -> bool,
+    {
         if buffer.is_empty() {
             return Ok(None);
         }
         if barriers.is_empty() {
-            return self.queue_tracked_if(stream, buffer, predicate);
+            return self.queue_tracked_if_with_cancellation(
+                stream,
+                buffer,
+                cancellation,
+                predicate,
+            );
         }
 
         let stream_index = stream_index(stream);
@@ -330,6 +411,9 @@ impl AudioControl {
                 if barriers
                     .into_iter()
                     .any(|barrier| barrier.wait() == PlaybackStatus::Cancelled)
+                    || cancellation
+                        .as_ref()
+                        .is_some_and(CancellationToken::is_cancelled)
                     || control.schedule_generations[stream_index].load(Ordering::Acquire)
                         != generation
                 {
@@ -337,9 +421,15 @@ impl AudioControl {
                     return;
                 }
                 let overlay = AudioBuffer::new(samples);
-                let status = match control.queue_tracked_if(stream, &overlay, || {
-                    control.schedule_generations[stream_index].load(Ordering::Acquire) == generation
-                }) {
+                let status = match control.queue_tracked_if_with_cancellation(
+                    stream,
+                    &overlay,
+                    cancellation,
+                    || {
+                        control.schedule_generations[stream_index].load(Ordering::Acquire)
+                            == generation
+                    },
+                ) {
                     Ok(Some(actual)) => actual.wait(),
                     Ok(None) => PlaybackStatus::Completed,
                     Err(error) => {
@@ -416,6 +506,49 @@ impl AudioControl {
         F: FnMut(PlaybackCue) + Send + 'static,
         P: FnOnce() -> bool,
     {
+        self.queue_tracked_with_cue_callback_if_with_cancellation(
+            stream, buffer, cues, on_cue, None, predicate,
+        )
+    }
+
+    /// Queue callback-tracked audio with cooperative cancellation while
+    /// PREDICATE is true at the stop/queue gate.
+    pub fn queue_tracked_with_cue_callback_cancellable_if<F, P>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        cues: Vec<PlaybackCue>,
+        on_cue: F,
+        cancellation: CancellationToken,
+        predicate: P,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnMut(PlaybackCue) + Send + 'static,
+        P: FnOnce() -> bool,
+    {
+        self.queue_tracked_with_cue_callback_if_with_cancellation(
+            stream,
+            buffer,
+            cues,
+            on_cue,
+            Some(cancellation),
+            predicate,
+        )
+    }
+
+    fn queue_tracked_with_cue_callback_if_with_cancellation<F, P>(
+        &self,
+        stream: StreamType,
+        buffer: &AudioBuffer,
+        cues: Vec<PlaybackCue>,
+        on_cue: F,
+        cancellation: Option<CancellationToken>,
+        predicate: P,
+    ) -> Result<Option<PlaybackTicket>, AudioError>
+    where
+        F: FnMut(PlaybackCue) + Send + 'static,
+        P: FnOnce() -> bool,
+    {
         let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
         if !predicate() {
             return Ok(None);
@@ -425,8 +558,17 @@ impl AudioControl {
             return Ok(None);
         };
 
-        let (source, ticket) =
-            TrackedBufferSource::new_with_cue_callback(buffer.samples.clone(), cues, on_cue);
+        let samples = buffer.samples.clone();
+        let (source, ticket) = if let Some(cancellation) = cancellation {
+            TrackedBufferSource::new_with_cue_callback_cancellable(
+                samples,
+                cues,
+                on_cue,
+                cancellation,
+            )
+        } else {
+            TrackedBufferSource::new_with_cue_callback(samples, cues, on_cue)
+        };
         sink.append(source);
         sink.play();
         Ok(Some(ticket))
@@ -723,6 +865,7 @@ impl Source for BufferSource {
 struct TrackedBufferSource {
     inner: BufferSource,
     completion: PlaybackCompletion,
+    cancellation: Option<CancellationToken>,
     cues: Vec<PlaybackCue>,
     next_cue: usize,
     cue_sender: Option<Sender<PlaybackCue>>,
@@ -731,11 +874,26 @@ struct TrackedBufferSource {
 
 impl TrackedBufferSource {
     fn new(samples: Vec<f32>) -> (Self, PlaybackTicket) {
+        Self::new_with_options(samples, None)
+    }
+
+    fn new_cancellable(
+        samples: Vec<f32>,
+        cancellation: CancellationToken,
+    ) -> (Self, PlaybackTicket) {
+        Self::new_with_options(samples, Some(cancellation))
+    }
+
+    fn new_with_options(
+        samples: Vec<f32>,
+        cancellation: Option<CancellationToken>,
+    ) -> (Self, PlaybackTicket) {
         let (completion, ticket) = PlaybackCompletion::pair();
         (
             Self {
                 inner: BufferSource::new(samples),
                 completion,
+                cancellation,
                 cues: Vec::new(),
                 next_cue: 0,
                 cue_sender: None,
@@ -755,6 +913,7 @@ impl TrackedBufferSource {
             Self {
                 inner: BufferSource::new(samples),
                 completion,
+                cancellation: None,
                 cues,
                 next_cue: 0,
                 cue_sender: Some(cue_sender),
@@ -772,11 +931,36 @@ impl TrackedBufferSource {
     where
         F: FnMut(PlaybackCue) + Send + 'static,
     {
+        Self::new_with_cue_callback_options(samples, cues, on_cue, None)
+    }
+
+    fn new_with_cue_callback_cancellable<F>(
+        samples: Vec<f32>,
+        cues: Vec<PlaybackCue>,
+        on_cue: F,
+        cancellation: CancellationToken,
+    ) -> (Self, PlaybackTicket)
+    where
+        F: FnMut(PlaybackCue) + Send + 'static,
+    {
+        Self::new_with_cue_callback_options(samples, cues, on_cue, Some(cancellation))
+    }
+
+    fn new_with_cue_callback_options<F>(
+        samples: Vec<f32>,
+        cues: Vec<PlaybackCue>,
+        on_cue: F,
+        cancellation: Option<CancellationToken>,
+    ) -> (Self, PlaybackTicket)
+    where
+        F: FnMut(PlaybackCue) + Send + 'static,
+    {
         let (completion, ticket) = PlaybackCompletion::pair();
         (
             Self {
                 inner: BufferSource::new(samples),
                 completion,
+                cancellation,
                 cues,
                 next_cue: 0,
                 cue_sender: None,
@@ -818,12 +1002,22 @@ impl TrackedBufferSource {
     fn report(&mut self, status: PlaybackStatus) {
         self.completion.report(status);
     }
+
+    fn is_cancelled(&self) -> bool {
+        self.cancellation
+            .as_ref()
+            .is_some_and(CancellationToken::is_cancelled)
+    }
 }
 
 impl Iterator for TrackedBufferSource {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.is_cancelled() {
+            self.report(PlaybackStatus::Cancelled);
+            return None;
+        }
         self.report_cues_at_current_frame();
         let sample = self.inner.next();
         if sample.is_none() {
@@ -833,7 +1027,11 @@ impl Iterator for TrackedBufferSource {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        self.inner.size_hint()
+        if self.is_cancelled() {
+            (0, Some(0))
+        } else {
+            self.inner.size_hint()
+        }
     }
 }
 
@@ -854,7 +1052,11 @@ fn prepare_playback_cues(
 
 impl Source for TrackedBufferSource {
     fn current_frame_len(&self) -> Option<usize> {
-        self.inner.current_frame_len()
+        if self.is_cancelled() {
+            Some(0)
+        } else {
+            self.inner.current_frame_len()
+        }
     }
 
     fn channels(&self) -> u16 {
@@ -937,6 +1139,21 @@ mod tests {
     }
 
     #[test]
+    fn tracked_source_stops_when_its_token_is_cancelled() {
+        let cancellation = CancellationToken::new();
+        let (mut source, ticket) =
+            TrackedBufferSource::new_cancellable(vec![0.1, -0.1, 0.2, -0.2], cancellation.clone());
+
+        assert_eq!(source.next(), Some(0.1));
+        cancellation.cancel();
+
+        assert_eq!(source.size_hint(), (0, Some(0)));
+        assert_eq!(source.current_frame_len(), Some(0));
+        assert_eq!(source.next(), None);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+    }
+
+    #[test]
     fn tracked_source_reports_only_one_terminal_state() {
         let (mut source, ticket) = TrackedBufferSource::new(vec![0.1]);
 
@@ -995,6 +1212,27 @@ mod tests {
         drop(source);
 
         assert_eq!(cue_receiver.try_iter().collect::<Vec<_>>(), vec![cue(0, 0)]);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+    }
+
+    #[test]
+    fn token_cancellation_suppresses_unreached_cues() {
+        let cues = prepare_playback_cues(vec![cue(0, 0), cue(1, 10)], 2).unwrap();
+        let cancellation = CancellationToken::new();
+        let (cue_sender, cue_receiver) = mpsc::channel();
+        let (mut source, ticket) = TrackedBufferSource::new_with_cue_callback_cancellable(
+            vec![0.1; 4],
+            cues,
+            move |cue| {
+                let _ = cue_sender.send(cue);
+            },
+            cancellation.clone(),
+        );
+
+        cancellation.cancel();
+
+        assert_eq!(source.next(), None);
+        assert!(cue_receiver.try_iter().next().is_none());
         assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
     }
 

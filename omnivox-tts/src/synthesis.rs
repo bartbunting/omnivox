@@ -2,46 +2,12 @@
 
 use crate::contracts::{AcssDimension, AnchorSupport, NormalizedAcss, PhysicalVoiceId};
 use crate::{AudioBuffer, TtsError, TtsSettings, STANDARD_SAMPLE_RATE};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+pub use omnivox_audio::CancellationToken as SynthesisCancellationToken;
 
 /// Maximum number of requested anchors in one engine synthesis call.
 pub const MAX_SYNTHESIS_ANCHORS: usize = 4096;
 /// Maximum UTF-8 size of one opaque requested-anchor identifier.
 pub const MAX_SYNTHESIS_ANCHOR_ID_BYTES: usize = 128;
-
-/// Cloneable cooperative-cancellation signal for one logical synthesis request.
-///
-/// Hosts retain one clone and call [`Self::cancel`] when the request is
-/// superseded. Engines should check [`Self::is_cancelled`] before expensive
-/// work and at safe interruption points. Cancellation never implies that audio
-/// already handed to an output device can be selectively removed.
-#[derive(Debug, Clone, Default)]
-pub struct SynthesisCancellationToken {
-    cancelled: Arc<AtomicBool>,
-}
-
-impl SynthesisCancellationToken {
-    /// Create an active cancellation signal.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Permanently mark this request as cancelled.
-    pub fn cancel(&self) {
-        self.cancelled.store(true, Ordering::Release);
-    }
-
-    /// Return whether the request has been cancelled.
-    pub fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::Acquire)
-    }
-
-    /// Return whether both handles refer to the same cancellation lifetime.
-    pub fn same_token(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.cancelled, &other.cancelled)
-    }
-}
 
 /// Everything an engine needs to synthesize one utterance.
 #[derive(Debug, Clone)]
