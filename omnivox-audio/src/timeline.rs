@@ -12,6 +12,7 @@ use omnivox_core::timeline::{
     AudioActionMode, FrameMap, ScheduledTimeline, TimelineActionId, TimelineActionKind,
 };
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 /// Maximum number of timeline operations accepted in one render window.
 pub const MAX_TIMELINE_ACTIONS_PER_WINDOW: usize = 4096;
@@ -29,6 +30,47 @@ pub struct PreparedAudioResource {
 impl PreparedAudioResource {
     pub fn new(id: TimelineActionId, audio: AudioBuffer) -> Self {
         Self { id, audio }
+    }
+}
+
+/// Canonical PCM shared immutably by a timeline action and its source cache.
+///
+/// This complements [`PreparedAudioResource`] for callers that do not need to
+/// mutate action PCM. Cloning the resource only increments the reference count.
+#[derive(Debug, Clone)]
+pub struct SharedPreparedAudioResource {
+    pub id: TimelineActionId,
+    pub audio: Arc<AudioBuffer>,
+}
+
+impl SharedPreparedAudioResource {
+    pub fn new(id: TimelineActionId, audio: Arc<AudioBuffer>) -> Self {
+        Self { id, audio }
+    }
+}
+
+trait AudioResourceView {
+    fn id(&self) -> &TimelineActionId;
+    fn audio(&self) -> &AudioBuffer;
+}
+
+impl AudioResourceView for PreparedAudioResource {
+    fn id(&self) -> &TimelineActionId {
+        &self.id
+    }
+
+    fn audio(&self) -> &AudioBuffer {
+        &self.audio
+    }
+}
+
+impl AudioResourceView for SharedPreparedAudioResource {
+    fn id(&self) -> &TimelineActionId {
+        &self.id
+    }
+
+    fn audio(&self) -> &AudioBuffer {
+        &self.audio
     }
 }
 
@@ -88,6 +130,27 @@ impl TimelineAudioRenderer {
         resources: &[PreparedAudioResource],
         final_window: bool,
     ) -> Result<RenderedTimelineWindow, AudioError> {
+        self.render_window_with_resources(primary, timeline, resources, final_window)
+    }
+
+    /// Render a scheduled timeline whose canonical PCM is shared immutably.
+    pub fn render_shared_window(
+        &mut self,
+        primary: &AudioBuffer,
+        timeline: &ScheduledTimeline,
+        resources: &[SharedPreparedAudioResource],
+        final_window: bool,
+    ) -> Result<RenderedTimelineWindow, AudioError> {
+        self.render_window_with_resources(primary, timeline, resources, final_window)
+    }
+
+    fn render_window_with_resources<R: AudioResourceView>(
+        &mut self,
+        primary: &AudioBuffer,
+        timeline: &ScheduledTimeline,
+        resources: &[R],
+        final_window: bool,
+    ) -> Result<RenderedTimelineWindow, AudioError> {
         validate_window(primary, timeline, resources)?;
         let primary_frames = usize::try_from(timeline.primary_output_frames).map_err(|_| {
             AudioError::TimelineError("primary frame count does not fit memory".into())
@@ -100,7 +163,7 @@ impl TimelineAudioRenderer {
 
         let resource_map = resources
             .iter()
-            .map(|resource| (resource.id.as_str(), &resource.audio))
+            .map(|resource| (resource.id().as_str(), resource.audio()))
             .collect::<HashMap<_, _>>();
         let mut mixed = vec![0.0_f32; primary_frames * CHANNELS as usize];
         copy_primary_with_insertions(primary, timeline, &mut mixed)?;
@@ -158,10 +221,10 @@ impl TimelineAudioRenderer {
     }
 }
 
-fn validate_window(
+fn validate_window<R: AudioResourceView>(
     primary: &AudioBuffer,
     timeline: &ScheduledTimeline,
-    resources: &[PreparedAudioResource],
+    resources: &[R],
 ) -> Result<(), AudioError> {
     if timeline.actions.len() > MAX_TIMELINE_ACTIONS_PER_WINDOW {
         return Err(AudioError::TimelineError(format!(
@@ -182,10 +245,10 @@ fn validate_window(
 
     let mut resource_ids = HashSet::new();
     for resource in resources {
-        if !resource_ids.insert(resource.id.as_str()) {
+        if !resource_ids.insert(resource.id().as_str()) {
             return Err(AudioError::TimelineError(format!(
                 "duplicate prepared audio resource {}",
-                resource.id
+                resource.id()
             )));
         }
     }
@@ -196,17 +259,20 @@ fn validate_window(
         else {
             continue;
         };
-        let Some(resource) = resources.iter().find(|resource| resource.id == action.id) else {
+        let Some(resource) = resources
+            .iter()
+            .find(|resource| resource.id() == &action.id)
+        else {
             return Err(AudioError::TimelineError(format!(
                 "missing prepared audio resource {}",
                 action.id
             )));
         };
-        if resource.audio.frame_count() as u64 != *duration_frames {
+        if resource.audio().frame_count() as u64 != *duration_frames {
             return Err(AudioError::TimelineError(format!(
                 "resource {} has {} frames; action declares {duration_frames}",
                 action.id,
-                resource.audio.frame_count()
+                resource.audio().frame_count()
             )));
         }
     }
@@ -525,5 +591,25 @@ mod tests {
                 frame_offset: 3,
             }]
         );
+    }
+
+    #[test]
+    fn shared_resources_render_without_taking_pcm_ownership() {
+        let primary = AudioBuffer::new(vec![0.1; 4]);
+        let shared = Arc::new(AudioBuffer::new(vec![0.8; 2]));
+        let timeline = ScheduledTimeline::build(
+            2,
+            vec![action("insert", 1, AudioActionMode::Insert, &shared)],
+        )
+        .unwrap();
+        let resource = SharedPreparedAudioResource::new(id("insert"), Arc::clone(&shared));
+        assert_eq!(Arc::strong_count(&shared), 2);
+
+        let rendered = TimelineAudioRenderer::new()
+            .render_shared_window(&primary, &timeline, &[resource], true)
+            .unwrap();
+
+        assert_eq!(rendered.audio.samples, vec![0.1, 0.1, 0.8, 0.8, 0.1, 0.1]);
+        assert_eq!(Arc::strong_count(&shared), 1);
     }
 }

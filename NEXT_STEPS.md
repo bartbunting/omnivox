@@ -492,7 +492,9 @@ Omnivox accepts one bounded versioned timeline containing independently
 routable speech spans, normalized ACSS, persistent effect operations, inserted
 or overlaid audio/tone actions, silence, source positions, lifecycle metadata,
 and semantic event IDs. It validates the whole frame and preloads every
-resource before changing playback, coalesces generations atomically, and
+fallible file resource before changing playback; immutable PCM is shared from
+the bounded cache, while validated tones and silence are materialized for only
+their owning render window. It coalesces generations atomically and
 reports exact, word-boundary, span-boundary, or omitted action placement plus
 style degradation over marker protocol v2. Audio resources retain normalized
 volume and stereo pan. Emacsvox now negotiates the capability and lowers one

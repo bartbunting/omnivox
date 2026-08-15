@@ -182,12 +182,15 @@ the optional action. Timers are not used to guess playback position.
 
 Actions are applied in input order when several resolve to the same frame.
 
-- `audio` preloads a bounded file. `mode` is `insert` or `overlay`; normalized
+- `audio` validates and preloads a bounded file into immutable shared PCM.
+  `mode` is `insert` or `overlay`; normalized
   volume and pan are independent of the speech effect state. `effect_bus` is
   `dry` or `speech`.
 - `tone` has frequency and duration plus the same mode, volume, pan, and effect
-  bus as an audio resource.
-- `silence` inserts a bounded duration and advances the primary clock.
+  bus as an audio resource. Validated tones are generated only for their
+  bounded render window.
+- `silence` inserts a bounded duration, is materialized with its render window,
+  and advances the primary clock.
 - `semantic_event` has zero duration and is emitted only if playback consumes
   its resolved boundary.
 

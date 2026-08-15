@@ -227,7 +227,8 @@ struct ChannelRouter { mode: ChannelMode } // Left/Right/Both
 ToneGenerator::generate(freq_hz: f32, duration_ms: u32, volume: f32) -> AudioBuffer
 
 // File loader
-AudioFileLoader::load(path) -> Result<AudioBuffer>  // OGG/WAV, optional LRU cache
+AudioFileLoader::load(path) -> Result<AudioBuffer>  // mutable OGG/WAV buffer
+AudioFileLoader::load_shared(path) -> Result<Arc<AudioBuffer>> // copy-free cache hits
 
 // Concurrent output streams
 AudioStreams::new(speech_max, tone_max, sound_max) -> Result<Self>

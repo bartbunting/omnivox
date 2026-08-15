@@ -29,8 +29,9 @@ pub use post_synthesis::{
     EFFECT_BOUNDARY_RAMP_FRAMES, MAX_EFFECT_TAIL_FRAMES,
 };
 pub use timeline::{
-    PreparedAudioResource, RenderedSemanticEvent, RenderedTimelineWindow, TimelineAudioRenderer,
-    MAX_TIMELINE_ACTIONS_PER_WINDOW, MAX_TIMELINE_RENDER_FRAMES,
+    PreparedAudioResource, RenderedSemanticEvent, RenderedTimelineWindow,
+    SharedPreparedAudioResource, TimelineAudioRenderer, MAX_TIMELINE_ACTIONS_PER_WINDOW,
+    MAX_TIMELINE_RENDER_FRAMES,
 };
 pub use tone::ToneGenerator;
 

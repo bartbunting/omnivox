@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 /// Maximum encoded resource size accepted by the common loader (16 MiB).
 pub const MAX_AUDIO_FILE_BYTES: u64 = 16 * 1024 * 1024;
@@ -24,7 +24,7 @@ pub const MAX_AUDIO_CACHE_SAMPLES: usize = 64 * 1024 * 1024 / std::mem::size_of:
 
 #[derive(Debug, Clone)]
 struct CachedAudio {
-    buffer: AudioBuffer,
+    buffer: Arc<AudioBuffer>,
     last_used: u64,
 }
 
@@ -36,14 +36,14 @@ struct AudioCache {
 }
 
 impl AudioCache {
-    fn get(&mut self, key: &str) -> Option<AudioBuffer> {
+    fn get(&mut self, key: &str) -> Option<Arc<AudioBuffer>> {
         let entry = self.entries.get_mut(key)?;
         self.access_clock = self.access_clock.wrapping_add(1);
         entry.last_used = self.access_clock;
-        Some(entry.buffer.clone())
+        Some(Arc::clone(&entry.buffer))
     }
 
-    fn insert(&mut self, key: String, buffer: AudioBuffer) {
+    fn insert(&mut self, key: String, buffer: Arc<AudioBuffer>) {
         self.access_clock = self.access_clock.wrapping_add(1);
         if let Some(previous) = self.entries.remove(&key) {
             self.total_samples = self
@@ -113,6 +113,18 @@ impl AudioFileLoader {
     /// - Mono to stereo conversion (duplicate channels)
     /// - Integer to f32 conversion
     pub fn load(&self, path: &Path) -> Result<AudioBuffer, AudioError> {
+        if !self.cache_enabled {
+            return self.load_uncached(path);
+        }
+        self.load_shared(path).map(|buffer| (*buffer).clone())
+    }
+
+    /// Load an audio file as immutable, reference-counted canonical PCM.
+    ///
+    /// Cached callers receive the same allocation rather than a full PCM copy.
+    /// Callers that need to mutate the result can use [`Arc::make_mut`] and pay
+    /// for a copy only when the cached allocation is actually shared.
+    pub fn load_shared(&self, path: &Path) -> Result<Arc<AudioBuffer>, AudioError> {
         let path_key = std::fs::canonicalize(path)
             .unwrap_or_else(|_| path.to_path_buf())
             .to_string_lossy()
@@ -127,12 +139,12 @@ impl AudioFileLoader {
             }
         }
 
-        let buffer = self.load_uncached(path)?;
+        let buffer = Arc::new(self.load_uncached(path)?);
 
         // Store in cache
         if self.cache_enabled {
             if let Ok(mut cache) = self.cache.lock() {
-                cache.insert(path_key, buffer.clone());
+                cache.insert(path_key, Arc::clone(&buffer));
             }
         }
 
@@ -361,12 +373,15 @@ mod tests {
         for index in 0..MAX_AUDIO_CACHE_ENTRIES {
             cache.insert(
                 format!("resource-{index}"),
-                AudioBuffer::new(vec![index as f32, index as f32]),
+                Arc::new(AudioBuffer::new(vec![index as f32, index as f32])),
             );
         }
         assert!(cache.get("resource-0").is_some());
 
-        cache.insert("new-resource".to_owned(), AudioBuffer::new(vec![0.0, 0.0]));
+        cache.insert(
+            "new-resource".to_owned(),
+            Arc::new(AudioBuffer::new(vec![0.0, 0.0])),
+        );
 
         assert_eq!(cache.entries.len(), MAX_AUDIO_CACHE_ENTRIES);
         assert!(cache.entries.contains_key("resource-0"));
@@ -500,5 +515,38 @@ mod tests {
         assert_eq!(loader.cache_size(), 1);
 
         let _ = std::fs::remove_file(&wav_path);
+    }
+
+    #[test]
+    fn shared_cache_hits_reuse_the_decoded_pcm_allocation() {
+        let wav_path = std::env::temp_dir().join(format!(
+            "omnivox-shared-cache-test-{}.wav",
+            std::process::id()
+        ));
+        let num_samples = 10_u32;
+        let sample_rate = 44_100_u32;
+        let mut wav_data = Vec::new();
+        wav_data.extend_from_slice(b"RIFF");
+        wav_data.extend_from_slice(&(36 + num_samples * 2).to_le_bytes());
+        wav_data.extend_from_slice(b"WAVEfmt ");
+        wav_data.extend_from_slice(&16_u32.to_le_bytes());
+        wav_data.extend_from_slice(&1_u16.to_le_bytes());
+        wav_data.extend_from_slice(&1_u16.to_le_bytes());
+        wav_data.extend_from_slice(&sample_rate.to_le_bytes());
+        wav_data.extend_from_slice(&(sample_rate * 2).to_le_bytes());
+        wav_data.extend_from_slice(&2_u16.to_le_bytes());
+        wav_data.extend_from_slice(&16_u16.to_le_bytes());
+        wav_data.extend_from_slice(b"data");
+        wav_data.extend_from_slice(&(num_samples * 2).to_le_bytes());
+        wav_data.resize(wav_data.len() + num_samples as usize * 2, 0);
+        std::fs::write(&wav_path, wav_data).unwrap();
+
+        let loader = AudioFileLoader::with_cache();
+        let first = loader.load_shared(&wav_path).unwrap();
+        let second = loader.load_shared(&wav_path).unwrap();
+        let _ = std::fs::remove_file(&wav_path);
+
+        assert!(Arc::ptr_eq(&first, &second));
+        assert_eq!(loader.cache_size(), 1);
     }
 }

@@ -2,14 +2,15 @@
 
 use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, PlaybackTicket,
-    PostSynthesisParameters, PostSynthesisProcessor, PreparedAudioResource, SilenceTrimReport,
-    SilenceTrimmer, StreamType, TimelineAudioRenderer, ToneGenerator, VolumeAdjust,
+    PostSynthesisParameters, PostSynthesisProcessor, SharedPreparedAudioResource,
+    SilenceTrimReport, SilenceTrimmer, StreamType, TimelineAudioRenderer, ToneGenerator,
+    VolumeAdjust,
 };
 use omnivox_core::timeline::{
     ActionAffinity, AudioActionMode, EffectBus, PresentationPosition, ResolvedTimelineAction,
     ScheduledTimeline, TimelineAction, TimelineActionId, TimelineActionKind,
 };
-use omnivox_core::{QueueItem, TonePlacement, TtsState};
+use omnivox_core::{ChannelMode, QueueItem, TonePlacement, TtsState};
 use omnivox_tts::contracts::{
     apply_rate_offset, AcssDimension, NormalizedAcss, PhysicalVoiceId, PostSynthesisDimension,
     PostSynthesisStyle,
@@ -26,7 +27,7 @@ use omnivox_tts::{
 };
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tracing::{debug, warn};
 
 use crate::health::RuntimeEngineHealth;
@@ -317,12 +318,45 @@ struct TimelineChunkAction {
 #[derive(Debug, Clone)]
 enum TimelineChunkActionKind {
     Audio {
-        audio: AudioBuffer,
+        resource: TimelineAudioResource,
         mode: AudioActionMode,
         volume: f32,
         effect_bus: EffectBus,
     },
     SemanticEvent,
+}
+
+#[derive(Debug, Clone)]
+enum TimelineAudioResource {
+    Prepared(Arc<AudioBuffer>),
+    Tone {
+        frequency_hz: f32,
+        duration_ms: u32,
+        pan: f32,
+    },
+    Silence {
+        duration_ms: u32,
+    },
+}
+
+impl TimelineAudioResource {
+    fn materialize(&self, state: &TtsState) -> Result<Arc<AudioBuffer>, omnivox_audio::AudioError> {
+        match self {
+            Self::Prepared(audio) => Ok(Arc::clone(audio)),
+            Self::Tone {
+                frequency_hz,
+                duration_ms,
+                pan,
+            } => {
+                let mut audio = prepare_tone_audio(*frequency_hz, *duration_ms, state)?;
+                apply_action_pan(&mut audio, *pan);
+                Ok(Arc::new(audio))
+            }
+            Self::Silence { duration_ms } => {
+                Ok(Arc::new(AudioBuffer::silence(*duration_ms as f32 / 1000.0)))
+            }
+        }
+    }
 }
 
 pub fn synthesize_chunk_with_tones(
@@ -573,7 +607,7 @@ fn render_speech_timeline(
             "synthesis context has no timeline renderer".into(),
         )
     })?;
-    let rendered = renderer.lock().unwrap().render_window(
+    let rendered = renderer.lock().unwrap().render_shared_window(
         &result.audio,
         &timeline,
         &resources,
@@ -607,7 +641,7 @@ fn prepare_speech_timeline(
     timeline_actions: &[TimelineChunkAction],
     effects: &PostSynthesisStyle,
     state: &TtsState,
-) -> Result<(ScheduledTimeline, Vec<PreparedAudioResource>), omnivox_audio::AudioError> {
+) -> Result<(ScheduledTimeline, Vec<SharedPreparedAudioResource>), omnivox_audio::AudioError> {
     let mut actions = Vec::with_capacity(tones.len() + timeline_actions.len());
     let mut resources = Vec::with_capacity(tones.len() + timeline_actions.len());
     for tone in tones {
@@ -646,7 +680,7 @@ fn prepare_speech_timeline(
             action,
             source_frame: frame_offset,
         });
-        resources.push(PreparedAudioResource::new(id, audio));
+        resources.push(SharedPreparedAudioResource::new(id, Arc::new(audio)));
     }
     for action in timeline_actions {
         let resolved = result
@@ -673,23 +707,30 @@ fn prepare_speech_timeline(
             .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
         let kind = match &action.kind {
             TimelineChunkActionKind::Audio {
-                audio,
+                resource,
                 mode,
                 volume,
                 effect_bus,
             } => {
-                let mut audio = audio.clone();
+                let mut audio = resource.materialize(state)?;
+                if audio.is_empty() {
+                    return Err(omnivox_audio::AudioError::TimelineError(format!(
+                        "action {} materialized to empty audio",
+                        action.id
+                    )));
+                }
                 if *effect_bus == EffectBus::Speech {
                     let mut processor = PostSynthesisProcessor::new();
                     let processed =
                         processor.process_window(&audio, post_synthesis_parameters(effects), true);
-                    audio = processed.audio;
+                    let mut processed_audio = processed.audio;
                     if let Some(tail) = processed.tail {
-                        audio.append(&tail);
+                        processed_audio.append(&tail);
                     }
+                    audio = Arc::new(processed_audio);
                 }
                 let duration_frames = audio.frame_count() as u64;
-                resources.push(PreparedAudioResource::new(id.clone(), audio));
+                resources.push(SharedPreparedAudioResource::new(id.clone(), audio));
                 TimelineActionKind::Audio {
                     mode: *mode,
                     duration_frames,
@@ -1223,8 +1264,9 @@ struct PreparedTimelineSpan {
     actions: Vec<Vec<TimelineChunkAction>>,
 }
 
-/// Validate resources up front, then synthesize and queue one structured,
-/// tracked presentation timeline.
+/// Validate and share file resources up front, then synthesize and queue one
+/// structured, tracked presentation timeline. Bounded generated resources are
+/// materialized only for the render window that owns them.
 pub fn process_presentation_timeline(
     timeline: PresentationTimelineEnvelope,
     mut state: TtsState,
@@ -1238,7 +1280,7 @@ pub fn process_presentation_timeline(
         return BatchStatus::Cancelled;
     }
     state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
-    let resources = match preload_timeline_resources(&timeline.actions, &state, loader) {
+    let resources = match prepare_timeline_resources(&timeline.actions, &state, loader) {
         Ok(resources) => resources,
         Err(error) => {
             ctx.mark_failed();
@@ -1417,44 +1459,49 @@ fn synthesize_direct_timeline_chunk(
     }
 }
 
-fn preload_timeline_resources(
+fn prepare_timeline_resources(
     actions: &[PresentationTimelineAction],
     state: &TtsState,
     loader: &AudioFileLoader,
-) -> Result<HashMap<String, AudioBuffer>, String> {
+) -> Result<HashMap<String, TimelineAudioResource>, String> {
     let mut resources = HashMap::new();
     for action in actions {
-        let audio = match &action.action {
+        let resource = match &action.action {
             PresentationAction::Audio { path, pan, .. } => {
                 let mut audio = loader
-                    .load(std::path::Path::new(path))
+                    .load_shared(std::path::Path::new(path))
                     .map_err(|error| format!("action {}: {error}", action.id))?;
-                build_sound_pipeline(state)
-                    .process(&mut audio)
-                    .map_err(|error| format!("action {}: {error}", action.id))?;
-                apply_action_pan(&mut audio, *pan);
-                audio
+                if state.sound_volume != 1.0
+                    || state.sound_routing.channel_mode != ChannelMode::Both
+                    || *pan != 0.5
+                {
+                    let audio = Arc::make_mut(&mut audio);
+                    build_sound_pipeline(state)
+                        .process(audio)
+                        .map_err(|error| format!("action {}: {error}", action.id))?;
+                    apply_action_pan(audio, *pan);
+                }
+                if audio.is_empty() {
+                    return Err(format!("action {} decoded to empty audio", action.id));
+                }
+                TimelineAudioResource::Prepared(audio)
             }
             PresentationAction::Tone {
                 frequency_hz,
                 duration_ms,
                 pan,
                 ..
-            } => {
-                let mut audio = prepare_tone_audio(*frequency_hz, *duration_ms, state)
-                    .map_err(|error| format!("action {}: {error}", action.id))?;
-                apply_action_pan(&mut audio, *pan);
-                audio
-            }
-            PresentationAction::Silence { duration_ms } => {
-                AudioBuffer::silence(*duration_ms as f32 / 1000.0)
-            }
+            } => TimelineAudioResource::Tone {
+                frequency_hz: *frequency_hz,
+                duration_ms: *duration_ms,
+                pan: *pan,
+            },
+            PresentationAction::Silence { duration_ms } => TimelineAudioResource::Silence {
+                duration_ms: *duration_ms,
+            },
             PresentationAction::SemanticEvent => continue,
         };
-        if audio.is_empty() {
-            return Err(format!("action {} decoded to empty audio", action.id));
-        }
-        resources.insert(action.id.clone(), audio);
+        resources.insert(action.id.clone(), resource);
     }
     Ok(resources)
 }
@@ -1473,7 +1520,7 @@ fn apply_action_pan(audio: &mut AudioBuffer, normalized_pan: f32) {
 fn prepare_timeline_spans(
     timeline: &PresentationTimelineEnvelope,
     state: &TtsState,
-    resources: &HashMap<String, AudioBuffer>,
+    resources: &HashMap<String, TimelineAudioResource>,
 ) -> Result<Vec<PreparedTimelineSpan>, String> {
     timeline
         .spans
@@ -1486,7 +1533,7 @@ fn prepare_timeline_span(
     span: &PresentationSpeechSpan,
     actions: &[PresentationTimelineAction],
     state: &TtsState,
-    resources: &HashMap<String, AudioBuffer>,
+    resources: &HashMap<String, TimelineAudioResource>,
 ) -> Result<PreparedTimelineSpan, String> {
     let mut acss = span.acss.clone();
     if let Some(rate_offset) = span.rate_offset.filter(|offset| *offset != 0) {
@@ -1549,7 +1596,7 @@ fn prepare_timeline_span(
                 effect_bus,
                 ..
             } => TimelineChunkActionKind::Audio {
-                audio: resources
+                resource: resources
                     .get(&action.id)
                     .cloned()
                     .ok_or_else(|| format!("action {} has no prepared resource", action.id))?,
@@ -1558,7 +1605,7 @@ fn prepare_timeline_span(
                 effect_bus: convert_effect_bus(*effect_bus),
             },
             PresentationAction::Silence { .. } => TimelineChunkActionKind::Audio {
-                audio: resources
+                resource: resources
                     .get(&action.id)
                     .cloned()
                     .ok_or_else(|| format!("action {} has no prepared silence", action.id))?,
@@ -2014,6 +2061,192 @@ mod tests {
         );
     }
 
+    fn boundary_action(id: &str, action: PresentationAction) -> PresentationTimelineAction {
+        PresentationTimelineAction {
+            id: id.to_owned(),
+            position: PresentationTimelinePosition::SpanBoundary {
+                span_id: 1,
+                affinity: PresentationAffinity::After,
+            },
+            lifecycle_anchor: omnivox_tts::timeline_protocol::PresentationLifecycleAnchor::Run,
+            action,
+        }
+    }
+
+    #[test]
+    fn generated_timeline_resources_remain_deferred_recipes() {
+        let actions = [
+            boundary_action(
+                "tone",
+                PresentationAction::Tone {
+                    frequency_hz: 440.0,
+                    duration_ms: 50,
+                    mode: PresentationAudioMode::Insert,
+                    volume: 1.0,
+                    pan: 0.5,
+                    effect_bus: PresentationEffectBus::Dry,
+                },
+            ),
+            boundary_action("silence", PresentationAction::Silence { duration_ms: 100 }),
+        ];
+
+        let resources =
+            prepare_timeline_resources(&actions, &TtsState::default(), &AudioFileLoader::new())
+                .unwrap();
+
+        assert!(matches!(
+            resources.get("tone"),
+            Some(TimelineAudioResource::Tone { .. })
+        ));
+        assert!(matches!(
+            resources.get("silence"),
+            Some(TimelineAudioResource::Silence { .. })
+        ));
+    }
+
+    #[test]
+    fn missing_file_resource_still_rejects_atomic_preparation() {
+        let actions = [
+            boundary_action(
+                "tone",
+                PresentationAction::Tone {
+                    frequency_hz: 440.0,
+                    duration_ms: 50,
+                    mode: PresentationAudioMode::Insert,
+                    volume: 1.0,
+                    pan: 0.5,
+                    effect_bus: PresentationEffectBus::Dry,
+                },
+            ),
+            boundary_action(
+                "missing",
+                PresentationAction::Audio {
+                    path: format!(
+                        "/tmp/omnivox-missing-timeline-resource-{}",
+                        std::process::id()
+                    ),
+                    mode: PresentationAudioMode::Overlay,
+                    volume: 1.0,
+                    pan: 0.5,
+                    effect_bus: PresentationEffectBus::Dry,
+                },
+            ),
+        ];
+
+        let error =
+            prepare_timeline_resources(&actions, &TtsState::default(), &AudioFileLoader::new())
+                .unwrap_err();
+
+        assert!(error.contains("action missing"));
+        assert!(error.contains("File not found"));
+    }
+
+    #[test]
+    fn default_file_resource_reuses_loader_cache_pcm() {
+        let path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../test-sounds/complete.ogg");
+        let loader = AudioFileLoader::with_cache();
+        let cached = loader.load_shared(&path).unwrap();
+        let resources = prepare_timeline_resources(
+            &[boundary_action(
+                "file",
+                PresentationAction::Audio {
+                    path: path.to_string_lossy().into_owned(),
+                    mode: PresentationAudioMode::Overlay,
+                    volume: 1.0,
+                    pan: 0.5,
+                    effect_bus: PresentationEffectBus::Dry,
+                },
+            )],
+            &TtsState::default(),
+            &loader,
+        )
+        .unwrap();
+
+        let TimelineAudioResource::Prepared(prepared) = resources.get("file").unwrap() else {
+            panic!("file resource was not prepared eagerly");
+        };
+        assert!(Arc::ptr_eq(&cached, prepared));
+    }
+
+    #[test]
+    fn file_resource_processing_uses_copy_on_write() {
+        let path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../test-sounds/complete.ogg");
+        let loader = AudioFileLoader::with_cache();
+        let cached = loader.load_shared(&path).unwrap();
+        let original = cached.samples.clone();
+        let mut expected = (*cached).clone();
+        let mut state = TtsState::default();
+        state.sound_volume = 0.5;
+        state.sound_routing.channel_mode = ChannelMode::Left;
+        build_sound_pipeline(&state).process(&mut expected).unwrap();
+        apply_action_pan(&mut expected, 0.25);
+
+        let resources = prepare_timeline_resources(
+            &[boundary_action(
+                "file",
+                PresentationAction::Audio {
+                    path: path.to_string_lossy().into_owned(),
+                    mode: PresentationAudioMode::Overlay,
+                    volume: 1.0,
+                    pan: 0.25,
+                    effect_bus: PresentationEffectBus::Dry,
+                },
+            )],
+            &state,
+            &loader,
+        )
+        .unwrap();
+
+        let TimelineAudioResource::Prepared(prepared) = resources.get("file").unwrap() else {
+            panic!("file resource was not prepared eagerly");
+        };
+        assert!(!Arc::ptr_eq(&cached, prepared));
+        assert_eq!(prepared.samples, expected.samples);
+        assert_eq!(cached.samples, original);
+        assert!(Arc::ptr_eq(&cached, &loader.load_shared(&path).unwrap()));
+    }
+
+    #[test]
+    fn dry_timeline_resource_stays_shared_through_render_preparation() {
+        let shared = Arc::new(AudioBuffer::new(vec![0.25, -0.25]));
+        let action = TimelineChunkAction {
+            id: "shared".to_owned(),
+            text_offset: 0,
+            affinity: AnchorAffinity::After,
+            kind: TimelineChunkActionKind::Audio {
+                resource: TimelineAudioResource::Prepared(Arc::clone(&shared)),
+                mode: AudioActionMode::Overlay,
+                volume: 1.0,
+                effect_bus: EffectBus::Dry,
+            },
+        };
+        let result = CanonicalSynthesisResult {
+            audio: AudioBuffer::silence(0.01),
+            engine_id: "mock".to_owned(),
+            actual_voice: None,
+            markers: Vec::new(),
+            anchors: vec![ResolvedAnchor {
+                id: "shared".to_owned(),
+                frame_offset: Some(441),
+                resolution: AnchorResolution::Exact,
+            }],
+            degraded_acss: Vec::new(),
+        };
+
+        let (_, resources) = prepare_speech_timeline(
+            &result,
+            &[],
+            &[action],
+            &PostSynthesisStyle::default(),
+            &TtsState::default(),
+        )
+        .unwrap();
+
+        assert!(Arc::ptr_eq(&shared, &resources[0].audio));
+    }
+
     #[test]
     fn tone_gain_is_applied_once_across_legacy_structured_and_capital_paths() {
         let frequency_hz = 440.0;
@@ -2057,7 +2290,7 @@ mod tests {
             )
             .unwrap();
 
-            let structured = preload_timeline_resources(
+            let structured = prepare_timeline_resources(
                 &[PresentationTimelineAction {
                     id: "structured".to_owned(),
                     position: PresentationTimelinePosition::SpanBoundary {
@@ -2079,12 +2312,17 @@ mod tests {
                 &AudioFileLoader::new(),
             )
             .unwrap();
+            let structured_audio = structured
+                .get("structured")
+                .unwrap()
+                .materialize(&state)
+                .unwrap();
 
             let expected_peak = unity_peak * volume;
             for (path, audio) in [
                 ("legacy", &legacy),
-                ("capital", &capital_resources[0].audio),
-                ("structured", structured.get("structured").unwrap()),
+                ("capital", capital_resources[0].audio.as_ref()),
+                ("structured", structured_audio.as_ref()),
             ] {
                 let actual_peak = audio
                     .samples
@@ -2164,7 +2402,7 @@ mod tests {
         )
         .unwrap();
         let rendered = TimelineAudioRenderer::new()
-            .render_window(&result.audio, &timeline, &resources, true)
+            .render_shared_window(&result.audio, &timeline, &resources, true)
             .unwrap();
 
         assert_eq!(timeline.actions[0].output_frame, 10);
@@ -2207,7 +2445,7 @@ mod tests {
         )
         .unwrap();
         let rendered = TimelineAudioRenderer::new()
-            .render_window(&result.audio, &timeline, &resources, true)
+            .render_shared_window(&result.audio, &timeline, &resources, true)
             .unwrap();
 
         assert_eq!(timeline.actions[0].output_frame, 0);
@@ -2253,7 +2491,10 @@ mod tests {
                 action: PresentationAction::SemanticEvent,
             },
         ];
-        let resources = HashMap::from([("opening-cue".to_owned(), AudioBuffer::silence(0.01))]);
+        let resources = HashMap::from([(
+            "opening-cue".to_owned(),
+            TimelineAudioResource::Prepared(Arc::new(AudioBuffer::silence(0.01))),
+        )]);
 
         let prepared =
             prepare_timeline_span(&span, &actions, &TtsState::default(), &resources).unwrap();
