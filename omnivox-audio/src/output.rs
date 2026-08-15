@@ -19,6 +19,9 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 use tracing::debug;
 
+const SPEECH_STOP_FADE_MILLISECONDS: usize = 3;
+const SPEECH_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * SPEECH_STOP_FADE_MILLISECONDS / 1000;
+
 /// Which audio stream to route to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StreamType {
@@ -166,6 +169,7 @@ pub struct AudioControl {
     sound_max: usize,
     schedule_generations: Arc<[AtomicU64; 3]>,
     stream_gates: Arc<[Mutex<()>; 3]>,
+    speech_stop_cancellation: Arc<Mutex<CancellationToken>>,
     scheduled_playback: Arc<ScheduledPlaybackState>,
 }
 
@@ -176,6 +180,11 @@ impl AudioControl {
             StreamType::Tone => (&self.tone_sink, self.tone_max),
             StreamType::Sound => (&self.sound_sink, self.sound_max),
         }
+    }
+
+    fn speech_stop_cancellation(&self, stream: StreamType) -> Option<CancellationToken> {
+        (stream == StreamType::Speech)
+            .then(|| self.speech_stop_cancellation.lock().unwrap().clone())
     }
 
     /// Queue an audio buffer on the given stream.
@@ -208,8 +217,12 @@ impl AudioControl {
             return Ok(false);
         };
 
-        let source = BufferSource::new(buffer.samples.clone());
-        sink.append(source);
+        let samples = buffer.samples.clone();
+        if let Some(cancellation) = self.speech_stop_cancellation(stream) {
+            sink.append(SpeechBufferSource::new(samples, cancellation));
+        } else {
+            sink.append(BufferSource::new(samples));
+        }
         sink.play();
         Ok(true)
     }
@@ -277,11 +290,12 @@ impl AudioControl {
         };
 
         let samples = buffer.samples.clone();
-        let (source, ticket) = if let Some(cancellation) = cancellation {
-            TrackedBufferSource::new_cancellable(samples, cancellation)
-        } else {
-            TrackedBufferSource::new(samples)
-        };
+        let (source, ticket) = TrackedBufferSource::new_with_options(
+            samples,
+            cancellation,
+            self.speech_stop_cancellation(stream),
+            (stream == StreamType::Speech).then_some(SPEECH_STOP_FADE_FRAMES),
+        );
         sink.append(source);
         sink.play();
         Ok(Some(ticket))
@@ -467,8 +481,15 @@ impl AudioControl {
             return Ok(None);
         };
 
-        let (source, ticket) =
-            TrackedBufferSource::new_with_cues(buffer.samples.clone(), cues, cue_sender);
+        let (source, ticket) = TrackedBufferSource::new_with_cue_options(
+            buffer.samples.clone(),
+            cues,
+            Some(cue_sender),
+            None,
+            None,
+            self.speech_stop_cancellation(stream),
+            (stream == StreamType::Speech).then_some(SPEECH_STOP_FADE_FRAMES),
+        );
         sink.append(source);
         sink.play();
         Ok(Some(ticket))
@@ -559,16 +580,15 @@ impl AudioControl {
         };
 
         let samples = buffer.samples.clone();
-        let (source, ticket) = if let Some(cancellation) = cancellation {
-            TrackedBufferSource::new_with_cue_callback_cancellable(
-                samples,
-                cues,
-                on_cue,
-                cancellation,
-            )
-        } else {
-            TrackedBufferSource::new_with_cue_callback(samples, cues, on_cue)
-        };
+        let (source, ticket) = TrackedBufferSource::new_with_cue_options(
+            samples,
+            cues,
+            None,
+            Some(Box::new(on_cue)),
+            cancellation,
+            self.speech_stop_cancellation(stream),
+            (stream == StreamType::Speech).then_some(SPEECH_STOP_FADE_FRAMES),
+        );
         sink.append(source);
         sink.play();
         Ok(Some(ticket))
@@ -593,16 +613,28 @@ impl AudioControl {
         Some(sink)
     }
 
-    /// Stop a specific stream, clearing all queued and playing audio.
+    /// Stop a specific stream, retiring all queued and playing audio.
+    ///
+    /// Speech already being consumed fades over three milliseconds to avoid a
+    /// waveform discontinuity. Speech which has not started, plus tone and
+    /// sound streams, still stops immediately.
     pub fn stop(&self, stream: StreamType) {
         let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
         self.schedule_generations[stream_index(stream)].fetch_add(1, Ordering::AcqRel);
         let (sink, _) = self.sink_and_max(stream);
-        sink.clear();
+        if stream == StreamType::Speech {
+            let previous = std::mem::replace(
+                &mut *self.speech_stop_cancellation.lock().unwrap(),
+                CancellationToken::new(),
+            );
+            previous.cancel();
+        } else {
+            sink.clear();
+        }
         sink.play();
     }
 
-    /// Stop all streams immediately.
+    /// Stop every stream, using the short de-click fade for active speech.
     pub fn stop_all(&self) {
         self.stop(StreamType::Speech);
         self.stop(StreamType::Tone);
@@ -684,6 +716,7 @@ impl AudioStreams {
                 AtomicU64::new(0),
             ]),
             stream_gates: Arc::new([Mutex::new(()), Mutex::new(()), Mutex::new(())]),
+            speech_stop_cancellation: Arc::new(Mutex::new(CancellationToken::new())),
             scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
         });
 
@@ -708,12 +741,12 @@ impl AudioStreams {
         self.control.queue(stream, buffer)
     }
 
-    /// Stop a specific stream, clearing all queued and playing audio.
+    /// Stop a specific stream, smoothing active speech over three milliseconds.
     pub fn stop(&self, stream: StreamType) {
         self.control.stop(stream)
     }
 
-    /// Stop all streams immediately.
+    /// Stop every stream, using the short de-click fade for active speech.
     pub fn stop_all(&self) {
         self.control.stop_all()
     }
@@ -840,6 +873,11 @@ impl Iterator for BufferSource {
             None
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.samples.len() - self.position;
+        (remaining, Some(remaining))
+    }
 }
 
 impl Source for BufferSource {
@@ -861,11 +899,178 @@ impl Source for BufferSource {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CancellationFadeState {
+    Playing,
+    Fading { samples_emitted: usize },
+    Finished,
+}
+
+/// Per-source cancellation state which can de-click an active speech source.
+///
+/// A source cancelled before its first sample is discarded immediately. Once
+/// a source has started, cancellation begins only at a complete interleaved
+/// frame boundary and applies one gain value to every channel in that frame.
+struct PlaybackCancellation {
+    request: Option<CancellationToken>,
+    stream: Option<CancellationToken>,
+    fade_frames: Option<usize>,
+    state: CancellationFadeState,
+}
+
+impl PlaybackCancellation {
+    fn new(
+        request: Option<CancellationToken>,
+        stream: Option<CancellationToken>,
+        fade_frames: Option<usize>,
+    ) -> Self {
+        Self {
+            request,
+            stream,
+            fade_frames,
+            state: CancellationFadeState::Playing,
+        }
+    }
+
+    fn is_requested(&self) -> bool {
+        self.request
+            .as_ref()
+            .is_some_and(CancellationToken::is_cancelled)
+            || self
+                .stream
+                .as_ref()
+                .is_some_and(CancellationToken::is_cancelled)
+    }
+
+    fn has_begun(&self) -> bool {
+        self.state != CancellationFadeState::Playing
+    }
+
+    fn fade_samples(&self) -> usize {
+        self.fade_frames.unwrap_or(0) * CHANNELS as usize
+    }
+
+    /// Return the gain for the next sample, or `None` once cancellation is
+    /// terminal. POSITION is the next interleaved sample in the inner source.
+    fn next_gain(&mut self, position: usize) -> Option<f32> {
+        if self.state == CancellationFadeState::Finished {
+            return None;
+        }
+
+        if self.state == CancellationFadeState::Playing
+            && position.is_multiple_of(CHANNELS as usize)
+            && self.is_requested()
+        {
+            let fade_samples = self.fade_samples();
+            if position == 0 || fade_samples == 0 {
+                self.state = CancellationFadeState::Finished;
+                return None;
+            }
+            self.state = CancellationFadeState::Fading { samples_emitted: 0 };
+        }
+
+        let CancellationFadeState::Fading { samples_emitted } = &mut self.state else {
+            return Some(1.0);
+        };
+        let frame = *samples_emitted / CHANNELS as usize;
+        let fade_frames = self.fade_frames.unwrap_or(0);
+        let gain = if fade_frames <= 1 {
+            0.0
+        } else {
+            (fade_frames - 1 - frame) as f32 / (fade_frames - 1) as f32
+        };
+        *samples_emitted += 1;
+        if *samples_emitted >= fade_frames * CHANNELS as usize {
+            self.state = CancellationFadeState::Finished;
+        }
+        Some(gain)
+    }
+
+    fn remaining_samples(&self, position: usize) -> usize {
+        match self.state {
+            CancellationFadeState::Finished => 0,
+            CancellationFadeState::Fading { samples_emitted } => {
+                self.fade_samples().saturating_sub(samples_emitted)
+            }
+            CancellationFadeState::Playing if self.is_requested() => {
+                let fade_samples = self.fade_samples();
+                if position == 0 || fade_samples == 0 {
+                    0
+                } else {
+                    let channels = CHANNELS as usize;
+                    let frame_remainder = position % channels;
+                    let samples_to_boundary = if frame_remainder == 0 {
+                        0
+                    } else {
+                        channels - frame_remainder
+                    };
+                    samples_to_boundary + fade_samples
+                }
+            }
+            CancellationFadeState::Playing => usize::MAX,
+        }
+    }
+}
+
+/// Untracked speech audio which participates in stream-wide smooth stopping.
+struct SpeechBufferSource {
+    inner: BufferSource,
+    cancellation: PlaybackCancellation,
+}
+
+impl SpeechBufferSource {
+    fn new(samples: Vec<f32>, cancellation: CancellationToken) -> Self {
+        Self {
+            inner: BufferSource::new(samples),
+            cancellation: PlaybackCancellation::new(
+                None,
+                Some(cancellation),
+                Some(SPEECH_STOP_FADE_FRAMES),
+            ),
+        }
+    }
+}
+
+impl Iterator for SpeechBufferSource {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let gain = self.cancellation.next_gain(self.inner.position)?;
+        self.inner.next().map(|sample| sample * gain)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let limit = self.cancellation.remaining_samples(self.inner.position);
+        let (_, maximum) = self.inner.size_hint();
+        (0, maximum.map(|maximum| maximum.min(limit)))
+    }
+}
+
+impl Source for SpeechBufferSource {
+    fn current_frame_len(&self) -> Option<usize> {
+        self.inner.current_frame_len().map(|remaining| {
+            remaining.min(self.cancellation.remaining_samples(self.inner.position))
+        })
+    }
+
+    fn channels(&self) -> u16 {
+        self.inner.channels()
+    }
+
+    fn sample_rate(&self) -> u32 {
+        self.inner.sample_rate()
+    }
+
+    fn total_duration(&self) -> Option<Duration> {
+        self.inner.total_duration()
+    }
+}
+
 /// Buffer source that reports natural exhaustion and cancellation distinctly.
 struct TrackedBufferSource {
     inner: BufferSource,
     completion: PlaybackCompletion,
-    cancellation: Option<CancellationToken>,
+    cancellation: PlaybackCancellation,
     cues: Vec<PlaybackCue>,
     next_cue: usize,
     cue_sender: Option<Sender<PlaybackCue>>,
@@ -873,56 +1078,51 @@ struct TrackedBufferSource {
 }
 
 impl TrackedBufferSource {
+    #[cfg(test)]
     fn new(samples: Vec<f32>) -> (Self, PlaybackTicket) {
-        Self::new_with_options(samples, None)
+        Self::new_with_options(samples, None, None, None)
     }
 
+    #[cfg(test)]
     fn new_cancellable(
         samples: Vec<f32>,
         cancellation: CancellationToken,
     ) -> (Self, PlaybackTicket) {
-        Self::new_with_options(samples, Some(cancellation))
+        Self::new_with_options(
+            samples,
+            Some(cancellation),
+            None,
+            Some(SPEECH_STOP_FADE_FRAMES),
+        )
     }
 
     fn new_with_options(
         samples: Vec<f32>,
-        cancellation: Option<CancellationToken>,
+        request_cancellation: Option<CancellationToken>,
+        stream_cancellation: Option<CancellationToken>,
+        fade_frames: Option<usize>,
     ) -> (Self, PlaybackTicket) {
-        let (completion, ticket) = PlaybackCompletion::pair();
-        (
-            Self {
-                inner: BufferSource::new(samples),
-                completion,
-                cancellation,
-                cues: Vec::new(),
-                next_cue: 0,
-                cue_sender: None,
-                cue_callback: None,
-            },
-            ticket,
+        Self::new_with_cue_options(
+            samples,
+            Vec::new(),
+            None,
+            None,
+            request_cancellation,
+            stream_cancellation,
+            fade_frames,
         )
     }
 
+    #[cfg(test)]
     fn new_with_cues(
         samples: Vec<f32>,
         cues: Vec<PlaybackCue>,
         cue_sender: Sender<PlaybackCue>,
     ) -> (Self, PlaybackTicket) {
-        let (completion, ticket) = PlaybackCompletion::pair();
-        (
-            Self {
-                inner: BufferSource::new(samples),
-                completion,
-                cancellation: None,
-                cues,
-                next_cue: 0,
-                cue_sender: Some(cue_sender),
-                cue_callback: None,
-            },
-            ticket,
-        )
+        Self::new_with_cue_options(samples, cues, Some(cue_sender), None, None, None, None)
     }
 
+    #[cfg(test)]
     fn new_with_cue_callback<F>(
         samples: Vec<f32>,
         cues: Vec<PlaybackCue>,
@@ -931,9 +1131,18 @@ impl TrackedBufferSource {
     where
         F: FnMut(PlaybackCue) + Send + 'static,
     {
-        Self::new_with_cue_callback_options(samples, cues, on_cue, None)
+        Self::new_with_cue_options(
+            samples,
+            cues,
+            None,
+            Some(Box::new(on_cue)),
+            None,
+            None,
+            None,
+        )
     }
 
+    #[cfg(test)]
     fn new_with_cue_callback_cancellable<F>(
         samples: Vec<f32>,
         cues: Vec<PlaybackCue>,
@@ -943,28 +1152,41 @@ impl TrackedBufferSource {
     where
         F: FnMut(PlaybackCue) + Send + 'static,
     {
-        Self::new_with_cue_callback_options(samples, cues, on_cue, Some(cancellation))
+        Self::new_with_cue_options(
+            samples,
+            cues,
+            None,
+            Some(Box::new(on_cue)),
+            Some(cancellation),
+            None,
+            Some(SPEECH_STOP_FADE_FRAMES),
+        )
     }
 
-    fn new_with_cue_callback_options<F>(
+    #[allow(clippy::too_many_arguments)]
+    fn new_with_cue_options(
         samples: Vec<f32>,
         cues: Vec<PlaybackCue>,
-        on_cue: F,
-        cancellation: Option<CancellationToken>,
-    ) -> (Self, PlaybackTicket)
-    where
-        F: FnMut(PlaybackCue) + Send + 'static,
-    {
+        cue_sender: Option<Sender<PlaybackCue>>,
+        cue_callback: Option<Box<dyn FnMut(PlaybackCue) + Send>>,
+        request_cancellation: Option<CancellationToken>,
+        stream_cancellation: Option<CancellationToken>,
+        fade_frames: Option<usize>,
+    ) -> (Self, PlaybackTicket) {
         let (completion, ticket) = PlaybackCompletion::pair();
         (
             Self {
                 inner: BufferSource::new(samples),
                 completion,
-                cancellation,
+                cancellation: PlaybackCancellation::new(
+                    request_cancellation,
+                    stream_cancellation,
+                    fade_frames,
+                ),
                 cues,
                 next_cue: 0,
-                cue_sender: None,
-                cue_callback: Some(Box::new(on_cue)),
+                cue_sender,
+                cue_callback,
             },
             ticket,
         )
@@ -1002,36 +1224,35 @@ impl TrackedBufferSource {
     fn report(&mut self, status: PlaybackStatus) {
         self.completion.report(status);
     }
-
-    fn is_cancelled(&self) -> bool {
-        self.cancellation
-            .as_ref()
-            .is_some_and(CancellationToken::is_cancelled)
-    }
 }
 
 impl Iterator for TrackedBufferSource {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.is_cancelled() {
+        let Some(gain) = self.cancellation.next_gain(self.inner.position) else {
             self.report(PlaybackStatus::Cancelled);
             return None;
+        };
+        if !self.cancellation.has_begun() {
+            self.report_cues_at_current_frame();
         }
-        self.report_cues_at_current_frame();
-        let sample = self.inner.next();
+        let sample = self.inner.next().map(|sample| sample * gain);
         if sample.is_none() {
-            self.report(PlaybackStatus::Completed);
+            let status = if self.cancellation.has_begun() || self.cancellation.is_requested() {
+                PlaybackStatus::Cancelled
+            } else {
+                PlaybackStatus::Completed
+            };
+            self.report(status);
         }
         sample
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        if self.is_cancelled() {
-            (0, Some(0))
-        } else {
-            self.inner.size_hint()
-        }
+        let limit = self.cancellation.remaining_samples(self.inner.position);
+        let (_, maximum) = self.inner.size_hint();
+        (0, maximum.map(|maximum| maximum.min(limit)))
     }
 }
 
@@ -1052,11 +1273,9 @@ fn prepare_playback_cues(
 
 impl Source for TrackedBufferSource {
     fn current_frame_len(&self) -> Option<usize> {
-        if self.is_cancelled() {
-            Some(0)
-        } else {
-            self.inner.current_frame_len()
-        }
+        self.inner.current_frame_len().map(|remaining| {
+            remaining.min(self.cancellation.remaining_samples(self.inner.position))
+        })
     }
 
     fn channels(&self) -> u16 {
@@ -1130,6 +1349,46 @@ mod tests {
     }
 
     #[test]
+    fn speech_stop_rotates_the_stream_cancellation_generation() {
+        let (speech_sink, _speech_output) = Sink::new_idle();
+        let (tone_sink, _tone_output) = Sink::new_idle();
+        let (sound_sink, _sound_output) = Sink::new_idle();
+        let initial = CancellationToken::new();
+        let control = AudioControl {
+            speech_sink: Arc::new(speech_sink),
+            tone_sink: Arc::new(tone_sink),
+            sound_sink: Arc::new(sound_sink),
+            speech_max: 4,
+            tone_max: 4,
+            sound_max: 4,
+            schedule_generations: Arc::new([
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+            ]),
+            stream_gates: Arc::new([Mutex::new(()), Mutex::new(()), Mutex::new(())]),
+            speech_stop_cancellation: Arc::new(Mutex::new(initial.clone())),
+            scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
+        };
+
+        control.stop(StreamType::Speech);
+
+        let replacement = control.speech_stop_cancellation.lock().unwrap().clone();
+        assert!(initial.is_cancelled());
+        assert!(!initial.same_token(&replacement));
+        assert!(!replacement.is_cancelled());
+
+        control.stop(StreamType::Speech);
+
+        assert!(replacement.is_cancelled());
+        assert!(!control
+            .speech_stop_cancellation
+            .lock()
+            .unwrap()
+            .is_cancelled());
+    }
+
+    #[test]
     fn tracked_source_reports_early_drop_as_cancellation() {
         let (mut source, ticket) = TrackedBufferSource::new(vec![0.1, -0.1]);
 
@@ -1139,12 +1398,11 @@ mod tests {
     }
 
     #[test]
-    fn tracked_source_stops_when_its_token_is_cancelled() {
+    fn unstarted_tracked_source_stops_immediately_when_cancelled() {
         let cancellation = CancellationToken::new();
         let (mut source, ticket) =
             TrackedBufferSource::new_cancellable(vec![0.1, -0.1, 0.2, -0.2], cancellation.clone());
 
-        assert_eq!(source.next(), Some(0.1));
         cancellation.cancel();
 
         assert_eq!(source.size_hint(), (0, Some(0)));
@@ -1154,21 +1412,80 @@ mod tests {
     }
 
     #[test]
+    fn active_tracked_source_fades_to_zero_when_cancelled() {
+        let channels = CHANNELS as usize;
+        let fade_samples = SPEECH_STOP_FADE_FRAMES * channels;
+        let cancellation = CancellationToken::new();
+        let (mut source, ticket) = TrackedBufferSource::new_cancellable(
+            vec![1.0; fade_samples + 2 * channels],
+            cancellation.clone(),
+        );
+
+        assert_eq!(source.next(), Some(1.0));
+        assert_eq!(source.next(), Some(1.0));
+        cancellation.cancel();
+
+        assert_eq!(source.size_hint(), (0, Some(fade_samples)));
+        assert_eq!(source.current_frame_len(), Some(fade_samples));
+        let tail = source.by_ref().collect::<Vec<_>>();
+        assert_eq!(tail.len(), fade_samples);
+        assert!(tail
+            .chunks_exact(channels)
+            .all(|frame| frame.iter().all(|sample| *sample == frame[0])));
+        assert_eq!(tail.first(), Some(&1.0));
+        assert_eq!(tail.last(), Some(&0.0));
+        assert!(tail
+            .chunks_exact(channels)
+            .map(|frame| frame[0])
+            .collect::<Vec<_>>()
+            .windows(2)
+            .all(|frames| frames[0] >= frames[1]));
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+    }
+
+    #[test]
+    fn stream_stop_fades_active_untracked_speech_but_discards_queued_speech() {
+        let channels = CHANNELS as usize;
+        let fade_samples = SPEECH_STOP_FADE_FRAMES * channels;
+        let cancellation = CancellationToken::new();
+        let mut active =
+            SpeechBufferSource::new(vec![1.0; fade_samples + 2 * channels], cancellation.clone());
+        let mut queued = SpeechBufferSource::new(vec![1.0; 2 * channels], cancellation.clone());
+
+        assert_eq!(active.next(), Some(1.0));
+        assert_eq!(active.next(), Some(1.0));
+        cancellation.cancel();
+
+        let tail = active.by_ref().collect::<Vec<_>>();
+        assert_eq!(tail.len(), fade_samples);
+        assert_eq!(tail.first(), Some(&1.0));
+        assert_eq!(tail.last(), Some(&0.0));
+        assert_eq!(queued.next(), None);
+    }
+
+    #[test]
     fn token_cancellation_is_scoped_across_active_and_queued_sources() {
+        let channels = CHANNELS as usize;
+        let fade_samples = SPEECH_STOP_FADE_FRAMES * channels;
         let navigation = CancellationToken::new();
         let review = CancellationToken::new();
-        let (mut active, active_ticket) =
-            TrackedBufferSource::new_cancellable(vec![0.1, -0.1, 0.2, -0.2], navigation.clone());
+        let (mut active, active_ticket) = TrackedBufferSource::new_cancellable(
+            vec![1.0; fade_samples + 2 * channels],
+            navigation.clone(),
+        );
         let (mut queued, queued_ticket) =
             TrackedBufferSource::new_cancellable(vec![0.3, -0.3], navigation.clone());
         let (mut protected, protected_ticket) = TrackedBufferSource::new(vec![0.5, -0.5]);
         let (mut other_domain, other_ticket) =
             TrackedBufferSource::new_cancellable(vec![0.7, -0.7], review.clone());
 
-        assert_eq!(active.next(), Some(0.1));
+        assert_eq!(active.next(), Some(1.0));
+        assert_eq!(active.next(), Some(1.0));
         navigation.cancel();
 
-        assert_eq!(active.next(), None);
+        let active_tail = active.by_ref().collect::<Vec<_>>();
+        assert_eq!(active_tail.len(), fade_samples);
+        assert_eq!(active_tail.last(), Some(&0.0));
         assert_eq!(queued.next(), None);
         assert_eq!(protected.by_ref().collect::<Vec<_>>(), vec![0.5, -0.5]);
         assert_eq!(other_domain.by_ref().collect::<Vec<_>>(), vec![0.7, -0.7]);
@@ -1273,11 +1590,14 @@ mod tests {
 
     #[test]
     fn token_cancellation_suppresses_unreached_cues() {
-        let cues = prepare_playback_cues(vec![cue(0, 0), cue(1, 10)], 2).unwrap();
+        let channels = CHANNELS as usize;
+        let frame_count = SPEECH_STOP_FADE_FRAMES + 2;
+        let cues =
+            prepare_playback_cues(vec![cue(0, 0), cue(1, 10), cue(2, 20)], frame_count).unwrap();
         let cancellation = CancellationToken::new();
         let (cue_sender, cue_receiver) = mpsc::channel();
         let (mut source, ticket) = TrackedBufferSource::new_with_cue_callback_cancellable(
-            vec![0.1; 4],
+            vec![0.1; frame_count * channels],
             cues,
             move |cue| {
                 let _ = cue_sender.send(cue);
@@ -1285,9 +1605,15 @@ mod tests {
             cancellation.clone(),
         );
 
+        assert_eq!(source.next(), Some(0.1));
+        assert_eq!(source.next(), Some(0.1));
+        assert_eq!(cue_receiver.try_iter().collect::<Vec<_>>(), vec![cue(0, 0)]);
         cancellation.cancel();
 
-        assert_eq!(source.next(), None);
+        assert_eq!(
+            source.by_ref().collect::<Vec<_>>().len(),
+            SPEECH_STOP_FADE_FRAMES * channels
+        );
         assert!(cue_receiver.try_iter().next().is_none());
         assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
     }
