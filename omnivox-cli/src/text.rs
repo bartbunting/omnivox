@@ -4,9 +4,6 @@ use omnivox_core::{state::PunctuationLevel, TtsState};
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 
-pub const CAPITAL_TONE_HZ: f32 = 440.0;
-pub const CAPITAL_TONE_DURATION_MS: u32 = 20;
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct CapitalizationTone {
     pub id: String,

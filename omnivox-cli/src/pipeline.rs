@@ -1828,8 +1828,10 @@ pub fn process_batch(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::text::{CAPITAL_TONE_DURATION_MS, CAPITAL_TONE_HZ};
     use omnivox_core::state::CapitalizationPresentation;
+
+    const CAPITAL_TONE_HZ: f32 = 440.0;
+    const CAPITAL_TONE_DURATION_MS: u32 = 20;
 
     fn result(audio: AudioBuffer) -> SynthesisResult {
         SynthesisResult::audio("mock", None, audio)
