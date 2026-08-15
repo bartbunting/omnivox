@@ -7,8 +7,8 @@ use omnivox_core::{
 use omnivox_tts::presentation::decode_presentation_frame;
 use omnivox_tts::timeline_protocol::{
     decode_multipart_presentation_timeline, decode_presentation_timeline,
-    decode_presentation_timeline_part, PresentationTimelineEnvelope, PresentationTimelinePart,
-    MAX_TIMELINE_AGGREGATE_ENCODED_BYTES,
+    decode_presentation_timeline_part, PresentationTimelineEnvelope, PresentationTimelineIdentity,
+    PresentationTimelinePart, MAX_TIMELINE_AGGREGATE_ENCODED_BYTES,
 };
 
 use crate::text::parse_resource_path;
@@ -25,6 +25,19 @@ pub struct PreparedPresentation {
 pub struct PreparedStructuredPresentation {
     pub generation: u64,
     pub timeline: PresentationTimelineEnvelope,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StructuredTimelineRejectionKind {
+    Invalid,
+    Stale,
+}
+
+#[derive(Debug)]
+pub struct StructuredTimelineRejection {
+    pub identity: Option<PresentationTimelineIdentity>,
+    pub kind: StructuredTimelineRejectionKind,
+    pub message: String,
 }
 
 #[derive(Debug)]
@@ -164,9 +177,27 @@ impl PresentationGenerations {
     pub fn prepare_timeline(
         &self,
         payload: &str,
-    ) -> Result<Option<PreparedStructuredPresentation>, String> {
-        let timeline = decode_presentation_timeline(payload).map_err(|error| error.to_string())?;
-        self.prepare_decoded_timeline(timeline)
+    ) -> Result<PreparedStructuredPresentation, StructuredTimelineRejection> {
+        let timeline =
+            decode_presentation_timeline(payload).map_err(|error| StructuredTimelineRejection {
+                identity: error.identity(),
+                kind: StructuredTimelineRejectionKind::Invalid,
+                message: error.to_string(),
+            })?;
+        if timeline.generation <= self.latest {
+            return Err(StructuredTimelineRejection {
+                identity: timeline.tracking_identity(),
+                kind: StructuredTimelineRejectionKind::Stale,
+                message: format!(
+                    "structured timeline generation {} is not newer than committed generation {}",
+                    timeline.generation, self.latest
+                ),
+            });
+        }
+        Ok(PreparedStructuredPresentation {
+            generation: timeline.generation,
+            timeline,
+        })
     }
 
     fn prepare_decoded_timeline(
@@ -345,6 +376,8 @@ mod tests {
     };
 
     use super::*;
+
+    const INVALID_DIRECT_TIMELINE: &str = "eyJwcm90b2NvbF92ZXJzaW9uIjozLCJnZW5lcmF0aW9uIjozMSwiZGlzcGF0Y2hfaWQiOjcyLCJkZWxpdmVyeV9wb2xpY3kiOiJvcmRlcmVkIiwic3BhbnMiOltdLCJhY3Rpb25zIjpbXX0=";
 
     fn arguments(generation: u64, script: &str) -> String {
         format!(
@@ -566,7 +599,6 @@ mod tests {
         let mut generations = PresentationGenerations::default();
         let structured = generations
             .prepare_timeline(&timeline_payload(8, 42, "structured"))
-            .unwrap()
             .unwrap();
         generations.commit(structured.generation);
 
@@ -576,9 +608,36 @@ mod tests {
             .is_none());
         let newer = generations
             .prepare_timeline(&timeline_payload(9, 43, "newer"))
-            .unwrap()
             .unwrap();
         assert_eq!(newer.timeline.dispatch_id, 43);
+    }
+
+    #[test]
+    fn direct_timeline_rejections_retain_owned_identity_without_committing() {
+        let mut generations = PresentationGenerations::default();
+
+        let invalid = generations
+            .prepare_timeline(INVALID_DIRECT_TIMELINE)
+            .unwrap_err();
+        assert_eq!(invalid.kind, StructuredTimelineRejectionKind::Invalid);
+        let invalid_identity = invalid.identity.unwrap();
+        assert_eq!(invalid_identity.generation(), 31);
+        assert_eq!(invalid_identity.dispatch_id(), 72);
+        assert_eq!(generations.latest(), 0);
+
+        let accepted = generations
+            .prepare_timeline(&timeline_payload(31, 73, "valid retry"))
+            .unwrap();
+        generations.commit(accepted.generation);
+        let stale = generations
+            .prepare_timeline(&timeline_payload(31, 74, "stale retry"))
+            .unwrap_err();
+        assert_eq!(stale.kind, StructuredTimelineRejectionKind::Stale);
+        assert_eq!(stale.identity.unwrap().dispatch_id(), 74);
+
+        let unowned = generations.prepare_timeline("not-base64").unwrap_err();
+        assert_eq!(unowned.kind, StructuredTimelineRejectionKind::Invalid);
+        assert_eq!(unowned.identity, None);
     }
 
     #[test]
@@ -586,11 +645,9 @@ mod tests {
         let generations = PresentationGenerations::default();
         let current = generations
             .prepare_timeline(&timeline_payload(10, 40, "first"))
-            .unwrap()
             .unwrap();
         let same_key = generations
             .prepare_timeline(&timeline_payload(11, 41, "latest"))
-            .unwrap()
             .unwrap();
 
         assert!(matches!(
@@ -603,7 +660,6 @@ mod tests {
 
         let current = generations
             .prepare_timeline(&timeline_payload(12, 42, "navigation"))
-            .unwrap()
             .unwrap();
         let other_key = generations
             .prepare_timeline(&timeline_payload_with_delivery(
@@ -613,7 +669,6 @@ mod tests {
                 PresentationDeliveryPolicy::Replaceable,
                 Some("completion"),
             ))
-            .unwrap()
             .unwrap();
         assert!(matches!(
             select_adjacent_timeline(current, other_key),
@@ -637,7 +692,6 @@ mod tests {
                     policy,
                     None,
                 ))
-                .unwrap()
                 .unwrap();
             let candidate = generations
                 .prepare_timeline(&timeline_payload(
@@ -645,7 +699,6 @@ mod tests {
                     dispatch_id + 1,
                     "navigation",
                 ))
-                .unwrap()
                 .unwrap();
 
             assert!(matches!(
@@ -661,11 +714,9 @@ mod tests {
         let generations = PresentationGenerations::default();
         let current = generations
             .prepare_timeline(&timeline_payload(20, 60, "current"))
-            .unwrap()
             .unwrap();
         let older = generations
             .prepare_timeline(&timeline_payload(19, 59, "late arrival"))
-            .unwrap()
             .unwrap();
 
         assert!(matches!(
@@ -682,15 +733,15 @@ mod tests {
         let mut generations = PresentationGenerations::default();
         let selected = generations
             .prepare_timeline(&timeline_payload(30, 70, "cancelled"))
-            .unwrap()
             .unwrap();
 
         generations.commit(selected.generation);
 
-        assert!(generations
+        let rejection = generations
             .prepare_timeline(&timeline_payload(30, 71, "cannot return"))
-            .unwrap()
-            .is_none());
+            .unwrap_err();
+        assert_eq!(rejection.kind, StructuredTimelineRejectionKind::Stale);
+        assert_eq!(rejection.identity.unwrap().dispatch_id(), 71);
     }
 
     #[test]

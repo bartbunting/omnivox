@@ -64,6 +64,25 @@ pub struct PresentationTimelineEnvelope {
     pub actions: Vec<PresentationTimelineAction>,
 }
 
+/// Callback ownership recovered from a decoded timeline envelope.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PresentationTimelineIdentity {
+    generation: u64,
+    dispatch_id: u64,
+}
+
+impl PresentationTimelineIdentity {
+    /// Return the timeline generation supplied by the client.
+    pub fn generation(self) -> u64 {
+        self.generation
+    }
+
+    /// Return the tracked dispatch identifier supplied by the client.
+    pub fn dispatch_id(self) -> u64 {
+        self.dispatch_id
+    }
+}
+
 impl PresentationTimelineEnvelope {
     /// Return the validated effective delivery policy.
     pub fn effective_delivery_policy(&self) -> PresentationDeliveryPolicy {
@@ -87,6 +106,14 @@ impl PresentationTimelineEnvelope {
             }
             _ => false,
         }
+    }
+
+    /// Return callback ownership when the envelope supplies a usable dispatch ID.
+    pub fn tracking_identity(&self) -> Option<PresentationTimelineIdentity> {
+        (self.dispatch_id != 0).then_some(PresentationTimelineIdentity {
+            generation: self.generation,
+            dispatch_id: self.dispatch_id,
+        })
     }
 }
 
@@ -262,6 +289,36 @@ pub enum PresentationTimelineError {
     InvalidTimeline(String),
 }
 
+/// A direct timeline decode failure with any trustworthy callback ownership.
+///
+/// Identity is available only after the bounded Base64 payload and complete
+/// JSON envelope have decoded, and only when that envelope supplies a nonzero
+/// dispatch identifier. It remains available when semantic validation fails.
+#[derive(Debug, Error)]
+#[error("{error}")]
+pub struct PresentationTimelineDecodeError {
+    identity: Option<PresentationTimelineIdentity>,
+    #[source]
+    error: PresentationTimelineError,
+}
+
+impl PresentationTimelineDecodeError {
+    /// Return callback ownership recovered before semantic validation failed.
+    pub fn identity(&self) -> Option<PresentationTimelineIdentity> {
+        self.identity
+    }
+
+    /// Return the underlying transport or semantic failure.
+    pub fn reason(&self) -> &PresentationTimelineError {
+        &self.error
+    }
+
+    /// Discard callback ownership and return the underlying failure.
+    pub fn into_reason(self) -> PresentationTimelineError {
+        self.error
+    }
+}
+
 /// Encode and validate one structured presentation as an unwrapped Base64 word.
 pub fn encode_presentation_timeline(
     timeline: &PresentationTimelineEnvelope,
@@ -293,8 +350,8 @@ pub fn encode_multipart_presentation_timeline(
 /// Decode, validate, and bound one structured presentation payload.
 pub fn decode_presentation_timeline(
     payload: &str,
-) -> Result<PresentationTimelineEnvelope, PresentationTimelineError> {
-    decode_presentation_timeline_with_limit(
+) -> Result<PresentationTimelineEnvelope, PresentationTimelineDecodeError> {
+    decode_presentation_timeline_with_identity(
         payload,
         MAX_TIMELINE_ENCODED_BYTES,
         MAX_TIMELINE_PAYLOAD_BYTES,
@@ -338,6 +395,36 @@ fn decode_presentation_timeline_with_limit(
     decoded_limit: usize,
     aggregate: bool,
 ) -> Result<PresentationTimelineEnvelope, PresentationTimelineError> {
+    let timeline =
+        decode_presentation_timeline_document(payload, encoded_limit, decoded_limit, aggregate)?;
+    validate_presentation_timeline(&timeline)?;
+    Ok(timeline)
+}
+
+fn decode_presentation_timeline_with_identity(
+    payload: &str,
+    encoded_limit: usize,
+    decoded_limit: usize,
+    aggregate: bool,
+) -> Result<PresentationTimelineEnvelope, PresentationTimelineDecodeError> {
+    let timeline =
+        decode_presentation_timeline_document(payload, encoded_limit, decoded_limit, aggregate)
+            .map_err(|error| PresentationTimelineDecodeError {
+                identity: None,
+                error,
+            })?;
+    let identity = timeline.tracking_identity();
+    validate_presentation_timeline(&timeline)
+        .map_err(|error| PresentationTimelineDecodeError { identity, error })?;
+    Ok(timeline)
+}
+
+fn decode_presentation_timeline_document(
+    payload: &str,
+    encoded_limit: usize,
+    decoded_limit: usize,
+    aggregate: bool,
+) -> Result<PresentationTimelineEnvelope, PresentationTimelineError> {
     let payload = unbrace_payload(payload);
     if payload.len() > encoded_limit {
         return Err(if aggregate {
@@ -356,9 +443,7 @@ fn decode_presentation_timeline_with_limit(
             PresentationTimelineError::PayloadTooLarge
         });
     }
-    let timeline = serde_json::from_slice(&json).map_err(PresentationTimelineError::InvalidJson)?;
-    validate_presentation_timeline(&timeline)?;
-    Ok(timeline)
+    serde_json::from_slice(&json).map_err(PresentationTimelineError::InvalidJson)
 }
 
 fn unbrace_payload(payload: &str) -> &str {
@@ -959,10 +1044,30 @@ mod tests {
     #[test]
     fn encoded_payload_is_bounded_before_decoding() {
         let encoded = "A".repeat(MAX_TIMELINE_ENCODED_BYTES + 1);
+        let error = decode_presentation_timeline(&encoded).unwrap_err();
         assert!(matches!(
-            decode_presentation_timeline(&encoded),
-            Err(PresentationTimelineError::PayloadTooLarge)
+            error.reason(),
+            PresentationTimelineError::PayloadTooLarge
         ));
+        assert_eq!(error.identity(), None);
+    }
+
+    #[test]
+    fn direct_decode_preserves_identity_for_semantic_rejection() {
+        let mut invalid = timeline();
+        invalid.spans.clear();
+        let encoded = STANDARD.encode(serde_json::to_vec(&invalid).unwrap());
+
+        let error = decode_presentation_timeline(&encoded).unwrap_err();
+
+        assert!(matches!(
+            error.reason(),
+            PresentationTimelineError::InvalidTimeline(message)
+                if message.contains("at least one speech span")
+        ));
+        let identity = error.identity().unwrap();
+        assert_eq!(identity.generation(), invalid.generation);
+        assert_eq!(identity.dispatch_id(), invalid.dispatch_id);
     }
 
     #[test]
@@ -975,8 +1080,8 @@ mod tests {
         let encoded = STANDARD.encode(&json);
 
         assert!(matches!(
-            decode_presentation_timeline(&encoded),
-            Err(PresentationTimelineError::PayloadTooLarge)
+            decode_presentation_timeline(&encoded).unwrap_err().reason(),
+            PresentationTimelineError::PayloadTooLarge
         ));
         assert_eq!(
             decode_multipart_presentation_timeline(&encoded, json.len()).unwrap(),

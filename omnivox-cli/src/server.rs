@@ -47,6 +47,7 @@ use crate::text::{normalize_rate, parse_resource_path};
 use crate::transaction::{
     prefer_newer, select_adjacent_timeline, AdjacentTimelineSelection, MultipartTimelineAssembler,
     PreparedPresentation, PreparedStructuredPresentation, PresentationGenerations,
+    StructuredTimelineRejectionKind,
 };
 use crate::work_queue::{
     bounded_work_queue, BoundedWork, RetiredWork, RetirementReason, WorkQueueLimits,
@@ -1296,8 +1297,12 @@ pub fn run_server(
         ) {
             let mut selected =
                 match read_structured_submission(&presentation_generations, command, &input_rx)? {
-                    StructuredSubmissionRead::Prepared(Some(presentation)) => presentation,
-                    StructuredSubmissionRead::Prepared(None) => continue,
+                    StructuredSubmissionRead::Prepared(presentation) => presentation,
+                    StructuredSubmissionRead::Rejected(rejection) => {
+                        report_rejected_structured_submission(&rejection);
+                        continue;
+                    }
+                    StructuredSubmissionRead::Unowned => continue,
                     StructuredSubmissionRead::Aborted(abort) => {
                         retire_aborted_structured_submission(&mut presentation_generations, &abort);
                         deferred_command = abort.deferred_command;
@@ -1340,7 +1345,7 @@ pub fn run_server(
                             next,
                             &input_rx,
                         )? {
-                            StructuredSubmissionRead::Prepared(Some(candidate)) => {
+                            StructuredSubmissionRead::Prepared(candidate) => {
                                 if candidate.generation <= selected.generation {
                                     write_tracked_status(
                                         candidate.timeline.dispatch_id,
@@ -1385,7 +1390,10 @@ pub fn run_server(
                                     }
                                 }
                             }
-                            StructuredSubmissionRead::Prepared(None) => {}
+                            StructuredSubmissionRead::Rejected(rejection) => {
+                                report_rejected_structured_submission(&rejection);
+                            }
+                            StructuredSubmissionRead::Unowned => {}
                             StructuredSubmissionRead::Aborted(abort) => {
                                 let stop_barrier = abort
                                     .deferred_command
@@ -1695,8 +1703,15 @@ fn receive_command_until(
 }
 
 enum StructuredSubmissionRead {
-    Prepared(Option<PreparedStructuredPresentation>),
+    Prepared(PreparedStructuredPresentation),
+    Rejected(RejectedStructuredSubmission),
+    Unowned,
     Aborted(AbortedStructuredSubmission),
+}
+
+struct RejectedStructuredSubmission {
+    dispatch_id: u64,
+    status: BatchStatus,
 }
 
 struct AbortedStructuredSubmission {
@@ -1713,9 +1728,7 @@ fn read_structured_submission(
     receiver: &mpsc::Receiver<io::Result<String>>,
 ) -> Result<StructuredSubmissionRead> {
     if first.id == CommandId::EmacsvoxTimeline {
-        return Ok(StructuredSubmissionRead::Prepared(
-            prepare_structured_presentation(generations, &first),
-        ));
+        return Ok(prepare_structured_presentation(generations, &first));
     }
 
     let mut assembler = match MultipartTimelineAssembler::start(first.args.as_deref().unwrap_or(""))
@@ -1723,7 +1736,7 @@ fn read_structured_submission(
         Ok(assembler) => assembler,
         Err(error) => {
             warn!("Invalid first multipart Emacsvox timeline frame: {error}");
-            return Ok(StructuredSubmissionRead::Prepared(None));
+            return Ok(StructuredSubmissionRead::Unowned);
         }
     };
     let generation = assembler.generation();
@@ -1732,7 +1745,7 @@ fn read_structured_submission(
     loop {
         if assembler.is_complete() {
             return Ok(match assembler.finish(generations) {
-                Ok(Some(presentation)) => StructuredSubmissionRead::Prepared(Some(presentation)),
+                Ok(Some(presentation)) => StructuredSubmissionRead::Prepared(presentation),
                 Ok(None) => StructuredSubmissionRead::Aborted(AbortedStructuredSubmission {
                     generation,
                     dispatch_id,
@@ -1825,6 +1838,10 @@ fn retire_aborted_structured_submission(
     write_tracked_status(abort.dispatch_id, abort.status);
 }
 
+fn report_rejected_structured_submission(rejection: &RejectedStructuredSubmission) {
+    write_tracked_status(rejection.dispatch_id, rejection.status);
+}
+
 fn prepare_presentation(
     generations: &PresentationGenerations,
     command: &Command,
@@ -1845,16 +1862,35 @@ fn prepare_presentation(
 fn prepare_structured_presentation(
     generations: &PresentationGenerations,
     command: &Command,
-) -> Option<PreparedStructuredPresentation> {
+) -> StructuredSubmissionRead {
     match generations.prepare_timeline(command.args.as_deref().unwrap_or("")) {
-        Ok(Some(presentation)) => Some(presentation),
-        Ok(None) => {
-            debug!("Ignored stale structured Emacsvox presentation");
-            None
-        }
-        Err(error) => {
-            warn!("Invalid structured Emacsvox presentation: {error}");
-            None
+        Ok(presentation) => StructuredSubmissionRead::Prepared(presentation),
+        Err(rejection) => {
+            match rejection.kind {
+                StructuredTimelineRejectionKind::Stale => {
+                    debug!(
+                        "Rejected stale structured Emacsvox presentation: {}",
+                        rejection.message
+                    );
+                }
+                StructuredTimelineRejectionKind::Invalid => {
+                    warn!(
+                        "Invalid structured Emacsvox presentation: {}",
+                        rejection.message
+                    );
+                }
+            }
+            rejection
+                .identity
+                .map_or(StructuredSubmissionRead::Unowned, |identity| {
+                    StructuredSubmissionRead::Rejected(RejectedStructuredSubmission {
+                        dispatch_id: identity.dispatch_id(),
+                        status: match rejection.kind {
+                            StructuredTimelineRejectionKind::Invalid => BatchStatus::Failed,
+                            StructuredTimelineRejectionKind::Stale => BatchStatus::Cancelled,
+                        },
+                    })
+                })
         }
     }
 }
@@ -2613,12 +2649,14 @@ mod tests {
 
     use omnivox_tts::contracts::NormalizedAcss;
     use omnivox_tts::timeline_protocol::{
-        encode_multipart_presentation_timeline, PresentationDeliveryPolicy,
-        PresentationEffectDirective, PresentationSpeechSpan, PresentationTimelineEnvelope,
-        PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+        encode_multipart_presentation_timeline, encode_presentation_timeline,
+        PresentationDeliveryPolicy, PresentationEffectDirective, PresentationSpeechSpan,
+        PresentationTimelineEnvelope, PRESENTATION_TIMELINE_PROTOCOL_VERSION,
     };
 
     use super::*;
+
+    const INVALID_DIRECT_TIMELINE: &str = "eyJwcm90b2NvbF92ZXJzaW9uIjozLCJnZW5lcmF0aW9uIjozMSwiZGlzcGF0Y2hfaWQiOjcyLCJkZWxpdmVyeV9wb2xpY3kiOiJvcmRlcmVkIiwic3BhbnMiOltdLCJhY3Rpb25zIjpbXX0=";
 
     #[test]
     fn replaceable_coalescing_observes_quiet_and_maximum_windows() {
@@ -3124,10 +3162,53 @@ mod tests {
 
         assert!(matches!(
             read,
-            StructuredSubmissionRead::Prepared(Some(presentation))
+            StructuredSubmissionRead::Prepared(presentation)
                 if presentation.generation == 12
                     && presentation.timeline.dispatch_id == 34
                     && presentation.timeline.spans[0].text == "café 日本"
+        ));
+    }
+
+    #[test]
+    fn direct_rejections_map_owned_dispatches_to_terminal_statuses() {
+        let mut generations = PresentationGenerations::default();
+        let invalid = Command::new(
+            CommandId::EmacsvoxTimeline,
+            Some(INVALID_DIRECT_TIMELINE.to_owned()),
+        );
+        assert!(matches!(
+            prepare_structured_presentation(&generations, &invalid),
+            StructuredSubmissionRead::Rejected(RejectedStructuredSubmission {
+                dispatch_id: 72,
+                status: BatchStatus::Failed,
+            })
+        ));
+
+        generations.commit(40);
+        let stale = Command::new(
+            CommandId::EmacsvoxTimeline,
+            Some(
+                encode_presentation_timeline(&timeline_envelope(
+                    40,
+                    73,
+                    PresentationDeliveryPolicy::Ordered,
+                    None,
+                ))
+                .unwrap(),
+            ),
+        );
+        assert!(matches!(
+            prepare_structured_presentation(&generations, &stale),
+            StructuredSubmissionRead::Rejected(RejectedStructuredSubmission {
+                dispatch_id: 73,
+                status: BatchStatus::Cancelled,
+            })
+        ));
+
+        let unowned = Command::new(CommandId::EmacsvoxTimeline, Some("not-base64".to_owned()));
+        assert!(matches!(
+            prepare_structured_presentation(&generations, &unowned),
+            StructuredSubmissionRead::Unowned
         ));
     }
 
@@ -3219,7 +3300,7 @@ mod tests {
                 .unwrap();
         assert!(matches!(
             replacement,
-            StructuredSubmissionRead::Prepared(Some(presentation))
+            StructuredSubmissionRead::Prepared(presentation)
                 if presentation.generation == 16
                     && presentation.timeline.dispatch_id == 38
         ));
