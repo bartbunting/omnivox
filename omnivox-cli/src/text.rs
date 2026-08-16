@@ -175,17 +175,36 @@ fn word_spans(text: &str) -> Vec<(usize, usize)> {
 // Punctuation expansion
 // ---------------------------------------------------------------------------
 
+/// Emacspeak's in-band separator for a short boundary inside speech text.
+const LEGACY_SPEECH_SEPARATOR: &str = "[*]";
+
 /// Replace punctuation characters with spoken names based on the active level.
+///
+/// The reserved Emacspeak `[*]` separator is collapsed to a space before its
+/// component punctuation can be expanded.  Legacy character names such as
+/// `question[*]mark` therefore remain engine-neutral speech text.
 pub fn apply_punctuation(text: &str, level: PunctuationLevel) -> String {
     let mut result = String::with_capacity(text.len());
+    let mut position = 0;
 
-    for ch in text.chars() {
-        let replacement = punctuation_replacement(ch, level);
+    while position < text.len() {
+        if text[position..].starts_with(LEGACY_SPEECH_SEPARATOR) {
+            result.push(' ');
+            position += LEGACY_SPEECH_SEPARATOR.len();
+            continue;
+        }
+
+        let character = text[position..]
+            .chars()
+            .next()
+            .expect("position must remain within speech text");
+        let replacement = punctuation_replacement(character, level);
 
         match replacement {
             Some(spoken) => result.push_str(spoken),
-            None => result.push(ch),
+            None => result.push(character),
         }
+        position += character.len_utf8();
     }
 
     result
@@ -336,13 +355,28 @@ fn apply_punctuation_with_offsets(
 ) -> (String, Vec<u32>) {
     let mut output = String::with_capacity(text.len());
     let mut mapped = vec![0_u32; offsets.len()];
-    for (position, character) in text.char_indices() {
+    let mut position = 0;
+    while position < text.len() {
         record_offsets(offsets, position, output.len(), &mut mapped);
+        if text[position..].starts_with(LEGACY_SPEECH_SEPARATOR) {
+            output.push(' ');
+            for boundary in 1..=LEGACY_SPEECH_SEPARATOR.len() {
+                record_offsets(offsets, position + boundary, output.len(), &mut mapped);
+            }
+            position += LEGACY_SPEECH_SEPARATOR.len();
+            continue;
+        }
+
+        let character = text[position..]
+            .chars()
+            .next()
+            .expect("position must remain within speech text");
         if let Some(replacement) = punctuation_replacement(character, level) {
             output.push_str(replacement);
         } else {
             output.push(character);
         }
+        position += character.len_utf8();
     }
     record_offsets(offsets, text.len(), output.len(), &mut mapped);
     (output, mapped)
@@ -670,6 +704,44 @@ mod tests {
             prepare_speech_text(input, &state),
             "tracking offsets must not change speech preparation"
         );
+    }
+
+    #[test]
+    fn legacy_speech_separator_is_consumed_before_punctuation() {
+        for level in [
+            PunctuationLevel::None,
+            PunctuationLevel::Some,
+            PunctuationLevel::All,
+        ] {
+            assert_eq!(apply_punctuation("question[*]mark", level), "question mark");
+        }
+    }
+
+    #[test]
+    fn legacy_speech_separator_remaps_utf8_boundaries() {
+        let state = TtsState {
+            punctuation_level: PunctuationLevel::All,
+            split_caps: false,
+            ..TtsState::default()
+        };
+        let input = "équestion[*]mark";
+        let marker_start = "équestion".len() as u32;
+        let marker_end = marker_start + LEGACY_SPEECH_SEPARATOR.len() as u32;
+        let offsets = [
+            0,
+            "é".len() as u32,
+            marker_start,
+            marker_start + 1,
+            marker_start + 2,
+            marker_end,
+            input.len() as u32,
+        ];
+
+        let (prepared, mapped) = prepare_speech_text_with_offsets(input, &state, &offsets);
+
+        assert_eq!(prepared.text, "équestion mark");
+        assert_eq!(mapped, vec![0, 2, 10, 11, 11, 11, 15]);
+        assert_eq!(prepared, prepare_speech_text(input, &state));
     }
 
     #[test]
