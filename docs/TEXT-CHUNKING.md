@@ -1,160 +1,77 @@
 # Text Chunking in Omnivox
 
-## Overview
+## Current behavior
 
-Text chunking splits long text into smaller segments (approximately 15 words each) before TTS synthesis. This enables aggressive silence trimming and ensures predictable audio buffer behavior.
+Omnivox prepares speech text and then divides long text into bounded synthesis
+chunks. The hard limit is 15 whitespace-delimited words. Within each 15-word
+window it prefers the latest useful boundary in this order:
 
-## Rationale
+1. sentence terminator or line break;
+2. clause punctuation; or
+3. the hard word limit.
 
-### Problem: Multi-buffer Utterances
+Common Unicode sentence terminators and closing quotation/bracket characters
+are recognized. Whitespace between chunks is not synthesized. Short input is
+retained as one chunk without copying its spelling or internal whitespace.
 
-When AVSpeechSynthesizer (macOS) or SpeechSynthesizer (Windows) processes long text, it may:
+The implementation is `chunk_prepared_speech()` in
+`omnivox-cli/src/text.rs`. Queue, immediate, preview, and structured-timeline
+paths use it through `omnivox-cli/src/pipeline.rs`.
 
-- Generate multiple audio buffers per utterance
-- Add unpredictable pauses between internal phrase boundaries
-- Produce variable-length leading/trailing silence
+## Why it exists
 
-This makes aggressive silence trimming risky — you might accidentally remove silence that's *between* words in a multi-buffer utterance, causing word loss.
+Interactive speech benefits from placing the first bounded result into the
+audio pipeline without requiring one very long native synthesis. Small chunks
+also bound per-call work and make cancellation checks and fallback opportunities
+more frequent.
 
-### Solution: Single-buffer Utterances
+Chunking does **not** promise that a native engine invokes exactly one internal
+buffer callback. Engine adapters are responsible for collecting and validating
+their native output. The useful contract is that Omnivox makes one structured
+synthesis request per prepared chunk and can queue that result before
+synthesizing later chunks.
 
-By splitting text into ~15 word chunks, each chunk:
+Every chunk is independently canonicalized, silence-trimmed, processed, and
+scheduled. Leading/trailing padding is rate-aware to avoid clipping. The final
+effect or overlay tail is emitted only after the final timeline window.
 
-- Generates exactly one audio buffer from the TTS engine
-- Has predictable silence only at start/end (not mid-utterance)
-- Can be aggressively trimmed without risk of cutting words
+## Source mapping
 
-This was implemented in swiftmac (commit d567621) to enable fast, responsive speech with minimal latency.
+`PreparedSpeechChunk` records its UTF-8 byte range in the complete prepared
+text. Capitalization actions are filtered into their owning chunk and rebased
+to chunk-local offsets. Structured timeline actions are first remapped through
+punctuation expansion and CamelCase splitting, then assigned to one chunk with
+their declared before/after affinity.
 
-## Implementation Details
-
-### Chunk Size
-
-15 words is the target chunk size, chosen empirically:
-
-- Small enough to ensure single-buffer synthesis
-- Large enough to maintain natural prosody within chunks
-- Avoids chunking overhead for short utterances
-
-### Chunking Algorithm
-
-```
-Split text on whitespace
-If word count <= 15: return as single chunk
-Otherwise:
-  - Group into 15-word segments
-  - Final segment may be < 15 words
-```
-
-### Sequential Playback
-
-Chunks are synthesized and queued sequentially:
-
-1. Chunk 1 → TTS → audio buffer → pipeline → speech stream
-2. Chunk 2 → TTS → audio buffer → pipeline → speech stream
-3. ...
-
-Each chunk flows through the pipeline independently. The silence trimmer can aggressively cut silence from each chunk because we know there are no mid-utterance boundaries.
-
-### Silence Trimming
-
-With chunking, the `SilenceTrimmer` effect can use aggressive thresholds:
-
-- Trim leading silence down to near-zero
-- Trim trailing silence down to near-zero
-- No risk of cutting inter-word pauses (they don't exist within a chunk)
-
-This produces extremely responsive speech output with minimal delay between text arrival and audio playback.
-
-## Terminology
-
-**Chunk**: A segment of text (typically ~15 words) that is synthesized as a single utterance, producing a single audio buffer. Also called a "text chunk" or "utterance chunk."
-
-**Single-buffer utterance**: A TTS synthesis operation that produces exactly one audio buffer callback, with no internal phrase boundaries.
-
-**Multi-buffer utterance**: A TTS synthesis operation that produces multiple audio buffer callbacks for a single piece of text, typically with internal pauses.
-
-## Integration Points
-
-### In omnivox-cli/src/main.rs
-
-Chunking should be applied in these locations:
-
-1. **`CommandId::TtsSay`** (immediate speech, line ~728)
-   - After `preprocess_text()`
-   - Before `engine.synthesize()`
-
-2. **`process_queue_items()` → `QueueItem::Speech`** (line ~917)
-   - After `preprocess_text()`
-   - Before `engine.synthesize()`
-
-3. **Letter speaking** (line ~680) - NO chunking
-   - Single character, already tiny
-   - Skip chunking for single-word utterances
-
-4. **Version announcement** (line ~768, ~565) - NO chunking
-   - Short text, unlikely to exceed 15 words
-
-### Pseudo-code
-
-```rust
-fn chunk_text(text: &str, max_words: usize) -> Vec<String> {
-    let words: Vec<&str> = text.split_whitespace().collect();
-
-    if words.len() <= max_words {
-        return vec![text.to_string()];
-    }
-
-    words
-        .chunks(max_words)
-        .map(|chunk| chunk.join(" "))
-        .collect()
-}
-
-// Usage in TtsSay handler:
-let processed_text = preprocess_text(&text, state);
-for chunk in chunk_text(&processed_text, 15) {
-    let request = SynthesisRequest::new(chunk, settings.clone());
-    if let Ok(result) = engine.synthesize(&request) {
-        let mut buf = canonicalize_synthesis_result(result).audio;
-        let pipeline = build_speech_pipeline(state);
-        let _ = pipeline.process(&mut buf);
-        let _ = streams.queue(StreamType::Speech, &buf);
-    }
-}
-```
-
-## Benefits
-
-- **Lower latency**: First chunk plays immediately, remaining chunks follow
-- **Aggressive trimming**: Safe to remove all inter-chunk silence
-- **Predictable buffering**: Each chunk = one buffer, simplifies audio pipeline
-- **Memory efficiency**: Process and discard chunks sequentially
+This is why callers must not re-split a prepared string independently: doing so
+would detach requested anchors from the text sent to the engine.
 
 ## Trade-offs
 
-- **Prosody boundaries**: Natural intonation may break at 15-word boundaries
-- **Performance**: N synthesis calls vs. 1 for long text (negligible for typical use)
-- **Complexity**: Adds loop logic to synthesis callsites
+- Smaller synthesis calls improve first-result latency and cancellation
+  opportunities.
+- Sentence/clause preference reduces arbitrary prosody breaks compared with a
+  fixed 15-word split.
+- Multiple calls add engine setup overhead and can expose a boundary in engines
+  with markedly different per-utterance prosody.
+- A hard limit is intentionally retained so a long punctuation-free line
+  cannot become an unbounded synthesis call.
 
-In practice, the latency and responsiveness benefits far outweigh these costs for interactive screen reader use.
+The limit is not currently configurable. A public option should be added only
+if matched real-engine benchmarks show a useful cross-platform trade-off.
 
-## Testing
+## Verification
 
-Manual test for chunking behavior:
+Unit tests cover short/exact/long input, sentence and clause preference,
+newlines, Unicode closers, hard-limit fallback, capitalization-offset rebasing,
+and structured action offsets across chunks. Run the repository's locked
+workspace suite:
 
-```bash
-# Long text (> 15 words) should chunk and play seamlessly
-echo 'tts_say {This is a very long sentence with many words that should be split into multiple chunks to ensure single buffer utterances and enable aggressive silence trimming for maximum responsiveness.}' | ./target/release/omnivox
-
-# Short text (< 15 words) should not chunk
-echo 'tts_say {Short sentence here.}' | ./target/release/omnivox
+```sh
+cargo test --locked --workspace
 ```
 
-Look for debug logs indicating chunking (future enhancement).
-
-## Future Work
-
-- Make chunk size configurable via `--chunk-size` CLI flag?
-- Smarter chunking on sentence/clause boundaries instead of word count?
-- Benchmark synthesis overhead for typical Emacspeak workloads
+Manual latency evaluation must separate protocol admission, synthesis result,
+audio queueing, mixer-source consumption, and physical audible onset. A log
+showing that chunks were synthesized is not by itself an audible-onset
+measurement.

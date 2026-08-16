@@ -2,22 +2,26 @@
 
 Omnivox keeps its sole synthesis worker responsive when an engine cannot stop
 an in-progress native call. The server wraps WinRT and helper-backed engines in
-a generation-aware execution boundary. Synthesis runs on a detached task while
-the worker polls the same generation counter used to reject stale playback.
+a cancellation-aware execution boundary. Synthesis runs on a detached task
+while the wrapper polls the hard-interrupt generation, an engine stop epoch,
+and any keyed replacement token attached to the request.
 
-When a stop or replacement advances the generation, the wrapper asks the
-engine to stop, marks the native task quarantined, and returns without exposing
-its eventual PCM. A later request sees that engine as temporarily unavailable,
-so normal logical-voice routing selects its configured fallback. Once the old
-task exits, the slot is released and the engine can participate again. There is
-never concurrent access to a serialized engine instance.
+A hard stop asks the engine to stop and quarantines the task immediately. A
+soft supersession (including a keyed replacement) gives the call 75
+milliseconds to return cooperatively before requesting engine stop and
+quarantining it. In both cases its eventual PCM is suppressed. A later request
+waits at most 350 milliseconds for an occupied engine/process slot, with
+cancellation checks during the wait, and then normal routing selects a
+configured fallback. Once the old task exits, the slot is released and the
+engine can participate again. There is never concurrent access to a serialized
+engine instance.
 
 The resource policy is deliberately conservative:
 
 - one active or quarantined isolated call per engine;
 - two active or quarantined isolated calls across the server process;
-- at either limit, no task is spawned and the engine reports unavailable to
-  normal fallback routing;
+- at either limit, no new task is spawned; after the bounded wait the engine
+  reports unavailable to normal fallback routing;
 - detached tasks are never joined during shutdown, so an unreturning native
   call cannot keep the speech server alive;
 - stale results are discarded before routing, effects, or playback.

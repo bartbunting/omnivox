@@ -1,5 +1,11 @@
 # Speech Dispatcher Backend Implementation Plan
 
+> **Status: unimplemented design proposal.** This document predates the current
+> engine registry, structured synthesis result, tracked playback, and timeline
+> capability contracts. Reconcile those interfaces and resolve the open
+> questions below before treating any file list or code sketch as an
+> implementation plan. Current Linux builds use eSpeak NG.
+
 > **Roadmap status:** This is a backend-specific design note, not the canonical
 > project roadmap. See [NEXT_STEPS.md](NEXT_STEPS.md). Before implementation,
 > revise this design to use the common engine descriptor, voice identity,
@@ -248,7 +254,10 @@ OMNIVOX_ENGINE=speechd (printf 'tts_say {A very long sentence}\ns\n'; sleep 2) |
 
 - `spd_set_punctuation()` — we preprocess punctuation in text layer before SD sees it
 - `spd_set_spelling()` — we handle letter-by-letter in our Letter command
-- `spd_set_language()` — language switching not yet implemented in omnivox generally
+- Process-global `spd_set_language()` state — current Omnivox language belongs
+  to each logical synthesis request. A revised backend design must decide how
+  to apply that request-local language without reintroducing global language
+  commands.
 - `spd_set_output_module()` — user configures this in SD's own config; we don't override it
 
 ## Open Questions (resolve at implementation time)

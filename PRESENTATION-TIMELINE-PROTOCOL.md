@@ -40,13 +40,15 @@ UTF-8 offsets, action anchors, effect state, and one presentation clock across
 transport boundaries.
 
 The complete envelope is decoded, bounded, cross-referenced, and validated
-before it can affect playback. Audio resources are also loaded and decoded
-before the first span is submitted. A bad field, missing/reordered fragment,
-timeout, or unavailable resource rejects the whole logical submission; the
-server does not play a valid prefix. Once a valid part-zero header has been
-accepted, assembly failure reports `failed`; a stop between parts reports
-`cancelled`. A complete aggregate whose generation is already stale also
-reports `cancelled`. Each case retires the declared generation.
+before it can affect playback. File resources are loaded into immutable shared
+PCM before the first span is submitted; generated tones and silence remain
+validated recipes until their bounded render window. A bad field,
+missing/reordered fragment, timeout, or unavailable resource rejects the whole
+logical submission; the server does not play a valid prefix. Once a valid
+part-zero header has been accepted, assembly failure reports `failed`; a stop
+between parts reports `cancelled`. A complete aggregate whose generation is
+already stale also reports `cancelled`. Each case retires the declared
+generation.
 
 ## Envelope
 
@@ -120,6 +122,16 @@ superseding or evicting that urgent work. A stop encountered while any timeline
 is still in the coalescing window cancels that timeline and consumes its
 generation; an accepted stop also cancels all older requests still waiting in
 the worker handoff.
+
+Receipt of a valid newer replaceable timeline advances cancellation for its
+exact `(protocol_version, replacement_key)` domain immediately, before the
+reader coalescing window expires. Only admission of the selected synthesis
+request is delayed. The domain token follows synthesis, rendered windows,
+deferred overlays, playback cues, and tracked completion. It removes queued or
+unstarted tagged audio immediately and fades already active speech over three
+milliseconds. Ordered, urgent, legacy, and differently keyed sources on the
+same speech stream are not cleared. Unreached markers, semantic events, and
+effect/overlay tails owned by the superseded timeline are cancelled.
 
 Version 1 omits both delivery fields and retains its original interpretation:
 every version 1 envelope is replaceable in one implicit domain. Version 1 does

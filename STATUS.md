@@ -1,181 +1,115 @@
 # Omnivox Project Status
 
-**Last Updated:** 2026-08-10
-**Version:** 1.3.0
+**Last reviewed:** 2026-08-16
+**Workspace version:** 1.3.0
 
-## Current State
+This file records present behavior and limitations. Protocol guarantees belong
+in the linked protocol specifications; future work belongs in
+[NEXT_STEPS.md](NEXT_STEPS.md).
 
-### Working
+## Implemented
 
-- Full Emacspeak protocol parser plus bounded Emacsvox extensions
-- Bounded 512 KiB/32-line protocol admission, atomic 4,096-item/16 MiB legacy
-  transactions, and nonblocking 32-request/32 MiB synthesis handoff
-- Command queue system with dispatch (depth: speech 100, tone 10, sound 10)
-- State management (voice, rate, pitch, volume, punctuation, split caps)
-- macOS native TTS (AVSpeechSynthesizer via ObjC bridge, buffer capture)
-- Windows native TTS (WinRT SpeechSynthesizer via windows-rs)
-- espeak-ng TTS (always compiled in, cross-platform fallback)
-- Optional Piper neural TTS helper, isolated from the main server and killable
-  after a 250 ms cancellation grace period
-- Generation-aware native-call isolation: one call per engine, two globally;
-  occupied engines route through normal fallback without queuing stale PCM
-- Audio pipeline with extensible effects (SilenceTrimmer, VolumeAdjust, ChannelRouter)
-- Rubato sinc resampler (256-tap BlackmanHarris2, replaces linear interpolation)
-- Tone generation (pure Rust sine wave, fade envelopes, stereo spatial)
-- Audio icon playback (OGG/WAV via rodio, LRU cache, tilde expansion)
-- Bounded audio-resource loading (16 MiB/30 seconds) and decoded LRU caching
-- Text chunking (~15 word chunks for single-buffer utterances)
-- Punctuation replacement (none/some/all levels)
-- Split caps (insert spaces before capitals)
-- Letter speaking with anchored capitalization tone or pitch-raise fallback
-- Voice switching (intra-sentence via queue)
-- Stop with persistent singleton synthesizer
-- Engine selection via OMNIVOX_ENGINE env var or --engine flag
-- Concurrent audio streams (speech/tones/sounds overlap, serialized within each stream)
-- Channel routing (left/right/both) for dual-server notification mode
-- Logical-voice language routing; global legacy language commands are
-  explicitly deprecated and unsupported
-- Per-stream volume control (voice, tone, sound)
-- CLI flags for all settings (--voice, --rate, --pitch, --voice-volume, etc.)
-- Self-registering Emacs voice module (elisp/omnivox-voices.el)
-- Emacs defcustoms with live protocol command sending
-- Voice querying from server (--list-voices, --list-voices-alist)
-- Structured engine, capability, physical voice, and logical voice contracts
-- Pure late-binding voice resolver with ordered fallbacks and diagnostics
-- Versioned, bounded Base64-JSON control channel with capability negotiation
-- Mandatory self-description for built-in engines and structured active-engine inventory
-- Atomic, generation-safe logical-voice registration with resolution diagnostics
-- Emacsvox capability negotiation, inventory discovery, and portable voice registration
-- Deterministic engine registry backing server inventory and logical resolution
-- Per-span queued logical-voice routing across registered engines
-- Safe preferred-engine fallback for missing or unresolved logical routes
-- Batch-local runtime voice/engine failure exclusion and deterministic re-resolution
-- Same-chunk routed synthesis retry with a four-attempt cap and stop checks
-- Ordinary unnamed speech uses the same engine circuit and same-chunk fallback
-- Helper cancellation watchdog terminates native calls that remain stuck after stop
-- Persistent engine failure circuits with bounded cooldowns and single recovery probes
-- Runtime health and recovery transitions projected into structured inventory
-- Independent generation-safe preferred, fallback, and disabled engine policy
-- Structured circuit, last-failure, cooldown, and policy-disable diagnostics
-- Explicit recovery-probe arming for failed in-process and helper engines
-- Generic versioned helper-process engine with bounded framing, negotiation,
-  cancellation, timeout handling, and restart/reconnect recovery probes
-- Optional buffered Eloquence and DECtalk engines through separate 32-bit helpers
-- Eloquence ECI index callbacks mapped to bounded word markers and UTF-8 ranges
-- DECtalk private indexes mapped to bounded word markers and UTF-8 ranges
-- DECtalk native phoneme changes and caller indexes mapped to audio-frame markers
-- Bounded requested synthesis anchors with exact, word-boundary, span-boundary,
-  and omitted resolution grades
-- Helper protocol v2 exact Eloquence anchors and v3 extended ACSS with automatic
-  fallback through older protocol versions
-- Anchor frames retained through canonical resampling and silence trimming
-- Speech-overlaid 440 Hz capital and 1300 Hz all-caps tones resolved through
-  requested anchors with word-boundary and chunk-boundary degradation
-- Per-engine degradation for all six logical ACSS dimensions
-- Eloquence pitch-range, stress, and richness mapped to ECI `vf`, `vr`, and
-  paired `vy`/`vv` controls
-- DECtalk pitch-range, stress, and richness mapped to native `pr/as`,
-  `hr/sr/qu/bf`, and `ri/sm` controls
-- Capability-gated signed per-voice rate offsets relative to the live global
-  zero-to-100 rate, shared by timelines and exact previews
-- Canonical PCM conversion before helper audio enters the effects/playback pipeline
-- Structured synthesis requests and results with realized engine/voice metadata
-- WinRT word and sentence boundaries mapped to playback-synchronized markers
-- Validated helper markers retained through canonical sample-rate conversion
-- Silence-trim reports keep synthesis marker offsets aligned with retained audio
-- Tracked playback sources with ordered, cancellation-safe frame cue delivery
-- Capability-gated marker dispatch with versioned, bounded playback events
-- Emacsvox marker-event negotiation, bounded decoding, and callback dispatch
-- Hard-stop cancellation requests fan out across all registered engines
-- Bounded, capability-advertised `emacsvox_tx` presentation framing with atomic validation
-- Generation coalescing, stale-frame rejection, and stop-barrier semantics
-- Capability-advertised tracked dispatch with completed, cancelled, and failed terminal results
-- Playback acknowledgements covering queued speech, tones, silence, and audio icons
-- Pure engine-neutral presentation timeline vocabulary and scheduler with
-  bounded IDs, source/span positions, stable action order, insert/overlay
-  projection, persistent effect-state snapshots, checked frame mapping, and
-  cancellation projections
-- Queue-boundary auditory-icon overlays with same-boundary mixing, complete-tail
-  tracked playback, and stop-safe deferred scheduling
-- Bounded timeline PCM rendering with serial insertion, sample-aligned overlay,
-  cross-chunk tails, and insertion-aware marker/anchor remapping
-- Playback-bound semantic action cues with bounded opaque IDs, stable marker
-  ordering, cancellation of unreached events, and a versioned v2 wire record
-- Non-mutating exact/portable voice preview with playback completion, realized
-  route metadata, and ACSS degradation reporting
-- English-US eSpeak voice selected as the portable engine default when available
-- Diagnostic self-test (--check)
-- GitHub Actions CI/CD for 6 platforms
+### Protocol and admission
 
-### Not Yet Implemented
+- Legacy Emacspeak command parsing and queue/state handling.
+- A 512 KiB line limit, a bounded 32-line stdin handoff, atomic legacy
+  transaction limits, and a bounded nonblocking synthesis queue.
+- Versioned Base64-JSON control negotiation, inventory, logical-voice
+  registration, runtime routing policy, recovery probes, and non-mutating
+  preview.
+- Tracked terminal status and marker protocols v1 and v2.
+- Structured presentation timelines v1 through v3, including v3 multipart
+  framing, complete validation before admission, and terminal status for
+  decodable invalid or stale submissions.
 
-- Logical routing for immediate `tts_say` and letter commands
-- Structured timeline transport, semantic actions, and timeline-aware effects
-- Linux Speech Dispatcher TTS backend
-- Network mode (-p TCP flag)
-- Multi-device audio routing
-- Sox-style effects (reverb, echo, chorus)
-- Language switching tables
+### Routing and synthesis
 
-See [NEXT_STEPS.md](NEXT_STEPS.md) for the ordered roadmap, degradation
-contract, acceptance criteria, and additional backlog items.
+- macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
+- Optional out-of-process Piper, Eloquence, and DECtalk engines.
+- Structured engine/voice inventory and deterministic per-span logical routing.
+- Ordered fallback for missing voices, unsupported text repertoires, engine
+  failure, and transient engine pressure.
+- Persistent health circuits, bounded cooldowns, one recovery probe, and
+  generation-stamped inventory updates.
+- Immediate speech and letter commands follow the current global engine policy;
+  they do not select a named logical voice.
+- Requested synthesis anchors and engine markers, with truthful exact,
+  word-boundary, span-boundary, or omitted resolution.
+- Capitalization presentation for timelines and isolated letters.
 
-## Test Results
+### Replacement and cancellation
 
-```
-Total: 326 tests, all passing
+- Ordered and urgent timelines bypass the reader's coalescing delay and are
+  never coalesced or evicted.
+- Replaceable timelines coalesce only within the same protocol-version and
+  replacement-key domain.
+- Receipt of a valid newer keyed timeline immediately cancels synthesis and
+  tagged playback in that same domain; only its synthesis admission waits for
+  the bounded reader coalescing window.
+- Domain cancellation does not clear ordered, urgent, legacy, or unrelated
+  keyed playback. Active speech fades for three milliseconds to avoid a click.
+- Hard stop remains stream-wide, invalidates older generations, requests stop
+  from every registered engine, and cancels queued and buffered work.
+- Uncancellable native calls are quarantined; helper processes can be killed
+  after the cancellation grace period where the helper contract permits it.
 
-omnivox-audio:  76 unit + 31 integration = 107
-omnivox-core:   48 unit + 1 doc = 49
-omnivox-tts:   111 unit
-omnivox-cli:    59 unit
+### Presentation and audio
+
+- Canonical stereo 44.1 kHz PCM conversion and sinc resampling.
+- Silence trimming with marker/anchor remapping, volume adjustment, and channel
+  routing.
+- Independent speech, tone, and sound streams with bounded queues.
+- Bounded OGG/WAV resource loading, decoded LRU caching, and immutable shared
+  timeline PCM.
+- Inserted and overlaid timeline audio/tone actions, inserted silence,
+  semantic events, stable cue order, and tracked overlay tails.
+- Persistent post-synthesis gain, filtering, pan, reverb, and echo state.
+- Privacy-safe persistent logs and optional sensitive full-text diagnostics.
+
+## Current limitations
+
+- Linux has no Speech Dispatcher backend; eSpeak NG is the current built-in
+  Linux engine. [SPEECHD-PLAN.md](SPEECHD-PLAN.md) is a proposal only.
+- There is no TCP/network server mode and no authenticated remote protocol.
+- Audio routing selects left, right, or both channels within one output device;
+  arbitrary multi-device routing is not implemented.
+- Immediate `tts_say` and letter commands use the global engine order rather
+  than a named logical voice.
+- Native cancellation strength differs by engine. WinRT work may continue in a
+  quarantined task after its stale output has been suppressed.
+- Marker precision differs by engine. Markerless engines retain speech and
+  boundary-level presentation but cannot claim exact in-span action timing.
+- Piper packaging, model distribution, and broad real-platform latency testing
+  are not release-complete.
+- The common effects set does not include a chorus effect.
+- Logical-language routing is implemented, but live multilingual coverage is
+  not comprehensive across all backends.
+
+## Platform and CI coverage
+
+| Platform | Runtime status | GitHub release artifact |
+|---|---|---|
+| macOS ARM64 | AVSpeechSynthesizer and eSpeak NG | Yes |
+| macOS x64 | AVSpeechSynthesizer and eSpeak NG | Yes |
+| Windows x64 | WinRT and eSpeak NG; optional helpers | Yes |
+| Windows ARM64 | WinRT and eSpeak NG | Yes |
+| Linux x64/ARM64 | eSpeak NG source builds | No current workflow artifact |
+
+The checked-in workflow formats on Linux, builds four macOS/Windows targets,
+and tests macOS ARM64 plus Windows x64 and ARM64. Linux remains usable from a
+source build but is not currently a release artifact or runtime test job.
+
+## Validation
+
+The supported local gates are:
+
+```sh
+make fmt-check
+cargo test --locked --workspace
+make lint
 ```
 
-## Platform Support
-
-| Platform | Native TTS | espeak-ng Fallback | Status |
-|----------|-----------|-------------------|--------|
-| macOS | AVSpeechSynthesizer | Yes | Working |
-| Linux | Speech Dispatcher (planned) | Yes | espeak-ng works |
-| Windows | WinRT plus optional Eloquence/DECtalk helpers | Yes | Working |
-
-## Commands Working
-
-| Command | Status | Notes |
-|---------|--------|-------|
-| `q {text}` | Working | Queue speech |
-| `c [{voice ...}]` | Working | Legacy physical voice switching |
-| `c {[[logical_voice ID]]}` | Working | Registered engine/voice routing for queued spans |
-| `d` | Working | Dispatch queue |
-| `s` | Working | Stop (persistent synth) |
-| `l {letter}` | Working | Anchored cap tone when enabled; pitch raise otherwise |
-| `t {freq} {dur}` | Working | Independent tone generation |
-| `emacsvox_tone 1 {mode} {freq} {dur}` | Working | Capability-gated insert/overlay tone on the presentation clock |
-| `a {path}` | Working | Queue-boundary overlay; complete tail is tracked |
-| `p {path}` | Working | Immediate sound |
-| `sh {duration}` | Working | Silence |
-| `tts_say {text}` | Working | Immediate speech (with chunking) |
-| `tts_set_speech_rate` | Working | Rate control |
-| `tts_set_voice` | Working | Voice selection |
-| `tts_set_pitch_multiplier` | Working | Pitch control |
-| `tts_set_*_volume` | Working | Volume per stream type |
-| `set_lang`, `set_next_lang`, `set_previous_lang`, `set_preferred_lang` | Deprecated | Explicit unsupported response; logical voices own language |
-| `tts_set_notification_channel` | Deprecated | Explicit unsupported response; use a separately targeted process |
-| `tts_set_punctuations` | Working | none/some/all |
-| `tts_split_caps` | Working | camelCase spacing |
-| `tts_sync_state` | Working | Atomic state update |
-| `tts_reset` | Working | Reset defaults |
-| `version` | Working | Version announcement |
-| `tts_exit` | Working | Clean exit |
-| `omnivox_control` | Working | Capabilities, inventory, logical voices, runtime engine policy, recovery probes, and one-shot preview |
-| `emacsvox_tx` | Working | Bounded replaceable presentation transaction after capability negotiation |
-| `emacsvox_tracked_dispatch` | Working | One terminal result after queued playback completes, cancels, or fails |
-| `emacsvox_marker_dispatch` | Working | Versioned marker events plus the tracked terminal result |
-
-## Next Priority
-
-1. Add persistent post-synthesis effects.
-2. Add structured Emacsvox timeline transport and degradation reporting.
-3. Verify logical-voice language selection against live multilingual engines.
-
-The complete plan is maintained in [NEXT_STEPS.md](NEXT_STEPS.md).
+Real helper, cancellation, and audio-device behavior also require the relevant
+platform runtimes. A passing unit suite is not evidence of acceptable audible
+onset latency; measurement methodology and remaining performance work are
+tracked in [NEXT_STEPS.md](NEXT_STEPS.md).

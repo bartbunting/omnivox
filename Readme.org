@@ -1,31 +1,9 @@
-* OmniVox
+#+title: Omnivox
 
-** What is it?
+Omnivox is a cross-platform speech server for Emacsvox and Emacspeak.  The
+canonical project overview, build instructions, integration choices, and
+documentation index are maintained in [[file:README.md][README.md]].
 
-This is another Emacspeak server, but with a few unique properties.
-
-Built on DECTalk which is presently the best voice server in terms of testing
-with Emacspeak and supporting important Emacspeak features.
-
-Created to always be building on Linux, Mac, Windows. Not just building but
-with releases so that all that is required to run it is to download the
-release bundle and extract it to your $EMACSPEAK/servers directory.
-
-The goal is most uses will use the binaries.
-
-** Is it ready?
-
-Nope. Will be ready when the following features are in.
-
-** Emacspeak Protocol Covered [10%]
-- [X] Single path
-  wav -> channel manipulation -> primary output
-- [ ] Windows Right / Left channel support
-- [ ] Linux Right / Left channel support
-- [ ] Mac Right / Left channel support
-- [ ] Linux ARM64 Binaries
-- [ ] Linux AMD64 Binaries
-- [ ] Mac ARM64 Binaries
-- [ ] Mac AMD64 Binaries
-- [ ] Windows ARM64 Binaries
-- [ ] Windows AMD64 Binaries
+This Org file is retained only for tools and links that expect =Readme.org=.
+Do not duplicate status or setup instructions here; update =README.md= and the
+linked reference documents instead.

@@ -1,167 +1,181 @@
 # Omnivox Configuration
 
-Omnivox is configured through CLI flags (for terminal use) and Emacs
-defcustoms with protocol commands (for Emacspeak use).
+The command line configures a standalone server process. Runtime protocol
+commands configure a process already launched by Emacs. Emacsvox and upstream
+Emacspeak use different Lisp adapters; their variable names are documented
+separately below.
 
-## CLI Flags
+## Command-line options
 
-```
-omnivox [OPTIONS]
+`omnivox --help` is authoritative. The current options are:
 
-OPTIONS:
-    --help                Show help message
-    --version             Show version number
-    --check               Run diagnostic self-test
-    --list-voices         List available TTS voices
-    --list-voices-alist   List voices as Emacs-readable alist
-    --engine NAME         TTS engine: native, espeak
-    --voice ID            Default voice (e.g. en-US:Alex)
-    --rate FLOAT          Speech rate 0.0-1.0 (0.5 = normal)
-    --pitch FLOAT         Pitch multiplier 0.5-2.0 (1.0 = normal)
-    --voice-volume F      Voice volume 0.0-1.0
-    --tone-volume F       Tone volume 0.0-1.0
-    --sound-volume F      Sound/icon volume 0.0-1.0
-    --audio-target T      Channel routing: left, right, both
-```
+| Option | Meaning |
+|---|---|
+| `--help`, `-h` | Show help. |
+| `--version`, `-V` | Print the workspace version. |
+| `--check` | Run the diagnostic self-test. |
+| `--list-voices` | Print voices for the selected startup engine. |
+| `--list-voices-alist` | Print the same list as Emacs-readable data. |
+| `--engine NAME` | Select `native`, `espeak`, or opt-in `piper`. |
+| `--voice ID` | Set the startup physical voice. |
+| `--rate FLOAT` | Set normalized startup rate from 0.0 through 1.0. |
+| `--pitch FLOAT` | Set pitch multiplier from 0.5 through 2.0. |
+| `--voice-volume FLOAT` | Set speech gain from 0.0 through 1.0. |
+| `--tone-volume FLOAT` | Set tone gain from 0.0 through 1.0. |
+| `--sound-volume FLOAT` | Set sound/icon gain from 0.0 through 1.0. |
+| `--audio-target TARGET` | Route to `left`, `right`, or `both`. |
+| `--piper-model PATH` | Supply a Piper `.onnx` model. |
+| `--dump-wav VOICE OUTPUT [TEXT]` | Synthesize a diagnostic WAV. |
+| `--play-wav FILE` | Play a WAV through the Omnivox audio path. |
 
-Without options, starts the Emacspeak protocol server on stdin.
+Without an action option, Omnivox starts the stdin protocol server. Protocol
+rate commands use Emacspeak's integer scale; Omnivox normalizes values greater
+than 1 by dividing by 100. Higher values produce a faster requested rate.
 
-## Environment Variables
+## Server environment
 
-Omnivox recognizes these environment variables:
+### Engine selection
 
-**OMNIVOX_LOG_DIRECTORY** (Emacsvox WSL launcher only)
+`OMNIVOX_ENGINE`
 
-- Linux directory used for one persistent stderr log per OmniVox launch
-- Default: `$XDG_STATE_HOME/emacsvox/omnivox`, falling back to
-  `~/.local/state/emacsvox/omnivox`
-- Logs are created with mode `0600`
-- Logs contain request metadata and failure details but not synthesized text
-  unless `OMNIVOX_LOG_SYNTHESIS_TEXT` is explicitly enabled
-- See [`docs/DIAGNOSTICS.md`](docs/DIAGNOSTICS.md)
+- `native` or empty selects the platform default (`macos`, `winrt`, or eSpeak
+  where no native engine exists).
+- `espeak` makes eSpeak NG preferred without removing other registered engines.
+- `piper` selects the optional helper-backed Piper engine and requires a
+  Piper-enabled build plus a model.
+- Equivalent startup option: `--engine`.
 
-**OMNIVOX_LOG_SYNTHESIS_TEXT** (optional, sensitive)
+`OMNIVOX_PIPER_MODEL`
 
-- Values `1`, `true`, `yes`, or `on`, ignoring ASCII case and surrounding
-  whitespace, enable full synthesis-text capture
-- Default: unset/disabled
-- Records each routed text chunk in the persistent diagnostic log, including
-  retries through fallback engines
-- Captured text can contain passwords, messages, document contents, and other
-  private data; enable it only while diagnosing a failure and protect or delete
-  collected logs when they are no longer needed
-- The Emacsvox WSL launcher passes this variable to the Windows process
+- Path to a Piper `.onnx` model.
+- Overridden by `--piper-model`.
 
-**OMNIVOX_ENGINE**
+`OMNIVOX_PIPER_HELPER`
 
-- Values: `espeak`, `native`, or empty
-- Default: empty (use platform-native TTS)
-- Forces espeak-ng engine on platforms with native TTS (macOS/Windows)
-- Equivalent to `--engine`
+- Optional path to `omnivox-piper-helper`.
+- Otherwise the server looks beside its own executable.
 
-**OMNIVOX_AUDIO_TARGET**
+`OMNIVOX_PIPER_ESPEAK_DATA`
 
-- Values: `left`, `right`, `both`, or empty
-- Default: empty (both channels)
-- Controls speech, tone, and sound routing for all output owned by that process
-- Used by Emacspeak for dual-server notification mode
-- Normally set automatically by Emacspeak, not manually
-- Equivalent to `--audio-target`
+- Optional Piper-specific path containing `espeak-ng-data/`.
+- Used only by the in-process Piper implementation; ordinary packaged use
+  normally relies on the helper and its own discovery.
 
-**OMNIVOX_ELOQUENCE_HELPER** (Windows, optional)
+### Audio routing
 
-- Path to `OmnivoxEloquenceHelper32.exe`
-- Overrides automatic discovery beside `omnivox.exe`
-- A missing or failed helper is omitted from inventory; WinRT and eSpeak remain
-  available according to normal fallback policy
+`OMNIVOX_AUDIO_TARGET`
 
-**OMNIVOX_ECI_DLL** (inherited by the Eloquence helper, optional)
+- `left`, `right`, `both`, or empty; empty means both channels.
+- Applies to every output stream owned by that process.
+- Equivalent startup option: `--audio-target`.
+- Notification isolation uses a second process with its own value; Omnivox has
+  no hidden notification stream inside one process.
 
-- Path to the user-supplied 32-bit `ECI.DLL`
-- Overrides the helper's normal Freedom Scientific installation path
-- Omnivox and Emacsvox do not distribute the proprietary runtime
+### Diagnostics
 
-**OMNIVOX_DECTALK_HELPER** (Windows, optional)
+`OMNIVOX_LOG_SYNTHESIS_TEXT`
 
-- Path to `OmnivoxDectalkHelper32.exe`
-- Overrides automatic discovery beside `omnivox.exe`
-- A missing or failed helper is omitted independently of other engines
+- Values `1`, `true`, `yes`, or `on`, ignoring case and surrounding whitespace,
+  opt in to full synthesis-text logging.
+- Disabled by default. Text may contain passwords, messages, documents, and
+  other private content.
 
-**OMNIVOX_DECTALK_DLL** (inherited by the DECtalk helper, optional)
+`OMNIVOX_LOG_DIRECTORY` (Emacsvox WSL launcher only)
 
-- Path to the user-supplied 32-bit `DECtalk.dll`
-- `dtalk_us.dic` must be in the same directory
-- Overrides discovery beside the helper and its development runtime directory
+- Linux directory for one private stderr log per launch.
+- Defaults to `$XDG_STATE_HOME/emacsvox/omnivox`, or
+  `~/.local/state/emacsvox/omnivox` when `XDG_STATE_HOME` is unset.
+- The Rust process does not read this variable; the launcher redirects stderr.
 
-## Emacs Customization
+See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) for collection and privacy
+guidance.
 
-All settings are in the `omnivox` customization group:
+### Optional Windows helpers
 
-```
-M-x customize-group RET omnivox RET
-```
+`OMNIVOX_ELOQUENCE_HELPER`
 
-Settings are sent to the running omnivox process via protocol commands.
-Changes take effect immediately.
+- Optional path to `OmnivoxEloquenceHelper32.exe`.
+- Otherwise Omnivox looks beside its executable.
 
-| Defcustom | Default | Description |
-|-----------|---------|-------------|
-| `omnivox-default-voice-id` | "" | Voice ID (e.g. "en-US:Alex") |
-| `omnivox-default-speech-rate` | 0.6 | Speech rate (0.0-1.0) |
-| `omnivox-default-pitch` | 1.0 | Pitch multiplier (0.5-2.0) |
-| `omnivox-default-voice-volume` | 1.0 | Voice volume (0.0-1.0) |
-| `omnivox-default-tone-volume` | 0.1 | Tone/beep volume (0.0-1.0) |
-| `omnivox-default-sound-volume` | 0.5 | Audio icon volume (0.0-1.0) |
+`OMNIVOX_ECI_DLL`
 
-### Interactive Commands
+- Optional path passed to the Eloquence helper for a user-supplied 32-bit
+  `ECI.DLL`.
 
-| Command | Description |
-|---------|-------------|
-| `omnivox-select-voice` | Choose voice with completion from server's list |
-| `omnivox-set-rate` | Set speech rate (0.0-1.0) |
-| `omnivox-set-pitch` | Set pitch multiplier (0.5-2.0) |
-| `omnivox-set-voice-volume` | Set voice volume (0.0-1.0) |
-| `omnivox-set-tone-volume` | Set tone volume (0.0-1.0) |
-| `omnivox-set-sound-volume` | Set sound/icon volume (0.0-1.0) |
-| `omnivox-list-voices` | Display all available voices in a buffer |
-| `omnivox-refresh-voices` | Re-query voices from the server |
-| `omnivox-status` | Show current settings |
+`OMNIVOX_DECTALK_HELPER`
 
-### Minimal init.el Example
+- Optional path to `OmnivoxDectalkHelper32.exe`.
+- Otherwise Omnivox looks beside its executable.
+
+`OMNIVOX_DECTALK_DLL`
+
+- Optional path to user-supplied `DECtalk.dll`.
+- `dtalk_us.dic` must be in the same directory.
+
+A missing helper or runtime removes only that engine from usable inventory;
+normal fallback remains available. Proprietary runtimes are not distributed
+by Omnivox or Emacsvox.
+
+`ESPEAK_NG_DATA` is also forwarded by the Emacsvox WSL launcher when a staged
+Windows runtime supplies its content-addressed eSpeak data directory. Normal
+source builds use the backend's standard data discovery.
+
+## Emacsvox adapter
+
+Emacsvox ships its own adapter in `lisp/omnivox-voices.el`. Common settings
+include:
+
+| Variable | Default | Meaning |
+|---|---:|---|
+| `omnivox-default-speech-rate` | `60` | Initial integer rate on the 0--100 scale. |
+| `omnivox-default-voice-id` | `""` | Empty means the preferred engine default. |
+| `omnivox-engine-priority-ids` | `nil` | Explicit preferred engine order. |
+| `omnivox-fallback-engine-ids` | `("espeak")` | Global fallback engine order. |
+| `omnivox-disabled-engine-ids` | `nil` | Engines disabled by runtime policy. |
+| `omnivox-logical-voice-preferences` | `nil` | Advanced portable/exact selector input. |
+
+Prefer `M-x emacsvox-aural-voice-workbench` for route and voice configuration;
+it keeps portable palette data separate from machine-local exact identifiers.
+Select Omnivox with `M-x omnivox`.
+
+## Upstream Emacspeak adapter
+
+This repository's `elisp/omnivox-voices.el` is a separate compatibility module
+for upstream Emacspeak. Its common customizations are:
+
+| Variable | Default | Meaning |
+|---|---:|---|
+| `omnivox-speech-rate` | `60` | Initial integer rate on the 0--100 scale. |
+| `omnivox-voice-id` | `""` | Empty means the engine default. |
+| `omnivox-pitch` | `1.0` | Pitch multiplier. |
+| `omnivox-voice-volume` | `1.0` | Speech gain. |
+| `omnivox-tone-volume` | `0.1` | Tone gain. |
+| `omnivox-sound-volume` | `0.5` | Sound/icon gain. |
+| `omnivox-notification-channel` | `"left"` | Target for the separate notification process. |
+
+Example:
 
 ```elisp
-;; Load omnivox voice module (before emacspeak)
 (add-to-list 'load-path "/path/to/omnivox/elisp")
 (require 'omnivox-voices)
-;; Override only what you need:
-(setq omnivox-default-voice-id "en-US:Alex")
-(setq omnivox-default-speech-rate 0.6)
-
-;; Load emacspeak
-(setq dtk-program "omnivox")
+(setq omnivox-speech-rate 60
+      omnivox-voice-id ""
+      dtk-program "omnivox")
 (require 'emacspeak-setup)
 ```
 
-## Dual-Server Notification Mode
+Use `omnivox-set-rate`, `omnivox-select-voice`, and the volume/pitch commands
+for live changes. The `dtk-*` names in this example belong to upstream
+Emacspeak and are intentionally not Emacsvox configuration names.
 
-When `tts-notification-device` is set to `left` (or `right`), Emacspeak
-spawns two omnivox processes:
+## Ownership details
 
-1. **Main process** - Both channels, handles primary speech
-2. **Notification process** - Left channel only, handles notifications
+CLI parsing lives in `omnivox-cli/src/cli.rs`. Process-wide channel selection
+is applied during engine/audio initialization. Runtime state commands are
+handled by `omnivox-cli/src/server.rs`. Logical voices and routing policy are
+snapshotted at dispatch so later configuration changes affect later work only.
 
-This allows notifications to play in one ear while main content continues.
-Emacspeak sets `OMNIVOX_AUDIO_TARGET` automatically for the notification
-process.
-
-Omnivox has no hidden notification stream inside either process.  The legacy
-`tts_set_notification_channel` command is parsed during migration but returns
-`unsupported_operation`; change the second process's environment instead.
-
-## Technical Details
-
-CLI flags are parsed in `omnivox-cli/src/main.rs` via `parse_args()` and
-applied to the TTS state via `apply_cli_flags()`.  The `ChannelRouter`
-audio effect handles channel routing, and volumes are applied in the audio
-pipeline.  Emacs sends runtime changes via protocol commands (e.g.
-`tts_set_speech_rate`, `tts_set_voice_volume`).
+The deprecated `tts_set_notification_channel` command returns an explicit
+unsupported-operation response; start a separately targeted process instead.
+Legacy global language commands are likewise unsupported because language is a
+property of each logical voice rather than process-global mutable state.

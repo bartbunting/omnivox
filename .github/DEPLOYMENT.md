@@ -1,227 +1,105 @@
-# Deployment Guide
+# Release and Deployment Guide
 
-## GitHub Actions CI/CD
+## Published artifacts
 
-This repository is configured with automated builds for 6 platforms via GitHub Actions.
+The checked-in GitHub Actions workflow publishes these release archives:
 
-## What Gets Built
+| Platform | Target | Archive |
+|---|---|---|
+| macOS Apple Silicon | `aarch64-apple-darwin` | `omnivox-VERSION-macos-arm64.tar.gz` |
+| macOS Intel | `x86_64-apple-darwin` | `omnivox-VERSION-macos-x64.tar.gz` |
+| Windows x64 | `x86_64-pc-windows-msvc` | `omnivox-VERSION-windows-x64.zip` |
+| Windows ARM64 | `aarch64-pc-windows-msvc` | `omnivox-VERSION-windows-arm64.zip` |
 
-On every push to `main`, the following binaries are automatically built:
+Each archive contains the main binary and `omnivox-voices.el`. Releases also
+publish `sha256sums.txt`. The workflow does **not** currently publish Linux
+artifacts, optional Piper helpers/models, proprietary-engine helpers, or
+proprietary runtimes.
 
-| Platform | Architecture | Binary |
-|----------|-------------|--------|
-| Windows | x64 | omnivox.exe |
-| Windows | ARM64 | omnivox.exe |
-| Linux | x64 | omnivox |
-| Linux | ARM64 | omnivox |
-| macOS | x64 (Intel) | omnivox |
-| macOS | ARM64 (Apple Silicon) | omnivox |
+Linux remains supported as a source build using eSpeak NG. Do not advertise a
+downloadable Linux binary, ABI baseline, or ARM64 cross-build until the workflow
+contains and validates that target.
 
-## How It Works
+## Workflow triggers
 
-1. **On push to main**: GitHub Actions triggers the workflow
-2. **Builds run in parallel**: All 6 platform builds run concurrently
-3. **Tests run**: Code is tested on Linux, Windows, and macOS
-4. **Artifacts are uploaded**: Each binary is uploaded as a workflow artifact
-5. **Release is created**: A new release is automatically created with all binaries
+- A push or pull request to `main` runs formatting, builds, and tests.
+- A tag matching `v*` runs the same gates and creates a GitHub release after
+  every required job succeeds.
+- An ordinary push to `main` does not create a timestamped release.
 
-## Accessing Binaries
+The release version and archive prefix come from the tag name with its leading
+`v` removed for filenames. For example, tag `v1.3.0` produces archives prefixed
+`omnivox-1.3.0-`.
 
-### From GitHub Releases
+## What CI validates
 
-1. Go to https://github.com/robertmeta/omnivox/releases
-2. Find the latest automated build (tagged `build-YYYYMMDD-HHMMSS`)
-3. Download the archive for your platform:
-   - Windows: `omnivox-windows-{x64,arm64}.zip`
-   - Linux: `omnivox-linux-{x64,arm64}.tar.gz`
-   - macOS: `omnivox-macos-{x64,arm64}.tar.gz`
+- Formatting on an Ubuntu runner.
+- Release builds for both listed macOS and Windows architectures.
+- Tests and Clippy on macOS ARM64, Windows x64, and Windows ARM64.
+- Locked dependency resolution with Rust 1.97.1, matching
+  `rust-toolchain.toml`.
 
-### From Workflow Runs
+The workflow does not currently execute Linux runtime tests. It also does not
+exercise real Eloquence, DECtalk, or Piper runtimes, physical audible onset, or
+Emacsvox's content-addressed Windows staging contract.
 
-1. Go to https://github.com/robertmeta/omnivox/actions
-2. Click on a workflow run
-3. Scroll to "Artifacts" section
-4. Download the artifact for your platform
+## Installing an archive
 
-## Installation
+Verify the archive against `sha256sums.txt`, extract it, and keep the binary and
+matching adapter from the same release.
 
-### Windows
-```powershell
-# Extract zip
-Expand-Archive omnivox-windows-x64.zip -DestinationPath C:\Program Files\omnivox
+On macOS, place `omnivox` in a directory on `PATH` and make it executable:
 
-# Add to PATH or use full path
-C:\Program Files\omnivox\omnivox.exe
+```sh
+install -m 755 omnivox "$HOME/.local/bin/omnivox"
 ```
 
-### Linux
-```bash
-# Extract tarball
-tar xzf omnivox-linux-x64.tar.gz
+On Windows, copy `omnivox.exe` into the Emacspeak speech-server directory or
+another configured executable location. Release archives use WinRT as the
+native engine and include eSpeak NG fallback; optional helper engines require
+separate adjacent executables and user-supplied runtimes.
 
-# Install to /usr/local/bin
-sudo install -m 755 omnivox /usr/local/bin/omnivox
+The repository adapter is for upstream Emacspeak. Follow [README.md](../README.md)
+and [ENV-VARS.md](../ENV-VARS.md) rather than mixing those `dtk-*` names with
+Emacsvox's bundled adapter.
 
-# Or install to user directory
-mkdir -p ~/.local/bin
-install -m 755 omnivox ~/.local/bin/omnivox
+## Emacsvox Windows deployment
+
+Emacsvox does not consume this generic CI archive for its reproducible WSL to
+Windows integration. The sibling Emacsvox repository owns a pinned Windows-GNU
+build, 32-bit helper builds, runtime inputs, provenance, content-addressed
+staging, and Windows-local runtime copy:
+
+```sh
+cd /path/to/emacsvox
+make windows-omnivox       # clean reproducible release input
+make windows-omnivox-dev   # active local changes with tracked-diff hashes
 ```
 
-### macOS
-```bash
-# Extract tarball
-tar xzf omnivox-macos-arm64.tar.gz
+See `servers/omnivox-release/README.org` in that repository. Do not manually
+copy over a running content-addressed runtime or weaken its clean-worktree
+guard.
 
-# Install to /usr/local/bin
-sudo install -m 755 omnivox /usr/local/bin/omnivox
+## Local release checks
 
-# Or install via Homebrew (if available)
-brew install robertmeta/emacspeak/omnivox
+Use the pinned toolchain and locked commands:
+
+```sh
+make fmt-check
+cargo test --locked --workspace
+make lint
+cargo build --locked --release
 ```
 
-## Platform-Specific Notes
+Platform-specific claims still require the relevant host and runtime. A
+cross-compile alone does not verify audio-device behavior, native voice
+inventory, cancellation, or audible latency.
 
-### Windows
-- Uses WinRT SpeechSynthesizer for native TTS
-- Requires Windows 10 or later
-- No additional dependencies required
+## Current release gaps
 
-### Linux
-- Uses espeak-ng (statically compiled into the binary)
-- No external dependencies required
-- Works on any Linux distro with glibc 2.31+ (Ubuntu 20.04+)
-
-### macOS
-- Uses AVSpeechSynthesizer for native TTS
-- Requires macOS 10.15 (Catalina) or later
-- No additional dependencies required
-
-### Cross-Platform Fallback
-
-All binaries include espeak-ng compiled in. To use espeak-ng instead of the native TTS:
-
-```bash
-OMNIVOX_ENGINE=espeak omnivox
-```
-
-## Testing Builds Locally
-
-To test the cross-compilation setup locally:
-
-### Windows (on Windows)
-```powershell
-rustup target add x86_64-pc-windows-msvc
-cargo build --locked --release --target x86_64-pc-windows-msvc
-```
-
-### Linux (on Linux)
-```bash
-# Native build
-cargo build --locked --release --target x86_64-unknown-linux-gnu
-
-# ARM64 cross-compilation
-sudo apt-get install gcc-aarch64-linux-gnu
-rustup target add aarch64-unknown-linux-gnu
-cargo build --locked --release --target aarch64-unknown-linux-gnu
-```
-
-### macOS (on macOS)
-```bash
-# Intel build
-rustup target add x86_64-apple-darwin
-cargo build --locked --release --target x86_64-apple-darwin
-
-# Apple Silicon build
-rustup target add aarch64-apple-darwin
-cargo build --locked --release --target aarch64-apple-darwin
-```
-
-## Triggering Manual Builds
-
-To manually trigger a build without pushing to main:
-
-```bash
-gh workflow run build.yml
-```
-
-Or via the GitHub web interface:
-1. Go to Actions tab
-2. Select "Build" workflow
-3. Click "Run workflow"
-4. Select branch and click "Run workflow"
-
-## Build Matrix
-
-The workflow uses a matrix strategy to build all platforms in parallel:
-
-```yaml
-matrix:
-  include:
-    - os: windows-latest
-      target: x86_64-pc-windows-msvc
-    - os: windows-latest
-      target: aarch64-pc-windows-msvc
-    - os: ubuntu-latest
-      target: x86_64-unknown-linux-gnu
-    - os: ubuntu-latest
-      target: aarch64-unknown-linux-gnu
-    - os: macos-latest
-      target: x86_64-apple-darwin
-    - os: macos-latest
-      target: aarch64-apple-darwin
-```
-
-Each build job:
-1. Installs Rust with the target triple
-2. Installs platform-specific build tools
-3. Builds with `cargo build --locked --release --target <triple>` using the
-   exact Rust release in `rust-toolchain.toml`
-4. Uploads the binary as an artifact
-
-## Caching
-
-To speed up builds, the workflow caches:
-- Cargo registry (`~/.cargo/registry`)
-- Cargo git index (`~/.cargo/git`)
-- Build artifacts (`target/`)
-
-First builds take 10-15 minutes per platform. Subsequent builds with caching take 2-5 minutes.
-
-## Troubleshooting
-
-### Build failures on Linux ARM64
-Ensure gcc-aarch64-linux-gnu is installed and linker is configured:
-```bash
-export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-```
-
-### macOS ObjC bridge compilation errors
-Ensure Xcode Command Line Tools are installed:
-```bash
-xcode-select --install
-```
-
-### espeak-ng compilation errors
-espeak-ng requires C compiler and build tools:
-- Linux: `build-essential autoconf automake libtool`
-- macOS: Xcode Command Line Tools
-- Windows: Visual Studio build tools (pre-installed on GitHub runners)
-
-## Release Tagging Strategy
-
-Releases are tagged automatically with timestamps:
-- Format: `build-YYYYMMDD-HHMMSS`
-- Example: `build-20260209-143022`
-
-This allows tracking builds by date/time and provides chronological ordering.
-
-## Future Enhancements
-
-Potential improvements to CI/CD:
-
-1. **Semantic versioning**: Use git tags for release versions
-2. **Docker images**: Build container images for server deployment
-3. **Homebrew automation**: Auto-update homebrew tap on release
-4. **Binary signing**: Code-sign macOS/Windows binaries
-5. **Cross-platform testing**: Test binaries on target platforms before release
-6. **Performance benchmarks**: Run performance tests in CI
+- Code signing/notarization is not part of the workflow.
+- Linux artifacts and Linux runtime tests are absent.
+- Optional helper/model packaging is separate from generic release archives.
+- Performance/onset and real proprietary-engine smoke tests are not CI gates.
+- Release artifact retention follows GitHub's configured/default policies; do
+  not rely on a hard-coded retention duration in project documentation.

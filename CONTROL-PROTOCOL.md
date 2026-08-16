@@ -15,14 +15,13 @@ not need Tcl escaping and remain separate structured fields.
   boundary. The ordinary `t` command remains an independent beep.
 - A client must successfully request capabilities before using later control
   extensions.
-- The server advertises only features it currently implements. Version 1
-  currently implements capability negotiation, active-engine inventory,
+- The server advertises only features it currently implements. Control
+  protocol version 1 covers capability negotiation, active-engine inventory,
   atomic logical-voice registration, queued logical-voice routing, exact or
   portable one-shot voice preview, generation-safe runtime engine policy,
-  explicit recovery probes, and bounded replaceable presentation transactions.
-  It also advertises tracked playback completion for clients that need a
-  terminal result after queued audio ends, plus version 1 marker-aware playback
-  events.
+  explicit recovery probes, legacy framed transactions, tracked playback, and
+  presentation capability discovery. Structured timelines and marker events
+  retain their own advertised protocol versions.
 
 ## Request Record
 
@@ -189,10 +188,17 @@ A successful capability response decodes to this shape:
     "exact_voice_preview",
     "legacy_commands",
     "logical_voice_registration",
+    "logical_voice_language_routing",
     "logical_voice_routing",
     "playback_marker_events_v1",
+    "playback_marker_events_v2",
+    "presentation_timeline_v1",
+    "presentation_timeline_v2",
+    "presentation_timeline_v3",
     "presentation_tone_v1",
+    "post_synthesis_effects_v1",
     "preferred_engine",
+    "process_audio_routing",
     "relative_rate_v1",
     "runtime_routing_policy",
     "stable_voice_ids",
@@ -328,14 +334,22 @@ is retained and returned with `"status": "unresolved"` and diagnostic attempts;
 it is not silently dropped.
 
 At synthesis time the resolved engine's current descriptor filters the logical
-ACSS record. Supported rate and volume values map directly to `TtsSettings`;
-average pitch interpolates the same ten 0.5-through-2.0 pitch multipliers used
-by the Emacsvox adapter. Unsupported dimensions are omitted for that engine
-without preventing speech. A runtime fallback recomputes this application for
-the replacement engine instead of reusing the failed engine's capabilities.
-Pitch range, stress, and richness remain registered and diagnosable. Structured
-synthesis requests now carry the route and legacy settings together, but those
-three dimensions do not yet have backend request fields or native mappings.
+ACSS record. Supported rate, average pitch, and volume values map into the
+common synthesis settings. Pitch range, stress, and richness travel in the
+structured request and are mapped by engines that advertise those dimensions;
+the Eloquence and DECtalk helpers provide native mappings. Unsupported
+dimensions are omitted without preventing speech. A runtime fallback
+recomputes this application for the replacement engine instead of reusing the
+failed engine's capabilities.
+
+## Legacy Speech-Text Separator
+
+Emacspeak and Emacsvox character-name tables use `[*]` as an in-band speech
+boundary, for example `question[*]mark`. It is speech text, not timeline or
+control framing. Omnivox consumes the complete marker as a space before
+punctuation expansion at every punctuation level. Its component `[`, `*`, and
+`]` characters must therefore never be announced independently. Structured
+source offsets that cross the marker are remapped to the collapsed boundary.
 
 ## Presentation Transactions
 
@@ -362,10 +376,12 @@ frame, performs the stop, and consumes the selected generation so that it
 cannot reappear on retry. Invalid frames do not consume their generation and
 may be corrected and retried.
 
-Emacsvox uses this extension only after capability negotiation and currently
-frames replaceable aural presentations. It keeps sending the ordinary legacy
-protocol to older servers. Frame validation failures are server diagnostics,
-not control-channel response records.
+This extension is the atomic compatibility transport for legacy server-command
+scripts. Current Emacsvox uses the version 3 structured timeline for modeled
+Aural presentation and may use this frame only on an explicit legacy lowering
+path. It keeps sending the ordinary legacy protocol to older servers. Because
+`emacsvox_tx` carries no dispatch identifier, frame validation failures are
+server diagnostics rather than tracked response records.
 
 ## Tracked Playback Completion
 
@@ -482,6 +498,26 @@ drops unreached events. A writer barrier drains every reached event before the
 terminal status record, including a marker at the final frame boundary. One
 decoded event is bounded to 2 MiB. Invalid, oversized, or unrecognized events
 must be ignored by a client without speaking their raw protocol text.
+
+`playback_marker_events_v2` uses the same command, prefix, dispatch ownership,
+ordering, payload bound, and flush barrier. It retains version 1 utterance and
+engine-marker records and adds timeline action resolution, semantic events,
+and style-degradation records. Its additional record shapes are specified in
+[PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md).
+
+## Structured Presentation Timelines
+
+Capabilities `presentation_timeline_v1` through
+`presentation_timeline_v3` gate the structured Aural transport. Current
+Emacsvox requires version 3 for delivery policy and multipart semantics. A
+direct frame with a trustworthy generation/dispatch identity receives
+`failed` when its decoded envelope is invalid and `cancelled` when stale; a
+record that cannot be decoded far enough to establish ownership remains a
+diagnostic-only rejection.
+
+The envelope, multipart framing, policy, resource, source-position,
+marker-v2, and degradation contracts are maintained in
+[PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md).
 
 ## Queued Logical-Voice Routing
 

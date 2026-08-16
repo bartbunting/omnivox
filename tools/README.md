@@ -10,7 +10,7 @@ opt-in `configure_windows_crash_dumps.ps1` helper.
 
 ## Windows helper session stress
 
-`stress_helper.py` keeps one protocol-v2 helper process alive across repeated
+`stress_helper.py` keeps one protocol-v4 helper process alive across repeated
 synthesis calls. It validates negotiation, descriptor identity, realized voice,
 audio sequence and frame totals, word/sentence marker bounds, periodic pings,
 and clean shutdown.
