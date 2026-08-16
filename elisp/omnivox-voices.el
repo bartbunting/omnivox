@@ -175,6 +175,17 @@ Returns a list of (ID NAME LANGUAGE QUALITY) entries."
 
 ;;;  Customizations:
 
+(defconst omnivox--minimum-speech-rate 0
+  "Minimum rate accepted by the Emacspeak compatibility adapter.")
+
+(defconst omnivox--maximum-speech-rate 100
+  "Maximum rate accepted by the Emacspeak compatibility adapter.")
+
+(defun omnivox--clamp-speech-rate (rate)
+  "Clamp RATE to the adapter's advertised zero-to-100 scale."
+  (max omnivox--minimum-speech-rate
+       (min omnivox--maximum-speech-rate rate)))
+
 (defcustom omnivox-notification-channel "left"
   "Audio channel for the omnivox notification TTS server.
 This value is passed as OMNIVOX_AUDIO_TARGET when the notification
@@ -188,17 +199,18 @@ Typical values: \"left\", \"right\", \"both\"."
 (defcustom omnivox-speech-rate 60
   "Default speech rate for Omnivox.
 Value is an integer on a 0-100 scale where 50 is normal speed,
-lower is faster, higher is slower."
+higher is faster and lower is slower."
   :group 'omnivox
   :type 'integer
   :set #'(lambda (sym val)
-           (set-default sym val)
-           (when (and (string-match "omnivox\\'" dtk-program)
-                      (boundp 'dtk-speaker-process)
-                      (process-live-p dtk-speaker-process))
-             (setq dtk-speech-rate val)
-             (setq-default dtk-speech-rate val)
-             (omnivox--send (format "tts_set_speech_rate %s" val)))))
+           (let ((rate (omnivox--clamp-speech-rate val)))
+             (set-default sym rate)
+             (when (and (string-match "omnivox\\'" dtk-program)
+                        (boundp 'dtk-speaker-process)
+                        (process-live-p dtk-speaker-process))
+               (setq dtk-speech-rate rate)
+               (setq-default dtk-speech-rate rate)
+               (omnivox--send (format "tts_set_speech_rate %s" rate))))))
 
 (defcustom omnivox-voice-id ""
   "Default voice for Omnivox.
@@ -328,25 +340,26 @@ Float from 0.0 (silent) to 1.0 (full)."
   "Set Omnivox speech rate to RATE (0-100, 50 = normal speed)."
   (interactive "nSpeech rate (0-100): ")
   (cl-declare (special dtk-speech-rate))
-  (set-default 'omnivox-speech-rate rate)
-  (setq dtk-speech-rate rate)
-  (setq-default dtk-speech-rate rate)
-  (omnivox--send (format "tts_set_speech_rate %s" rate))
-  (message "Rate set to %s" rate))
+  (let ((rate (omnivox--clamp-speech-rate rate)))
+    (set-default 'omnivox-speech-rate rate)
+    (setq dtk-speech-rate rate)
+    (setq-default dtk-speech-rate rate)
+    (omnivox--send (format "tts_set_speech_rate %s" rate))
+    (message "Rate set to %s" rate)))
 
 ;;;###autoload
 (defun omnivox-faster ()
   "Increase Omnivox speech rate by one step."
   (interactive)
   (cl-declare (special dtk-speech-rate dtk-speech-rate-step))
-  (omnivox-set-rate (- dtk-speech-rate dtk-speech-rate-step)))
+  (omnivox-set-rate (+ dtk-speech-rate dtk-speech-rate-step)))
 
 ;;;###autoload
 (defun omnivox-slower ()
   "Decrease Omnivox speech rate by one step."
   (interactive)
   (cl-declare (special dtk-speech-rate dtk-speech-rate-step))
-  (omnivox-set-rate (+ dtk-speech-rate dtk-speech-rate-step)))
+  (omnivox-set-rate (- dtk-speech-rate dtk-speech-rate-step)))
 
 ;;;###autoload
 (defun omnivox-stop ()

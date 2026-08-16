@@ -1,4 +1,6 @@
-.PHONY: all build test clean run dev check lint fmt fmt-check doc
+.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check doc
+
+ELISP_EMACS ?= emacs
 
 # Default target
 all: build
@@ -14,6 +16,11 @@ dev:
 # Run tests
 test:
 	cargo test --locked
+
+# Exercise the standalone Emacspeak compatibility adapter without requiring
+# an Emacspeak checkout.
+elisp-test:
+	$(ELISP_EMACS) -Q --batch -l elisp/omnivox-voices-tests.el
 
 # Run with debug output
 run:
