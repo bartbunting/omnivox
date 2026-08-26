@@ -20,6 +20,7 @@ use omnivox_tts::timeline_protocol::{
     PresentationAction, PresentationAffinity, PresentationAudioMode, PresentationEffectBus,
     PresentationEffectDirective, PresentationSpeechSpan, PresentationTimelineAction,
     PresentationTimelineEnvelope, PresentationTimelinePosition,
+    MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW,
 };
 use omnivox_tts::{
     AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisCancellationToken,
@@ -1206,6 +1207,19 @@ struct PreparedTimelineSpan {
     actions: Vec<Vec<TimelineChunkAction>>,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct PreparedTimelineActionPosition {
+    chunk_index: usize,
+    local_offset: u32,
+    affinity: AnchorAffinity,
+}
+
+#[derive(Debug)]
+struct PreparedTimelineSpanLayout {
+    chunks: Vec<PreparedSpeechChunk>,
+    action_positions: Vec<PreparedTimelineActionPosition>,
+}
+
 /// Validate and share file resources up front, then synthesize and queue one
 /// structured, tracked presentation timeline. Bounded generated resources are
 /// materialized only for the render window that owns them.
@@ -1473,6 +1487,113 @@ fn prepare_timeline_spans(
         .collect()
 }
 
+/// Validate the operational action limit before a structured presentation is
+/// allowed to cancel active work or consume synthesis-queue capacity.
+pub(crate) fn validate_presentation_timeline_action_windows(
+    timeline: &PresentationTimelineEnvelope,
+    state: &TtsState,
+) -> Result<(), String> {
+    let mut actions_by_span: HashMap<u64, Vec<&PresentationTimelineAction>> = HashMap::new();
+    for action in &timeline.actions {
+        actions_by_span
+            .entry(action.position.span_id())
+            .or_default()
+            .push(action);
+    }
+    for span in &timeline.spans {
+        let Some(actions) = actions_by_span.get(&span.id) else {
+            continue;
+        };
+        let layout = prepare_timeline_span_layout(span, actions, state);
+        validate_timeline_span_layout(span.id, &layout)?;
+    }
+    Ok(())
+}
+
+fn prepare_timeline_span_layout(
+    span: &PresentationSpeechSpan,
+    actions: &[&PresentationTimelineAction],
+    state: &TtsState,
+) -> PreparedTimelineSpanLayout {
+    let source_offsets = actions
+        .iter()
+        .filter_map(|action| match action.position {
+            PresentationTimelinePosition::TextOffset { utf8_offset, .. } => Some(utf8_offset),
+            PresentationTimelinePosition::SpanBoundary { .. } => None,
+        })
+        .collect::<Vec<_>>();
+    let (mut prepared, mapped_offsets) =
+        prepare_speech_text_with_offsets(&span.text, state, &source_offsets);
+    for (index, tone) in prepared.capitalization_tones.iter_mut().enumerate() {
+        tone.id = format!("omnivox.cap.{}.{}", span.id, index);
+    }
+    let chunks = chunk_prepared_speech(prepared, 15);
+    let mut mapped_offset_index = 0_usize;
+    let action_positions = actions
+        .iter()
+        .map(|action| {
+            let (prepared_offset, affinity) = match action.position {
+                PresentationTimelinePosition::SpanBoundary { affinity, .. } => match affinity {
+                    PresentationAffinity::Before => (0, AnchorAffinity::Before),
+                    PresentationAffinity::After => (
+                        chunks.last().map_or(0, |chunk| chunk.source_end),
+                        AnchorAffinity::After,
+                    ),
+                },
+                PresentationTimelinePosition::TextOffset { affinity, .. } => {
+                    let offset = mapped_offsets[mapped_offset_index];
+                    mapped_offset_index += 1;
+                    (
+                        offset,
+                        match affinity {
+                            PresentationAffinity::Before => AnchorAffinity::Before,
+                            PresentationAffinity::After => AnchorAffinity::After,
+                        },
+                    )
+                }
+            };
+            let chunk_index = locate_timeline_chunk(&chunks, prepared_offset, affinity);
+            let chunk = &chunks[chunk_index];
+            PreparedTimelineActionPosition {
+                chunk_index,
+                local_offset: prepared_offset.clamp(chunk.source_start, chunk.source_end)
+                    - chunk.source_start,
+                affinity,
+            }
+        })
+        .collect();
+    PreparedTimelineSpanLayout {
+        chunks,
+        action_positions,
+    }
+}
+
+fn validate_timeline_span_layout(
+    span_id: u64,
+    layout: &PreparedTimelineSpanLayout,
+) -> Result<(), String> {
+    let max_window_actions = MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW
+        .min(MAX_SYNTHESIS_ANCHORS)
+        .min(MAX_TIMELINE_ACTIONS_PER_WINDOW);
+    let mut action_counts = layout
+        .chunks
+        .iter()
+        .map(|chunk| chunk.capitalization_tones.len())
+        .collect::<Vec<_>>();
+    for position in &layout.action_positions {
+        action_counts[position.chunk_index] += 1;
+    }
+    for (chunk_index, action_count) in action_counts.into_iter().enumerate() {
+        if action_count > max_window_actions {
+            return Err(format!(
+                "span {span_id} chunk {} contains {action_count} actions including capitalization anchors; maximum is {max_window_actions}",
+                chunk_index + 1
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn prepare_timeline_span(
     span: &PresentationSpeechSpan,
     actions: &[PresentationTimelineAction],
@@ -1487,46 +1608,14 @@ fn prepare_timeline_span(
         .iter()
         .filter(|action| action.position.span_id() == span.id)
         .collect::<Vec<_>>();
-    let source_offsets = span_actions
-        .iter()
-        .filter_map(|action| match action.position {
-            PresentationTimelinePosition::TextOffset { utf8_offset, .. } => Some(utf8_offset),
-            PresentationTimelinePosition::SpanBoundary { .. } => None,
-        })
-        .collect::<Vec<_>>();
-    let (mut prepared, mapped_offsets) =
-        prepare_speech_text_with_offsets(&span.text, state, &source_offsets);
-    for (index, tone) in prepared.capitalization_tones.iter_mut().enumerate() {
-        tone.id = format!("omnivox.cap.{}.{}", span.id, index);
-    }
-    let chunks = chunk_prepared_speech(prepared, 15);
-    let mut mapped_offset_index = 0_usize;
+    let layout = prepare_timeline_span_layout(span, &span_actions, state);
+    validate_timeline_span_layout(span.id, &layout)?;
+    let PreparedTimelineSpanLayout {
+        chunks,
+        action_positions,
+    } = layout;
     let mut actions_by_chunk = vec![Vec::new(); chunks.len()];
-    for action in span_actions {
-        let (prepared_offset, affinity) = match action.position {
-            PresentationTimelinePosition::SpanBoundary { affinity, .. } => match affinity {
-                PresentationAffinity::Before => (0, AnchorAffinity::Before),
-                PresentationAffinity::After => (
-                    chunks.last().map_or(0, |chunk| chunk.source_end),
-                    AnchorAffinity::After,
-                ),
-            },
-            PresentationTimelinePosition::TextOffset { affinity, .. } => {
-                let offset = mapped_offsets[mapped_offset_index];
-                mapped_offset_index += 1;
-                (
-                    offset,
-                    match affinity {
-                        PresentationAffinity::Before => AnchorAffinity::Before,
-                        PresentationAffinity::After => AnchorAffinity::After,
-                    },
-                )
-            }
-        };
-        let chunk_index = locate_timeline_chunk(&chunks, prepared_offset, affinity);
-        let chunk = &chunks[chunk_index];
-        let local_offset =
-            prepared_offset.clamp(chunk.source_start, chunk.source_end) - chunk.source_start;
+    for (action, position) in span_actions.into_iter().zip(action_positions) {
         let kind = match &action.action {
             PresentationAction::Audio {
                 mode,
@@ -1559,25 +1648,12 @@ fn prepare_timeline_span(
             },
             PresentationAction::SemanticEvent => TimelineChunkActionKind::SemanticEvent,
         };
-        actions_by_chunk[chunk_index].push(TimelineChunkAction {
+        actions_by_chunk[position.chunk_index].push(TimelineChunkAction {
             id: action.id.clone(),
-            text_offset: local_offset,
-            affinity,
+            text_offset: position.local_offset,
+            affinity: position.affinity,
             kind,
         });
-    }
-    let max_window_actions = MAX_SYNTHESIS_ANCHORS.min(MAX_TIMELINE_ACTIONS_PER_WINDOW);
-    for (chunk_index, (chunk, actions)) in chunks.iter().zip(&actions_by_chunk).enumerate() {
-        let action_count = chunk.capitalization_tones.len() + actions.len();
-        if action_count > max_window_actions {
-            return Err(format!(
-                "span {} chunk {} contains {} actions including capitalization anchors; maximum is {}",
-                span.id,
-                chunk_index + 1,
-                action_count,
-                max_window_actions
-            ));
-        }
     }
     Ok(PreparedTimelineSpan {
         id: span.id,
@@ -2070,16 +2146,73 @@ mod tests {
             rate_offset: None,
             effects: PresentationEffectDirective::Retain,
         };
-        let accepted = semantic_timeline_actions(MAX_SYNTHESIS_ANCHORS);
+        let accepted = semantic_timeline_actions(MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW);
         let prepared =
             prepare_timeline_span(&span, &accepted, &TtsState::default(), &HashMap::new()).unwrap();
-        assert_eq!(prepared.actions[0].len(), MAX_SYNTHESIS_ANCHORS);
+        assert_eq!(
+            prepared.actions[0].len(),
+            MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW
+        );
 
-        let overflow = semantic_timeline_actions(MAX_SYNTHESIS_ANCHORS + 1);
+        let overflow = semantic_timeline_actions(MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW + 1);
         let error = prepare_timeline_span(&span, &overflow, &TtsState::default(), &HashMap::new())
             .unwrap_err();
-        assert!(error.contains("4097 actions"));
-        assert!(error.contains("maximum is 4096"));
+        assert!(error.contains("513 actions"));
+        assert!(error.contains("maximum is 512"));
+    }
+
+    #[test]
+    fn prepared_timeline_action_limit_is_per_speech_window() {
+        let text = (1..=30)
+            .map(|index| format!("word{index}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let second_window = text.find("word16").unwrap() as u32;
+        let span = PresentationSpeechSpan {
+            id: 1,
+            text,
+            logical_voice_id: None,
+            acss: NormalizedAcss::default(),
+            rate_offset: None,
+            effects: PresentationEffectDirective::Retain,
+        };
+        let mut actions = semantic_timeline_actions(MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW + 1);
+        for action in actions
+            .iter_mut()
+            .take(MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW / 2)
+        {
+            action.position = PresentationTimelinePosition::SpanBoundary {
+                span_id: 1,
+                affinity: PresentationAffinity::Before,
+            };
+        }
+        for action in actions
+            .iter_mut()
+            .skip(MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW / 2)
+        {
+            action.position = PresentationTimelinePosition::TextOffset {
+                span_id: 1,
+                utf8_offset: second_window,
+                affinity: PresentationAffinity::Before,
+            };
+        }
+
+        validate_presentation_timeline_action_windows(
+            &PresentationTimelineEnvelope {
+                protocol_version:
+                    omnivox_tts::timeline_protocol::PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+                generation: 1,
+                dispatch_id: 1,
+                delivery_policy: Some(
+                    omnivox_tts::timeline_protocol::PresentationDeliveryPolicy::Ordered,
+                ),
+                replacement_key: None,
+                spans: vec![span],
+                actions,
+            },
+            &TtsState::default(),
+        )
+        .unwrap();
     }
 
     #[test]

@@ -32,12 +32,14 @@ pub const MAX_TIMELINE_AGGREGATE_ENCODED_BYTES: usize =
 pub const MAX_TIMELINE_PARTS: usize = 64;
 /// Maximum number of speech spans in one request.
 pub const MAX_TIMELINE_SPANS: usize = 4096;
-/// Maximum number of non-speech actions in one request.
+/// Maximum number of non-speech actions in one complete presentation.
 pub const MAX_TIMELINE_ACTIONS: usize = 4096;
+/// Maximum number of actions assigned to one prepared speech window.
+pub const MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW: usize = 512;
 /// Maximum number of spans in one bounded V3 aggregate.
 pub const MAX_TIMELINE_AGGREGATE_SPANS: usize = MAX_TIMELINE_SPANS * MAX_TIMELINE_PARTS;
 /// Maximum number of actions in one bounded V3 aggregate.
-pub const MAX_TIMELINE_AGGREGATE_ACTIONS: usize = MAX_TIMELINE_ACTIONS * MAX_TIMELINE_PARTS;
+pub const MAX_TIMELINE_AGGREGATE_ACTIONS: usize = MAX_TIMELINE_ACTIONS;
 /// Maximum UTF-8 size of a logical voice, action, or effect-state ID.
 pub const MAX_TIMELINE_ID_BYTES: usize = 128;
 /// Maximum UTF-8 size of one resource path.
@@ -879,6 +881,20 @@ mod tests {
         }
     }
 
+    fn semantic_actions(count: usize) -> Vec<PresentationTimelineAction> {
+        (0..count)
+            .map(|index| PresentationTimelineAction {
+                id: format!("semantic.{index}"),
+                position: PresentationTimelinePosition::SpanBoundary {
+                    span_id: 1,
+                    affinity: PresentationAffinity::After,
+                },
+                lifecycle_anchor: PresentationLifecycleAnchor::Run,
+                action: PresentationAction::SemanticEvent,
+            })
+            .collect()
+    }
+
     #[test]
     fn timeline_round_trip_preserves_unicode_and_separate_anchors() {
         let mut timeline = timeline();
@@ -999,6 +1015,29 @@ mod tests {
         assert!(matches!(
             validate_presentation_timeline(&unknown),
             Err(PresentationTimelineError::InvalidTimeline(_))
+        ));
+    }
+
+    #[test]
+    fn v3_enforces_one_complete_presentation_action_limit() {
+        assert_eq!(MAX_TIMELINE_AGGREGATE_ACTIONS, MAX_TIMELINE_ACTIONS);
+        let mut accepted = timeline();
+        accepted.actions = semantic_actions(MAX_TIMELINE_ACTIONS);
+        assert!(validate_presentation_timeline(&accepted).is_ok());
+
+        accepted.actions.push(PresentationTimelineAction {
+            id: "overflow".to_owned(),
+            position: PresentationTimelinePosition::SpanBoundary {
+                span_id: 1,
+                affinity: PresentationAffinity::After,
+            },
+            lifecycle_anchor: PresentationLifecycleAnchor::Run,
+            action: PresentationAction::SemanticEvent,
+        });
+        assert!(matches!(
+            validate_presentation_timeline(&accepted),
+            Err(PresentationTimelineError::InvalidTimeline(message))
+                if message.contains("more than 4096 actions")
         ));
     }
 
