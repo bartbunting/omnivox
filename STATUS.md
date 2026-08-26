@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-08-16
+**Last reviewed:** 2026-08-27
 **Workspace version:** 1.3.0
 
 This file records present behavior and limitations. Protocol guarantees belong
@@ -19,8 +19,9 @@ in the linked protocol specifications; future work belongs in
   preview.
 - Tracked terminal status and marker protocols v1 and v2.
 - Structured presentation timelines v1 through v3, including v3 multipart
-  framing, complete validation before admission, and terminal status for
-  decodable invalid or stale submissions.
+  framing, bounded schema/cross-reference/action-window validation before
+  admission, resource preparation before new-span synthesis, and terminal
+  status for decodable invalid or stale submissions.
 
 ### Routing and synthesis
 
@@ -35,7 +36,8 @@ in the linked protocol specifications; future work belongs in
   they do not select a named logical voice.
 - Requested synthesis anchors and engine markers, with truthful exact,
   word-boundary, span-boundary, or omitted resolution.
-- Capitalization presentation for timelines and isolated letters.
+- Caller-supplied capitalization cues in timelines and pitch-rise presentation
+  for isolated capital letters.
 
 ### Replacement and cancellation
 
@@ -43,9 +45,9 @@ in the linked protocol specifications; future work belongs in
   never coalesced or evicted.
 - Replaceable timelines coalesce only within the same protocol-version and
   replacement-key domain.
-- Receipt of a valid newer keyed timeline immediately cancels synthesis and
-  tagged playback in that same domain; only its synthesis admission waits for
-  the bounded reader coalescing window.
+- Successful worker-queue admission of a newer keyed timeline atomically
+  cancels synthesis and tagged playback in that same domain. Failed admission
+  leaves the older queued or active work intact.
 - Domain cancellation does not clear ordered, urgent, legacy, or unrelated
   keyed playback. Active speech fades for three milliseconds to avoid a click.
 - Hard stop remains stream-wide, invalidates older generations, requests stop
@@ -55,12 +57,13 @@ in the linked protocol specifications; future work belongs in
 
 ### Presentation and audio
 
-- Canonical stereo 44.1 kHz PCM conversion and sinc resampling.
+- Canonical stereo 44.1 kHz PCM conversion with bounded sample-rate conversion.
 - Silence trimming with marker/anchor remapping, volume adjustment, and channel
   routing.
 - Independent speech, tone, and sound streams with bounded queues.
-- Bounded OGG/WAV resource loading, decoded LRU caching, and immutable shared
-  timeline PCM.
+- Bounded OGG/WAV resource loading, a 128-entry/64-MiB decoded LRU cache,
+  immutable shared timeline PCM, and a 64-MiB retained-PCM preparation budget
+  per presentation.
 - Inserted and overlaid timeline audio/tone actions, inserted silence,
   semantic events, stable cue order, and tracked overlay tails.
 - Persistent post-synthesis gain, filtering, pan, reverb, and echo state.
@@ -98,6 +101,10 @@ in the linked protocol specifications; future work belongs in
 The checked-in workflow formats on Linux, builds four macOS/Windows targets,
 and tests macOS ARM64 plus Windows x64 and ARM64. Linux remains usable from a
 source build but is not currently a release artifact or runtime test job.
+Supported builds and all four generic release archives stage the matching
+`espeak-ng-data` beside the executable. CI validates the packaged data on every
+artifact and exercises voice discovery on the native Windows targets and macOS
+ARM64; the cross-compiled macOS x64 executable is not run in that job.
 
 ## Validation
 

@@ -349,8 +349,9 @@ fn find_config_path(model_path: &Path) -> Option<PathBuf> {
 /// Search order:
 /// 1. `OMNIVOX_PIPER_ESPEAK_DATA` env var
 /// 2. `ESPEAK_NG_DATA` env var (shared with the espeak TTS backend)
-/// 3. Build-time path captured by omnivox-piper-sys/build.rs
-/// 4. Well-known system paths
+/// 3. Data adjacent to the helper executable
+/// 4. Build-time path captured by omnivox-piper-sys/build.rs
+/// 5. Well-known system paths
 fn find_espeak_data() -> Option<String> {
     // 1. Piper-specific override
     if let Ok(dir) = std::env::var("OMNIVOX_PIPER_ESPEAK_DATA") {
@@ -368,7 +369,18 @@ fn find_espeak_data() -> Option<String> {
         }
     }
 
-    // 3. Build-time path (piper-phonemize bundled data)
+    // 3. Shared data staged beside omnivox and omnivox-piper-helper.
+    if let Ok(executable) = std::env::current_exe() {
+        if let Some(parent) = executable.parent() {
+            let parent = parent.to_string_lossy();
+            if espeak_data_valid(parent.as_ref()) {
+                debug!("Using espeak data next to executable");
+                return Some(parent.into_owned());
+            }
+        }
+    }
+
+    // 4. Build-time path (piper-phonemize bundled data)
     if !PIPER_ESPEAK_DATA_DIR.is_empty() && espeak_data_valid(PIPER_ESPEAK_DATA_DIR) {
         debug!(
             "Using espeak data from build path: {}",
@@ -377,7 +389,7 @@ fn find_espeak_data() -> Option<String> {
         return Some(PIPER_ESPEAK_DATA_DIR.to_string());
     }
 
-    // 4. System paths
+    // 5. System paths
     let candidates = [
         "/opt/homebrew/share",
         "/usr/local/share",

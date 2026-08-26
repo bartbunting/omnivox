@@ -13,6 +13,9 @@
   or discard a dirty worktree to satisfy a build precondition.
 - Run locked checks (`cargo test --locked --workspace` and the relevant locked
   Clippy command) so dependency resolution matches the committed lock file.
+- Use `make build` or `make dev` for runnable payloads. Their build wrapper
+  stages the exact generated `espeak-ng-data` and license notices beside the
+  executable; a direct `cargo build` is not a complete distributable payload.
 - Windows deployment is owned by the sibling Emacsvox repository. Use
   `make windows-omnivox-dev` there for a provenance-labelled build from active
   changes. Reserve `make windows-omnivox` for a clean reproducible release.

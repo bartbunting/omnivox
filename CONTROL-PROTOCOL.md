@@ -147,7 +147,8 @@ voices or persistent speech state:
   },
   "language": "en-AU",
   "acss": { "average_pitch": 0.4 },
-  "rate_offset": -4
+  "rate_offset": -4,
+  "effects": { "reverb": 0.2 }
 }
 ```
 
@@ -157,11 +158,13 @@ engine-default selector remains portable and may resolve again within that
 same selector if its first runtime target fails.
 
 When `relative_rate_v1` is advertised, previews and presentation speech spans
-may include a signed integer `rate_offset` from `-20` through `20`. It adjusts
-the current server rate by direct points on the `0..100` scale without changing
-that global rate: base 75 plus `-1` is 74; base 75 plus `4` is 79. A request
-must not combine `rate_offset` with the absolute `acss.rate` field. Zero is
-neutral and should normally be omitted.
+may include a signed integer `rate_offset` from `-20` through `20`. Omnivox adds
+`rate_offset / 100` to the stored normalized host rate, then clamps the derived
+one-shot rate to the ACSS `0..100` range without changing the stored rate: base
+75 plus `-1` is 74; base 75 plus `4` is 79. An extended host rate above 100
+therefore remains at 100 unless a negative offset brings it below that ceiling.
+A request must not combine `rate_offset` with the absolute `acss.rate` field.
+Zero is neutral and should normally be omitted.
 
 ## Response Record
 
@@ -204,6 +207,13 @@ A successful capability response decodes to this shape:
     "stable_voice_ids",
     "text_repertoire_routing_v1",
     "tracked_playback_completion"
+  ],
+  "deprecated_commands": [
+    "set_lang",
+    "set_next_lang",
+    "set_previous_lang",
+    "set_preferred_lang",
+    "tts_set_notification_channel"
   ]
 }
 ```
@@ -228,16 +238,17 @@ fails:
     "voice_id": "eci:Reed"
   },
   "degraded_acss": ["pitch_range"],
+  "degraded_effects": [],
   "message": null
 }
 ```
 
-`status` is `completed`, `cancelled`, or `failed`. `realized` is absent when
-resolution never found a usable target. Unsupported ACSS dimensions are listed
-without preventing otherwise valid speech. Preview uses the ordinary buffered
-synthesis and mixer path, but it owns a private one-definition routing snapshot
-and does not replace logical registration, change server defaults, or affect a
-notification process.
+`status` is `completed`, `cancelled`, or `failed`. `realized` is `null` when
+resolution never found a usable target. Unsupported ACSS and post-synthesis
+effect dimensions are listed without preventing otherwise valid speech.
+Preview uses the ordinary buffered synthesis and mixer path, but it owns a
+private one-definition routing snapshot and does not replace logical
+registration, change server defaults, or affect a notification process.
 
 The request ID lets Emacsvox distinguish simultaneous main and notification
 process responses. Server events are never injected into synthesized speech.
@@ -496,8 +507,11 @@ Events report mixer source consumption and may lead acoustic output by the
 audio device's buffering latency. Stop, backlog clearing, or source teardown
 drops unreached events. A writer barrier drains every reached event before the
 terminal status record, including a marker at the final frame boundary. One
-decoded event is bounded to 2 MiB. Invalid, oversized, or unrecognized events
-must be ignored by a client without speaking their raw protocol text.
+decoded event is bounded to 2 MiB. The server losslessly bounds outstanding
+marker-event output to 8,192 records and 16 MiB of serialized records, applying
+backpressure to event producers rather than dropping reached events. Invalid,
+oversized, or unrecognized events must be ignored by a client without speaking
+their raw protocol text.
 
 `playback_marker_events_v2` uses the same command, prefix, dispatch ownership,
 ordering, payload bound, and flush barrier. It retains version 1 utterance and
@@ -605,6 +619,8 @@ The error codes are:
 
 - `malformed_request`: invalid Base64, UTF-8, JSON, or request shape;
 - `unsupported_version`: a well-formed request uses an unsupported version;
+- `unsupported_operation`: a recognized deprecated legacy command has no
+  supported state mutation and includes migration guidance;
 - `payload_too_large`: the encoded or decoded size bound was exceeded;
 - `invalid_configuration`: a registration violates ID, count, or field bounds;
 - `stale_generation`: the registration generation is older than the stored

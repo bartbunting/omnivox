@@ -39,16 +39,19 @@ and dispatch ID to match the outer header. This preserves span identity,
 UTF-8 offsets, action anchors, effect state, and one presentation clock across
 transport boundaries.
 
-The complete envelope is decoded, bounded, cross-referenced, and validated
-before it can affect playback. File resources are loaded into immutable shared
-PCM before the first span is submitted; generated tones and silence remain
+The complete envelope is decoded, bounded, cross-referenced, and its prepared
+action-window density is validated before synthesis-queue admission. After
+admission, the worker loads every file resource into immutable shared PCM
+before synthesizing the first new span; generated tones and silence remain
 validated recipes until their bounded render window. A bad field,
 missing/reordered fragment, timeout, or unavailable resource rejects the whole
-logical submission; the server does not play a valid prefix. Once a valid
-part-zero header has been accepted, assembly failure reports `failed`; a stop
-between parts reports `cancelled`. A complete aggregate whose generation is
-already stale also reports `cancelled`. Each case retires the declared
-generation.
+logical submission, so the server does not play a valid prefix of the new
+timeline. For replaceable delivery, successful queue admission may already
+have cancelled the preceding domain owner before later resource preparation
+fails. Once a valid part-zero header has been accepted, assembly failure
+reports `failed`; a stop between parts reports `cancelled`. A complete
+aggregate whose generation is already stale also reports `cancelled`. Each
+case retires the declared generation.
 
 ## Envelope
 
@@ -98,9 +101,12 @@ Version 3 has the same semantic fields introduced by version 2 and this shape:
 `generation` participates in the same stale-work and stop-barrier policy as
 framed legacy transactions. `dispatch_id` identifies marker-v2 and terminal
 records. Span and action IDs are bounded and unique in their respective
-namespaces. Version 3 permits at most 262,144 spans and 262,144 actions inside
-the 16 MiB aggregate. Logical voice, action, replacement, and effect-state IDs
-are at most 128 UTF-8 bytes; audio paths are at most 4096 UTF-8 bytes.
+namespaces. Version 3 permits at most 262,144 spans and 4,096 actions inside
+the 16 MiB aggregate; versions 1 and 2 permit at most 4,096 of each in their
+direct frames. After punctuation and CamelCase preparation, each 15-word
+speech window may own at most 512 combined client actions and internal
+capitalization anchors. Logical voice, action, replacement, and effect-state
+IDs are at most 128 UTF-8 bytes; audio paths are at most 4096 UTF-8 bytes.
 
 ## Delivery Policy
 
@@ -123,15 +129,16 @@ is still in the coalescing window cancels that timeline and consumes its
 generation; an accepted stop also cancels all older requests still waiting in
 the worker handoff.
 
-Receipt of a valid newer replaceable timeline advances cancellation for its
-exact `(protocol_version, replacement_key)` domain immediately, before the
-reader coalescing window expires. Only admission of the selected synthesis
-request is delayed. The domain token follows synthesis, rendered windows,
-deferred overlays, playback cues, and tracked completion. It removes queued or
-unstarted tagged audio immediately and fades already active speech over three
-milliseconds. Ordered, urgent, legacy, and differently keyed sources on the
-same speech stream are not cleared. Unreached markers, semantic events, and
-effect/overlay tails owned by the superseded timeline are cancelled.
+After the reader selects a replaceable timeline from its bounded coalescing
+window, successful synthesis-queue admission atomically activates cancellation
+for the exact `(protocol_version, replacement_key)` domain. If admission fails,
+the prior queued or active domain owner remains intact. Once activated, the
+domain token follows synthesis, rendered windows, deferred overlays, playback
+cues, and tracked completion. It removes queued or unstarted tagged audio
+immediately and fades already active speech over three milliseconds. Ordered,
+urgent, legacy, and differently keyed sources on the same speech stream are not
+cleared. Unreached markers, semantic events, and effect/overlay tails owned by
+the superseded timeline are cancelled.
 
 Version 1 omits both delivery fields and retains its original interpretation:
 every version 1 envelope is replaceable in one implicit domain. Version 1 does
@@ -157,10 +164,12 @@ fallbacks, and reports the engine and physical voice actually used.
 average pitch, pitch range, stress, richness, and volume. Unsupported values
 do not prevent speech; they are omitted and reported as degradation.
 
-`rate_offset`, when present, is a signed integer from `-20` through `20`. It
-adjusts the server's current speech rate by that many points on its `0..100`
-rate scale before engine-specific conversion: at a current rate of 75, `-1`
-means 74 and `4` means 79. It does not change the current global rate. A span
+`rate_offset`, when present, is a signed integer from `-20` through `20`.
+Omnivox adds `rate_offset / 100` to the stored normalized host speech rate and
+clamps the derived one-shot rate to the ACSS `0..100` range before
+engine-specific conversion: at a stored rate of 75, `-1` means 74 and `4` means
+79. An extended host rate above 100 remains at 100 unless a negative offset
+brings it below that ceiling. It does not change the stored global rate. A span
 must not contain both `rate_offset` and the absolute `acss.rate`. An offset of
 zero is neutral and clients should normally omit it.
 
@@ -186,18 +195,18 @@ the richer meaning of an action without asking Omnivox to understand Emacs
 modes, faces, rules, or schemes.
 
 Text preprocessing preserves a source map across punctuation expansion,
-split-capital handling, lowercasing, and chunking. Engines may resolve an
-in-span request exactly, to a word boundary, to a span boundary, or omit only
-the optional action. Timers are not used to guess playback position.
+split-capital handling, and chunking. Engines may resolve an in-span request
+exactly, to a word boundary, to a span boundary, or omit only the optional
+action. Timers are not used to guess playback position.
 
 ## Actions
 
 Actions are applied in input order when several resolve to the same frame.
 
-- `audio` validates and preloads a bounded file into immutable shared PCM.
-  `mode` is `insert` or `overlay`; normalized
-  volume and pan are independent of the speech effect state. `effect_bus` is
-  `dry` or `speech`.
+- `audio` validates a path and, after admission, preloads a bounded file into
+  immutable shared PCM. `mode` is `insert` or `overlay`; normalized volume and
+  pan are independent of the speech effect state. `effect_bus` is `dry` or
+  `speech`.
 - `tone` has frequency and duration plus the same mode, volume, pan, and effect
   bus as an audio resource. Validated tones are generated only for their
   bounded render window.
@@ -205,6 +214,18 @@ Actions are applied in input order when several resolve to the same frame.
   and advances the primary clock.
 - `semantic_event` has zero duration and is emitted only if playback consumes
   its resolved boundary.
+
+An individual OGG/WAV file is limited to 16 MiB on disk and 30 seconds decoded.
+A tone is limited to 24 kHz and 60 seconds; inserted silence is limited to 60
+seconds. Resource preparation permits at most 64 MiB of retained canonical
+`f32` PCM storage per presentation. Repeated references to one shared decoded
+file count once, while predicted private channel/pan/effect copies, generated
+tones, inserted silence, and effect tails count against the same budget.
+A final post-synthesis reverb/echo tail is capped at four seconds.
+Independently, the renderer caps one prepared speech window at 120 seconds of
+primary output. Because synthesized duration is not known at admission, an
+overrun is a runtime failure and can occur after earlier windows have already
+been queued.
 
 Inserted audio shifts later output markers and semantic events. Overlay audio
 does not advance the primary speech clock, may overlap following speech, and
@@ -224,7 +245,10 @@ Version 2 retains the version 1 utterance and engine marker records and adds:
 Events are ordered playback cues, flushed before the dispatch's terminal
 `completed`, `cancelled`, or `failed` record. The opaque semantic ID is data,
 not executable content. Emacsvox keeps its richer Lisp value in a local table
-and rejoins it only when the corresponding event arrives.
+and rejoins it only when the corresponding event arrives. The common marker
+reporter losslessly bounds outstanding marker-event output to 8,192 records and
+16 MiB of serialized records, backpressuring event production rather than
+dropping a reached cue.
 
 ## Compatibility and Degradation
 

@@ -20,7 +20,7 @@ serde_json.workspace = true
 base64.workspace = true
 omnivox-audio = { path = "../omnivox-audio" }
 
-# espeak-ng (always compiled in as cross-platform fallback)
+# eSpeak NG backend (always compiled; supported builds stage its runtime data)
 espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"] }
 
 # Piper neural TTS for the out-of-process helper only

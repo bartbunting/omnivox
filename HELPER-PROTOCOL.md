@@ -8,11 +8,12 @@ fallback, effects, mixing, playback completion, and runtime health policy.
 
 ## Transport and Compatibility
 
-Versions 1 through 4 use a bidirectional stream of newline-terminated UTF-8 JSON objects.
-The helper reserves standard output for protocol frames and writes diagnostics
-only to standard error. Each frame contains `protocol_version`, a tagged
-`type`, and normally a positive `request_id`; only an error caused before an
-input request ID can be trusted may omit it. A frame is limited to 1 MiB.
+Versions 1 through 4 use a bidirectional stream of newline-terminated UTF-8
+JSON objects. The helper reserves standard output for protocol frames and
+writes diagnostics only to standard error. Each frame contains
+`protocol_version`, a tagged `type`, and normally a positive `request_id`; only
+an error caused before an input request ID can be trusted may omit it. A frame
+is limited to 1 MiB.
 
 The host starts every session with `hello` and supplies the versions it
 supports:
@@ -144,15 +145,17 @@ The Rust codec enforces these bounds before accepting content:
 - 4096 markers per synthesis request;
 - 4096 requested anchors per synthesis request and 128 bytes per anchor ID;
 - 4096 discovered physical voices;
-- 16 advertised protocol versions.
+- 16 advertised protocol versions;
+- 16 KiB for bounded helper, voice-ID, error, and marker-value strings;
+- sample rates from 1 through 384,000 Hz and 1 through 8 channels.
 
-The host will apply configurable startup, ordinary-request, synthesis-idle, and
-shutdown timeouts. EOF, malformed or oversized output, request-ID/order
-violations, and timeouts make the helper unhealthy. Omnivox then terminates the
-child, opens the existing engine circuit, routes speech through configured
-fallbacks, and uses `prepare_recovery_probe` to start and negotiate a fresh
-helper after cooldown. Proprietary DLLs remain user-supplied and outside the
-Omnivox distribution.
+The host applies configurable startup, ordinary-request, and synthesis-idle
+timeouts plus a bounded cancellation watchdog. EOF, malformed or oversized
+output, request-ID/order violations, and timeouts make the helper unhealthy.
+Omnivox then terminates the child, opens the existing engine circuit, routes
+speech through configured fallbacks, and uses `prepare_recovery_probe` to start
+and negotiate a fresh helper after cooldown. Proprietary DLLs remain
+user-supplied and outside the Omnivox distribution.
 
 The authoritative Rust wire types and bounded codec are in
 `omnivox-tts/src/helper_protocol.rs`. The generic process client and synthesis

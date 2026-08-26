@@ -1,8 +1,23 @@
 # Developer Tools
 
+## Build and runtime staging
+
+`build.py` is the supported wrapper for distributable Cargo builds. It keeps
+Cargo's locked dependency resolution, reads the exact `espeak-rs-sys` output
+from Cargo's JSON build messages, and stages `espeak-ng-data` plus applicable
+third-party notices beside the executable. The Makefile and release workflow
+invoke it; additional Cargo build arguments pass through unchanged:
+
+```sh
+python3 tools/build.py --release
+python3 tools/build.py --release --target aarch64-apple-darwin
+```
+
+The wrapper fails rather than choose between non-identical eSpeak data outputs.
+
 ## Failure diagnostics
 
-`collect_diagnostics.sh` creates a bounded archive containing recent OmniVox
+`collect_diagnostics.sh` creates a bounded archive containing recent Omnivox
 session logs, build/runtime identity, process inventory, and relevant Windows
 events. It does not include Windows memory dumps. See
 [`docs/DIAGNOSTICS.md`](../docs/DIAGNOSTICS.md) for the failure workflow and the
@@ -39,6 +54,21 @@ can be run explicitly:
 cargo test --locked -p omnivox-tts stress_repeated_synthesis_session \
   -- --ignored --nocapture
 ```
+
+## Audible feature smoke test
+
+[test-all-features.sh](../test-all-features.sh) exercises legacy protocol
+commands, the selected native and eSpeak startup engines, integer speech rates,
+and left/right/both channel routing. It also exercises Piper when both
+`PIPER_MODEL` and an adjacent or explicitly selected helper are available:
+
+```sh
+OMNIVOX_BIN=./target/release/omnivox ./test-all-features.sh
+```
+
+The script requires Bash and `timeout`. Its pass/fail result detects process
+errors and timeouts; a listener must still verify the audible rate and channel
+claims. This is a manual smoke test, not a CI latency or audio-quality gate.
 
 ## WAV comparison
 

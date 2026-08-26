@@ -155,7 +155,7 @@ pub fn apply_cli_flags(cli: &CliArgs, state: &mut TtsState) {
 pub fn print_help() {
     let native = native_engine_name();
     println!(
-        "Omnivox v{} - Cross-platform Emacspeak speech server",
+        "Omnivox v{} - Cross-platform Emacsvox/Emacspeak speech server",
         crate::VERSION
     );
     println!();
@@ -170,7 +170,7 @@ pub fn print_help() {
     println!("    --list-voices-alist  List voices as Emacs-readable alist");
     println!("    --engine NAME    Select TTS engine: native, espeak, piper");
     println!("    --voice ID       Set default voice (e.g. en-US:Alex)");
-    println!("    --rate FLOAT     Speech rate 0.0-1.0 (0.5 = normal)");
+    println!("    --rate FLOAT     Host rate 0.0-2.0 (0.5 normal; engines may clamp)");
     println!("    --pitch FLOAT    Pitch multiplier 0.5-2.0 (1.0 = normal)");
     println!("    --voice-volume F Voice volume 0.0-1.0");
     println!("    --tone-volume F  Tone volume 0.0-1.0");
@@ -183,20 +183,19 @@ pub fn print_help() {
     println!();
     println!("ENGINES:");
     println!("    native    Platform-native TTS: {}", native);
-    println!("    espeak    espeak-ng (cross-platform, always available)");
+    println!("    espeak    espeak-ng (data bundled by supported builds/releases)");
     println!(
         "    piper     Piper neural TTS (make build-piper; requires adjacent helper and model)"
     );
     println!();
-    println!("Without options, starts the Emacspeak protocol server on stdin.");
+    println!("Without options, starts the speech-server protocol on stdin.");
     println!();
-    println!("ENVIRONMENT (for Emacspeak integration only):");
+    println!("COMMON SERVER ENVIRONMENT:");
     println!("    OMNIVOX_ENGINE         Same as --engine");
     println!("    OMNIVOX_PIPER_MODEL    Path to piper .onnx model (same as --piper-model)");
     println!("    OMNIVOX_PIPER_HELPER   Override path to omnivox-piper-helper");
-    println!(
-        "    OMNIVOX_AUDIO_TARGET   Same as --audio-target (set by Emacspeak notification mode)"
-    );
+    println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (process-wide routing)");
+    println!("    ESPEAK_NG_DATA         Parent directory containing espeak-ng-data");
     println!("    OMNIVOX_LOG_SYNTHESIS_TEXT  Opt in to sensitive full-text diagnostics");
     println!();
     println!("EMACSPEAK SETUP:");

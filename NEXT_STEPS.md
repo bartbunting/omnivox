@@ -42,8 +42,9 @@ The structured identity model remains:
 
 1. Expand real Windows repetition, cancellation, crash, and recovery testing
    for WinRT, Eloquence, and DECtalk, including helper working-set measurement.
-2. Stabilize Piper dependency/model packaging, cross-platform builds, cold
-   start, cancellation/restart latency, and documented model ownership.
+2. Stabilize Piper dependency pinning and model packaging, cross-platform
+   builds, cold start, cancellation/restart latency, and documented model
+   ownership.
 3. Improve macOS marker and cancellation coverage without overstating what
    AVSpeechSynthesizer exposes.
 4. Verify logical-language and text-repertoire routing against live

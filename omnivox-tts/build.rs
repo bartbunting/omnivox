@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 fn main() {
-    // Compile the Objective-C bridge for macOS buffer capture
+    // Compile the Objective-C bridge for macOS buffer capture.
     #[cfg(target_os = "macos")]
     {
         cc::Build::new()
@@ -13,52 +13,27 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=AVFoundation");
         println!("cargo:rustc-link-lib=framework=Foundation");
     }
-    // Find the espeak-ng data directory from the espeak-rs-sys build output.
-    // The espeak-rs-sys crate compiles espeak-ng from source and places the
-    // data files under OUT_DIR/share/espeak-ng-data/
-    //
-    // We need to pass the parent directory (containing espeak-ng-data/) to
-    // espeak_Initialize at runtime. Since espeak-rs-sys doesn't export this
-    // path via cargo metadata, we search for it in the target build directory.
 
-    let out_dir = std::env::var("OUT_DIR").unwrap_or_default();
+    // Cargo can run this build script before the regular espeak-rs-sys
+    // dependency has generated its data, so searching sibling OUT_DIRs here is
+    // racy on a clean build and can select stale data on an incremental build.
+    // The supported build entry point stages the completed dependency output
+    // in the Cargo profile directory. Embed that stable parent path; runtime
+    // discovery also checks beside a relocated executable before using it.
+    let staged_parent = std::env::var_os("OUT_DIR")
+        .map(PathBuf::from)
+        .and_then(|out_dir| {
+            out_dir
+                .ancestors()
+                .find(|path| path.file_name().is_some_and(|name| name == "build"))
+                .and_then(|build_dir| build_dir.parent())
+                .map(PathBuf::from)
+        });
 
-    // Walk up from our OUT_DIR to find the build directory
-    // Our OUT_DIR is like: target/debug/build/omnivox-tts-HASH/out
-    // espeak-rs-sys data is at: target/debug/build/espeak-rs-sys-HASH/out/share/espeak-ng-data
-    if let Some(build_dir) = PathBuf::from(&out_dir)
-        .ancestors()
-        .find(|p| p.file_name().is_some_and(|n| n == "build"))
-    {
-        // Search for espeak-ng-data in the build directory
-        if let Ok(entries) = std::fs::read_dir(build_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path
-                    .file_name()
-                    .is_some_and(|n| n.to_string_lossy().starts_with("espeak-rs-sys-"))
-                {
-                    let data_path = path.join("out").join("share");
-                    let phontab = data_path.join("espeak-ng-data").join("phontab");
-                    if phontab.exists() {
-                        println!("cargo:rustc-env=ESPEAK_NG_DATA_DIR={}", data_path.display());
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
-    // If we can't find it in the build dir, check system paths
-    let system_paths = ["/usr/share", "/usr/local/share", "/opt/homebrew/share"];
-    for base in &system_paths {
-        let data_path = PathBuf::from(base).join("espeak-ng-data").join("phontab");
-        if data_path.exists() {
-            println!("cargo:rustc-env=ESPEAK_NG_DATA_DIR={}", base);
-            return;
-        }
-    }
-
-    // Fallback: let espeak-ng try its default paths
-    println!("cargo:rustc-env=ESPEAK_NG_DATA_DIR=");
+    println!(
+        "cargo:rustc-env=ESPEAK_NG_DATA_DIR={}",
+        staged_parent
+            .as_deref()
+            .map_or_else(String::new, |path| path.display().to_string())
+    );
 }

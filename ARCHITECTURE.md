@@ -41,7 +41,7 @@ protocol loop
   - parse legacy/control/timeline records
   - negotiate capabilities and validate bounded payloads
   - atomically assemble multipart timelines
-  - advance hard-stop or keyed-replacement cancellation
+  - advance hard-stop cancellation; prepare keyed cancellation leases
   - coalesce matching replaceable input only
                 |
                 v
@@ -65,8 +65,8 @@ AudioControl / rodio sinks
   - per-source and stream-wide cancellation
   - playback tickets and frame cues
                 |
-                +--> marker reporter --> flushed stdout events
-                +--> playback reporter --> terminal status after source end
+                +--> bounded marker reporter --> flushed stdout events
+                +--> bounded playback reporter --> terminal status after source end
 ```
 
 On macOS the protocol loop runs off the main thread because
@@ -78,7 +78,10 @@ synthesis worker is distinct from protocol admission.
 Rodio consumes audio asynchronously. Marker events describe mixer-source frame
 consumption, not guaranteed first output from the physical device. The tracked
 playback reporter waits for every ticket owned by a request and flushes reached
-marker events before writing its terminal record.
+marker events before writing its terminal record. The marker reporter bounds
+outstanding marker-event work to 8,192 records and 16 MiB of serialized records
+while preserving reached events; the tracked-completion handoff holds at most
+32 pending reports.
 
 ## Admission and atomicity
 
@@ -95,9 +98,13 @@ clear the rejection.
 Control and timeline envelopes impose their own decoded bounds. A version 3
 timeline may use up to 64 ordered transport parts and a 16 MiB decoded
 aggregate. Assembly identity, order, timeout, decoded length, and the complete
-cross-referenced envelope are validated before admission. A decodable invalid
-or stale direct timeline receives a terminal `failed` or `cancelled` status;
-an undecodable record with no trustworthy dispatch identity is diagnostic only.
+cross-referenced envelope are validated before admission. The aggregate holds
+at most 262,144 spans and 4,096 actions. Text preparation also rejects a
+15-word speech window with more than 512 combined client actions and internal
+capitalization anchors before it reaches the synthesis queue. A decodable
+invalid or stale direct timeline receives a terminal `failed` or `cancelled`
+status; an undecodable record with no trustworthy dispatch identity is
+diagnostic only.
 
 The work queue admits without waiting for synthesis. A request is either
 accepted with all required retirements or rejected without disturbing older
@@ -114,16 +121,17 @@ Two cancellation mechanisms have different ownership:
    before/after engine calls. Hard `s` stops all audio streams and all engines;
    immediate speech and letters stop the speech stream without clearing
    unrelated tone/sound output.
-2. **Keyed replacement token.** A replaceable structured timeline owns a token
-   for `(protocol_version, replacement_key)`. Receipt of a valid newer member
-   immediately cancels the prior token in that domain, before reader debounce.
-   It does not advance the hard-stop generation and therefore cannot clear
+2. **Keyed replacement token.** A replaceable structured timeline prepares a
+   token for `(protocol_version, replacement_key)`. Successful worker-queue
+   admission atomically activates it and cancels the prior token in that
+   domain. Failed admission does not disturb older queued or active work. The
+   token does not advance the hard-stop generation and therefore cannot clear
    ordered, urgent, legacy, or another replacement domain.
 
 Only replaceable structured timelines use the 20 ms quiet/80 ms maximum reader
-window. Ordered and urgent timelines execute immediately. Adjacent timelines
-coalesce only when their policy-bearing version and replacement key match;
-worker-queue replacement uses the same domain test.
+window. Ordered and urgent timelines are submitted without reader debounce.
+Adjacent timelines coalesce only when their policy-bearing version and
+replacement key match; worker-queue replacement uses the same domain test.
 
 The keyed token follows synthesis requests, rendered windows, deferred
 overlays, playback cue delivery, and tracked completion. Queued or not-yet
@@ -213,14 +221,20 @@ aligned. Volume and channel routing are duration-preserving.
 The pure timeline scheduler projects source/span positions to output frames.
 Insertions advance the primary clock and shift later events; overlays do not
 advance it but their tails extend tracked completion. The bounded renderer
-processes one synthesis window at a time and carries overlay/effect tails into
-following windows.
+processes one synthesis window at a time, caps its primary output at two
+minutes, and carries overlay/effect tails into following windows.
 
-File actions are validated and decoded before synthesis, with immutable PCM
-shared from a bounded LRU cache. Generated tones and silence remain bounded
-recipes and are materialized only for their render window. Post-synthesis gain,
-low/high-pass filtering, pan, reverb, and echo state persists across chunks and
-engine changes until explicitly replaced or ended.
+File-action paths and parameters are validated before admission. After queue
+admission, the worker decodes every file resource before synthesizing the first
+span of that presentation, so a resource failure cannot play a new partial
+prefix. Each file is limited to 16 MiB and 30 seconds. Immutable decoded PCM is
+shared from an LRU cache capped at 128 entries and 64 MiB of `f32` samples; one
+prepared presentation has its own 64 MiB retained-PCM budget, counting shared
+allocations once and predicted private transformed copies. Generated tones and
+silence remain bounded recipes and are materialized only for their render
+window. Post-synthesis gain, low/high-pass filtering, pan, reverb, and echo
+state persists across chunks and engine changes until explicitly replaced or
+ended.
 
 Speech, tone, and sound sinks can play concurrently. Within each sink sources
 are ordered and bounded. Deferred legacy icons wait for their preceding speech
@@ -230,7 +244,8 @@ completion.
 ## Lifecycle invariants
 
 - Parsing or validation failure cannot play a valid prefix of an atomic frame.
-- A newer keyed presentation affects only its exact replacement domain.
+- An admitted newer keyed presentation affects only its exact replacement
+  domain; failed admission leaves the older domain owner intact.
 - Ordered and urgent work is never coalesced or evicted as replaceable work.
 - Stale or cancelled PCM never enters playback.
 - Unreached markers and semantic events never fire after cancellation.

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Comprehensive audio test of omnivox: protocol commands, all engines,
-# speech rates, and channel routing.
+# Audible smoke test of omnivox protocol commands, startup engines, speech
+# rates, and channel routing.
 #
 # Usage:
 #   ./test-all-features.sh              # use installed omnivox binary
@@ -164,7 +164,9 @@ fi
 # ---------------------------------------------------------------------------
 # Section 3: Speech rate tests — slow / normal / fast per engine
 #
-# Rate scale: 0-100 integer, where 50 = normal, lower = faster, higher = slower.
+# Host rate scale: 0-200 integer points, where 50 = normal, lower = slower,
+# and higher = faster. eSpeak and WinRT clamp at 100; Piper uses headroom,
+# while other native limits are platform-specific.
 # ---------------------------------------------------------------------------
 echo ""
 echo "=== Section 3: Speech Rate Tests ==="

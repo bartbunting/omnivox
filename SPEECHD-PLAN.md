@@ -1,4 +1,4 @@
-# Speech Dispatcher Backend Implementation Plan
+# Speech Dispatcher Backend Design Proposal
 
 > **Status: unimplemented design proposal.** This document predates the current
 > engine registry, structured synthesis result, tracked playback, and timeline
@@ -16,49 +16,50 @@
 
 ## Overview
 
-Add Speech Dispatcher (`libspeechd`) as a TTS backend for Linux. Gives users access
-to any SD-configured voice (espeak-ng, Festival, Flite, Piper via SD module, etc.)
-without additional omnivox configuration.
+The proposed backend would expose Speech Dispatcher (`libspeechd`) on Linux and
+make its configured output modules available through Omnivox. Exact module,
+voice, language, and stable-ID behavior still needs real-system validation.
 
 ## Architecture
 
-SD does not return PCM buffers — it outputs audio through PulseAudio/PipeWire/ALSA
-directly. `SpeechDispatcherEngine::synthesize()` calls `spd_say()` (blocking), waits
-for completion via callback, then returns `AudioBuffer::empty()`. The worker queues
-nothing to rodio for speech; tones and audio icons still go through rodio as normal.
+Speech Dispatcher normally owns audio playback instead of returning PCM to its
+client. A backend would need to submit speech, wait for a truthful terminal
+notification, and advertise external playback. Returning an empty
+`AudioBuffer` alone is not sufficient: current tracked completion, timeline
+ordering, marker, cancellation, and effects contracts would otherwise report a
+false result. Tones and audio icons would still use Omnivox's rodio path.
 
 ```
-SD backend:  text -> spd_say_sync() -> SD daemon -> PulseAudio/PipeWire -> speakers
-rodio:       tones + audio icons -> rodio -> same audio device
+SD backend: text -> spd_say() -> END/CANCEL notification -> daemon audio output
+rodio:      tones + audio icons -> rodio -> configured audio output
 ```
 
-Channel routing for notification mode: set `PULSE_SINK=tts_right` (or `ALSA_DEFAULT`)
-on the notification omnivox process. SD inherits it and outputs to the virtual sink.
-No code changes needed — the existing Linux audio infrastructure handles it.
+Process-level sink selection for a separate notification server is a deployment
+hypothesis, not an established backend contract. The effective PulseAudio,
+PipeWire, or ALSA routing variables and ordering between Speech Dispatcher and
+rodio must be validated on each supported path.
 
-## Feature Support
+## Provisional Capability Assessment
 
 | Feature | Status | Mechanism |
 |---------|--------|-----------|
-| Text synthesis | ✅ Full | `spd_say()` |
-| Rate control | ✅ Full | `spd_set_voice_rate()` (-100 to 100) |
-| Pitch control | ✅ Full | `spd_set_voice_pitch()` |
-| Volume control | ✅ Full | `spd_set_volume()` |
-| Voice selection | ✅ Full | `spd_set_synthesis_voice()` |
-| Stop/cancel | ✅ Full | `spd_cancel()` in `engine.stop()` |
-| Chunking | ✅ Full | Each chunk calls `spd_say_sync()` |
-| Generation counter | ✅ Full | Worker checks staleness between chunks |
-| Split caps | ✅ Full | Text preprocessed before SD sees it |
-| Punctuation expansion | ✅ Full | Text preprocessed before SD sees it |
-| Capital letters | ✅ Full | Semantic timelines carry queued cues; isolated letters use a pitch rise |
-| Tones | ✅ Full | Still through rodio (unchanged) |
-| Audio icons | ✅ Full | Still through rodio (unchanged) |
-| Channel routing | ✅ Via env | `PULSE_SINK` / `ALSA_DEFAULT` on process, SD inherits it |
-| Silence trimming | N/A | SD owns audio output |
-| Multi-client | ✅ Built-in | SD daemon supports concurrent connections |
-| Priority system | ✅ Bonus | Use `SPD_TEXT` for main, `SPD_NOTIFICATION` for notify server |
+| Text synthesis | Candidate | Submit through `spd_say()` and prove terminal notification semantics. |
+| Rate, pitch, volume | Candidate | Map common settings and verify native ranges/defaults. |
+| Voice and language | Open | Define stable IDs and request-local module/voice/language selection. |
+| Stop/cancel | Open | Prove callback and cross-thread cancellation behavior. |
+| Chunking and generation | Candidate | Reuse common preparation and stale-work checks. |
+| Split caps and punctuation | Candidate | Reuse common text preprocessing before submission. |
+| Capitalization cues | Open | Coordinate caller-supplied cues and isolated-letter pitch with external playback. |
+| Tones and audio icons | Open | Rodio remains separate; ordering and completion need a bridge. |
+| Channel routing | Open | Validate daemon/backend-specific sink selection. |
+| Silence trimming and PCM effects | Unavailable | Speech Dispatcher owns the speech PCM. |
+| Markers and tracked completion | Open | Require truthful notifications integrated with current tickets/events. |
+| Priority | Optional | Define policy before mapping Speech Dispatcher priority classes. |
 
-## New Files
+## Historical Implementation Sketch
+
+The file list and code below predate current interfaces and are illustrative,
+not compile-ready.
 
 ### `omnivox-tts/src/speechd.rs`
 
@@ -66,35 +67,41 @@ Main engine implementation. Key parts:
 
 ```rust
 pub struct SpeechDispatcherEngine {
-    conn: Mutex<*mut SPDConnection>,
-    done: Arc<(Mutex<bool>, Condvar)>,
+    connection: SpeechDispatcherConnection,
+    terminals: PendingTerminalMap,
 }
 
 impl TtsEngine for SpeechDispatcherEngine {
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
-        let conn = self.conn.lock().unwrap();
-        self.apply_settings(&conn, &request.settings)?;
-        // Set end-of-speech callback to signal done
-        // Call spd_say() with request.text and SPD_TEXT priority
-        // Wait on condvar for callback to fire
-        Ok(SynthesisResult::audio("speechd", actual_voice, AudioBuffer::empty()))
+        self.connection.apply_settings(&request.settings)?;
+        let message_id = self.connection.say(&request.text)?;
+        // Wait with a deadline for the matching (client_id, message_id) END or
+        // CANCEL notification. Connection loss is also terminal.
+        self.terminals.wait_for(message_id)?;
+        // Current SynthesisResult cannot yet represent externally owned audio
+        // plus a correlated terminal notification.
+        todo!("define an external-playback result contract")
     }
 
     fn stop(&self) {
-        let conn = self.conn.lock().unwrap();
-        unsafe { spd_cancel(*conn) };
-        // Signal condvar so blocking synthesize() unblocks
+        self.connection.cancel();
+        // The correlated callback or timeout retires the pending request.
     }
 
-    fn available_voices(&self) -> Vec<String> {
-        // spd_list_synthesis_voices() + format as "module:name"
+    fn available_voices(&self) -> Vec<VoiceInfo> {
+        // Convert spd_list_synthesis_voices() into stable physical voice IDs.
     }
 }
 ```
 
-Rate mapping: `spd_rate = ((rate - 1.0) * 100.0).clamp(-100.0, 100.0) as i32`
-Pitch mapping: `spd_pitch = ((pitch - 1.0) * 100.0).clamp(-100.0, 100.0) as i32`
-Volume mapping: `spd_vol = ((volume - 0.5) * 200.0).clamp(-100.0, 100.0) as i32`
+The connection wrapper and terminal map above are placeholders, not existing
+Omnivox types. In particular, do not hold one mutex across the terminal wait:
+`stop()` and the callback path must remain able to make progress concurrently.
+
+Control mappings are deliberately left TBD. A revised rate mapping must
+preserve Omnivox's `0.5` normal point and `0.0..2.0` host range, then clamp to
+the verified Speech Dispatcher range; the old `rate - 1.0` sketch did not do
+that.
 
 ### `omnivox-speechd-sys/` (new crate)
 
@@ -136,19 +143,20 @@ extern "C" {
 }
 ```
 
-Completion detection: SD is async by default. To make `synthesize()` blocking:
-1. `spd_set_notification_on(conn, SPD_END)` at connection open
-2. Set `conn->callback_end` to a C callback that signals a `Condvar`
-3. `synthesize()` waits on the condvar after `spd_say()`
-4. `stop()` calls `spd_cancel()` AND signals the condvar to unblock
-
-Note: callback runs on SD's internal thread — condvar is the right primitive here.
+Completion detection requires a threaded connection, END and CANCEL callback
+registration, and a bounded pending-request table keyed by the callback's
+client and message IDs. A condition variable or channel can wake the waiter,
+but the notification identity and terminal kind—not the wakeup alone—determine
+the result. Connection failure and timeout need explicit terminal paths.
 
 ## Changes to Existing Files
 
 ### `Cargo.toml` (workspace)
 
-Add `omnivox-speechd-sys` to `members` (NOT `default-members` — Linux only).
+Decide workspace placement together with CI policy. Adding a Linux-only sys
+crate to `members` makes `cargo test --workspace` build it even when it is not a
+default member, so the locked workspace gate would then require development
+headers. An optional dependency plus a dedicated feature job may be preferable.
 
 ### `omnivox-tts/Cargo.toml`
 
@@ -193,29 +201,31 @@ install-speechd:
 
 ## Completion Detection Detail
 
-This is the trickiest part. SD is async — `spd_say()` returns immediately.
-Options:
+The current C API returns a message ID from `spd_say()`. Notifications require a
+threaded connection: `spd_set_notification_on()` rejects
+`SPD_MODE_SINGLE`. Speech Dispatcher's own `spd-say --wait` client registers
+both END and CANCEL callbacks and waits on a semaphore.
 
-1. **Callback + Condvar** (recommended): Register `SPD_END` notification callback
-   at connection open. Callback signals a `(Mutex<bool>, Condvar)`. `synthesize()`
-   waits on condvar. `stop()` calls `spd_cancel()` + signals condvar. Clean and
-   correct.
+A backend can use a condition variable or channel for the same synchronization,
+but it must correlate callback message and client IDs with the submitted
+request, distinguish END from CANCEL, handle connection loss and timeout, and
+prevent a late callback from completing a newer request. There is no
+`spd_say_sync()` API in the current header, and `SPD_MODE_SINGLE` must not be
+treated as synchronous playback.
 
-2. **spd_say_sync via SPDConnectionMode**: SD has `SPD_MODE_SINGLE` connection mode
-   which may block — needs testing, not documented well.
-
-3. **Polling**: Poll `spd_get_client_id()` or similar — bad idea, don't do this.
-
-Use option 1.
+Reference the upstream
+[`libspeechd.h`](https://github.com/brailcom/speechd/blob/master/src/api/c/libspeechd.h)
+and [`spd-say` wait implementation](https://github.com/brailcom/speechd/blob/master/src/clients/say/say.c)
+when revising this design; both are more authoritative than the historical FFI
+sketch above.
 
 ## Stop Behavior
 
-`engine.stop()` must:
-1. Call `spd_cancel(conn)` — stops SD output immediately
-2. Signal the condvar — unblocks any `synthesize()` waiting for END callback
-3. Worker's generation counter discards subsequent chunks as usual
-
-This mirrors how `espeak_Cancel()` works but with the added condvar signal.
+`engine.stop()` would call `spd_cancel(conn)` and rely on a correlated CANCEL or
+END notification to retire external playback. The host generation still blocks
+later stale chunks. A bounded timeout and connection-recovery path are required
+if the daemon never supplies a terminal callback; locally signalling a wait
+primitive is not by itself evidence that Speech Dispatcher stopped output.
 
 ## Voice List Format
 
@@ -235,13 +245,13 @@ On a Linux system with SD installed:
 spd-say "hello"
 
 # Test omnivox SD backend
-OMNIVOX_ENGINE=speechd (printf 'tts_say {Hello world}\n'; sleep 3) | omnivox
+(printf 'tts_say {Hello world}\n'; sleep 3) | OMNIVOX_ENGINE=speechd omnivox
 
 # List voices
 OMNIVOX_ENGINE=speechd omnivox --list-voices
 
 # Test stop
-OMNIVOX_ENGINE=speechd (printf 'tts_say {A very long sentence}\ns\n'; sleep 2) | omnivox
+(printf 'tts_say {A very long sentence}\ns\n'; sleep 2) | OMNIVOX_ENGINE=speechd omnivox
 ```
 
 ## Linux Prerequisites
@@ -262,9 +272,14 @@ OMNIVOX_ENGINE=speechd (printf 'tts_say {A very long sentence}\ns\n'; sleep 2) |
 
 ## Open Questions (resolve at implementation time)
 
-1. Is `SPD_MODE_SINGLE` actually synchronous? If yes, simplifies implementation.
-2. Does the END callback fire after `spd_cancel()`? If not, need to track cancelled state.
-3. Thread safety of `SPDConnection*` — is it safe to call `spd_cancel()` from reader
-   thread while `spd_say()` is blocking in worker thread? Likely yes (designed for this),
-   but verify.
-4. How does SD handle empty strings? Guard against sending empty text.
+1. Which callback and connection-loss sequences occur after `spd_cancel()`, and
+   which terminal status should each sequence produce?
+2. What synchronization does `SPDConnection*` permit while one host thread is
+   waiting and another requests cancellation? Verify this from upstream code
+   and stress it against supported daemon versions.
+3. Can request-local module, language, voice, and prosody settings be isolated
+   reliably on one serialized connection, or are multiple connections needed?
+4. How should externally owned playback participate in Omnivox tickets,
+   timeline ordering, marker degradation, and notification-channel routing?
+5. How does Speech Dispatcher handle empty strings? Guard against sending empty
+   text regardless.

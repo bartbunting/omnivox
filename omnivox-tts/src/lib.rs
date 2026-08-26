@@ -80,7 +80,7 @@ pub enum VoiceQuality {
 pub struct TtsSettings {
     /// Voice identifier
     pub voice: String,
-    /// Speech rate (0.0 to 1.0, 0.5 = normal)
+    /// Host speech rate (0.0 to 2.0, 0.5 = normal); engines may clamp lower.
     pub rate: f32,
     /// Pitch multiplier (0.5 to 2.0, 1.0 = normal)
     pub pitch: f32,

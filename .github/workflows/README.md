@@ -27,7 +27,14 @@ Builds locked release binaries for four targets:
 
 The macOS ARM runner cross-compiles the Intel target. Windows uses a native
 runner for each architecture because the WinRT build requires it. Every
-artifact contains the main executable plus `elisp/omnivox-voices.el`.
+artifact contains the main executable, `elisp/omnivox-voices.el`, the matching
+generated `espeak-ng-data`, and third-party notices. The build wrapper derives
+that data from the exact `espeak-rs-sys` output reported by Cargo.
+
+The workflow verifies the data and license files in all four artifacts. It also
+runs eSpeak voice discovery from the packaged data on macOS ARM64 and both
+native Windows targets. The cross-compiled macOS Intel executable is not run on
+the ARM build runner.
 
 There is no Linux build in this matrix.
 
@@ -50,7 +57,7 @@ and two `.zip` archives, writes SHA-256 checksums, and publishes them through a
 GitHub release.
 
 The release does not package optional Piper, Eloquence, or DECtalk helpers,
-models, DLLs, or dictionaries.
+models, proprietary DLLs, or proprietary dictionaries.
 
 ## Triggers
 

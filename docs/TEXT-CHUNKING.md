@@ -38,10 +38,12 @@ effect or overlay tail is emitted only after the final timeline window.
 ## Source mapping
 
 `PreparedSpeechChunk` records its UTF-8 byte range in the complete prepared
-text. Capitalization actions are filtered into their owning chunk and rebased
-to chunk-local offsets. Structured timeline actions are first remapped through
+text. Caller-requested structured timeline offsets are first remapped through
 punctuation expansion and CamelCase splitting, then assigned to one chunk with
-their declared before/after affinity.
+their declared before/after affinity. The chunker also filters and rebases any
+internal capitalization anchors supplied in a prepared value. Current text
+preparation deliberately infers no such anchors: semantic clients carry
+capitalization actions explicitly, and ordinary speech preserves letter case.
 
 This is why callers must not re-split a prepared string independently: doing so
 would detach requested anchors from the text sent to the engine.
@@ -63,9 +65,9 @@ if matched real-engine benchmarks show a useful cross-platform trade-off.
 ## Verification
 
 Unit tests cover short/exact/long input, sentence and clause preference,
-newlines, Unicode closers, hard-limit fallback, capitalization-offset rebasing,
-and structured action offsets across chunks. Run the repository's locked
-workspace suite:
+newlines, Unicode closers, hard-limit fallback, prepared-anchor rebasing, and
+structured action offsets across chunks. Run the repository's locked workspace
+suite:
 
 ```sh
 cargo test --locked --workspace

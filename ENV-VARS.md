@@ -18,7 +18,7 @@ separately below.
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
 | `--engine NAME` | Select `native`, `espeak`, or opt-in `piper`. |
 | `--voice ID` | Set the startup physical voice. |
-| `--rate FLOAT` | Set normalized startup rate from 0.0 through 1.0. |
+| `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 is normal. |
 | `--pitch FLOAT` | Set pitch multiplier from 0.5 through 2.0. |
 | `--voice-volume FLOAT` | Set speech gain from 0.0 through 1.0. |
 | `--tone-volume FLOAT` | Set tone gain from 0.0 through 1.0. |
@@ -29,8 +29,10 @@ separately below.
 | `--play-wav FILE` | Play a WAV through the Omnivox audio path. |
 
 Without an action option, Omnivox starts the stdin protocol server. Protocol
-rate commands use Emacspeak's integer scale; Omnivox normalizes values greater
-than 1 by dividing by 100. Higher values produce a faster requested rate.
+rate commands conventionally use Emacspeak's integer scale. Omnivox divides
+values greater than 1 by 100 and then clamps the normalized value to `0.0..2.0`
+(`50` becomes `0.5`, `150` becomes `1.5`, and `300` becomes `2.0`). Higher
+values request faster speech; individual engines may impose a lower maximum.
 
 ## Server environment
 
@@ -58,8 +60,25 @@ than 1 by dividing by 100. Higher values produce a faster requested rate.
 `OMNIVOX_PIPER_ESPEAK_DATA`
 
 - Optional Piper-specific path containing `espeak-ng-data/`.
-- Used only by the in-process Piper implementation; ordinary packaged use
-  normally relies on the helper and its own discovery.
+- Read by the Piper engine inside `omnivox-piper-helper`; the main server
+  inherits this environment into the child. The helper otherwise checks the
+  shared data beside its executable, its build-time path, and compatible system
+  data.
+
+`ESPEAK_NG_DATA`
+
+- Parent directory containing `espeak-ng-data/phontab`, not the
+  `espeak-ng-data` directory itself.
+- The eSpeak TTS backend checks this value first, then an `espeak-ng-data`
+  directory beside the executable, its staged Cargo-profile path, and common
+  system data locations. The Piper phonemizer also checks it after
+  `OMNIVOX_PIPER_ESPEAK_DATA`.
+- Supported local builds and generic GitHub release archives package matching
+  data beside the executable, so this variable is normally unnecessary for
+  those layouts. Keep the packaged directory adjacent when relocating the
+  binary.
+- The Emacsvox WSL launcher forwards this value for its content-addressed
+  staged Windows runtime.
 
 ### Audio routing
 
@@ -99,8 +118,8 @@ guidance.
 
 `OMNIVOX_ECI_DLL`
 
-- Optional path passed to the Eloquence helper for a user-supplied 32-bit
-  `ECI.DLL`.
+- Optional path inherited and read by the Eloquence helper for a user-supplied
+  32-bit `ECI.DLL`.
 
 `OMNIVOX_DECTALK_HELPER`
 
@@ -109,16 +128,13 @@ guidance.
 
 `OMNIVOX_DECTALK_DLL`
 
-- Optional path to user-supplied `DECtalk.dll`.
+- Optional path inherited and read by the DECtalk helper for a user-supplied
+  `DECtalk.dll`.
 - `dtalk_us.dic` must be in the same directory.
 
 A missing helper or runtime removes only that engine from usable inventory;
 normal fallback remains available. Proprietary runtimes are not distributed
 by Omnivox or Emacsvox.
-
-`ESPEAK_NG_DATA` is also forwarded by the Emacsvox WSL launcher when a staged
-Windows runtime supplies its content-addressed eSpeak data directory. Normal
-source builds use the backend's standard data discovery.
 
 ## Emacsvox adapter
 

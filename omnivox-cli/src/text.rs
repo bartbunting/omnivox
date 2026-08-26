@@ -558,8 +558,8 @@ pub fn parse_resource_path(argument: &str) -> Result<PathBuf, String> {
 ///
 /// Emacspeak sends integer rates (e.g. 50 = normal, 100 = fast).  Values above
 /// 1.0 are divided by 100.  The upper bound is 2.0 so that engines supporting
-/// it (piper) can reach ~10× speed; engines that don't (espeak, native) clamp
-/// internally.
+/// it (Piper) can reach ~10× speed. eSpeak and WinRT clamp internally; other
+/// native limits are platform-specific.
 pub fn normalize_rate(rate: f32) -> f32 {
     let r = if rate > 1.0 { rate / 100.0 } else { rate };
     r.clamp(0.0, 2.0)

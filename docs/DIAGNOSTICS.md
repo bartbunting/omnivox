@@ -1,6 +1,6 @@
 # Omnivox failure diagnostics
 
-The Emacsvox WSL launcher writes each OmniVox session to a separate file under
+The Emacsvox WSL launcher writes each Omnivox session to a separate file under
 `$XDG_STATE_HOME/emacsvox/omnivox`, or
 `~/.local/state/emacsvox/omnivox` when `XDG_STATE_HOME` is unset. Set the
 launcher-only `OMNIVOX_LOG_DIRECTORY` variable to use a different Linux
@@ -13,7 +13,7 @@ fallback decisions, recovery probes, native-call boundaries, and panic
 backtraces. It does not record synthesized text by default. Set
 `OMNIVOX_LOG_SYNTHESIS_TEXT=1` before launching Emacsvox to add an escaped
 `synthesis_text` field for every routed engine attempt. The server emits a
-startup warning whenever this sensitive mode is active. Ordinary OmniVox
+startup warning whenever this sensitive mode is active. Ordinary Omnivox
 logging remains at info level because existing debug messages can contain
 protocol text.
 
@@ -65,7 +65,7 @@ per-application policy with:
 Pass `-IncludeServer` during removal if it was supplied during setup. Windows
 requires administrator privileges and `HKEY_LOCAL_MACHINE` configuration for
 WER LocalDumps; per-process settings override global settings. See Microsoft’s
-[WER settings documentation](https://learn.microsoft.com/windows/win32/wer/wer-settings).
+[WER settings documentation](https://learn.microsoft.com/en-us/windows/win32/wer/wer-settings).
 
 If administrator access is unavailable, skip LocalDumps. The ordinary session
 log and `tools/collect_diagnostics.sh` still capture the request, native-call

@@ -64,8 +64,9 @@ Important implementation entry points:
 - Atomic submissions never play a valid prefix after validation failure.
 - Ordered and urgent timelines never wait in the replaceable coalescing window
   and are never evicted as replaceable work.
-- A keyed replacement cancels only its exact protocol/key domain; hard stop is
-  the only stream-wide engine/audio cancellation boundary.
+- Admission of a keyed replacement atomically cancels only its exact
+  protocol/key domain; failed admission leaves the prior owner intact. Hard
+  stop is the only stream-wide engine/audio cancellation boundary.
 - Stale PCM, markers, semantic callbacks, and terminal ownership cannot escape
   after cancellation.
 - Fallback may degrade optional capabilities but must not silently lose source

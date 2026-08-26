@@ -1,17 +1,19 @@
 .PHONY: all build test elisp-test clean run dev check lint fmt fmt-check doc
 
 ELISP_EMACS ?= emacs
+PYTHON ?= python3
+OMNIVOX_INSTALL_BIN ?= $(HOME)/.cargo/bin
 
 # Default target
 all: build
 
 # Build release binary
 build:
-	cargo build --locked --release
+	$(PYTHON) tools/build.py --release
 
 # Build debug binary
 dev:
-	cargo build --locked
+	$(PYTHON) tools/build.py
 
 # Run tests
 test:
@@ -22,8 +24,8 @@ test:
 elisp-test:
 	$(ELISP_EMACS) -Q --batch -l elisp/omnivox-voices-tests.el
 
-# Run with debug output
-run:
+# Run with staged debug runtime data
+run: dev
 	cargo run --locked
 
 # Check code without building
@@ -55,17 +57,24 @@ clean:
 watch:
 	cargo watch -x build
 
-# Install binary to ~/.cargo/bin
-install:
+# Install the binary and its eSpeak runtime payload to ~/.cargo/bin. Override
+# OMNIVOX_INSTALL_BIN when Cargo is configured with a different install root.
+install: build
 	cargo install --locked --path omnivox-cli
+	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses"
+	cp -R target/release/espeak-ng-data/. "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data/"
+	cp -R target/release/third-party-licenses/. "$(OMNIVOX_INSTALL_BIN)/third-party-licenses/"
 
 # Build the main server and adjacent Piper helper. Native dependencies are
 # linked only into the helper (requires cmake + network on first run).
 build-piper:
-	cargo build --locked --release -p omnivox-piper-helper --features piper
-	cargo build --locked --release -p omnivox-cli --features piper
+	$(PYTHON) tools/build.py --release -p omnivox-piper-helper --features piper
+	$(PYTHON) tools/build.py --release -p omnivox-cli --features piper
 
-# Install both executables beside one another in ~/.cargo/bin
-install-piper:
+# Install both executables and shared runtime assets beside one another.
+install-piper: build-piper
 	cargo install --locked --path omnivox-piper-helper --features piper
 	cargo install --locked --path omnivox-cli --features piper
+	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses"
+	cp -R target/release/espeak-ng-data/. "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data/"
+	cp -R target/release/third-party-licenses/. "$(OMNIVOX_INSTALL_BIN)/third-party-licenses/"

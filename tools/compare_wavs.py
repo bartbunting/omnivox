@@ -3,7 +3,7 @@
 
 Reads two WAV files (float32 or PCM16), trims silence, aligns by
 first non-silent sample, and reports RMS difference, correlation,
-SNR, per-segment analysis, and amplitude modulation detection.
+SNR, and per-segment analysis.
 
 Usage: python3 compare_wavs.py <file1.wav> <file2.wav>
 """
@@ -105,8 +105,8 @@ def main():
     print(f"File 2: {path2}")
     print(f"  {len(s2)} samples, {sr2}Hz, {ch2}ch, {len(s2)/sr2/ch2:.3f}s")
 
-    m1 = to_mono(trim_silence(s1, ch1), 1) if ch1 > 1 else trim_silence(s1, 1)
-    m2 = to_mono(trim_silence(s2, ch2), 1) if ch2 > 1 else trim_silence(s2, 1)
+    m1 = to_mono(trim_silence(s1, ch1), ch1)
+    m2 = to_mono(trim_silence(s2, ch2), ch2)
     min_len = min(len(m1), len(m2))
     print(f"\nTrimmed mono: {len(m1)} vs {len(m2)}, comparing {min_len} samples")
 

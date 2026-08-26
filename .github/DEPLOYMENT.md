@@ -11,10 +11,11 @@ The checked-in GitHub Actions workflow publishes these release archives:
 | Windows x64 | `x86_64-pc-windows-msvc` | `omnivox-VERSION-windows-x64.zip` |
 | Windows ARM64 | `aarch64-pc-windows-msvc` | `omnivox-VERSION-windows-arm64.zip` |
 
-Each archive contains the main binary and `omnivox-voices.el`. Releases also
-publish `sha256sums.txt`. The workflow does **not** currently publish Linux
-artifacts, optional Piper helpers/models, proprietary-engine helpers, or
-proprietary runtimes.
+Each archive contains the main binary, `omnivox-voices.el`, the matching
+generated `espeak-ng-data`, and `third-party-licenses`. Releases also publish
+`sha256sums.txt`. The workflow does **not** currently publish Linux artifacts,
+optional Piper helpers/models, proprietary-engine helpers, or proprietary
+runtimes.
 
 Linux remains supported as a source build using eSpeak NG. Do not advertise a
 downloadable Linux binary, ABI baseline, or ARM64 cross-build until the workflow
@@ -36,6 +37,8 @@ The release version and archive prefix come from the tag name with its leading
 - Formatting on an Ubuntu runner.
 - Release builds for both listed macOS and Windows architectures.
 - Tests and Clippy on macOS ARM64, Windows x64, and Windows ARM64.
+- Presence of the packaged eSpeak data and license payload on every artifact,
+  plus packaged eSpeak voice discovery on macOS ARM64 and both Windows targets.
 - Locked dependency resolution with Rust 1.97.1, matching
   `rust-toolchain.toml`.
 
@@ -45,19 +48,25 @@ Emacsvox's content-addressed Windows staging contract.
 
 ## Installing an archive
 
-Verify the archive against `sha256sums.txt`, extract it, and keep the binary and
-matching adapter from the same release.
+Verify the archive against `sha256sums.txt`, extract it, and keep its binary,
+`espeak-ng-data`, and `third-party-licenses` together. Keep the matching adapter
+from the same release as well.
 
 On macOS, place `omnivox` in a directory on `PATH` and make it executable:
 
 ```sh
 install -m 755 omnivox "$HOME/.local/bin/omnivox"
+mkdir -p "$HOME/.local/bin/espeak-ng-data" "$HOME/.local/bin/third-party-licenses"
+cp -R espeak-ng-data/. "$HOME/.local/bin/espeak-ng-data/"
+cp -R third-party-licenses/. "$HOME/.local/bin/third-party-licenses/"
 ```
 
-On Windows, copy `omnivox.exe` into the Emacspeak speech-server directory or
-another configured executable location. Release archives use WinRT as the
-native engine and include eSpeak NG fallback; optional helper engines require
-separate adjacent executables and user-supplied runtimes.
+On Windows, copy the extracted payload together into the Emacspeak
+speech-server directory or another configured executable location. Release
+archives use WinRT as the native Windows engine; the adjacent packaged data
+makes eSpeak available as a fallback without a separate installation. Optional
+helper engines require separate adjacent executables and user-supplied
+runtimes.
 
 The repository adapter is for upstream Emacspeak. Follow [README.md](../README.md)
 and [ENV-VARS.md](../ENV-VARS.md) rather than mixing those `dtk-*` names with
@@ -88,7 +97,7 @@ Use the pinned toolchain and locked commands:
 make fmt-check
 cargo test --locked --workspace
 make lint
-cargo build --locked --release
+make build
 ```
 
 Platform-specific claims still require the relevant host and runtime. A
