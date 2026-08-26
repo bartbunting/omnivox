@@ -3059,6 +3059,31 @@ mod tests {
     }
 
     #[test]
+    fn structured_offset_mapping_handles_reverse_maximum_action_offsets() {
+        let text = "aB ".repeat(20_000);
+        let mut offsets = (0..MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW * 8)
+            .map(|index| (index * text.len() / (MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW * 8)) as u32)
+            .rev()
+            .collect::<Vec<_>>();
+        offsets[1] = offsets[0];
+        let state = TtsState {
+            punctuation_level: omnivox_core::PunctuationLevel::All,
+            split_caps: true,
+            ..TtsState::default()
+        };
+
+        let (prepared, mapped) = prepare_speech_text_with_offsets(&text, &state, &offsets);
+
+        assert_eq!(mapped.len(), offsets.len());
+        assert_eq!(mapped[0], mapped[1]);
+        assert!(mapped.windows(2).all(|pair| pair[0] >= pair[1]));
+        assert!(mapped.iter().all(|offset| {
+            let offset = *offset as usize;
+            offset <= prepared.text.len() && prepared.text.is_char_boundary(offset)
+        }));
+    }
+
+    #[test]
     fn structured_audio_pan_uses_normalized_stereo_position() {
         let mut left = AudioBuffer::new(vec![1.0, 1.0, 0.5, 0.5]);
         apply_action_pan(&mut left, 0.25);

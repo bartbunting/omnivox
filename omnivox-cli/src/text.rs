@@ -348,20 +348,65 @@ pub fn prepare_speech_text_with_offsets(
     )
 }
 
+struct OffsetMapper {
+    pending: Vec<(usize, usize)>,
+    next: usize,
+    mapped: Vec<u32>,
+}
+
+impl OffsetMapper {
+    fn new(offsets: &[u32]) -> Self {
+        let mut pending = offsets
+            .iter()
+            .enumerate()
+            .map(|(index, offset)| (*offset as usize, index))
+            .collect::<Vec<_>>();
+        pending.sort_by_key(|(offset, _)| *offset);
+        Self {
+            pending,
+            next: 0,
+            mapped: vec![0_u32; offsets.len()],
+        }
+    }
+
+    fn record(&mut self, input: usize, output: usize) {
+        debug_assert!(
+            self.pending
+                .get(self.next)
+                .is_none_or(|(offset, _)| *offset >= input),
+            "valid UTF-8 offsets must be visited in source order"
+        );
+        while self
+            .pending
+            .get(self.next)
+            .is_some_and(|(offset, _)| *offset == input)
+        {
+            let (_, original_index) = self.pending[self.next];
+            self.mapped[original_index] = output as u32;
+            self.next += 1;
+        }
+    }
+
+    fn finish(self) -> Vec<u32> {
+        debug_assert_eq!(self.next, self.pending.len());
+        self.mapped
+    }
+}
+
 fn apply_punctuation_with_offsets(
     text: &str,
     level: PunctuationLevel,
     offsets: &[u32],
 ) -> (String, Vec<u32>) {
     let mut output = String::with_capacity(text.len());
-    let mut mapped = vec![0_u32; offsets.len()];
+    let mut mapped = OffsetMapper::new(offsets);
     let mut position = 0;
     while position < text.len() {
-        record_offsets(offsets, position, output.len(), &mut mapped);
+        mapped.record(position, output.len());
         if text[position..].starts_with(LEGACY_SPEECH_SEPARATOR) {
             output.push(' ');
             for boundary in 1..=LEGACY_SPEECH_SEPARATOR.len() {
-                record_offsets(offsets, position + boundary, output.len(), &mut mapped);
+                mapped.record(position + boundary, output.len());
             }
             position += LEGACY_SPEECH_SEPARATOR.len();
             continue;
@@ -378,32 +423,24 @@ fn apply_punctuation_with_offsets(
         }
         position += character.len_utf8();
     }
-    record_offsets(offsets, text.len(), output.len(), &mut mapped);
-    (output, mapped)
+    mapped.record(text.len(), output.len());
+    (output, mapped.finish())
 }
 
 fn insert_space_before_uppercase_with_offsets(text: &str, offsets: &[u32]) -> (String, Vec<u32>) {
     let mut output = String::with_capacity(text.len() * 2);
-    let mut mapped = vec![0_u32; offsets.len()];
+    let mut mapped = OffsetMapper::new(offsets);
     let mut previous_lower = false;
     for (position, character) in text.char_indices() {
         if character.is_uppercase() && previous_lower {
             output.push(' ');
         }
-        record_offsets(offsets, position, output.len(), &mut mapped);
+        mapped.record(position, output.len());
         previous_lower = character.is_lowercase();
         output.push(character);
     }
-    record_offsets(offsets, text.len(), output.len(), &mut mapped);
-    (output, mapped)
-}
-
-fn record_offsets(offsets: &[u32], input: usize, output: usize, mapped: &mut [u32]) {
-    for (index, offset) in offsets.iter().enumerate() {
-        if *offset as usize == input {
-            mapped[index] = output as u32;
-        }
-    }
+    mapped.record(text.len(), output.len());
+    (output, mapped.finish())
 }
 
 // ---------------------------------------------------------------------------
