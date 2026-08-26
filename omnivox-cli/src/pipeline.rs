@@ -4,7 +4,7 @@ use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, PlaybackTicket,
     PostSynthesisParameters, PostSynthesisProcessor, SharedPreparedAudioResource,
     SilenceTrimReport, SilenceTrimmer, StreamType, TimelineAudioRenderer, ToneGenerator,
-    VolumeAdjust,
+    VolumeAdjust, MAX_TIMELINE_ACTIONS_PER_WINDOW,
 };
 use omnivox_core::timeline::{
     ActionAffinity, AudioActionMode, EffectBus, PresentationPosition, ResolvedTimelineAction,
@@ -24,6 +24,7 @@ use omnivox_tts::timeline_protocol::{
 use omnivox_tts::{
     AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisCancellationToken,
     SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
+    MAX_SYNTHESIS_ANCHORS,
 };
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -615,6 +616,14 @@ fn requested_timeline_anchors(
             RequestedAnchor::new(action.id.clone(), action.text_offset, action.affinity)
         }))
         .collect()
+}
+
+fn with_timeline_anchors(
+    request: SynthesisRequest,
+    tones: &[CapitalizationTone],
+    actions: &[TimelineChunkAction],
+) -> Result<SynthesisRequest, omnivox_tts::TtsError> {
+    request.with_anchors(requested_timeline_anchors(tones, actions))
 }
 
 fn render_speech_timeline(
@@ -1349,16 +1358,18 @@ fn synthesize_direct_timeline_chunk(
         volume: 1.0,
     };
     crate::routing::apply_normalized_acss(&mut settings, &acss.style);
-    let request = attach_synthesis_cancellation(
-        SynthesisRequest::new(&chunk.text, settings)
-            .with_normalized_acss(acss.style.clone())
-            .with_anchors(requested_timeline_anchors(
-                &chunk.capitalization_tones,
-                actions,
-            ))
-            .expect("prepared timeline offsets are valid"),
-        ctx,
-    );
+    let request = match with_timeline_anchors(
+        SynthesisRequest::new(&chunk.text, settings).with_normalized_acss(acss.style.clone()),
+        &chunk.capitalization_tones,
+        actions,
+    ) {
+        Ok(request) => attach_synthesis_cancellation(request, ctx),
+        Err(error) => {
+            ctx.mark_failed();
+            warn!("Structured timeline synthesis request error: {error}");
+            return true;
+        }
+    };
     match ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(&request, descriptor.capabilities.markers.requested_anchors);
         result.degraded_acss = acss.omitted.clone();
@@ -1554,6 +1565,19 @@ fn prepare_timeline_span(
             affinity,
             kind,
         });
+    }
+    let max_window_actions = MAX_SYNTHESIS_ANCHORS.min(MAX_TIMELINE_ACTIONS_PER_WINDOW);
+    for (chunk_index, (chunk, actions)) in chunks.iter().zip(&actions_by_chunk).enumerate() {
+        let action_count = chunk.capitalization_tones.len() + actions.len();
+        if action_count > max_window_actions {
+            return Err(format!(
+                "span {} chunk {} contains {} actions including capitalization anchors; maximum is {}",
+                span.id,
+                chunk_index + 1,
+                action_count,
+                max_window_actions
+            ));
+        }
     }
     Ok(PreparedTimelineSpan {
         id: span.id,
@@ -1981,6 +2005,81 @@ mod tests {
             lifecycle_anchor: omnivox_tts::timeline_protocol::PresentationLifecycleAnchor::Run,
             action,
         }
+    }
+
+    fn semantic_chunk_actions(count: usize) -> Vec<TimelineChunkAction> {
+        (0..count)
+            .map(|index| TimelineChunkAction {
+                id: format!("semantic.{index}"),
+                text_offset: 0,
+                affinity: AnchorAffinity::After,
+                kind: TimelineChunkActionKind::SemanticEvent,
+            })
+            .collect()
+    }
+
+    fn semantic_timeline_actions(count: usize) -> Vec<PresentationTimelineAction> {
+        (0..count)
+            .map(|index| {
+                boundary_action(
+                    &format!("semantic.{index}"),
+                    PresentationAction::SemanticEvent,
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn direct_timeline_anchor_limit_returns_an_error_instead_of_panicking() {
+        let tone = CapitalizationTone {
+            id: "capital".to_owned(),
+            text_offset: 0,
+            frequency_hz: CAPITAL_TONE_HZ,
+            duration_ms: CAPITAL_TONE_DURATION_MS,
+        };
+        let accepted = semantic_chunk_actions(MAX_SYNTHESIS_ANCHORS - 1);
+        let request = with_timeline_anchors(
+            SynthesisRequest::new("test", TtsSettings::default()),
+            std::slice::from_ref(&tone),
+            &accepted,
+        )
+        .unwrap();
+        assert_eq!(request.anchors.len(), MAX_SYNTHESIS_ANCHORS);
+
+        let overflow = semantic_chunk_actions(MAX_SYNTHESIS_ANCHORS);
+        let error = with_timeline_anchors(
+            SynthesisRequest::new("test", TtsSettings::default()),
+            &[tone],
+            &overflow,
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            omnivox_tts::TtsError::InvalidParameter(message)
+                if message.contains("anchor limit")
+        ));
+    }
+
+    #[test]
+    fn prepared_timeline_window_enforces_the_downstream_action_limit() {
+        let span = PresentationSpeechSpan {
+            id: 1,
+            text: "test".to_owned(),
+            logical_voice_id: None,
+            acss: NormalizedAcss::default(),
+            rate_offset: None,
+            effects: PresentationEffectDirective::Retain,
+        };
+        let accepted = semantic_timeline_actions(MAX_SYNTHESIS_ANCHORS);
+        let prepared =
+            prepare_timeline_span(&span, &accepted, &TtsState::default(), &HashMap::new()).unwrap();
+        assert_eq!(prepared.actions[0].len(), MAX_SYNTHESIS_ANCHORS);
+
+        let overflow = semantic_timeline_actions(MAX_SYNTHESIS_ANCHORS + 1);
+        let error = prepare_timeline_span(&span, &overflow, &TtsState::default(), &HashMap::new())
+            .unwrap_err();
+        assert!(error.contains("4097 actions"));
+        assert!(error.contains("maximum is 4096"));
     }
 
     #[test]
