@@ -1,10 +1,11 @@
 //! Audio synthesis pipeline: buffer conversion, pipeline construction, chunk synthesis.
 
 use omnivox_audio::{
+    buffer::{CHANNELS, SAMPLE_RATE},
     AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, PlaybackTicket,
     PostSynthesisParameters, PostSynthesisProcessor, SharedPreparedAudioResource,
     SilenceTrimReport, SilenceTrimmer, StreamType, TimelineAudioRenderer, ToneGenerator,
-    VolumeAdjust, MAX_AUDIO_CACHE_SAMPLES, MAX_TIMELINE_ACTIONS_PER_WINDOW,
+    VolumeAdjust, MAX_AUDIO_CACHE_SAMPLES, MAX_EFFECT_TAIL_FRAMES, MAX_TIMELINE_ACTIONS_PER_WINDOW,
 };
 use omnivox_core::timeline::{
     ActionAffinity, AudioActionMode, EffectBus, PresentationPosition, ResolvedTimelineAction,
@@ -349,7 +350,10 @@ enum TimelineChunkActionKind {
 
 #[derive(Debug, Clone)]
 enum TimelineAudioResource {
-    Prepared(Arc<AudioBuffer>),
+    File {
+        audio: Arc<AudioBuffer>,
+        pan: f32,
+    },
     Tone {
         frequency_hz: f32,
         duration_ms: u32,
@@ -440,7 +444,18 @@ fn check_timeline_preparation_cancelled(
 impl TimelineAudioResource {
     fn materialize(&self, state: &TtsState) -> Result<Arc<AudioBuffer>, omnivox_audio::AudioError> {
         match self {
-            Self::Prepared(audio) => Ok(Arc::clone(audio)),
+            Self::File { audio, pan } => {
+                if state.sound_volume == 1.0
+                    && state.sound_routing.channel_mode == ChannelMode::Both
+                    && *pan == 0.5
+                {
+                    return Ok(Arc::clone(audio));
+                }
+                let mut prepared = (**audio).clone();
+                build_sound_pipeline(state).process(&mut prepared)?;
+                apply_action_pan(&mut prepared, *pan);
+                Ok(Arc::new(prepared))
+            }
             Self::Tone {
                 frequency_hz,
                 duration_ms,
@@ -454,6 +469,21 @@ impl TimelineAudioResource {
                 Ok(Arc::new(AudioBuffer::silence(*duration_ms as f32 / 1000.0)))
             }
         }
+    }
+}
+
+fn canonical_samples_for_duration_ms(duration_ms: u32) -> usize {
+    (SAMPLE_RATE as usize)
+        .saturating_mul(duration_ms as usize)
+        .saturating_div(1000)
+        .saturating_mul(CHANNELS as usize)
+}
+
+fn effect_tail_samples(effect_bus: PresentationEffectBus) -> usize {
+    if effect_bus == PresentationEffectBus::Speech {
+        MAX_EFFECT_TAIL_FRAMES.saturating_mul(CHANNELS as usize)
+    } else {
+        0
     }
 }
 
@@ -1526,36 +1556,31 @@ fn prepare_timeline_resources_with_sample_limit(
     for action in actions {
         check_timeline_preparation_cancelled(cancelled)?;
         let resource = match &action.action {
-            PresentationAction::Audio { path, pan, .. } => {
-                let mut audio =
-                    loader
-                        .load_shared(std::path::Path::new(path))
-                        .map_err(|error| {
-                            TimelinePreparationError::Invalid(format!(
-                                "action {}: {error}",
-                                action.id
-                            ))
-                        })?;
+            PresentationAction::Audio {
+                path,
+                pan,
+                effect_bus,
+                ..
+            } => {
+                let audio = loader
+                    .load_shared(std::path::Path::new(path))
+                    .map_err(|error| {
+                        TimelinePreparationError::Invalid(format!("action {}: {error}", action.id))
+                    })?;
                 check_timeline_preparation_cancelled(cancelled)?;
+                budget.retain_shared(&action.id, &audio)?;
                 if state.sound_volume != 1.0
                     || state.sound_routing.channel_mode != ChannelMode::Both
                     || *pan != 0.5
+                    || *effect_bus == PresentationEffectBus::Speech
                 {
-                    budget.retain_private(&action.id, audio.samples.len())?;
-                    let audio = Arc::make_mut(&mut audio);
-                    build_sound_pipeline(state)
-                        .process(audio)
-                        .map_err(|error| {
-                            TimelinePreparationError::Invalid(format!(
-                                "action {}: {error}",
-                                action.id
-                            ))
-                        })?;
-                    check_timeline_preparation_cancelled(cancelled)?;
-                    apply_action_pan(audio, *pan);
-                    check_timeline_preparation_cancelled(cancelled)?;
-                } else {
-                    budget.retain_shared(&action.id, &audio)?;
+                    budget.retain_private(
+                        &action.id,
+                        audio
+                            .samples
+                            .len()
+                            .saturating_add(effect_tail_samples(*effect_bus)),
+                    )?;
                 }
                 if audio.is_empty() {
                     return Err(TimelinePreparationError::Invalid(format!(
@@ -1563,21 +1588,33 @@ fn prepare_timeline_resources_with_sample_limit(
                         action.id
                     )));
                 }
-                TimelineAudioResource::Prepared(audio)
+                TimelineAudioResource::File { audio, pan: *pan }
             }
             PresentationAction::Tone {
                 frequency_hz,
                 duration_ms,
                 pan,
+                effect_bus,
                 ..
-            } => TimelineAudioResource::Tone {
-                frequency_hz: *frequency_hz,
-                duration_ms: *duration_ms,
-                pan: *pan,
-            },
-            PresentationAction::Silence { duration_ms } => TimelineAudioResource::Silence {
-                duration_ms: *duration_ms,
-            },
+            } => {
+                budget.retain_private(
+                    &action.id,
+                    canonical_samples_for_duration_ms(*duration_ms)
+                        .saturating_add(effect_tail_samples(*effect_bus)),
+                )?;
+                TimelineAudioResource::Tone {
+                    frequency_hz: *frequency_hz,
+                    duration_ms: *duration_ms,
+                    pan: *pan,
+                }
+            }
+            PresentationAction::Silence { duration_ms } => {
+                budget
+                    .retain_private(&action.id, canonical_samples_for_duration_ms(*duration_ms))?;
+                TimelineAudioResource::Silence {
+                    duration_ms: *duration_ms,
+                }
+            }
             PresentationAction::SemanticEvent => continue,
         };
         resources.insert(action.id.clone(), resource);
@@ -2406,6 +2443,36 @@ mod tests {
     }
 
     #[test]
+    fn presentation_pcm_budget_reserves_deferred_generated_resources() {
+        let tone = |id: &str| {
+            boundary_action(
+                id,
+                PresentationAction::Tone {
+                    frequency_hz: 440.0,
+                    duration_ms: 50,
+                    mode: PresentationAudioMode::Overlay,
+                    volume: 1.0,
+                    pan: 0.5,
+                    effect_bus: PresentationEffectBus::Dry,
+                },
+            )
+        };
+
+        let error = prepare_timeline_resources_with_sample_limit(
+            &[tone("tone.1"), tone("tone.2")],
+            &TtsState::default(),
+            &AudioFileLoader::new(),
+            canonical_samples_for_duration_ms(50),
+            &never_cancelled,
+        )
+        .unwrap_err()
+        .to_string();
+
+        assert!(error.contains("action tone.2"));
+        assert!(error.contains("presentation maximum"));
+    }
+
+    #[test]
     fn missing_file_resource_still_rejects_atomic_preparation() {
         let actions = [
             boundary_action(
@@ -2470,14 +2537,17 @@ mod tests {
         )
         .unwrap();
 
-        let TimelineAudioResource::Prepared(prepared) = resources.get("file").unwrap() else {
+        let TimelineAudioResource::File {
+            audio: prepared, ..
+        } = resources.get("file").unwrap()
+        else {
             panic!("file resource was not prepared eagerly");
         };
         assert!(Arc::ptr_eq(&cached, prepared));
     }
 
     #[test]
-    fn file_resource_processing_uses_copy_on_write() {
+    fn file_resource_processing_is_deferred_to_its_render_window() {
         let path =
             std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../test-sounds/complete.ogg");
         let loader = AudioFileLoader::with_cache();
@@ -2507,17 +2577,22 @@ mod tests {
         )
         .unwrap();
 
-        let TimelineAudioResource::Prepared(prepared) = resources.get("file").unwrap() else {
+        let TimelineAudioResource::File {
+            audio: prepared, ..
+        } = resources.get("file").unwrap()
+        else {
             panic!("file resource was not prepared eagerly");
         };
-        assert!(!Arc::ptr_eq(&cached, prepared));
-        assert_eq!(prepared.samples, expected.samples);
+        assert!(Arc::ptr_eq(&cached, prepared));
+        let materialized = resources.get("file").unwrap().materialize(&state).unwrap();
+        assert!(!Arc::ptr_eq(&cached, &materialized));
+        assert_eq!(materialized.samples, expected.samples);
         assert_eq!(cached.samples, original);
         assert!(Arc::ptr_eq(&cached, &loader.load_shared(&path).unwrap()));
     }
 
     #[test]
-    fn presentation_pcm_budget_counts_private_copies_but_not_shared_references() {
+    fn presentation_pcm_budget_reserves_transforms_but_deduplicates_shared_pcm() {
         let path =
             std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../test-sounds/complete.ogg");
         let loader = AudioFileLoader::with_cache();
@@ -2543,7 +2618,7 @@ mod tests {
         )
         .unwrap();
         for resource in shared.values() {
-            let TimelineAudioResource::Prepared(audio) = resource else {
+            let TimelineAudioResource::File { audio, .. } = resource else {
                 panic!("file resource was not prepared eagerly");
             };
             assert!(Arc::ptr_eq(&cached, audio));
@@ -2557,7 +2632,7 @@ mod tests {
             &[action("private.1"), action("private.2")],
             &state,
             &loader,
-            cached.samples.len(),
+            cached.samples.len() * 2,
             &never_cancelled,
         )
         .unwrap_err()
@@ -2647,7 +2722,10 @@ mod tests {
             text_offset: 0,
             affinity: AnchorAffinity::After,
             kind: TimelineChunkActionKind::Audio {
-                resource: TimelineAudioResource::Prepared(Arc::clone(&shared)),
+                resource: TimelineAudioResource::File {
+                    audio: Arc::clone(&shared),
+                    pan: 0.5,
+                },
                 mode: AudioActionMode::Overlay,
                 volume: 1.0,
                 effect_bus: EffectBus::Dry,
@@ -2925,7 +3003,10 @@ mod tests {
         ];
         let resources = HashMap::from([(
             "opening-cue".to_owned(),
-            TimelineAudioResource::Prepared(Arc::new(AudioBuffer::silence(0.01))),
+            TimelineAudioResource::File {
+                audio: Arc::new(AudioBuffer::silence(0.01)),
+                pan: 0.5,
+            },
         )]);
 
         let prepared = prepare_timeline_span(
