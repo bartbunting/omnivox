@@ -288,8 +288,13 @@ pub fn spawn_marker_event_reporter() -> (MarkerEventOutput, std::thread::JoinHan
     let handle = std::thread::Builder::new()
         .name("omnivox-marker-reporter".to_owned())
         .spawn(move || {
-            let stdout = io::stdout();
-            marker_event_reporter(receiver, stdout.lock(), capacity);
+            run_marker_event_reporter(receiver, capacity, |message| {
+                // Other server threads also write protocol records to stdout.
+                // Keep this lock scoped to one complete reporter record so an
+                // idle reporter cannot block control responses indefinitely.
+                let stdout = io::stdout();
+                write_marker_reporter_message(&mut stdout.lock(), message);
+            });
         })
         .expect("Failed to spawn marker event reporter thread");
     (output, handle)
@@ -315,7 +320,12 @@ where
 {
     let (output, receiver) = marker_reporter_channel(limits);
     let capacity = output.capacity.clone();
-    let handle = std::thread::spawn(move || marker_event_reporter(receiver, writer, capacity));
+    let handle = std::thread::spawn(move || {
+        let mut writer = writer;
+        run_marker_event_reporter(receiver, capacity, |message| {
+            write_marker_reporter_message(&mut writer, message);
+        });
+    });
     (output, handle)
 }
 
@@ -330,22 +340,28 @@ fn marker_reporter_channel(
     (MarkerEventOutput { sender, capacity }, receiver)
 }
 
-fn marker_event_reporter<W: Write>(
+fn run_marker_event_reporter<F>(
     receiver: mpsc::Receiver<MarkerReporterMessage>,
-    mut writer: W,
     capacity: Arc<MarkerReporterCapacity>,
-) {
+    mut report: F,
+) where
+    F: FnMut(&MarkerReporterMessage),
+{
     let _close_guard = MarkerReporterCloseGuard(capacity);
     for message in receiver {
-        let (record, kind) = match &message {
-            MarkerReporterMessage::Event(event) => (event.record.as_str(), "marker event"),
-            MarkerReporterMessage::Terminal(terminal) => {
-                (terminal.record.as_str(), "playback terminal")
-            }
-        };
-        if let Err(error) = writeln!(writer, "{}", record).and_then(|_| writer.flush()) {
-            warn!("Could not write {}: {}", kind, error);
+        report(&message);
+    }
+}
+
+fn write_marker_reporter_message<W: Write>(writer: &mut W, message: &MarkerReporterMessage) {
+    let (record, kind) = match message {
+        MarkerReporterMessage::Event(event) => (event.record.as_str(), "marker event"),
+        MarkerReporterMessage::Terminal(terminal) => {
+            (terminal.record.as_str(), "playback terminal")
         }
+    };
+    if let Err(error) = writeln!(writer, "{}", record).and_then(|_| writer.flush()) {
+        warn!("Could not write {}: {}", kind, error);
     }
 }
 
@@ -957,6 +973,38 @@ mod tests {
         let state = output.capacity.state.lock().unwrap();
         assert_eq!(state.events, 0);
         assert_eq!(state.bytes, 0);
+    }
+
+    #[test]
+    fn production_reporter_releases_stdout_between_records() {
+        let (output, reporter) = spawn_marker_event_reporter();
+        output.emit_test_record("marker-lock-probe").unwrap();
+
+        let state = output.capacity.state.lock().unwrap();
+        let (state, wait) = output
+            .capacity
+            .available
+            .wait_timeout_while(state, Duration::from_secs(2), |state| state.events != 0)
+            .unwrap();
+        assert!(
+            !wait.timed_out(),
+            "reporter did not consume the probe record"
+        );
+        drop(state);
+
+        let (acquired_tx, acquired_rx) = mpsc::sync_channel(1);
+        let contender = std::thread::spawn(move || {
+            let stdout = io::stdout();
+            let _stdout = stdout.lock();
+            let _ = acquired_tx.send(());
+        });
+        acquired_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("idle marker reporter retained stdout's lock");
+        contender.join().unwrap();
+
+        drop(output);
+        reporter.join().unwrap();
     }
 
     #[test]
