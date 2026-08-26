@@ -98,6 +98,19 @@ impl<T: BoundedWork> WorkQueueSender<T> {
     /// Admit work without blocking, coalescing or evicting queued replaceable
     /// work only when the incoming request can be committed atomically.
     pub(crate) fn try_send(&self, work: T) -> EnqueueOutcome<T> {
+        self.try_send_with_commit(work, |_| {})
+    }
+
+    /// Admit work and run `commit` after it is queued but before the consumer
+    /// can observe it.
+    ///
+    /// The callback is not run when admission fails. It may therefore commit
+    /// side effects that must occur atomically with successful queue admission.
+    pub(crate) fn try_send_with_commit(
+        &self,
+        work: T,
+        commit: impl FnOnce(&mut T),
+    ) -> EnqueueOutcome<T> {
         let payload_bytes = work.queued_payload_bytes();
         let mut state = self.shared.state.lock().unwrap();
         if !state.receiver_alive {
@@ -163,6 +176,13 @@ impl<T: BoundedWork> WorkQueueSender<T> {
             payload_bytes,
             work,
         });
+        commit(
+            &mut state
+                .entries
+                .back_mut()
+                .expect("admitted work must be present in the queue")
+                .work,
+        );
         state.payload_bytes = projected_bytes;
         drop(state);
         self.shared.available.notify_one();
@@ -330,6 +350,25 @@ mod tests {
         assert!(!rejected.accepted);
         assert_eq!(rejected.retired[0].work.id, 1);
         assert_eq!(rejected.retired[0].reason, RetirementReason::Saturated);
+    }
+
+    #[test]
+    fn admission_commit_runs_only_for_accepted_work() {
+        let (sender, _receiver) = queue(1, 10);
+        let commits = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let accepted_commits = Arc::clone(&commits);
+
+        let accepted = sender.try_send_with_commit(FakeWork::ordered(1, 10), move |_| {
+            accepted_commits.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        });
+        let rejected_commits = Arc::clone(&commits);
+        let rejected = sender.try_send_with_commit(FakeWork::ordered(2, 1), move |_| {
+            rejected_commits.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        });
+
+        assert!(accepted.accepted);
+        assert!(!rejected.accepted);
+        assert_eq!(commits.load(std::sync::atomic::Ordering::SeqCst), 1);
     }
 
     #[test]

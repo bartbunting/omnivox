@@ -99,20 +99,12 @@ struct KeyedCancellationRegistry {
 }
 
 impl KeyedCancellationRegistry {
-    fn supersede(&self, domain: ReplacementDomain) -> KeyedCancellationLease {
-        let token = SynthesisCancellationToken::new();
-        if let Some(previous) = self
-            .active
-            .lock()
-            .unwrap()
-            .insert(domain.clone(), token.clone())
-        {
-            previous.cancel();
-        }
+    fn prepare(&self, domain: ReplacementDomain) -> KeyedCancellationLease {
         KeyedCancellationLease {
             domain,
-            token,
+            token: SynthesisCancellationToken::new(),
             registry: self.clone(),
+            active: false,
         }
     }
 }
@@ -121,16 +113,36 @@ pub(crate) struct KeyedCancellationLease {
     domain: ReplacementDomain,
     token: SynthesisCancellationToken,
     registry: KeyedCancellationRegistry,
+    active: bool,
 }
 
 impl KeyedCancellationLease {
     fn token(&self) -> &SynthesisCancellationToken {
         &self.token
     }
+
+    fn activate(&mut self) {
+        if self.active {
+            return;
+        }
+        let previous = self
+            .registry
+            .active
+            .lock()
+            .unwrap()
+            .insert(self.domain.clone(), self.token.clone());
+        self.active = true;
+        if let Some(previous) = previous {
+            previous.cancel();
+        }
+    }
 }
 
 impl Drop for KeyedCancellationLease {
     fn drop(&mut self) {
+        if !self.active {
+            return;
+        }
         let mut active = self.registry.active.lock().unwrap();
         if active
             .get(&self.domain)
@@ -200,6 +212,16 @@ pub enum SynthRequest {
 }
 
 impl SynthRequest {
+    fn commit_admission(&mut self) {
+        if let Self::Timeline {
+            cancellation: Some(cancellation),
+            ..
+        } = self
+        {
+            cancellation.activate();
+        }
+    }
+
     fn diagnostic_kind(&self) -> &'static str {
         match self {
             Self::Batch { .. } => "batch",
@@ -672,7 +694,17 @@ fn write_tracked_status(identifier: u64, status: BatchStatus) {
 }
 
 fn enqueue_synthesis(tx: &WorkQueueSender<SynthRequest>, request: SynthRequest) -> bool {
-    let outcome = tx.try_send(request);
+    let outcome = if matches!(
+        &request,
+        SynthRequest::Timeline {
+            cancellation: Some(_),
+            ..
+        }
+    ) {
+        tx.try_send_with_commit(request, SynthRequest::commit_admission)
+    } else {
+        tx.try_send(request)
+    };
     for retired in outcome.retired {
         report_retired_synthesis(retired);
     }
@@ -1691,7 +1723,7 @@ fn begin_keyed_cancellation(
     registry: &KeyedCancellationRegistry,
     timeline: &PresentationTimelineEnvelope,
 ) -> Option<KeyedCancellationLease> {
-    ReplacementDomain::from_timeline(timeline).map(|domain| registry.supersede(domain))
+    ReplacementDomain::from_timeline(timeline).map(|domain| registry.prepare(domain))
 }
 
 fn receive_command_until(
@@ -2959,9 +2991,9 @@ mod tests {
     }
 
     #[test]
-    fn keyed_cancellation_advances_on_valid_receipt_and_is_domain_scoped() {
+    fn keyed_cancellation_advances_on_activation_and_is_domain_scoped() {
         let registry = KeyedCancellationRegistry::default();
-        let first = begin_keyed_cancellation(
+        let mut first = begin_keyed_cancellation(
             &registry,
             &timeline_envelope(
                 1,
@@ -2971,7 +3003,9 @@ mod tests {
             ),
         )
         .unwrap();
-        let other = begin_keyed_cancellation(
+        assert!(registry.active.lock().unwrap().is_empty());
+        first.activate();
+        let mut other = begin_keyed_cancellation(
             &registry,
             &timeline_envelope(
                 2,
@@ -2981,8 +3015,9 @@ mod tests {
             ),
         )
         .unwrap();
+        other.activate();
 
-        let replacement = begin_keyed_cancellation(
+        let mut replacement = begin_keyed_cancellation(
             &registry,
             &timeline_envelope(
                 3,
@@ -2993,6 +3028,8 @@ mod tests {
         )
         .unwrap();
 
+        assert!(!first.token().is_cancelled());
+        replacement.activate();
         assert!(first.token().is_cancelled());
         assert!(!other.token().is_cancelled());
         assert!(!replacement.token().is_cancelled());
@@ -3013,7 +3050,7 @@ mod tests {
     #[test]
     fn tracked_playback_retains_keyed_cancellation_across_worker_handoff() {
         let registry = KeyedCancellationRegistry::default();
-        let first = begin_keyed_cancellation(
+        let mut first = begin_keyed_cancellation(
             &registry,
             &timeline_envelope(
                 1,
@@ -3023,6 +3060,7 @@ mod tests {
             ),
         )
         .unwrap();
+        first.activate();
         let playback = TrackedPlayback {
             completion: PlaybackCompletion::Tracked(11),
             status: BatchStatus::Completed,
@@ -3030,7 +3068,7 @@ mod tests {
             cancellation: Some(first),
         };
 
-        let replacement = begin_keyed_cancellation(
+        let mut replacement = begin_keyed_cancellation(
             &registry,
             &timeline_envelope(
                 2,
@@ -3041,6 +3079,13 @@ mod tests {
         )
         .unwrap();
 
+        assert!(!playback
+            .cancellation
+            .as_ref()
+            .unwrap()
+            .token()
+            .is_cancelled());
+        replacement.activate();
         assert!(playback
             .cancellation
             .as_ref()
@@ -3051,6 +3096,90 @@ mod tests {
         drop(playback);
         assert_eq!(registry.active.lock().unwrap().len(), 1);
         drop(replacement);
+        assert!(registry.active.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn rejected_keyed_replacement_keeps_the_active_request_alive() {
+        let registry = KeyedCancellationRegistry::default();
+        let (sender, receiver) = bounded_work_queue(WorkQueueLimits {
+            max_items: 2,
+            max_payload_bytes: usize::MAX,
+        });
+        let active_timeline = timeline_envelope(
+            1,
+            11,
+            PresentationDeliveryPolicy::Replaceable,
+            Some("navigation"),
+        );
+        let active_cancellation = begin_keyed_cancellation(&registry, &active_timeline).unwrap();
+        let active_token = active_cancellation.token().clone();
+        let engines = EngineRegistry::new();
+        assert!(enqueue_synthesis(
+            &sender,
+            SynthRequest::Timeline {
+                timeline: active_timeline,
+                state: TtsState::default(),
+                logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                    &LogicalVoiceRegistry::default(),
+                    &engines,
+                ),
+                cancellation: Some(active_cancellation),
+                gen: 1,
+            },
+        ));
+        let active_request = receiver.recv().unwrap();
+        assert!(
+            sender
+                .try_send(timeline_request(
+                    2,
+                    12,
+                    PresentationDeliveryPolicy::Ordered,
+                    None,
+                ))
+                .accepted
+        );
+        assert!(
+            sender
+                .try_send(timeline_request(
+                    3,
+                    13,
+                    PresentationDeliveryPolicy::Urgent,
+                    None,
+                ))
+                .accepted
+        );
+
+        let replacement_timeline = timeline_envelope(
+            4,
+            14,
+            PresentationDeliveryPolicy::Replaceable,
+            Some("navigation"),
+        );
+        let replacement_cancellation =
+            begin_keyed_cancellation(&registry, &replacement_timeline).unwrap();
+        let replacement_token = replacement_cancellation.token().clone();
+        let rejected = sender.try_send_with_commit(
+            SynthRequest::Timeline {
+                timeline: replacement_timeline,
+                state: TtsState::default(),
+                logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                    &LogicalVoiceRegistry::default(),
+                    &engines,
+                ),
+                cancellation: Some(replacement_cancellation),
+                gen: 4,
+            },
+            SynthRequest::commit_admission,
+        );
+
+        assert!(!rejected.accepted);
+        assert_eq!(rejected.retired.len(), 1);
+        assert_eq!(rejected.retired[0].reason, RetirementReason::Saturated);
+        assert!(!active_token.is_cancelled());
+        assert!(!replacement_token.is_cancelled());
+        assert_eq!(registry.active.lock().unwrap().len(), 1);
+        drop(active_request);
         assert!(registry.active.lock().unwrap().is_empty());
     }
 
