@@ -13,64 +13,338 @@ use omnivox_tts::marker_protocol::{
 use omnivox_tts::{AnchorResolution, SynthesisMarker};
 use std::cell::Cell;
 use std::io::{self, Write};
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Condvar, Mutex};
+use std::time::Duration;
 use tracing::warn;
 
-enum MarkerReporterMessage {
-    Event(Arc<MarkerEventEnvelope>),
-    Flush(mpsc::Sender<()>),
+const MAX_QUEUED_MARKER_EVENTS: usize = 8 * 1024;
+const MAX_QUEUED_MARKER_BYTES: usize = 16 * 1024 * 1024;
+const MARKER_RESERVATION_POLL_INTERVAL: Duration = Duration::from_millis(25);
+
+#[derive(Clone, Copy)]
+struct MarkerReporterLimits {
+    max_events: usize,
+    max_bytes: usize,
 }
 
-/// Nonblocking producer for the marker stdout reporter.
+const MARKER_REPORTER_LIMITS: MarkerReporterLimits = MarkerReporterLimits {
+    // One helper result may contain 4,096 markers. Timeline diagnostics and
+    // semantic events share this budget without excluding a legal utterance.
+    max_events: MAX_QUEUED_MARKER_EVENTS,
+    // Match the server's bounded aggregate-presentation payload budget.
+    max_bytes: MAX_QUEUED_MARKER_BYTES,
+};
+
+enum MarkerReporterMessage {
+    Event(ReservedMarkerRecord),
+    Terminal(ReservedTerminalRecord),
+}
+
+#[derive(Default)]
+struct MarkerReporterCapacityState {
+    events: usize,
+    bytes: usize,
+    terminal_in_flight: bool,
+    closed: bool,
+}
+
+struct MarkerReporterCapacity {
+    limits: MarkerReporterLimits,
+    state: Mutex<MarkerReporterCapacityState>,
+    available: Condvar,
+}
+
+impl MarkerReporterCapacity {
+    fn new(limits: MarkerReporterLimits) -> Self {
+        Self {
+            limits,
+            state: Mutex::new(MarkerReporterCapacityState::default()),
+            available: Condvar::new(),
+        }
+    }
+
+    fn reserve_marker_records<P>(
+        self: &Arc<Self>,
+        records: Vec<String>,
+        keep_waiting: &P,
+    ) -> Result<Option<Vec<ReservedMarkerRecord>>, AudioError>
+    where
+        P: Fn() -> bool,
+    {
+        let event_count = records.len();
+        let byte_count = records.iter().try_fold(0usize, |total, record| {
+            total.checked_add(record.len()).ok_or_else(|| {
+                AudioError::InvalidFormat("marker reporter batch byte count overflowed".to_owned())
+            })
+        })?;
+        if event_count > self.limits.max_events {
+            return Err(AudioError::InvalidFormat(format!(
+                "marker reporter batch contains {event_count} events; limit is {}",
+                self.limits.max_events
+            )));
+        }
+        if byte_count > self.limits.max_bytes {
+            return Err(AudioError::InvalidFormat(format!(
+                "marker reporter batch contains {byte_count} encoded bytes; limit is {}",
+                self.limits.max_bytes
+            )));
+        }
+
+        let mut state = self.state.lock().unwrap();
+        loop {
+            if state.closed {
+                return Err(AudioError::PlaybackError(
+                    "marker reporter stopped before playback was queued".to_owned(),
+                ));
+            }
+            if !keep_waiting() {
+                return Ok(None);
+            }
+            let events_fit = state.events <= self.limits.max_events - event_count;
+            let bytes_fit = state.bytes <= self.limits.max_bytes - byte_count;
+            if events_fit && bytes_fit {
+                state.events += event_count;
+                state.bytes += byte_count;
+                break;
+            }
+            (state, _) = self
+                .available
+                .wait_timeout(state, MARKER_RESERVATION_POLL_INTERVAL)
+                .unwrap();
+        }
+        drop(state);
+
+        Ok(Some(
+            records
+                .into_iter()
+                .map(|record| ReservedMarkerRecord {
+                    bytes: record.len(),
+                    record,
+                    capacity: self.clone(),
+                })
+                .collect(),
+        ))
+    }
+
+    fn reserve_terminal(self: &Arc<Self>, record: String) -> Option<ReservedTerminalRecord> {
+        let mut state = self.state.lock().unwrap();
+        while state.terminal_in_flight && !state.closed {
+            state = self.available.wait(state).unwrap();
+        }
+        if state.closed {
+            return None;
+        }
+        state.terminal_in_flight = true;
+        drop(state);
+        Some(ReservedTerminalRecord {
+            record,
+            capacity: self.clone(),
+        })
+    }
+
+    fn release_marker(&self, bytes: usize) {
+        let mut state = self.state.lock().unwrap();
+        state.events -= 1;
+        state.bytes -= bytes;
+        self.available.notify_all();
+    }
+
+    fn release_terminal(&self) {
+        let mut state = self.state.lock().unwrap();
+        state.terminal_in_flight = false;
+        self.available.notify_all();
+    }
+
+    fn close(&self) {
+        let mut state = self.state.lock().unwrap();
+        state.closed = true;
+        self.available.notify_all();
+    }
+}
+
+struct ReservedMarkerRecord {
+    record: String,
+    bytes: usize,
+    capacity: Arc<MarkerReporterCapacity>,
+}
+
+impl Drop for ReservedMarkerRecord {
+    fn drop(&mut self) {
+        self.capacity.release_marker(self.bytes);
+    }
+}
+
+struct ReservedTerminalRecord {
+    record: String,
+    capacity: Arc<MarkerReporterCapacity>,
+}
+
+impl Drop for ReservedTerminalRecord {
+    fn drop(&mut self) {
+        self.capacity.release_terminal();
+    }
+}
+
+struct MarkerReporterCloseGuard(Arc<MarkerReporterCapacity>);
+
+impl Drop for MarkerReporterCloseGuard {
+    fn drop(&mut self) {
+        self.0.close();
+    }
+}
+
+/// Marker output whose audio-thread event path is pre-reserved and nonblocking.
+///
+/// Terminal emission is allowed to backpressure its dedicated non-audio
+/// producer so completion records are never discarded under saturation.
 #[derive(Clone)]
 pub struct MarkerEventOutput {
-    sender: mpsc::Sender<MarkerReporterMessage>,
+    sender: mpsc::SyncSender<MarkerReporterMessage>,
+    capacity: Arc<MarkerReporterCapacity>,
 }
 
 impl MarkerEventOutput {
-    fn emit(&self, event: Arc<MarkerEventEnvelope>) {
-        let _ = self.sender.send(MarkerReporterMessage::Event(event));
+    fn format_events(
+        &self,
+        events: &[Arc<MarkerEventEnvelope>],
+    ) -> Result<Vec<String>, AudioError> {
+        if events.len() > self.capacity.limits.max_events {
+            return Err(AudioError::InvalidFormat(format!(
+                "marker reporter batch contains {} events; limit is {}",
+                events.len(),
+                self.capacity.limits.max_events
+            )));
+        }
+        let mut byte_count = 0usize;
+        let mut records = Vec::with_capacity(events.len());
+        for event in events {
+            let record = format_marker_event(event).map_err(|error| {
+                AudioError::InvalidFormat(format!("could not encode playback marker: {error}"))
+            })?;
+            byte_count = byte_count.checked_add(record.len()).ok_or_else(|| {
+                AudioError::InvalidFormat("marker reporter batch byte count overflowed".to_owned())
+            })?;
+            if byte_count > self.capacity.limits.max_bytes {
+                return Err(AudioError::InvalidFormat(format!(
+                    "marker reporter batch contains {byte_count} encoded bytes; limit is {}",
+                    self.capacity.limits.max_bytes
+                )));
+            }
+            records.push(record);
+        }
+        Ok(records)
     }
 
-    /// Wait until every marker submitted before this call has been written.
-    pub fn flush(&self) {
-        let (sender, receiver) = mpsc::channel();
-        if self
-            .sender
-            .send(MarkerReporterMessage::Flush(sender))
-            .is_ok()
-        {
-            let _ = receiver.recv();
+    fn reserve_marker_records<P>(
+        &self,
+        records: Vec<String>,
+        keep_waiting: &P,
+    ) -> Result<Option<Vec<ReservedMarkerRecord>>, AudioError>
+    where
+        P: Fn() -> bool,
+    {
+        self.capacity.reserve_marker_records(records, keep_waiting)
+    }
+
+    fn emit(&self, event: ReservedMarkerRecord) {
+        match self.sender.try_send(MarkerReporterMessage::Event(event)) {
+            Ok(()) => {}
+            Err(mpsc::TrySendError::Full(message)) => {
+                warn!(
+                    "Reserved marker event reached an unexpectedly full reporter channel; applying lossless backpressure"
+                );
+                let _ = self.sender.send(message);
+            }
+            Err(mpsc::TrySendError::Disconnected(_)) => {
+                warn!("Marker reporter stopped before a reserved marker was written")
+            }
         }
+    }
+
+    /// Queue one terminal record behind all marker events already emitted.
+    pub(crate) fn emit_terminal(&self, record: String) -> bool {
+        let Some(record) = self.capacity.reserve_terminal(record) else {
+            return false;
+        };
+        self.sender
+            .send(MarkerReporterMessage::Terminal(record))
+            .is_ok()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn emit_test_record(&self, record: &str) -> Result<(), AudioError> {
+        let mut records = self
+            .reserve_marker_records(vec![record.to_owned()], &|| true)?
+            .expect("test marker reservation should not be cancelled");
+        self.emit(records.pop().expect("test marker record should be present"));
+        Ok(())
     }
 }
 
 /// Spawn the single writer that serializes marker events to stdout.
 pub fn spawn_marker_event_reporter() -> (MarkerEventOutput, std::thread::JoinHandle<()>) {
-    let (sender, receiver) = mpsc::channel();
+    let (output, receiver) = marker_reporter_channel(MARKER_REPORTER_LIMITS);
+    let capacity = output.capacity.clone();
     let handle = std::thread::Builder::new()
         .name("omnivox-marker-reporter".to_owned())
-        .spawn(move || marker_event_reporter(receiver))
+        .spawn(move || {
+            let stdout = io::stdout();
+            marker_event_reporter(receiver, stdout.lock(), capacity);
+        })
         .expect("Failed to spawn marker event reporter thread");
-    (MarkerEventOutput { sender }, handle)
+    (output, handle)
 }
 
-fn marker_event_reporter(receiver: mpsc::Receiver<MarkerReporterMessage>) {
+#[cfg(test)]
+pub(crate) fn spawn_marker_event_reporter_with_writer<W>(
+    writer: W,
+) -> (MarkerEventOutput, std::thread::JoinHandle<()>)
+where
+    W: Write + Send + 'static,
+{
+    spawn_marker_event_reporter_with_limits(writer, MARKER_REPORTER_LIMITS)
+}
+
+#[cfg(test)]
+fn spawn_marker_event_reporter_with_limits<W>(
+    writer: W,
+    limits: MarkerReporterLimits,
+) -> (MarkerEventOutput, std::thread::JoinHandle<()>)
+where
+    W: Write + Send + 'static,
+{
+    let (output, receiver) = marker_reporter_channel(limits);
+    let capacity = output.capacity.clone();
+    let handle = std::thread::spawn(move || marker_event_reporter(receiver, writer, capacity));
+    (output, handle)
+}
+
+fn marker_reporter_channel(
+    limits: MarkerReporterLimits,
+) -> (MarkerEventOutput, mpsc::Receiver<MarkerReporterMessage>) {
+    let capacity = Arc::new(MarkerReporterCapacity::new(limits));
+    // The extra slot is exclusively protected by the terminal reservation.
+    // Marker reservations therefore make audio-thread try_send infallible
+    // while one lossless terminal record is pending.
+    let (sender, receiver) = mpsc::sync_channel(limits.max_events + 1);
+    (MarkerEventOutput { sender, capacity }, receiver)
+}
+
+fn marker_event_reporter<W: Write>(
+    receiver: mpsc::Receiver<MarkerReporterMessage>,
+    mut writer: W,
+    capacity: Arc<MarkerReporterCapacity>,
+) {
+    let _close_guard = MarkerReporterCloseGuard(capacity);
     for message in receiver {
-        match message {
-            MarkerReporterMessage::Event(event) => match format_marker_event(&event) {
-                Ok(record) => {
-                    let mut stdout = io::stdout().lock();
-                    if let Err(error) = writeln!(stdout, "{}", record).and_then(|_| stdout.flush())
-                    {
-                        warn!("Could not write playback marker event: {}", error);
-                    }
-                }
-                Err(error) => warn!("Could not encode playback marker event: {}", error),
-            },
-            MarkerReporterMessage::Flush(acknowledge) => {
-                let _ = acknowledge.send(());
+        let (record, kind) = match &message {
+            MarkerReporterMessage::Event(event) => (event.record.as_str(), "marker event"),
+            MarkerReporterMessage::Terminal(terminal) => {
+                (terminal.record.as_str(), "playback terminal")
             }
+        };
+        if let Err(error) = writeln!(writer, "{}", record).and_then(|_| writer.flush()) {
+            warn!("Could not write {}: {}", kind, error);
         }
     }
 }
@@ -298,7 +572,7 @@ impl PreparedMarkerPlayback {
         predicate: F,
     ) -> Result<Option<PlaybackTicket>, AudioError>
     where
-        F: FnOnce() -> bool,
+        F: Fn() -> bool,
     {
         self.queue_if_with_cancellation(control, buffer, None, predicate)
     }
@@ -311,7 +585,7 @@ impl PreparedMarkerPlayback {
         predicate: F,
     ) -> Result<Option<PlaybackTicket>, AudioError>
     where
-        F: FnOnce() -> bool,
+        F: Fn() -> bool,
     {
         self.queue_if_with_cancellation(control, buffer, Some(cancellation), predicate)
     }
@@ -324,13 +598,20 @@ impl PreparedMarkerPlayback {
         predicate: F,
     ) -> Result<Option<PlaybackTicket>, AudioError>
     where
-        F: FnOnce() -> bool,
+        F: Fn() -> bool,
     {
-        let events = self.events;
+        let records = self.output.format_events(&self.events)?;
+        let Some(events) = self.output.reserve_marker_records(records, &predicate)? else {
+            return Ok(None);
+        };
+        let mut events = events.into_iter().map(Some).collect::<Vec<_>>();
         let output = self.output;
         let on_cue = move |cue: PlaybackCue| {
-            if let Some(event) = events.get(cue.identifier as usize) {
-                output.emit(event.clone());
+            if let Some(event) = events
+                .get_mut(cue.identifier as usize)
+                .and_then(Option::take)
+            {
+                output.emit(event);
             }
         };
         if let Some(cancellation) = cancellation {
@@ -382,6 +663,49 @@ mod tests {
     use super::*;
     use omnivox_tts::SynthesisMarkerKind;
 
+    #[derive(Clone, Default)]
+    struct RecordingWriter {
+        bytes: Arc<Mutex<Vec<u8>>>,
+    }
+
+    impl Write for RecordingWriter {
+        fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+            self.bytes.lock().unwrap().extend_from_slice(buffer);
+            Ok(buffer.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    struct BlockingWriter {
+        writer: RecordingWriter,
+        started: mpsc::SyncSender<()>,
+        release: Arc<(Mutex<bool>, Condvar)>,
+    }
+
+    impl Write for BlockingWriter {
+        fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+            let _ = self.started.try_send(());
+            let (released, available) = &*self.release;
+            let mut released = released.lock().unwrap();
+            while !*released {
+                released = available.wait(released).unwrap();
+            }
+            drop(released);
+            self.writer.write(buffer)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            self.writer.flush()
+        }
+    }
+
+    fn unreported_output() -> MarkerEventOutput {
+        marker_reporter_channel(MARKER_REPORTER_LIMITS).0
+    }
+
     fn marker(frame_offset: u64, value: &str) -> SynthesisMarker {
         SynthesisMarker {
             kind: SynthesisMarkerKind::Word,
@@ -394,8 +718,7 @@ mod tests {
 
     #[test]
     fn prepares_started_event_then_stably_sorted_markers() {
-        let (sender, _receiver) = mpsc::channel();
-        let context = MarkerDispatchContext::new(73, MarkerEventOutput { sender });
+        let context = MarkerDispatchContext::new(73, unreported_output());
         let prepared = context.prepare_utterance(
             "hello world",
             "helper",
@@ -456,8 +779,7 @@ mod tests {
 
     #[test]
     fn v2_semantic_events_are_stably_merged_at_playback_frames() {
-        let (sender, _receiver) = mpsc::channel();
-        let context = MarkerDispatchContext::with_timeline_events(91, MarkerEventOutput { sender });
+        let context = MarkerDispatchContext::with_timeline_events(91, unreported_output());
         let prepared = context.prepare_utterance(
             "hello",
             "helper",
@@ -508,8 +830,7 @@ mod tests {
 
     #[test]
     fn v2_reports_anchor_and_style_degradation_at_utterance_start() {
-        let (sender, _receiver) = mpsc::channel();
-        let context = MarkerDispatchContext::with_timeline_events(92, MarkerEventOutput { sender });
+        let context = MarkerDispatchContext::with_timeline_events(92, unreported_output());
         let prepared = context.prepare_timeline_utterance(
             "hello",
             "helper",
@@ -552,5 +873,107 @@ mod tests {
             } if degraded_acss == &[AcssDimension::Richness]
                 && degraded_effects == &[PostSynthesisDimension::Echo]
         ));
+    }
+
+    #[test]
+    fn blocked_writer_keeps_reserved_marker_memory_bounded() {
+        let limits = MarkerReporterLimits {
+            max_events: 2,
+            max_bytes: 6,
+        };
+        let recording = RecordingWriter::default();
+        let (started_tx, started_rx) = mpsc::sync_channel(1);
+        let release = Arc::new((Mutex::new(false), Condvar::new()));
+        let writer = BlockingWriter {
+            writer: recording,
+            started: started_tx,
+            release: release.clone(),
+        };
+        let (output, reporter) = spawn_marker_event_reporter_with_limits(writer, limits);
+        let mut reserved = output
+            .reserve_marker_records(vec!["one".to_owned(), "two".to_owned()], &|| true)
+            .unwrap()
+            .unwrap();
+        output.emit(reserved.remove(0));
+        started_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        output.emit(reserved.remove(0));
+
+        let waiting_output = output.clone();
+        let (waiting_tx, waiting_rx) = mpsc::sync_channel(1);
+        let waiter = std::thread::spawn(move || {
+            let reserved = waiting_output
+                .reserve_marker_records(vec!["x".to_owned()], &|| true)
+                .unwrap()
+                .unwrap();
+            waiting_tx.send(reserved).unwrap();
+        });
+
+        assert!(matches!(
+            waiting_rx.recv_timeout(Duration::from_millis(100)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        ));
+        {
+            let state = output.capacity.state.lock().unwrap();
+            assert_eq!(state.events, limits.max_events);
+            assert_eq!(state.bytes, limits.max_bytes);
+        }
+
+        let (released, available) = &*release;
+        *released.lock().unwrap() = true;
+        available.notify_all();
+        drop(waiting_rx.recv_timeout(Duration::from_secs(1)).unwrap());
+        waiter.join().unwrap();
+        drop(output);
+        reporter.join().unwrap();
+    }
+
+    #[test]
+    fn cancelled_or_oversized_marker_reservations_never_enter_the_queue() {
+        let limits = MarkerReporterLimits {
+            max_events: 1,
+            max_bytes: 3,
+        };
+        let (output, _receiver) = marker_reporter_channel(limits);
+        let held = output
+            .reserve_marker_records(vec!["one".to_owned()], &|| true)
+            .unwrap()
+            .unwrap();
+
+        assert!(output
+            .reserve_marker_records(vec!["two".to_owned()], &|| false)
+            .unwrap()
+            .is_none());
+        assert!(matches!(
+            output.reserve_marker_records(vec!["four".to_owned()], &|| true),
+            Err(AudioError::InvalidFormat(_))
+        ));
+        {
+            let state = output.capacity.state.lock().unwrap();
+            assert_eq!(state.events, 1);
+            assert_eq!(state.bytes, 3);
+        }
+
+        drop(held);
+        let state = output.capacity.state.lock().unwrap();
+        assert_eq!(state.events, 0);
+        assert_eq!(state.bytes, 0);
+    }
+
+    #[test]
+    fn reporter_serializes_markers_before_one_terminal_record() {
+        let writer = RecordingWriter::default();
+        let written = writer.bytes.clone();
+        let (output, reporter) = spawn_marker_event_reporter_with_writer(writer);
+
+        output.emit_test_record("marker-one").unwrap();
+        output.emit_test_record("marker-two").unwrap();
+        assert!(output.emit_terminal("terminal".to_owned()));
+        drop(output);
+        reporter.join().unwrap();
+
+        assert_eq!(
+            String::from_utf8(written.lock().unwrap().clone()).unwrap(),
+            "marker-one\nmarker-two\nterminal\n"
+        );
     }
 }

@@ -66,6 +66,7 @@ const MAX_PROTOCOL_LINE_BYTES: usize = 512 * 1024;
 const INPUT_QUEUE_CAPACITY: usize = 32;
 const MAX_PENDING_ITEMS: usize = 4_096;
 const MAX_PENDING_PAYLOAD_BYTES: usize = 16 * 1024 * 1024;
+const TRACKED_PLAYBACK_QUEUE_CAPACITY: usize = 32;
 const SYNTHESIS_QUEUE_LIMITS: WorkQueueLimits = WorkQueueLimits {
     max_items: 32,
     max_payload_bytes: 32 * 1024 * 1024,
@@ -537,13 +538,23 @@ pub(crate) enum PlaybackCompletion {
 
 pub(crate) fn spawn_tracked_playback_reporter(
     marker_output: MarkerEventOutput,
-) -> (mpsc::Sender<TrackedPlayback>, std::thread::JoinHandle<()>) {
-    let (sender, receiver) = mpsc::channel::<TrackedPlayback>();
+) -> (
+    mpsc::SyncSender<TrackedPlayback>,
+    std::thread::JoinHandle<()>,
+) {
+    let (sender, receiver) = tracked_playback_channel();
     let handle = std::thread::Builder::new()
         .name("omnivox-playback-tracker".to_owned())
         .spawn(move || tracked_playback_reporter(receiver, marker_output))
         .expect("Failed to spawn tracked playback reporter thread");
     (sender, handle)
+}
+
+fn tracked_playback_channel() -> (
+    mpsc::SyncSender<TrackedPlayback>,
+    mpsc::Receiver<TrackedPlayback>,
+) {
+    mpsc::sync_channel(TRACKED_PLAYBACK_QUEUE_CAPACITY)
 }
 
 fn tracked_playback_reporter(
@@ -558,9 +569,8 @@ fn tracked_playback_reporter(
             cancellation,
         } = playback;
         let status = await_tracked_playback(status, tickets);
-        marker_output.flush();
-        match completion {
-            PlaybackCompletion::Tracked(identifier) => write_tracked_status(identifier, status),
+        let record = match completion {
+            PlaybackCompletion::Tracked(identifier) => tracked_status_record(identifier, status),
             PlaybackCompletion::Preview {
                 request_id,
                 requested,
@@ -568,7 +578,7 @@ fn tracked_playback_reporter(
                 degraded_acss,
                 degraded_effects,
                 message,
-            } => write_preview_status(
+            } => preview_status_record(
                 request_id,
                 status,
                 requested,
@@ -577,6 +587,9 @@ fn tracked_playback_reporter(
                 degraded_effects,
                 message,
             ),
+        };
+        if !marker_output.emit_terminal(record) {
+            warn!("Playback reporter stopped before a terminal record was written");
         }
         drop(cancellation);
     }
@@ -639,7 +652,7 @@ fn write_preview_status(
     degraded_effects: Vec<PostSynthesisDimension>,
     message: Option<String>,
 ) {
-    write_control_response(&preview_response(
+    let record = preview_status_record(
         request_id,
         status,
         requested,
@@ -647,7 +660,47 @@ fn write_preview_status(
         degraded_acss,
         degraded_effects,
         message,
-    ));
+    );
+    write_stdout_record(&record, "preview status");
+}
+
+#[allow(clippy::too_many_arguments)]
+fn preview_status_record(
+    request_id: u64,
+    status: BatchStatus,
+    requested: VoiceSelector,
+    realized: Option<PhysicalVoiceId>,
+    degraded_acss: Vec<AcssDimension>,
+    degraded_effects: Vec<PostSynthesisDimension>,
+    message: Option<String>,
+) -> String {
+    let fallback_requested = requested.clone();
+    let response = preview_response(
+        request_id,
+        status,
+        requested,
+        realized,
+        degraded_acss,
+        degraded_effects,
+        message,
+    );
+    match format_control_event(&response) {
+        Ok(record) => record,
+        Err(error) => {
+            warn!("Could not encode preview terminal status: {}", error);
+            let fallback = preview_response(
+                request_id,
+                BatchStatus::Failed,
+                fallback_requested,
+                None,
+                Vec::new(),
+                Vec::new(),
+                Some("preview terminal metadata exceeded the output limit".to_owned()),
+            );
+            format_control_event(&fallback)
+                .expect("bounded fallback preview terminal status must encode")
+        }
+    }
 }
 
 fn preview_response(
@@ -679,17 +732,23 @@ fn preview_response(
 }
 
 fn write_tracked_status(identifier: u64, status: BatchStatus) {
-    let mut stdout = io::stdout().lock();
-    if let Err(error) = writeln!(
-        stdout,
+    let record = tracked_status_record(identifier, status);
+    write_stdout_record(&record, "tracked playback status");
+}
+
+fn tracked_status_record(identifier: u64, status: BatchStatus) -> String {
+    format!(
         "{} {} {}",
         TRACKED_STATUS_PREFIX,
         identifier,
         tracked_status_name(status)
     )
-    .and_then(|_| stdout.flush())
-    {
-        warn!("Could not write tracked playback status: {}", error);
+}
+
+fn write_stdout_record(record: &str, kind: &str) {
+    let mut stdout = io::stdout().lock();
+    if let Err(error) = writeln!(stdout, "{}", record).and_then(|_| stdout.flush()) {
+        warn!("Could not write {}: {}", kind, error);
     }
 }
 
@@ -821,7 +880,7 @@ pub fn synthesis_worker(
     runtime_health: Arc<RuntimeEngineHealth>,
     control: Arc<AudioControl>,
     loader: AudioFileLoader,
-    tracked_playback_tx: mpsc::Sender<TrackedPlayback>,
+    tracked_playback_tx: mpsc::SyncSender<TrackedPlayback>,
     marker_output: MarkerEventOutput,
 ) {
     while let Some(request) = rx.recv() {
@@ -2732,6 +2791,31 @@ mod tests {
 
     const INVALID_DIRECT_TIMELINE: &str = "eyJwcm90b2NvbF92ZXJzaW9uIjozLCJnZW5lcmF0aW9uIjozMSwiZGlzcGF0Y2hfaWQiOjcyLCJkZWxpdmVyeV9wb2xpY3kiOiJvcmRlcmVkIiwic3BhbnMiOltdLCJhY3Rpb25zIjpbXX0=";
 
+    #[derive(Clone, Default)]
+    struct RecordingWriter {
+        bytes: Arc<Mutex<Vec<u8>>>,
+    }
+
+    impl std::io::Write for RecordingWriter {
+        fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+            self.bytes.lock().unwrap().extend_from_slice(buffer);
+            Ok(buffer.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn completed_tracked_playback(identifier: u64) -> TrackedPlayback {
+        TrackedPlayback {
+            completion: PlaybackCompletion::Tracked(identifier),
+            status: BatchStatus::Completed,
+            tickets: Vec::new(),
+            cancellation: None,
+        }
+    }
+
     #[test]
     fn replaceable_coalescing_observes_quiet_and_maximum_windows() {
         let started = Instant::now();
@@ -3097,6 +3181,43 @@ mod tests {
         assert_eq!(registry.active.lock().unwrap().len(), 1);
         drop(replacement);
         assert!(registry.active.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn tracked_playback_handoff_is_bounded() {
+        let (sender, receiver) = tracked_playback_channel();
+        for identifier in 0..TRACKED_PLAYBACK_QUEUE_CAPACITY as u64 {
+            assert!(sender
+                .try_send(completed_tracked_playback(identifier))
+                .is_ok());
+        }
+
+        assert!(matches!(
+            sender.try_send(completed_tracked_playback(10_000)),
+            Err(mpsc::TrySendError::Full(_))
+        ));
+        drop(receiver);
+    }
+
+    #[test]
+    fn tracked_reporter_writes_one_terminal_after_earlier_markers() {
+        let writer = RecordingWriter::default();
+        let written = writer.bytes.clone();
+        let (marker_output, marker_handle) =
+            crate::marker_events::spawn_marker_event_reporter_with_writer(writer);
+        marker_output.emit_test_record("marker").unwrap();
+        let (sender, tracker_handle) = spawn_tracked_playback_reporter(marker_output.clone());
+
+        sender.send(completed_tracked_playback(73)).unwrap();
+        drop(sender);
+        tracker_handle.join().unwrap();
+        drop(marker_output);
+        marker_handle.join().unwrap();
+
+        assert_eq!(
+            String::from_utf8(written.lock().unwrap().clone()).unwrap(),
+            "marker\n__EMACSVOX_TRACKED__ 73 completed\n"
+        );
     }
 
     #[test]
