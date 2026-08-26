@@ -1639,12 +1639,15 @@ fn prepare_timeline_spans(
     resources: &HashMap<String, TimelineAudioResource>,
     cancelled: &dyn Fn() -> bool,
 ) -> Result<Vec<PreparedTimelineSpan>, TimelinePreparationError> {
+    check_timeline_preparation_cancelled(cancelled)?;
+    let actions_by_span = index_timeline_actions(&timeline.actions);
+    check_timeline_preparation_cancelled(cancelled)?;
     let mut spans = Vec::with_capacity(timeline.spans.len());
     for span in &timeline.spans {
         check_timeline_preparation_cancelled(cancelled)?;
         spans.push(prepare_timeline_span(
             span,
-            &timeline.actions,
+            actions_by_span.get(&span.id).map_or(&[], Vec::as_slice),
             state,
             resources,
             cancelled,
@@ -1659,13 +1662,7 @@ pub(crate) fn validate_presentation_timeline_action_windows(
     timeline: &PresentationTimelineEnvelope,
     state: &TtsState,
 ) -> Result<(), String> {
-    let mut actions_by_span: HashMap<u64, Vec<&PresentationTimelineAction>> = HashMap::new();
-    for action in &timeline.actions {
-        actions_by_span
-            .entry(action.position.span_id())
-            .or_default()
-            .push(action);
-    }
+    let actions_by_span = index_timeline_actions(&timeline.actions);
     for span in &timeline.spans {
         let Some(actions) = actions_by_span.get(&span.id) else {
             continue;
@@ -1674,6 +1671,19 @@ pub(crate) fn validate_presentation_timeline_action_windows(
         validate_timeline_span_layout(span.id, &layout)?;
     }
     Ok(())
+}
+
+fn index_timeline_actions(
+    actions: &[PresentationTimelineAction],
+) -> HashMap<u64, Vec<&PresentationTimelineAction>> {
+    let mut actions_by_span = HashMap::new();
+    for action in actions {
+        actions_by_span
+            .entry(action.position.span_id())
+            .or_insert_with(Vec::new)
+            .push(action);
+    }
+    actions_by_span
 }
 
 fn prepare_timeline_span_layout(
@@ -1762,7 +1772,7 @@ fn validate_timeline_span_layout(
 
 fn prepare_timeline_span(
     span: &PresentationSpeechSpan,
-    actions: &[PresentationTimelineAction],
+    span_actions: &[&PresentationTimelineAction],
     state: &TtsState,
     resources: &HashMap<String, TimelineAudioResource>,
     cancelled: &dyn Fn() -> bool,
@@ -1772,12 +1782,8 @@ fn prepare_timeline_span(
     if let Some(rate_offset) = span.rate_offset.filter(|offset| *offset != 0) {
         acss.rate = Some(apply_rate_offset(state.speech_rate, rate_offset));
     }
-    let span_actions = actions
-        .iter()
-        .filter(|action| action.position.span_id() == span.id)
-        .collect::<Vec<_>>();
     check_timeline_preparation_cancelled(cancelled)?;
-    let layout = prepare_timeline_span_layout(span, &span_actions, state);
+    let layout = prepare_timeline_span_layout(span, span_actions, state);
     check_timeline_preparation_cancelled(cancelled)?;
     validate_timeline_span_layout(span.id, &layout).map_err(TimelinePreparationError::Invalid)?;
     let PreparedTimelineSpanLayout {
@@ -1785,7 +1791,7 @@ fn prepare_timeline_span(
         action_positions,
     } = layout;
     let mut actions_by_chunk = vec![Vec::new(); chunks.len()];
-    for (action, position) in span_actions.into_iter().zip(action_positions) {
+    for (action, position) in span_actions.iter().copied().zip(action_positions) {
         check_timeline_preparation_cancelled(cancelled)?;
         let kind = match &action.action {
             PresentationAction::Audio {
@@ -1847,15 +1853,11 @@ fn locate_timeline_chunk(
 ) -> usize {
     match affinity {
         AnchorAffinity::Before => chunks
-            .iter()
-            .position(|chunk| offset >= chunk.source_start && offset < chunk.source_end)
-            .or_else(|| chunks.iter().position(|chunk| chunk.source_start >= offset))
-            .unwrap_or(chunks.len() - 1),
+            .partition_point(|chunk| chunk.source_end <= offset)
+            .min(chunks.len() - 1),
         AnchorAffinity::After => chunks
-            .iter()
-            .rposition(|chunk| offset > chunk.source_start && offset <= chunk.source_end)
-            .or_else(|| chunks.iter().rposition(|chunk| chunk.source_end <= offset))
-            .unwrap_or(0),
+            .partition_point(|chunk| chunk.source_start < offset)
+            .saturating_sub(1),
     }
 }
 
@@ -2326,6 +2328,7 @@ mod tests {
             effects: PresentationEffectDirective::Retain,
         };
         let accepted = semantic_timeline_actions(MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW);
+        let accepted = accepted.iter().collect::<Vec<_>>();
         let prepared = prepare_timeline_span(
             &span,
             &accepted,
@@ -2340,6 +2343,7 @@ mod tests {
         );
 
         let overflow = semantic_timeline_actions(MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW + 1);
+        let overflow = overflow.iter().collect::<Vec<_>>();
         let error = prepare_timeline_span(
             &span,
             &overflow,
@@ -2405,6 +2409,34 @@ mod tests {
             &TtsState::default(),
         )
         .unwrap();
+    }
+
+    #[test]
+    fn timeline_action_index_groups_once_and_preserves_wire_order() {
+        let mut actions = semantic_timeline_actions(4);
+        for (action, span_id) in actions.iter_mut().zip([2, 1, 2, 1]) {
+            action.position = PresentationTimelinePosition::SpanBoundary {
+                span_id,
+                affinity: PresentationAffinity::After,
+            };
+        }
+
+        let indexed = index_timeline_actions(&actions);
+
+        assert_eq!(
+            indexed[&1]
+                .iter()
+                .map(|action| action.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["semantic.1", "semantic.3"]
+        );
+        assert_eq!(
+            indexed[&2]
+                .iter()
+                .map(|action| action.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["semantic.0", "semantic.2"]
+        );
     }
 
     #[test]
@@ -3008,6 +3040,7 @@ mod tests {
                 pan: 0.5,
             },
         )]);
+        let actions = actions.iter().collect::<Vec<_>>();
 
         let prepared = prepare_timeline_span(
             &span,
