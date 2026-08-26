@@ -4,7 +4,7 @@ use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, PlaybackTicket,
     PostSynthesisParameters, PostSynthesisProcessor, SharedPreparedAudioResource,
     SilenceTrimReport, SilenceTrimmer, StreamType, TimelineAudioRenderer, ToneGenerator,
-    VolumeAdjust, MAX_TIMELINE_ACTIONS_PER_WINDOW,
+    VolumeAdjust, MAX_AUDIO_CACHE_SAMPLES, MAX_TIMELINE_ACTIONS_PER_WINDOW,
 };
 use omnivox_core::timeline::{
     ActionAffinity, AudioActionMode, EffectBus, PresentationPosition, ResolvedTimelineAction,
@@ -27,7 +27,8 @@ use omnivox_tts::{
     SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
     MAX_SYNTHESIS_ANCHORS,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use tracing::{debug, warn};
@@ -357,6 +358,83 @@ enum TimelineAudioResource {
     Silence {
         duration_ms: u32,
     },
+}
+
+const MAX_PRESENTATION_DECODED_PCM_SAMPLES: usize = MAX_AUDIO_CACHE_SAMPLES;
+
+#[derive(Debug, PartialEq, Eq)]
+enum TimelinePreparationError {
+    Cancelled,
+    Invalid(String),
+}
+
+impl fmt::Display for TimelinePreparationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Cancelled => formatter.write_str("structured presentation preparation cancelled"),
+            Self::Invalid(message) => formatter.write_str(message),
+        }
+    }
+}
+
+struct PresentationPcmBudget {
+    limit: usize,
+    retained: usize,
+    shared_allocations: HashSet<usize>,
+}
+
+impl PresentationPcmBudget {
+    fn new(limit: usize) -> Self {
+        Self {
+            limit,
+            retained: 0,
+            shared_allocations: HashSet::new(),
+        }
+    }
+
+    fn retain_shared(
+        &mut self,
+        action_id: &str,
+        audio: &Arc<AudioBuffer>,
+    ) -> Result<(), TimelinePreparationError> {
+        let allocation = Arc::as_ptr(audio) as usize;
+        if self.shared_allocations.contains(&allocation) {
+            return Ok(());
+        }
+        self.reserve(action_id, audio.samples.len())?;
+        self.shared_allocations.insert(allocation);
+        Ok(())
+    }
+
+    fn retain_private(
+        &mut self,
+        action_id: &str,
+        samples: usize,
+    ) -> Result<(), TimelinePreparationError> {
+        self.reserve(action_id, samples)
+    }
+
+    fn reserve(&mut self, action_id: &str, samples: usize) -> Result<(), TimelinePreparationError> {
+        let attempted = self.retained.saturating_add(samples);
+        if attempted > self.limit {
+            return Err(TimelinePreparationError::Invalid(format!(
+                "action {action_id} would retain {attempted} decoded PCM samples; presentation maximum is {}",
+                self.limit
+            )));
+        }
+        self.retained = attempted;
+        Ok(())
+    }
+}
+
+fn check_timeline_preparation_cancelled(
+    cancelled: &dyn Fn() -> bool,
+) -> Result<(), TimelinePreparationError> {
+    if cancelled() {
+        Err(TimelinePreparationError::Cancelled)
+    } else {
+        Ok(())
+    }
 }
 
 impl TimelineAudioResource {
@@ -1236,17 +1314,21 @@ pub fn process_presentation_timeline(
         return BatchStatus::Cancelled;
     }
     state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
-    let resources = match prepare_timeline_resources(&timeline.actions, &state, loader) {
+    let cancelled = || ctx.is_stale();
+    let resources = match prepare_timeline_resources(&timeline.actions, &state, loader, &cancelled)
+    {
         Ok(resources) => resources,
-        Err(error) => {
+        Err(TimelinePreparationError::Cancelled) => return BatchStatus::Cancelled,
+        Err(TimelinePreparationError::Invalid(error)) => {
             ctx.mark_failed();
             warn!("Structured presentation resource validation failed: {error}");
             return BatchStatus::Failed;
         }
     };
-    let spans = match prepare_timeline_spans(&timeline, &state, &resources) {
+    let spans = match prepare_timeline_spans(&timeline, &state, &resources, &cancelled) {
         Ok(spans) => spans,
-        Err(error) => {
+        Err(TimelinePreparationError::Cancelled) => return BatchStatus::Cancelled,
+        Err(TimelinePreparationError::Invalid(error)) => {
             ctx.mark_failed();
             warn!("Structured presentation preparation failed: {error}");
             return BatchStatus::Failed;
@@ -1421,26 +1503,65 @@ fn prepare_timeline_resources(
     actions: &[PresentationTimelineAction],
     state: &TtsState,
     loader: &AudioFileLoader,
-) -> Result<HashMap<String, TimelineAudioResource>, String> {
+    cancelled: &dyn Fn() -> bool,
+) -> Result<HashMap<String, TimelineAudioResource>, TimelinePreparationError> {
+    prepare_timeline_resources_with_sample_limit(
+        actions,
+        state,
+        loader,
+        MAX_PRESENTATION_DECODED_PCM_SAMPLES,
+        cancelled,
+    )
+}
+
+fn prepare_timeline_resources_with_sample_limit(
+    actions: &[PresentationTimelineAction],
+    state: &TtsState,
+    loader: &AudioFileLoader,
+    sample_limit: usize,
+    cancelled: &dyn Fn() -> bool,
+) -> Result<HashMap<String, TimelineAudioResource>, TimelinePreparationError> {
     let mut resources = HashMap::new();
+    let mut budget = PresentationPcmBudget::new(sample_limit);
     for action in actions {
+        check_timeline_preparation_cancelled(cancelled)?;
         let resource = match &action.action {
             PresentationAction::Audio { path, pan, .. } => {
-                let mut audio = loader
-                    .load_shared(std::path::Path::new(path))
-                    .map_err(|error| format!("action {}: {error}", action.id))?;
+                let mut audio =
+                    loader
+                        .load_shared(std::path::Path::new(path))
+                        .map_err(|error| {
+                            TimelinePreparationError::Invalid(format!(
+                                "action {}: {error}",
+                                action.id
+                            ))
+                        })?;
+                check_timeline_preparation_cancelled(cancelled)?;
                 if state.sound_volume != 1.0
                     || state.sound_routing.channel_mode != ChannelMode::Both
                     || *pan != 0.5
                 {
+                    budget.retain_private(&action.id, audio.samples.len())?;
                     let audio = Arc::make_mut(&mut audio);
                     build_sound_pipeline(state)
                         .process(audio)
-                        .map_err(|error| format!("action {}: {error}", action.id))?;
+                        .map_err(|error| {
+                            TimelinePreparationError::Invalid(format!(
+                                "action {}: {error}",
+                                action.id
+                            ))
+                        })?;
+                    check_timeline_preparation_cancelled(cancelled)?;
                     apply_action_pan(audio, *pan);
+                    check_timeline_preparation_cancelled(cancelled)?;
+                } else {
+                    budget.retain_shared(&action.id, &audio)?;
                 }
                 if audio.is_empty() {
-                    return Err(format!("action {} decoded to empty audio", action.id));
+                    return Err(TimelinePreparationError::Invalid(format!(
+                        "action {} decoded to empty audio",
+                        action.id
+                    )));
                 }
                 TimelineAudioResource::Prepared(audio)
             }
@@ -1479,12 +1600,20 @@ fn prepare_timeline_spans(
     timeline: &PresentationTimelineEnvelope,
     state: &TtsState,
     resources: &HashMap<String, TimelineAudioResource>,
-) -> Result<Vec<PreparedTimelineSpan>, String> {
-    timeline
-        .spans
-        .iter()
-        .map(|span| prepare_timeline_span(span, &timeline.actions, state, resources))
-        .collect()
+    cancelled: &dyn Fn() -> bool,
+) -> Result<Vec<PreparedTimelineSpan>, TimelinePreparationError> {
+    let mut spans = Vec::with_capacity(timeline.spans.len());
+    for span in &timeline.spans {
+        check_timeline_preparation_cancelled(cancelled)?;
+        spans.push(prepare_timeline_span(
+            span,
+            &timeline.actions,
+            state,
+            resources,
+            cancelled,
+        )?);
+    }
+    Ok(spans)
 }
 
 /// Validate the operational action limit before a structured presentation is
@@ -1599,7 +1728,9 @@ fn prepare_timeline_span(
     actions: &[PresentationTimelineAction],
     state: &TtsState,
     resources: &HashMap<String, TimelineAudioResource>,
-) -> Result<PreparedTimelineSpan, String> {
+    cancelled: &dyn Fn() -> bool,
+) -> Result<PreparedTimelineSpan, TimelinePreparationError> {
+    check_timeline_preparation_cancelled(cancelled)?;
     let mut acss = span.acss.clone();
     if let Some(rate_offset) = span.rate_offset.filter(|offset| *offset != 0) {
         acss.rate = Some(apply_rate_offset(state.speech_rate, rate_offset));
@@ -1608,14 +1739,17 @@ fn prepare_timeline_span(
         .iter()
         .filter(|action| action.position.span_id() == span.id)
         .collect::<Vec<_>>();
+    check_timeline_preparation_cancelled(cancelled)?;
     let layout = prepare_timeline_span_layout(span, &span_actions, state);
-    validate_timeline_span_layout(span.id, &layout)?;
+    check_timeline_preparation_cancelled(cancelled)?;
+    validate_timeline_span_layout(span.id, &layout).map_err(TimelinePreparationError::Invalid)?;
     let PreparedTimelineSpanLayout {
         chunks,
         action_positions,
     } = layout;
     let mut actions_by_chunk = vec![Vec::new(); chunks.len()];
     for (action, position) in span_actions.into_iter().zip(action_positions) {
+        check_timeline_preparation_cancelled(cancelled)?;
         let kind = match &action.action {
             PresentationAction::Audio {
                 mode,
@@ -1629,19 +1763,23 @@ fn prepare_timeline_span(
                 effect_bus,
                 ..
             } => TimelineChunkActionKind::Audio {
-                resource: resources
-                    .get(&action.id)
-                    .cloned()
-                    .ok_or_else(|| format!("action {} has no prepared resource", action.id))?,
+                resource: resources.get(&action.id).cloned().ok_or_else(|| {
+                    TimelinePreparationError::Invalid(format!(
+                        "action {} has no prepared resource",
+                        action.id
+                    ))
+                })?,
                 mode: convert_audio_mode(*mode),
                 volume: *volume,
                 effect_bus: convert_effect_bus(*effect_bus),
             },
             PresentationAction::Silence { .. } => TimelineChunkActionKind::Audio {
-                resource: resources
-                    .get(&action.id)
-                    .cloned()
-                    .ok_or_else(|| format!("action {} has no prepared silence", action.id))?,
+                resource: resources.get(&action.id).cloned().ok_or_else(|| {
+                    TimelinePreparationError::Invalid(format!(
+                        "action {} has no prepared silence",
+                        action.id
+                    ))
+                })?,
                 mode: AudioActionMode::Insert,
                 volume: 1.0,
                 effect_bus: EffectBus::Dry,
@@ -2083,6 +2221,10 @@ mod tests {
         }
     }
 
+    fn never_cancelled() -> bool {
+        false
+    }
+
     fn semantic_chunk_actions(count: usize) -> Vec<TimelineChunkAction> {
         (0..count)
             .map(|index| TimelineChunkAction {
@@ -2147,16 +2289,29 @@ mod tests {
             effects: PresentationEffectDirective::Retain,
         };
         let accepted = semantic_timeline_actions(MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW);
-        let prepared =
-            prepare_timeline_span(&span, &accepted, &TtsState::default(), &HashMap::new()).unwrap();
+        let prepared = prepare_timeline_span(
+            &span,
+            &accepted,
+            &TtsState::default(),
+            &HashMap::new(),
+            &never_cancelled,
+        )
+        .unwrap();
         assert_eq!(
             prepared.actions[0].len(),
             MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW
         );
 
         let overflow = semantic_timeline_actions(MAX_TIMELINE_ACTIONS_PER_SPEECH_WINDOW + 1);
-        let error = prepare_timeline_span(&span, &overflow, &TtsState::default(), &HashMap::new())
-            .unwrap_err();
+        let error = prepare_timeline_span(
+            &span,
+            &overflow,
+            &TtsState::default(),
+            &HashMap::new(),
+            &never_cancelled,
+        )
+        .unwrap_err()
+        .to_string();
         assert!(error.contains("513 actions"));
         assert!(error.contains("maximum is 512"));
     }
@@ -2232,9 +2387,13 @@ mod tests {
             boundary_action("silence", PresentationAction::Silence { duration_ms: 100 }),
         ];
 
-        let resources =
-            prepare_timeline_resources(&actions, &TtsState::default(), &AudioFileLoader::new())
-                .unwrap();
+        let resources = prepare_timeline_resources(
+            &actions,
+            &TtsState::default(),
+            &AudioFileLoader::new(),
+            &never_cancelled,
+        )
+        .unwrap();
 
         assert!(matches!(
             resources.get("tone"),
@@ -2275,9 +2434,14 @@ mod tests {
             ),
         ];
 
-        let error =
-            prepare_timeline_resources(&actions, &TtsState::default(), &AudioFileLoader::new())
-                .unwrap_err();
+        let error = prepare_timeline_resources(
+            &actions,
+            &TtsState::default(),
+            &AudioFileLoader::new(),
+            &never_cancelled,
+        )
+        .unwrap_err()
+        .to_string();
 
         assert!(error.contains("action missing"));
         assert!(error.contains("File not found"));
@@ -2302,6 +2466,7 @@ mod tests {
             )],
             &TtsState::default(),
             &loader,
+            &never_cancelled,
         )
         .unwrap();
 
@@ -2338,6 +2503,7 @@ mod tests {
             )],
             &state,
             &loader,
+            &never_cancelled,
         )
         .unwrap();
 
@@ -2348,6 +2514,129 @@ mod tests {
         assert_eq!(prepared.samples, expected.samples);
         assert_eq!(cached.samples, original);
         assert!(Arc::ptr_eq(&cached, &loader.load_shared(&path).unwrap()));
+    }
+
+    #[test]
+    fn presentation_pcm_budget_counts_private_copies_but_not_shared_references() {
+        let path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../test-sounds/complete.ogg");
+        let loader = AudioFileLoader::with_cache();
+        let cached = loader.load_shared(&path).unwrap();
+        let action = |id: &str| {
+            boundary_action(
+                id,
+                PresentationAction::Audio {
+                    path: path.to_string_lossy().into_owned(),
+                    mode: PresentationAudioMode::Overlay,
+                    volume: 1.0,
+                    pan: 0.5,
+                    effect_bus: PresentationEffectBus::Dry,
+                },
+            )
+        };
+        let shared = prepare_timeline_resources_with_sample_limit(
+            &[action("shared.1"), action("shared.2")],
+            &TtsState::default(),
+            &loader,
+            cached.samples.len(),
+            &never_cancelled,
+        )
+        .unwrap();
+        for resource in shared.values() {
+            let TimelineAudioResource::Prepared(audio) = resource else {
+                panic!("file resource was not prepared eagerly");
+            };
+            assert!(Arc::ptr_eq(&cached, audio));
+        }
+
+        let state = TtsState {
+            sound_volume: 0.5,
+            ..TtsState::default()
+        };
+        let error = prepare_timeline_resources_with_sample_limit(
+            &[action("private.1"), action("private.2")],
+            &state,
+            &loader,
+            cached.samples.len(),
+            &never_cancelled,
+        )
+        .unwrap_err()
+        .to_string();
+
+        assert_eq!(
+            MAX_PRESENTATION_DECODED_PCM_SAMPLES * std::mem::size_of::<f32>(),
+            64 * 1024 * 1024
+        );
+        assert!(error.contains("action private.2"));
+        assert!(error.contains("presentation maximum"));
+        assert!(Arc::ptr_eq(&cached, &loader.load_shared(&path).unwrap()));
+    }
+
+    #[test]
+    fn timeline_resource_preparation_honours_midstream_cancellation() {
+        let actions = [
+            boundary_action("first", PresentationAction::Silence { duration_ms: 10 }),
+            boundary_action("second", PresentationAction::Silence { duration_ms: 10 }),
+        ];
+        let checks = std::cell::Cell::new(0_usize);
+        let cancelled = || {
+            let current = checks.get();
+            checks.set(current + 1);
+            current >= 1
+        };
+
+        let error = prepare_timeline_resources(
+            &actions,
+            &TtsState::default(),
+            &AudioFileLoader::new(),
+            &cancelled,
+        )
+        .unwrap_err();
+
+        assert_eq!(error, TimelinePreparationError::Cancelled);
+        assert_eq!(checks.get(), 2);
+    }
+
+    #[test]
+    fn timeline_span_preparation_honours_midstream_cancellation() {
+        let span = PresentationSpeechSpan {
+            id: 1,
+            text: "first".to_owned(),
+            logical_voice_id: None,
+            acss: NormalizedAcss::default(),
+            rate_offset: None,
+            effects: PresentationEffectDirective::Retain,
+        };
+        let timeline = PresentationTimelineEnvelope {
+            protocol_version:
+                omnivox_tts::timeline_protocol::PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+            generation: 1,
+            dispatch_id: 1,
+            delivery_policy: None,
+            replacement_key: None,
+            spans: vec![
+                span.clone(),
+                PresentationSpeechSpan {
+                    id: 2,
+                    text: "second".to_owned(),
+                    ..span
+                },
+            ],
+            actions: Vec::new(),
+        };
+        let checks = std::cell::Cell::new(0_usize);
+        let cancelled = || {
+            let current = checks.get();
+            checks.set(current + 1);
+            current >= 4
+        };
+
+        let error =
+            prepare_timeline_spans(&timeline, &TtsState::default(), &HashMap::new(), &cancelled)
+                .unwrap_err();
+
+        assert_eq!(error, TimelinePreparationError::Cancelled);
+        assert!(checks.get() > 4);
     }
 
     #[test]
@@ -2452,6 +2741,7 @@ mod tests {
                 }],
                 &state,
                 &AudioFileLoader::new(),
+                &never_cancelled,
             )
             .unwrap();
             let structured_audio = structured
@@ -2638,8 +2928,14 @@ mod tests {
             TimelineAudioResource::Prepared(Arc::new(AudioBuffer::silence(0.01))),
         )]);
 
-        let prepared =
-            prepare_timeline_span(&span, &actions, &TtsState::default(), &resources).unwrap();
+        let prepared = prepare_timeline_span(
+            &span,
+            &actions,
+            &TtsState::default(),
+            &resources,
+            &never_cancelled,
+        )
+        .unwrap();
 
         assert_eq!(prepared.chunks.len(), 2);
         assert_eq!(prepared.actions[0][0].id, "opening-cue");
