@@ -183,6 +183,19 @@ Before synthesis Omnivox:
 4. chunks prepared text at a sentence, line, or clause boundary when possible,
    with a hard limit of 15 whitespace-delimited words.
 
+Punctuation expansion is a route-independent compatibility contract. `none`
+names only `$` and `%`. `some` names this complete set:
+
+```text
+! " # $ % ( ) * + - / : ; < = > \ ^ ` ~
+```
+
+`all` names every ASCII punctuation character. Characters not named at the
+selected level, including non-ASCII punctuation, remain in the prepared text
+so the synthesizer can retain natural phrasing. Both ordinary speech and
+structured presentation timelines use this same preprocessing and produce the
+same prepared text.
+
 The `[*]` marker is compatibility text emitted by Emacspeak/Emacsvox character
 names (for example `question[*]mark`); it must never reach punctuation
 expansion as literal bracket/star characters.

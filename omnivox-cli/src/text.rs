@@ -581,6 +581,49 @@ pub fn rate_scaled_padding(rate: f32) -> f32 {
 mod tests {
     use super::*;
 
+    const ASCII_PUNCTUATION_CONTRACT: &[(char, &str, PunctuationLevel)] = &[
+        ('!', "bang", PunctuationLevel::Some),
+        ('"', "quote", PunctuationLevel::Some),
+        ('#', "pound", PunctuationLevel::Some),
+        ('$', "dollar", PunctuationLevel::None),
+        ('%', "percent", PunctuationLevel::None),
+        ('&', "ampersand", PunctuationLevel::All),
+        ('\'', "apostrophe", PunctuationLevel::All),
+        ('(', "left paren", PunctuationLevel::Some),
+        (')', "right paren", PunctuationLevel::Some),
+        ('*', "star", PunctuationLevel::Some),
+        ('+', "plus", PunctuationLevel::Some),
+        (',', "comma", PunctuationLevel::All),
+        ('-', "dash", PunctuationLevel::Some),
+        ('.', "dot", PunctuationLevel::All),
+        ('/', "slash", PunctuationLevel::Some),
+        (':', "colon", PunctuationLevel::Some),
+        (';', "semicolon", PunctuationLevel::Some),
+        ('<', "less than", PunctuationLevel::Some),
+        ('=', "equals", PunctuationLevel::Some),
+        ('>', "greater than", PunctuationLevel::Some),
+        ('?', "question", PunctuationLevel::All),
+        ('@', "at", PunctuationLevel::All),
+        ('[', "left bracket", PunctuationLevel::All),
+        ('\\', "backslash", PunctuationLevel::Some),
+        (']', "right bracket", PunctuationLevel::All),
+        ('^', "caret", PunctuationLevel::Some),
+        ('_', "underline", PunctuationLevel::All),
+        ('`', "backquote", PunctuationLevel::Some),
+        ('{', "left brace", PunctuationLevel::All),
+        ('|', "pipe", PunctuationLevel::All),
+        ('}', "right brace", PunctuationLevel::All),
+        ('~', "tilde", PunctuationLevel::Some),
+    ];
+
+    fn punctuation_level_includes(level: PunctuationLevel, minimum: PunctuationLevel) -> bool {
+        match level {
+            PunctuationLevel::None => minimum == PunctuationLevel::None,
+            PunctuationLevel::Some => minimum != PunctuationLevel::All,
+            PunctuationLevel::All => true,
+        }
+    }
+
     #[test]
     fn test_insert_space_before_uppercase() {
         assert_eq!(insert_space_before_uppercase("helloWorld"), "hello World");
@@ -813,21 +856,92 @@ mod tests {
     }
 
     #[test]
-    fn test_apply_punctuation_none() {
-        assert_eq!(
-            apply_punctuation("hello $100", PunctuationLevel::None),
-            "hello  dollar 100"
-        );
+    fn ascii_punctuation_contract_is_exhaustive_at_every_level() {
+        let ascii_punctuation = (b'!'..=b'~')
+            .map(char::from)
+            .filter(|character| character.is_ascii_punctuation())
+            .collect::<Vec<_>>();
+
+        assert_eq!(ASCII_PUNCTUATION_CONTRACT.len(), ascii_punctuation.len());
+        for character in ascii_punctuation {
+            let entries = ASCII_PUNCTUATION_CONTRACT
+                .iter()
+                .filter(|(candidate, _, _)| *candidate == character)
+                .collect::<Vec<_>>();
+            assert_eq!(entries.len(), 1, "contract entry for {character:?}");
+            let (_, name, minimum) = entries[0];
+
+            for level in [
+                PunctuationLevel::None,
+                PunctuationLevel::Some,
+                PunctuationLevel::All,
+            ] {
+                let input = format!("left{character}right");
+                let expected = if punctuation_level_includes(level, *minimum) {
+                    format!("left {name} right")
+                } else {
+                    input.clone()
+                };
+                assert_eq!(
+                    apply_punctuation(&input, level),
+                    expected,
+                    "punctuation {character:?} at level {level:?}"
+                );
+            }
+        }
     }
 
     #[test]
-    fn test_apply_punctuation_some() {
-        assert_eq!(apply_punctuation("a+b", PunctuationLevel::Some), "a plus b");
+    fn punctuation_contract_is_identical_with_structured_offsets() {
+        for (character, _, _) in ASCII_PUNCTUATION_CONTRACT {
+            let input = format!("éleft{character}right");
+            let source_offsets = input
+                .char_indices()
+                .map(|(offset, _)| offset as u32)
+                .chain(std::iter::once(input.len() as u32))
+                .collect::<Vec<_>>();
+
+            for level in [
+                PunctuationLevel::None,
+                PunctuationLevel::Some,
+                PunctuationLevel::All,
+            ] {
+                let state = TtsState {
+                    punctuation_level: level,
+                    split_caps: false,
+                    ..TtsState::default()
+                };
+                let plain = prepare_speech_text(&input, &state);
+                let (tracked, mapped_offsets) =
+                    prepare_speech_text_with_offsets(&input, &state, &source_offsets);
+                let expected_offsets = source_offsets
+                    .iter()
+                    .map(|offset| apply_punctuation(&input[..*offset as usize], level).len() as u32)
+                    .collect::<Vec<_>>();
+
+                assert_eq!(tracked, plain, "punctuation {character:?} at {level:?}");
+                assert_eq!(
+                    mapped_offsets, expected_offsets,
+                    "offsets for punctuation {character:?} at {level:?}"
+                );
+                assert!(mapped_offsets.iter().all(|offset| {
+                    let offset = *offset as usize;
+                    offset <= tracked.text.len() && tracked.text.is_char_boundary(offset)
+                }));
+            }
+        }
     }
 
     #[test]
-    fn test_apply_punctuation_all() {
-        assert_eq!(apply_punctuation("a.b", PunctuationLevel::All), "a dot b");
+    fn non_ascii_punctuation_remains_available_for_engine_prosody() {
+        let input = "alpha—“beta”…";
+        for level in [
+            PunctuationLevel::None,
+            PunctuationLevel::Some,
+            PunctuationLevel::All,
+        ] {
+            assert_eq!(apply_punctuation(input, level), input);
+        }
     }
 
     #[test]
