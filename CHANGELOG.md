@@ -6,6 +6,12 @@ Versioning for published releases.
 
 ## Unreleased
 
+### Changed
+
+- Reduced the Eloquence helper's synthesis idle timeout from three seconds to
+  500 milliseconds so a wedged native synchronization call reaches configured
+  fallback promptly.
+
 ### Documentation
 
 - Corrected the documented release matrix, archive installation steps, engine

@@ -23,7 +23,7 @@ use tracing::{info, warn};
 use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
 
 #[cfg(any(target_os = "windows", feature = "piper", test))]
-const ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_secs(3);
+const ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_millis(500);
 #[cfg(any(target_os = "windows", feature = "piper", test))]
 const NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -388,7 +388,7 @@ mod tests {
     fn eloquence_helper_fails_over_after_a_short_idle_timeout() {
         assert_eq!(
             helper_synthesis_idle_timeout("eloquence"),
-            Duration::from_secs(3)
+            Duration::from_millis(500)
         );
         assert_eq!(
             helper_synthesis_idle_timeout("dectalk"),
