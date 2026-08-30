@@ -2,6 +2,11 @@ name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      draft_version:
+        description: Existing draft release version to verify and publish (for example, 1.4.0)
+        required: false
+        type: string
   push:
     branches: [main]
     tags: ['v*']
@@ -12,6 +17,7 @@ jobs:
   format:
     name: Formatting
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || inputs.draft_version == ''
 
     steps:
       - name: Checkout code
@@ -28,6 +34,7 @@ jobs:
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    if: github.event_name != 'workflow_dispatch' || inputs.draft_version == ''
     strategy:
       fail-fast: false
       matrix:
@@ -138,6 +145,7 @@ jobs:
   test:
     name: Test ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    if: github.event_name != 'workflow_dispatch' || inputs.draft_version == ''
     strategy:
       fail-fast: false
       matrix:
@@ -332,9 +340,25 @@ jobs:
     name: Verify Release ${{ matrix.name }}
     needs: [package_release, create_draft_release]
     runs-on: ${{ matrix.os }}
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      always() &&
+      (
+        (
+          startsWith(github.ref, 'refs/tags/v') &&
+          needs.package_release.result == 'success' &&
+          needs.create_draft_release.result == 'success'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.draft_version != ''
+        )
+      )
     permissions:
-      contents: read
+      # Draft releases are visible only to tokens with push-level access.
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
+      RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
     strategy:
       fail-fast: false
       matrix:
@@ -385,23 +409,35 @@ jobs:
           python-version: '3.x'
 
       - name: Download draft release assets
-        run: gh release download "${{ github.ref_name }}" --repo "${{ github.repository }}" --pattern "omnivox-${{ needs.package_release.outputs.version }}-${{ matrix.suffix }}.${{ matrix.extension }}" --pattern sha256sums.txt --dir downloaded
+        shell: bash
+        run: gh release download "$RELEASE_TAG" --repo "${{ github.repository }}" --pattern "omnivox-$RELEASE_VERSION-${{ matrix.suffix }}.${{ matrix.extension }}" --pattern sha256sums.txt --dir downloaded
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify downloaded release archive
-        run: python tools/verify_release.py --archive "downloaded/omnivox-${{ needs.package_release.outputs.version }}-${{ matrix.suffix }}.${{ matrix.extension }}" --checksums downloaded/sha256sums.txt --version "${{ needs.package_release.outputs.version }}" --platform "${{ matrix.platform }}" --arch "${{ matrix.arch }}" --engines "${{ matrix.engines }}"
+        shell: bash
+        run: python tools/verify_release.py --archive "downloaded/omnivox-$RELEASE_VERSION-${{ matrix.suffix }}.${{ matrix.extension }}" --checksums downloaded/sha256sums.txt --version "$RELEASE_VERSION" --platform "${{ matrix.platform }}" --arch "${{ matrix.arch }}" --engines "${{ matrix.engines }}"
 
   publish_release:
     name: Publish Verified Release
     needs: verify_release
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      needs.verify_release.result == 'success' &&
+      (
+        startsWith(github.ref, 'refs/tags/v') ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.draft_version != ''
+        )
+      )
     permissions:
       contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
 
     steps:
       - name: Publish draft release
-        run: gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --draft=false --prerelease=false
+        run: gh release edit "$RELEASE_TAG" --repo "${{ github.repository }}" --draft=false --prerelease=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

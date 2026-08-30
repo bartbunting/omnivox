@@ -31,6 +31,8 @@ a source build until the workflow builds and validates that target.
   after every required job succeeds.
 - A manual dispatch against `main` runs the ordinary CI gates; a dispatch
   against a `v*` tag runs the complete release path.
+- A manual dispatch against `main` with `draft_version` set resumes verification
+  of an existing draft and publishes it only after all native verifiers pass.
 - An ordinary push to `main` does not create a timestamped release.
 
 The release version and archive prefix come from the tag name with its leading
