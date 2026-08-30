@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-08-30
+**Last reviewed:** 2026-08-31
 **Workspace version:** 1.4.1
 
 This file records present behavior and limitations. Protocol guarantees belong
@@ -97,19 +97,20 @@ in the linked protocol specifications; future work belongs in
 | Windows x64 | WinRT and eSpeak NG; optional helpers | Yes |
 | Windows ARM64 | WinRT and eSpeak NG | Yes |
 | Linux x64 | eSpeak NG | Yes (Ubuntu 24.04 ABI baseline) |
-| Linux ARM64 | eSpeak NG source build | No current workflow artifact |
+| Linux ARM64 | Not CI-built or runtime-verified | No current workflow artifact |
 
-The checked-in workflow builds five targets and tests Linux x64, macOS ARM64,
-Windows x64, and Windows ARM64. Linux x64 is built on Ubuntu 24.04; compatibility
-with older glibc distributions is not claimed. Linux ARM64 remains a source
-build without a release artifact or runtime test job. Supported builds and all
-five generic release archives stage the matching `espeak-ng-data` beside the
-executable. CI validates the packaged data on every artifact and exercises
-voice discovery and WAV synthesis on Linux x64, the native Windows targets, and
-macOS ARM64. Tag builds upload a draft release, verify the exact downloaded
-archives after relocation, and publish only when all checks pass. The
-cross-compiled macOS x64 executable receives structural and architecture checks
-but is not run in that job.
+The checked-in workflow builds, tests, and runs Clippy on all five release
+targets using native runners. Linux x64 is built on Ubuntu 24.04; compatibility
+with older glibc distributions is not claimed. Linux ARM64 has no workflow
+build, release artifact, or runtime test job, so source-build compatibility is
+not currently claimed. All five release archives stage the matching
+`espeak-ng-data` beside the executable. CI validates the packaged data and
+eSpeak voice discovery on every build runner, with native macOS WAV synthesis
+also exercised during the build. Tag builds upload a draft release and then
+verify each exact downloaded archive after relocation on its native platform.
+The release verifier exercises eSpeak on all five targets and the native speech
+engine on both macOS and both Windows targets. The draft is published only when
+all checks pass.
 
 ## Validation
 

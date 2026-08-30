@@ -36,8 +36,9 @@ python3 tools/verify_release.py \
 
 The tag workflow uploads draft release assets first, downloads them on the
 native platform runners, and publishes only after this verification passes.
-An empty engine list performs structural and architecture checks only, which
-is used for the cross-compiled macOS x64 archive.
+Every current release target performs native synthesis verification. An empty
+engine list remains available for an intentional structural and architecture
+check that does not exercise synthesis.
 
 ## Failure diagnostics
 
