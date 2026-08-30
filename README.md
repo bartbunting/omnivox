@@ -85,7 +85,8 @@ published or CI-verified.
 Follow the [release and deployment guide](.github/DEPLOYMENT.md) for archive
 selection, checksum commands, installation, unsigned-binary warnings, and the
 separate Emacsvox Windows deployment contract. Keep the data and notices beside
-the executable after extraction.
+the executable after extraction. User-visible release changes are recorded in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Prerequisites
 

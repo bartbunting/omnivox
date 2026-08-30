@@ -287,6 +287,11 @@ jobs:
 
             Cross-platform Emacsvox/Emacspeak speech server.
 
+            ### Changes
+
+            See the [project changelog](https://github.com/bartbunting/omnivox/blob/${{ github.ref_name }}/CHANGELOG.md)
+            for the changes in this release.
+
             ### Installation
 
             Download one archive and `sha256sums.txt`. Verify the archive before
