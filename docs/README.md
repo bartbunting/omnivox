@@ -61,4 +61,5 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 Describe shipped behavior in the current references or protocol
 specifications, future work in `plans/`, and obsolete context in `history/`.
 Keep testable examples in `protocol-fixtures/` and update their Rust validation
-when a wire contract changes.
+when a wire contract changes. Run `make docs-check` after moving or linking a
+document; CI applies the same local-link check to every tracked Markdown file.

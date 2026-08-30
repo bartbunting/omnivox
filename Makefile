@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check doc
+.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -43,6 +43,10 @@ fmt:
 # Check formatting without changing an active worktree
 fmt-check:
 	cargo fmt --all -- --check
+
+# Verify repository-local links in tracked Markdown documentation
+docs-check:
+	$(PYTHON) tools/check_markdown_links.py
 
 # Generate documentation
 doc:

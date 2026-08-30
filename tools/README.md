@@ -1,5 +1,16 @@
 # Developer Tools
 
+## Documentation links
+
+`check_markdown_links.py` resolves repository-local links in every tracked
+Markdown file and rejects missing targets, unsupported URI schemes, and links
+that leave the repository. It does not make network requests for external
+URLs. Run it directly or through:
+
+```sh
+make docs-check
+```
+
 ## Build and runtime staging
 
 `build.py` is the supported wrapper for distributable Cargo builds. It keeps

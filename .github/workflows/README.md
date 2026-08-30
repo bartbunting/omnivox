@@ -12,7 +12,11 @@ Runs on `ubuntu-latest`, installs Rust/rustfmt 1.97.1, and executes:
 
 ```sh
 cargo fmt --all -- --check
+python3 tools/check_markdown_links.py
 ```
+
+The documentation check resolves repository-local links in every tracked
+Markdown file. It does not make network requests for external URLs.
 
 ### `build`
 
