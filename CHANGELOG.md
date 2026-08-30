@@ -18,6 +18,9 @@ Versioning for published releases.
   Omnivox source licensing from adapter, eSpeak-linked binary, Piper, and
   proprietary-runtime terms; future binary archives include and validate both
   project licensing files.
+- Moved maintained references and protocols under an indexed `docs/` hierarchy,
+  with active plans and historical notes clearly separated from shipped
+  behavior.
 
 ## 1.4.1 - 2026-08-30
 

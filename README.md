@@ -265,31 +265,12 @@ Useful distinctions when investigating responsiveness:
 - replacement cancellation varies by engine, although stale PCM is never
   admitted after cancellation.
 
-## Protocol and design documents
+## Documentation
 
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — runtime ownership and data flow.
-- [LEGACY-PROTOCOL.md](docs/protocols/LEGACY-PROTOCOL.md) — baseline Emacspeak command
-  grammar, queue semantics, state, and limits.
-- [CONTROL-PROTOCOL.md](docs/protocols/CONTROL-PROTOCOL.md) — discovery, logical voices,
-  routing policy, preview, tracked playback, and legacy framing.
-- [PRESENTATION-TIMELINE-PROTOCOL.md](docs/protocols/PRESENTATION-TIMELINE-PROTOCOL.md) —
-  structured Aural timeline versions and multipart transport.
-- [HELPER-PROTOCOL.md](docs/protocols/HELPER-PROTOCOL.md) — isolated engine-host protocol.
-- [ENV-VARS.md](docs/ENV-VARS.md) — configuration and integration boundaries.
-- [STATUS.md](docs/STATUS.md) — implemented behavior and current limitations.
-- [NEXT_STEPS.md](docs/plans/NEXT_STEPS.md) — current roadmap only.
-- [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) — failure-evidence workflow.
-- [docs/ENGINE-ISOLATION.md](docs/ENGINE-ISOLATION.md) — uncancellable engine
-  containment.
-- [docs/TEXT-CHUNKING.md](docs/TEXT-CHUNKING.md) — current text chunking.
-- [.github/DEPLOYMENT.md](.github/DEPLOYMENT.md) — release archives,
-  verification, installation, and acceptance checks.
-- [SPEECHD-PLAN.md](docs/plans/SPEECHD-PLAN.md) — unimplemented Speech Dispatcher design
-  proposal.
-
-[CHUNKING-IMPLEMENTATION.md](docs/history/CHUNKING-IMPLEMENTATION.md) is retained
-as a historical implementation note and points to the current chunking
-reference. Git history remains the source for superseded phase-by-phase plans.
+The [documentation index](docs/README.md) groups maintained references,
+protocol specifications, operational guides, active plans, and historical
+material. Start with [STATUS.md](docs/STATUS.md) for current support and
+limitations, or [ENV-VARS.md](docs/ENV-VARS.md) for configuration.
 
 ## Licensing
 
