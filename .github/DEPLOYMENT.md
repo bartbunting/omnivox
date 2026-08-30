@@ -189,11 +189,15 @@ binary from another working directory without Omnivox or eSpeak path overrides.
 
 Hosted runners prove synthesis into PCM, but not delivery through a real audio
 device. The automated tag workflow does not wait for an audible sign-off.
-Before pushing a final tag, extract a candidate payload from the same commit on
-at least one physical Linux x64 and Windows x64 system and keep a short record
-of the OS version, selected voices, and audio device.
+Before pushing a final tag, use the supported build process to create and test a
+commit-equivalent candidate payload on at least one physical Linux x64 and
+Windows x64 system. Keep a short record of the commit, OS version, selected
+voices, and audio device. This pre-tag check does not test the byte-identical
+release archives: those archives exist only after the tag workflow packages
+them and are then checked automatically, without listening, on native hosted
+runners.
 
-On Linux or macOS, point the audible feature test at the extracted binary:
+On Linux or macOS, point the audible feature test at the candidate binary:
 
 ```sh
 OMNIVOX_BIN=/path/to/extracted/omnivox ./test-all-features.sh
@@ -211,9 +215,10 @@ $env:OMNIVOX_BIN = "C:\path\to\extracted\omnivox.exe"
 
 Listen for native and eSpeak speech, tones, icons, left/right/both routing,
 queue order, and prompt stop behavior. Also run `omnivox --check` and start the
-matching Emacspeak or Emacsvox adapter from the extracted payload. These checks
-remain manual because process success and generated PCM do not prove audible
-onset, channel placement, device selection, or cancellation at the speaker.
+matching Emacspeak or Emacsvox adapter from the same commit. These checks
+remain advisory rather than a publication gate because process success and
+generated PCM do not prove audible onset, channel placement, device selection,
+or cancellation at the speaker.
 
 ## Current release gaps
 
@@ -223,5 +228,7 @@ onset, channel placement, device selection, or cancellation at the speaker.
   absent.
 - Optional helper/model packaging is separate from generic release archives.
 - Performance/onset and real proprietary-engine smoke tests are not CI gates.
+- Physical audible checks use commit-equivalent pre-tag builds; the workflow
+  has no human approval gate for the exact tagged archives.
 - Release artifact retention follows GitHub's configured/default policies; do
   not rely on a hard-coded retention duration in project documentation.
