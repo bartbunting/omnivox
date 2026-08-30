@@ -202,10 +202,8 @@ impl TtsEngine for MacOsTtsEngine {
 
         if result.samples.is_null() || result.sample_count == 0 {
             debug!("Synthesis produced no audio data");
-            return Ok(SynthesisResult::audio(
-                "macos",
-                actual_voice,
-                AudioBuffer::empty(),
+            return Err(TtsError::SynthesisFailed(
+                "AVSpeechSynthesizer produced no audio data".to_owned(),
             ));
         }
 

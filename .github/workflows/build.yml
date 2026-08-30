@@ -135,6 +135,13 @@ jobs:
         if: runner.os == 'macOS' || matrix.target == 'x86_64-unknown-linux-gnu'
         run: ESPEAK_NG_DATA="$PWD/artifacts" artifacts/omnivox --engine espeak --list-voices >/dev/null
 
+      - name: Smoke-test packaged native macOS synthesis
+        if: runner.os == 'macOS'
+        run: |
+          artifacts/omnivox --engine native --dump-wav "" native-smoke.wav "Omnivox release build verification."
+          test "$(wc -c < native-smoke_raw.wav)" -gt 44
+          test "$(wc -c < native-smoke.wav)" -gt 44
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

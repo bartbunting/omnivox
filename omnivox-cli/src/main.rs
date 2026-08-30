@@ -67,6 +67,12 @@ fn main() -> Result<()> {
             return Ok(());
         }
         "check" => {
+            #[cfg(target_os = "macos")]
+            {
+                let engine = cli.engine.clone();
+                run_macos_cli_action(move || cli::cmd_check(&engine))?;
+            }
+            #[cfg(not(target_os = "macos"))]
             cli::cmd_check(&cli.engine);
             return Ok(());
         }
@@ -115,6 +121,14 @@ fn main() -> Result<()> {
             } else {
                 "The quick brown fox jumps over the lazy dog".to_string()
             };
+            #[cfg(target_os = "macos")]
+            {
+                let engine = cli.engine.clone();
+                let voice = voice.to_owned();
+                let output = output.to_owned();
+                run_macos_cli_action(move || cli::cmd_dump_wav(&engine, &voice, &output, &text))?;
+            }
+            #[cfg(not(target_os = "macos"))]
             cli::cmd_dump_wav(&cli.engine, voice, output, &text);
             return Ok(());
         }
@@ -254,6 +268,23 @@ fn main() -> Result<()> {
         tracked_playback_handle,
         marker_event_handle,
     )
+}
+
+#[cfg(target_os = "macos")]
+fn run_macos_cli_action(action: impl FnOnce() + Send + 'static) -> Result<()> {
+    let action_thread = std::thread::Builder::new()
+        .name("omnivox-cli-action".to_owned())
+        .spawn(move || {
+            let outcome = panic::catch_unwind(AssertUnwindSafe(action));
+            omnivox_tts::macos::stop_main_runloop();
+            outcome
+        })?;
+
+    omnivox_tts::macos::run_main_runloop();
+    match action_thread.join() {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(payload)) | Err(payload) => panic::resume_unwind(payload),
+    }
 }
 
 fn install_panic_diagnostics() {

@@ -47,6 +47,7 @@ The release version and archive prefix come from the tag name with its leading
   Windows ARM64.
 - Presence of the packaged eSpeak data and license payload on every artifact,
   plus packaged eSpeak voice discovery on every native build target.
+- Native AVSpeechSynthesizer WAV synthesis during both macOS build jobs.
 - Tag-to-binary version agreement, release checksums, safe extraction, root
   payload layout, executable modes and architectures, and adjacent eSpeak data
   discovery from a relocated directory without path overrides.
