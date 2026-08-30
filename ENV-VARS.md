@@ -127,12 +127,42 @@ values for `--engine` or `OMNIVOX_ENGINE`.
 - Disabled by default. Text may contain passwords, messages, documents, and
   other private content.
 
-`OMNIVOX_LOG_DIRECTORY` (Emacsvox WSL launcher only)
+The following variables belong to the Emacsvox launcher rather than the Rust
+process:
 
-- Linux directory for one private stderr log per launch.
+`OMNIVOX_PROGRAM`
+
+- Absolute path to the Omnivox executable the launcher should run.
+- Takes precedence over the content-addressed Emacsvox runtime and `PATH`.
+
+`OMNIVOX_LOG_DIRECTORY`
+
+- Linux directory for private stderr logs.
 - Defaults to `$XDG_STATE_HOME/emacsvox/omnivox`, or
   `~/.local/state/emacsvox/omnivox` when `XDG_STATE_HOME` is unset.
-- The Rust process does not read this variable; the launcher redirects stderr.
+- A session normally uses numbered `omnivox-...-partNNNNNN.log` files. The
+  launcher falls back to one unnumbered log if its rotation helper is missing.
+
+`OMNIVOX_LOG_MAX_FILE_BYTES`
+
+- Approximate per-part rotation threshold; defaults to 16 MiB (`16777216`).
+- Rotation occurs between complete log lines, so one oversized line may exceed
+  the threshold.
+
+`OMNIVOX_LOG_RETAINED_FILES`
+
+- File-count target used when pruning retained log parts; defaults to 16.
+
+`OMNIVOX_LOG_RETAINED_BYTES`
+
+- Aggregate-byte target used when pruning retained log parts; defaults to
+  256 MiB (`268435456`).
+- The active target of each live session is protected from pruning, so live
+  files can temporarily exceed the retention limits.
+
+Nonpositive or nonnumeric log limits revert to their defaults. The launcher
+creates its log directory with mode `0700` where possible and log parts with
+mode `0600`. The Rust process does not read these launcher-only variables.
 
 See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) for collection and privacy
 guidance.

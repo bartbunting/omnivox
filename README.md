@@ -67,8 +67,8 @@ release path independently stages and records its pinned runtime inputs.
   interrupted safely, and killable helper processes where process isolation
   permits stronger cancellation.
 - Bounded audio-resource decoding and immutable shared PCM for timeline reuse.
-- Persistent privacy-safe diagnostics; synthesis text is excluded unless the
-  user explicitly opts in.
+- Persistent privacy-conscious diagnostics; synthesis text is excluded unless
+  the user explicitly opts in, while operational metadata remains available.
 
 See [STATUS.md](STATUS.md) for current limitations and [ARCHITECTURE.md](ARCHITECTURE.md)
 for ownership and data flow.
@@ -214,8 +214,8 @@ See [ENV-VARS.md](ENV-VARS.md) for the complete CLI and environment reference.
 ## Diagnostics
 
 `omnivox --check` exercises engine and audio initialization. The Emacsvox WSL
-launcher also writes one private log per session. To collect a bounded bundle
-without memory-dump contents:
+launcher also writes private, rotated log parts for each session. To collect a
+bounded bundle without memory-dump contents:
 
 ```sh
 tools/collect_diagnostics.sh

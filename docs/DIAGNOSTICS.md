@@ -1,16 +1,25 @@
 # Omnivox failure diagnostics
 
-The Emacsvox WSL launcher writes each Omnivox session to a separate file under
+The Emacsvox WSL launcher writes each Omnivox session under
 `$XDG_STATE_HOME/emacsvox/omnivox`, or
-`~/.local/state/emacsvox/omnivox` when `XDG_STATE_HOME` is unset. Set the
-launcher-only `OMNIVOX_LOG_DIRECTORY` variable to use a different Linux
-directory. The launcher creates session logs with mode `0600`.
+`~/.local/state/emacsvox/omnivox` when `XDG_STATE_HOME` is unset. A session
+normally spans bounded files named `omnivox-...-partNNNNNN.log`; if the log
+filter is unavailable, the launcher falls back to one unnumbered session log.
+Set the launcher-only `OMNIVOX_LOG_DIRECTORY` variable to use a different Linux
+directory. The launcher creates the directory with mode `0700` where possible
+and log parts with mode `0600`.
 
-The log correlates the Rust synthesis worker and 32-bit helper processes using
-UTC timestamps, process and thread IDs, helper request IDs, logical and
-physical voices, text byte counts, frame and marker counts, elapsed time,
-fallback decisions, recovery probes, native-call boundaries, and panic
-backtraces. It does not record synthesized text by default. Set
+Each part defaults to an approximate 16 MiB limit. Closed parts are retained
+within both a 16-file and 256 MiB aggregate limit. Configure those values with
+`OMNIVOX_LOG_MAX_FILE_BYTES`, `OMNIVOX_LOG_RETAINED_FILES`, and
+`OMNIVOX_LOG_RETAINED_BYTES`; see [ENV-VARS.md](../ENV-VARS.md) for exact
+semantics. The active part of each live session is protected from pruning.
+
+The log correlates launcher/session identity and server events using UTC
+timestamps, helper request IDs, logical and physical voices, text byte counts,
+frame and marker counts, elapsed time, fallback decisions, recovery probes,
+native-call boundaries, and panic backtraces where those fields apply. It does
+not record synthesized text by default. Set
 `OMNIVOX_LOG_SYNTHESIS_TEXT=1` before launching Emacsvox to add an escaped
 `synthesis_text` field for every routed engine attempt. The server emits a
 startup warning whenever this sensitive mode is active. Ordinary Omnivox
@@ -18,14 +27,16 @@ logging remains at info level because existing debug messages can contain
 protocol text.
 
 Full synthesis-text logs can contain passwords, private messages, document
-contents, and other sensitive material. Keep them private, inspect diagnostic
-archives before sharing them, and unset `OMNIVOX_LOG_SYNTHESIS_TEXT` when the
-capture is no longer needed.
+contents, and other sensitive material. Even without full text, a collected
+archive includes usernames and source paths, command lines, process inventory,
+Git status, runtime identity, and relevant Windows events. Keep logs private,
+inspect diagnostic archives before sharing them, and unset
+`OMNIVOX_LOG_SYNTHESIS_TEXT` when the capture is no longer needed.
 
 If speech stops, collect evidence before manually restarting it:
 
 ```sh
-cd ~/src/omnivox
+cd /path/to/omnivox
 tools/collect_diagnostics.sh
 ```
 
@@ -35,6 +46,19 @@ relevant WSL and Windows process inventory, Windows Application events, and a
 listing of available crash dumps. It does not include dump contents. The
 archive is created with mode `0600`; inspect it before sharing it.
 
+Pass an output path as the first argument when `/tmp` is unsuitable:
+
+```sh
+tools/collect_diagnostics.sh /path/to/private/omnivox-diagnostics.tar.gz
+```
+
+If the sibling Emacsvox checkout is not at `../emacsvox`, point the collector
+at it explicitly:
+
+```sh
+EMACSVOX_SOURCE_DIRECTORY=/path/to/emacsvox tools/collect_diagnostics.sh
+```
+
 ## Native helper crashes
 
 Managed exceptions and protocol failures appear in the session log. A native
@@ -42,15 +66,22 @@ failure inside `ECI.DLL` or `DECtalk.dll` can terminate the 32-bit helper
 without running managed exception handlers. Windows Error Reporting can retain
 a full dump for that case.
 
-From an elevated PowerShell (a PowerShell started with **Run as
-administrator**), run:
+First obtain the script's Windows path from the Omnivox checkout in WSL:
 
-```powershell
-& "\\wsl.localhost\Ubuntu-26.04\home\bart\src\omnivox\tools\configure_windows_crash_dumps.ps1"
+```sh
+cd /path/to/omnivox
+wslpath -w "$PWD/tools/configure_windows_crash_dumps.ps1"
 ```
 
-Use the actual WSL distribution and source path if they differ. The script
-keeps at most five dumps per helper in
+Then start PowerShell with **Run as administrator**, paste the printed path at
+the prompt below, and run the script:
+
+```powershell
+$script = Read-Host "Windows path to configure_windows_crash_dumps.ps1"
+& $script
+```
+
+The script keeps at most five dumps per helper in
 `%LOCALAPPDATA%\Emacsvox\Omnivox\dumps`. Add `-IncludeServer` to cover the
 64-bit Rust process too. Preview registry changes with `-WhatIf`.
 
@@ -59,7 +90,7 @@ process memory. Keep them private. After reproducing the failure, disable the
 per-application policy with:
 
 ```powershell
-& "\\wsl.localhost\Ubuntu-26.04\home\bart\src\omnivox\tools\configure_windows_crash_dumps.ps1" -Disable
+& $script -Disable
 ```
 
 Pass `-IncludeServer` during removal if it was supplied during setup. Windows

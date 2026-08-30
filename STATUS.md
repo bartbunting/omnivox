@@ -67,7 +67,8 @@ in the linked protocol specifications; future work belongs in
 - Inserted and overlaid timeline audio/tone actions, inserted silence,
   semantic events, stable cue order, and tracked overlay tails.
 - Persistent post-synthesis gain, filtering, pan, reverb, and echo state.
-- Privacy-safe persistent logs and optional sensitive full-text diagnostics.
+- Privacy-conscious persistent logs and optional sensitive full-text
+  diagnostics.
 
 ## Current limitations
 
