@@ -1,8 +1,8 @@
 # Speech Dispatcher Backend Design Proposal
 
-> **Status: unimplemented design proposal.** This document predates the current
-> engine registry, structured synthesis result, tracked playback, and timeline
-> capability contracts. Reconcile those interfaces and resolve the open
+> **Status: unimplemented design proposal.** This retained proposal predates
+> the current engine registry, structured synthesis result, tracked playback,
+> and timeline capability contracts. Reconcile those interfaces and resolve the open
 > questions below before treating any file list or code sketch as an
 > implementation plan. Current Linux builds use eSpeak NG.
 

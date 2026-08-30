@@ -8,6 +8,6 @@ The current implementation is sentence/clause-aware, preserves UTF-8 source
 offsets for timeline actions, and lives in `omnivox-cli/src/text.rs` with its
 call sites in `omnivox-cli/src/pipeline.rs`.
 
-See [docs/TEXT-CHUNKING.md](docs/TEXT-CHUNKING.md) for the maintained behavior,
+See [TEXT-CHUNKING.md](../TEXT-CHUNKING.md) for the maintained behavior,
 rationale, integration points, limitations, and validation command. Use Git
 history when the retired implementation details are needed.

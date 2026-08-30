@@ -277,19 +277,19 @@ Useful distinctions when investigating responsiveness:
 - [HELPER-PROTOCOL.md](docs/protocols/HELPER-PROTOCOL.md) — isolated engine-host protocol.
 - [ENV-VARS.md](docs/ENV-VARS.md) — configuration and integration boundaries.
 - [STATUS.md](docs/STATUS.md) — implemented behavior and current limitations.
-- [NEXT_STEPS.md](NEXT_STEPS.md) — current roadmap only.
+- [NEXT_STEPS.md](docs/plans/NEXT_STEPS.md) — current roadmap only.
 - [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) — failure-evidence workflow.
 - [docs/ENGINE-ISOLATION.md](docs/ENGINE-ISOLATION.md) — uncancellable engine
   containment.
 - [docs/TEXT-CHUNKING.md](docs/TEXT-CHUNKING.md) — current text chunking.
 - [.github/DEPLOYMENT.md](.github/DEPLOYMENT.md) — release archives,
   verification, installation, and acceptance checks.
-- [SPEECHD-PLAN.md](SPEECHD-PLAN.md) — unimplemented Speech Dispatcher design
+- [SPEECHD-PLAN.md](docs/plans/SPEECHD-PLAN.md) — unimplemented Speech Dispatcher design
   proposal.
 
-`CHUNKING-IMPLEMENTATION.md` is retained as a historical implementation note
-and points to the current chunking reference. Git history remains the source
-for superseded phase-by-phase plans.
+[CHUNKING-IMPLEMENTATION.md](docs/history/CHUNKING-IMPLEMENTATION.md) is retained
+as a historical implementation note and points to the current chunking
+reference. Git history remains the source for superseded phase-by-phase plans.
 
 ## Licensing
 

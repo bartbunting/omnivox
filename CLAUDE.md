@@ -19,7 +19,7 @@ not duplicate test counts, status lists, or phase-by-phase roadmaps.
 - [HELPER-PROTOCOL.md](docs/protocols/HELPER-PROTOCOL.md) — isolated engine process contract.
 - [ENV-VARS.md](docs/ENV-VARS.md) — CLI, environment, Emacsvox, and upstream
   Emacspeak configuration boundaries.
-- [NEXT_STEPS.md](NEXT_STEPS.md) — remaining work only.
+- [NEXT_STEPS.md](docs/plans/NEXT_STEPS.md) — remaining work only.
 
 When those documents disagree, inspect the code and update the relevant
 canonical reference rather than adding another explanation here.
