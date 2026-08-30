@@ -2,7 +2,7 @@
 
 This document specifies the newline-delimited compatibility protocol accepted
 by the Omnivox server on standard input. It covers the baseline Emacspeak
-commands and points to the separate specifications for capability-gated
+commands and points to the dedicated specifications for capability-gated
 Omnivox and Emacsvox extensions.
 
 ## Transport and grammar

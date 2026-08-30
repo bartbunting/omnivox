@@ -281,7 +281,7 @@ an older descriptor that omitted the field and guarantees only ASCII to the
 router. This capability describes lossless input encoding, not pronunciation
 quality or language support.
 
-The complete [validated inventory response fixture](docs/protocol-fixtures/control-inventory-response.json)
+The complete [validated inventory response fixture](../protocol-fixtures/control-inventory-response.json)
 shows every nested engine, capability, runtime, voice, availability, health,
 and routing-policy field. A repository test deserializes it through the public
 Rust response type so field and enum spelling changes cannot silently leave the

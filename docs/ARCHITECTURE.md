@@ -178,7 +178,7 @@ health commands while its native synthesis worker runs. If a helper cannot
 finish cancellation within the grace period, the host can terminate and later
 recreate the child. Proprietary DLLs remain outside the repository.
 
-See [HELPER-PROTOCOL.md](../HELPER-PROTOCOL.md) and
+See [HELPER-PROTOCOL.md](protocols/HELPER-PROTOCOL.md) and
 [ENGINE-ISOLATION.md](ENGINE-ISOLATION.md).
 
 ## Text preparation and source offsets

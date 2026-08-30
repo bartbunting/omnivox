@@ -98,7 +98,7 @@ Version 3 has the same semantic fields introduced by version 2 and this shape:
 }
 ```
 
-The complete [validated version 3 fixture](docs/protocol-fixtures/presentation-timeline-v3.json)
+The complete [validated version 3 fixture](../protocol-fixtures/presentation-timeline-v3.json)
 contains two spans, replace/end effect state, both position types, and all four
 action types. A repository test deserializes it through the public Rust wire
 type and runs the same semantic validation used by the server.
@@ -256,7 +256,7 @@ Decoded version 2 records have these shapes:
 {"protocol_version":2,"dispatch_id":91,"sequence":7,"type":"timeline_style_degraded","utterance_id":1,"degraded_acss":["pitch_range"],"degraded_effects":["echo"]}
 ```
 
-The [validated marker-event fixture](docs/protocol-fixtures/playback-marker-events-v2.jsonl)
+The [validated marker-event fixture](../protocol-fixtures/playback-marker-events-v2.jsonl)
 contains the same records. Action resolution is exactly `exact`,
 `word_boundary`, `span_boundary`, or `omitted`; degradation arrays use the ACSS
 and post-synthesis dimension names defined by the control contract.

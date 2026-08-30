@@ -1,7 +1,8 @@
 # Omnivox
 
 Omnivox is a cross-platform speech server written in Rust. It implements the
-[legacy Emacspeak line protocol](LEGACY-PROTOCOL.md) and the capability-gated
+[legacy Emacspeak line protocol](docs/protocols/LEGACY-PROTOCOL.md) and the
+capability-gated
 structured protocols used by Emacsvox for logical voices, tracked playback,
 marker events, and Aural presentation timelines.
 
@@ -267,13 +268,13 @@ Useful distinctions when investigating responsiveness:
 ## Protocol and design documents
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) — runtime ownership and data flow.
-- [LEGACY-PROTOCOL.md](LEGACY-PROTOCOL.md) — baseline Emacspeak command
+- [LEGACY-PROTOCOL.md](docs/protocols/LEGACY-PROTOCOL.md) — baseline Emacspeak command
   grammar, queue semantics, state, and limits.
-- [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md) — discovery, logical voices,
+- [CONTROL-PROTOCOL.md](docs/protocols/CONTROL-PROTOCOL.md) — discovery, logical voices,
   routing policy, preview, tracked playback, and legacy framing.
-- [PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md) —
+- [PRESENTATION-TIMELINE-PROTOCOL.md](docs/protocols/PRESENTATION-TIMELINE-PROTOCOL.md) —
   structured Aural timeline versions and multipart transport.
-- [HELPER-PROTOCOL.md](HELPER-PROTOCOL.md) — isolated engine-host protocol.
+- [HELPER-PROTOCOL.md](docs/protocols/HELPER-PROTOCOL.md) — isolated engine-host protocol.
 - [ENV-VARS.md](docs/ENV-VARS.md) — configuration and integration boundaries.
 - [STATUS.md](docs/STATUS.md) — implemented behavior and current limitations.
 - [NEXT_STEPS.md](NEXT_STEPS.md) — current roadmap only.

@@ -71,7 +71,7 @@ The host constrains requests negotiated with older helpers to their original
 1.0 maximum. Each helper adapter remains responsible for clamping to a lower
 native engine limit where necessary.
 
-The [validated version 4 synthesis fixture](docs/protocol-fixtures/helper-synthesize-request-v4.json)
+The [validated version 4 synthesis fixture](../protocol-fixtures/helper-synthesize-request-v4.json)
 shows every settings field and one requested anchor. Versions 1 and 2 must omit
 the version 3 style fields; version 1 must also omit `anchors`, while versions 2
 through 4 require that array even when it is empty.
@@ -87,7 +87,7 @@ One accepted `synthesize` request produces this ordered sequence:
 4. exactly one terminal `synthesis_completed`, `synthesis_cancelled`, or
    `error` response.
 
-The [validated success-stream fixture](docs/protocol-fixtures/helper-synthesis-success-v4.jsonl)
+The [validated success-stream fixture](../protocol-fixtures/helper-synthesis-success-v4.jsonl)
 contains one complete sequence. Its frames are independently deserialized and
 validated by a repository test.
 
@@ -140,7 +140,7 @@ and health contract exposed by Omnivox control inventory. The host validates it
 before registration and never combines engine and native voice IDs into one
 opaque identifier. Its `descriptor` field has the exact `EngineDescriptor`
 shape demonstrated by the
-[validated control inventory fixture](docs/protocol-fixtures/control-inventory-response.json).
+[validated control inventory fixture](../protocol-fixtures/control-inventory-response.json).
 
 `capabilities.text_repertoire` declares the source characters the helper can
 encode without replacement: `unicode`, `windows_1252`, or `iso_8859_1`. This is
