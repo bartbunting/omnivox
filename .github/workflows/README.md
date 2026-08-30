@@ -22,21 +22,19 @@ Builds locked release binaries for five targets:
 |---|---|---|
 | `linux-x64` | `ubuntu-24.04` | `x86_64-unknown-linux-gnu` |
 | `macos-arm64` | `macos-15` | `aarch64-apple-darwin` |
-| `macos-x64` | `macos-15` | `x86_64-apple-darwin` |
+| `macos-x64` | `macos-15-intel` | `x86_64-apple-darwin` |
 | `windows-x64` | `windows-latest` | `x86_64-pc-windows-msvc` |
 | `windows-arm64` | `windows-11-arm` | `aarch64-pc-windows-msvc` |
 
 The Linux x64 artifact establishes Ubuntu 24.04 as its glibc and C++ runtime
-build baseline. The macOS ARM runner cross-compiles the Intel target. Windows
-uses a native runner for each architecture because the WinRT build requires it.
+build baseline. macOS and Windows use a native runner for each architecture.
 Every artifact contains the main executable, `elisp/omnivox-voices.el`, the
 matching generated `espeak-ng-data`, and third-party notices. The build wrapper
 derives that data from the exact `espeak-rs-sys` output reported by Cargo.
 
 The workflow verifies the data and license files in all five artifacts. It also
-runs eSpeak voice discovery from the packaged data on Linux x64, macOS ARM64,
-and both native Windows targets. The cross-compiled macOS Intel executable is
-not run on the ARM build runner.
+runs eSpeak voice discovery from the packaged data on every native build
+runner.
 
 ### `test`
 
@@ -44,6 +42,7 @@ Runs `cargo test --locked` and `cargo clippy --locked -- -D warnings` on:
 
 - Linux x64;
 - macOS ARM64;
+- macOS x64;
 - Windows x64; and
 - Windows ARM64.
 
@@ -74,8 +73,7 @@ path overrides.
 
 Linux x64 executes eSpeak voice discovery and WAV synthesis. Windows x64 and
 ARM64 execute both eSpeak and WinRT voice discovery and WAV synthesis. macOS
-ARM64 executes eSpeak and AVSpeechSynthesizer. The cross-compiled macOS x64
-archive receives structural and architecture checks but is not executed.
+ARM64 and x64 execute eSpeak and AVSpeechSynthesizer.
 
 ### `publish_release`
 

@@ -77,7 +77,7 @@ pub fn create_engines(
 #[cfg(target_os = "windows")]
 fn create_windows_engines(
     engine_name: &str,
-    piper_model: Option<&str>,
+    _piper_model: Option<&str>,
     generation: Arc<AtomicU64>,
     isolation_budget: Arc<IsolationBudget>,
 ) -> Result<CreatedEngines> {
@@ -129,7 +129,7 @@ fn create_windows_engines(
     if forced == "piper" {
         #[cfg(feature = "piper")]
         {
-            match piper_helper_config(piper_model) {
+            match piper_helper_config(_piper_model) {
                 Ok(config) => register_optional_helper(
                     &mut registry,
                     Some(config),

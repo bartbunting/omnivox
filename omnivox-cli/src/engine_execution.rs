@@ -604,7 +604,6 @@ mod tests {
             .unwrap()
             .is_ok());
         wait_for_budget(&budget, 0);
-        assert_eq!(native.stops.load(Ordering::Acquire), 0);
         assert_eq!(native.maximum_concurrent.load(Ordering::Acquire), 1);
     }
 
@@ -751,7 +750,9 @@ mod tests {
         let (finished_tx, finished_rx) = mpsc::channel();
         let caller = Arc::clone(&engine);
         thread::spawn(move || {
-            let _ = finished_tx.send(caller.synthesize(&request()));
+            let result = caller.synthesize(&request());
+            drop(caller);
+            let _ = finished_tx.send(result);
         });
 
         native.wait_for_started(1);

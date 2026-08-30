@@ -41,23 +41,23 @@ The release version and archive prefix come from the tag name with its leading
 
 - Formatting on an Ubuntu runner.
 - Release builds for Linux x64 and both listed macOS and Windows architectures.
-- Tests and Clippy on Linux x64, macOS ARM64, Windows x64, and Windows ARM64.
+- Tests and Clippy on Linux x64, macOS ARM64, macOS x64, Windows x64, and
+  Windows ARM64.
 - Presence of the packaged eSpeak data and license payload on every artifact,
-  plus packaged eSpeak voice discovery on Linux x64, macOS ARM64, and both
-  Windows targets.
+  plus packaged eSpeak voice discovery on every native build target.
 - Tag-to-binary version agreement, release checksums, safe extraction, root
   payload layout, executable modes and architectures, and adjacent eSpeak data
   discovery from a relocated directory without path overrides.
 - Non-empty canonical WAV synthesis through eSpeak on Linux x64; through eSpeak
   and WinRT on Windows x64 and ARM64; and through eSpeak and
-  AVSpeechSynthesizer on macOS ARM64.
+  AVSpeechSynthesizer on macOS ARM64 and x64.
 - Locked dependency resolution with Rust 1.97.1, matching
   `rust-toolchain.toml`.
 
 The workflow does not exercise real Eloquence, DECtalk, or Piper runtimes,
-physical audible onset or audio-device playback, the cross-compiled macOS x64
-binary, or Emacsvox's content-addressed Windows staging contract. A failed
-archive verification leaves the GitHub release in draft state.
+physical audible onset or audio-device playback, or Emacsvox's content-addressed
+Windows staging contract. A failed archive verification leaves the GitHub
+release in draft state.
 
 ## Installing an archive
 
