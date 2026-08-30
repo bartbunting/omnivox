@@ -23,7 +23,10 @@ NOTICE_FILES = (
     ("espeak-ng/src/compat/getopt.c", "NetBSD-getopt.c", True),
     ("build/_deps/sonic-git-src/LICENSE", "Sonic-Apache-2.0.txt", False),
 )
-PROJECT_LICENSE_FILES = ("LICENSE", "LICENSING.md")
+PROJECT_LICENSE_FILES = (
+    ("LICENSE", "LICENSE"),
+    ("docs/LICENSING.md", "LICENSING.md"),
+)
 
 
 def usage() -> str:
@@ -173,11 +176,11 @@ def stage_notices(repository: Path, output: Path, profile_dir: Path) -> None:
 
 
 def stage_project_licenses(repository: Path, profile_dir: Path) -> None:
-    for filename in PROJECT_LICENSE_FILES:
-        source = repository / filename
+    for source_name, destination_name in PROJECT_LICENSE_FILES:
+        source = repository / source_name
         if not source.is_file():
             raise RuntimeError(f"required project license file is missing: {source}")
-        shutil.copy2(source, profile_dir / filename)
+        shutil.copy2(source, profile_dir / destination_name)
 
 
 def stage_runtime_assets(repository: Path, output: Path) -> Path:

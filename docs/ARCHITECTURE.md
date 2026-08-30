@@ -178,8 +178,8 @@ health commands while its native synthesis worker runs. If a helper cannot
 finish cancellation within the grace period, the host can terminate and later
 recreate the child. Proprietary DLLs remain outside the repository.
 
-See [HELPER-PROTOCOL.md](HELPER-PROTOCOL.md) and
-[docs/ENGINE-ISOLATION.md](docs/ENGINE-ISOLATION.md).
+See [HELPER-PROTOCOL.md](../HELPER-PROTOCOL.md) and
+[ENGINE-ISOLATION.md](ENGINE-ISOLATION.md).
 
 ## Text preparation and source offsets
 
@@ -210,7 +210,7 @@ expansion as literal bracket/star characters.
 
 Structured actions retain source UTF-8 offsets through preprocessing and
 chunking. Offsets are mapped into the prepared chunk before the selected engine
-resolves requested anchors. See [docs/TEXT-CHUNKING.md](docs/TEXT-CHUNKING.md).
+resolves requested anchors. See [TEXT-CHUNKING.md](TEXT-CHUNKING.md).
 
 ## Audio and presentation ownership
 
@@ -265,4 +265,4 @@ the sole synthesis worker is exceptional: the process logs a forced backtrace
 and exits with status 70 so Emacs can replace the whole server rather than keep
 a live control channel attached to a dead worker.
 
-See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) for evidence collection.
+See [DIAGNOSTICS.md](DIAGNOSTICS.md) for evidence collection.

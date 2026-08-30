@@ -8,7 +8,7 @@ not a substitute for reading the included license texts.
 
 Except where a file or component carries another notice, Omnivox-authored
 source and documentation in this repository are available under the
-[MIT License](LICENSE). The Rust workspace manifests use the SPDX identifier
+[MIT License](../LICENSE). The Rust workspace manifests use the SPDX identifier
 `MIT`.
 
 The MIT grant applies to the Omnivox-authored source. It does not replace or
@@ -17,7 +17,7 @@ project or vendor.
 
 ## Emacspeak adapter
 
-[`elisp/omnivox-voices.el`](elisp/omnivox-voices.el) carries its own copyright
+[`elisp/omnivox-voices.el`](../elisp/omnivox-voices.el) carries its own copyright
 and GNU General Public License version 2 or later notice. That file is not
 relicensed by the repository's MIT license.
 

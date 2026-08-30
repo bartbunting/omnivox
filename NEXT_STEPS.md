@@ -2,7 +2,8 @@
 
 This is the current project backlog. It intentionally does not repeat shipped
 architecture or a chronological implementation diary; see
-[STATUS.md](STATUS.md), [ARCHITECTURE.md](ARCHITECTURE.md), and Git history for
+[STATUS.md](docs/STATUS.md), [ARCHITECTURE.md](docs/ARCHITECTURE.md), and Git
+history for
 those records.
 
 ## Direction

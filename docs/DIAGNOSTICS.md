@@ -12,7 +12,7 @@ and log parts with mode `0600`.
 Each part defaults to an approximate 16 MiB limit. Closed parts are retained
 within both a 16-file and 256 MiB aggregate limit. Configure those values with
 `OMNIVOX_LOG_MAX_FILE_BYTES`, `OMNIVOX_LOG_RETAINED_FILES`, and
-`OMNIVOX_LOG_RETAINED_BYTES`; see [ENV-VARS.md](../ENV-VARS.md) for exact
+`OMNIVOX_LOG_RETAINED_BYTES`; see [ENV-VARS.md](ENV-VARS.md) for exact
 semantics. The active part of each live session is protected from pruning.
 
 The log correlates launcher/session identity and server events using UTC

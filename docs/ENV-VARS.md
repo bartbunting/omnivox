@@ -164,7 +164,7 @@ Nonpositive or nonnumeric log limits revert to their defaults. The launcher
 creates its log directory with mode `0700` where possible and log parts with
 mode `0600`. The Rust process does not read these launcher-only variables.
 
-See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) for collection and privacy
+See [DIAGNOSTICS.md](DIAGNOSTICS.md) for collection and privacy
 guidance.
 
 ### Optional Windows helpers

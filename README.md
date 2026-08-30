@@ -70,7 +70,8 @@ release path independently stages and records its pinned runtime inputs.
 - Persistent privacy-conscious diagnostics; synthesis text is excluded unless
   the user explicitly opts in, while operational metadata remains available.
 
-See [STATUS.md](STATUS.md) for current limitations and [ARCHITECTURE.md](ARCHITECTURE.md)
+See [STATUS.md](docs/STATUS.md) for current limitations and
+[ARCHITECTURE.md](docs/ARCHITECTURE.md)
 for ownership and data flow.
 
 ## Binary releases
@@ -238,7 +239,8 @@ Piper additionally uses `--engine piper --piper-model /path/to/model.onnx`,
 with the matching JSON configuration beside the model. Without an action
 option, Omnivox runs the stdin speech-server protocol.
 
-See [ENV-VARS.md](ENV-VARS.md) for the complete CLI and environment reference.
+See [ENV-VARS.md](docs/ENV-VARS.md) for the complete CLI and environment
+reference.
 
 ## Diagnostics
 
@@ -264,7 +266,7 @@ Useful distinctions when investigating responsiveness:
 
 ## Protocol and design documents
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — runtime ownership and data flow.
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — runtime ownership and data flow.
 - [LEGACY-PROTOCOL.md](LEGACY-PROTOCOL.md) — baseline Emacspeak command
   grammar, queue semantics, state, and limits.
 - [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md) — discovery, logical voices,
@@ -272,8 +274,8 @@ Useful distinctions when investigating responsiveness:
 - [PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md) —
   structured Aural timeline versions and multipart transport.
 - [HELPER-PROTOCOL.md](HELPER-PROTOCOL.md) — isolated engine-host protocol.
-- [ENV-VARS.md](ENV-VARS.md) — configuration and integration boundaries.
-- [STATUS.md](STATUS.md) — implemented behavior and current limitations.
+- [ENV-VARS.md](docs/ENV-VARS.md) — configuration and integration boundaries.
+- [STATUS.md](docs/STATUS.md) — implemented behavior and current limitations.
 - [NEXT_STEPS.md](NEXT_STEPS.md) — current roadmap only.
 - [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) — failure-evidence workflow.
 - [docs/ENGINE-ISOLATION.md](docs/ENGINE-ISOLATION.md) — uncancellable engine
@@ -292,7 +294,7 @@ for superseded phase-by-phase plans.
 
 Omnivox-authored source is available under the [MIT License](LICENSE), except
 where a file carries another notice. The
-[component licensing map](LICENSING.md) explains the separately licensed
+[component licensing map](docs/LICENSING.md) explains the separately licensed
 Emacspeak adapter, eSpeak NG, optional Piper integration, proprietary runtimes,
 and other dependencies.
 

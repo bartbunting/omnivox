@@ -9,15 +9,15 @@ not duplicate test counts, status lists, or phase-by-phase roadmaps.
 
 - [README.md](README.md) — project overview, integration choices, build entry
   points, and documentation index.
-- [STATUS.md](STATUS.md) — implemented behavior and current limitations.
-- [ARCHITECTURE.md](ARCHITECTURE.md) — runtime ownership, hot path, bounds,
+- [STATUS.md](docs/STATUS.md) — implemented behavior and current limitations.
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — runtime ownership, hot path, bounds,
   replacement, cancellation, and lifecycle invariants.
 - [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md) — version 1 control, legacy
   framing, tracked completion, and marker dispatch.
 - [PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md) —
   structured timeline versions and multipart transport.
 - [HELPER-PROTOCOL.md](HELPER-PROTOCOL.md) — isolated engine process contract.
-- [ENV-VARS.md](ENV-VARS.md) — CLI, environment, Emacsvox, and upstream
+- [ENV-VARS.md](docs/ENV-VARS.md) — CLI, environment, Emacsvox, and upstream
   Emacspeak configuration boundaries.
 - [NEXT_STEPS.md](NEXT_STEPS.md) — remaining work only.
 

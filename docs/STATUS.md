@@ -5,7 +5,7 @@
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
-[NEXT_STEPS.md](NEXT_STEPS.md).
+[NEXT_STEPS.md](../NEXT_STEPS.md).
 
 ## Implemented
 
@@ -73,7 +73,7 @@ in the linked protocol specifications; future work belongs in
 ## Current limitations
 
 - Linux has no Speech Dispatcher backend; eSpeak NG is the current built-in
-  Linux engine. [SPEECHD-PLAN.md](SPEECHD-PLAN.md) is a proposal only.
+  Linux engine. [SPEECHD-PLAN.md](../SPEECHD-PLAN.md) is a proposal only.
 - There is no TCP/network server mode and no authenticated remote protocol.
 - Audio routing selects left, right, or both channels within one output device;
   arbitrary multi-device routing is not implemented.
@@ -126,4 +126,4 @@ make lint
 Real helper, cancellation, and audio-device behavior also require the relevant
 platform runtimes. A passing unit suite is not evidence of acceptable audible
 onset latency; measurement methodology and remaining performance work are
-tracked in [NEXT_STEPS.md](NEXT_STEPS.md).
+tracked in [NEXT_STEPS.md](../NEXT_STEPS.md).

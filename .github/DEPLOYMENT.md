@@ -152,7 +152,7 @@ OS-provided per-file exception that you understand. Build from reviewed source
 when local policy requires signed software.
 
 The repository adapter is for upstream Emacspeak. Follow [README.md](../README.md)
-and [ENV-VARS.md](../ENV-VARS.md) rather than mixing those `dtk-*` names with
+and [ENV-VARS.md](../docs/ENV-VARS.md) rather than mixing those `dtk-*` names with
 Emacsvox's bundled adapter.
 
 ## Emacsvox Windows deployment
