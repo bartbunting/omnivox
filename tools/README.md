@@ -5,8 +5,9 @@
 `build.py` is the supported wrapper for distributable Cargo builds. It keeps
 Cargo's locked dependency resolution, reads the exact `espeak-rs-sys` output
 from Cargo's JSON build messages, and stages `espeak-ng-data` plus applicable
-third-party notices beside the executable. The Makefile and release workflow
-invoke it; additional Cargo build arguments pass through unchanged:
+project and third-party licensing files beside the executable. The Makefile and
+release workflow invoke it; additional Cargo build arguments pass through
+unchanged:
 
 ```sh
 python3 tools/build.py --release

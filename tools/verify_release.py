@@ -22,6 +22,9 @@ class VerificationError(RuntimeError):
     """A release artifact violated the published contract."""
 
 
+LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES = {"1.4.1"}
+
+
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise VerificationError(message)
@@ -118,15 +121,21 @@ def extract_archive(archive: Path, destination: Path, platform: str) -> None:
 
 def verify_layout(root: Path, platform: str, version: str) -> Path:
     binary_name = "omnivox.exe" if platform == "windows" else "omnivox"
+    project_license_entries = {"LICENSE", "LICENSING.md"}
     expected_root = {
         binary_name,
         "omnivox-voices.el",
         "espeak-ng-data",
         "third-party-licenses",
     }
+    if version not in LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES:
+        expected_root.update(project_license_entries)
     actual_root = {path.name for path in root.iterdir()}
+    allowed_roots = {frozenset(expected_root)}
+    if version in LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES:
+        allowed_roots.add(frozenset(expected_root | project_license_entries))
     require(
-        actual_root == expected_root,
+        frozenset(actual_root) in allowed_roots,
         f"unexpected archive root entries: {sorted(actual_root)}",
     )
 
@@ -143,6 +152,13 @@ def verify_layout(root: Path, platform: str, version: str) -> Path:
         adapter.is_file() and adapter.stat().st_size > 100,
         "Emacspeak adapter is missing or empty",
     )
+
+    for name in sorted(project_license_entries & actual_root):
+        project_license = root / name
+        require(
+            project_license.is_file() and project_license.stat().st_size > 100,
+            f"{name} is missing or empty",
+        )
 
     data = root / "espeak-ng-data"
     require((data / "phontab").is_file(), "espeak-ng-data/phontab is missing")

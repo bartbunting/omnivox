@@ -16,7 +16,8 @@ Versioning for published releases.
   checked against the public Rust wire types in the test suite.
 - Added the missing root MIT license and a component map that distinguishes
   Omnivox source licensing from adapter, eSpeak-linked binary, Piper, and
-  proprietary-runtime terms.
+  proprietary-runtime terms; future binary archives include and validate both
+  project licensing files.
 
 ## 1.4.1 - 2026-08-30
 

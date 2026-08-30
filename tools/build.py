@@ -23,14 +23,15 @@ NOTICE_FILES = (
     ("espeak-ng/src/compat/getopt.c", "NetBSD-getopt.c", True),
     ("build/_deps/sonic-git-src/LICENSE", "Sonic-Apache-2.0.txt", False),
 )
+PROJECT_LICENSE_FILES = ("LICENSE", "LICENSING.md")
 
 
 def usage() -> str:
     return (
         "usage: python tools/build.py [cargo build arguments]\n\n"
         "Runs `cargo build --locked`, stages generated espeak-ng-data and "
-        "license notices beside the resulting executable, and rejects "
-        "ambiguous dependency outputs.\n\n"
+        "project and third-party license notices beside the resulting "
+        "executable, and rejects ambiguous dependency outputs.\n\n"
         "examples:\n"
         "  python tools/build.py --release\n"
         "  python tools/build.py --release --target aarch64-apple-darwin"
@@ -171,6 +172,14 @@ def stage_notices(repository: Path, output: Path, profile_dir: Path) -> None:
             shutil.rmtree(temporary)
 
 
+def stage_project_licenses(repository: Path, profile_dir: Path) -> None:
+    for filename in PROJECT_LICENSE_FILES:
+        source = repository / filename
+        if not source.is_file():
+            raise RuntimeError(f"required project license file is missing: {source}")
+        shutil.copy2(source, profile_dir / filename)
+
+
 def stage_runtime_assets(repository: Path, output: Path) -> Path:
     if output.name != "out" or output.parent.parent.name != "build":
         raise RuntimeError(f"unexpected espeak-rs-sys OUT_DIR layout: {output}")
@@ -180,6 +189,7 @@ def stage_runtime_assets(repository: Path, output: Path) -> Path:
 
     replace_directory(data_source, data_destination)
     stage_notices(repository, output, profile_dir)
+    stage_project_licenses(repository, profile_dir)
 
     file_count = sum(path.is_file() for path in data_destination.rglob("*"))
     byte_count = sum(

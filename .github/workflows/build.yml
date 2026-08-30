@@ -101,6 +101,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force artifacts | Out-Null
           Copy-Item target\${{ matrix.target }}\release\omnivox.exe artifacts\omnivox.exe
+          Copy-Item target\${{ matrix.target }}\release\LICENSE artifacts\LICENSE
+          Copy-Item target\${{ matrix.target }}\release\LICENSING.md artifacts\LICENSING.md
           Copy-Item elisp\omnivox-voices.el artifacts\omnivox-voices.el
           Copy-Item -Recurse target\${{ matrix.target }}\release\espeak-ng-data artifacts\espeak-ng-data
           Copy-Item -Recurse target\${{ matrix.target }}\release\third-party-licenses artifacts\third-party-licenses
@@ -110,6 +112,8 @@ jobs:
         run: |
           mkdir -p artifacts
           cp target/${{ matrix.target }}/release/omnivox artifacts/omnivox
+          cp target/${{ matrix.target }}/release/LICENSE artifacts/LICENSE
+          cp target/${{ matrix.target }}/release/LICENSING.md artifacts/LICENSING.md
           cp elisp/omnivox-voices.el artifacts/omnivox-voices.el
           cp -R target/${{ matrix.target }}/release/espeak-ng-data artifacts/espeak-ng-data
           cp -R target/${{ matrix.target }}/release/third-party-licenses artifacts/third-party-licenses
@@ -120,6 +124,8 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path artifacts\espeak-ng-data\phontab -PathType Leaf)) { throw "missing espeak-ng-data/phontab" }
+          if (-not (Test-Path artifacts\LICENSE -PathType Leaf)) { throw "missing project LICENSE" }
+          if (-not (Test-Path artifacts\LICENSING.md -PathType Leaf)) { throw "missing component licensing map" }
           if (-not (Test-Path artifacts\third-party-licenses\eSpeak-NG-GPL-3.0.txt -PathType Leaf)) { throw "missing eSpeak NG license" }
           $env:ESPEAK_NG_DATA = (Resolve-Path artifacts).Path
           & artifacts\omnivox.exe --engine espeak --list-voices | Out-Null
@@ -129,6 +135,8 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           test -f artifacts/espeak-ng-data/phontab
+          test -f artifacts/LICENSE
+          test -f artifacts/LICENSING.md
           test -f artifacts/third-party-licenses/eSpeak-NG-GPL-3.0.txt
 
       - name: Smoke-test packaged eSpeak (native Unix)
@@ -239,11 +247,11 @@ jobs:
             archive="omnivox-${VERSION}-${suffix}"
             if [[ "$suffix" == *"windows"* ]]; then
               cd "$dir"
-              zip -r "../${archive}.zip" omnivox.exe omnivox-voices.el espeak-ng-data third-party-licenses
+              zip -r "../${archive}.zip" omnivox.exe LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses
               cd ..
             else
               cd "$dir"
-              tar czf "../${archive}.tar.gz" omnivox omnivox-voices.el espeak-ng-data third-party-licenses
+              tar czf "../${archive}.tar.gz" omnivox LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses
               cd ..
             fi
           done
@@ -328,6 +336,9 @@ jobs:
 
             `omnivox-voices.el` is the upstream Emacspeak adapter. Emacsvox uses
             its own bundled adapter. See the project README for `init.el` setup.
+            `LICENSE` covers Omnivox-authored source; `LICENSING.md` explains
+            the separately licensed adapter and statically linked eSpeak NG
+            binary distribution.
 
             ### Binaries
 

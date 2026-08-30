@@ -13,10 +13,14 @@ The checked-in GitHub Actions workflow publishes these release archives:
 | Windows ARM64 | `aarch64-pc-windows-msvc` | `omnivox-VERSION-windows-arm64.zip` |
 
 Each archive contains the main binary, `omnivox-voices.el`, the matching
-generated `espeak-ng-data`, and `third-party-licenses`. Releases also publish
-`sha256sums.txt`. The workflow does **not** currently publish Linux ARM64
-artifacts, optional Piper helpers/models, proprietary-engine helpers, or
-proprietary runtimes.
+generated `espeak-ng-data`, `LICENSE`, `LICENSING.md`, and
+`third-party-licenses`. Releases also publish `sha256sums.txt`. The workflow
+does **not** currently publish Linux ARM64 artifacts, optional Piper
+helpers/models, proprietary-engine helpers, or proprietary runtimes.
+
+Published release `v1.4.1` predates the root `LICENSE` and `LICENSING.md`
+archive entries. The verifier accepts that one historical layout; all later
+archives must contain both files.
 
 The Linux x64 archive is built and tested on Ubuntu 24.04 and requires
 compatible glibc, libstdc++, libgcc, and ALSA runtime libraries. Compatibility
@@ -45,8 +49,9 @@ The release version and archive prefix come from the tag name with its leading
 - Release builds for Linux x64 and both listed macOS and Windows architectures.
 - Tests and Clippy on Linux x64, macOS ARM64, macOS x64, Windows x64, and
   Windows ARM64.
-- Presence of the packaged eSpeak data and license payload on every artifact,
-  plus packaged eSpeak voice discovery on every native build target.
+- Presence of the project licensing files and packaged eSpeak data and notices
+  on every artifact, plus packaged eSpeak voice discovery on every native build
+  target.
 - Native AVSpeechSynthesizer WAV synthesis during both macOS build jobs.
 - Tag-to-binary version agreement, release checksums, safe extraction, root
   payload layout, executable modes and architectures, and adjacent eSpeak data
@@ -100,7 +105,9 @@ Set-Location omnivox-release
 An empty checksum lookup is an error: confirm that the archive and checksum
 file came from the same release. After extraction, keep the binary,
 `espeak-ng-data`, and `third-party-licenses` together. Keep the matching adapter
-from the same release as well.
+from the same release as well. `LICENSE` and `LICENSING.md` document the source
+and combined-binary distribution terms; preserve them with redistributed
+copies.
 
 On Linux or macOS, place `omnivox` in a directory on `PATH` and make it
 executable. Linux also requires compatible system C++, GCC, glibc, and ALSA

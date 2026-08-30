@@ -33,5 +33,7 @@ Upstream source locations:
 - Sonic: <https://github.com/waywardgeek/sonic/tree/fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104>
 
 GitHub releases also provide the corresponding Omnivox source tree for each
-tag. Preserve this directory with the executable and runtime data when
-redistributing a binary package.
+tag. The release root's `LICENSE` and `LICENSING.md` describe the
+Omnivox-authored source and component boundaries. Preserve those files and this
+directory with the executable and runtime data when redistributing a binary
+package.

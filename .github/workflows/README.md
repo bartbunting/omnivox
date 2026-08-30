@@ -29,12 +29,14 @@ Builds locked release binaries for five targets:
 The Linux x64 artifact establishes Ubuntu 24.04 as its glibc and C++ runtime
 build baseline. macOS and Windows use a native runner for each architecture.
 Every artifact contains the main executable, `elisp/omnivox-voices.el`, the
-matching generated `espeak-ng-data`, and third-party notices. The build wrapper
-derives that data from the exact `espeak-rs-sys` output reported by Cargo.
+matching generated `espeak-ng-data`, `LICENSE`, `LICENSING.md`, and third-party
+notices. The build wrapper derives that data from the exact `espeak-rs-sys`
+output reported by Cargo.
 
-The workflow verifies the data and license files in all five artifacts. It also
-runs eSpeak voice discovery from the packaged data on every native build
-runner and native WAV synthesis on both macOS build runners.
+The workflow verifies the data, project licensing files, and third-party
+notices in all five artifacts. It also runs eSpeak voice discovery from the
+packaged data on every native build runner and native WAV synthesis on both
+macOS build runners.
 
 ### `test`
 

@@ -77,10 +77,12 @@ for ownership and data flow.
 
 [GitHub Releases](https://github.com/bartbunting/omnivox/releases) provides
 native archives for Linux x64, macOS Apple Silicon and Intel, and Windows x64
-and ARM64. Each archive contains the executable, the matching generated
-`espeak-ng-data`, third-party notices, and the upstream Emacspeak adapter. A
-`sha256sums.txt` file is published alongside them. Linux ARM64 is not currently
-published or CI-verified.
+and ARM64. Archives produced by the current workflow contain the executable,
+the matching generated `espeak-ng-data`, project and third-party licensing
+files, and the upstream Emacspeak adapter. A `sha256sums.txt` file is published
+alongside them. Published release `v1.4.1` predates the root `LICENSE` and
+`LICENSING.md` archive entries; those files are included beginning with the
+next release. Linux ARM64 is not currently published or CI-verified.
 
 Follow the [release and deployment guide](.github/DEPLOYMENT.md) for archive
 selection, checksum commands, installation, unsigned-binary warnings, and the
@@ -151,8 +153,9 @@ measurement.
 `tools/build.py` owns the distributable build step because Cargo has no
 reliable post-build hook: it runs a locked Cargo build, identifies the actual
 `espeak-rs-sys` output reported by Cargo, and stages its data and notices in the
-same profile directory as the executable. Direct `cargo build` remains useful
-for compiler diagnostics but does not create that complete runtime payload.
+same profile directory as the executable, together with `LICENSE` and
+`LICENSING.md`. Direct `cargo build` remains useful for compiler diagnostics
+but does not create that complete runtime payload.
 
 ## Emacsvox on Windows under WSL
 
