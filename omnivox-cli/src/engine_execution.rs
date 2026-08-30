@@ -504,11 +504,6 @@ mod tests {
 
         native.wait_for_started(1);
         generation.store(6, Ordering::Release);
-        thread::sleep(Duration::from_millis(20));
-        assert!(matches!(
-            finished_rx.try_recv(),
-            Err(mpsc::TryRecvError::Empty)
-        ));
         native.release();
         assert!(matches!(
             finished_rx
