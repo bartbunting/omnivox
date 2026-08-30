@@ -6,6 +6,7 @@ The checked-in GitHub Actions workflow publishes these release archives:
 
 | Platform | Target | Archive |
 |---|---|---|
+| Linux x64 | `x86_64-unknown-linux-gnu` | `omnivox-VERSION-linux-x64.tar.gz` |
 | macOS Apple Silicon | `aarch64-apple-darwin` | `omnivox-VERSION-macos-arm64.tar.gz` |
 | macOS Intel | `x86_64-apple-darwin` | `omnivox-VERSION-macos-x64.tar.gz` |
 | Windows x64 | `x86_64-pc-windows-msvc` | `omnivox-VERSION-windows-x64.zip` |
@@ -13,38 +14,48 @@ The checked-in GitHub Actions workflow publishes these release archives:
 
 Each archive contains the main binary, `omnivox-voices.el`, the matching
 generated `espeak-ng-data`, and `third-party-licenses`. Releases also publish
-`sha256sums.txt`. The workflow does **not** currently publish Linux artifacts,
-optional Piper helpers/models, proprietary-engine helpers, or proprietary
-runtimes.
+`sha256sums.txt`. The workflow does **not** currently publish Linux ARM64
+artifacts, optional Piper helpers/models, proprietary-engine helpers, or
+proprietary runtimes.
 
-Linux remains supported as a source build using eSpeak NG. Do not advertise a
-downloadable Linux binary, ABI baseline, or ARM64 cross-build until the workflow
-contains and validates that target.
+The Linux x64 archive is built and tested on Ubuntu 24.04 and requires
+compatible glibc, libstdc++, libgcc, and ALSA runtime libraries. Compatibility
+with older distributions is not claimed. Linux ARM64 remains supported only as
+a source build until the workflow builds and validates that target.
 
 ## Workflow triggers
 
 - A push or pull request to `main` runs formatting, builds, and tests.
-- A tag matching `v*` runs the same gates and creates a GitHub release after
-  every required job succeeds.
+- A tag matching `v*` runs the same gates, uploads a draft GitHub release,
+  verifies the downloaded archives on their native runners, and publishes only
+  after every required job succeeds.
 - An ordinary push to `main` does not create a timestamped release.
 
 The release version and archive prefix come from the tag name with its leading
-`v` removed for filenames. For example, tag `v1.3.0` produces archives prefixed
-`omnivox-1.3.0-`.
+`v` removed for filenames. For example, tag `v1.4.0` produces archives prefixed
+`omnivox-1.4.0-`.
 
 ## What CI validates
 
 - Formatting on an Ubuntu runner.
-- Release builds for both listed macOS and Windows architectures.
-- Tests and Clippy on macOS ARM64, Windows x64, and Windows ARM64.
+- Release builds for Linux x64 and both listed macOS and Windows architectures.
+- Tests and Clippy on Linux x64, macOS ARM64, Windows x64, and Windows ARM64.
 - Presence of the packaged eSpeak data and license payload on every artifact,
-  plus packaged eSpeak voice discovery on macOS ARM64 and both Windows targets.
+  plus packaged eSpeak voice discovery on Linux x64, macOS ARM64, and both
+  Windows targets.
+- Tag-to-binary version agreement, release checksums, safe extraction, root
+  payload layout, executable modes and architectures, and adjacent eSpeak data
+  discovery from a relocated directory without path overrides.
+- Non-empty canonical WAV synthesis through eSpeak on Linux x64; through eSpeak
+  and WinRT on Windows x64 and ARM64; and through eSpeak and
+  AVSpeechSynthesizer on macOS ARM64.
 - Locked dependency resolution with Rust 1.97.1, matching
   `rust-toolchain.toml`.
 
-The workflow does not currently execute Linux runtime tests. It also does not
-exercise real Eloquence, DECtalk, or Piper runtimes, physical audible onset, or
-Emacsvox's content-addressed Windows staging contract.
+The workflow does not exercise real Eloquence, DECtalk, or Piper runtimes,
+physical audible onset or audio-device playback, the cross-compiled macOS x64
+binary, or Emacsvox's content-addressed Windows staging contract. A failed
+archive verification leaves the GitHub release in draft state.
 
 ## Installing an archive
 
@@ -52,7 +63,9 @@ Verify the archive against `sha256sums.txt`, extract it, and keep its binary,
 `espeak-ng-data`, and `third-party-licenses` together. Keep the matching adapter
 from the same release as well.
 
-On macOS, place `omnivox` in a directory on `PATH` and make it executable:
+On Linux or macOS, place `omnivox` in a directory on `PATH` and make it
+executable. Linux also requires compatible system C++, GCC, glibc, and ALSA
+runtime libraries:
 
 ```sh
 install -m 755 omnivox "$HOME/.local/bin/omnivox"
@@ -104,10 +117,46 @@ Platform-specific claims still require the relevant host and runtime. A
 cross-compile alone does not verify audio-device behavior, native voice
 inventory, cancellation, or audible latency.
 
+For a local archive check, run `tools/verify_release.py` with the archive,
+`sha256sums.txt`, version, platform, architecture, and applicable engine list.
+The tool intentionally extracts into a path containing spaces and runs the
+binary from another working directory without Omnivox or eSpeak path overrides.
+
+## Physical release checks
+
+Hosted runners prove synthesis into PCM, but not delivery through a real audio
+device. The automated tag workflow does not wait for an audible sign-off.
+Before pushing a final tag, extract a candidate payload from the same commit on
+at least one physical Linux x64 and Windows x64 system and keep a short record
+of the OS version, selected voices, and audio device.
+
+On Linux or macOS, point the audible feature test at the extracted binary:
+
+```sh
+OMNIVOX_BIN=/path/to/extracted/omnivox ./test-all-features.sh
+```
+
+On Windows, set the same variable for the PowerShell smoke tests:
+
+```powershell
+$env:OMNIVOX_BIN = "C:\path\to\extracted\omnivox.exe"
+.\test-speech.ps1
+.\test-tones.ps1
+.\test-audio-icons.ps1
+.\test-tones-with-speech.ps1
+```
+
+Listen for native and eSpeak speech, tones, icons, left/right/both routing,
+queue order, and prompt stop behavior. Also run `omnivox --check` and start the
+matching Emacspeak or Emacsvox adapter from the extracted payload. These checks
+remain manual because process success and generated PCM do not prove audible
+onset, channel placement, device selection, or cancellation at the speaker.
+
 ## Current release gaps
 
 - Code signing/notarization is not part of the workflow.
-- Linux artifacts and Linux runtime tests are absent.
+- Linux ARM64 artifacts and broad Linux distribution compatibility tests are
+  absent.
 - Optional helper/model packaging is separate from generic release archives.
 - Performance/onset and real proprietary-engine smoke tests are not CI gates.
 - Release artifact retention follows GitHub's configured/default policies; do

@@ -15,6 +15,30 @@ python3 tools/build.py --release --target aarch64-apple-darwin
 
 The wrapper fails rather than choose between non-identical eSpeak data outputs.
 
+## Release archive verification
+
+`verify_release.py` checks an exact `.tar.gz` or `.zip` release asset against
+`sha256sums.txt`. It safely extracts into a relocated path, validates the
+published payload and binary architecture, and can exercise real headless
+engine synthesis through `--dump-wav` without requiring an audio device.
+
+For example:
+
+```sh
+python3 tools/verify_release.py \
+  --archive omnivox-1.4.0-linux-x64.tar.gz \
+  --checksums sha256sums.txt \
+  --version 1.4.0 \
+  --platform linux \
+  --arch x86_64 \
+  --engines espeak
+```
+
+The tag workflow uploads draft release assets first, downloads them on the
+native platform runners, and publishes only after this verification passes.
+An empty engine list performs structural and architecture checks only, which
+is used for the cross-compiled macOS x64 archive.
+
 ## Failure diagnostics
 
 `collect_diagnostics.sh` creates a bounded archive containing recent Omnivox

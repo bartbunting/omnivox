@@ -54,9 +54,9 @@ The structured identity model remains:
 
 ## Priority 3: deployment and user diagnostics
 
-1. Decide whether Linux x64 and ARM64 should return to the GitHub artifact and
-   runtime-test matrices; document prerequisites and ABI expectations before
-   promising downloadable binaries.
+1. Decide whether Linux ARM64 should join the Linux x64 GitHub artifact and
+   runtime-test matrices, and evaluate a broader Linux ABI baseline than the
+   current Ubuntu 24.04 build.
 2. Add signing and provenance verification appropriate to Windows and macOS
    release artifacts.
 3. Improve user-facing route, fallback, cancellation, and audio-device

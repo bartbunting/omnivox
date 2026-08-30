@@ -1,5 +1,6 @@
 $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-$pinfo.FileName = ".\target\release\omnivox.exe"
+$omnivox = if ($env:OMNIVOX_BIN) { $env:OMNIVOX_BIN } else { ".\target\release\omnivox.exe" }
+$pinfo.FileName = (Get-Command $omnivox -ErrorAction Stop).Source
 $pinfo.RedirectStandardInput = $true
 $pinfo.UseShellExecute = $false
 

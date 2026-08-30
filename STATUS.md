@@ -1,7 +1,7 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-08-27
-**Workspace version:** 1.3.0
+**Last reviewed:** 2026-08-30
+**Workspace version:** 1.4.0
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
@@ -96,15 +96,20 @@ in the linked protocol specifications; future work belongs in
 | macOS x64 | AVSpeechSynthesizer and eSpeak NG | Yes |
 | Windows x64 | WinRT and eSpeak NG; optional helpers | Yes |
 | Windows ARM64 | WinRT and eSpeak NG | Yes |
-| Linux x64/ARM64 | eSpeak NG source builds | No current workflow artifact |
+| Linux x64 | eSpeak NG | Yes (Ubuntu 24.04 ABI baseline) |
+| Linux ARM64 | eSpeak NG source build | No current workflow artifact |
 
-The checked-in workflow formats on Linux, builds four macOS/Windows targets,
-and tests macOS ARM64 plus Windows x64 and ARM64. Linux remains usable from a
-source build but is not currently a release artifact or runtime test job.
-Supported builds and all four generic release archives stage the matching
-`espeak-ng-data` beside the executable. CI validates the packaged data on every
-artifact and exercises voice discovery on the native Windows targets and macOS
-ARM64; the cross-compiled macOS x64 executable is not run in that job.
+The checked-in workflow builds five targets and tests Linux x64, macOS ARM64,
+Windows x64, and Windows ARM64. Linux x64 is built on Ubuntu 24.04; compatibility
+with older glibc distributions is not claimed. Linux ARM64 remains a source
+build without a release artifact or runtime test job. Supported builds and all
+five generic release archives stage the matching `espeak-ng-data` beside the
+executable. CI validates the packaged data on every artifact and exercises
+voice discovery and WAV synthesis on Linux x64, the native Windows targets, and
+macOS ARM64. Tag builds upload a draft release, verify the exact downloaded
+archives after relocation, and publish only when all checks pass. The
+cross-compiled macOS x64 executable receives structural and architecture checks
+but is not run in that job.
 
 ## Validation
 
