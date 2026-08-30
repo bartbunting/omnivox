@@ -20,8 +20,8 @@ proprietary runtimes.
 
 The Linux x64 archive is built and tested on Ubuntu 24.04 and requires
 compatible glibc, libstdc++, libgcc, and ALSA runtime libraries. Compatibility
-with older distributions is not claimed. Linux ARM64 remains supported only as
-a source build until the workflow builds and validates that target.
+with older distributions is not claimed. Linux ARM64 may build from source, but
+the project does not currently claim CI or runtime support for that target.
 
 ## Workflow triggers
 
@@ -64,7 +64,41 @@ release in draft state.
 
 ## Installing an archive
 
-Verify the archive against `sha256sums.txt`, extract it, and keep its binary,
+Download one archive and `sha256sums.txt` from the same GitHub release. Verify
+the archive before extracting it. Replace `VERSION` in these examples with the
+release version.
+
+On Linux:
+
+```sh
+archive=omnivox-VERSION-linux-x64.tar.gz
+grep -F "  $archive" sha256sums.txt | sha256sum --check
+tar -xzf "$archive"
+```
+
+On macOS, select the archive matching Apple Silicon or Intel:
+
+```sh
+archive=omnivox-VERSION-macos-arm64.tar.gz # or ...-macos-x64.tar.gz
+grep -F "  $archive" sha256sums.txt | shasum -a 256 --check
+tar -xzf "$archive"
+```
+
+On Windows PowerShell, select the archive matching x64 or ARM64:
+
+```powershell
+$archive = "omnivox-VERSION-windows-x64.zip" # or ...-windows-arm64.zip
+$checksumLine = (Select-String -Path sha256sums.txt -SimpleMatch "  $archive").Line
+if (-not $checksumLine) { throw "$archive is absent from sha256sums.txt" }
+$expected = ($checksumLine -split '\s+')[0]
+$actual = (Get-FileHash $archive -Algorithm SHA256).Hash
+if ($actual -ne $expected) { throw "SHA-256 mismatch for $archive" }
+Expand-Archive -LiteralPath $archive -DestinationPath omnivox-release
+Set-Location omnivox-release
+```
+
+An empty checksum lookup is an error: confirm that the archive and checksum
+file came from the same release. After extraction, keep the binary,
 `espeak-ng-data`, and `third-party-licenses` together. Keep the matching adapter
 from the same release as well.
 
@@ -73,18 +107,42 @@ executable. Linux also requires compatible system C++, GCC, glibc, and ALSA
 runtime libraries:
 
 ```sh
-install -m 755 omnivox "$HOME/.local/bin/omnivox"
-mkdir -p "$HOME/.local/bin/espeak-ng-data" "$HOME/.local/bin/third-party-licenses"
-cp -R espeak-ng-data/. "$HOME/.local/bin/espeak-ng-data/"
-cp -R third-party-licenses/. "$HOME/.local/bin/third-party-licenses/"
+binary_directory="$HOME/.local/bin"
+adapter_directory="$HOME/.emacs.d/lisp/omnivox"
+mkdir -p "$binary_directory/espeak-ng-data" \
+  "$binary_directory/third-party-licenses" "$adapter_directory"
+install -m 755 omnivox "$binary_directory/omnivox"
+install -m 644 omnivox-voices.el "$adapter_directory/omnivox-voices.el"
+cp -R espeak-ng-data/. "$binary_directory/espeak-ng-data/"
+cp -R third-party-licenses/. "$binary_directory/third-party-licenses/"
 ```
 
 On Windows, copy the extracted payload together into the Emacspeak
 speech-server directory or another configured executable location. Release
 archives use WinRT as the native Windows engine; the adjacent packaged data
-makes eSpeak available as a fallback without a separate installation. Optional
-helper engines require separate adjacent executables and user-supplied
-runtimes.
+makes eSpeak available as a fallback without a separate installation:
+
+```powershell
+$destination = "$env:USERPROFILE\.emacspeak\servers"
+$directories = @(
+  $destination,
+  "$destination\espeak-ng-data",
+  "$destination\third-party-licenses"
+)
+New-Item -ItemType Directory -Force $directories | Out-Null
+Copy-Item -Force omnivox.exe, omnivox-voices.el $destination
+Copy-Item -Recurse -Force espeak-ng-data\* "$destination\espeak-ng-data"
+Copy-Item -Recurse -Force third-party-licenses\* "$destination\third-party-licenses"
+```
+
+Optional helper engines require separate adjacent executables and
+user-supplied runtimes.
+
+Release binaries are not code-signed or notarized. macOS Gatekeeper or Windows
+SmartScreen may therefore warn or refuse the first launch. Verify the SHA-256
+checksum first, do not disable platform protections globally, and use only an
+OS-provided per-file exception that you understand. Build from reviewed source
+when local policy requires signed software.
 
 The repository adapter is for upstream Emacspeak. Follow [README.md](../README.md)
 and [ENV-VARS.md](../ENV-VARS.md) rather than mixing those `dtk-*` names with
@@ -159,7 +217,8 @@ onset, channel placement, device selection, or cancellation at the speaker.
 
 ## Current release gaps
 
-- Code signing/notarization is not part of the workflow.
+- Code signing/notarization is not part of the workflow; see the installation
+  warning above.
 - Linux ARM64 artifacts and broad Linux distribution compatibility tests are
   absent.
 - Optional helper/model packaging is separate from generic release archives.

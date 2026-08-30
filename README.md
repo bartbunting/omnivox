@@ -73,6 +73,20 @@ release path independently stages and records its pinned runtime inputs.
 See [STATUS.md](STATUS.md) for current limitations and [ARCHITECTURE.md](ARCHITECTURE.md)
 for ownership and data flow.
 
+## Binary releases
+
+[GitHub Releases](https://github.com/bartbunting/omnivox/releases) provides
+native archives for Linux x64, macOS Apple Silicon and Intel, and Windows x64
+and ARM64. Each archive contains the executable, the matching generated
+`espeak-ng-data`, third-party notices, and the upstream Emacspeak adapter. A
+`sha256sums.txt` file is published alongside them. Linux ARM64 is not currently
+published or CI-verified.
+
+Follow the [release and deployment guide](.github/DEPLOYMENT.md) for archive
+selection, checksum commands, installation, unsigned-binary warnings, and the
+separate Emacsvox Windows deployment contract. Keep the data and notices beside
+the executable after extraction.
+
 ## Prerequisites
 
 - [rustup](https://rustup.rs/). The checked-in `rust-toolchain.toml` selects
@@ -248,6 +262,8 @@ Useful distinctions when investigating responsiveness:
 - [docs/ENGINE-ISOLATION.md](docs/ENGINE-ISOLATION.md) — uncancellable engine
   containment.
 - [docs/TEXT-CHUNKING.md](docs/TEXT-CHUNKING.md) — current text chunking.
+- [.github/DEPLOYMENT.md](.github/DEPLOYMENT.md) — release archives,
+  verification, installation, and acceptance checks.
 - [SPEECHD-PLAN.md](SPEECHD-PLAN.md) — unimplemented Speech Dispatcher design
   proposal.
 
