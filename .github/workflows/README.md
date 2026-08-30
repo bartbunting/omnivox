@@ -91,10 +91,13 @@ models, proprietary DLLs, or proprietary dictionaries.
 push to main       format + build + test
 pull request main  format + build + test
 v* tag             format + build + test + package + draft + verify + publish
+manual main ref    format + build + test
+manual v* tag ref  format + build + test + package + draft + verify + publish
 ```
 
-There is no `workflow_dispatch` trigger, so `gh workflow run build.yml` is not
-a supported manual entry point unless the workflow is changed first.
+`workflow_dispatch` is a fallback for manually running the same workflow. Run
+it against `main` for the ordinary CI gates or against a `v*` tag to exercise
+the complete release path.
 
 ## Caching
 

@@ -29,6 +29,8 @@ a source build until the workflow builds and validates that target.
 - A tag matching `v*` runs the same gates, uploads a draft GitHub release,
   verifies the downloaded archives on their native runners, and publishes only
   after every required job succeeds.
+- A manual dispatch against `main` runs the ordinary CI gates; a dispatch
+  against a `v*` tag runs the complete release path.
 - An ordinary push to `main` does not create a timestamped release.
 
 The release version and archive prefix come from the tag name with its leading
