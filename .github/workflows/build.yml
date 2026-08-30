@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       draft_version:
-        description: Existing draft release version to verify and publish (for example, 1.4.0)
+        description: Existing draft release version to verify and publish (for example, 1.4.1)
         required: false
         type: string
   push:
@@ -321,8 +321,8 @@ jobs:
             | Windows | x64 | `omnivox-VERSION-windows-x64.zip` |
             | Windows | ARM64 | `omnivox-VERSION-windows-arm64.zip` |
 
-            `VERSION` is the tag without its leading `v`; tag `v1.4.0`, for
-            example, produces filenames beginning `omnivox-1.4.0-`.
+            `VERSION` is the tag without its leading `v`; tag `v1.4.1`, for
+            example, produces filenames beginning `omnivox-1.4.1-`.
 
             Linux uses eSpeak NG. macOS uses AVSpeechSynthesizer, and Windows
             uses WinRT SpeechSynthesizer. Every archive also contains the

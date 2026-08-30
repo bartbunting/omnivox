@@ -97,7 +97,7 @@ manual v* tag ref  format + build + test + package + draft + verify + publish
 it against `main` for the ordinary CI gates or against a `v*` tag to exercise
 the complete release path. If a draft was created but verification could not
 finish, dispatch against `main` with `draft_version` set to the version without
-its leading `v` (for example, `1.4.0`). The workflow skips the build matrix,
+its leading `v` (for example, `1.4.1`). The workflow skips the build matrix,
 downloads that existing draft's assets, reruns native verification, and
 publishes only if every verifier passes.
 

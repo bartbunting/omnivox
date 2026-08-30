@@ -181,7 +181,7 @@ A successful capability response decodes to this shape:
   "protocol_version": 1,
   "request_id": 42,
   "type": "capabilities",
-  "server_version": "1.4.0",
+  "server_version": "1.4.1",
   "supported_protocol_versions": [1],
   "features": [
     "control_v1",

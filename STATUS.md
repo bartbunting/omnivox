@@ -1,7 +1,7 @@
 # Omnivox Project Status
 
 **Last reviewed:** 2026-08-30
-**Workspace version:** 1.4.0
+**Workspace version:** 1.4.1
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in

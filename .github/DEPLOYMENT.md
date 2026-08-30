@@ -36,8 +36,8 @@ a source build until the workflow builds and validates that target.
 - An ordinary push to `main` does not create a timestamped release.
 
 The release version and archive prefix come from the tag name with its leading
-`v` removed for filenames. For example, tag `v1.4.0` produces archives prefixed
-`omnivox-1.4.0-`.
+`v` removed for filenames. For example, tag `v1.4.1` produces archives prefixed
+`omnivox-1.4.1-`.
 
 ## What CI validates
 

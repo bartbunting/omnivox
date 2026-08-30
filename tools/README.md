@@ -26,9 +26,9 @@ For example:
 
 ```sh
 python3 tools/verify_release.py \
-  --archive omnivox-1.4.0-linux-x64.tar.gz \
+  --archive omnivox-1.4.1-linux-x64.tar.gz \
   --checksums sha256sums.txt \
-  --version 1.4.0 \
+  --version 1.4.1 \
   --platform linux \
   --arch x86_64 \
   --engines espeak
