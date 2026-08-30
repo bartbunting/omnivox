@@ -14,6 +14,9 @@ Versioning for published releases.
 - Added complete Emacspeak setup and legacy line-protocol references.
 - Added control, timeline, marker-event, and helper-protocol examples that are
   checked against the public Rust wire types in the test suite.
+- Added the missing root MIT license and a component map that distinguishes
+  Omnivox source licensing from adapter, eSpeak-linked binary, Piper, and
+  proprietary-runtime terms.
 
 ## 1.4.1 - 2026-08-30
 

@@ -287,10 +287,14 @@ for superseded phase-by-phase plans.
 
 ## Licensing
 
-The Rust workspace declares the MIT license in `Cargo.toml`. The Emacspeak
-adapter in `elisp/omnivox-voices.el` carries its own copyright and GNU GPL
-notice in the file header. Distributed binaries statically link eSpeak NG,
-whose upstream project states GPL-3.0-or-later, and supported builds package its
-generated data. The adjacent `third-party-licenses` directory records the
-locked dependency and carries the applicable eSpeak NG, Unicode, NetBSD, and
-Sonic notices; preserve it when redistributing the payload.
+Omnivox-authored source is available under the [MIT License](LICENSE), except
+where a file carries another notice. The
+[component licensing map](LICENSING.md) explains the separately licensed
+Emacspeak adapter, eSpeak NG, optional Piper integration, proprietary runtimes,
+and other dependencies.
+
+Distributed executables statically incorporate GPL-3.0-or-later eSpeak NG and
+must be conveyed in compliance with the applicable terms for that combined
+binary. Supported builds package the eSpeak NG data and applicable GPL,
+Unicode, NetBSD, and Sonic notices in `third-party-licenses`; preserve that
+directory when redistributing the payload.
