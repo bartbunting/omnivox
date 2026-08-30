@@ -182,7 +182,7 @@ A successful capability response decodes to this shape:
   "protocol_version": 1,
   "request_id": 42,
   "type": "capabilities",
-  "server_version": "1.4.1",
+  "server_version": "SERVER_VERSION",
   "supported_protocol_versions": [1],
   "features": [
     "control_v1",
@@ -218,6 +218,9 @@ A successful capability response decodes to this shape:
   ]
 }
 ```
+
+`SERVER_VERSION` above is a documentation placeholder for the running binary's
+workspace version, not a literal protocol value.
 
 A preview produces exactly one request-owned terminal response. Omnivox emits
 it only after every preview playback ticket completes, is cancelled by `s`, or
@@ -277,6 +280,12 @@ Engine capabilities include `text_repertoire`: `unicode`, `windows_1252`,
 an older descriptor that omitted the field and guarantees only ASCII to the
 router. This capability describes lossless input encoding, not pronunciation
 quality or language support.
+
+The complete [validated inventory response fixture](docs/protocol-fixtures/control-inventory-response.json)
+shows every nested engine, capability, runtime, voice, availability, health,
+and routing-policy field. A repository test deserializes it through the public
+Rust response type so field and enum spelling changes cannot silently leave the
+example behind.
 
 A successful policy update returns `routing_policy_applied`, the effective
 policy generation and content, and every logical voice re-resolved against the
@@ -639,7 +648,17 @@ physical voice IDs may contain native punctuation but not control characters.
 
 The Rust engine, voice, logical-definition, selector, fallback, ACSS, and
 resolution types have stable JSON representations for subsequent version 1
-messages. Exact physical identities are represented as separate fields:
+messages. The three selector variants are:
+
+```json
+{"kind":"exact","engine_id":"winrt","voice_id":"winrt:David"}
+{"kind":"engine_default","engine_id":"espeak"}
+{"kind":"properties","engine_id":null,"language":"en-AU","gender":"female"}
+```
+
+`gender` is `female`, `male`, `neutral`, or `null`. A property selector may
+also omit its engine, language, or gender by sending `null`. Exact physical
+identities keep engine and native IDs as separate fields:
 
 ```json
 {
@@ -651,6 +670,25 @@ messages. Exact physical identities are represented as separate fields:
 
 No consumer should construct or parse a combined `engine:voice` string.
 Display names are presentation only and must not be used as stable identity.
+
+Availability and health are tagged objects rather than strings:
+
+```json
+{"status":"available"}
+{"status":"unavailable","reason":"disabled by runtime routing policy"}
+{"status":"healthy"}
+{"status":"degraded","reason":"recovery pending"}
+{"status":"failed","reason":"native engine failed"}
+```
+
+Concurrency is `{"mode":"serialized"}` or
+`{"mode":"concurrent","maximum_requests":4}`; `maximum_requests` may be
+`null`. Audio output is `buffered_pcm`, `streaming_pcm`, or
+`external_playback`. Cancellation is `none`, `playback_only`, or
+`synthesis_and_playback`. Voice quality is `compact`, `enhanced`, or `premium`.
+ACSS dimensions are `rate`, `average_pitch`, `pitch_range`, `stress`,
+`richness`, and `volume`; post-synthesis dimensions are `gain`, `low_pass`,
+`high_pass`, `pan`, `reverb`, and `echo`.
 
 ## Evolution Rules
 

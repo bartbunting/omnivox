@@ -1,0 +1,80 @@
+{
+  "protocol_version": 3,
+  "generation": 27,
+  "dispatch_id": 91,
+  "delivery_policy": "ordered",
+  "spans": [
+    {
+      "id": 1,
+      "text": "Hello world",
+      "logical_voice_id": "source-code",
+      "acss": {"average_pitch": 0.4, "volume": 0.8},
+      "effects": {
+        "mode": "replace",
+        "state_id": "focus.1",
+        "style": {"gain": 0.6, "pan": 0.4, "reverb": 0.2}
+      }
+    },
+    {
+      "id": 2,
+      "text": "Done",
+      "rate_offset": -2,
+      "effects": {"mode": "end"}
+    }
+  ],
+  "actions": [
+    {
+      "id": "opening-cue",
+      "position": {
+        "position": "span_boundary",
+        "span_id": 1,
+        "affinity": "before"
+      },
+      "lifecycle_anchor": "object",
+      "type": "audio",
+      "path": "sounds/open.ogg",
+      "mode": "overlay",
+      "volume": 1.0,
+      "pan": 0.5,
+      "effect_bus": "dry"
+    },
+    {
+      "id": "word-tone",
+      "position": {
+        "position": "text_offset",
+        "span_id": 1,
+        "utf8_offset": 6,
+        "affinity": "before"
+      },
+      "lifecycle_anchor": "run",
+      "type": "tone",
+      "frequency_hz": 660.0,
+      "duration_ms": 40,
+      "mode": "insert",
+      "volume": 0.5,
+      "pan": 0.5,
+      "effect_bus": "speech"
+    },
+    {
+      "id": "pause-before-done",
+      "position": {
+        "position": "span_boundary",
+        "span_id": 2,
+        "affinity": "before"
+      },
+      "lifecycle_anchor": "transition",
+      "type": "silence",
+      "duration_ms": 80
+    },
+    {
+      "id": "done-reached",
+      "position": {
+        "position": "span_boundary",
+        "span_id": 2,
+        "affinity": "after"
+      },
+      "lifecycle_anchor": "object",
+      "type": "semantic_event"
+    }
+  ]
+}

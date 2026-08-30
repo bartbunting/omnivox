@@ -1,0 +1,4 @@
+{"protocol_version":4,"request_id":3,"type":"synthesis_started","format":{"sample_rate":22050,"channels":1,"sample_format":"pcm_s16_le"},"actual_voice_id":"eloquence:reed"}
+{"protocol_version":4,"request_id":3,"type":"audio_chunk","chunk":{"sequence":0,"data_base64":"AAABAA=="}}
+{"protocol_version":4,"request_id":3,"type":"markers","markers":[{"kind":"word","frame_offset":0,"text_start":0,"text_length":5,"value":"Hello"},{"kind":"requested_anchor","frame_offset":1,"text_start":null,"text_length":null,"value":"word-start"}]}
+{"protocol_version":4,"request_id":3,"type":"synthesis_completed","frame_count":2}

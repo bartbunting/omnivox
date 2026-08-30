@@ -1,0 +1,75 @@
+{
+  "protocol_version": 1,
+  "request_id": 7,
+  "type": "inventory",
+  "inventory_generation": 3,
+  "preferred_engine_id": "winrt",
+  "routing_policy": {
+    "routing_policy_generation": 1,
+    "policy": {
+      "preferred_engine_ids": ["winrt"],
+      "fallback_engine_ids": ["espeak"],
+      "disabled_engine_ids": []
+    }
+  },
+  "engine_runtime": [
+    {
+      "engine_id": "winrt",
+      "circuit": "closed",
+      "last_failure": null,
+      "cooldown_remaining_ms": null,
+      "disabled_by_policy": false
+    }
+  ],
+  "engines": [
+    {
+      "id": "winrt",
+      "display_name": "Windows WinRT Speech Synthesis",
+      "version": null,
+      "availability": {"status": "available"},
+      "health": {"status": "healthy"},
+      "capabilities": {
+        "acss": {
+          "rate": true,
+          "average_pitch": true,
+          "pitch_range": false,
+          "stress": false,
+          "richness": false,
+          "volume": true
+        },
+        "audio_output": "buffered_pcm",
+        "cancellation": "playback_only",
+        "concurrency": {"mode": "serialized"},
+        "markers": {
+          "word": true,
+          "sentence": true,
+          "phoneme": false,
+          "native_index": true,
+          "requested_anchors": "word_boundary"
+        },
+        "language_switching": true,
+        "text_repertoire": "unicode",
+        "post_synthesis_dimensions": [
+          "gain",
+          "low_pass",
+          "high_pass",
+          "pan",
+          "reverb",
+          "echo"
+        ],
+        "native_extensions": []
+      },
+      "voices": [
+        {
+          "id": {"engine_id": "winrt", "voice_id": "winrt:David"},
+          "display_name": "David",
+          "language": "en-US",
+          "gender": "male",
+          "quality": "enhanced",
+          "availability": {"status": "available"}
+        }
+      ],
+      "default_voice_id": "winrt:David"
+    }
+  ]
+}

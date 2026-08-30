@@ -1,0 +1,18 @@
+{
+  "protocol_version": 4,
+  "request_id": 3,
+  "type": "synthesize",
+  "text": "Hello world",
+  "settings": {
+    "voice_id": "eloquence:reed",
+    "rate": 0.6,
+    "pitch": 1.1,
+    "volume": 0.8,
+    "pitch_range": 0.2,
+    "stress": 0.7,
+    "richness": 0.9
+  },
+  "anchors": [
+    {"id": "word-start", "text_offset": 6, "affinity": "before"}
+  ]
+}

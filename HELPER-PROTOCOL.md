@@ -71,6 +71,11 @@ The host constrains requests negotiated with older helpers to their original
 1.0 maximum. Each helper adapter remains responsible for clamping to a lower
 native engine limit where necessary.
 
+The [validated version 4 synthesis fixture](docs/protocol-fixtures/helper-synthesize-request-v4.json)
+shows every settings field and one requested anchor. Versions 1 and 2 must omit
+the version 3 style fields; version 1 must also omit `anchors`, while versions 2
+through 4 require that array even when it is empty.
+
 ## Synthesis Responses
 
 One accepted `synthesize` request produces this ordered sequence:
@@ -81,6 +86,10 @@ One accepted `synthesize` request produces this ordered sequence:
 3. zero or more `markers` responses;
 4. exactly one terminal `synthesis_completed`, `synthesis_cancelled`, or
    `error` response.
+
+The [validated success-stream fixture](docs/protocol-fixtures/helper-synthesis-success-v4.jsonl)
+contains one complete sequence. Its frames are independently deserialized and
+validated by a repository test.
 
 PCM chunks are Base64 encoded once in their JSON field and decode to at most
 256 KiB. Each chunk contains complete interleaved audio frames.
@@ -106,6 +115,18 @@ behind synthesis. A `cancel` request receives `cancel_accepted`; the target
 request independently ends with `synthesis_cancelled`. Cancellation is not
 reported as successful completion.
 
+For example, request 4 cancels synthesis request 3 with these three independent
+frames:
+
+```json
+{"protocol_version":4,"request_id":4,"type":"cancel","target_request_id":3}
+{"protocol_version":4,"request_id":4,"type":"cancel_accepted","target_request_id":3}
+{"protocol_version":4,"request_id":3,"type":"synthesis_cancelled"}
+```
+
+The acknowledgement belongs to the cancel request; the terminal response
+belongs to the target synthesis request.
+
 Piper has no native in-call cancellation. Its helper acknowledges cancellation
 on the protocol thread and suppresses stale PCM if the call returns promptly.
 If it does not, the host's 250 ms cancellation watchdog kills and reaps the
@@ -117,7 +138,9 @@ code and dynamic libraries are therefore never loaded into the main server.
 `describe` returns the same structured engine, capability, voice, availability,
 and health contract exposed by Omnivox control inventory. The host validates it
 before registration and never combines engine and native voice IDs into one
-opaque identifier.
+opaque identifier. Its `descriptor` field has the exact `EngineDescriptor`
+shape demonstrated by the
+[validated control inventory fixture](docs/protocol-fixtures/control-inventory-response.json).
 
 `capabilities.text_repertoire` declares the source characters the helper can
 encode without replacement: `unicode`, `windows_1252`, or `iso_8859_1`. This is
@@ -133,6 +156,10 @@ payloads, unavailable engines, missing voices, invalid parameters, busy
 helpers, synthesis failures, and internal failures. An error may omit its
 request ID only when malformed input prevented the helper from trusting that
 ID. An error owned by a synthesis request is terminal for that synthesis.
+
+```json
+{"protocol_version":4,"request_id":3,"type":"error","code":"busy","message":"native engine is already synthesizing","retryable":true}
+```
 
 ## Bounds, Timeouts, and Recovery
 

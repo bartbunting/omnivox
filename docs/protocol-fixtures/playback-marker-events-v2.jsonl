@@ -1,0 +1,3 @@
+{"protocol_version":2,"dispatch_id":91,"sequence":5,"type":"semantic_event_reached","utterance_id":1,"action_id":"done-reached"}
+{"protocol_version":2,"dispatch_id":91,"sequence":6,"type":"timeline_action_resolved","utterance_id":1,"action_id":"word-tone","resolution":"word_boundary"}
+{"protocol_version":2,"dispatch_id":91,"sequence":7,"type":"timeline_style_degraded","utterance_id":1,"degraded_acss":["pitch_range"],"degraded_effects":["echo"]}

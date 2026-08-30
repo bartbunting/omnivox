@@ -98,6 +98,11 @@ Version 3 has the same semantic fields introduced by version 2 and this shape:
 }
 ```
 
+The complete [validated version 3 fixture](docs/protocol-fixtures/presentation-timeline-v3.json)
+contains two spans, replace/end effect state, both position types, and all four
+action types. A repository test deserializes it through the public Rust wire
+type and runs the same semantic validation used by the server.
+
 `generation` participates in the same stale-work and stop-barrier policy as
 framed legacy transactions. `dispatch_id` identifies marker-v2 and terminal
 records. Span and action IDs are bounded and unique in their respective
@@ -242,6 +247,19 @@ Version 2 retains the version 1 utterance and engine marker records and adds:
   `span_boundary`, or `omitted` placement;
 - `timeline_style_degraded`, reporting ACSS or post-synthesis dimensions that
   were omitted after actual route/fallback selection.
+
+Decoded version 2 records have these shapes:
+
+```json
+{"protocol_version":2,"dispatch_id":91,"sequence":5,"type":"semantic_event_reached","utterance_id":1,"action_id":"done-reached"}
+{"protocol_version":2,"dispatch_id":91,"sequence":6,"type":"timeline_action_resolved","utterance_id":1,"action_id":"word-tone","resolution":"word_boundary"}
+{"protocol_version":2,"dispatch_id":91,"sequence":7,"type":"timeline_style_degraded","utterance_id":1,"degraded_acss":["pitch_range"],"degraded_effects":["echo"]}
+```
+
+The [validated marker-event fixture](docs/protocol-fixtures/playback-marker-events-v2.jsonl)
+contains the same records. Action resolution is exactly `exact`,
+`word_boundary`, `span_boundary`, or `omitted`; degradation arrays use the ACSS
+and post-synthesis dimension names defined by the control contract.
 
 Events are ordered playback cues, flushed before the dispatch's terminal
 `completed`, `cancelled`, or `failed` record. The opaque semantic ID is data,
