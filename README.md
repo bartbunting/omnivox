@@ -1,9 +1,9 @@
 # Omnivox
 
 Omnivox is a cross-platform speech server written in Rust. It implements the
-legacy Emacspeak line protocol and the capability-gated structured protocols
-used by Emacsvox for logical voices, tracked playback, marker events, and Aural
-presentation timelines.
+[legacy Emacspeak line protocol](LEGACY-PROTOCOL.md) and the capability-gated
+structured protocols used by Emacsvox for logical voices, tracked playback,
+marker events, and Aural presentation timelines.
 
 ## Integration choices
 
@@ -186,13 +186,22 @@ make install
 installed executable. It defaults to `~/.cargo/bin`; set
 `OMNIVOX_INSTALL_BIN` when Cargo installs binaries elsewhere.
 
-Make `omnivox` discoverable on `PATH` or place it in Emacspeak's server
-directory. Add that server name to Emacspeak's `.servers` file when Omnivox
-should own auditory-icon playback. Then load this repository's adapter before
-Emacspeak:
+Make `omnivox` discoverable on `PATH` or place it in Emacspeak's `servers`
+directory. When Omnivox should own auditory-icon playback, add a line containing
+only `omnivox` to `/path/to/emacspeak/servers/.servers`:
+
+```text
+omnivox
+```
+
+The adapter requires `emacspeak-preamble`, so the Emacspeak `lisp` directory
+must already be on `load-path`. Load the adapter after that prerequisite is
+available but before `emacspeak-setup` completes:
 
 ```elisp
-(add-to-list 'load-path "/path/to/omnivox/elisp")
+(add-to-list 'load-path "/path/to/omnivox/elisp") ; source checkout
+;; For the archive layout in the deployment guide, use:
+;; (add-to-list 'load-path "~/.emacs.d/lisp/omnivox")
 (require 'omnivox-voices)
 
 ;; Omnivox uses a 0--100 rate scale; larger values are faster.
@@ -204,7 +213,9 @@ Emacspeak:
 ```
 
 These `dtk-*` names belong to upstream Emacspeak. Emacsvox intentionally uses
-the generic `tts-*` namespace and its own Omnivox adapter.
+the generic `tts-*` namespace and its own Omnivox adapter. The compatibility
+module tracks current Emacspeak APIs; the project does not yet claim a minimum
+Emacs or Emacspeak version, so test it with the checkout you intend to deploy.
 
 ## Command-line use
 
@@ -250,6 +261,8 @@ Useful distinctions when investigating responsiveness:
 ## Protocol and design documents
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — runtime ownership and data flow.
+- [LEGACY-PROTOCOL.md](LEGACY-PROTOCOL.md) — baseline Emacspeak command
+  grammar, queue semantics, state, and limits.
 - [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md) — discovery, logical voices,
   routing policy, preview, tracked playback, and legacy framing.
 - [PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md) —

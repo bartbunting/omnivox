@@ -5,7 +5,7 @@
 ;;
 ;; Omnivox is a cross-platform Emacspeak speech server written in Rust.
 ;; It supports macOS (AVSpeechSynthesizer), Windows (WinRT), and
-;; espeak-ng as a universal fallback.  Rate uses a 0-100 integer
+;; espeak-ng as a cross-platform engine.  Rate uses a 0-100 integer
 ;; scale (50 = normal speed), divided by 100 server-side.
 
 ;;;   Copyright:
@@ -34,15 +34,16 @@
 ;; This module defines the various voices used in voice-lock mode
 ;; by the Omnivox TTS engine.
 ;;
-;; Self-registering: this file hooks into emacspeak automatically.
-;; No need to modify emacspeak files.  Just add to load-path and
-;; require before emacspeak loads:
+;; Self-registering: this file hooks into Emacspeak automatically.
+;; No need to modify Emacspeak Lisp files.  Make `emacspeak-preamble'
+;; available on `load-path', then require this adapter before
+;; `emacspeak-setup' completes:
 ;;
 ;;   (add-to-list 'load-path "/path/to/omnivox/elisp")
 ;;   (require 'omnivox-voices)
 ;;
 ;; Omnivox inline codes:
-;;   [{voice <name>}]  -- switch voice (e.g. en-US:Alex)
+;;   [{voice <id>}]    -- switch to an ID reported by --list-voices
 ;;   [[pitch <float>]] -- set pitch multiplier (1.0 = normal)
 ;;
 ;; Voice querying:
@@ -54,8 +55,9 @@
 ;;   M-x customize-group RET omnivox RET
 ;;   All settings are in the `omnivox' customization group.
 ;;
-;; Settings are sent to the running omnivox process via protocol commands.
-;; No environment variables needed (omnivox uses CLI flags instead).
+;; Settings are sent to the running Omnivox process via protocol commands.
+;; Process selection, startup engine choice, and notification-process channel
+;; routing remain launcher/CLI/environment responsibilities.
 
 ;;; Code:
 
@@ -146,7 +148,7 @@ Returns a list of (ID NAME LANGUAGE QUALITY) entries."
     (message "Found %d voices" (length omnivox-available-voices))))
 
 (defun omnivox-voice-ids ()
-  "Return list of voice IDs (e.g. \"en-US:Alex\") from the server."
+  "Return the exact physical voice IDs reported by the server."
   (unless omnivox-available-voices
     (omnivox-refresh-voices))
   (mapcar #'car omnivox-available-voices))
@@ -214,7 +216,8 @@ higher is faster and lower is slower."
 
 (defcustom omnivox-voice-id ""
   "Default voice for Omnivox.
-Value is a voice ID like \"en-US:Alex\".  Empty string means use server default.
+Use an exact ID reported by `omnivox-list-voices'.
+An empty string means use the server default.
 Use `omnivox-select-voice' to interactively choose from available voices."
   :group 'omnivox
   :type 'string
