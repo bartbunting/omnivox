@@ -28,9 +28,16 @@ There are two supported consumers with deliberately different Lisp adapters:
 
 The Windows Eloquence and DECtalk engines run in separate 32-bit helper
 processes and require user-supplied proprietary runtimes. Omnivox and Emacsvox
-do not distribute those runtimes. The Piper backend is opt-in and is built
-separately so its native dependencies never enter the main server process.
-Speech Dispatcher remains a design proposal, not an implemented backend.
+do not distribute those runtimes. They are discovered as helper engines for
+runtime routing rather than selected with the startup `--engine` option. The
+Piper backend is opt-in and is built separately so its native dependencies
+never enter the main server process. Speech Dispatcher remains a design
+proposal, not an implemented backend.
+
+Windows server processes register available WinRT, eSpeak, and configured
+proprietary helpers for runtime routing and fallback. macOS and Linux currently
+register only the selected startup engine, so choosing `--engine espeak` or
+`--engine piper` there does not retain another engine as an in-process fallback.
 
 The eSpeak backend is compiled from source. Supported local builds stage the
 matching generated voice data beside the executable, and generic GitHub release
@@ -106,8 +113,21 @@ make build-piper
 ```
 
 The first Piper native build requires network access to fetch its native inputs
-and a C++17-capable compiler. Native Piper code remains confined to the helper
-executable; dependency pinning and packaging are still tracked as release work.
+and a C++17-capable compiler. The current build fetches the archived
+[`rhasspy/piper`](https://github.com/rhasspy/piper) source and the
+[`piper-phonemize` master branch](https://github.com/rhasspy/piper-phonemize/tree/master)
+rather than pinned revisions. The archived project points to the newer
+[`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl) project, but
+Omnivox has not yet migrated or established compatibility with it. Treat the
+current integration as an experimental developer build, not a reproducible
+release payload. Native Piper code remains confined to the helper executable;
+dependency pinning, native-library staging, notices, and model distribution are
+still tracked as release work.
+
+Running Piper requires a compatible `.onnx` model and its adjacent
+configuration, named either `<model>.onnx.json` or `<model>.json`. Model
+compatibility and licensing depend on the model source; Omnivox does not
+currently distribute or endorse a model catalogue.
 
 The test suite changes frequently, so documentation does not embed a test
 count. A passing suite establishes correctness coverage; it is not a latency
@@ -185,8 +205,9 @@ omnivox --audio-target left
 omnivox --dump-wav VOICE output.wav "Text to synthesize"
 ```
 
-Piper additionally uses `--engine piper --piper-model /path/to/model.onnx`.
-Without an action option, Omnivox runs the stdin speech-server protocol.
+Piper additionally uses `--engine piper --piper-model /path/to/model.onnx`,
+with the matching JSON configuration beside the model. Without an action
+option, Omnivox runs the stdin speech-server protocol.
 
 See [ENV-VARS.md](ENV-VARS.md) for the complete CLI and environment reference.
 

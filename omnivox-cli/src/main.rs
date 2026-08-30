@@ -5,8 +5,10 @@
 //!
 //! # Threading Model
 //!
-//! - **Reader thread** (main): reads stdin and parses commands in a tight loop.
-//!   Never blocks on synthesis. Stop/reset commands take effect immediately.
+//! - **Reader loop**: reads stdin and parses commands without blocking on
+//!   synthesis. It runs on the main thread except on macOS, where the main
+//!   thread owns the native run loop and the reader uses a background thread.
+//!   Stop/reset commands take effect immediately.
 //!
 //! - **Synthesis worker** (spawned): receives requests through a bounded,
 //!   nonblocking queue. Replaceable navigation may be coalesced or evicted;
@@ -111,7 +113,7 @@ fn main() -> Result<()> {
                 .collect();
             if dump_args.len() < 2 {
                 eprintln!("Usage: omnivox --dump-wav <voice> <output.wav> [text...]");
-                eprintln!("  Example: omnivox --dump-wav 'en-US:Alex' alex.wav Hello world");
+                eprintln!("  Use an exact voice ID reported by --list-voices, or an empty string.");
                 std::process::exit(1);
             }
             let voice = dump_args[0];

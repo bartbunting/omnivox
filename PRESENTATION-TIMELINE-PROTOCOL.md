@@ -166,12 +166,13 @@ do not prevent speech; they are omitted and reported as degradation.
 
 `rate_offset`, when present, is a signed integer from `-20` through `20`.
 Omnivox adds `rate_offset / 100` to the stored normalized host speech rate and
-clamps the derived one-shot rate to the ACSS `0..100` range before
-engine-specific conversion: at a stored rate of 75, `-1` means 74 and `4` means
-79. An extended host rate above 100 remains at 100 unless a negative offset
-brings it below that ceiling. It does not change the stored global rate. A span
-must not contain both `rate_offset` and the absolute `acss.rate`. An offset of
-zero is neutral and clients should normally omit it.
+clamps the derived one-shot rate to the normalized ACSS `0.0..1.0` range before
+engine-specific conversion. Expressed on the host's integer point scale, at a
+stored rate of 75, `-1` means 74 and `4` means 79. An extended host rate above
+100 remains at 100 unless a negative offset brings it below that ceiling. It
+does not change the stored global rate. A span must not contain both
+`rate_offset` and the absolute `acss.rate`. An offset of zero is neutral and
+clients should normally omit it.
 
 `effects` is one complete-state operation:
 

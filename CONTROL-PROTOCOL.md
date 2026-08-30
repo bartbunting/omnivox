@@ -160,11 +160,12 @@ same selector if its first runtime target fails.
 When `relative_rate_v1` is advertised, previews and presentation speech spans
 may include a signed integer `rate_offset` from `-20` through `20`. Omnivox adds
 `rate_offset / 100` to the stored normalized host rate, then clamps the derived
-one-shot rate to the ACSS `0..100` range without changing the stored rate: base
-75 plus `-1` is 74; base 75 plus `4` is 79. An extended host rate above 100
-therefore remains at 100 unless a negative offset brings it below that ceiling.
-A request must not combine `rate_offset` with the absolute `acss.rate` field.
-Zero is neutral and should normally be omitted.
+one-shot rate to the normalized ACSS `0.0..1.0` range without changing the
+stored rate. Expressed on the host's integer point scale, base 75 plus `-1` is
+74 and base 75 plus `4` is 79. An extended host rate above 100 therefore remains
+at 100 unless a negative offset brings it below that ceiling. A request must not
+combine `rate_offset` with the absolute `acss.rate` field. Zero is neutral and
+should normally be omitted.
 
 ## Response Record
 

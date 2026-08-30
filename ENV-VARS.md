@@ -7,25 +7,28 @@ separately below.
 
 ## Command-line options
 
-`omnivox --help` is authoritative. The current options are:
+`omnivox --help` is the authoritative syntax summary. The supported value
+ranges below are the values callers should supply; the parser rejects malformed
+numbers but does not currently reject every out-of-range value before it reaches
+the selected backend.
 
 | Option | Meaning |
 |---|---|
 | `--help`, `-h` | Show help. |
 | `--version`, `-V` | Print the workspace version. |
-| `--check` | Run the diagnostic self-test. |
+| `--check` | Run the diagnostic self-test; inspect each printed status and confirm that its tone and speech are audible. |
 | `--list-voices` | Print voices for the selected startup engine. |
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
 | `--engine NAME` | Select `native`, `espeak`, or opt-in `piper`. |
-| `--voice ID` | Set the startup physical voice. |
+| `--voice ID` | Set the startup physical voice; copy an exact ID from `--list-voices`. |
 | `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 is normal. |
 | `--pitch FLOAT` | Set pitch multiplier from 0.5 through 2.0. |
 | `--voice-volume FLOAT` | Set speech gain from 0.0 through 1.0. |
 | `--tone-volume FLOAT` | Set tone gain from 0.0 through 1.0. |
 | `--sound-volume FLOAT` | Set sound/icon gain from 0.0 through 1.0. |
 | `--audio-target TARGET` | Route to `left`, `right`, or `both`. |
-| `--piper-model PATH` | Supply a Piper `.onnx` model. |
-| `--dump-wav VOICE OUTPUT [TEXT]` | Synthesize a diagnostic WAV. |
+| `--piper-model PATH` | Supply a Piper `.onnx` model for the server or voice-list actions. |
+| `--dump-wav VOICE OUTPUT [TEXT]` | Synthesize a canonical diagnostic WAV and a raw intermediate WAV. |
 | `--play-wav FILE` | Play a WAV through the Omnivox audio path. |
 
 Without an action option, Omnivox starts the stdin protocol server. Protocol
@@ -33,6 +36,18 @@ rate commands conventionally use Emacspeak's integer scale. Omnivox divides
 values greater than 1 by 100 and then clamps the normalized value to `0.0..2.0`
 (`50` becomes `0.5`, `150` becomes `1.5`, and `300` becomes `2.0`). Higher
 values request faster speech; individual engines may impose a lower maximum.
+An invalid `--audio-target` is logged and leaves the default `both` routing in
+place. Unsupported `--engine` names currently select the platform default; use
+only the three documented names rather than relying on that fallback.
+
+`--check` exits nonzero when it cannot create an engine. Synthesis and audio
+device failures discovered later in the check are printed as `FAILED` but do
+not currently change its exit status, so successful process exit alone is not
+a complete pass. `--dump-wav` writes `OUTPUT` after canonical conversion and a
+second path formed by replacing `.wav` with `_raw.wav`; use an output filename
+ending in `.wav` to keep those files distinct. The `--piper-model` option is not
+currently forwarded to `--check` or `--dump-wav`; set `OMNIVOX_PIPER_MODEL` for
+those two diagnostic actions.
 
 ## Server environment
 
@@ -42,15 +57,28 @@ values request faster speech; individual engines may impose a lower maximum.
 
 - `native` or empty selects the platform default (`macos`, `winrt`, or eSpeak
   where no native engine exists).
-- `espeak` makes eSpeak NG preferred without removing other registered engines.
+- `espeak` selects eSpeak NG as the startup engine.
 - `piper` selects the optional helper-backed Piper engine and requires a
   Piper-enabled build plus a model.
 - Equivalent startup option: `--engine`.
 
+On Windows, a server process registers available WinRT and eSpeak engines plus
+adjacent or explicitly configured Eloquence and DECtalk helpers. The selected
+startup engine controls the initial preference order, so Windows can route and
+fall back among that registry. Piper is registered on Windows only when it is
+the selected startup engine. On macOS and Linux, the server currently registers
+only the selected engine; selecting eSpeak or Piper does not leave the native
+macOS engine or eSpeak registered as an in-process fallback. Eloquence and
+DECtalk are helper inventory IDs used by runtime routing, not accepted startup
+values for `--engine` or `OMNIVOX_ENGINE`.
+
 `OMNIVOX_PIPER_MODEL`
 
-- Path to a Piper `.onnx` model.
-- Overridden by `--piper-model`.
+- Path to a Piper `.onnx` model. A matching configuration must be adjacent as
+  either `<model>.onnx.json` or `<model>.json`.
+- Overridden by `--piper-model` for the server and voice-list actions. The
+  current `--check` and `--dump-wav` actions use this environment variable
+  instead of the option.
 
 `OMNIVOX_PIPER_HELPER`
 
