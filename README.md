@@ -128,6 +128,7 @@ make fmt-check   # non-mutating format check
 make test        # locked default-member tests
 make lint        # locked default-member/all-target Clippy with warnings denied
 make windows-helpers-test  # source-contract checks for Windows helpers
+make windows-helpers-startup-test  # missing-runtime test on Windows/WSL
 ```
 
 The full workspace check, including non-default workspace members, is:

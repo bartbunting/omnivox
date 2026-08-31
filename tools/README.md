@@ -162,7 +162,8 @@ opt-in `configure_windows_crash_dumps.ps1` helper.
 `stress_helper.py` keeps one protocol-v4 helper process alive across repeated
 synthesis calls. It validates negotiation, descriptor identity, realized
 voice, audio sequence and frame totals, all marker kinds advertised by the
-engine, periodic pings, and clean shutdown. With `--cancel-probe`, it also
+engine (including a DECtalk native-index probe), periodic pings, and clean
+shutdown. With `--cancel-probe`, it also
 cancels one long in-flight synthesis, rejects stale output after the
 acknowledgement, and checks that the helper remains responsive. It records
 process memory on systems with a compatible `/proc` entry. The native Piper

@@ -186,6 +186,12 @@ later recreate the child. The Piper helper disables Omnivox's separate eSpeak
 backend so one process does not contain two interposing eSpeak runtimes.
 Proprietary DLLs remain outside the repository.
 
+The Windows helpers require absolute native-library paths, validate x86 PE
+identity and required exports before engine calls, and load dependencies only
+from the selected library directory or System32. A missing or rejected runtime
+is reported through the live helper protocol and does not become a helper
+process crash.
+
 See [HELPER-PROTOCOL.md](protocols/HELPER-PROTOCOL.md) and
 [ENGINE-ISOLATION.md](ENGINE-ISOLATION.md).
 

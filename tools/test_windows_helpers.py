@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import unittest
 
 
@@ -20,6 +21,7 @@ class WindowsHelperSourceTests(unittest.TestCase):
         self.assertTrue((HELPERS / "COPYING").is_file())
         for relative in (
             "common/OmnivoxHelperHost.cs",
+            "common/OmnivoxNativeLibrary.cs",
             "eloquence/OmnivoxEloquenceCapture.cs",
             "eloquence/OmnivoxEloquenceHelper.cs",
             "dectalk/OmnivoxDectalkCapture.cs",
@@ -58,6 +60,9 @@ class WindowsHelperSourceTests(unittest.TestCase):
     def test_build_keeps_helpers_separate_and_32_bit(self) -> None:
         build = source("build.ps1")
         self.assertEqual(build.count("/platform:x86"), 2)
+        self.assertEqual(
+            build.count('Join-Path $Common "OmnivoxNativeLibrary.cs"'), 2
+        )
         for expected in (
             "OmnivoxEloquenceHelper32.exe",
             "OmnivoxDectalkHelper32.exe",
@@ -67,6 +72,87 @@ class WindowsHelperSourceTests(unittest.TestCase):
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, build)
+
+    def test_native_loading_is_absolute_restricted_and_validated(self) -> None:
+        loader = source("common/OmnivoxNativeLibrary.cs")
+        for expected in (
+            "Path.IsPathRooted(path)",
+            'EntryPoint = "LoadLibraryExW"',
+            "LoadLibrarySearchDllLoadDir | LoadLibrarySearchSystem32",
+            "ValidateX86PortableExecutable(FullPath, displayName)",
+            "ImageFileMachineI386",
+            "GetProcAddress(module, export)",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, loader)
+
+        combined_captures = source(
+            "eloquence/OmnivoxEloquenceCapture.cs"
+        ) + source("dectalk/OmnivoxDectalkCapture.cs")
+        self.assertNotIn("SetDllDirectory", combined_captures)
+        self.assertNotIn("Environment.CurrentDirectory", combined_captures)
+        self.assertNotIn("LoadLibrary(", combined_captures)
+
+    def test_all_engine_exports_are_resolved_before_use(self) -> None:
+        eloquence = source("eloquence/OmnivoxEloquenceCapture.cs")
+        for export in (
+            "eciVersion",
+            "eciNewEx",
+            "eciDelete",
+            "eciStop",
+            "eciClearInput",
+            "eciSynthesize",
+            "eciSynchronize",
+            "eciAddText",
+            "eciInsertIndex",
+            "eciSetParam",
+            "eciRegisterCallback",
+            "eciSetOutputBuffer",
+        ):
+            with self.subTest(engine="eloquence", export=export):
+                self.assertRegex(
+                    eloquence,
+                    r"library\.Resolve<[^>]+>\(\s*\"" +
+                    re.escape(export) + r"\"\)",
+                )
+
+        dectalk = source("dectalk/OmnivoxDectalkCapture.cs")
+        for export in (
+            "TextToSpeechStartupExFonix",
+            "TextToSpeechShutdown",
+            "TextToSpeechSpeak",
+            "TextToSpeechReset",
+            "TextToSpeechSync",
+            "TextToSpeechSetRate",
+            "TextToSpeechOpenInMemory",
+            "TextToSpeechCloseInMemory",
+            "TextToSpeechAddBuffer",
+            "TextToSpeechVersion",
+        ):
+            with self.subTest(engine="dectalk", export=export):
+                self.assertRegex(
+                    dectalk,
+                    r"library\.Resolve<[^>]+>\(\s*\"" +
+                    re.escape(export) + r"\"\)",
+                )
+        self.assertIn(
+            "uint versionCode = native.TextToSpeechVersion(out versionValue)",
+            dectalk,
+        )
+        self.assertIn("versionCode == 0", dectalk)
+        self.assertNotIn("Check(native.TextToSpeechVersion", dectalk)
+
+    def test_missing_runtime_keeps_protocol_loop_available(self) -> None:
+        host = source("common/OmnivoxHelperHost.cs")
+        self.assertIn('OmnivoxHelperLog.Event("runtime_unavailable"', host)
+        self.assertIn('throw Fault("not_available", runtimeUnavailableReason', host)
+        self.assertIn('WriteError(requestId, "not_available"', host)
+        for relative in (
+            "eloquence/OmnivoxEloquenceHelper.cs",
+            "dectalk/OmnivoxDectalkHelper.cs",
+        ):
+            with self.subTest(source=relative):
+                self.assertIn("OmnivoxHelperRuntime.Run", source(relative))
 
 
 if __name__ == "__main__":

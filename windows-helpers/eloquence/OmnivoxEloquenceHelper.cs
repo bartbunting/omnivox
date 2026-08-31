@@ -341,20 +341,10 @@ internal static class OmnivoxEloquenceHelper
             dllPath = DefaultDll;
         }
 
-        try
-        {
-            using (OmnivoxEloquenceAdapter engine =
-                new OmnivoxEloquenceAdapter(dllPath))
+        return OmnivoxHelperRuntime.Run("eloquence", "Eloquence",
+            "Omnivox Eloquence x86 helper", delegate()
             {
-                return new OmnivoxHelperHost(engine).Run();
-            }
-        }
-        catch (Exception error)
-        {
-            Console.Error.WriteLine("Omnivox Eloquence helper failed: " +
-                error.ToString());
-            Console.Error.Flush();
-            return 1;
-        }
+                return new OmnivoxEloquenceAdapter(dllPath);
+            });
     }
 }

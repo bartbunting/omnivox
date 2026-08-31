@@ -29,6 +29,13 @@ CANCEL_PROBE_TEXT = " ".join(
     f"Cancellation probe sentence {number} should not reach the audio mixer."
     for number in range(1, 17)
 )
+DECTALK_NATIVE_INDEX = "[:index mark 12345]"
+
+
+def exercise_text(engine_id, text, marker_capabilities):
+    if engine_id == "dectalk" and marker_capabilities.get("native_index"):
+        return f"{DECTALK_NATIVE_INDEX} {text}"
+    return text
 
 
 class HelperSession:
@@ -383,7 +390,11 @@ def main():
 
         next_request_id = 3
         for iteration in range(args.iterations):
-            text = TEST_TEXTS[iteration % len(TEST_TEXTS)]
+            text = exercise_text(
+                args.engine_id,
+                TEST_TEXTS[iteration % len(TEST_TEXTS)],
+                marker_capabilities,
+            )
             frames, markers, byte_count = synthesize(
                 session,
                 next_request_id,

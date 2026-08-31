@@ -82,8 +82,8 @@ outweigh the in-process benefit.
 A helper for a user-supplied runtime contains Omnivox integration code, not the
 external speech library. It discovers and dynamically loads an installed
 library at run time. It must be able to start and report a useful
-`runtime_unavailable` error when that library is absent rather than failing at
-process load time.
+`not_available` protocol error identifying runtime unavailability when that
+library is absent rather than failing at process load time.
 
 An explicitly configured absolute library path has priority. Any automatic
 discovery is limited to documented installation locations or platform

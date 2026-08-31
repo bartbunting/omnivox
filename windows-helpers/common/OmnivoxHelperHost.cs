@@ -229,6 +229,72 @@ internal interface IOmnivoxCaptureEngine : IDisposable
     void Stop();
 }
 
+internal static class OmnivoxHelperRuntime
+{
+    private const int MaximumDiagnosticLength = 16 * 1024;
+
+    internal static int Run(string engineId, string displayName,
+        string helperName, Func<IOmnivoxCaptureEngine> createEngine)
+    {
+        IOmnivoxCaptureEngine engine;
+        try
+        {
+            engine = createEngine();
+        }
+        catch (Exception error)
+        {
+            OmnivoxHelperLog.Event("runtime_unavailable",
+                "engine=" + engineId + " error=\"" +
+                OmnivoxHelperLog.ExceptionDetails(error) + "\"");
+            return new OmnivoxHelperHost(engineId, displayName, helperName,
+                RuntimeDiagnostic(error)).Run();
+        }
+
+        using (engine)
+        {
+            return new OmnivoxHelperHost(engine).Run();
+        }
+    }
+
+    private static string RuntimeDiagnostic(Exception error)
+    {
+        Exception current = error;
+        while (current != null)
+        {
+            OmnivoxRuntimeUnavailableException unavailable = current as
+                OmnivoxRuntimeUnavailableException;
+            if (unavailable != null)
+            {
+                return Bound(unavailable.Message);
+            }
+            current = current.InnerException;
+        }
+
+        string diagnostic = "The " + error.GetType().Name +
+            " prevented native runtime initialization";
+        current = error;
+        while (current != null)
+        {
+            if (!String.IsNullOrEmpty(current.Message))
+            {
+                diagnostic += ": " + current.Message;
+            }
+            current = current.InnerException;
+        }
+        return Bound(diagnostic);
+    }
+
+    private static string Bound(string value)
+    {
+        if (String.IsNullOrEmpty(value))
+        {
+            return "The native speech runtime is unavailable";
+        }
+        return value.Length <= MaximumDiagnosticLength ? value :
+            value.Substring(0, MaximumDiagnosticLength);
+    }
+}
+
 /// <summary>
 /// Engine-neutral implementation of Omnivox helper protocol versions 1-4.
 /// Native adapters provide inventory, captured PCM, and interruption only.
@@ -279,6 +345,10 @@ internal sealed class OmnivoxHelperHost
     }
 
     private readonly IOmnivoxCaptureEngine engine;
+    private readonly string engineId;
+    private readonly string displayName;
+    private readonly string helperName;
+    private readonly string runtimeUnavailableReason;
     private readonly StreamReader input;
     private readonly StreamWriter output;
     private readonly JavaScriptSerializer json;
@@ -290,28 +360,65 @@ internal sealed class OmnivoxHelperHost
     private bool shuttingDown;
 
     internal OmnivoxHelperHost(IOmnivoxCaptureEngine engine)
+        : this(engine, null, null, null, null)
     {
-        if (engine == null)
+    }
+
+    internal OmnivoxHelperHost(string engineId, string displayName,
+        string helperName, string runtimeUnavailableReason)
+        : this(null, engineId, displayName, helperName,
+            runtimeUnavailableReason)
+    {
+    }
+
+    private OmnivoxHelperHost(IOmnivoxCaptureEngine engine, string engineId,
+        string displayName, string helperName,
+        string runtimeUnavailableReason)
+    {
+        if (engine != null)
         {
-            throw new ArgumentNullException("engine");
+            engineId = engine.EngineId;
+            displayName = engine.DisplayName;
+            helperName = engine.HelperName;
         }
         this.engine = engine;
-        if (String.IsNullOrEmpty(engine.EngineId) ||
-            String.IsNullOrEmpty(engine.DisplayName) ||
-            String.IsNullOrEmpty(engine.Version) ||
-            String.IsNullOrEmpty(engine.HelperName) ||
-            String.IsNullOrEmpty(engine.DefaultVoiceId) ||
-            engine.SampleRate <= 0 || engine.Channels <= 0 ||
-            engine.Voices == null || engine.Voices.Length == 0 ||
-            engine.Capabilities == null)
+        this.engineId = engineId;
+        this.displayName = displayName;
+        this.helperName = helperName;
+        this.runtimeUnavailableReason = runtimeUnavailableReason;
+
+        if (String.IsNullOrEmpty(engineId) ||
+            String.IsNullOrEmpty(displayName) ||
+            String.IsNullOrEmpty(helperName))
+        {
+            throw new ArgumentException("helper identity is incomplete");
+        }
+        if (engine != null &&
+            (String.IsNullOrEmpty(engine.Version) ||
+             String.IsNullOrEmpty(engine.DefaultVoiceId) ||
+             engine.SampleRate <= 0 || engine.Channels <= 0 ||
+             engine.Voices == null || engine.Voices.Length == 0 ||
+             engine.Capabilities == null))
         {
             throw new ArgumentException("capture engine metadata is incomplete",
                 "engine");
         }
-        if (!HasVoice(engine.DefaultVoiceId))
+        if (engine != null && !HasVoice(engine.DefaultVoiceId))
         {
             throw new ArgumentException(
                 "capture engine default voice is not in inventory", "engine");
+        }
+        if (engine == null && String.IsNullOrEmpty(runtimeUnavailableReason))
+        {
+            throw new ArgumentException(
+                "an unavailable helper requires a diagnostic",
+                "runtimeUnavailableReason");
+        }
+        if (this.runtimeUnavailableReason != null &&
+            this.runtimeUnavailableReason.Length > MaximumStringLength)
+        {
+            this.runtimeUnavailableReason = this.runtimeUnavailableReason
+                .Substring(0, MaximumStringLength);
         }
 
         input = new StreamReader(Console.OpenStandardInput(),
@@ -323,8 +430,10 @@ internal sealed class OmnivoxHelperHost
         json.MaxJsonLength = MaximumFrameBytes;
         json.RecursionLimit = 32;
         OmnivoxHelperLog.Event("process_started",
-            "engine=" + engine.EngineId + " engine_version=" +
-            engine.Version + " helper=\"" + engine.HelperName + "\"");
+            "engine=" + engineId + " engine_version=" +
+            (engine == null ? "unavailable" : engine.Version) +
+            " helper=\"" + helperName + "\" runtime=" +
+            (engine == null ? "unavailable" : "available"));
     }
 
     internal int Run()
@@ -524,7 +633,7 @@ internal sealed class OmnivoxHelperHost
         negotiated = true;
         Dictionary<string, object> response = Response(requestId, "hello");
         response["selected_protocol_version"] = selectedProtocolVersion;
-        response["helper_name"] = engine.HelperName;
+        response["helper_name"] = helperName;
         response["helper_version"] = "0.1.0";
         WriteFrame(response);
     }
@@ -541,6 +650,10 @@ internal sealed class OmnivoxHelperHost
         {
             RequireFields(request, "protocol_version", "request_id", "type",
                 "text", "settings");
+        }
+        if (engine == null)
+        {
+            throw Fault("not_available", runtimeUnavailableReason, false);
         }
         string text = ReadText(request);
         if (Encoding.UTF8.GetByteCount(text) > MaximumTextBytes)
@@ -575,7 +688,7 @@ internal sealed class OmnivoxHelperHost
         if (!HasVoice(voiceId))
         {
             throw Fault("voice_not_found",
-                engine.DisplayName + " voice was not found: " + voiceId,
+                    displayName + " voice was not found: " + voiceId,
                 false);
         }
 
@@ -597,7 +710,7 @@ internal sealed class OmnivoxHelperHost
         synthesis.Anchors = selectedProtocolVersion >= AnchorProtocolVersion ?
             ReadAnchors(request, text) : new OmnivoxHelperAnchor[0];
         synthesis.Worker = new Thread(delegate() { SynthesisWorker(synthesis); });
-        synthesis.Worker.Name = "omnivox-" + engine.EngineId + "-synthesis";
+        synthesis.Worker.Name = "omnivox-" + engineId + "-synthesis";
         synthesis.Worker.IsBackground = true;
 
         lock (stateLock)
@@ -605,7 +718,7 @@ internal sealed class OmnivoxHelperHost
             if (active != null)
             {
                 throw Fault("busy",
-                    engine.DisplayName + " permits one active synthesis", true);
+                    displayName + " permits one active synthesis", true);
             }
             active = synthesis;
         }
@@ -935,6 +1048,12 @@ internal sealed class OmnivoxHelperHost
 
     private void WriteDescriptor(ulong requestId)
     {
+        if (engine == null)
+        {
+            WriteError(requestId, "not_available",
+                runtimeUnavailableReason, false);
+            return;
+        }
         Dictionary<string, object> descriptor =
             new Dictionary<string, object>();
         descriptor["id"] = engine.EngineId;
@@ -1236,7 +1355,7 @@ internal sealed class OmnivoxHelperHost
         if (!supported)
         {
             throw Fault("invalid_parameter",
-                engine.DisplayName + " does not support ACSS " + field,
+                displayName + " does not support ACSS " + field,
                 false);
         }
         return ReadNumber(values, field, 0.0, 1.0);

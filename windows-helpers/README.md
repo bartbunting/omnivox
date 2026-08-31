@@ -32,11 +32,27 @@ Run the source-contract checks without Windows or either proprietary runtime:
 make windows-helpers-test
 ```
 
+On Windows or WSL, build the helpers and verify that each one negotiates the
+protocol and reports a deliberately absent runtime without exiting early:
+
+```sh
+make windows-helpers-startup-test
+```
+
 Eloquence's ECI DLL and DECtalk's DLL, dictionary, and voices remain
 user-supplied. See [environment variables](../docs/ENV-VARS.md) for explicit
 runtime and helper paths. The stress procedure in
 [tools/README.md](../tools/README.md#windows-helper-session-stress) exercises a
 built helper against an installed runtime.
+
+Explicit native DLL arguments and environment variables must contain absolute
+paths. Otherwise Eloquence uses its documented Freedom Scientific 6.1
+installation path; DECtalk checks only beside the helper and the sibling
+`runtime` directory. Before any engine call, a helper validates that its DLL is
+an x86 PE image with every required export, then uses restricted Windows loading
+that resolves native dependencies only beside the selected DLL or from
+System32. Missing, malformed, wrong-architecture, or incomplete runtimes are
+reported as `not_available` through the helper protocol.
 
 ## Source and licensing
 

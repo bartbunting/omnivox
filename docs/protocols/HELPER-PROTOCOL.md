@@ -159,6 +159,12 @@ helpers, synthesis failures, and internal failures. An error may omit its
 request ID only when malformed input prevented the helper from trusting that
 ID. An error owned by a synthesis request is terminal for that synthesis.
 
+A helper whose separately supplied native runtime is missing or rejected still
+negotiates `hello` and remains responsive to `ping` and `shutdown`. Its
+`describe` and `synthesize` requests return `not_available` with a bounded
+runtime diagnostic. This lets the host distinguish an optional unavailable
+engine from a helper that crashed or failed to implement the protocol.
+
 ```json
 {"protocol_version":4,"request_id":3,"type":"error","code":"busy","message":"native engine is already synthesizing","retryable":true}
 ```

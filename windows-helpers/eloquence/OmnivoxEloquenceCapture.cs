@@ -6,83 +6,129 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
-internal static class OmnivoxNativeEci
+internal sealed class OmnivoxNativeEci : IDisposable
 {
-    private const string EciLibrary = "ECI.DLL";
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    internal static extern IntPtr LoadLibrary(string path);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetDllDirectory(string path);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciVersion")]
-    internal static extern void Version(StringBuilder buffer);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciNewEx")]
-    internal static extern IntPtr NewEx(int languageDialect);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciDelete")]
-    internal static extern void Delete(IntPtr handle);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciStop")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool Stop(IntPtr handle);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciClearInput")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool ClearInput(IntPtr handle);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciSynthesize")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool Synthesize(IntPtr handle);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciSynchronize")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool Synchronize(IntPtr handle);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciAddText")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool AddText(IntPtr handle, IntPtr text);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciInsertIndex")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool InsertIndex(IntPtr handle, int index);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciSetParam")]
-    internal static extern int SetParam(IntPtr handle, int parameter, int value);
-
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     internal delegate int Callback(IntPtr handle, int message, int parameter,
         IntPtr data);
 
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciRegisterCallback")]
-    internal static extern void RegisterCallback(IntPtr handle,
-        Callback callback, IntPtr data);
-
-    [DllImport(EciLibrary, CallingConvention = CallingConvention.StdCall,
-        EntryPoint = "eciSetOutputBuffer")]
+    [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Ansi)]
+    private delegate void VersionFunction(StringBuilder buffer);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate IntPtr NewExFunction(int languageDialect);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate void DeleteFunction(IntPtr handle);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetOutputBuffer(IntPtr handle, int samples,
+    private delegate bool BooleanHandleFunction(IntPtr handle);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private delegate bool AddTextFunction(IntPtr handle, IntPtr text);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private delegate bool InsertIndexFunction(IntPtr handle, int index);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate int SetParamFunction(IntPtr handle, int parameter,
+        int value);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate void RegisterCallbackFunction(IntPtr handle,
+        Callback callback, IntPtr data);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private delegate bool SetOutputBufferFunction(IntPtr handle, int samples,
         IntPtr buffer);
+
+    private readonly OmnivoxNativeLibrary library;
+    private readonly VersionFunction version;
+    private readonly NewExFunction newEx;
+    private readonly DeleteFunction delete;
+    private readonly BooleanHandleFunction stop;
+    private readonly BooleanHandleFunction clearInput;
+    private readonly BooleanHandleFunction synthesize;
+    private readonly BooleanHandleFunction synchronize;
+    private readonly AddTextFunction addText;
+    private readonly InsertIndexFunction insertIndex;
+    private readonly SetParamFunction setParam;
+    private readonly RegisterCallbackFunction registerCallback;
+    private readonly SetOutputBufferFunction setOutputBuffer;
+
+    internal OmnivoxNativeEci(string path)
+    {
+        string[] requiredExports = new string[]
+        {
+            "eciVersion", "eciNewEx", "eciDelete", "eciStop",
+            "eciClearInput", "eciSynthesize", "eciSynchronize",
+            "eciAddText", "eciInsertIndex", "eciSetParam",
+            "eciRegisterCallback", "eciSetOutputBuffer"
+        };
+        library = new OmnivoxNativeLibrary(path, "Eloquence ECI.DLL",
+            requiredExports);
+        try
+        {
+            version = library.Resolve<VersionFunction>("eciVersion");
+            newEx = library.Resolve<NewExFunction>("eciNewEx");
+            delete = library.Resolve<DeleteFunction>("eciDelete");
+            stop = library.Resolve<BooleanHandleFunction>("eciStop");
+            clearInput = library.Resolve<BooleanHandleFunction>(
+                "eciClearInput");
+            synthesize = library.Resolve<BooleanHandleFunction>(
+                "eciSynthesize");
+            synchronize = library.Resolve<BooleanHandleFunction>(
+                "eciSynchronize");
+            addText = library.Resolve<AddTextFunction>("eciAddText");
+            insertIndex = library.Resolve<InsertIndexFunction>(
+                "eciInsertIndex");
+            setParam = library.Resolve<SetParamFunction>("eciSetParam");
+            registerCallback = library.Resolve<RegisterCallbackFunction>(
+                "eciRegisterCallback");
+            setOutputBuffer = library.Resolve<SetOutputBufferFunction>(
+                "eciSetOutputBuffer");
+        }
+        catch
+        {
+            library.Dispose();
+            throw;
+        }
+    }
+
+    internal void Version(StringBuilder buffer) { version(buffer); }
+    internal IntPtr NewEx(int dialect) { return newEx(dialect); }
+    internal void Delete(IntPtr handle) { delete(handle); }
+    internal bool Stop(IntPtr handle) { return stop(handle); }
+    internal bool ClearInput(IntPtr handle) { return clearInput(handle); }
+    internal bool Synthesize(IntPtr handle) { return synthesize(handle); }
+    internal bool Synchronize(IntPtr handle) { return synchronize(handle); }
+    internal bool AddText(IntPtr handle, IntPtr text)
+    {
+        return addText(handle, text);
+    }
+    internal bool InsertIndex(IntPtr handle, int index)
+    {
+        return insertIndex(handle, index);
+    }
+    internal int SetParam(IntPtr handle, int parameter, int value)
+    {
+        return setParam(handle, parameter, value);
+    }
+    internal void RegisterCallback(IntPtr handle, Callback callback,
+        IntPtr data)
+    {
+        registerCallback(handle, callback, data);
+    }
+    internal bool SetOutputBuffer(IntPtr handle, int samples, IntPtr buffer)
+    {
+        return setOutputBuffer(handle, samples, buffer);
+    }
+
+    public void Dispose()
+    {
+        library.Dispose();
+    }
 }
 
 /// <summary>
@@ -117,6 +163,8 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
 
     private readonly Encoding textEncoding;
     private readonly object synthesisLock = new object();
+    private OmnivoxNativeEci native;
+    private string runtimeVersion;
     private IntPtr handle;
     private IntPtr outputBuffer;
     private OmnivoxNativeEci.Callback callback;
@@ -128,30 +176,10 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
 
     internal OmnivoxEloquenceCapture(string dllPath)
     {
-        if (IntPtr.Size != 4)
-        {
-            throw new InvalidOperationException(
-                "OmnivoxEloquenceHelper32.exe must run as a 32-bit process");
-        }
-
-        dllPath = Path.GetFullPath(dllPath);
-        if (!File.Exists(dllPath))
-        {
-            throw new FileNotFoundException("ECI.DLL was not found", dllPath);
-        }
-
-        string directory = Path.GetDirectoryName(dllPath);
-        Environment.CurrentDirectory = directory;
-        OmnivoxNativeEci.SetDllDirectory(directory);
-        if (OmnivoxNativeEci.LoadLibrary(dllPath) == IntPtr.Zero)
-        {
-            throw new Win32Exception(Marshal.GetLastWin32Error(),
-                "Could not load " + dllPath);
-        }
-
+        native = new OmnivoxNativeEci(dllPath);
         try
         {
-            handle = OmnivoxNativeEci.NewEx(GeneralAmericanEnglish);
+            handle = native.NewEx(GeneralAmericanEnglish);
             if (handle == IntPtr.Zero)
             {
                 throw new InvalidOperationException(
@@ -163,8 +191,17 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
                 DecoderFallback.ExceptionFallback);
             outputBuffer = Marshal.AllocHGlobal(OutputBufferSamples * 2);
             callback = OnEciCallback;
-            OmnivoxNativeEci.RegisterCallback(handle, callback, IntPtr.Zero);
+            native.RegisterCallback(handle, callback, IntPtr.Zero);
             Configure();
+
+            StringBuilder versionBuffer = new StringBuilder(32);
+            native.Version(versionBuffer);
+            if (versionBuffer.Length == 0)
+            {
+                throw new OmnivoxRuntimeUnavailableException(
+                    "Eloquence ECI.DLL did not report a runtime version");
+            }
+            runtimeVersion = versionBuffer.ToString();
         }
         catch
         {
@@ -177,9 +214,7 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
     {
         get
         {
-            StringBuilder buffer = new StringBuilder(32);
-            OmnivoxNativeEci.Version(buffer);
-            return buffer.ToString();
+            return runtimeVersion;
         }
     }
 
@@ -203,8 +238,8 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
             {
                 // A cancelled synthesis can leave queued input behind.  Start
                 // every request from a known empty native state.
-                OmnivoxNativeEci.Stop(handle);
-                Check(OmnivoxNativeEci.ClearInput(handle), "eciClearInput");
+                native.Stop(handle);
+                Check(native.ClearInput(handle), "eciClearInput");
                 Configure();
                 AddText(" `" + voiceId + " `vs" +
                     rate.ToString(CultureInfo.InvariantCulture) + " `vb" +
@@ -212,16 +247,16 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
                     voiceParameters + " `vv" +
                     volume.ToString(CultureInfo.InvariantCulture) + " ");
                 AddTextWithIndexes(text, anchors);
-                Check(OmnivoxNativeEci.Synthesize(handle), "eciSynthesize");
+                Check(native.Synthesize(handle), "eciSynthesize");
                 OmnivoxHelperLog.Event("native_call_started",
                     "engine=eloquence call=eciSynchronize");
                 // ECI invokes this instance's callback on its owner thread.
                 // A cancellation therefore aborts from OnEciCallback without
                 // making an unsupported cross-thread native call.
-                bool synchronized = OmnivoxNativeEci.Synchronize(handle);
+                bool synchronized = native.Synchronize(handle);
                 if (cancellationRequested())
                 {
-                    OmnivoxNativeEci.Stop(handle);
+                    native.Stop(handle);
                     throw new OperationCanceledException(
                         "Eloquence synthesis was cancelled");
                 }
@@ -241,7 +276,7 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
                 pendingMarkers = null;
                 reachedMarkers = null;
                 this.cancellationRequested = null;
-                OmnivoxNativeEci.ClearInput(handle);
+                native.ClearInput(handle);
             }
         }
     }
@@ -252,7 +287,7 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
         GCHandle pinned = GCHandle.Alloc(bytes, GCHandleType.Pinned);
         try
         {
-            Check(OmnivoxNativeEci.AddText(handle,
+            Check(native.AddText(handle,
                 pinned.AddrOfPinnedObject()), "eciAddText");
         }
         finally
@@ -369,7 +404,7 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
         foreach (MarkerInsertion insertion in insertions)
         {
             AddTextSegment(text, cursor, insertion.Position - cursor);
-            Check(OmnivoxNativeEci.InsertIndex(handle, markerIndex),
+            Check(native.InsertIndex(handle, markerIndex),
                 "eciInsertIndex");
             pendingMarkers.Add(markerIndex++, insertion.Marker);
             cursor = insertion.Position;
@@ -447,13 +482,13 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
 
     private void Configure()
     {
-        CheckParameter(OmnivoxNativeEci.SetParam(handle, InputType, 1),
+        CheckParameter(native.SetParam(handle, InputType, 1),
             "eciInputType");
-        CheckParameter(OmnivoxNativeEci.SetParam(handle, SynthMode, 1),
+        CheckParameter(native.SetParam(handle, SynthMode, 1),
             "eciSynthMode");
-        CheckParameter(OmnivoxNativeEci.SetParam(handle, SampleRate, 1),
+        CheckParameter(native.SetParam(handle, SampleRate, 1),
             "eciSampleRate");
-        Check(OmnivoxNativeEci.SetOutputBuffer(handle, OutputBufferSamples,
+        Check(native.SetOutputBuffer(handle, OutputBufferSamples,
             outputBuffer), "eciSetOutputBuffer");
     }
 
@@ -532,8 +567,8 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
     {
         if (handle != IntPtr.Zero)
         {
-            OmnivoxNativeEci.Stop(handle);
-            OmnivoxNativeEci.Delete(handle);
+            native.Stop(handle);
+            native.Delete(handle);
             handle = IntPtr.Zero;
         }
         if (outputBuffer != IntPtr.Zero)
@@ -545,6 +580,11 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
         {
             capture.Dispose();
             capture = null;
+        }
+        if (native != null)
+        {
+            native.Dispose();
+            native = null;
         }
     }
 }

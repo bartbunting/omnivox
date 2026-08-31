@@ -206,20 +206,10 @@ internal static class OmnivoxDectalkHelper
                     "DECtalk.dll"));
         }
 
-        try
-        {
-            using (OmnivoxDectalkAdapter engine =
-                new OmnivoxDectalkAdapter(dllPath))
+        return OmnivoxHelperRuntime.Run("dectalk", "DECtalk Software",
+            "Omnivox DECtalk x86 helper", delegate()
             {
-                return new OmnivoxHelperHost(engine).Run();
-            }
-        }
-        catch (Exception error)
-        {
-            Console.Error.WriteLine("Omnivox DECtalk helper failed: " +
-                error.ToString());
-            Console.Error.Flush();
-            return 1;
-        }
+                return new OmnivoxDectalkAdapter(dllPath);
+            });
     }
 }

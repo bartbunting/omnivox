@@ -178,8 +178,8 @@ guidance.
 
 `OMNIVOX_ECI_DLL`
 
-- Optional path inherited and read by the Eloquence helper for a user-supplied
-  32-bit `ECI.DLL`.
+- Optional absolute path inherited and read by the Eloquence helper for a
+  user-supplied 32-bit `ECI.DLL`.
 
 `OMNIVOX_DECTALK_HELPER`
 
@@ -188,8 +188,8 @@ guidance.
 
 `OMNIVOX_DECTALK_DLL`
 
-- Optional path inherited and read by the DECtalk helper for a user-supplied
-  `DECtalk.dll`.
+- Optional absolute path inherited and read by the DECtalk helper for a
+  user-supplied 32-bit `DECtalk.dll`.
 - `dtalk_us.dic` must be in the same directory.
 
 A missing helper or runtime removes only that engine from usable inventory;

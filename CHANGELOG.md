@@ -14,6 +14,11 @@ Versioning for published releases.
 
 ### Fixed
 
+- Eloquence and DECtalk helpers now negotiate and report missing, malformed,
+  wrong-architecture, or incomplete user-supplied runtimes as `not_available`
+  instead of exiting before the helper protocol starts. Native DLL loading is
+  restricted to validated absolute x86 images, required exports, the selected
+  DLL directory, and System32.
 - Draft Piper verification now installs the complete generic release payload
   beside the companion, so missing or corrupt model tests exercise the packaged
   eSpeak fallback rather than a build-tree data path. Recovery publication now

@@ -12,60 +12,139 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
-internal static class OmnivoxNativeDectalk
+internal sealed class OmnivoxNativeDectalk : IDisposable
 {
-    private const string DectalkLibrary = "DECtalk.dll";
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    internal static extern IntPtr LoadLibrary(string path);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetDllDirectory(string path);
-
-    [DllImport("user32.dll", CharSet = CharSet.Ansi, SetLastError = true)]
-    internal static extern uint RegisterWindowMessage(string message);
+    [DllImport("user32.dll", CharSet = CharSet.Ansi, SetLastError = true,
+        EntryPoint = "RegisterWindowMessageA")]
+    private static extern uint RegisterWindowMessageNative(string message);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal delegate void Callback(int parameter1, int parameter2,
         uint userParameter, uint message);
 
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl,
-        CharSet = CharSet.Ansi)]
-    internal static extern uint TextToSpeechStartupExFonix(out IntPtr handle,
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+    private delegate uint StartupFunction(out IntPtr handle,
         uint device, uint options, Callback callback, int instanceParameter,
         string dictionaryPath);
-
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern uint TextToSpeechShutdown(IntPtr handle);
-
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern uint TextToSpeechSpeak(IntPtr handle, IntPtr text,
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint HandleFunction(IntPtr handle);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint SpeakFunction(IntPtr handle, IntPtr text,
         uint flags);
-
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern uint TextToSpeechReset(IntPtr handle,
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint ResetFunction(IntPtr handle,
         [MarshalAs(UnmanagedType.Bool)] bool resetModes);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint HandleValueFunction(IntPtr handle, uint value);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint AddBufferFunction(IntPtr handle, IntPtr buffer);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint VersionFunction(out IntPtr version);
 
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern uint TextToSpeechSync(IntPtr handle);
+    private readonly OmnivoxNativeLibrary library;
+    private readonly StartupFunction startup;
+    private readonly HandleFunction shutdown;
+    private readonly SpeakFunction speak;
+    private readonly ResetFunction reset;
+    private readonly HandleFunction sync;
+    private readonly HandleValueFunction setRate;
+    private readonly HandleValueFunction openInMemory;
+    private readonly HandleFunction closeInMemory;
+    private readonly AddBufferFunction addBuffer;
+    private readonly VersionFunction version;
 
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern uint TextToSpeechSetRate(IntPtr handle, uint rate);
+    internal OmnivoxNativeDectalk(string path)
+    {
+        string[] requiredExports = new string[]
+        {
+            "TextToSpeechStartupExFonix", "TextToSpeechShutdown",
+            "TextToSpeechSpeak", "TextToSpeechReset", "TextToSpeechSync",
+            "TextToSpeechSetRate", "TextToSpeechOpenInMemory",
+            "TextToSpeechCloseInMemory", "TextToSpeechAddBuffer",
+            "TextToSpeechVersion"
+        };
+        library = new OmnivoxNativeLibrary(path, "DECtalk.dll",
+            requiredExports);
+        try
+        {
+            startup = library.Resolve<StartupFunction>(
+                "TextToSpeechStartupExFonix");
+            shutdown = library.Resolve<HandleFunction>(
+                "TextToSpeechShutdown");
+            speak = library.Resolve<SpeakFunction>("TextToSpeechSpeak");
+            reset = library.Resolve<ResetFunction>("TextToSpeechReset");
+            sync = library.Resolve<HandleFunction>("TextToSpeechSync");
+            setRate = library.Resolve<HandleValueFunction>(
+                "TextToSpeechSetRate");
+            openInMemory = library.Resolve<HandleValueFunction>(
+                "TextToSpeechOpenInMemory");
+            closeInMemory = library.Resolve<HandleFunction>(
+                "TextToSpeechCloseInMemory");
+            addBuffer = library.Resolve<AddBufferFunction>(
+                "TextToSpeechAddBuffer");
+            version = library.Resolve<VersionFunction>("TextToSpeechVersion");
+        }
+        catch
+        {
+            library.Dispose();
+            throw;
+        }
+    }
 
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern uint TextToSpeechOpenInMemory(IntPtr handle,
-        uint format);
+    internal static uint RegisterWindowMessage(string message)
+    {
+        return RegisterWindowMessageNative(message);
+    }
 
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern uint TextToSpeechCloseInMemory(IntPtr handle);
+    internal uint TextToSpeechStartupExFonix(out IntPtr handle, uint device,
+        uint options, Callback callback, int instanceParameter,
+        string dictionaryPath)
+    {
+        return startup(out handle, device, options, callback,
+            instanceParameter, dictionaryPath);
+    }
 
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern uint TextToSpeechAddBuffer(IntPtr handle,
-        IntPtr buffer);
+    internal uint TextToSpeechShutdown(IntPtr handle)
+    {
+        return shutdown(handle);
+    }
 
-    [DllImport(DectalkLibrary, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern uint TextToSpeechVersion(out IntPtr version);
+    internal uint TextToSpeechSpeak(IntPtr handle, IntPtr text, uint flags)
+    {
+        return speak(handle, text, flags);
+    }
+
+    internal uint TextToSpeechReset(IntPtr handle, bool resetModes)
+    {
+        return reset(handle, resetModes);
+    }
+
+    internal uint TextToSpeechSync(IntPtr handle) { return sync(handle); }
+    internal uint TextToSpeechSetRate(IntPtr handle, uint rate)
+    {
+        return setRate(handle, rate);
+    }
+    internal uint TextToSpeechOpenInMemory(IntPtr handle, uint format)
+    {
+        return openInMemory(handle, format);
+    }
+    internal uint TextToSpeechCloseInMemory(IntPtr handle)
+    {
+        return closeInMemory(handle);
+    }
+    internal uint TextToSpeechAddBuffer(IntPtr handle, IntPtr buffer)
+    {
+        return addBuffer(handle, buffer);
+    }
+    internal uint TextToSpeechVersion(out IntPtr value)
+    {
+        return version(out value);
+    }
+
+    public void Dispose()
+    {
+        library.Dispose();
+    }
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -143,6 +222,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
     private readonly object stateLock = new object();
     private readonly Encoding textEncoding;
     private readonly List<BufferSlot> buffers = new List<BufferSlot>();
+    private OmnivoxNativeDectalk native;
     private IntPtr handle;
     private OmnivoxNativeDectalk.Callback callback;
     private uint bufferMessage;
@@ -153,35 +233,20 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
     private bool discardAudio;
     private bool shuttingDown;
     private bool memoryOpen;
+    private string runtimeVersion;
 
     internal OmnivoxDectalkCapture(string dllPath)
     {
-        if (IntPtr.Size != 4)
-        {
-            throw new InvalidOperationException(
-                "OmnivoxDectalkHelper32.exe must run as a 32-bit process");
-        }
-
+        native = new OmnivoxNativeDectalk(dllPath);
         dllPath = Path.GetFullPath(dllPath);
-        if (!File.Exists(dllPath))
-        {
-            throw new FileNotFoundException("DECtalk.dll was not found",
-                dllPath);
-        }
         string directory = Path.GetDirectoryName(dllPath);
         string dictionary = Path.Combine(directory, "dtalk_us.dic");
         if (!File.Exists(dictionary))
         {
-            throw new FileNotFoundException("dtalk_us.dic was not found",
-                dictionary);
-        }
-
-        Environment.CurrentDirectory = directory;
-        OmnivoxNativeDectalk.SetDllDirectory(directory);
-        if (OmnivoxNativeDectalk.LoadLibrary(dllPath) == IntPtr.Zero)
-        {
-            throw new Win32Exception(Marshal.GetLastWin32Error(),
-                "Could not load " + dllPath);
+            native.Dispose();
+            native = null;
+            throw new OmnivoxRuntimeUnavailableException(
+                "DECtalk dictionary was not found at \"" + dictionary + "\"");
         }
 
         try
@@ -198,7 +263,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             }
 
             callback = OnDectalkCallback;
-            Check(OmnivoxNativeDectalk.TextToSpeechStartupExFonix(
+            Check(native.TextToSpeechStartupExFonix(
                 out handle, WaveMapper, DoNotUseAudioDevice, callback, 0,
                 dictionary), "TextToSpeechStartupExFonix");
             if (handle == IntPtr.Zero)
@@ -206,10 +271,20 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                 throw new InvalidOperationException(
                     "DECtalk returned a null speech handle");
             }
-            Check(OmnivoxNativeDectalk.TextToSpeechOpenInMemory(handle,
+            Check(native.TextToSpeechOpenInMemory(handle,
                 WaveFormat11025Mono16), "TextToSpeechOpenInMemory");
             memoryOpen = true;
             AllocateBuffers();
+
+            IntPtr versionValue;
+            uint versionCode = native.TextToSpeechVersion(out versionValue);
+            runtimeVersion = versionValue == IntPtr.Zero ? null :
+                Marshal.PtrToStringAnsi(versionValue);
+            if (versionCode == 0 || String.IsNullOrEmpty(runtimeVersion))
+            {
+                throw new OmnivoxRuntimeUnavailableException(
+                    "DECtalk.dll did not report a runtime version");
+            }
         }
         catch
         {
@@ -222,10 +297,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
     {
         get
         {
-            IntPtr value;
-            OmnivoxNativeDectalk.TextToSpeechVersion(out value);
-            return value == IntPtr.Zero ? "DECtalk Software" :
-                Marshal.PtrToStringAnsi(value);
+            return runtimeVersion;
         }
     }
 
@@ -237,7 +309,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             BeginCapture();
             try
             {
-                Check(OmnivoxNativeDectalk.TextToSpeechSetRate(handle,
+                Check(native.TextToSpeechSetRate(handle,
                     (uint)rate), "TextToSpeechSetRate");
                 Speak("[" + voiceCode + " :dv ap " +
                     pitch.ToString(CultureInfo.InvariantCulture) +
@@ -245,7 +317,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                     BuildTextWithIndexes(text));
                 OmnivoxHelperLog.Event("native_call_started",
                     "engine=dectalk call=TextToSpeechSync");
-                Check(OmnivoxNativeDectalk.TextToSpeechSync(handle),
+                Check(native.TextToSpeechSync(handle),
                     "TextToSpeechSync");
                 OmnivoxHelperLog.Event("native_call_completed",
                     "engine=dectalk call=TextToSpeechSync");
@@ -284,7 +356,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         {
             if (handle != IntPtr.Zero)
             {
-                OmnivoxNativeDectalk.TextToSpeechReset(handle, false);
+                native.TextToSpeechReset(handle, false);
             }
         }
         finally
@@ -303,7 +375,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         {
             discardAudio = true;
         }
-        Check(OmnivoxNativeDectalk.TextToSpeechReset(handle, false),
+        Check(native.TextToSpeechReset(handle, false),
             "TextToSpeechReset");
         lock (stateLock)
         {
@@ -326,7 +398,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         GCHandle pinned = GCHandle.Alloc(bytes, GCHandleType.Pinned);
         try
         {
-            Check(OmnivoxNativeDectalk.TextToSpeechSpeak(handle,
+            Check(native.TextToSpeechSpeak(handle,
                 pinned.AddrOfPinnedObject(), TtsForce), "TextToSpeechSpeak");
         }
         finally
@@ -692,7 +764,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             buffer.MaximumIndexMarks = MarkerRecordsPerBuffer;
             Marshal.StructureToPtr(buffer, slot.Buffer, false);
             buffers.Add(slot);
-            Check(OmnivoxNativeDectalk.TextToSpeechAddBuffer(handle,
+            Check(native.TextToSpeechAddBuffer(handle,
                 slot.Buffer), "TextToSpeechAddBuffer");
         }
     }
@@ -758,7 +830,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                 Marshal.StructureToPtr(buffer, bufferPointer, false);
                 if (!IsShuttingDown())
                 {
-                    Check(OmnivoxNativeDectalk.TextToSpeechAddBuffer(handle,
+                    Check(native.TextToSpeechAddBuffer(handle,
                         bufferPointer), "TextToSpeechAddBuffer");
                 }
             }
@@ -880,13 +952,13 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         }
         if (handle != IntPtr.Zero)
         {
-            OmnivoxNativeDectalk.TextToSpeechReset(handle, false);
+            native.TextToSpeechReset(handle, false);
             if (memoryOpen)
             {
-                OmnivoxNativeDectalk.TextToSpeechCloseInMemory(handle);
+                native.TextToSpeechCloseInMemory(handle);
                 memoryOpen = false;
             }
-            OmnivoxNativeDectalk.TextToSpeechShutdown(handle);
+            native.TextToSpeechShutdown(handle);
             handle = IntPtr.Zero;
         }
         for (int index = 0; index < buffers.Count; ++index)
@@ -918,6 +990,11 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             }
             markers = null;
             pendingTextMarkers = null;
+        }
+        if (native != null)
+        {
+            native.Dispose();
+            native = null;
         }
     }
 }
