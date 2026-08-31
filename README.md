@@ -134,17 +134,15 @@ Build the optional Piper helper and Piper-enabled server together with:
 make build-piper
 ```
 
-The first Piper native build requires network access to fetch its native inputs
-and a C++17-capable compiler. The current build fetches the archived
-[`rhasspy/piper`](https://github.com/rhasspy/piper) source and the
-[`piper-phonemize` master branch](https://github.com/rhasspy/piper-phonemize/tree/master)
-rather than pinned revisions. The archived project points to the newer
-[`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl) project, but
-Omnivox has not yet migrated or established compatibility with it. Treat the
-current integration as an experimental developer build, not a reproducible
-release payload. Native Piper code remains confined to the helper executable;
-dependency pinning, native-library staging, notices, and model distribution are
-still tracked as release work.
+The Piper native build uses the vendored `v1.7.0` C API from the maintained
+[`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl) project. It
+requires CMake 3.26, a C++17-capable compiler, and currently requires network
+access on the first build for upstream's pinned eSpeak source and ONNX Runtime
+1.22.0. Linux x64 development synthesis is verified, but checksum-controlled
+dependency preparation, native-library staging, notices, and Windows/macOS
+runner validation are still release work. Treat `make build-piper` as a
+developer build rather than a reproducible release payload for now. Native
+Piper code remains confined to the helper executable.
 
 Running Piper requires a compatible `.onnx` model and its adjacent
 configuration, named either `<model>.onnx.json` or `<model>.json`. Model

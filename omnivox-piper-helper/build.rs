@@ -1,7 +1,7 @@
 fn main() {
-    // omnivox-piper-sys exposes the directory containing piper-phonemize,
-    // ONNX Runtime, and its espeak-ng through Cargo metadata. Embed that path
-    // only in the helper executable that actually loads those libraries.
+    // omnivox-piper-sys exposes the directory containing libpiper and ONNX
+    // Runtime through Cargo metadata. Embed that developer-build path only in
+    // the helper executable that actually loads those libraries.
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     if matches!(target_os.as_str(), "linux" | "macos") {
         let Ok(rpath) = std::env::var("DEP_PIPER_RPATH") else {

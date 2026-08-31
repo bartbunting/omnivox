@@ -7,6 +7,7 @@ use thiserror::Error;
 pub mod contracts;
 pub mod control;
 pub mod engine_registry;
+#[cfg(feature = "espeak")]
 pub mod espeak;
 pub mod helper_engine;
 pub mod helper_protocol;

@@ -33,5 +33,6 @@ provide separately pinned, checksum-verified inputs and must not rely on that
 implicit network behavior. Those build and packaging changes are intentionally
 a later review slice.
 
-The old `omnivox-piper-sys/piper/` ignored checkout remains the active
-experimental implementation until the Rust/native migration is completed.
+The old `omnivox-piper-sys/piper/` path remains ignored so an existing legacy
+developer checkout does not become an accidental Git addition. It is no longer
+read by the active build.

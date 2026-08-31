@@ -11,5 +11,4 @@ links = "piper"
 name = "omnivox_piper_sys"
 
 [build-dependencies]
-cc = "1"
 bindgen = "0.69"

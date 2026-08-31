@@ -1,14 +1,15 @@
-//! Raw FFI bindings to the piper TTS C++ library via a C bridge.
+//! Raw FFI bindings to the maintained libpiper C API.
 //!
 //! Piper provides high-quality neural text-to-speech via ONNX Runtime.
-//! This crate wraps piper's C++ API in a C bridge (`piper_bridge.h/cpp`)
-//! that bindgen can handle.
+//! The native implementation is vendored from `OHF-Voice/piper1-gpl` and
+//! remains separately licensed under GPL-3.0-or-later.
 //!
 //! # Safety
 //!
-//! All raw pointers (`PiperState *`) must be treated as opaque and only
-//! passed to the corresponding bridge functions. Callers are responsible
-//! for proper init/destroy lifecycle management.
+//! All raw `piper_synthesizer` pointers must be treated as opaque and only
+//! passed to the corresponding libpiper functions. Callers are responsible
+//! for proper create/free lifecycle management and for copying chunk data
+//! before the next native call invalidates it.
 
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
@@ -16,8 +17,7 @@
 #![allow(dead_code)]
 #![allow(clippy::all)]
 
-/// espeak-ng data directory discovered at build time (parent of espeak-ng-data/).
-/// Empty string if not found during build; runtime fallback paths will be tried.
+/// Exact `espeak-ng-data` directory installed by the native libpiper build.
 pub const PIPER_ESPEAK_DATA_DIR: &str = env!("PIPER_ESPEAK_DATA_DIR");
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

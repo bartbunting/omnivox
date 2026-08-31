@@ -24,7 +24,7 @@ cmake-build-*/
 CMakeCache.txt
 CMakeFiles/
 
-# Piper source clone (pulled by omnivox-piper-sys/build.rs during piper feature build)
+# Legacy pre-v1.7 Piper checkout; retained so existing developer trees stay ignored
 omnivox-piper-sys/piper/
 
 # Dictionary files (legacy)

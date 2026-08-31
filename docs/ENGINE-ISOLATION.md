@@ -36,9 +36,11 @@ Windows native operation, only to isolate its stale result. Piper is different.
 another. The main server launches the helper through the versioned JSON
 protocol, and the helper advertises `synthesis_and_playback` because the host
 can terminate its process. A cancel is acknowledged on the helper protocol
-thread; if Piper's synchronous call has not returned within 250 ms, the generic
-helper watchdog kills and reaps the process. The next usable request negotiates
-a fresh helper and reloads the model.
+thread. The maintained libpiper API returns sentence-level audio chunks, so the
+worker observes a stop between chunks. If the current native inference call has
+not returned within 250 ms, the generic helper watchdog kills and reaps the
+process. The next usable request negotiates a fresh helper and reloads the
+model.
 
 By default the server resolves `omnivox-piper-helper` beside its own executable.
 `OMNIVOX_PIPER_HELPER` may provide an explicit path, and

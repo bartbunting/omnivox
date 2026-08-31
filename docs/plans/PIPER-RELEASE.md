@@ -28,24 +28,33 @@ third-party voice-model licences.
 - Defer multiple live instances of one engine until long-session evidence
   shows that restart and fallback are insufficient.
 
-## Current implementation audit
+## Pre-migration audit and current state
 
-The experimental `omnivox-piper-sys` build is not suitable for a release:
+The original experimental `omnivox-piper-sys` build was not suitable for a
+release:
 
-- its Cargo build script clones the archived `rhasspy/piper` repository at the
-  current default-branch head when a local ignored checkout is absent;
+- its Cargo build script cloned the archived `rhasspy/piper` repository at the
+  current default-branch head when a local ignored checkout was absent;
 - its CMake graph fetches additional native sources and binaries without a
   complete set of immutable revisions and verified digests;
-- platform selection in the build script observes the build-script host rather
-  than Cargo's requested target, so a cross-compiled result can contain host
+- platform selection in the build script observed the build-script host rather
+  than Cargo's requested target, so a cross-compiled result could contain host
   libraries;
-- the custom bridge targets the archived Piper C++ API rather than the
+- the custom bridge targeted the archived Piper C++ API rather than the
   maintained, versioned `libpiper` C API;
 - `make build-piper` produces linked binaries in a developer tree but does not
   stage all native libraries, eSpeak data, notices, and provenance into a
   relocatable payload; and
 - the ordinary release archive and archive verifier intentionally know nothing
   about the Piper helper or its runtime files.
+
+The first two defects and the custom bridge have now been removed. The native
+build consumes vendored libpiper v1.7.0, checks Cargo's requested native target,
+and fails closed for unsupported or cross-compiled helper targets. The Rust
+adapter consumes every returned float-audio chunk, including the final
+`PIPER_DONE` chunk, and observes cancellation between chunks. Linux x64 real
+synthesis passes with the existing local test model. Dependency verification,
+staging, archive verification, and other native runners remain open.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
@@ -151,12 +160,13 @@ support.
 
 ## Implementation slices after the decision
 
-1. Replace the archived source fetch and custom bridge with the selected,
-   immutable `libpiper` source path. Make host and Cargo target selection
-   explicit and fail closed for unsupported target triples.
-2. Adapt the Rust wrapper to the versioned C API while keeping the existing
-   helper protocol stable. Observe cancellation between returned audio chunks;
-   retain helper retirement for calls that do not return.
+1. **Completed:** replace the archived source fetch and custom bridge with the
+   selected, immutable `libpiper` source path. Make host and Cargo target
+   selection explicit and fail closed for unsupported target triples.
+2. **Completed on Linux x64:** adapt the Rust wrapper to the versioned C API
+   while keeping the existing helper protocol stable. Observe cancellation
+   between returned audio chunks; retain helper retirement for calls that do
+   not return.
 3. Add a staging command that produces one complete relocatable companion
    payload and records all source and binary digests.
 4. Teach archive verification to reject missing, unexpected, host-architecture,

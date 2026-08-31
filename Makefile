@@ -73,7 +73,7 @@ install: build
 # Build the main server and adjacent Piper helper. Native dependencies are
 # linked only into the helper (requires cmake + network on first run).
 build-piper:
-	$(PYTHON) tools/build.py --release -p omnivox-piper-helper --features piper
+	cargo build --locked --release -p omnivox-piper-helper --features piper
 	$(PYTHON) tools/build.py --release -p omnivox-cli --features piper
 
 # Install both executables and shared runtime assets beside one another.

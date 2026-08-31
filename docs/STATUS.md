@@ -86,7 +86,9 @@ in the linked protocol specifications; future work belongs in
   quarantined task after its stale output has been suppressed.
 - Marker precision differs by engine. Markerless engines retain speech and
   boundary-level presentation but cannot claim exact in-span action timing.
-- Piper packaging, model distribution, and broad real-platform latency testing
+- Piper uses the maintained vendored libpiper v1.7 C API and has been exercised
+  with real synthesis on Linux x64. Checksum-controlled dependency preparation,
+  companion packaging, model distribution, and Windows/macOS runtime testing
   are not release-complete.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is

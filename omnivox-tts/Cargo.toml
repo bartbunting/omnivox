@@ -6,9 +6,13 @@ authors.workspace = true
 license.workspace = true
 
 [features]
+default = ["espeak"]
+# The main server keeps eSpeak enabled. Native engine helpers can disable it to
+# avoid loading a second copy of eSpeak into one process.
+espeak = ["dep:espeak-rs-sys"]
 # Opt-in helper-local Piper adapter. The main server does not enable this
-# feature. Requires cmake, a C++17 compiler, and network access on first build
-# to download onnxruntime + piper-phonemize.
+# feature. Requires CMake, a C++17 compiler, and currently requires network
+# access on the first build for libpiper's eSpeak and ONNX Runtime inputs.
 piper = ["omnivox-piper-sys"]
 
 [dependencies]
@@ -20,8 +24,8 @@ serde_json.workspace = true
 base64.workspace = true
 omnivox-audio = { path = "../omnivox-audio" }
 
-# eSpeak NG backend (always compiled; supported builds stage its runtime data)
-espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"] }
+# eSpeak NG backend (enabled by default; supported builds stage its runtime data)
+espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"], optional = true }
 
 # Piper neural TTS for the out-of-process helper only
 omnivox-piper-sys = { path = "../omnivox-piper-sys", optional = true }

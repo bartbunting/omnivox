@@ -20,7 +20,8 @@ omnivox-audio/         canonical buffer, effects, resources, renderer, playback
 omnivox-tts/           engine contracts/backends, routing, protocols, helpers
 omnivox-cli/           executable, admission, work queue, routing and pipeline
 omnivox-piper-helper/  optional isolated Piper executable and protocol tests
-omnivox-piper-sys/     optional native Piper bridge
+omnivox-piper-sys/     optional maintained libpiper C API build and bindings
+third-party/           separately licensed, provenance-recorded native source
 elisp/                 standalone upstream-Emacspeak compatibility adapter
 ```
 
@@ -176,9 +177,12 @@ engine rather than queueing behind stale work.
 Eloquence, DECtalk, and Piper use the versioned helper protocol. The main
 server validates helper inventory, request/response order, PCM totals, markers,
 and exact requested voice realization. A helper keeps reading cancellation and
-health commands while its native synthesis worker runs. If a helper cannot
-finish cancellation within the grace period, the host can terminate and later
-recreate the child. Proprietary DLLs remain outside the repository.
+health commands while its native synthesis worker runs. Piper uses libpiper's
+chunked C API and observes stop requests between returned chunks. If any helper
+cannot finish cancellation within the grace period, the host can terminate and
+later recreate the child. The Piper helper disables Omnivox's separate eSpeak
+backend so one process does not contain two interposing eSpeak runtimes.
+Proprietary DLLs remain outside the repository.
 
 See [HELPER-PROTOCOL.md](protocols/HELPER-PROTOCOL.md) and
 [ENGINE-ISOLATION.md](ENGINE-ISOLATION.md).

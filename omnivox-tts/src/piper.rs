@@ -1,11 +1,12 @@
 //! Piper Neural TTS Engine
 //!
-//! Cross-platform TTS backend using piper (https://github.com/rhasspy/piper),
-//! a fast neural text-to-speech system powered by ONNX Runtime and
-//! espeak-ng for phonemization.
+//! Cross-platform TTS backend using maintained libpiper
+//! (https://github.com/OHF-Voice/piper1-gpl), a fast neural text-to-speech
+//! system powered by ONNX Runtime and espeak-ng for phonemization.
 //!
 //! Piper models are per-voice `.onnx` files paired with a `.onnx.json` config.
-//! Download models from: https://github.com/rhasspy/piper/blob/master/VOICES.md
+//! Review model licences before downloading; each upstream model has its own
+//! `MODEL_CARD`.
 //!
 //! # Configuration
 //!
@@ -14,10 +15,10 @@
 //!
 //! # Thread Safety
 //!
-//! `PiperState*` is a C++ object accessed through a `Mutex`. All synthesis
+//! The opaque `piper_synthesizer` is accessed through a `Mutex`, so synthesis
 //! calls are serialized. This adapter runs in `omnivox-piper-helper`, not the
-//! main speech server. `stop()` is a no-op because piper synthesis is
-//! synchronous; the host cancels it by retiring the helper process.
+//! main speech server. `stop()` is observed between libpiper audio chunks; the
+//! host still retires the helper if a native chunk does not return promptly.
 
 use crate::contracts::{
     AcssCapabilities, AudioOutputMode, Availability, CancellationSupport, ConcurrencyModel,
@@ -29,6 +30,7 @@ use crate::{
 };
 use std::ffi::{CStr, CString};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tracing::{debug, info, warn};
 
@@ -38,13 +40,15 @@ use omnivox_piper_sys::PIPER_ESPEAK_DATA_DIR;
 
 /// Piper neural TTS engine.
 ///
-/// Wraps piper's C++ API via `omnivox_piper_sys`. A single voice model is
+/// Wraps libpiper's C API via `omnivox_piper_sys`. A single voice model is
 /// loaded at construction time; voice switching requires creating a new engine.
 pub struct PiperTtsEngine {
-    /// Raw pointer to piper's C++ state object, protected by a mutex.
-    // SAFETY: PiperState is not thread-safe on its own, so we serialize all
-    // accesses through this mutex. The pointer is non-null after construction.
-    state: Mutex<*mut omnivox_piper_sys::PiperState>,
+    /// Raw libpiper synthesizer pointer protected by a mutex.
+    // SAFETY: libpiper synthesizers are not thread-safe on their own, so all
+    // native calls are serialized. The pointer is non-null after construction.
+    state: Mutex<*mut omnivox_piper_sys::piper_synthesizer>,
+    cancel_requested: AtomicBool,
+    speaking: AtomicBool,
     /// Display name derived from the model filename.
     voice_name: String,
     /// The model path, kept for voice listing (language extraction etc.).
@@ -52,14 +56,14 @@ pub struct PiperTtsEngine {
     model_path: PathBuf,
 }
 
-// SAFETY: All accesses to PiperState* are serialized through the Mutex.
+// SAFETY: All native synthesizer accesses are serialized through the Mutex.
 unsafe impl Send for PiperTtsEngine {}
 unsafe impl Sync for PiperTtsEngine {}
 
 impl Drop for PiperTtsEngine {
     fn drop(&mut self) {
         if let Ok(ptr) = self.state.lock() {
-            unsafe { omnivox_piper_sys::piper_destroy(*ptr) };
+            unsafe { omnivox_piper_sys::piper_free(*ptr) };
         }
     }
 }
@@ -115,33 +119,25 @@ impl PiperTtsEngine {
             "Initializing piper: model={} config={} espeak={}",
             model_path.display(),
             config_path.display(),
-            espeak_data
+            espeak_data.display()
         );
 
-        let espeak_cstr = CString::new(espeak_data.as_str())
+        let espeak_cstr = CString::new(espeak_data.to_string_lossy().as_bytes())
             .map_err(|_| TtsError::InvalidParameter("Invalid espeak data path".to_string()))?;
-
-        let state_ptr = unsafe { omnivox_piper_sys::piper_init(espeak_cstr.as_ptr()) };
-        if state_ptr.is_null() {
-            return Err(TtsError::SynthesisFailed(
-                "piper_init failed (check espeak-ng data path)".to_string(),
-            ));
-        }
 
         let model_cstr = CString::new(model_path.to_string_lossy().as_ref())
             .map_err(|_| TtsError::InvalidParameter("Invalid model path".to_string()))?;
         let config_cstr = CString::new(config_path.to_string_lossy().as_ref())
             .map_err(|_| TtsError::InvalidParameter("Invalid config path".to_string()))?;
 
-        let ret = unsafe {
-            omnivox_piper_sys::piper_load_voice(
-                state_ptr,
-                model_cstr.as_ptr(),
-                config_cstr.as_ptr(),
-            )
+        let create_options = omnivox_piper_sys::piper_create_options {
+            struct_size: std::mem::size_of::<omnivox_piper_sys::piper_create_options>(),
+            model_path: model_cstr.as_ptr(),
+            config_path: config_cstr.as_ptr(),
+            espeak_data_path: espeak_cstr.as_ptr(),
         };
-        if ret != 0 {
-            unsafe { omnivox_piper_sys::piper_destroy(state_ptr) };
+        let state_ptr = unsafe { omnivox_piper_sys::piper_create_with_options(&create_options) };
+        if state_ptr.is_null() {
             return Err(TtsError::VoiceNotFound(format!(
                 "Failed to load piper voice from {}",
                 model_path.display()
@@ -158,6 +154,8 @@ impl PiperTtsEngine {
 
         Ok(Self {
             state: Mutex::new(state_ptr),
+            cancel_requested: AtomicBool::new(false),
+            speaking: AtomicBool::new(false),
             voice_name,
             model_path,
         })
@@ -237,11 +235,11 @@ impl TtsEngine for PiperTtsEngine {
             .state
             .lock()
             .map_err(|e| TtsError::SynthesisFailed(format!("piper state lock poisoned: {}", e)))?;
+        self.cancel_requested.store(false, Ordering::Release);
+        self.speaking.store(true, Ordering::Release);
+        let _speaking = SpeakingGuard(&self.speaking);
 
         let length_scale = Self::map_rate_to_length_scale(settings.rate);
-        // piper noise parameters use standard defaults
-        let noise_scale: f32 = 0.667;
-        let noise_w: f32 = 0.8;
 
         debug!(
             "piper synthesizing: {} chars (length_scale={:.2})",
@@ -252,22 +250,64 @@ impl TtsEngine for PiperTtsEngine {
         let text_cstr = CString::new(text)
             .map_err(|_| TtsError::SynthesisFailed("Text contains null bytes".to_string()))?;
 
-        let mut num_samples: u32 = 0;
-        let mut sample_rate: u32 = 0;
-
-        let audio_ptr = unsafe {
-            omnivox_piper_sys::piper_synthesize(
-                *ptr,
-                text_cstr.as_ptr(),
-                length_scale,
-                noise_scale,
-                noise_w,
-                &mut num_samples,
-                &mut sample_rate,
-            )
+        let mut options = unsafe { omnivox_piper_sys::piper_default_synthesize_options(*ptr) };
+        options.length_scale = length_scale;
+        let start = unsafe {
+            omnivox_piper_sys::piper_synthesize_start(*ptr, text_cstr.as_ptr(), &options)
         };
+        if start != omnivox_piper_sys::PIPER_OK as i32 {
+            return Err(TtsError::SynthesisFailed(format!(
+                "libpiper could not start synthesis (status {start})"
+            )));
+        }
 
-        if audio_ptr.is_null() || num_samples == 0 {
+        let mut samples = Vec::new();
+        let mut sample_rate = None;
+        loop {
+            if self.cancel_requested.load(Ordering::Acquire) {
+                return Err(TtsError::SynthesisFailed(
+                    "Piper synthesis was cancelled".to_owned(),
+                ));
+            }
+            let mut chunk: omnivox_piper_sys::piper_audio_chunk = unsafe { std::mem::zeroed() };
+            let status = unsafe { omnivox_piper_sys::piper_synthesize_next(*ptr, &mut chunk) };
+            if status != omnivox_piper_sys::PIPER_OK as i32
+                && status != omnivox_piper_sys::PIPER_DONE as i32
+            {
+                return Err(TtsError::SynthesisFailed(format!(
+                    "libpiper synthesis failed (status {status})"
+                )));
+            }
+            if chunk.sample_rate <= 0 {
+                return Err(TtsError::SynthesisFailed(
+                    "libpiper returned an invalid sample rate".to_owned(),
+                ));
+            }
+            let chunk_rate = chunk.sample_rate as u32;
+            if sample_rate
+                .replace(chunk_rate)
+                .is_some_and(|rate| rate != chunk_rate)
+            {
+                return Err(TtsError::SynthesisFailed(
+                    "libpiper changed sample rate within one utterance".to_owned(),
+                ));
+            }
+            if chunk.num_samples > 0 {
+                if chunk.samples.is_null() {
+                    return Err(TtsError::SynthesisFailed(
+                        "libpiper returned a null audio chunk".to_owned(),
+                    ));
+                }
+                let chunk_samples =
+                    unsafe { std::slice::from_raw_parts(chunk.samples, chunk.num_samples) };
+                samples.extend_from_slice(chunk_samples);
+            }
+            if status == omnivox_piper_sys::PIPER_DONE as i32 || chunk.is_last {
+                break;
+            }
+        }
+
+        if samples.is_empty() {
             debug!("piper produced no audio");
             return Ok(SynthesisResult::audio(
                 "piper",
@@ -276,31 +316,33 @@ impl TtsEngine for PiperTtsEngine {
             ));
         }
 
-        let i16_samples =
-            unsafe { std::slice::from_raw_parts(audio_ptr, num_samples as usize).to_vec() };
-
-        unsafe { omnivox_piper_sys::piper_free_audio(audio_ptr) };
-
         debug!(
-            "piper produced {} samples at {}Hz (mono i16)",
-            num_samples, sample_rate
+            "piper produced {} samples at {}Hz (mono f32)",
+            samples.len(),
+            sample_rate.unwrap_or_default()
         );
 
-        let buffer = AudioBuffer::try_from_interleaved_i16(&i16_samples, sample_rate, 1).map_err(
-            |error| TtsError::SynthesisFailed(format!("could not canonicalize Piper PCM: {error}")),
-        )?;
+        let buffer = AudioBuffer::try_from_interleaved_f32(
+            samples,
+            sample_rate.expect("non-empty Piper audio has a sample rate"),
+            1,
+        )
+        .map_err(|error| {
+            TtsError::SynthesisFailed(format!("could not canonicalize Piper PCM: {error}"))
+        })?;
         Ok(SynthesisResult::audio("piper", actual_voice, buffer))
     }
 
     fn stop(&self) {
-        // Piper synthesis is synchronous; there is no cancel mechanism in the
-        // current bridge. The helper suppresses a promptly returned stale
-        // result, while the host retires the process after its cancel grace.
-        debug!("piper: stop requested (no-op — synthesis is synchronous)");
+        // libpiper has no native stop call. The synthesis loop observes this
+        // between sentence chunks; the host retires the helper when a current
+        // native inference call does not return within its cancellation grace.
+        self.cancel_requested.store(true, Ordering::Release);
+        debug!("piper: stop requested");
     }
 
     fn is_speaking(&self) -> bool {
-        false
+        self.speaking.load(Ordering::Acquire)
     }
 
     fn available_voices(&self) -> Vec<VoiceInfo> {
@@ -344,7 +386,7 @@ fn find_config_path(model_path: &Path) -> Option<PathBuf> {
     None
 }
 
-/// Find the espeak-ng data parent directory for piper's phonemizer.
+/// Find the exact espeak-ng data directory for piper's phonemizer.
 ///
 /// Search order:
 /// 1. `OMNIVOX_PIPER_ESPEAK_DATA` env var
@@ -352,41 +394,46 @@ fn find_config_path(model_path: &Path) -> Option<PathBuf> {
 /// 3. Data adjacent to the helper executable
 /// 4. Build-time path captured by omnivox-piper-sys/build.rs
 /// 5. Well-known system paths
-fn find_espeak_data() -> Option<String> {
+fn find_espeak_data() -> Option<PathBuf> {
     // 1. Piper-specific override
     if let Ok(dir) = std::env::var("OMNIVOX_PIPER_ESPEAK_DATA") {
-        if !dir.is_empty() && espeak_data_valid(&dir) {
-            debug!("Using espeak data from OMNIVOX_PIPER_ESPEAK_DATA: {}", dir);
-            return Some(dir);
+        if !dir.is_empty() {
+            if let Some(path) = normalize_espeak_data(Path::new(&dir)) {
+                debug!("Using espeak data from OMNIVOX_PIPER_ESPEAK_DATA: {}", dir);
+                return Some(path);
+            }
         }
     }
 
     // 2. Shared espeak env var
     if let Ok(dir) = std::env::var("ESPEAK_NG_DATA") {
-        if !dir.is_empty() && espeak_data_valid(&dir) {
-            debug!("Using espeak data from ESPEAK_NG_DATA: {}", dir);
-            return Some(dir);
+        if !dir.is_empty() {
+            if let Some(path) = normalize_espeak_data(Path::new(&dir)) {
+                debug!("Using espeak data from ESPEAK_NG_DATA: {}", dir);
+                return Some(path);
+            }
         }
     }
 
     // 3. Shared data staged beside omnivox and omnivox-piper-helper.
     if let Ok(executable) = std::env::current_exe() {
         if let Some(parent) = executable.parent() {
-            let parent = parent.to_string_lossy();
-            if espeak_data_valid(parent.as_ref()) {
+            if let Some(path) = normalize_espeak_data(parent) {
                 debug!("Using espeak data next to executable");
-                return Some(parent.into_owned());
+                return Some(path);
             }
         }
     }
 
-    // 4. Build-time path (piper-phonemize bundled data)
-    if !PIPER_ESPEAK_DATA_DIR.is_empty() && espeak_data_valid(PIPER_ESPEAK_DATA_DIR) {
-        debug!(
-            "Using espeak data from build path: {}",
-            PIPER_ESPEAK_DATA_DIR
-        );
-        return Some(PIPER_ESPEAK_DATA_DIR.to_string());
+    // 4. Build-time path from the maintained libpiper install.
+    if !PIPER_ESPEAK_DATA_DIR.is_empty() {
+        if let Some(path) = normalize_espeak_data(Path::new(PIPER_ESPEAK_DATA_DIR)) {
+            debug!(
+                "Using espeak data from build path: {}",
+                PIPER_ESPEAK_DATA_DIR
+            );
+            return Some(path);
+        }
     }
 
     // 5. System paths
@@ -398,9 +445,9 @@ fn find_espeak_data() -> Option<String> {
         "/usr/local/lib/espeak-ng",
     ];
     for candidate in &candidates {
-        if espeak_data_valid(candidate) {
+        if let Some(path) = normalize_espeak_data(Path::new(candidate)) {
             debug!("Found espeak data at: {}", candidate);
-            return Some(candidate.to_string());
+            return Some(path);
         }
     }
 
@@ -408,12 +455,21 @@ fn find_espeak_data() -> Option<String> {
     None
 }
 
-/// Check that `dir/espeak-ng-data/phontab` exists (valid espeak-ng data parent).
-fn espeak_data_valid(dir: &str) -> bool {
-    std::path::Path::new(dir)
-        .join("espeak-ng-data")
-        .join("phontab")
-        .exists()
+/// Accept either the exact data directory or its traditional parent.
+fn normalize_espeak_data(path: &Path) -> Option<PathBuf> {
+    if path.join("phontab").is_file() {
+        return Some(path.to_path_buf());
+    }
+    let nested = path.join("espeak-ng-data");
+    nested.join("phontab").is_file().then_some(nested)
+}
+
+struct SpeakingGuard<'a>(&'a AtomicBool);
+
+impl Drop for SpeakingGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
 }
 
 /// Try to extract a BCP-47 language tag from the piper model filename.
@@ -478,7 +534,23 @@ mod tests {
     }
 
     #[test]
-    fn test_espeak_data_valid_false() {
-        assert!(!espeak_data_valid("/nonexistent/path"));
+    fn test_espeak_data_normalization_missing() {
+        assert!(normalize_espeak_data(Path::new("/nonexistent/path")).is_none());
+    }
+
+    #[test]
+    fn test_espeak_data_normalizes_parent_and_exact_directory() {
+        let root = std::env::temp_dir().join(format!(
+            "omnivox-piper-espeak-data-test-{}",
+            std::process::id()
+        ));
+        let data = root.join("espeak-ng-data");
+        std::fs::create_dir_all(&data).unwrap();
+        std::fs::write(data.join("phontab"), b"test").unwrap();
+
+        assert_eq!(normalize_espeak_data(&root), Some(data.clone()));
+        assert_eq!(normalize_espeak_data(&data), Some(data));
+
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

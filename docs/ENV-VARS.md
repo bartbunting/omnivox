@@ -87,7 +87,7 @@ not accepted startup values for `--engine` or `OMNIVOX_ENGINE`.
 
 `OMNIVOX_PIPER_ESPEAK_DATA`
 
-- Optional Piper-specific path containing `espeak-ng-data/`.
+- Optional Piper-specific path to `espeak-ng-data/` or its parent directory.
 - Read by the Piper engine inside `omnivox-piper-helper`; the main server
   inherits this environment into the child. The helper otherwise checks the
   shared data beside its executable, its build-time path, and compatible system
@@ -99,8 +99,8 @@ not accepted startup values for `--engine` or `OMNIVOX_ENGINE`.
   `espeak-ng-data` directory itself.
 - The eSpeak TTS backend checks this value first, then an `espeak-ng-data`
   directory beside the executable, its staged Cargo-profile path, and common
-  system data locations. The Piper phonemizer also checks it after
-  `OMNIVOX_PIPER_ESPEAK_DATA`.
+  system data locations. The Piper helper also accepts this parent-directory
+  convention after checking `OMNIVOX_PIPER_ESPEAK_DATA`.
 - Supported local builds and generic GitHub release archives package matching
   data beside the executable, so this variable is normally unnecessary for
   those layouts. Keep the packaged directory adjacent when relocating the
