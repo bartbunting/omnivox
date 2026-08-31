@@ -2,6 +2,94 @@
   "schema_version": 1,
   "piper_version": "1.7.0",
   "targets": {
+    "aarch64-apple-darwin": {
+      "espeak_ng": {
+        "archive": "espeak-ng-212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz",
+        "archive_root": "espeak-ng-212928b394a96e8fd2096616bfd54e17845c48f6",
+        "commit": "212928b394a96e8fd2096616bfd54e17845c48f6",
+        "destination": "espeak-ng",
+        "sha256": "1f201cabc73e569a7cb434d40d3b30980f923010f8ecd4d1c4ae94691ac2888a",
+        "source_tree_sha256": "21b6becbf3a759595fc59b70d95b2860c84e865421d5eba5e624575e86eefe13",
+        "url": "https://github.com/espeak-ng/espeak-ng/archive/212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz"
+      },
+      "onnxruntime": {
+        "archive": "onnxruntime-osx-arm64-1.22.0.tgz",
+        "archive_root": "onnxruntime-osx-arm64-1.22.0",
+        "destination": "onnxruntime",
+        "sha256": "cab6dcbd77e7ec775390e7b73a8939d45fec3379b017c7cb74f5b204c1a1cc07",
+        "source_tree_sha256": "39dd4e7998e99b839388ea4b664269d3fe1c7b23752c94f9de075afa2e251b37",
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-osx-arm64-1.22.0.tgz",
+        "version": "1.22.0"
+      },
+      "sonic": {
+        "archive": "sonic-fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104.tar.gz",
+        "archive_root": "sonic-fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104",
+        "commit": "fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104",
+        "destination": "sonic",
+        "sha256": "715827b5a39b79e56e44397d7b845910df996d4cca74777b3b61629b1ddc98c1",
+        "source_tree_sha256": "386f814417c85103bb1b94aaad3e2def3153835f1d0ba33f546fbc1a2a182c78",
+        "url": "https://github.com/waywardgeek/sonic/archive/fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104.tar.gz"
+      }
+    },
+    "x86_64-apple-darwin": {
+      "espeak_ng": {
+        "archive": "espeak-ng-212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz",
+        "archive_root": "espeak-ng-212928b394a96e8fd2096616bfd54e17845c48f6",
+        "commit": "212928b394a96e8fd2096616bfd54e17845c48f6",
+        "destination": "espeak-ng",
+        "sha256": "1f201cabc73e569a7cb434d40d3b30980f923010f8ecd4d1c4ae94691ac2888a",
+        "source_tree_sha256": "21b6becbf3a759595fc59b70d95b2860c84e865421d5eba5e624575e86eefe13",
+        "url": "https://github.com/espeak-ng/espeak-ng/archive/212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz"
+      },
+      "onnxruntime": {
+        "archive": "onnxruntime-osx-x86_64-1.22.0.tgz",
+        "archive_root": "onnxruntime-osx-x86_64-1.22.0",
+        "destination": "onnxruntime",
+        "sha256": "e4ec94a7696de74fb1b12846569aa94e499958af6ffa186022cfde16c9d617f0",
+        "source_tree_sha256": "5a944d0162684303698b26d216f16ea2ba4d535e1df9ed8f9bc0d042079a2766",
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-osx-x86_64-1.22.0.tgz",
+        "version": "1.22.0"
+      },
+      "sonic": {
+        "archive": "sonic-fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104.tar.gz",
+        "archive_root": "sonic-fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104",
+        "commit": "fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104",
+        "destination": "sonic",
+        "sha256": "715827b5a39b79e56e44397d7b845910df996d4cca74777b3b61629b1ddc98c1",
+        "source_tree_sha256": "386f814417c85103bb1b94aaad3e2def3153835f1d0ba33f546fbc1a2a182c78",
+        "url": "https://github.com/waywardgeek/sonic/archive/fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104.tar.gz"
+      }
+    },
+    "x86_64-pc-windows-msvc": {
+      "espeak_ng": {
+        "archive": "espeak-ng-212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz",
+        "archive_root": "espeak-ng-212928b394a96e8fd2096616bfd54e17845c48f6",
+        "commit": "212928b394a96e8fd2096616bfd54e17845c48f6",
+        "destination": "espeak-ng",
+        "materialize_symlinks": true,
+        "sha256": "1f201cabc73e569a7cb434d40d3b30980f923010f8ecd4d1c4ae94691ac2888a",
+        "source_tree_sha256": "c215dcc074474d171f21732c9d681c3bea40d2a150e3ffa46e3c53d6f7a751f8",
+        "url": "https://github.com/espeak-ng/espeak-ng/archive/212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz"
+      },
+      "onnxruntime": {
+        "archive": "onnxruntime-win-x64-1.22.0.zip",
+        "archive_root": "onnxruntime-win-x64-1.22.0",
+        "destination": "onnxruntime",
+        "sha256": "174c616efc0271194488642a72f1a514e01487da4dfe84c49296d66e40ebe0da",
+        "source_tree_sha256": "35904338efe547d1b09ad36eb9f5acc37921239896d8941373b29207dafd2337",
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-win-x64-1.22.0.zip",
+        "version": "1.22.0"
+      },
+      "sonic": {
+        "archive": "sonic-fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104.tar.gz",
+        "archive_root": "sonic-fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104",
+        "commit": "fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104",
+        "destination": "sonic",
+        "sha256": "715827b5a39b79e56e44397d7b845910df996d4cca74777b3b61629b1ddc98c1",
+        "source_tree_sha256": "386f814417c85103bb1b94aaad3e2def3153835f1d0ba33f546fbc1a2a182c78",
+        "url": "https://github.com/waywardgeek/sonic/archive/fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104.tar.gz"
+      }
+    },
     "x86_64-unknown-linux-gnu": {
       "espeak_ng": {
         "archive": "espeak-ng-212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz",

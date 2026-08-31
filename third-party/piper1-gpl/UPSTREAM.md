@@ -33,8 +33,9 @@ provide separately pinned, checksum-verified inputs and must not rely on that
 implicit network behavior. The Linux x64 build now overlays only its generated
 source copy, supplying the eSpeak NG, Sonic, and ONNX Runtime archives locked
 in `omnivox-piper-sys/native-inputs.json`; the vendored files in this directory
-remain unchanged. Other native targets must add and verify their own lock
-entries before release support is claimed.
+remain unchanged. Windows x64 and macOS ARM64/x64 now have their own verified
+input locks as well, but each platform still requires a successful native
+build and runtime acceptance before release support is claimed.
 
 The old `omnivox-piper-sys/piper/` path remains ignored so an existing legacy
 developer checkout does not become an accidental Git addition. It is no longer

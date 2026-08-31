@@ -59,7 +59,10 @@ ONNX Runtime inputs before CMake runs, and a second build passes with Cargo
 offline and dead network proxies. Relocatable staging is complete; archive
 verification, including real synthesis from the extracted candidate, is also
 complete locally. Corresponding-source review, CI integration, and other
-native runners remain open.
+native runners remain open. The same eSpeak NG and Sonic sources plus the
+platform-specific ONNX Runtime 1.22.0 bundles are now checksum-locked for
+Windows x64 and both macOS architectures; runner builds must still prove those
+inputs before platform support is claimed.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release

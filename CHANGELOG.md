@@ -30,6 +30,9 @@ Versioning for published releases.
 - Added deterministic `omnivox-VERSION-piper-linux-x64.tar.gz` construction
   and fail-closed verification of its layout, checksums, provenance,
   architecture, dynamic linkage, relocation, and optional real synthesis.
+- Added checksum-locked Piper native-input manifests for Windows x64 and
+  macOS ARM64/x64, including safe ZIP extraction and Windows-compatible
+  materialization of the eSpeak source link.
 
 ### Fixed
 

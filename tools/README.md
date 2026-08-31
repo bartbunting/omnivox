@@ -41,8 +41,9 @@ The staging command validates `$ORIGIN` runtime lookup and rejects unresolved
 or developer-tree native-library paths. Before Cargo runs,
 `prepare_piper_inputs.py` downloads the target's checked-in eSpeak NG, Sonic,
 and ONNX Runtime archives, verifies their SHA-256 digests, safely extracts
-them, and records the extracted-tree digests. A prepared cache can be checked
-without network access:
+them, and records the extracted-tree digests. It detects Linux x64, Windows
+x64, and macOS ARM64/x64 native targets; `--target` remains available for an
+explicit cache. A prepared cache can be checked without network access:
 
 ```sh
 python3 tools/prepare_piper_inputs.py \

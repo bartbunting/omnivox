@@ -15,6 +15,7 @@ import sys
 import tarfile
 import tempfile
 import urllib.request
+import zipfile
 
 
 class PreparationError(RuntimeError):
@@ -26,19 +27,27 @@ def require(condition: bool, message: str) -> None:
         raise PreparationError(message)
 
 
+def detected_target() -> str:
+    machine = platform.machine().lower()
+    if sys.platform == "linux" and machine in {"x86_64", "amd64"}:
+        return "x86_64-unknown-linux-gnu"
+    if sys.platform == "darwin" and machine in {"arm64", "aarch64"}:
+        return "aarch64-apple-darwin"
+    if sys.platform == "darwin" and machine in {"x86_64", "amd64"}:
+        return "x86_64-apple-darwin"
+    if sys.platform == "win32" and machine in {"x86_64", "amd64"}:
+        return "x86_64-pc-windows-msvc"
+    return ""
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Prepare checksum-locked native inputs for the Piper helper."
     )
     parser.add_argument(
         "--target",
-        default=(
-            "x86_64-unknown-linux-gnu"
-            if sys.platform == "linux"
-            and platform.machine().lower() in {"x86_64", "amd64"}
-            else ""
-        ),
-        help="native Rust target triple (default: detected Linux x64 target)",
+        default=detected_target(),
+        help="native Rust target triple (default: detected supported target)",
     )
     parser.add_argument(
         "--output",
@@ -89,7 +98,7 @@ def safe_parts(name: str) -> tuple[str, ...]:
     return parts
 
 
-def validate_symlink(member: tarfile.TarInfo, archive_root: str) -> None:
+def symlink_target(member: tarfile.TarInfo, archive_root: str) -> PurePosixPath:
     require(
         not PurePosixPath(member.linkname).is_absolute(),
         f"absolute link: {member.name}",
@@ -99,13 +108,20 @@ def validate_symlink(member: tarfile.TarInfo, archive_root: str) -> None:
     )
     parts = safe_parts(normalized)
     require(parts[0] == archive_root, f"link leaves archive root: {member.name}")
+    return PurePosixPath(*parts)
 
 
-def extract_archive(archive: Path, destination: Path, archive_root: str) -> Path:
+def extract_tar_archive(
+    archive: Path,
+    destination: Path,
+    archive_root: str,
+    materialize_symlinks: bool,
+) -> Path:
     with tarfile.open(archive, "r:gz") as bundle:
         members = bundle.getmembers()
         member_paths: set[PurePosixPath] = set()
         link_paths: set[PurePosixPath] = set()
+        link_targets: dict[PurePosixPath, PurePosixPath] = {}
         for member in members:
             parts = safe_parts(member.name)
             require(parts[0] == archive_root, f"unexpected archive root: {member.name}")
@@ -120,7 +136,7 @@ def extract_archive(archive: Path, destination: Path, archive_root: str) -> Path
                 f"unsupported archive member: {member.name}",
             )
             if member.issym():
-                validate_symlink(member, archive_root)
+                link_targets[member_path] = symlink_target(member, archive_root)
                 link_paths.add(member_path)
 
         for member_path in member_paths:
@@ -143,12 +159,72 @@ def extract_archive(archive: Path, destination: Path, archive_root: str) -> Path
                 with source, target.open("wb") as output:
                     shutil.copyfileobj(source, output)
                 target.chmod(member.mode & 0o777)
+            elif not member.issym():
+                raise PreparationError(f"unsupported archive member: {member.name}")
+
+        for member in members:
+            if not member.issym():
+                continue
+            target = destination.joinpath(*safe_parts(member.name))
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if materialize_symlinks:
+                member_path = PurePosixPath(*safe_parts(member.name))
+                source = destination.joinpath(*link_targets[member_path].parts)
+                require(source.is_file(), f"cannot materialize archive link: {member.name}")
+                shutil.copy2(source, target)
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.symlink_to(member.linkname)
+
     extracted = destination / archive_root
     require(extracted.is_dir(), f"archive root was not extracted: {archive_root}")
     return extracted
+
+
+def extract_zip_archive(archive: Path, destination: Path, archive_root: str) -> Path:
+    with zipfile.ZipFile(archive) as bundle:
+        member_paths: set[PurePosixPath] = set()
+        for member in bundle.infolist():
+            parts = safe_parts(member.filename)
+            require(parts[0] == archive_root, f"unexpected archive root: {member.filename}")
+            member_path = PurePosixPath(*parts)
+            require(
+                member_path not in member_paths,
+                f"duplicate archive member: {member.filename}",
+            )
+            member_paths.add(member_path)
+            mode = member.external_attr >> 16
+            require(
+                (mode & 0o170000) != 0o120000,
+                f"zip symlink is not allowed: {member.filename}",
+            )
+
+        for member in bundle.infolist():
+            target = destination.joinpath(*safe_parts(member.filename))
+            if member.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with bundle.open(member) as source, target.open("wb") as output:
+                shutil.copyfileobj(source, output)
+
+    extracted = destination / archive_root
+    require(extracted.is_dir(), f"archive root was not extracted: {archive_root}")
+    return extracted
+
+
+def extract_archive(
+    archive: Path,
+    destination: Path,
+    archive_root: str,
+    materialize_symlinks: bool,
+) -> Path:
+    if archive.suffix.lower() == ".zip":
+        require(not materialize_symlinks, "zip inputs cannot request link materialization")
+        return extract_zip_archive(archive, destination, archive_root)
+    return extract_tar_archive(
+        archive, destination, archive_root, materialize_symlinks
+    )
 
 
 def download(url: str, destination: Path, expected_sha256: str) -> None:
@@ -225,7 +301,10 @@ def ensure_source(
     )
     try:
         extracted = extract_archive(
-            archive, temporary, str(specification["archive_root"])
+            archive,
+            temporary,
+            str(specification["archive_root"]),
+            bool(specification.get("materialize_symlinks", False)),
         )
         replace_directory(extracted, destination)
     finally:
@@ -317,7 +396,13 @@ def prepare(arguments: argparse.Namespace) -> Path:
 def main() -> int:
     try:
         prepare(parse_arguments())
-    except (OSError, PreparationError, json.JSONDecodeError, tarfile.TarError) as error:
+    except (
+        OSError,
+        PreparationError,
+        json.JSONDecodeError,
+        tarfile.TarError,
+        zipfile.BadZipFile,
+    ) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     return 0
