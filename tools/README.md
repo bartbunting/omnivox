@@ -53,28 +53,41 @@ python3 tools/prepare_piper_inputs.py \
   --target x86_64-unknown-linux-gnu --check
 ```
 
-Create and verify the deterministic Linux x64 companion candidate with:
+Create and verify the deterministic companion candidate for the current native
+platform with:
 
 ```sh
 make package-piper
 make verify-piper
 ```
 
-The result is `target/release/omnivox-VERSION-piper-linux-x64.tar.gz`; its
-outer digest is written to `target/release/piper-sha256sums.txt`. The archive
-extracts as one `piper/` directory, ready to place beside the matching generic
-`omnivox` executable. To add real synthesis through the relocated main binary,
-supply a licence-reviewed model and adjacent configuration:
+The result is one of the following, with its outer digest written to
+`target/release/piper-sha256sums.txt`:
+
+| Native platform | Companion candidate |
+| --- | --- |
+| Linux x64 | `omnivox-VERSION-piper-linux-x64.tar.gz` |
+| macOS ARM64 | `omnivox-VERSION-piper-macos-arm64.tar.gz` |
+| macOS x64 | `omnivox-VERSION-piper-macos-x64.tar.gz` |
+| Windows x64 | `omnivox-VERSION-piper-windows-x64.zip` |
+
+Each archive extracts as one `piper/` directory, ready to place beside the
+matching generic `omnivox` executable. To add real synthesis through the
+relocated main binary, supply a licence-reviewed model and adjacent
+configuration:
 
 ```sh
 PIPER_MODEL=/path/to/voice.onnx make verify-piper
 ```
 
 `verify_piper_release.py` checks the outer and exhaustive inner checksums,
-exact payload and notice sets, clean source provenance, x86-64 ELF identities,
-exact `$ORIGIN` search paths, dynamic dependencies, and optional model-backed
-voice discovery and WAV output. Corresponding-source review, release CI, and
-other native platforms remain open, so no Piper archive is published yet.
+exact payload and notice sets, clean source provenance, native binary
+architecture, platform library lookup, and optional model-backed voice
+discovery and WAV output. Linux uses ELF/RUNPATH and `ldd` checks, macOS uses
+Mach-O, `@loader_path`, and `otool` checks, and Windows validates the PE import
+chain from the helper through `piper.dll` to ONNX Runtime. Corresponding-source
+review, release CI, and model-backed acceptance on every native runner remain
+open, so no Piper archive is published yet.
 
 ## Release archive verification
 

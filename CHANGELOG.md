@@ -35,6 +35,10 @@ Versioning for published releases.
   materialization of the eSpeak source link.
 - Generalized Piper companion staging for the Windows x64 and macOS
   ARM64/x64 helper and library layouts, with native PE or Mach-O validation.
+- Generalized deterministic Piper packaging and relocated-runtime verification
+  for Linux x64, Windows x64, and macOS ARM64/x64 native artifacts.
+- Added a manual, non-publishing native-runner workflow; Linux x64 and both
+  macOS architectures now build, stage, and recheck their locked inputs.
 
 ### Fixed
 
