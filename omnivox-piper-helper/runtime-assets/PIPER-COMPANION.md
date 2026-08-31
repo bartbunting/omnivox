@@ -3,6 +3,9 @@
 This directory is an optional native companion for a matching Omnivox build.
 Keep the directory intact and install it as `piper/` beside the `omnivox`
 executable. Omnivox discovers `piper/omnivox-piper-helper` automatically.
+The platform archive extracts with this `piper/` directory already at its
+root; extract it beside an existing generic Omnivox installation rather than
+merging the directory contents into that installation.
 
 The companion does not include a voice model. Supply a compatible `.onnx`
 model and its adjacent `<model>.onnx.json` or `<model>.json` configuration with

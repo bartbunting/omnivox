@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc prepare-piper stage-piper build-piper install-piper
+.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc prepare-piper stage-piper build-piper package-piper verify-piper install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -81,6 +81,14 @@ stage-piper:
 # Build the main server and isolated Piper companion together.
 build-piper: stage-piper
 	$(PYTHON) tools/build.py --release -p omnivox-cli --features piper
+
+# Create and structurally verify the optional Linux x64 companion archive.
+# Set PIPER_MODEL to add end-to-end synthesis with target/release/omnivox.
+package-piper: stage-piper
+	$(PYTHON) tools/package_piper.py
+
+verify-piper: package-piper
+	$(PYTHON) tools/verify_piper_release.py
 
 # Install the server payload and the isolated Piper companion.
 install-piper: build-piper

@@ -141,10 +141,13 @@ access on the first build to download checksum-locked eSpeak NG, Sonic, and
 ONNX Runtime 1.22.0 inputs. Repeated Linux x64 builds verify that cache and run
 offline. `make build-piper` stages an isolated `target/release/piper/`
 directory with the helper, native libraries, matching eSpeak data, notices,
-provenance, and checksums. Archive verification and Windows/macOS runner
-validation are still release work, so treat it as a developer payload rather
-than a publishable release archive for now. Native Piper code remains confined
-to the helper executable.
+provenance, and checksums. `make package-piper` creates the deterministic
+`omnivox-VERSION-piper-linux-x64.tar.gz` companion candidate, and
+`make verify-piper` verifies the extracted runtime. Set `PIPER_MODEL` to a
+licence-reviewed local model to add real end-to-end synthesis. The
+corresponding-source review, release CI, and Windows/macOS runner validation
+are still release work, so no Piper archive is published yet. Native Piper
+code remains confined to the helper executable.
 
 Running Piper requires a compatible `.onnx` model and its adjacent
 configuration, named either `<model>.onnx.json` or `<model>.json`. Model

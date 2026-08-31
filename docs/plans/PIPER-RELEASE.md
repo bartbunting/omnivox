@@ -57,8 +57,9 @@ cancellation between chunks. Linux x64 real synthesis passes with the existing
 local test model. Linux x64 now prepares checksum-locked eSpeak NG, Sonic, and
 ONNX Runtime inputs before CMake runs, and a second build passes with Cargo
 offline and dead network proxies. Relocatable staging is complete; archive
-verification, corresponding-source review, and other native runners remain
-open.
+verification, including real synthesis from the extracted candidate, is also
+complete locally. Corresponding-source review, CI integration, and other
+native runners remain open.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
@@ -181,8 +182,11 @@ support.
    relocatable companion payload and records source-input and payload digests.
    Its native-input preparation verifies every implicit upstream download and
    supports an offline repeat build.
-4. Teach archive verification to reject missing, unexpected, host-architecture,
-   or dynamically unresolved files in a Piper companion archive.
+4. **Completed on Linux x64:** construct a deterministic
+   `omnivox-VERSION-piper-linux-x64.tar.gz` and reject missing, unexpected,
+   host-architecture, dynamically unresolved, or incorrectly hashed files.
+   The verifier relocates the archive into a path with spaces and optionally
+   exercises a separately supplied, licence-reviewed model end to end.
 5. Add native-runner CI one platform at a time. Do not add a platform to the
    published matrix until the runner exercises a real, licence-reviewed test
    model.

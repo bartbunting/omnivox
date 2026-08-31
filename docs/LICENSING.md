@@ -60,10 +60,11 @@ combination must satisfy the applicable GPL and other component terms.
 
 The Linux x64 developer build now verifies its locked eSpeak NG, Sonic, and
 ONNX Runtime inputs before building and stages their notices and provenance in
-a relocatable companion directory. Archive verification, corresponding-source
-review, and other native-platform runners remain incomplete, so this is not
-yet a release payload. See the [Piper release plan](plans/PIPER-RELEASE.md) for
-the remaining work. No Piper companion archive is currently published.
+a relocatable companion directory. Its deterministic archive candidate is
+also verified after relocation, but corresponding-source review, release CI,
+and other native-platform runners remain incomplete. See the
+[Piper release plan](plans/PIPER-RELEASE.md) for the remaining work. No Piper
+companion archive is currently published.
 
 ## Proprietary engines and other dependencies
 

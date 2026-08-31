@@ -27,6 +27,9 @@ Versioning for published releases.
 - Piper's Linux x64 build now verifies locked eSpeak NG, Sonic, and ONNX
   Runtime archives before CMake uses them and supports repeat builds with
   network access disabled.
+- Added deterministic `omnivox-VERSION-piper-linux-x64.tar.gz` construction
+  and fail-closed verification of its layout, checksums, provenance,
+  architecture, dynamic linkage, relocation, and optional real synthesis.
 
 ### Fixed
 

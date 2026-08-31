@@ -89,8 +89,9 @@ in the linked protocol specifications; future work belongs in
 - Piper uses the maintained vendored libpiper v1.7 C API and has been exercised
   with real synthesis on Linux x64. Its Linux native inputs are
   checksum-locked, and a relocatable companion directory is staged with
-  notices and manifests. Archive verification, corresponding-source review,
-  model distribution, and Windows/macOS runtime testing are not
+  notices and manifests. Deterministic companion archive construction and
+  relocated runtime verification pass locally. Corresponding-source review,
+  model distribution, release CI, and Windows/macOS runtime testing are not
   release-complete.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is

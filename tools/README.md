@@ -49,8 +49,28 @@ python3 tools/prepare_piper_inputs.py \
   --target x86_64-unknown-linux-gnu --check
 ```
 
-Companion archive construction and verification remain open release work, so
-the staged directory is not yet a publishable release artifact.
+Create and verify the deterministic Linux x64 companion candidate with:
+
+```sh
+make package-piper
+make verify-piper
+```
+
+The result is `target/release/omnivox-VERSION-piper-linux-x64.tar.gz`; its
+outer digest is written to `target/release/piper-sha256sums.txt`. The archive
+extracts as one `piper/` directory, ready to place beside the matching generic
+`omnivox` executable. To add real synthesis through the relocated main binary,
+supply a licence-reviewed model and adjacent configuration:
+
+```sh
+PIPER_MODEL=/path/to/voice.onnx make verify-piper
+```
+
+`verify_piper_release.py` checks the outer and exhaustive inner checksums,
+exact payload and notice sets, clean source provenance, x86-64 ELF identities,
+exact `$ORIGIN` search paths, dynamic dependencies, and optional model-backed
+voice discovery and WAV output. Corresponding-source review, release CI, and
+other native platforms remain open, so no Piper archive is published yet.
 
 ## Release archive verification
 

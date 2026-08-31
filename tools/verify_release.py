@@ -79,8 +79,12 @@ def safe_parts(name: str) -> tuple[str, ...]:
 
 def extract_tar(archive: Path, destination: Path) -> None:
     with tarfile.open(archive, "r:gz") as bundle:
+        seen: set[PurePosixPath] = set()
         for member in bundle.getmembers():
-            target = destination.joinpath(*safe_parts(member.name))
+            member_path = PurePosixPath(*safe_parts(member.name))
+            require(member_path not in seen, f"duplicate tar member: {member.name!r}")
+            seen.add(member_path)
+            target = destination.joinpath(*member_path.parts)
             if member.isdir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue
@@ -95,8 +99,15 @@ def extract_tar(archive: Path, destination: Path) -> None:
 
 def extract_zip(archive: Path, destination: Path) -> None:
     with zipfile.ZipFile(archive) as bundle:
+        seen: set[PurePosixPath] = set()
         for member in bundle.infolist():
-            target = destination.joinpath(*safe_parts(member.filename))
+            member_path = PurePosixPath(*safe_parts(member.filename))
+            require(
+                member_path not in seen,
+                f"duplicate zip member: {member.filename!r}",
+            )
+            seen.add(member_path)
+            target = destination.joinpath(*member_path.parts)
             if member.is_dir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue
@@ -197,6 +208,7 @@ def verify_layout(root: Path, platform: str, version: str) -> Path:
 
 def verify_architecture(binary: Path, platform: str, arch: str) -> None:
     data = binary.read_bytes()[:4096]
+    require(len(data) >= 64, f"binary is too short: {binary}")
     if platform == "linux":
         require(data[:4] == b"\x7fELF", "Linux binary is not ELF")
         require(data[4:6] == b"\x02\x01", "Linux binary is not 64-bit little-endian ELF")
