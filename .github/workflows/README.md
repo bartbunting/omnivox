@@ -38,6 +38,10 @@ matching generated `espeak-ng-data`, `LICENSE`, `LICENSING.md`, and third-party
 notices. The build wrapper derives that data from the exact `espeak-rs-sys`
 output reported by Cargo.
 
+The main executable enables optional Piper helper discovery on every target.
+This does not link libpiper into the server or add the companion to a generic
+artifact; the separate manual Piper workflow owns that native payload.
+
 The workflow verifies the data, project licensing files, and third-party
 notices in all five artifacts. It also runs eSpeak voice discovery from the
 packaged data on every native build runner and native WAV synthesis on both

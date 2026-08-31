@@ -62,10 +62,12 @@ The release version and archive prefix come from the tag name with its leading
 - Locked dependency resolution with Rust 1.97.1, matching
   `rust-toolchain.toml`.
 
-The workflow does not exercise real Eloquence, DECtalk, or Piper runtimes,
-physical audible onset or audio-device playback, or Emacsvox's content-addressed
-Windows staging contract. A failed archive verification leaves the GitHub
-release in draft state.
+The publishing workflow does not exercise real Eloquence, DECtalk, or Piper
+runtimes, physical audible onset or audio-device playback, or Emacsvox's
+content-addressed Windows staging contract. The separate non-publishing Piper
+workflow performs native archive verification and real synthesis on Linux x64,
+Windows x64, and macOS ARM64/x64. A failed generic archive verification leaves
+the GitHub release in draft state.
 
 ## Installing an archive
 
@@ -142,8 +144,9 @@ Copy-Item -Recurse -Force espeak-ng-data\* "$destination\espeak-ng-data"
 Copy-Item -Recurse -Force third-party-licenses\* "$destination\third-party-licenses"
 ```
 
-Optional helper engines require separate adjacent executables and
-user-supplied runtimes.
+Current generic executables can discover optional Piper helpers, but the Piper
+companion is not published. Other optional helper engines likewise require
+separate adjacent executables and user-supplied runtimes.
 
 Release binaries are not code-signed or notarized. macOS Gatekeeper or Windows
 SmartScreen may therefore warn or refuse the first launch. Verify the SHA-256

@@ -9,11 +9,11 @@ all: build
 
 # Build release binary
 build:
-	$(PYTHON) tools/build.py --release
+	$(PYTHON) tools/build.py --release --package omnivox-cli --features piper
 
 # Build debug binary
 dev:
-	$(PYTHON) tools/build.py
+	$(PYTHON) tools/build.py --package omnivox-cli --features piper
 
 # Run tests
 test:
@@ -26,7 +26,7 @@ elisp-test:
 
 # Run with staged debug runtime data
 run: dev
-	cargo run --locked
+	cargo run --locked --package omnivox-cli --features piper
 
 # Check code without building
 check:
@@ -64,7 +64,7 @@ watch:
 # Install the binary and its eSpeak runtime payload to ~/.cargo/bin. Override
 # OMNIVOX_INSTALL_BIN when Cargo is configured with a different install root.
 install: build
-	cargo install --locked --path omnivox-cli
+	cargo install --locked --path omnivox-cli --features piper
 	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses"
 	cp -R target/release/espeak-ng-data/. "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data/"
 	cp -R target/release/third-party-licenses/. "$(OMNIVOX_INSTALL_BIN)/third-party-licenses/"

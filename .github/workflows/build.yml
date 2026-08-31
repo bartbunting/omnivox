@@ -96,7 +96,9 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ matrix.target }}-build-
 
       - name: Build release binary
-        run: python tools/build.py --release --target ${{ matrix.target }}
+        run: >-
+          python tools/build.py --release --target ${{ matrix.target }}
+          --package omnivox-cli --features piper
 
       - name: Prepare artifacts (Windows)
         if: runner.os == 'Windows'

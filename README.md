@@ -35,6 +35,11 @@ Piper backend is opt-in and is built separately so its native dependencies
 never enter the main server process. Speech Dispatcher remains a design
 proposal, not an implemented backend.
 
+Current supported `make build`, `make dev`, and generic release builds enable
+only Piper helper discovery in the main server. They do not link libpiper or
+include its companion. `make build-piper` builds and stages that separate
+native payload when it is wanted.
+
 Server mode registers all available built-in engines for runtime routing and
 fallback. Windows retains WinRT and eSpeak plus configured proprietary
 helpers; macOS retains AVSpeechSynthesizer and eSpeak; Linux retains eSpeak.

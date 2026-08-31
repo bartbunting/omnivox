@@ -15,6 +15,8 @@ Versioning for published releases.
   registry. In particular, macOS keeps both AVSpeechSynthesizer and eSpeak NG;
   Piper-enabled builds register a configured Piper helper without requiring it
   to be the selected startup engine.
+- Standard Makefile and generic release builds now enable Piper helper
+  discovery in the main server without linking or packaging Piper native code.
 - Migrated the experimental Piper helper from the archived custom C++ bridge to
   the vendored maintained libpiper v1.7 C API. Piper now consumes chunked float
   audio and observes cancellation between chunks while retaining process
