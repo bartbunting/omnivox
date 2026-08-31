@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper install-piper
+.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -92,6 +92,14 @@ package-piper: stage-piper
 
 verify-piper: package-piper
 	$(PYTHON) tools/verify_piper_release.py
+
+# Create and verify the platform-neutral corresponding-source and locked
+# build-input artifact for all four native Piper companions.
+package-piper-source:
+	$(PYTHON) tools/package_piper_source.py
+
+verify-piper-source: package-piper-source
+	$(PYTHON) tools/verify_piper_source.py
 
 # Install the server payload and the isolated Piper companion.
 install-piper: build-piper

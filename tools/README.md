@@ -95,6 +95,23 @@ configuration:
 PIPER_MODEL=/path/to/voice.onnx make verify-piper
 ```
 
+Create and verify the platform-neutral corresponding-source artifact with:
+
+```sh
+make package-piper-source
+python3 tools/verify_piper_source.py
+```
+
+`package_piper_source.py` archives the exact committed Omnivox and vendored
+libpiper tree, every Cargo registry source selected by `Cargo.lock`, the
+checksum-locked eSpeak NG and Sonic sources, all four ONNX Runtime binary build
+inputs, and the exact ONNX Runtime source revision. The deterministic result is
+`target/release/omnivox-VERSION-piper-source.tar.gz`. Its exhaustive manifest
+records every file's mode, size, and SHA-256 digest. The verifier compares the
+Omnivox tree to its recorded Git commit, rechecks every input against the
+archived locks, and resolves the Cargo graph offline from the included vendor
+directory. CI voice-model payloads are excluded.
+
 `verify_piper_release.py` checks the outer and exhaustive inner checksums,
 exact payload and notice sets, clean source provenance, native binary
 architecture, platform library lookup, and optional model-backed voice

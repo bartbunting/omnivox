@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "onnxruntime": {
+      "archive": "onnxruntime-f217402897f40ebba457e2421bc0a4702771968e.tar.gz",
+      "archive_root": "onnxruntime-f217402897f40ebba457e2421bc0a4702771968e",
+      "commit": "f217402897f40ebba457e2421bc0a4702771968e",
+      "license": "MIT",
+      "sha256": "535f179e8bb2748c8b7c7e8a6308ccbe6e30f35fceeeb9c736009cf0837746ca",
+      "size": 241417125,
+      "url": "https://github.com/microsoft/onnxruntime/archive/f217402897f40ebba457e2421bc0a4702771968e.tar.gz",
+      "version": "1.22.0"
+    }
+  }
+}
