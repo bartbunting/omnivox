@@ -58,11 +58,13 @@ Omnivox-authored Rust wrapper's MIT declaration does not relicense libpiper,
 its native dependency stack, or any model. A distributed helper/native-library
 combination must satisfy the applicable GPL and other component terms.
 
-The Linux x64 developer build now verifies its locked eSpeak NG, Sonic, and
-ONNX Runtime inputs before building and stages their notices and provenance in
-a relocatable companion directory. Its deterministic archive candidate is
-also verified after relocation, but corresponding-source review, release CI,
-and other native-platform runners remain incomplete. See the
+Linux x64, Windows x64, and macOS ARM64/x64 native builds verify their locked
+eSpeak NG, Sonic, and ONNX Runtime inputs before building and stage their
+notices and provenance in a relocatable companion directory. Their
+deterministic archive candidates are verified after relocation and exercise
+real synthesis with a CI-only model that is never uploaded. The model's
+licensing review remains explicitly deferred, as does the companion's final
+corresponding-source review and publishing-workflow integration. See the
 [Piper release plan](plans/PIPER-RELEASE.md) for the remaining work. No Piper
 companion archive is currently published.
 

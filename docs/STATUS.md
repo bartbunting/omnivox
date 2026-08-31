@@ -86,16 +86,13 @@ in the linked protocol specifications; future work belongs in
   quarantined task after its stale output has been suppressed.
 - Marker precision differs by engine. Markerless engines retain speech and
   boundary-level presentation but cannot claim exact in-span action timing.
-- Piper uses the maintained vendored libpiper v1.7 C API and has been exercised
-  with real synthesis on Linux x64. Its Linux native inputs are
-  checksum-locked, and a relocatable companion directory is staged with
-  notices and manifests. Deterministic companion archive construction and
-  relocated runtime verification pass locally. Corresponding-source review,
-  model distribution, release CI, and Windows/macOS runtime testing are not
-  release-complete.
-  Native companion staging now passes on both macOS ARM64 and Intel GitHub
-  runners; real model-backed synthesis and archive acceptance remain open on
-  those runners.
+- Piper uses the maintained vendored libpiper v1.7 C API. Linux x64, Windows
+  x64, macOS ARM64, and macOS x64 native runners verify checksum-locked inputs,
+  relocated deterministic companion archives, and real synthesis with a
+  locked CI-only model. Missing and corrupt model fallback is also verified.
+  The companion is not published: corresponding-source review, the test
+  model's deferred licensing review, and publishing-workflow integration
+  remain open.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
@@ -104,11 +101,11 @@ in the linked protocol specifications; future work belongs in
 
 | Platform | Runtime status | GitHub release artifact |
 |---|---|---|
-| macOS ARM64 | AVSpeechSynthesizer and eSpeak NG | Yes |
-| macOS x64 | AVSpeechSynthesizer and eSpeak NG | Yes |
-| Windows x64 | WinRT and eSpeak NG; optional helpers | Yes |
+| macOS ARM64 | AVSpeechSynthesizer and eSpeak NG; optional Piper candidate verified | Yes |
+| macOS x64 | AVSpeechSynthesizer and eSpeak NG; optional Piper candidate verified | Yes |
+| Windows x64 | WinRT and eSpeak NG; optional Piper and proprietary helpers | Yes |
 | Windows ARM64 | WinRT and eSpeak NG | Yes |
-| Linux x64 | eSpeak NG | Yes (Ubuntu 24.04 ABI baseline) |
+| Linux x64 | eSpeak NG; optional Piper candidate verified | Yes (Ubuntu 24.04 ABI baseline) |
 | Linux ARM64 | Not CI-built or runtime-verified | No current workflow artifact |
 
 The checked-in workflow builds, tests, and runs Clippy on all five release
@@ -123,6 +120,10 @@ verify each exact downloaded archive after relocation on its native platform.
 The release verifier exercises eSpeak on all five targets and the native speech
 engine on both macOS and both Windows targets. The draft is published only when
 all checks pass.
+
+The separate manual Piper workflow builds and verifies model-free companion
+candidates on Linux x64, Windows x64, and both macOS architectures. Those
+workflow artifacts are engineering candidates, not published release assets.
 
 ## Validation
 
