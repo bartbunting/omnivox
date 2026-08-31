@@ -93,6 +93,9 @@ in the linked protocol specifications; future work belongs in
   relocated runtime verification pass locally. Corresponding-source review,
   model distribution, release CI, and Windows/macOS runtime testing are not
   release-complete.
+  Native companion staging now passes on both macOS ARM64 and Intel GitHub
+  runners; real model-backed synthesis and archive acceptance remain open on
+  those runners.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.

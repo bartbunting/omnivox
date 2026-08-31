@@ -64,7 +64,8 @@ platform-specific ONNX Runtime 1.22.0 bundles are now checksum-locked for
 Windows x64 and both macOS architectures; runner builds must still prove those
 inputs before platform support is claimed. The stager now selects their native
 helper/library layouts and performs platform-specific PE or Mach-O checks;
-those paths remain provisional until their native runner slices pass.
+both macOS ARM64 and Intel staging paths now pass on native runners. Windows
+compilation and model-backed acceptance remain open.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
