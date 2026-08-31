@@ -98,11 +98,15 @@ macOS 15 Intel. Each job prepares the platform's checksum-locked native
 inputs, builds on the matching architecture, applies native layout and binary
 checks, rechecks the input cache without network access, creates the native
 `.tar.gz` or `.zip`, verifies it after safe extraction into a relocated path,
-and uploads the verified candidate plus its checksum for inspection.
+downloads and verifies the locked CI-only model, and runs real synthesis
+through a Piper-enabled server. It then uploads the verified companion
+candidate plus its checksum for inspection.
 
 This provisional workflow does not publish release assets or a voice model.
-Model-backed synthesis and release integration are added only after the
-native build path passes and the CI model boundary is recorded separately.
+The model remains outside the staged directory, companion archive, and upload
+patterns. Its lock records that licensing review is deferred; passing this
+engineering test does not approve the model for redistribution. Piper release
+integration remains separate.
 
 ## Triggers
 

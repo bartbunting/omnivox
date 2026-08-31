@@ -194,10 +194,11 @@ support.
    with spaces and optionally exercises a separately supplied,
    licence-reviewed model end to end.
 5. **In progress:** add native-runner CI one platform at a time. Linux x64,
-   Windows x64, and macOS ARM64/x64 build and stage successfully; native
-   package verification and CI-only model-backed synthesis are next. Do not
-   add a platform to the published matrix until the runner exercises a real,
-   licence-reviewed test model.
+   Windows x64, and macOS ARM64/x64 build and stage successfully. Native
+   archive verification and CI-only model-backed synthesis are wired for all
+   four targets and await runner acceptance. Do not add a platform to the
+   published matrix until the test model's deferred licensing review is
+   resolved.
 6. Document installation, model/config discovery, engine inventory, fallback,
    diagnostics, upgrade, and removal. Clearly distinguish helper availability
    from model availability.
