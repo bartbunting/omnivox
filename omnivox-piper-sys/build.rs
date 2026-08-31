@@ -15,6 +15,10 @@ fn run(command: &mut Command) {
     assert!(status.success(), "command failed: {command:?}");
 }
 
+fn cmake_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
 fn copy_tree(source: &Path, destination: &Path) {
     fs::create_dir_all(destination).unwrap_or_else(|error| {
         panic!(
@@ -100,19 +104,19 @@ fn configure_and_build(
         .arg("-B")
         .arg(build)
         .arg("-DCMAKE_BUILD_TYPE=Release")
-        .arg(format!("-DCMAKE_INSTALL_PREFIX={}", install.display()))
+        .arg(format!("-DCMAKE_INSTALL_PREFIX={}", cmake_path(install)))
         .arg("-DPIPER_BUILD_TESTS=OFF")
         .arg(format!(
             "-DPIPER_ESPEAK_SOURCE_DIR={}",
-            inputs.join("sources/espeak-ng").display()
+            cmake_path(&inputs.join("sources/espeak-ng"))
         ))
         .arg(format!(
             "-DPIPER_SONIC_SOURCE_DIR={}",
-            inputs.join("sources/sonic").display()
+            cmake_path(&inputs.join("sources/sonic"))
         ))
         .arg(format!(
             "-DONNXRUNTIME_DIR={}",
-            inputs.join("sources/onnxruntime").display()
+            cmake_path(&inputs.join("sources/onnxruntime"))
         ))
         .current_dir(build);
     if target_os == "linux" {
