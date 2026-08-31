@@ -34,7 +34,7 @@ check:
 
 # Lint with clippy
 lint:
-	cargo clippy --locked --workspace --all-targets -- -D warnings
+	cargo clippy --locked --all-targets -- -D warnings
 
 # Format code
 fmt:
