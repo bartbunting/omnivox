@@ -260,7 +260,7 @@ mod tests {
         let buf = ToneGenerator::generate(440.0, 100, 1.0);
         for &sample in &buf.samples {
             assert!(
-                sample >= -1.0 && sample <= 1.0,
+                (-1.0..=1.0).contains(&sample),
                 "sample {} out of range",
                 sample
             );

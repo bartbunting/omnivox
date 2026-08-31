@@ -1628,7 +1628,6 @@ mod tests {
                     stress: true,
                     richness: true,
                     volume: true,
-                    ..AcssCapabilities::default()
                 },
                 audio_output: AudioOutputMode::BufferedPcm,
                 cancellation: CancellationSupport::SynthesisAndPlayback,

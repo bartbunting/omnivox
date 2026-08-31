@@ -173,7 +173,7 @@ fn trim_preserves_minimum_padding() {
 
     // Should have at least the sound frame + padding on each side
     assert!(
-        buf.frame_count() >= 1 + padding_frames,
+        buf.frame_count() > padding_frames,
         "frame_count {} should be >= {}",
         buf.frame_count(),
         1 + padding_frames

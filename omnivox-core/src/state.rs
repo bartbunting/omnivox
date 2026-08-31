@@ -244,8 +244,10 @@ mod tests {
 
     #[test]
     fn test_consume_next_pre_delay() {
-        let mut state = TtsState::default();
-        state.next_pre_delay = Duration::from_millis(100);
+        let mut state = TtsState {
+            next_pre_delay: Duration::from_millis(100),
+            ..TtsState::default()
+        };
 
         let delay = state.consume_next_pre_delay();
         assert_eq!(delay, Duration::from_millis(100));
@@ -254,9 +256,11 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut state = TtsState::default();
-        state.current_voice = String::from("en-GB:Daniel");
-        state.pitch_multiplier = 1.5;
+        let mut state = TtsState {
+            current_voice: String::from("en-GB:Daniel"),
+            pitch_multiplier: 1.5,
+            ..TtsState::default()
+        };
 
         state.reset();
         assert_eq!(state.current_voice, "en-US");

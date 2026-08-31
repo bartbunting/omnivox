@@ -1264,7 +1264,6 @@ mod tests {
             stress: Some(0.4),
             richness: Some(0.7),
             volume: Some(0.2),
-            ..NormalizedAcss::default()
         };
         let mut routes = snapshot(&engines, logical_definition, FallbackPolicy::default());
         let mut route = routes.initial_route("source-code", &engines).unwrap();

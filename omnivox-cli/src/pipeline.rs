@@ -2586,8 +2586,10 @@ mod tests {
         let cached = loader.load_shared(&path).unwrap();
         let original = cached.samples.clone();
         let mut expected = (*cached).clone();
-        let mut state = TtsState::default();
-        state.sound_volume = 0.5;
+        let mut state = TtsState {
+            sound_volume: 0.5,
+            ..TtsState::default()
+        };
         state.sound_routing.channel_mode = ChannelMode::Left;
         build_sound_pipeline(&state).process(&mut expected).unwrap();
         apply_action_pan(&mut expected, 0.25);
@@ -2801,8 +2803,10 @@ mod tests {
             .fold(0.0, f32::max);
 
         for volume in [0.0, 0.1, 0.5, 1.0] {
-            let mut state = TtsState::default();
-            state.tone_volume = volume;
+            let state = TtsState {
+                tone_volume: volume,
+                ..TtsState::default()
+            };
             let legacy = prepare_tone_audio(frequency_hz, duration_ms, &state).unwrap();
 
             let capital_result = CanonicalSynthesisResult {
@@ -3005,7 +3009,7 @@ mod tests {
             rate_offset: None,
             effects: PresentationEffectDirective::Retain,
         };
-        let actions = vec![
+        let actions = [
             PresentationTimelineAction {
                 id: "opening-cue".to_owned(),
                 position: PresentationTimelinePosition::SpanBoundary {
