@@ -762,6 +762,7 @@ jobs:
     needs: [verify_release, verify_piper_release, verify_piper_source_release]
     runs-on: ubuntu-latest
     if: >-
+      always() &&
       needs.verify_release.result == 'success' &&
       needs.verify_piper_release.result == 'success' &&
       needs.verify_piper_source_release.result == 'success' &&
