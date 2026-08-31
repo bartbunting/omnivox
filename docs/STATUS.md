@@ -93,7 +93,10 @@ in the linked protocol specifications; future work belongs in
   The exact model revision is approved only for CI acceptance, based on its
   model card's public-domain LibriVox and trained-from-scratch declarations,
   and remains excluded from release artifacts. The companion is not published:
-  corresponding-source review and publishing-workflow integration remain open.
+  publishing-workflow integration and platform signing remain open. A
+  deterministic, platform-neutral corresponding-source and build-input
+  candidate is implemented and passes exhaustive manifest, Git-tree, input,
+  model-exclusion, and offline Cargo verification.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.

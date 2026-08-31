@@ -268,12 +268,17 @@ def extract_git_source(repository: Path, commit: str, destination: Path) -> Path
 
 
 def vendor_cargo_sources(source: Path) -> None:
-    subprocess.run(
+    result = subprocess.run(
         ["cargo", "vendor", "--locked", "--versioned-dirs", "vendor"],
         cwd=source,
-        check=True,
         stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
     )
+    require(result.returncode == 0, f"cargo vendor failed:\n{result.stderr}")
     configuration = source / ".cargo/config.toml"
     configuration.parent.mkdir(parents=True, exist_ok=True)
     configuration.write_text(VENDOR_CONFIG, encoding="utf-8")
@@ -419,6 +424,11 @@ def package(repository: Path, arguments: argparse.Namespace) -> Path:
             repository_version(source) == arguments.version,
             "committed source version does not match the archive version",
         )
+        for relative, digest in lock_digests.items():
+            require(
+                sha256_file(source / relative) == digest,
+                f"committed source lock does not match the packaging checkout: {relative}",
+            )
         vendor_cargo_sources(source)
         inputs = staging / "inputs"
         for name, path in sorted(downloads.items()):

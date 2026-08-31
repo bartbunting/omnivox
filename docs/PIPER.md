@@ -76,6 +76,13 @@ for engineering inspection. They are not release assets and are not an
 installation recommendation until the remaining release decisions are
 resolved.
 
+The platform-neutral `omnivox-VERSION-piper-source.tar.gz` candidate contains
+the committed Omnivox/libpiper source, locked Cargo sources, and the exact
+source and binary inputs used across all four companions. Build it with
+`make package-piper-source` and verify it with
+`python3 tools/verify_piper_source.py`. It is intended to be published beside
+the four native companions, not installed as a runtime payload.
+
 ## Configure and test a model
 
 Review the model's `MODEL_CARD`, then keep its model and configuration

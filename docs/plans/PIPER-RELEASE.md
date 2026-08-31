@@ -66,8 +66,12 @@ declares a public-domain LibriVox dataset and training from scratch. The lock
 approves that exact revision for CI-only acceptance and explicitly excludes it
 from release artifacts. All four native jobs now verify their relocated
 archive and synthesize real audio through the Piper-enabled main server.
-Corresponding-source review and integration with the publishing release
-workflow remain open.
+A platform-neutral, deterministic source artifact now includes the exact
+committed Omnivox/libpiper tree, locked Cargo sources, eSpeak NG and Sonic
+sources, all four ONNX Runtime build inputs, and the corresponding ONNX Runtime
+source. Its exhaustive manifest, Git tree, locked inputs, model exclusion, and
+offline Cargo graph pass verification. Publishing-workflow integration and
+platform signing remain open.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
@@ -105,8 +109,26 @@ Omnivox archive's different eSpeak payload.
 Separate companion archives keep a large GPL/native payload optional and let
 the generic server remain useful without a model. They do not remove the GPL
 and corresponding-source obligations of distributing the Piper companion.
-The exact compliance bundle should be reviewed before publication; this plan
-is an engineering component map, not legal advice.
+The source-and-build-input artifact described above is the selected engineering
+compliance bundle. Its contents and verifier must stay release-gating checks;
+this plan is an engineering component map, not legal advice.
+
+## Corresponding-source artifact
+
+`make package-piper-source` creates
+`omnivox-VERSION-piper-source.tar.gz`. It contains one versioned root with the
+committed repository source, a Cargo vendor directory selected by the locked
+dependency graph, and the seven unique source/build-input archives referenced
+by all four native companion targets. This includes the exact ONNX Runtime
+1.22.0 source commit corresponding to the distributed prebuilt libraries.
+
+The artifact is normalized to a fixed timestamp, uid, gid, and mode policy.
+Its manifest covers every other file by path, mode, size, and SHA-256 digest.
+The verifier safely extracts the archive, compares the Omnivox tree with the
+recorded Git commit, verifies the archived input locks and payloads, rejects
+the CI voice payload, and resolves `Cargo.lock` offline using an empty Cargo
+home. The first complete 1.5.0 candidate was 434.6 MiB and reproduced the same
+SHA-256 digest across two builds.
 
 ## Source acquisition decision
 
@@ -200,14 +222,16 @@ support.
    and macOS ARM64/x64 build and stage successfully, verify the relocated
    native archive, synthesize real audio with the locked CI-only model, and
    exercise 25 requests plus in-flight cancellation through one persistent
-   helper session. Do not add these artifacts to the publishing workflow until
-   the test model's deferred licensing review and companion
-   corresponding-source review are resolved.
-6. **Completed for source builds and non-publishing candidates:** document
+   helper session. The replacement CI model is approved for that exact CI-only
+   purpose and remains excluded from release artifacts.
+6. **Completed:** create and independently verify the deterministic
+   corresponding-source and locked-build-input artifact for all four native
+   companions.
+7. **Completed for source builds and non-publishing candidates:** document
    installation, model/config discovery, engine inventory, fallback,
    diagnostics, upgrade, and removal in the
    [Piper companion guide](../PIPER.md). Published-asset instructions remain
-   contingent on the release decisions below.
+   contingent on publishing-workflow integration and platform signing.
 
 ## Release acceptance
 
@@ -228,5 +252,8 @@ from a clean checkout:
   measurements are recorded rather than described qualitatively;
 - an unavailable Piper model leaves the platform-native/eSpeak registry and
   fallback route working; and
-- the archive contains the audited notices and source-provenance material, but
-  no unreviewed voice model.
+- the companion contains audited notices and source provenance but no voice
+  model, and its exact deterministic source-and-build-input artifact passes
+  verification; and
+- Windows executables pass Authenticode verification and macOS executables
+  pass code-signing and notarization verification before publication.

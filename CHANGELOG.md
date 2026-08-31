@@ -49,6 +49,10 @@ Versioning for published releases.
 - Locked a trained-from-scratch English test model whose model card declares a
   public-domain LibriVox dataset for CI-only synthesis, without adding or
   recommending the model in release artifacts.
+- Added a deterministic Piper corresponding-source artifact containing the
+  exact committed source, locked Cargo dependency sources, all native build
+  inputs, and the corresponding ONNX Runtime source, with exhaustive manifest,
+  Git-tree, input-lock, model-exclusion, and offline-Cargo verification.
 
 ### Fixed
 

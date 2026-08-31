@@ -62,11 +62,19 @@ Linux x64, Windows x64, and macOS ARM64/x64 native builds verify their locked
 eSpeak NG, Sonic, and ONNX Runtime inputs before building and stage their
 notices and provenance in a relocatable companion directory. Their
 deterministic archive candidates are verified after relocation and exercise
-real synthesis with a CI-only model that is never uploaded. The model's
-licensing review remains explicitly deferred, as does the companion's final
-corresponding-source review and publishing-workflow integration. See the
-[Piper release plan](plans/PIPER-RELEASE.md) for the remaining work. No Piper
-companion archive is currently published.
+real synthesis with a CI-only model that is never uploaded. That exact model
+revision is accepted only for CI based on its model card's public-domain
+LibriVox and trained-from-scratch declarations; this is not approval to add it
+to a release or recommend it to users.
+
+The deterministic `omnivox-VERSION-piper-source.tar.gz` candidate contains the
+exact committed Omnivox and libpiper source, every locked Cargo dependency
+source, the eSpeak NG and Sonic sources, all four ONNX Runtime binary build
+inputs, and the corresponding ONNX Runtime source. Its verifier checks an
+exhaustive manifest, the recorded Git tree and input locks, model exclusion,
+and offline Cargo resolution. Publishing-workflow integration and platform
+signing remain open. See the [Piper release plan](plans/PIPER-RELEASE.md) for
+the remaining work. No Piper companion archive is currently published.
 
 ## Proprietary engines and other dependencies
 
