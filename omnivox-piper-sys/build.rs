@@ -209,6 +209,10 @@ fn require_verified_inputs(source: &Path, target_base: &Path, target: &str) -> P
     let cmake_path = source.join("CMakeLists.txt");
     let mut cmake = fs::read_to_string(&cmake_path)
         .unwrap_or_else(|error| panic!("could not read {}: {error}", cmake_path.display()));
+    // Git may check text files out with CRLF on Windows. Normalize only this
+    // generated build copy so the reviewed upstream-block replacements remain
+    // exact and the pristine vendored source is untouched.
+    cmake = cmake.replace("\r\n", "\n");
     replace_once(
         &mut cmake,
         "ExternalProject_Add(espeak_ng_external\n    GIT_REPOSITORY https://github.com/espeak-ng/espeak-ng.git\n    GIT_TAG 212928b394a96e8fd2096616bfd54e17845c48f6  # 2025-Mar-22\n    PREFIX ${ESPEAKNG_BUILD_DIR}",
