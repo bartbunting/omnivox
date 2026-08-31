@@ -146,6 +146,7 @@ fn native_build_root(out_dir: &Path, target: &str) -> PathBuf {
 
 fn main() {
     let (target_os, target) = validate_native_target();
+    let relocatable = env::var("OMNIVOX_PIPER_RELOCATABLE").as_deref() == Ok("1");
     let manifest_dir = PathBuf::from(
         env::var_os("CARGO_MANIFEST_DIR").expect("Cargo did not provide CARGO_MANIFEST_DIR"),
     );
@@ -193,10 +194,14 @@ fn main() {
     println!("cargo:RPATH={}", library_dir.display());
     println!("cargo:RUNTIME_DIR={}", library_dir.display());
     println!("cargo:TARGET={target}");
-    println!(
-        "cargo:rustc-env=PIPER_ESPEAK_DATA_DIR={}",
-        espeak_data_dir.display()
-    );
+    if relocatable {
+        println!("cargo:rustc-env=PIPER_ESPEAK_DATA_DIR=");
+    } else {
+        println!(
+            "cargo:rustc-env=PIPER_ESPEAK_DATA_DIR={}",
+            espeak_data_dir.display()
+        );
+    }
 
     let header = source.join("include/piper.h");
     let bindings = bindgen::Builder::default()
@@ -217,7 +222,12 @@ fn main() {
         "cargo:rerun-if-changed={}",
         vendored_root.join("setup.py").display()
     );
-    for variable in ["CMAKE", "CMAKE_GENERATOR", "CMAKE_TOOLCHAIN_FILE"] {
+    for variable in [
+        "CMAKE",
+        "CMAKE_GENERATOR",
+        "CMAKE_TOOLCHAIN_FILE",
+        "OMNIVOX_PIPER_RELOCATABLE",
+    ] {
         println!("cargo:rerun-if-env-changed={variable}");
     }
 }

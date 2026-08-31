@@ -22,6 +22,8 @@ Versioning for published releases.
 - Piper-enabled servers now prefer an isolated `piper/` companion directory,
   while retaining the explicit helper override and legacy adjacent-helper
   lookup. The helper prefers the matching eSpeak data inside that directory.
+- Added atomic Linux x64 Piper companion staging with relative native-library
+  lookup, matching eSpeak data, notices, provenance, and payload checksums.
 
 ### Fixed
 

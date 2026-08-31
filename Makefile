@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc
+.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc stage-piper build-piper install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -70,17 +70,20 @@ install: build
 	cp -R target/release/third-party-licenses/. "$(OMNIVOX_INSTALL_BIN)/third-party-licenses/"
 	cp target/release/LICENSE target/release/LICENSING.md "$(OMNIVOX_INSTALL_BIN)/"
 
-# Build the main server and adjacent Piper helper. Native dependencies are
-# linked only into the helper (requires cmake + network on first run).
-build-piper:
-	cargo build --locked --release -p omnivox-piper-helper --features piper
+# Build and stage the isolated Piper companion (requires cmake + network on
+# first run until dependency preparation is implemented).
+stage-piper:
+	$(PYTHON) tools/build_piper.py --release
+
+# Build the main server and isolated Piper companion together.
+build-piper: stage-piper
 	$(PYTHON) tools/build.py --release -p omnivox-cli --features piper
 
-# Install both executables and shared runtime assets beside one another.
+# Install the server payload and the isolated Piper companion.
 install-piper: build-piper
-	cargo install --locked --path omnivox-piper-helper --features piper
 	cargo install --locked --path omnivox-cli --features piper
-	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses"
+	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses" "$(OMNIVOX_INSTALL_BIN)/piper"
 	cp -R target/release/espeak-ng-data/. "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data/"
 	cp -R target/release/third-party-licenses/. "$(OMNIVOX_INSTALL_BIN)/third-party-licenses/"
+	cp -R target/release/piper/. "$(OMNIVOX_INSTALL_BIN)/piper/"
 	cp target/release/LICENSE target/release/LICENSING.md "$(OMNIVOX_INSTALL_BIN)/"

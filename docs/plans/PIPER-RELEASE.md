@@ -174,8 +174,8 @@ support.
    while keeping the existing helper protocol stable. Observe cancellation
    between returned audio chunks; retain helper retirement for calls that do
    not return.
-3. Add a staging command that produces one complete relocatable companion
-   payload and records all source and binary digests.
+3. **Completed on Linux x64:** add a staging command that produces one complete
+   relocatable companion payload and records source-input and payload digests.
 4. Teach archive verification to reject missing, unexpected, host-architecture,
    or dynamically unresolved files in a Piper companion archive.
 5. Add native-runner CI one platform at a time. Do not add a platform to the

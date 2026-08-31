@@ -27,6 +27,21 @@ python3 tools/build.py --release --target aarch64-apple-darwin
 
 The wrapper fails rather than choose between non-identical eSpeak data outputs.
 
+`build_piper.py` builds the optional helper in relocatable mode and atomically
+stages the initial Linux x64 companion as `piper/` beside the Cargo profile
+output. The directory contains the helper, only the required native libraries,
+its separately generated eSpeak data, project and third-party licensing files,
+source/input provenance, and a SHA-256 manifest:
+
+```sh
+python3 tools/build_piper.py --release
+```
+
+The staging command validates `$ORIGIN` runtime lookup and rejects unresolved
+or developer-tree native-library paths. It records the current ONNX Runtime
+archive digest but does not yet verify that input before the build, so this is
+still a developer payload rather than a publishable release archive.
+
 ## Release archive verification
 
 `verify_release.py` checks an exact `.tar.gz` or `.zip` release asset against
