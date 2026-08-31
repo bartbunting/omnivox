@@ -72,7 +72,10 @@ def sha256_file(path: Path) -> str:
 
 def tree_digest(root: Path) -> str:
     digest = hashlib.sha256()
-    entries = sorted(path for path in root.rglob("*") if not path.is_dir())
+    entries = sorted(
+        (path for path in root.rglob("*") if not path.is_dir()),
+        key=lambda path: path.relative_to(root).as_posix(),
+    )
     for path in entries:
         relative = path.relative_to(root).as_posix()
         digest.update(relative.encode("utf-8"))
