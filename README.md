@@ -124,7 +124,7 @@ make build       # locked release build plus adjacent eSpeak runtime data
 make dev         # locked debug build plus adjacent eSpeak runtime data
 make fmt-check   # non-mutating format check
 make test        # locked default-member tests
-make lint        # locked Clippy with warnings denied
+make lint        # locked workspace/all-target Clippy with warnings denied
 ```
 
 The full workspace check, including non-default workspace members, is:

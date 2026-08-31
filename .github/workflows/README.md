@@ -49,7 +49,8 @@ macOS build runners.
 
 ### `test`
 
-Runs `cargo test --locked` and `cargo clippy --locked -- -D warnings` on:
+Runs `cargo test --locked` and
+`cargo clippy --locked --workspace --all-targets -- -D warnings` on:
 
 - Linux x64;
 - macOS ARM64;
