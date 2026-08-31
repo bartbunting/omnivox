@@ -28,6 +28,9 @@ in the linked protocol specifications; future work belongs in
 - macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
 - Optional out-of-process Piper, Eloquence, and DECtalk engines.
 - Structured engine/voice inventory and deterministic per-span logical routing.
+- Server registration retains WinRT and eSpeak on Windows,
+  AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. Configured
+  Piper helpers join that registry in Piper-enabled builds on every platform.
 - Ordered fallback for missing voices, unsupported text repertoires, engine
   failure, and transient engine pressure.
 - Persistent health circuits, bounded cooldowns, one recovery probe, and

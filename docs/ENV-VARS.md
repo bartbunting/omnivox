@@ -62,15 +62,15 @@ those two diagnostic actions.
   Piper-enabled build plus a model.
 - Equivalent startup option: `--engine`.
 
-On Windows, a server process registers available WinRT and eSpeak engines plus
-adjacent or explicitly configured Eloquence and DECtalk helpers. The selected
-startup engine controls the initial preference order, so Windows can route and
-fall back among that registry. Piper is registered on Windows only when it is
-the selected startup engine. On macOS and Linux, the server currently registers
-only the selected engine; selecting eSpeak or Piper does not leave the native
-macOS engine or eSpeak registered as an in-process fallback. Eloquence and
-DECtalk are helper inventory IDs used by runtime routing, not accepted startup
-values for `--engine` or `OMNIVOX_ENGINE`.
+In server mode, the selected startup engine controls the initial preference;
+it does not remove other available engines from inventory. Windows registers
+WinRT and eSpeak plus adjacent or explicitly configured Eloquence and DECtalk
+helpers. macOS registers AVSpeechSynthesizer and eSpeak, while Linux registers
+eSpeak. A build with Piper support also registers Piper on any platform when
+`OMNIVOX_PIPER_MODEL` or `--piper-model` supplies a model. Single-action
+diagnostics such as `--list-voices` continue to create only the selected
+engine. Eloquence and DECtalk are helper inventory IDs used by runtime routing,
+not accepted startup values for `--engine` or `OMNIVOX_ENGINE`.
 
 `OMNIVOX_PIPER_MODEL`
 

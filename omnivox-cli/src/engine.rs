@@ -44,9 +44,10 @@ pub struct CreatedEngines {
 
 /// Create all engines that should be available to the server process.
 ///
-/// Windows eagerly initializes WinRT and eSpeak so that the registry can expose
-/// both engines. Other platforms retain the current single-engine startup until
-/// their multi-engine policy is defined.
+/// Server mode eagerly initializes the available built-in engines so runtime
+/// routing can retain fallbacks. Piper remains opt-in through model
+/// configuration because starting its helper loads a comparatively large
+/// voice model.
 pub fn create_engines(
     engine_name: &str,
     piper_model: Option<&str>,
@@ -60,24 +61,74 @@ pub fn create_engines(
 
     #[cfg(not(target_os = "windows"))]
     {
-        let preferred = isolate_server_engine(
-            create_engine(engine_name, piper_model)?,
-            generation,
-            isolation_budget,
-        );
-        let mut registry = EngineRegistry::new();
-        registry.register(Arc::clone(&preferred))?;
-        Ok(CreatedEngines {
-            preferred,
-            registry,
-        })
+        create_non_windows_engines(engine_name, piper_model, generation, isolation_budget)
     }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn create_non_windows_engines(
+    engine_name: &str,
+    piper_model: Option<&str>,
+    generation: Arc<AtomicU64>,
+    isolation_budget: Arc<IsolationBudget>,
+) -> Result<CreatedEngines> {
+    let requested = requested_engine(engine_name);
+    let mut registry = EngineRegistry::new();
+
+    #[cfg(target_os = "macos")]
+    match MacOsTtsEngine::new() {
+        Ok(engine) => {
+            let engine: Arc<dyn TtsEngine> = Arc::new(engine);
+            registry.register(isolate_server_engine(
+                engine,
+                Arc::clone(&generation),
+                Arc::clone(&isolation_budget),
+            ))?;
+            info!("Registered macOS AVSpeechSynthesizer engine");
+        }
+        Err(error) => warn!("macOS AVSpeechSynthesizer not available: {error}"),
+    }
+
+    match EspeakTtsEngine::new() {
+        Ok(engine) => {
+            let engine: Arc<dyn TtsEngine> = Arc::new(engine);
+            registry.register(isolate_server_engine(
+                engine,
+                Arc::clone(&generation),
+                Arc::clone(&isolation_budget),
+            ))?;
+            info!("Registered espeak-ng fallback engine");
+        }
+        Err(error) => warn!("espeak-ng fallback not available: {error}"),
+    }
+
+    register_configured_piper(
+        &mut registry,
+        &requested,
+        piper_model,
+        generation,
+        isolation_budget,
+    )?;
+
+    let preferred = engine_preference_order(&requested, native_registry_engine_id())
+        .iter()
+        .find_map(|engine_id| registry.engine(engine_id))
+        .ok_or_else(|| anyhow::anyhow!("No TTS engine available"))?;
+    info!(
+        "Using {} as the preferred TTS engine",
+        preferred.descriptor().id
+    );
+
+    Ok(CreatedEngines {
+        preferred,
+        registry,
+    })
 }
 
 #[cfg(target_os = "windows")]
 fn create_windows_engines(
     engine_name: &str,
-    _piper_model: Option<&str>,
+    piper_model: Option<&str>,
     generation: Arc<AtomicU64>,
     isolation_budget: Arc<IsolationBudget>,
 ) -> Result<CreatedEngines> {
@@ -126,27 +177,15 @@ fn create_windows_engines(
         Arc::clone(&isolation_budget),
     )?;
 
-    if forced == "piper" {
-        #[cfg(feature = "piper")]
-        {
-            match piper_helper_config(_piper_model) {
-                Ok(config) => register_optional_helper(
-                    &mut registry,
-                    Some(config),
-                    Arc::clone(&generation),
-                    Arc::clone(&isolation_budget),
-                )?,
-                Err(error) => warn!("Piper TTS helper not available: {error}"),
-            }
-        }
-        #[cfg(not(feature = "piper"))]
-        warn!(
-            "OMNIVOX_ENGINE=piper but omnivox was built without piper support. \
-             Rebuild with --features piper."
-        );
-    }
+    register_configured_piper(
+        &mut registry,
+        &forced,
+        piper_model,
+        Arc::clone(&generation),
+        Arc::clone(&isolation_budget),
+    )?;
 
-    let preferred = windows_preference_order(&forced)
+    let preferred = engine_preference_order(&forced, Some("winrt"))
         .iter()
         .find_map(|engine_id| registry.engine(engine_id))
         .ok_or_else(|| anyhow::anyhow!("No TTS engine available"))?;
@@ -193,7 +232,7 @@ fn helper_config(
     Some(config)
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", feature = "piper"))]
 fn register_optional_helper(
     registry: &mut EngineRegistry,
     config: Option<HelperEngineConfig>,
@@ -229,7 +268,6 @@ fn register_optional_helper(
     Ok(())
 }
 
-#[cfg(target_os = "windows")]
 fn requested_engine(engine_name: &str) -> String {
     if engine_name.is_empty() {
         std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
@@ -238,13 +276,86 @@ fn requested_engine(engine_name: &str) -> String {
     }
 }
 
-#[cfg(any(test, target_os = "windows"))]
-fn windows_preference_order(requested: &str) -> &'static [&'static str] {
+fn engine_preference_order(
+    requested: &str,
+    native_engine_id: Option<&'static str>,
+) -> Vec<&'static str> {
+    let mut order = Vec::with_capacity(3);
     match requested {
-        "espeak" => &["espeak", "winrt"],
-        "piper" => &["piper", "espeak", "winrt"],
-        _ => &["winrt", "espeak"],
+        "espeak" => order.push("espeak"),
+        "piper" => order.push("piper"),
+        _ => {
+            if let Some(native) = native_engine_id {
+                order.push(native);
+            }
+        }
     }
+    if !order.contains(&"espeak") {
+        order.push("espeak");
+    }
+    if let Some(native) = native_engine_id {
+        if !order.contains(&native) {
+            order.push(native);
+        }
+    }
+    if !order.contains(&"piper") {
+        order.push("piper");
+    }
+    order
+}
+
+#[cfg(target_os = "macos")]
+fn native_registry_engine_id() -> Option<&'static str> {
+    Some("macos")
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+fn native_registry_engine_id() -> Option<&'static str> {
+    None
+}
+
+fn piper_is_configured(model: Option<&str>) -> bool {
+    model.is_some_and(|model| !model.is_empty())
+        || std::env::var_os("OMNIVOX_PIPER_MODEL").is_some_and(|model| !model.is_empty())
+}
+
+#[cfg(feature = "piper")]
+fn register_configured_piper(
+    registry: &mut EngineRegistry,
+    requested: &str,
+    model: Option<&str>,
+    generation: Arc<AtomicU64>,
+    isolation_budget: Arc<IsolationBudget>,
+) -> Result<()> {
+    if requested != "piper" && !piper_is_configured(model) {
+        return Ok(());
+    }
+    match piper_helper_config(model) {
+        Ok(config) => {
+            register_optional_helper(registry, Some(config), generation, isolation_budget)
+        }
+        Err(error) => {
+            warn!("Piper TTS helper not available: {error}");
+            Ok(())
+        }
+    }
+}
+
+#[cfg(not(feature = "piper"))]
+fn register_configured_piper(
+    _registry: &mut EngineRegistry,
+    requested: &str,
+    model: Option<&str>,
+    _generation: Arc<AtomicU64>,
+    _isolation_budget: Arc<IsolationBudget>,
+) -> Result<()> {
+    if requested == "piper" || piper_is_configured(model) {
+        warn!(
+            "Piper was requested or configured but omnivox was built without Piper support. \
+             Rebuild with --features piper."
+        );
+    }
+    Ok(())
 }
 
 /// Create a TTS engine by name, falling back through the platform default to espeak-ng.
@@ -381,7 +492,13 @@ pub fn apply_audio_target_env(state: &mut TtsState) {
 
 #[cfg(test)]
 mod tests {
-    use super::{helper_synthesis_idle_timeout, windows_preference_order};
+    #[cfg(target_os = "macos")]
+    use super::create_engines;
+    use super::{engine_preference_order, helper_synthesis_idle_timeout};
+    #[cfg(target_os = "macos")]
+    use std::sync::atomic::AtomicU64;
+    #[cfg(target_os = "macos")]
+    use std::sync::Arc;
     use std::time::Duration;
 
     #[test]
@@ -402,16 +519,57 @@ mod tests {
 
     #[test]
     fn windows_defaults_to_winrt_with_espeak_fallback() {
-        assert_eq!(windows_preference_order(""), &["winrt", "espeak"]);
-        assert_eq!(windows_preference_order("native"), &["winrt", "espeak"]);
+        assert_eq!(
+            engine_preference_order("", Some("winrt")),
+            ["winrt", "espeak", "piper"]
+        );
+        assert_eq!(
+            engine_preference_order("native", Some("winrt")),
+            ["winrt", "espeak", "piper"]
+        );
     }
 
     #[test]
     fn windows_honours_explicit_engine_preferences() {
-        assert_eq!(windows_preference_order("espeak"), &["espeak", "winrt"]);
         assert_eq!(
-            windows_preference_order("piper"),
+            engine_preference_order("espeak", Some("winrt")),
+            ["espeak", "winrt", "piper"]
+        );
+        assert_eq!(
+            engine_preference_order("piper", Some("winrt")),
             &["piper", "espeak", "winrt"]
         );
+    }
+
+    #[test]
+    fn macos_retains_native_and_espeak_for_each_preference() {
+        assert_eq!(
+            engine_preference_order("", Some("macos")),
+            ["macos", "espeak", "piper"]
+        );
+        assert_eq!(
+            engine_preference_order("espeak", Some("macos")),
+            ["espeak", "macos", "piper"]
+        );
+        assert_eq!(
+            engine_preference_order("piper", Some("macos")),
+            ["piper", "espeak", "macos"]
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_server_registers_native_when_espeak_is_preferred() {
+        let created = create_engines("espeak", None, Arc::new(AtomicU64::new(0)))
+            .expect("macOS and eSpeak engines should initialize");
+        assert_eq!(created.preferred.descriptor().id, "espeak");
+        assert!(created.registry.engine("macos").is_some());
+        assert!(created.registry.engine("espeak").is_some());
+    }
+
+    #[test]
+    fn linux_retains_espeak_when_piper_is_preferred() {
+        assert_eq!(engine_preference_order("", None), ["espeak", "piper"]);
+        assert_eq!(engine_preference_order("piper", None), ["piper", "espeak"]);
     }
 }

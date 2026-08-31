@@ -263,17 +263,18 @@ An inventory response contains an `inventory_generation`, the compatibility
 ID, runtime availability and health, capabilities, discovered physical voices,
 and default voice ID. Dynamic status reports the circuit state (`closed`,
 `cooldown`, `ready`, or `probing`), last runtime failure, remaining cooldown in
-milliseconds, and policy disablement separately from static capability. On
-Windows the server eagerly registers WinRT and eSpeak; WinRT is preferred by
-default and eSpeak is retained as a fallback.
-`OMNIVOX_ENGINE=espeak` reverses that preference without removing WinRT from
-inventory. Other platforms currently register the compatibility-selected
-engine. Descriptors are snapshotted before the reader loop starts, so inventory
-requests cannot block stop commands behind synchronous synthesis. Registry
-inventory is sorted by stable engine ID, and its generation advances when
-engines or their descriptor state change. Persistent runtime circuit state is
-overlaid on those snapshots; inventory generation also advances when an engine
-fails, becomes probe-ready, starts probing, or recovers.
+milliseconds, and policy disablement separately from static capability. Server
+mode eagerly registers available built-in engines: WinRT and eSpeak on Windows,
+AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. A Piper-enabled
+server also registers Piper when a model is configured; Windows additionally
+discovers configured Eloquence and DECtalk helpers. `OMNIVOX_ENGINE` changes
+the initial preference without removing another available engine from
+inventory. Descriptors are snapshotted before the reader loop starts, so
+inventory requests cannot block stop commands behind synchronous synthesis.
+Registry inventory is sorted by stable engine ID, and its generation advances
+when engines or their descriptor state change. Persistent runtime circuit
+state is overlaid on those snapshots; inventory generation also advances when
+an engine fails, becomes probe-ready, starts probing, or recovers.
 
 Engine capabilities include `text_repertoire`: `unicode`, `windows_1252`,
 `iso_8859_1`, or `unknown`. The last value is also the compatibility default for

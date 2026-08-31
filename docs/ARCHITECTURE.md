@@ -143,10 +143,12 @@ terminal, preventing a late completion from removing a newer domain token.
 
 ## Engine registry and routing
 
-Windows eagerly registers WinRT and eSpeak NG, then independently discovers
-optional adjacent Eloquence and DECtalk helpers. Piper is registered when an
-explicit Piper-enabled startup selects it. Other platforms currently register
-the one startup-selected native/eSpeak/Piper engine.
+Server mode eagerly registers available built-in engines. Windows retains
+WinRT and eSpeak NG, then independently discovers optional adjacent Eloquence
+and DECtalk helpers. macOS retains AVSpeechSynthesizer and eSpeak NG; Linux
+retains eSpeak NG. A Piper-enabled build also registers Piper on every platform
+when a model is configured. Startup selection chooses the initial preference
+without removing the other registered engines.
 
 The registry owns stable engine descriptors and physical voices. A separate
 logical registry owns portable definitions; routing policy owns preferred,

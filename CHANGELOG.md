@@ -11,6 +11,10 @@ Versioning for published releases.
 - Reduced the Eloquence helper's synthesis idle timeout from three seconds to
   500 milliseconds so a wedged native synchronization call reaches configured
   fallback promptly.
+- Server startup now retains every available built-in engine in the runtime
+  registry. In particular, macOS keeps both AVSpeechSynthesizer and eSpeak NG;
+  Piper-enabled builds register a configured Piper helper without requiring it
+  to be the selected startup engine.
 
 ### Documentation
 

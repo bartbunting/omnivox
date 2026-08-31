@@ -35,10 +35,13 @@ Piper backend is opt-in and is built separately so its native dependencies
 never enter the main server process. Speech Dispatcher remains a design
 proposal, not an implemented backend.
 
-Windows server processes register available WinRT, eSpeak, and configured
-proprietary helpers for runtime routing and fallback. macOS and Linux currently
-register only the selected startup engine, so choosing `--engine espeak` or
-`--engine piper` there does not retain another engine as an in-process fallback.
+Server mode registers all available built-in engines for runtime routing and
+fallback. Windows retains WinRT and eSpeak plus configured proprietary
+helpers; macOS retains AVSpeechSynthesizer and eSpeak; Linux retains eSpeak.
+A Piper-enabled server also registers its helper on any platform when a model
+is configured. `--engine` changes the initial preference without hiding the
+other registered engines. Registration makes an engine available to routing;
+it does not promise that engines synthesize in parallel.
 
 The eSpeak backend is compiled from source. Supported local builds stage the
 matching generated voice data beside the executable, and generic GitHub release
