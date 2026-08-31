@@ -92,11 +92,11 @@ in the linked protocol specifications; future work belongs in
   locked CI-only model. Missing and corrupt model fallback is also verified.
   The exact model revision is approved only for CI acceptance, based on its
   model card's public-domain LibriVox and trained-from-scratch declarations,
-  and remains excluded from release artifacts. The companion is not published:
-  publishing-workflow integration and platform signing remain open. A
-  deterministic, platform-neutral corresponding-source and build-input
-  candidate is implemented and passes exhaustive manifest, Git-tree, input,
-  model-exclusion, and offline Cargo verification.
+  and remains excluded from release artifacts. A deterministic,
+  platform-neutral corresponding-source and build-input candidate is
+  implemented and passes exhaustive manifest, Git-tree, input, model-exclusion,
+  and offline Cargo verification. The gated tag workflow is implemented, but
+  no release containing the companion has been published yet.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
@@ -125,9 +125,10 @@ The release verifier exercises eSpeak on all five targets and the native speech
 engine on both macOS and both Windows targets. The draft is published only when
 all checks pass.
 
-The separate manual Piper workflow builds and verifies model-free companion
-candidates on Linux x64, Windows x64, and both macOS architectures. Those
-workflow artifacts are engineering candidates, not published release assets.
+The separate manual Piper workflow still builds model-free engineering
+candidates on Linux x64, Windows x64, and both macOS architectures. Tag builds
+instead require the corresponding-source artifact and exact draft-asset
+verification before publication. Release binaries remain unsigned.
 
 ## Validation
 

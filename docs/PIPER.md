@@ -71,10 +71,10 @@ creates the layout shown above. Do not combine a companion with a main
 executable from another version or source commit; `SOURCE-PROVENANCE.json`
 inside the companion records its exact Omnivox source.
 
-GitHub Actions currently retains these as non-publishing workflow artifacts
-for engineering inspection. They are not release assets and are not an
-installation recommendation until the remaining release decisions are
-resolved.
+The manual Piper workflow retains these as non-publishing engineering
+artifacts. The tag workflow separately builds release candidates,
+downloads them back from a draft, and requires native real synthesis before
+publication. No release containing a Piper companion has been published yet.
 
 The platform-neutral `omnivox-VERSION-piper-source.tar.gz` candidate contains
 the committed Omnivox/libpiper source, locked Cargo sources, and the exact

@@ -158,8 +158,9 @@ artifacts, and is not presented as a user recommendation.
 `make package-piper-source` creates the deterministic corresponding-source and
 locked-build-input candidate; `python3 tools/verify_piper_source.py` checks it
 against the committed Git tree and resolves the included Cargo sources
-offline. Release-workflow integration and platform signing remain open, so no
-Piper archive is published yet. Native Piper code remains confined to the
+offline. The tag workflow now builds and re-verifies all four companions and
+that source artifact. Release binaries are not code-signed or notarized, and no
+Piper archive has been published yet. Native Piper code remains confined to the
 helper executable.
 
 Running Piper requires a compatible `.onnx` model and its adjacent

@@ -14,9 +14,21 @@ The checked-in GitHub Actions workflow publishes these release archives:
 
 Each archive contains the main binary, `omnivox-voices.el`, the matching
 generated `espeak-ng-data`, `LICENSE`, `LICENSING.md`, and
-`third-party-licenses`. Releases also publish `sha256sums.txt`. The workflow
-does **not** currently publish Linux ARM64 artifacts, optional Piper
-helpers/models, proprietary-engine helpers, or proprietary runtimes.
+`third-party-licenses`. A successful current tag workflow also publishes these
+optional Piper assets:
+
+| Platform | Companion archive |
+|---|---|
+| Linux x64 | `omnivox-VERSION-piper-linux-x64.tar.gz` |
+| macOS Apple Silicon | `omnivox-VERSION-piper-macos-arm64.tar.gz` |
+| macOS Intel | `omnivox-VERSION-piper-macos-x64.tar.gz` |
+| Windows x64 | `omnivox-VERSION-piper-windows-x64.zip` |
+| All four | `omnivox-VERSION-piper-source.tar.gz` |
+
+Releases also publish one `sha256sums.txt` covering every generic, companion,
+and source archive. The workflow does **not** publish Linux ARM64 or Windows
+ARM64 Piper companions, voice models, proprietary-engine helpers, or
+proprietary runtimes.
 
 Published release `v1.4.1` predates the root `LICENSE` and `LICENSING.md`
 archive entries. The verifier accepts that one historical layout; all later
@@ -40,8 +52,8 @@ the project does not currently claim CI or runtime support for that target.
 - An ordinary push to `main` does not create a timestamped release.
 
 The release version and archive prefix come from the tag name with its leading
-`v` removed for filenames. For example, tag `v1.4.1` produces archives prefixed
-`omnivox-1.4.1-`.
+`v` removed for filenames. For example, tag `v1.5.0` produces archives prefixed
+`omnivox-1.5.0-`.
 
 ## What CI validates
 
@@ -59,15 +71,20 @@ The release version and archive prefix come from the tag name with its leading
 - Non-empty canonical WAV synthesis through eSpeak on Linux x64; through eSpeak
   and WinRT on Windows x64 and ARM64; and through eSpeak and
   AVSpeechSynthesizer on macOS ARM64 and x64.
+- Native companion staging, linkage, relocation, persistent synthesis,
+  cancellation, missing/corrupt-model fallback, and exact draft-asset Piper
+  synthesis on Linux x64, Windows x64, and macOS ARM64/x64.
+- The exact deterministic Piper source/build-input artifact, including its Git
+  tree, exhaustive manifest, locked native inputs, CI-model exclusion, and
+  offline Cargo graph.
 - Locked dependency resolution with Rust 1.97.1, matching
   `rust-toolchain.toml`.
 
-The publishing workflow does not exercise real Eloquence, DECtalk, or Piper
-runtimes, physical audible onset or audio-device playback, or Emacsvox's
-content-addressed Windows staging contract. The separate non-publishing Piper
-workflow performs native archive verification and real synthesis on Linux x64,
-Windows x64, and macOS ARM64/x64. A failed generic archive verification leaves
-the GitHub release in draft state.
+The publishing workflow does not exercise real Eloquence or DECtalk runtimes,
+physical audible onset or audio-device playback, or Emacsvox's content-addressed
+Windows staging contract. The separate manual Piper workflow remains available
+for non-publishing engineering validation. Any failed generic, Piper, source,
+or draft-asset verification gate leaves the GitHub release unpublished.
 
 ## Installing an archive
 
@@ -144,12 +161,11 @@ Copy-Item -Recurse -Force espeak-ng-data\* "$destination\espeak-ng-data"
 Copy-Item -Recurse -Force third-party-licenses\* "$destination\third-party-licenses"
 ```
 
-Current generic executables can discover optional Piper helpers, but the Piper
-companion is not published. Other optional helper engines likewise require
-separate adjacent executables and user-supplied runtimes. The
-[Piper companion guide](../docs/PIPER.md) documents current source-build and
-non-publishing candidate handling without treating those candidates as release
-assets.
+For a release that lists Piper, verify and extract the matching companion into
+the generic executable's directory; its one top-level `piper/` directory keeps
+the runtime isolated. Supply a separately reviewed voice model and follow the
+[Piper companion guide](../docs/PIPER.md). Other optional helper engines still
+require adjacent executables and user-supplied proprietary runtimes.
 
 Release binaries are not code-signed or notarized. macOS Gatekeeper or Windows
 SmartScreen may therefore warn or refuse the first launch. Verify the SHA-256

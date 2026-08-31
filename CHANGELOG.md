@@ -53,6 +53,8 @@ Versioning for published releases.
   exact committed source, locked Cargo dependency sources, all native build
   inputs, and the corresponding ONNX Runtime source, with exhaustive manifest,
   Git-tree, input-lock, model-exclusion, and offline-Cargo verification.
+- Gated tag releases on four native Piper companion builds, exact draft-asset
+  synthesis, and corresponding-source verification.
 
 ### Fixed
 

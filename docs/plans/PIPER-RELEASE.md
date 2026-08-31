@@ -70,8 +70,12 @@ A platform-neutral, deterministic source artifact now includes the exact
 committed Omnivox/libpiper tree, locked Cargo sources, eSpeak NG and Sonic
 sources, all four ONNX Runtime build inputs, and the corresponding ONNX Runtime
 source. Its exhaustive manifest, Git tree, locked inputs, model exclusion, and
-offline Cargo graph pass verification. Publishing-workflow integration and
-platform signing remain open.
+offline Cargo graph pass verification. The tag workflow packages all five
+Piper artifacts, downloads them back from a draft, and gates publication on
+native real synthesis and source verification. Windows Authenticode and macOS
+Developer ID/notarization are deferred because the required external signing
+services and credentials are unavailable; releases must state that binaries
+are unsigned and continue to publish exhaustive SHA-256 checksums.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
@@ -227,11 +231,11 @@ support.
 6. **Completed:** create and independently verify the deterministic
    corresponding-source and locked-build-input artifact for all four native
    companions.
-7. **Completed for source builds and non-publishing candidates:** document
+7. **Completed for source builds, candidates, and tag releases:** document
    installation, model/config discovery, engine inventory, fallback,
    diagnostics, upgrade, and removal in the
-   [Piper companion guide](../PIPER.md). Published-asset instructions remain
-   contingent on publishing-workflow integration and platform signing.
+   [Piper companion guide](../PIPER.md), including the unsigned-binary boundary
+   and checksum-verification requirement.
 
 ## Release acceptance
 
@@ -255,5 +259,6 @@ from a clean checkout:
 - the companion contains audited notices and source provenance but no voice
   model, and its exact deterministic source-and-build-input artifact passes
   verification; and
-- Windows executables pass Authenticode verification and macOS executables
-  pass code-signing and notarization verification before publication.
+- the unified release checksum covers every generic, companion, and source
+  archive, and the release notes explicitly identify Windows and macOS code as
+  unsigned and not notarized.

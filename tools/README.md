@@ -120,8 +120,9 @@ Mach-O, `@loader_path`, and `otool` checks, and Windows validates the PE import
 chain from the helper through `piper.dll` to ONNX Runtime. When a model is
 supplied, it also confirms that missing and corrupt Piper models preserve the
 eSpeak fallback. Model-backed archive acceptance passes on all four initial
-native runners. Corresponding-source review and release-workflow integration
-remain open, so no Piper archive is published yet.
+native runners. The tag workflow packages and re-verifies the four companions
+and source artifact. Release code remains unsigned, and no Piper archive is
+published yet.
 
 ## Release archive verification
 
