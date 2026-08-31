@@ -1,7 +1,7 @@
 # Omnivox Project Status
 
 **Last reviewed:** 2026-08-31
-**Workspace version:** 1.4.1
+**Workspace version:** 1.5.0
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
@@ -90,9 +90,10 @@ in the linked protocol specifications; future work belongs in
   x64, macOS ARM64, and macOS x64 native runners verify checksum-locked inputs,
   relocated deterministic companion archives, and real synthesis with a
   locked CI-only model. Missing and corrupt model fallback is also verified.
-  The companion is not published: corresponding-source review, the test
-  model's deferred licensing review, and publishing-workflow integration
-  remain open.
+  The exact model revision is approved only for CI acceptance, based on its
+  model card's public-domain LibriVox and trained-from-scratch declarations,
+  and remains excluded from release artifacts. The companion is not published:
+  corresponding-source review and publishing-workflow integration remain open.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.

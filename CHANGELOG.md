@@ -46,9 +46,9 @@ Versioning for published releases.
   output.
 - Completed native Windows x64 Piper build and staging, including offline input
   rechecks and PE validation.
-- Locked the upstream libpiper English test model, configuration, and model
-  card for CI-only synthesis without adding the model to release artifacts;
-  its licensing review remains explicitly deferred.
+- Locked a trained-from-scratch English test model whose model card declares a
+  public-domain LibriVox dataset for CI-only synthesis, without adding or
+  recommending the model in release artifacts.
 
 ### Fixed
 
