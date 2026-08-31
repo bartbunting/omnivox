@@ -298,6 +298,7 @@ fn main() {
     let header = source.join("include/piper.h");
     let bindings = bindgen::Builder::default()
         .header(header.to_string_lossy())
+        .clang_args(["-x", "c++", "-std=c++17"])
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .allowlist_function("piper_.*")
         .allowlist_type("piper_.*")
