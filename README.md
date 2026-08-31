@@ -160,7 +160,9 @@ code remains confined to the helper executable.
 Running Piper requires a compatible `.onnx` model and its adjacent
 configuration, named either `<model>.onnx.json` or `<model>.json`. Model
 compatibility and licensing depend on the model source; Omnivox does not
-currently distribute or endorse a model catalogue.
+currently distribute or endorse a model catalogue. The
+[Piper companion guide](docs/PIPER.md) covers build, installation,
+configuration, verification, upgrade, and removal.
 
 The test suite changes frequently, so documentation does not embed a test
 count. A passing suite establishes correctness coverage; it is not a latency

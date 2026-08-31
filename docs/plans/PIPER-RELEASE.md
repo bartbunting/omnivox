@@ -201,9 +201,11 @@ support.
    not add these artifacts to the publishing workflow until the test model's
    deferred licensing review and companion corresponding-source review are
    resolved.
-6. Document installation, model/config discovery, engine inventory, fallback,
-   diagnostics, upgrade, and removal. Clearly distinguish helper availability
-   from model availability.
+6. **Completed for source builds and non-publishing candidates:** document
+   installation, model/config discovery, engine inventory, fallback,
+   diagnostics, upgrade, and removal in the
+   [Piper companion guide](../PIPER.md). Published-asset instructions remain
+   contingent on the release decisions below.
 
 ## Release acceptance
 

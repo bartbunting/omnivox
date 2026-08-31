@@ -146,7 +146,10 @@ Copy-Item -Recurse -Force third-party-licenses\* "$destination\third-party-licen
 
 Current generic executables can discover optional Piper helpers, but the Piper
 companion is not published. Other optional helper engines likewise require
-separate adjacent executables and user-supplied runtimes.
+separate adjacent executables and user-supplied runtimes. The
+[Piper companion guide](../docs/PIPER.md) documents current source-build and
+non-publishing candidate handling without treating those candidates as release
+assets.
 
 Release binaries are not code-signed or notarized. macOS Gatekeeper or Windows
 SmartScreen may therefore warn or refuse the first launch. Verify the SHA-256
