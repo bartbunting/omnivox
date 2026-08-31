@@ -1,23 +1,29 @@
 {
   "files": {
     "MODEL_CARD": {
-      "sha256": "ce49eb457742208166d399a40cdec2c7fa9db77960930031564ab56f12882645",
-      "size": 351
+      "sha256": "8c181b1d5f7d8152b914faab941fcbe6b8f0495e63e5189d6f27b8c68c8393fc",
+      "size": 479
     },
-    "en_US-lessac-medium.onnx": {
-      "sha256": "5efe09e69902187827af646e1a6e9d269dee769f9877d17b16b1b46eeaaf019f",
-      "size": 63201294
+    "en_US-kristin-medium.onnx": {
+      "sha256": "5849957f929cbf720c258f8458692d6103fff2f0e3d3b19c8259474bb06a18d4",
+      "size": 63531379
     },
-    "en_US-lessac-medium.onnx.json": {
-      "sha256": "efe19c417bed055f2d69908248c6ba650fa135bc868b0e6abb3da181dab690a0",
-      "size": 4885
+    "en_US-kristin-medium.onnx.json": {
+      "sha256": "5681426d4aead22195de70531eeeeddb46493cfaffc5764b2ea3db73428b651c",
+      "size": 4968
     }
   },
-  "licensing_review": "deferred",
-  "model_id": "en_US-lessac-medium",
+  "licensing_evidence": {
+    "declared_dataset": "LibriVox",
+    "declared_license": "public domain",
+    "source_file": "MODEL_CARD",
+    "training_lineage": "trained from scratch"
+  },
+  "licensing_review": "ci_only_approved",
+  "model_id": "en_US-kristin-medium",
   "release_artifact_included": false,
   "repository": "https://huggingface.co/rhasspy/piper-voices",
   "revision": "39ab474be869e9181350af6a65e4953eef67aaa0",
   "schema_version": 1,
-  "source_path": "en/en_US/lessac/medium"
+  "source_path": "en/en_US/kristin/medium"
 }

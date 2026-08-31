@@ -152,10 +152,11 @@ companion candidate: `.tar.gz` for Linux/macOS and `.zip` for Windows.
 `make verify-piper` verifies the extracted runtime. Set `PIPER_MODEL` to a
 licence-reviewed local model to add real end-to-end synthesis. Linux x64,
 Windows x64, and both macOS architectures now pass native staging,
-deterministic archive verification, and CI-only real synthesis.
-Corresponding-source review, test-model licensing review, and release-workflow
-integration remain open, so no Piper archive is published yet. Native Piper
-code remains confined to the helper executable.
+deterministic archive verification, and CI-only real synthesis. The exact CI
+voice is locked and reviewed for CI-only use, remains excluded from release
+artifacts, and is not presented as a user recommendation. Corresponding-source
+review and release-workflow integration remain open, so no Piper archive is
+published yet. Native Piper code remains confined to the helper executable.
 
 Running Piper requires a compatible `.onnx` model and its adjacent
 configuration, named either `<model>.onnx.json` or `<model>.json`. Model

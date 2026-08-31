@@ -63,9 +63,10 @@ make prepare-piper-test-model
 python3 tools/prepare_piper_test_model.py --check
 ```
 
-This model is for native acceptance only. Its checked-in lock explicitly
-records that licensing review is deferred and that the model must not enter a
-release artifact.
+This model is for native acceptance only. Its checked-in lock records the
+model card's LibriVox, public-domain, and trained-from-scratch declarations,
+approves that exact revision for CI-only use, and requires that the model stay
+out of release artifacts.
 
 Create and verify the deterministic companion candidate for the current native
 platform with:
@@ -102,9 +103,8 @@ Mach-O, `@loader_path`, and `otool` checks, and Windows validates the PE import
 chain from the helper through `piper.dll` to ONNX Runtime. When a model is
 supplied, it also confirms that missing and corrupt Piper models preserve the
 eSpeak fallback. Model-backed archive acceptance passes on all four initial
-native runners. Corresponding-source review, test-model licensing review, and
-release-workflow integration remain open, so no Piper archive is published
-yet.
+native runners. Corresponding-source review and release-workflow integration
+remain open, so no Piper archive is published yet.
 
 ## Release archive verification
 

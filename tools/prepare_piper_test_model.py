@@ -38,8 +38,18 @@ def load_lock(path: Path) -> dict[str, object]:
         "Piper test model must remain outside release artifacts",
     )
     require(
-        lock.get("licensing_review") == "deferred",
-        "Piper test-model licensing status changed without review",
+        lock.get("licensing_review") == "ci_only_approved",
+        "Piper test model is not approved for CI-only use",
+    )
+    require(
+        lock.get("licensing_evidence")
+        == {
+            "declared_dataset": "LibriVox",
+            "declared_license": "public domain",
+            "source_file": "MODEL_CARD",
+            "training_lineage": "trained from scratch",
+        },
+        "Piper test-model licensing evidence changed without review",
     )
     revision = str(lock.get("revision", ""))
     require(
@@ -77,6 +87,7 @@ def expected_marker(lock_path: Path, lock: dict[str, object]) -> dict[str, objec
         "revision": lock["revision"],
         "release_artifact_included": False,
         "licensing_review": lock["licensing_review"],
+        "licensing_evidence": lock["licensing_evidence"],
         "files": lock["files"],
     }
 
@@ -110,18 +121,23 @@ def prepare(arguments: argparse.Namespace) -> Path:
             f"invalid model size: {filename}",
         )
         destination = output / filename
+        needs_download = not destination.is_file()
         if destination.is_file():
-            require(
-                destination.stat().st_size == expected_size,
-                f"cached model size mismatch: {filename}",
-            )
-            require(
-                sha256_file(destination) == expected_sha256,
-                f"cached model checksum mismatch: {filename}",
-            )
+            if destination.stat().st_size != expected_size:
+                if arguments.check:
+                    raise PreparationError(f"cached model size mismatch: {filename}")
+                print(f"Replacing outdated Piper test file {filename}", file=sys.stderr)
+                needs_download = True
+            elif sha256_file(destination) != expected_sha256:
+                if arguments.check:
+                    raise PreparationError(
+                        f"cached model checksum mismatch: {filename}"
+                    )
+                print(f"Replacing outdated Piper test file {filename}", file=sys.stderr)
+                needs_download = True
         elif arguments.check:
             raise PreparationError(f"cached model file is missing: {destination}")
-        else:
+        if needs_download:
             print(f"Downloading locked Piper test file {filename}", file=sys.stderr)
             download(source_url(lock, filename), destination, expected_sha256)
             require(

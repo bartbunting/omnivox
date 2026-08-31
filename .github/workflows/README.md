@@ -113,9 +113,10 @@ checksum for inspection.
 
 This provisional workflow does not publish release assets or a voice model.
 The model remains outside the staged directory, companion archive, and upload
-patterns. Its lock records that licensing review is deferred; passing this
-engineering test does not approve the model for redistribution. Piper release
-integration remains separate.
+patterns. Its lock records the model card's public-domain LibriVox and
+trained-from-scratch declarations and approves the exact revision only for CI
+acceptance; passing this engineering test does not approve the model for
+redistribution. Piper release integration remains separate.
 
 ## Triggers
 

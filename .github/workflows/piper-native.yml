@@ -91,13 +91,13 @@ jobs:
           target/release/piper/${{ matrix.helper }}
           --engine-id piper --iterations 25 --cancel-probe --require-acss rate
           --helper-arg=--model
-          --helper-arg=target/piper-test-model/en_US-lessac-medium.onnx
+          --helper-arg=target/piper-test-model/en_US-kristin-medium.onnx
 
       - name: Build Piper-enabled server
         run: python tools/build.py --release --package omnivox-cli --features piper
 
       - name: Verify real synthesis from relocated archive
-        run: python tools/verify_piper_release.py --model target/piper-test-model/en_US-lessac-medium.onnx
+        run: python tools/verify_piper_release.py --model target/piper-test-model/en_US-kristin-medium.onnx
 
       - name: Upload verified companion candidate
         uses: actions/upload-artifact@v4

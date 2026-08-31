@@ -61,12 +61,13 @@ Relocatable staging and deterministic packaging are implemented for the native
 `.tar.gz` and `.zip` layouts; Linux archive verification, including real
 synthesis from the extracted candidate, passes locally. Linux x64, Windows
 x64, and both macOS architectures build and stage on native runners. The
-English model used by upstream libpiper tests is revision- and checksum-locked
-for CI-only acceptance, explicitly excluded from release artifacts, and keeps
-its licensing review deferred. All four native jobs now verify their relocated
+English CI model is revision- and checksum-locked, and its model card
+declares a public-domain LibriVox dataset and training from scratch. The lock
+approves that exact revision for CI-only acceptance and explicitly excludes it
+from release artifacts. All four native jobs now verify their relocated
 archive and synthesize real audio through the Piper-enabled main server.
-Corresponding-source review, test-model licensing review, and integration with
-the publishing release workflow remain open.
+Corresponding-source review and integration with the publishing release
+workflow remain open.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
