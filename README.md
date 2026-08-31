@@ -145,11 +145,12 @@ directory with the helper, native libraries, matching eSpeak data, notices,
 provenance, and checksums. `make package-piper` creates a deterministic native
 companion candidate: `.tar.gz` for Linux/macOS and `.zip` for Windows.
 `make verify-piper` verifies the extracted runtime. Set `PIPER_MODEL` to a
-licence-reviewed local model to add real end-to-end synthesis. Linux x64 and
-both macOS architectures now pass native staging; Windows and model-backed
-acceptance on every runner remain release work. Corresponding-source review
-and release CI also remain open, so no Piper archive is published yet. Native
-Piper code remains confined to the helper executable.
+licence-reviewed local model to add real end-to-end synthesis. Linux x64,
+Windows x64, and both macOS architectures now pass native staging;
+model-backed acceptance on every runner remains release work.
+Corresponding-source review and release CI also remain open, so no Piper
+archive is published yet. Native Piper code remains confined to the helper
+executable.
 
 Running Piper requires a compatible `.onnx` model and its adjacent
 configuration, named either `<model>.onnx.json` or `<model>.json`. Model

@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc prepare-piper stage-piper build-piper package-piper verify-piper install-piper
+.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -73,7 +73,10 @@ install: build
 # Build and stage the isolated Piper companion. Its preparation step downloads
 # checksum-locked native inputs on first use; repeated builds can run offline.
 prepare-piper:
-	$(PYTHON) tools/prepare_piper_inputs.py --target x86_64-unknown-linux-gnu
+	$(PYTHON) tools/prepare_piper_inputs.py
+
+prepare-piper-test-model:
+	$(PYTHON) tools/prepare_piper_test_model.py
 
 stage-piper:
 	$(PYTHON) tools/build_piper.py --release
@@ -82,7 +85,7 @@ stage-piper:
 build-piper: stage-piper
 	$(PYTHON) tools/build.py --release -p omnivox-cli --features piper
 
-# Create and structurally verify the optional Linux x64 companion archive.
+# Create and structurally verify the optional native companion archive.
 # Set PIPER_MODEL to add end-to-end synthesis with target/release/omnivox.
 package-piper: stage-piper
 	$(PYTHON) tools/package_piper.py

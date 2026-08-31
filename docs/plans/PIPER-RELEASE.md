@@ -59,11 +59,12 @@ eSpeak NG, Sonic, and ONNX Runtime inputs before CMake runs. Completed native
 jobs recheck the prepared cache without network access after staging.
 Relocatable staging and deterministic packaging are implemented for the native
 `.tar.gz` and `.zip` layouts; Linux archive verification, including real
-synthesis from the extracted candidate, passes locally. Linux x64 and both
-macOS architectures build and stage on native runners. Windows has compiled
-`piper.dll` and now awaits a complete stage/package run after correcting
-Windows path handling. Corresponding-source review, release integration, and
-model-backed acceptance on every native runner remain open.
+synthesis from the extracted candidate, passes locally. Linux x64, Windows
+x64, and both macOS architectures build and stage on native runners. The
+English model used by upstream libpiper tests is revision- and checksum-locked
+for CI-only acceptance, explicitly excluded from release artifacts, and keeps
+its licensing review deferred. Corresponding-source review, release
+integration, and model-backed acceptance on every native runner remain open.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
@@ -192,10 +193,11 @@ support.
    incorrectly hashed files. The verifier relocates the archive into a path
    with spaces and optionally exercises a separately supplied,
    licence-reviewed model end to end.
-5. **In progress:** add native-runner CI one platform at a time. Linux x64 and
-   macOS ARM64/x64 build and stage successfully; Windows and native package
-   verification are next. Do not add a platform to the published matrix until
-   the runner exercises a real, licence-reviewed test model.
+5. **In progress:** add native-runner CI one platform at a time. Linux x64,
+   Windows x64, and macOS ARM64/x64 build and stage successfully; native
+   package verification and CI-only model-backed synthesis are next. Do not
+   add a platform to the published matrix until the runner exercises a real,
+   licence-reviewed test model.
 6. Document installation, model/config discovery, engine inventory, fallback,
    diagnostics, upgrade, and removal. Clearly distinguish helper availability
    from model availability.

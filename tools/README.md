@@ -53,6 +53,20 @@ python3 tools/prepare_piper_inputs.py \
   --target x86_64-unknown-linux-gnu --check
 ```
 
+`prepare_piper_test_model.py` separately downloads the English model used by
+upstream libpiper tests at a locked repository revision, verifies the model,
+configuration, and `MODEL_CARD` sizes and SHA-256 digests, and records the
+prepared state under `target/piper-test-model/`:
+
+```sh
+make prepare-piper-test-model
+python3 tools/prepare_piper_test_model.py --check
+```
+
+This model is for native acceptance only. Its checked-in lock explicitly
+records that licensing review is deferred and that the model must not enter a
+release artifact.
+
 Create and verify the deterministic companion candidate for the current native
 platform with:
 

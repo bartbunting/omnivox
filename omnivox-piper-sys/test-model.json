@@ -1,0 +1,23 @@
+{
+  "files": {
+    "MODEL_CARD": {
+      "sha256": "ce49eb457742208166d399a40cdec2c7fa9db77960930031564ab56f12882645",
+      "size": 351
+    },
+    "en_US-lessac-medium.onnx": {
+      "sha256": "5efe09e69902187827af646e1a6e9d269dee769f9877d17b16b1b46eeaaf019f",
+      "size": 63201294
+    },
+    "en_US-lessac-medium.onnx.json": {
+      "sha256": "efe19c417bed055f2d69908248c6ba650fa135bc868b0e6abb3da181dab690a0",
+      "size": 4885
+    }
+  },
+  "licensing_review": "deferred",
+  "model_id": "en_US-lessac-medium",
+  "release_artifact_included": false,
+  "repository": "https://huggingface.co/rhasspy/piper-voices",
+  "revision": "39ab474be869e9181350af6a65e4953eef67aaa0",
+  "schema_version": 1,
+  "source_path": "en/en_US/lessac/medium"
+}
