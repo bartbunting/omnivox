@@ -4,7 +4,9 @@ This file records user-visible changes to Omnivox. It follows the structure of
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and uses Semantic
 Versioning for published releases.
 
-## Unreleased
+## [Unreleased]
+
+## [1.5.0] - 2026-08-31
 
 ### Changed
 
@@ -124,5 +126,6 @@ superseded by `v1.4.1` and its assets should not be used.
 - Added recovery for a draft release whose native verification needs to be
   rerun without rebuilding or replacing its uploaded assets.
 
-[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/bartbunting/omnivox/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/bartbunting/omnivox/compare/v1.3.0...v1.4.1
