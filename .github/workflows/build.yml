@@ -666,10 +666,8 @@ jobs:
             extension: zip
 
     steps:
-      - name: Checkout verification code from release tag
+      - name: Checkout verification code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.RELEASE_TAG }}
 
       - name: Install Python
         uses: actions/setup-python@v5

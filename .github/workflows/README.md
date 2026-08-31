@@ -160,7 +160,10 @@ the complete release path. If a draft was created but verification could not
 finish, dispatch against `main` with `draft_version` set to the version without
 its leading `v` (for example, `1.5.0`). The workflow skips the build matrix,
 downloads that existing draft's generic, Piper, and source assets, reruns every
-native verification, and publishes only if every verifier passes.
+native verification, and publishes only if every verifier passes. Generic and
+Piper checks use the verifier code from the dispatched ref, allowing a verifier
+defect to be repaired without replacing immutable release assets; the source
+check remains pinned to the release tag so its Git-tree comparison stays exact.
 
 ## Caching
 

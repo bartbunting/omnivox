@@ -6,6 +6,12 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Draft Piper verification now installs the complete generic release payload
+  beside the companion, so missing or corrupt model tests exercise the packaged
+  eSpeak fallback rather than a build-tree data path.
+
 ## [1.5.0] - 2026-08-31
 
 ### Changed

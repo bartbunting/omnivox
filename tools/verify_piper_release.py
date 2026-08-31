@@ -436,6 +436,7 @@ def verify_native_runtime(directory: Path, configuration: PlatformConfig) -> Non
 def verify_synthesis(
     directory: Path,
     omnivox: Path,
+    omnivox_payload: Path | None,
     model: Path,
     version: str,
     working: Path,
@@ -452,7 +453,27 @@ def verify_synthesis(
         "omnivox.exe" if configuration.platform_name == "windows" else "omnivox"
     )
     installed = directory.parent / binary_name
-    shutil.copy2(omnivox, installed)
+    if omnivox_payload is None:
+        shutil.copy2(omnivox, installed)
+        data = omnivox.parent / "espeak-ng-data"
+        if data.is_dir():
+            shutil.copytree(data, directory.parent / data.name)
+    else:
+        require(omnivox_payload.is_dir(), "matching Omnivox payload is missing")
+        for source in omnivox_payload.iterdir():
+            destination = directory.parent / source.name
+            require(
+                not destination.exists(),
+                f"generic and companion payloads collide: {source.name}",
+            )
+            if source.is_dir():
+                shutil.copytree(source, destination)
+            else:
+                shutil.copy2(source, destination)
+        require(
+            (directory.parent / "espeak-ng-data/phontab").is_file(),
+            "installed generic payload is missing eSpeak runtime data",
+        )
     if configuration.platform_name != "windows":
         installed.chmod(installed.stat().st_mode | 0o755)
     architecture = "aarch64" if configuration.architecture == "arm64" else "x86_64"
@@ -564,6 +585,7 @@ def verify(arguments: argparse.Namespace, configuration: PlatformConfig) -> None
         verify_native_runtime(directory, configuration)
         if arguments.model is not None:
             omnivox = arguments.omnivox
+            omnivox_payload = None
             if arguments.omnivox_archive is not None:
                 main_archive = arguments.omnivox_archive.resolve()
                 require(
@@ -597,10 +619,12 @@ def verify(arguments: argparse.Namespace, configuration: PlatformConfig) -> None
                     configuration.platform_name,
                     architecture,
                 )
+                omnivox_payload = main_extracted
             assert omnivox is not None
             verify_synthesis(
                 directory,
                 omnivox.resolve(),
+                omnivox_payload,
                 arguments.model.resolve(),
                 arguments.version,
                 working,
