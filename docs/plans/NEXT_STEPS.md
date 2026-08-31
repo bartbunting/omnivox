@@ -43,14 +43,22 @@ The structured identity model remains:
 
 1. Expand real Windows repetition, cancellation, crash, and recovery testing
    for WinRT, Eloquence, and DECtalk, including helper working-set measurement.
-2. Stabilize Piper dependency pinning and model packaging, cross-platform
+2. Make startup engine selection a preference rather than an exclusive
+   registration choice. On macOS, register AVSpeechSynthesizer and eSpeak NG
+   together so either can remain available for routing and fallback. On Linux,
+   retain eSpeak NG when an explicitly configured Piper helper is available.
+   Register Piper on every platform only when its model is configured; engine
+   registration does not itself promise parallel synthesis.
+3. Stabilize Piper dependency pinning and model packaging, cross-platform
    builds, cold start, cancellation/restart latency, and documented model
-   ownership.
-3. Improve macOS marker and cancellation coverage without overstating what
+   ownership. Treat this as a reproducible optional-helper release problem,
+   separate from the engine-registry policy, and solve it consistently for
+   Windows, Linux, and macOS.
+4. Improve macOS marker and cancellation coverage without overstating what
    AVSpeechSynthesizer exposes.
-4. Verify logical-language and text-repertoire routing against live
+5. Verify logical-language and text-repertoire routing against live
    multilingual voices on every supported engine.
-5. Keep eSpeak NG as the reliable Unicode-capable final fallback and extend
+6. Keep eSpeak NG as the reliable Unicode-capable final fallback and extend
    native marker coverage only when mappings remain source-accurate.
 
 ## Priority 3: deployment and user diagnostics
@@ -71,6 +79,11 @@ The structured identity model remains:
 
 These are not current features and require design or scope approval:
 
+- **Multiple instances of one engine:** do not add a second Eloquence helper
+  merely as a precaution. First collect long-session failure evidence for the
+  persistent ECI owner-thread implementation. Revisit per-instance identity,
+  health, retry, and duplicate-output rules only if failures remain frequent
+  enough to justify the added state and resource cost.
 - **Speech Dispatcher:** start from the capability and lifecycle contract in
   [SPEECHD-PLAN.md](SPEECHD-PLAN.md), then revise it for the current engine
   registry. External playback cannot claim buffered mixing/effects parity.
