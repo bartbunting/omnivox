@@ -85,10 +85,16 @@ def parse_arguments(
         "--checksums", type=Path, default=release / "piper-sha256sums.txt"
     )
     parser.add_argument("--version", default=version)
-    parser.add_argument(
+    main_binary = parser.add_mutually_exclusive_group()
+    main_binary.add_argument(
         "--omnivox",
         type=Path,
         help="matching Piper-enabled main binary for end-to-end synthesis",
+    )
+    main_binary.add_argument(
+        "--omnivox-archive",
+        type=Path,
+        help="matching generic release archive for end-to-end synthesis",
     )
     parser.add_argument(
         "--model",
@@ -529,9 +535,16 @@ def verify(arguments: argparse.Namespace, configuration: PlatformConfig) -> None
     )
     common.verify_checksum(archive, checksums)
 
-    if arguments.omnivox is not None:
-        require(arguments.model is not None, "--omnivox requires --model")
-    if arguments.model is not None and arguments.omnivox is None:
+    if arguments.omnivox is not None or arguments.omnivox_archive is not None:
+        require(
+            arguments.model is not None,
+            "--omnivox or --omnivox-archive requires --model",
+        )
+    if (
+        arguments.model is not None
+        and arguments.omnivox is None
+        and arguments.omnivox_archive is None
+    ):
         binary_name = (
             "omnivox.exe" if configuration.platform_name == "windows" else "omnivox"
         )
@@ -550,10 +563,44 @@ def verify(arguments: argparse.Namespace, configuration: PlatformConfig) -> None
         directory = verify_layout(extracted, arguments.version, configuration)
         verify_native_runtime(directory, configuration)
         if arguments.model is not None:
-            assert arguments.omnivox is not None
+            omnivox = arguments.omnivox
+            if arguments.omnivox_archive is not None:
+                main_archive = arguments.omnivox_archive.resolve()
+                require(
+                    main_archive.is_file(),
+                    f"matching Omnivox archive is missing: {main_archive}",
+                )
+                expected_main_name = (
+                    f"omnivox-{arguments.version}-{configuration.artifact_suffix}."
+                    f"{extension}"
+                )
+                require(
+                    main_archive.name == expected_main_name,
+                    f"unexpected Omnivox archive name: {main_archive.name}",
+                )
+                common.verify_checksum(main_archive, checksums)
+                main_extracted = root / "Extracted main release with spaces"
+                main_extracted.mkdir()
+                common.extract_archive(
+                    main_archive, main_extracted, configuration.platform_name
+                )
+                omnivox = common.verify_layout(
+                    main_extracted, configuration.platform_name, arguments.version
+                )
+                architecture = (
+                    "aarch64"
+                    if configuration.architecture == "arm64"
+                    else "x86_64"
+                )
+                common.verify_architecture(
+                    omnivox,
+                    configuration.platform_name,
+                    architecture,
+                )
+            assert omnivox is not None
             verify_synthesis(
                 directory,
-                arguments.omnivox.resolve(),
+                omnivox.resolve(),
                 arguments.model.resolve(),
                 arguments.version,
                 working,
