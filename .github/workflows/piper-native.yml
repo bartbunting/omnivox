@@ -22,15 +22,19 @@ jobs:
           - name: linux-x64
             os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
+            helper: omnivox-piper-helper
           - name: macos-arm64
             os: macos-15
             target: aarch64-apple-darwin
+            helper: omnivox-piper-helper
           - name: macos-x64
             os: macos-15-intel
             target: x86_64-apple-darwin
+            helper: omnivox-piper-helper
           - name: windows-x64
             os: windows-2025
             target: x86_64-pc-windows-msvc
+            helper: omnivox-piper-helper.exe
 
     steps:
       - name: Checkout code
@@ -74,6 +78,14 @@ jobs:
         run: |
           python tools/prepare_piper_test_model.py
           python tools/prepare_piper_test_model.py --check
+
+      - name: Stress persistent Piper helper session
+        run: >-
+          python tools/stress_helper.py
+          target/release/piper/${{ matrix.helper }}
+          --engine-id piper --iterations 25 --require-acss rate
+          --helper-arg=--model
+          --helper-arg=target/piper-test-model/en_US-lessac-medium.onnx
 
       - name: Build Piper-enabled server
         run: python tools/build.py --release --package omnivox-cli --features piper

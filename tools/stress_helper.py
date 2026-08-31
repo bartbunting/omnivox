@@ -131,7 +131,15 @@ def validate_marker(marker, frame_count, text_size):
         raise RuntimeError(f"marker source range is invalid: {marker}")
 
 
-def synthesize(session, request_id, text, voice_id, iteration, acss_capabilities):
+def synthesize(
+    session,
+    request_id,
+    text,
+    voice_id,
+    iteration,
+    acss_capabilities,
+    marker_capabilities,
+):
     settings = {
         "voice_id": voice_id,
         "rate": (0.35, 0.5, 0.7, 1.32)[iteration % 4],
@@ -212,8 +220,16 @@ def synthesize(session, request_id, text, voice_id, iteration, acss_capabilities
             for marker in markers:
                 validate_marker(marker, frame_count, text_size)
             kinds = {marker.get("kind") for marker in markers}
-            if "word" not in kinds or "sentence" not in kinds:
-                raise RuntimeError(f"helper omitted expected word/sentence markers: {kinds}")
+            required_kinds = {
+                kind
+                for kind in ("word", "sentence", "phoneme", "native_index")
+                if marker_capabilities.get(kind)
+            }
+            if not required_kinds.issubset(kinds):
+                missing_kinds = required_kinds - kinds
+                raise RuntimeError(
+                    f"helper omitted advertised markers {missing_kinds}: {kinds}"
+                )
             return frame_count, len(markers), audio_bytes
         else:
             raise RuntimeError(f"unexpected synthesis response: {response}")
@@ -284,6 +300,9 @@ def main():
         if not voice_id:
             raise RuntimeError("helper descriptor has no usable default voice")
         acss_capabilities = descriptor.get("capabilities", {}).get("acss", {})
+        marker_capabilities = descriptor.get("capabilities", {}).get(
+            "markers", {}
+        )
         missing_acss = [
             dimension
             for dimension in args.require_acss
@@ -304,6 +323,7 @@ def main():
                 voice_id,
                 iteration,
                 acss_capabilities,
+                marker_capabilities,
             )
             next_request_id += 1
             total_frames += frames

@@ -197,10 +197,10 @@ support.
    licence-reviewed model end to end.
 5. **Completed as a manual non-publishing workflow:** Linux x64, Windows x64,
    and macOS ARM64/x64 build and stage successfully, verify the relocated
-   native archive, and synthesize real audio with the locked CI-only model. Do
-   not add these artifacts to the publishing workflow until the test model's
-   deferred licensing review and companion corresponding-source review are
-   resolved.
+   native archive, synthesize real audio with the locked CI-only model, and
+   exercise 25 requests through one persistent helper session. Do not add these
+   artifacts to the publishing workflow until the test model's deferred
+   licensing review and companion corresponding-source review are resolved.
 6. **Completed for source builds and non-publishing candidates:** document
    installation, model/config discovery, engine inventory, fallback,
    diagnostics, upgrade, and removal in the
