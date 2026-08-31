@@ -2,7 +2,9 @@
 
 Omnivox uses this protocol to host speech engines that cannot safely be loaded
 into the main process. Its consumers include the 32-bit Windows Eloquence and
-DECtalk capture helpers built by Emacsvox and the cross-platform Piper helper.
+DECtalk capture helpers under `windows-helpers` and the cross-platform Piper
+helper. Emacsvox's Windows release target builds the former from this Omnivox
+source with pinned inputs and stages the resulting executables.
 The protocol is engine-neutral so the main process keeps voice routing,
 fallback, effects, mixing, playback completion, and runtime health policy.
 
@@ -214,7 +216,9 @@ speech-to-memory output is not affected by its native playback-volume command.
 
 The Eloquence and DECtalk adapters share one C# protocol host while retaining
 separate native capture implementations and executables. Windows Omnivox
-discovers either helper independently. End-to-end smoke tests have exercised real
+discovers either helper independently. Their source, build targets, and
+source-contract tests are owned together under `windows-helpers`; final WSL
+bundle orchestration remains in Emacsvox. End-to-end smoke tests have exercised real
 capture, cancellation, mixed-engine routing, fallback, PCM canonicalization,
 Eloquence exact requested anchors plus word/sentence markers, DECtalk
 word/sentence/phoneme/native-index markers, control mapping, tracked playback

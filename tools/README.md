@@ -168,15 +168,15 @@ acknowledgement, and checks that the helper remains responsive. It records
 process memory on systems with a compatible `/proc` entry. The native Piper
 workflow uses both paths on every initial platform.
 
-From WSL, after building the Emacsvox helpers:
+From WSL, after running `make windows-helpers` in the Omnivox checkout:
 
 ```sh
 python3 tools/stress_helper.py \
-  ~/src/emacsvox/servers/windows-eloquence/bin/OmnivoxEloquenceHelper32.exe \
+  windows-helpers/bin/OmnivoxEloquenceHelper32.exe \
   --engine-id eloquence --iterations 100
 
 python3 tools/stress_helper.py \
-  ~/src/emacsvox/servers/windows-dectalk/bin/OmnivoxDectalkHelper32.exe \
+  windows-helpers/bin/OmnivoxDectalkHelper32.exe \
   --engine-id dectalk --iterations 100
 ```
 

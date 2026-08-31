@@ -8,6 +8,7 @@ target/
 *.pcm
 *.aiff
 omnivox
+windows-helpers/bin/
 
 # IDE
 .idea/

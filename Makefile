@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
+.PHONY: all build test elisp-test windows-helpers windows-helpers-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -16,8 +16,20 @@ dev:
 	$(PYTHON) tools/build.py --package omnivox-cli --features piper
 
 # Run tests
-test:
+test: windows-helpers-test
 	cargo test --locked
+
+# Build the GPL-2.0-or-later 32-bit Windows capture helpers.  A reproducible
+# Emacsvox bundle supplies its pinned compiler and reference assemblies through
+# OMNIVOX_CSC and OMNIVOX_REFERENCE_DIR.
+windows-helpers:
+	$(MAKE) -C windows-helpers
+
+windows-helpers-test:
+	$(PYTHON) tools/test_windows_helpers.py
+
+clean-windows-helpers:
+	$(MAKE) -C windows-helpers clean
 
 # Exercise the standalone Emacspeak compatibility adapter without requiring
 # an Emacspeak checkout.

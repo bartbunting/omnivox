@@ -6,6 +6,12 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Changed
+
+- Moved the GPL-2.0-or-later Eloquence and DECtalk capture-helper source,
+  shared protocol host, build targets, and source-contract tests into Omnivox.
+  Emacsvox continues to own the pinned WSL bundle build and deployment.
+
 ### Fixed
 
 - Draft Piper verification now installs the complete generic release payload

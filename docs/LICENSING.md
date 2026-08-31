@@ -21,6 +21,19 @@ project or vendor.
 and GNU General Public License version 2 or later notice. That file is not
 relicensed by the repository's MIT license.
 
+## Windows Eloquence and DECtalk helpers
+
+The C# source under [`windows-helpers`](../windows-helpers/README.md) carries
+its own Bart Bunting copyright and `GPL-2.0-or-later` notice. The complete GPL
+version 2 text is included as
+[`windows-helpers/COPYING`](../windows-helpers/COPYING). Those files are not
+relicensed by the repository's MIT license.
+
+The helpers are separate 32-bit executables rather than code linked into the
+MIT-licensed Rust server. A Windows bundle containing either helper must retain
+the applicable GPL notice and license text. Emacsvox stages that text as
+`WINDOWS-HELPERS-COPYING` beside its helper executables.
+
 ## eSpeak NG and release executables
 
 The main Omnivox executable statically incorporates eSpeak NG. The eSpeak NG

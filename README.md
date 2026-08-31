@@ -31,6 +31,8 @@ The Windows Eloquence and DECtalk engines run in separate 32-bit helper
 processes and require user-supplied proprietary runtimes. Omnivox and Emacsvox
 do not distribute those runtimes. They are discovered as helper engines for
 runtime routing rather than selected with the startup `--engine` option. The
+[helper source and build](windows-helpers/README.md) live in this repository;
+Emacsvox consumes those outputs when staging its WSL Windows bundle. The
 Piper backend is opt-in and is built separately so its native dependencies
 never enter the main server process. Speech Dispatcher remains a design
 proposal, not an implemented backend.
@@ -125,6 +127,7 @@ make dev         # locked debug build plus adjacent eSpeak runtime data
 make fmt-check   # non-mutating format check
 make test        # locked default-member tests
 make lint        # locked default-member/all-target Clippy with warnings denied
+make windows-helpers-test  # source-contract checks for Windows helpers
 ```
 
 The full workspace check, including non-default workspace members, is:
@@ -183,8 +186,9 @@ but does not create that complete runtime payload.
 
 ## Emacsvox on Windows under WSL
 
-The Emacsvox repository owns the reproducible Windows bundle, helper builds,
-runtime provenance, and content-addressed launcher selection:
+Omnivox owns the Eloquence and DECtalk helper source and build targets. The
+Emacsvox repository owns the reproducible Windows bundle, pinned helper build
+inputs, runtime provenance, and content-addressed launcher selection:
 
 ```sh
 cd /path/to/emacsvox

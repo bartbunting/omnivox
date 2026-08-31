@@ -37,6 +37,8 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 - [PIPER.md](PIPER.md) — optional companion build, layout, model setup,
   verification, upgrade, and removal.
+- [Windows capture helpers](../windows-helpers/README.md) — Eloquence and
+  DECtalk helper ownership, build, test, runtime, and licensing boundaries.
 - [DIAGNOSTICS.md](DIAGNOSTICS.md) — log collection, privacy boundaries, and
   optional Windows crash dumps.
 - [Release and deployment guide](../.github/DEPLOYMENT.md) — archives,

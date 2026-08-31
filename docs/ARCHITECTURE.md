@@ -21,13 +21,15 @@ omnivox-tts/           engine contracts/backends, routing, protocols, helpers
 omnivox-cli/           executable, admission, work queue, routing and pipeline
 omnivox-piper-helper/  optional isolated Piper executable and protocol tests
 omnivox-piper-sys/     optional maintained libpiper C API build and bindings
+windows-helpers/       32-bit Eloquence/DECtalk capture processes and host
 third-party/           separately licensed, provenance-recorded native source
 elisp/                 standalone upstream-Emacspeak compatibility adapter
 ```
 
 The main server is `omnivox-cli`. Omnivox-specific data contracts live in
 `omnivox-tts`; the audio crate owns the single canonical `AudioBuffer`. The
-core crate remains independent of any one engine.
+core crate remains independent of any one engine. The C# Windows helpers are
+separate executables and retain their GPL-2.0-or-later source license.
 
 ## End-to-end flow
 

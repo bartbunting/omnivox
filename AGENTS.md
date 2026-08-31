@@ -16,6 +16,8 @@
 - Use `make build` or `make dev` for runnable payloads. Their build wrapper
   stages the exact generated `espeak-ng-data` and license notices beside the
   executable; a direct `cargo build` is not a complete distributable payload.
-- Windows deployment is owned by the sibling Emacsvox repository. Use
+- Windows helper source and build targets are owned under `windows-helpers`;
+  preserve their GPL-2.0-or-later notices and separate executable boundary.
+  Final Windows deployment is owned by the sibling Emacsvox repository. Use
   `make windows-omnivox-dev` there for a provenance-labelled build from active
   changes. Reserve `make windows-omnivox` for a clean reproducible release.
