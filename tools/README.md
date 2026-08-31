@@ -27,18 +27,21 @@ python3 tools/build.py --release --target aarch64-apple-darwin
 
 The wrapper fails rather than choose between non-identical eSpeak data outputs.
 
-`build_piper.py` builds the optional helper in relocatable mode and atomically
-stages the initial Linux x64 companion as `piper/` beside the Cargo profile
-output. The directory contains the helper, only the required native libraries,
-its separately generated eSpeak data, project and third-party licensing files,
+`build_piper.py` builds the optional helper in relocatable mode, selects the
+native Linux x64, Windows x64, or macOS ARM64/x64 library layout, and
+atomically stages the companion as `piper/` beside the Cargo profile output.
+The directory contains the helper, only the required native libraries, its
+separately generated eSpeak data, project and third-party licensing files,
 source/input provenance, and a SHA-256 manifest:
 
 ```sh
 python3 tools/build_piper.py --release
 ```
 
-The staging command validates `$ORIGIN` runtime lookup and rejects unresolved
-or developer-tree native-library paths. Before Cargo runs,
+Linux staging validates `$ORIGIN` lookup and resolved libraries; macOS staging
+validates thin Mach-O architecture and `@loader_path` lookup; Windows staging
+validates x64 PE identities. Native runner synthesis remains the final dynamic
+loading check on every platform. Before Cargo runs,
 `prepare_piper_inputs.py` downloads the target's checked-in eSpeak NG, Sonic,
 and ONNX Runtime archives, verifies their SHA-256 digests, safely extracts
 them, and records the extracted-tree digests. It detects Linux x64, Windows

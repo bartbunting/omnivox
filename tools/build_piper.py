@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from dataclasses import dataclass
 from pathlib import Path
 import platform
 import shutil
@@ -21,11 +22,68 @@ ESPEAK_COMMIT = "212928b394a96e8fd2096616bfd54e17845c48f6"
 SONIC_COMMIT = "fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104"
 ONNXRUNTIME_VERSION = "1.22.0"
 LINUX_TARGET = "x86_64-unknown-linux-gnu"
-RUNTIME_FILES = (
-    "libpiper.so",
-    "libonnxruntime.so.1",
-    "libonnxruntime_providers_shared.so",
-)
+
+
+@dataclass(frozen=True)
+class PlatformConfig:
+    platform_name: str
+    architecture: str
+    target: str
+    artifact_suffix: str
+    helper: str
+    libpiper: str
+    runtime_files: tuple[str, ...]
+
+
+def native_platform() -> PlatformConfig:
+    machine = platform.machine().lower()
+    if sys.platform == "linux" and machine in {"x86_64", "amd64"}:
+        return PlatformConfig(
+            "linux",
+            "x86_64",
+            LINUX_TARGET,
+            "linux-x64",
+            "omnivox-piper-helper",
+            "libpiper.so",
+            (
+                "libpiper.so",
+                "libonnxruntime.so.1",
+                "libonnxruntime_providers_shared.so",
+            ),
+        )
+    if sys.platform == "darwin" and machine in {"arm64", "aarch64"}:
+        return PlatformConfig(
+            "macos",
+            "arm64",
+            "aarch64-apple-darwin",
+            "macos-arm64",
+            "omnivox-piper-helper",
+            "libpiper.dylib",
+            ("libpiper.dylib", f"libonnxruntime.{ONNXRUNTIME_VERSION}.dylib"),
+        )
+    if sys.platform == "darwin" and machine in {"x86_64", "amd64"}:
+        return PlatformConfig(
+            "macos",
+            "x86_64",
+            "x86_64-apple-darwin",
+            "macos-x64",
+            "omnivox-piper-helper",
+            "libpiper.dylib",
+            ("libpiper.dylib", f"libonnxruntime.{ONNXRUNTIME_VERSION}.dylib"),
+        )
+    if sys.platform == "win32" and machine in {"x86_64", "amd64"}:
+        return PlatformConfig(
+            "windows",
+            "x86_64",
+            "x86_64-pc-windows-msvc",
+            "windows-x64",
+            "omnivox-piper-helper.exe",
+            "piper.dll",
+            ("piper.dll", "onnxruntime.dll", "onnxruntime_providers_shared.dll"),
+        )
+    raise StagingError(
+        f"Piper companion staging does not support {sys.platform}/{machine}"
+    )
 
 
 class StagingError(RuntimeError):
@@ -37,7 +95,7 @@ def usage() -> str:
         "usage: python tools/build_piper.py [cargo build arguments]\n\n"
         "Builds omnivox-piper-helper with locked dependencies and stages an "
         "isolated relocatable companion directory beside the Cargo profile "
-        "output. Linux x64 is the first supported staging target.\n\n"
+        "output. Linux x64, Windows x64, and macOS ARM64/x64 are supported.\n\n"
         "example:\n"
         "  python3 tools/build_piper.py --release"
     )
@@ -126,12 +184,12 @@ def run_cargo_build(arguments: list[str]) -> tuple[list[Path], list[Path]]:
     return executables, library_directories
 
 
-def prepare_inputs(repository: Path) -> None:
+def prepare_inputs(repository: Path, configuration: PlatformConfig) -> None:
     command = [
         sys.executable,
         str(repository / "tools/prepare_piper_inputs.py"),
         "--target",
-        LINUX_TARGET,
+        configuration.target,
     ]
     if configured := os.environ.get("OMNIVOX_PIPER_INPUTS_DIR"):
         command.extend(["--output", configured])
@@ -197,14 +255,9 @@ def copy_required(source: Path, destination: Path) -> None:
     shutil.copy2(source, destination)
 
 
-def validate_native_layout(executable: Path, library_dir: Path) -> tuple[Path, Path]:
-    if sys.platform != "linux" or platform.machine().lower() not in {
-        "x86_64",
-        "amd64",
-    }:
-        raise StagingError(
-            "Piper companion staging currently supports native Linux x64 only"
-        )
+def validate_native_layout(
+    executable: Path, library_dir: Path, configuration: PlatformConfig
+) -> tuple[Path, Path]:
     if not executable.is_file():
         raise StagingError(f"Piper helper executable is missing: {executable}")
 
@@ -213,11 +266,11 @@ def validate_native_layout(executable: Path, library_dir: Path) -> tuple[Path, P
     if (
         library_dir.name != "lib"
         or install_dir.name != "i1"
-        or native_root.name != LINUX_TARGET
+        or native_root.name != configuration.target
         or native_root.parent.name != PIPER_VERSION
     ):
         raise StagingError(f"unexpected Piper native output layout: {library_dir}")
-    for filename in RUNTIME_FILES:
+    for filename in configuration.runtime_files:
         if not (library_dir / filename).is_file():
             raise StagingError(f"required Piper runtime library is missing: {filename}")
     data_dir = install_dir / "share/espeak-ng-data"
@@ -276,7 +329,9 @@ def stage_notices(repository: Path, native_root: Path, destination: Path) -> Non
         copy_required(source, destination / filename)
 
 
-def provenance(repository: Path, native_root: Path) -> dict[str, object]:
+def provenance(
+    repository: Path, native_root: Path, configuration: PlatformConfig
+) -> dict[str, object]:
     inputs = native_inputs_root(native_root)
     prepared = json.loads((inputs / "PREPARED.json").read_text(encoding="utf-8"))
     components = prepared.get("components")
@@ -305,8 +360,8 @@ def provenance(repository: Path, native_root: Path) -> dict[str, object]:
     vendored_piper = repository / "third-party/piper1-gpl"
     return {
         "schema_version": 1,
-        "artifact": "omnivox-piper-companion-linux-x64",
-        "target": LINUX_TARGET,
+        "artifact": f"omnivox-piper-companion-{configuration.artifact_suffix}",
+        "target": configuration.target,
         "omnivox": {
             "repository": "https://github.com/bartbunting/omnivox",
             "commit": git_output(repository, "rev-parse", "HEAD"),
@@ -420,14 +475,90 @@ def verify_linux_runtime(directory: Path) -> None:
             )
 
 
+def verify_macos_runtime(directory: Path, configuration: PlatformConfig) -> None:
+    for filename in (configuration.helper, *configuration.runtime_files):
+        architectures = run_checked(
+            ["lipo", "-archs", str(directory / filename)], directory
+        )
+        found = architectures.split()
+        if found != [configuration.architecture]:
+            raise StagingError(
+                f"staged {filename} has architectures {found}, expected "
+                f"{configuration.architecture}"
+            )
+
+    for filename in (configuration.helper, configuration.libpiper):
+        load_commands = run_checked(["otool", "-l", str(directory / filename)], directory)
+        if "path @loader_path" not in load_commands:
+            raise StagingError(f"staged {filename} has no @loader_path LC_RPATH")
+
+    helper_dependencies = run_checked(
+        ["otool", "-L", str(directory / configuration.helper)], directory
+    )
+    if not any(
+        value in helper_dependencies
+        for value in ("@rpath/libpiper.dylib", "@loader_path/libpiper.dylib")
+    ):
+        raise StagingError(
+            f"staged helper does not use relocatable libpiper:\n{helper_dependencies}"
+        )
+    piper_dependencies = run_checked(
+        ["otool", "-L", str(directory / configuration.libpiper)], directory
+    )
+    onnx_name = f"libonnxruntime.{ONNXRUNTIME_VERSION}.dylib"
+    if not any(
+        value in piper_dependencies
+        for value in (f"@rpath/{onnx_name}", f"@loader_path/{onnx_name}")
+    ):
+        raise StagingError(
+            f"staged libpiper does not use relocatable ONNX Runtime:\n"
+            f"{piper_dependencies}"
+        )
+
+
+def pe_machine(path: Path) -> int:
+    data = path.read_bytes()[:4096]
+    if len(data) < 64 or data[:2] != b"MZ":
+        raise StagingError(f"staged Windows runtime is not PE: {path.name}")
+    pe_offset = int.from_bytes(data[0x3C:0x40], "little")
+    if pe_offset + 6 > len(data) or data[pe_offset : pe_offset + 4] != b"PE\0\0":
+        raise StagingError(f"staged Windows runtime has no PE header: {path.name}")
+    return int.from_bytes(data[pe_offset + 4 : pe_offset + 6], "little")
+
+
+def verify_windows_runtime(directory: Path, configuration: PlatformConfig) -> None:
+    for filename in (configuration.helper, *configuration.runtime_files):
+        machine = pe_machine(directory / filename)
+        if machine != 0x8664:
+            raise StagingError(
+                f"staged {filename} has PE machine 0x{machine:x}, expected x86-64"
+            )
+
+
+def verify_native_runtime(directory: Path, configuration: PlatformConfig) -> None:
+    if configuration.platform_name == "linux":
+        verify_linux_runtime(directory)
+    elif configuration.platform_name == "macos":
+        verify_macos_runtime(directory, configuration)
+    else:
+        verify_windows_runtime(directory, configuration)
+
+
 def replace_directory(source: Path, destination: Path) -> None:
     if destination.exists():
         shutil.rmtree(destination)
     source.replace(destination)
 
 
-def stage_companion(repository: Path, executable: Path, library_dir: Path) -> Path:
-    native_root, data_source = validate_native_layout(executable, library_dir)
+def stage_companion(
+    repository: Path,
+    executable: Path,
+    library_dir: Path,
+    configuration: PlatformConfig,
+) -> Path:
+    native_root, data_source = validate_native_layout(
+        executable, library_dir, configuration
+    )
     profile_dir = executable.parent
     destination = profile_dir / "piper"
     temporary = Path(
@@ -436,8 +567,8 @@ def stage_companion(repository: Path, executable: Path, library_dir: Path) -> Pa
         )
     )
     try:
-        copy_required(executable, temporary / "omnivox-piper-helper")
-        for filename in RUNTIME_FILES:
+        copy_required(executable, temporary / configuration.helper)
+        for filename in configuration.runtime_files:
             copy_required(library_dir / filename, temporary / filename)
         shutil.copytree(data_source, temporary / "espeak-ng-data")
         copy_required(repository / "LICENSE", temporary / "LICENSE")
@@ -448,12 +579,16 @@ def stage_companion(repository: Path, executable: Path, library_dir: Path) -> Pa
         )
         stage_notices(repository, native_root, temporary / "third-party-licenses")
         (temporary / "SOURCE-PROVENANCE.json").write_text(
-            json.dumps(provenance(repository, native_root), indent=2, sort_keys=True)
+            json.dumps(
+                provenance(repository, native_root, configuration),
+                indent=2,
+                sort_keys=True,
+            )
             + "\n",
             encoding="utf-8",
         )
         file_count = write_checksums(temporary)
-        verify_linux_runtime(temporary)
+        verify_native_runtime(temporary, configuration)
         replace_directory(temporary, destination)
     finally:
         if temporary.exists():
@@ -478,18 +613,19 @@ def main() -> int:
         return 0
     repository = Path(__file__).resolve().parent.parent
     try:
-        prepare_inputs(repository)
+        configuration = native_platform()
+        prepare_inputs(repository, configuration)
         executables, library_directories = run_cargo_build(sys.argv[1:])
         executable = select_unique(executables, "Piper helper executable")
         library_dir = select_unique(
             (
                 path
                 for path in library_directories
-                if (path / "libpiper.so").is_file()
+                if (path / configuration.libpiper).is_file()
             ),
             "Piper native library directory",
         )
-        stage_companion(repository, executable, library_dir)
+        stage_companion(repository, executable, library_dir, configuration)
     except (OSError, StagingError, subprocess.CalledProcessError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

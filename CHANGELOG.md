@@ -33,6 +33,8 @@ Versioning for published releases.
 - Added checksum-locked Piper native-input manifests for Windows x64 and
   macOS ARM64/x64, including safe ZIP extraction and Windows-compatible
   materialization of the eSpeak source link.
+- Generalized Piper companion staging for the Windows x64 and macOS
+  ARM64/x64 helper and library layouts, with native PE or Mach-O validation.
 
 ### Fixed
 
