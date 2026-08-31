@@ -63,8 +63,10 @@ synthesis from the extracted candidate, passes locally. Linux x64, Windows
 x64, and both macOS architectures build and stage on native runners. The
 English model used by upstream libpiper tests is revision- and checksum-locked
 for CI-only acceptance, explicitly excluded from release artifacts, and keeps
-its licensing review deferred. Corresponding-source review, release
-integration, and model-backed acceptance on every native runner remain open.
+its licensing review deferred. All four native jobs now verify their relocated
+archive and synthesize real audio through the Piper-enabled main server.
+Corresponding-source review, test-model licensing review, and integration with
+the publishing release workflow remain open.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
@@ -187,17 +189,17 @@ support.
    relocatable companion payload and records source-input and payload digests.
    Its native-input preparation verifies every implicit upstream download and
    supports an offline repeat build.
-4. **Implemented for all initial native layouts; accepted on Linux x64:**
+4. **Completed on all four initial native layouts:**
    construct a deterministic platform-named `.tar.gz` or `.zip` and reject
    missing, unexpected, host-architecture, dynamically unresolved, or
    incorrectly hashed files. The verifier relocates the archive into a path
    with spaces and optionally exercises a separately supplied,
    licence-reviewed model end to end.
-5. **In progress:** add native-runner CI one platform at a time. Linux x64,
-   Windows x64, and macOS ARM64/x64 build and stage successfully. Native
-   archive verification and CI-only model-backed synthesis are wired for all
-   four targets and await runner acceptance. Do not add a platform to the
-   published matrix until the test model's deferred licensing review is
+5. **Completed as a manual non-publishing workflow:** Linux x64, Windows x64,
+   and macOS ARM64/x64 build and stage successfully, verify the relocated
+   native archive, and synthesize real audio with the locked CI-only model. Do
+   not add these artifacts to the publishing workflow until the test model's
+   deferred licensing review and companion corresponding-source review are
    resolved.
 6. Document installation, model/config discovery, engine inventory, fallback,
    diagnostics, upgrade, and removal. Clearly distinguish helper availability

@@ -37,8 +37,9 @@ Versioning for published releases.
   ARM64/x64 helper and library layouts, with native PE or Mach-O validation.
 - Generalized deterministic Piper packaging and relocated-runtime verification
   for Linux x64, Windows x64, and macOS ARM64/x64 native artifacts.
-- Added a manual, non-publishing native-runner workflow; Linux x64 and both
-  macOS architectures now build, stage, and recheck their locked inputs.
+- Added a manual, non-publishing native-runner workflow; Linux x64, Windows
+  x64, and both macOS architectures now build and stage, recheck locked inputs,
+  verify relocated deterministic archives, and synthesize real audio.
 - Completed native Windows x64 Piper build and staging, including offline input
   rechecks and PE validation.
 - Locked the upstream libpiper English test model, configuration, and model
