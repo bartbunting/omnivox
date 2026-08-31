@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify a Linux x64 Piper companion archive and optional real synthesis."""
+"""Verify a native Piper companion archive and optional real synthesis."""
 
 from __future__ import annotations
 
@@ -15,31 +15,22 @@ import sys
 import tarfile
 import tempfile
 import tomllib
+import zipfile
 
 sys.dont_write_bytecode = True
 import verify_release as common
+from build_piper import PlatformConfig, StagingError, native_platform
 
 
-TARGET = "x86_64-unknown-linux-gnu"
 PIPER_VERSION = "1.7.0"
 PIPER_COMMIT = "7b8e8f7197a480047677715f00d3d78903b55a2a"
-RUNTIME_BINARIES = (
-    "omnivox-piper-helper",
-    "libpiper.so",
-    "libonnxruntime.so.1",
-    "libonnxruntime_providers_shared.so",
-)
-EXPECTED_ROOT = {
+EXPECTED_COMMON_ROOT = {
     "LICENSE",
     "LICENSING.md",
     "README.md",
     "SHA256SUMS",
     "SOURCE-PROVENANCE.json",
     "espeak-ng-data",
-    "libonnxruntime.so.1",
-    "libonnxruntime_providers_shared.so",
-    "libpiper.so",
-    "omnivox-piper-helper",
     "third-party-licenses",
 }
 EXPECTED_NOTICES = {
@@ -74,15 +65,21 @@ def repository_version(repository: Path) -> str:
     return str(manifest["workspace"]["package"]["version"])
 
 
-def parse_arguments(repository: Path) -> argparse.Namespace:
+def parse_arguments(
+    repository: Path, configuration: PlatformConfig
+) -> argparse.Namespace:
     version = repository_version(repository)
     release = repository / "target/release"
     model_default = os.environ.get("PIPER_MODEL") or None
+    extension = "zip" if configuration.platform_name == "windows" else "tar.gz"
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--archive",
         type=Path,
-        default=release / f"omnivox-{version}-piper-linux-x64.tar.gz",
+        default=(
+            release
+            / f"omnivox-{version}-piper-{configuration.artifact_suffix}.{extension}"
+        ),
     )
     parser.add_argument(
         "--checksums", type=Path, default=release / "piper-sha256sums.txt"
@@ -155,16 +152,22 @@ def packaged_workspace_versions(lock_path: Path) -> dict[str, str]:
     return versions
 
 
-def verify_provenance(directory: Path, version: str) -> None:
+def verify_provenance(
+    directory: Path, version: str, configuration: PlatformConfig
+) -> None:
     provenance = json.loads(
         (directory / "SOURCE-PROVENANCE.json").read_text(encoding="utf-8")
     )
     require(provenance.get("schema_version") == 1, "unknown provenance schema")
     require(
-        provenance.get("artifact") == "omnivox-piper-companion-linux-x64",
+        provenance.get("artifact")
+        == f"omnivox-piper-companion-{configuration.artifact_suffix}",
         "wrong artifact provenance",
     )
-    require(provenance.get("target") == TARGET, "wrong target provenance")
+    require(
+        provenance.get("target") == configuration.target,
+        "wrong target provenance",
+    )
     require(
         provenance.get("voice_model_included") is False,
         "voice model exclusion is not recorded",
@@ -199,7 +202,10 @@ def verify_provenance(directory: Path, version: str) -> None:
                 f"invalid {component} {field}",
             )
     require(
-        re.fullmatch(r"[0-9a-f]{64}", str(provenance.get("native_input_lock_sha256", "")))
+        re.fullmatch(
+            r"[0-9a-f]{64}",
+            str(provenance.get("native_input_lock_sha256", "")),
+        )
         is not None,
         "invalid native input lock digest",
     )
@@ -216,7 +222,9 @@ def verify_provenance(directory: Path, version: str) -> None:
     require(not wrong, f"packaged workspace version mismatch: {wrong}")
 
 
-def verify_layout(extracted: Path, version: str) -> Path:
+def verify_layout(
+    extracted: Path, version: str, configuration: PlatformConfig
+) -> Path:
     require(
         {path.name for path in extracted.iterdir()} == {"piper"},
         "archive must contain exactly one top-level piper directory",
@@ -224,8 +232,12 @@ def verify_layout(extracted: Path, version: str) -> Path:
     directory = extracted / "piper"
     require(directory.is_dir(), "archive piper directory is missing")
     actual_root = {path.name for path in directory.iterdir()}
+    expected_root = EXPECTED_COMMON_ROOT | {
+        configuration.helper,
+        *configuration.runtime_files,
+    }
     require(
-        actual_root == EXPECTED_ROOT,
+        actual_root == expected_root,
         f"unexpected Piper root entries: {sorted(actual_root)}",
     )
     notices = directory / "third-party-licenses"
@@ -241,14 +253,18 @@ def verify_layout(extracted: Path, version: str) -> Path:
         sum(path.is_file() for path in data.rglob("*")) >= 100,
         "Piper eSpeak data payload is unexpectedly small",
     )
-    helper = directory / "omnivox-piper-helper"
-    require(helper.stat().st_mode & 0o111 != 0, "Piper helper is not executable")
+    helper = directory / configuration.helper
+    if configuration.platform_name != "windows":
+        require(helper.stat().st_mode & 0o111 != 0, "Piper helper is not executable")
     require(
-        not any(path.name.endswith((".onnx", ".onnx.json")) for path in directory.rglob("*")),
+        not any(
+            path.name.endswith((".onnx", ".onnx.json"))
+            for path in directory.rglob("*")
+        ),
         "companion archive unexpectedly contains a voice model or configuration",
     )
     verify_inner_checksums(directory)
-    verify_provenance(directory, version)
+    verify_provenance(directory, version, configuration)
     return directory
 
 
@@ -256,17 +272,20 @@ def verify_runpath(binary: Path, directory: Path) -> None:
     environment = common.clean_environment()
     dynamic = common.run(["readelf", "-d", str(binary)], directory, environment)
     paths = re.findall(r"\((?:RPATH|RUNPATH)\).*\[([^]]+)\]", dynamic)
-    require(paths == ["$ORIGIN"], f"unexpected runtime search path for {binary.name}: {paths}")
+    require(
+        paths == ["$ORIGIN"],
+        f"unexpected runtime search path for {binary.name}: {paths}",
+    )
 
 
-def verify_native_runtime(directory: Path) -> None:
-    for name in RUNTIME_BINARIES:
+def verify_linux_runtime(directory: Path, configuration: PlatformConfig) -> None:
+    for name in (configuration.helper, *configuration.runtime_files):
         common.verify_architecture(directory / name, "linux", "x86_64")
-    verify_runpath(directory / "omnivox-piper-helper", directory)
-    verify_runpath(directory / "libpiper.so", directory)
+    verify_runpath(directory / configuration.helper, directory)
+    verify_runpath(directory / configuration.libpiper, directory)
 
     environment = common.clean_environment()
-    for name in RUNTIME_BINARIES:
+    for name in (configuration.helper, *configuration.runtime_files):
         dependencies = common.run(
             ["ldd", str((directory / name).resolve())], directory, environment
         )
@@ -275,7 +294,7 @@ def verify_native_runtime(directory: Path) -> None:
             f"unresolved dependency for {name}:\n{dependencies}",
         )
     helper_dependencies = common.run(
-        ["ldd", str((directory / "omnivox-piper-helper").resolve())],
+        ["ldd", str((directory / configuration.helper).resolve())],
         directory,
         environment,
     )
@@ -286,8 +305,135 @@ def verify_native_runtime(directory: Path) -> None:
         )
 
 
+def verify_macos_runtime(directory: Path, configuration: PlatformConfig) -> None:
+    architecture = "aarch64" if configuration.architecture == "arm64" else "x86_64"
+    for name in (configuration.helper, *configuration.runtime_files):
+        common.verify_architecture(directory / name, "macos", architecture)
+        output = common.run(
+            ["lipo", "-archs", str(directory / name)],
+            directory,
+            common.clean_environment(),
+        )
+        require(
+            output.split() == [configuration.architecture],
+            f"unexpected Mach-O architectures for {name}: {output.strip()}",
+        )
+
+    for name in (configuration.helper, configuration.libpiper):
+        load_commands = common.run(
+            ["otool", "-l", str(directory / name)],
+            directory,
+            common.clean_environment(),
+        )
+        require(
+            "path @loader_path" in load_commands,
+            f"{name} has no @loader_path LC_RPATH",
+        )
+
+    helper_dependencies = common.run(
+        ["otool", "-L", str(directory / configuration.helper)],
+        directory,
+        common.clean_environment(),
+    )
+    require(
+        any(
+            value in helper_dependencies
+            for value in ("@rpath/libpiper.dylib", "@loader_path/libpiper.dylib")
+        ),
+        "helper does not use relocated libpiper",
+    )
+    onnx_name = configuration.runtime_files[-1]
+    piper_dependencies = common.run(
+        ["otool", "-L", str(directory / configuration.libpiper)],
+        directory,
+        common.clean_environment(),
+    )
+    require(
+        any(
+            value in piper_dependencies
+            for value in (f"@rpath/{onnx_name}", f"@loader_path/{onnx_name}")
+        ),
+        "libpiper does not use relocated ONNX Runtime",
+    )
+
+
+def pe_imports(path: Path) -> set[str]:
+    data = path.read_bytes()
+
+    def unsigned(offset: int, size: int) -> int:
+        require(offset >= 0 and offset + size <= len(data), f"truncated PE: {path}")
+        return int.from_bytes(data[offset : offset + size], "little")
+
+    require(len(data) >= 64 and data[:2] == b"MZ", f"not a PE binary: {path}")
+    pe_offset = unsigned(0x3C, 4)
+    require(data[pe_offset : pe_offset + 4] == b"PE\0\0", f"missing PE header: {path}")
+    coff = pe_offset + 4
+    section_count = unsigned(coff + 2, 2)
+    optional_size = unsigned(coff + 16, 2)
+    optional = coff + 20
+    require(unsigned(optional, 2) == 0x20B, f"PE is not 64-bit: {path}")
+    import_rva = unsigned(optional + 112 + 8, 4)
+    section_table = optional + optional_size
+
+    sections: list[tuple[int, int, int]] = []
+    for index in range(section_count):
+        section = section_table + index * 40
+        virtual_size = unsigned(section + 8, 4)
+        virtual_address = unsigned(section + 12, 4)
+        raw_size = unsigned(section + 16, 4)
+        raw_offset = unsigned(section + 20, 4)
+        sections.append((virtual_address, max(virtual_size, raw_size), raw_offset))
+
+    def file_offset(rva: int) -> int:
+        for virtual_address, size, raw_offset in sections:
+            if virtual_address <= rva < virtual_address + size:
+                return raw_offset + rva - virtual_address
+        raise PiperVerificationError(f"PE RVA is outside sections: {path}")
+
+    if import_rva == 0:
+        return set()
+    imports: set[str] = set()
+    descriptor = file_offset(import_rva)
+    for _ in range(4096):
+        values = tuple(unsigned(descriptor + offset, 4) for offset in range(0, 20, 4))
+        if values == (0, 0, 0, 0, 0):
+            return imports
+        name_offset = file_offset(values[3])
+        end = data.find(b"\0", name_offset, min(len(data), name_offset + 1024))
+        require(end != -1, f"unterminated PE import name: {path}")
+        imports.add(data[name_offset:end].decode("ascii").lower())
+        descriptor += 20
+    raise PiperVerificationError(f"unbounded PE import table: {path}")
+
+
+def verify_windows_runtime(directory: Path, configuration: PlatformConfig) -> None:
+    for name in (configuration.helper, *configuration.runtime_files):
+        common.verify_architecture(directory / name, "windows", "x86_64")
+    helper_imports = pe_imports(directory / configuration.helper)
+    require("piper.dll" in helper_imports, "helper does not import adjacent piper.dll")
+    piper_imports = pe_imports(directory / configuration.libpiper)
+    require(
+        "onnxruntime.dll" in piper_imports,
+        "piper.dll does not import adjacent onnxruntime.dll",
+    )
+
+
+def verify_native_runtime(directory: Path, configuration: PlatformConfig) -> None:
+    if configuration.platform_name == "linux":
+        verify_linux_runtime(directory, configuration)
+    elif configuration.platform_name == "macos":
+        verify_macos_runtime(directory, configuration)
+    else:
+        verify_windows_runtime(directory, configuration)
+
+
 def verify_synthesis(
-    directory: Path, omnivox: Path, model: Path, version: str, working: Path
+    directory: Path,
+    omnivox: Path,
+    model: Path,
+    version: str,
+    working: Path,
+    configuration: PlatformConfig,
 ) -> None:
     require(omnivox.is_file(), f"matching Omnivox binary is missing: {omnivox}")
     require(model.is_file(), f"Piper model is missing: {model}")
@@ -296,10 +442,17 @@ def verify_synthesis(
         or model.with_suffix(".json").is_file(),
         f"Piper model configuration is missing beside {model}",
     )
-    installed = directory.parent / "omnivox"
+    binary_name = (
+        "omnivox.exe" if configuration.platform_name == "windows" else "omnivox"
+    )
+    installed = directory.parent / binary_name
     shutil.copy2(omnivox, installed)
-    installed.chmod(installed.stat().st_mode | 0o755)
-    common.verify_architecture(installed, "linux", "x86_64")
+    if configuration.platform_name != "windows":
+        installed.chmod(installed.stat().st_mode | 0o755)
+    architecture = "aarch64" if configuration.architecture == "arm64" else "x86_64"
+    common.verify_architecture(
+        installed, configuration.platform_name, architecture
+    )
 
     environment = common.clean_environment()
     environment["OMNIVOX_PIPER_MODEL"] = str(model.resolve())
@@ -334,23 +487,31 @@ def verify_synthesis(
     common.read_wav(wav, canonical=True)
 
 
-def verify(arguments: argparse.Namespace) -> None:
+def verify(arguments: argparse.Namespace, configuration: PlatformConfig) -> None:
     archive = arguments.archive.resolve()
     checksums = arguments.checksums.resolve()
     require(archive.is_file(), f"archive does not exist: {archive}")
     require(checksums.is_file(), f"checksum file does not exist: {checksums}")
-    expected_name = f"omnivox-{arguments.version}-piper-linux-x64.tar.gz"
+    extension = "zip" if configuration.platform_name == "windows" else "tar.gz"
+    expected_name = (
+        f"omnivox-{arguments.version}-piper-{configuration.artifact_suffix}."
+        f"{extension}"
+    )
     require(
         archive.name == expected_name,
         f"unexpected Piper archive name: {archive.name}",
     )
     common.verify_checksum(archive, checksums)
-    require(archive.name.endswith(".tar.gz"), "Linux Piper release must be a .tar.gz")
 
     if arguments.omnivox is not None:
         require(arguments.model is not None, "--omnivox requires --model")
     if arguments.model is not None and arguments.omnivox is None:
-        default_binary = Path(__file__).resolve().parent.parent / "target/release/omnivox"
+        binary_name = (
+            "omnivox.exe" if configuration.platform_name == "windows" else "omnivox"
+        )
+        default_binary = (
+            Path(__file__).resolve().parent.parent / "target/release" / binary_name
+        )
         arguments.omnivox = default_binary
 
     with tempfile.TemporaryDirectory(prefix="Omnivox Piper verification ") as temporary:
@@ -359,9 +520,9 @@ def verify(arguments: argparse.Namespace) -> None:
         working = root / "Unrelated working directory"
         extracted.mkdir()
         working.mkdir()
-        common.extract_tar(archive, extracted)
-        directory = verify_layout(extracted, arguments.version)
-        verify_native_runtime(directory)
+        common.extract_archive(archive, extracted, configuration.platform_name)
+        directory = verify_layout(extracted, arguments.version, configuration)
+        verify_native_runtime(directory, configuration)
         if arguments.model is not None:
             assert arguments.omnivox is not None
             verify_synthesis(
@@ -370,6 +531,7 @@ def verify(arguments: argparse.Namespace) -> None:
                 arguments.model.resolve(),
                 arguments.version,
                 working,
+                configuration,
             )
 
     mode = "structural and native-runtime"
@@ -381,13 +543,16 @@ def verify(arguments: argparse.Namespace) -> None:
 def main() -> int:
     repository = Path(__file__).resolve().parent.parent
     try:
-        verify(parse_arguments(repository))
+        configuration = native_platform()
+        verify(parse_arguments(repository, configuration), configuration)
     except (
         OSError,
         common.VerificationError,
+        StagingError,
         json.JSONDecodeError,
         subprocess.TimeoutExpired,
         tarfile.TarError,
+        zipfile.BadZipFile,
     ) as error:
         print(f"FAIL: {error}", file=sys.stderr)
         return 1
