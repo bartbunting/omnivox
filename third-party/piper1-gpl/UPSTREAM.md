@@ -30,8 +30,11 @@ This import pins libpiper itself. Its upstream build also identifies a pinned
 eSpeak NG commit and ONNX Runtime version, but the pristine CMake file can
 still fetch those inputs without verified digests. Omnivox release builds must
 provide separately pinned, checksum-verified inputs and must not rely on that
-implicit network behavior. Those build and packaging changes are intentionally
-a later review slice.
+implicit network behavior. The Linux x64 build now overlays only its generated
+source copy, supplying the eSpeak NG, Sonic, and ONNX Runtime archives locked
+in `omnivox-piper-sys/native-inputs.json`; the vendored files in this directory
+remain unchanged. Other native targets must add and verify their own lock
+entries before release support is claimed.
 
 The old `omnivox-piper-sys/piper/` path remains ignored so an existing legacy
 developer checkout does not become an accidental Git addition. It is no longer

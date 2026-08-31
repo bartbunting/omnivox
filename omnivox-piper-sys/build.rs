@@ -83,7 +83,13 @@ fn validate_native_target() -> (String, String) {
     (target_os, target)
 }
 
-fn configure_and_build(source: &Path, build: &Path, install: &Path, target_os: &str) {
+fn configure_and_build(
+    source: &Path,
+    build: &Path,
+    install: &Path,
+    inputs: &Path,
+    target_os: &str,
+) {
     fs::create_dir_all(build)
         .unwrap_or_else(|error| panic!("could not create {}: {error}", build.display()));
 
@@ -96,6 +102,18 @@ fn configure_and_build(source: &Path, build: &Path, install: &Path, target_os: &
         .arg("-DCMAKE_BUILD_TYPE=Release")
         .arg(format!("-DCMAKE_INSTALL_PREFIX={}", install.display()))
         .arg("-DPIPER_BUILD_TESTS=OFF")
+        .arg(format!(
+            "-DPIPER_ESPEAK_SOURCE_DIR={}",
+            inputs.join("sources/espeak-ng").display()
+        ))
+        .arg(format!(
+            "-DPIPER_SONIC_SOURCE_DIR={}",
+            inputs.join("sources/sonic").display()
+        ))
+        .arg(format!(
+            "-DONNXRUNTIME_DIR={}",
+            inputs.join("sources/onnxruntime").display()
+        ))
         .current_dir(build);
     if target_os == "linux" {
         configure.arg("-DCMAKE_INSTALL_RPATH=$ORIGIN");
@@ -119,7 +137,7 @@ fn configure_and_build(source: &Path, build: &Path, install: &Path, target_os: &
     run(&mut install_command);
 }
 
-fn native_build_root(out_dir: &Path, target: &str) -> PathBuf {
+fn cargo_target_base(out_dir: &Path) -> PathBuf {
     let cargo_build_dir = out_dir
         .ancestors()
         .find(|ancestor| ancestor.file_name().is_some_and(|name| name == "build"))
@@ -138,10 +156,74 @@ fn native_build_root(out_dir: &Path, target: &str) -> PathBuf {
                 out_dir.display()
             )
         });
+    target_base.to_path_buf()
+}
+
+fn native_build_root(target_base: &Path, target: &str) -> PathBuf {
     target_base
         .join("piper-native")
         .join(PIPER_VERSION)
         .join(target)
+}
+
+fn verified_inputs_root(target_base: &Path, target: &str) -> PathBuf {
+    env::var_os("OMNIVOX_PIPER_INPUTS_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            target_base
+                .join("piper-inputs")
+                .join(PIPER_VERSION)
+                .join(target)
+        })
+}
+
+fn replace_once(contents: &mut String, original: &str, replacement: &str, label: &str) {
+    assert_eq!(
+        contents.matches(original).count(),
+        1,
+        "vendored libpiper CMake no longer has the expected {label} block"
+    );
+    *contents = contents.replacen(original, replacement, 1);
+}
+
+fn require_verified_inputs(source: &Path, target_base: &Path, target: &str) -> PathBuf {
+    let inputs = verified_inputs_root(target_base, target);
+    let required = [
+        "PREPARED.json",
+        "sources/espeak-ng/CMakeLists.txt",
+        "sources/sonic/sonic.c",
+        "sources/onnxruntime/include/onnxruntime_c_api.h",
+    ];
+    for relative in required {
+        assert!(
+            inputs.join(relative).is_file(),
+            "verified Piper input {relative} is missing under {}; run `python3 \
+             tools/prepare_piper_inputs.py --target {target}` first",
+            inputs.display()
+        );
+    }
+
+    // Keep the vendored upstream source byte-for-byte intact. This explicit
+    // overlay changes only the generated build copy so ExternalProject and
+    // FetchContent consume the checksum-verified cache prepared by Omnivox.
+    let cmake_path = source.join("CMakeLists.txt");
+    let mut cmake = fs::read_to_string(&cmake_path)
+        .unwrap_or_else(|error| panic!("could not read {}: {error}", cmake_path.display()));
+    replace_once(
+        &mut cmake,
+        "ExternalProject_Add(espeak_ng_external\n    GIT_REPOSITORY https://github.com/espeak-ng/espeak-ng.git\n    GIT_TAG 212928b394a96e8fd2096616bfd54e17845c48f6  # 2025-Mar-22\n    PREFIX ${ESPEAKNG_BUILD_DIR}",
+        "ExternalProject_Add(espeak_ng_external\n    SOURCE_DIR ${PIPER_ESPEAK_SOURCE_DIR}\n    DOWNLOAD_COMMAND \"\"\n    UPDATE_COMMAND \"\"\n    PREFIX ${ESPEAKNG_BUILD_DIR}",
+        "eSpeak ExternalProject",
+    );
+    replace_once(
+        &mut cmake,
+        "        -DUSE_SPEECHPLAYER:BOOL=OFF\n        -DEXTRA_cmn:BOOL=ON",
+        "        -DUSE_SPEECHPLAYER:BOOL=OFF\n        \"-DFETCHCONTENT_SOURCE_DIR_SONIC-GIT=${PIPER_SONIC_SOURCE_DIR}\"\n        -DFETCHCONTENT_FULLY_DISCONNECTED:BOOL=ON\n        -DEXTRA_cmn:BOOL=ON",
+        "Sonic FetchContent arguments",
+    );
+    fs::write(&cmake_path, cmake)
+        .unwrap_or_else(|error| panic!("could not patch {}: {error}", cmake_path.display()));
+    inputs
 }
 
 fn main() {
@@ -159,20 +241,22 @@ fn main() {
         vendored_source.display()
     );
 
-    // Upstream extracts ONNX Runtime below its source directory. Work from an
-    // OUT_DIR copy so a native build never writes generated files into the
-    // byte-for-byte vendored source tree. Copying over an existing tree keeps
-    // upstream's downloaded runtime cache for subsequent Cargo invocations.
+    // Work from a generated copy so dependency-source overlays and CMake
+    // outputs never modify the byte-for-byte vendored libpiper source tree.
     // eSpeak's phoneme compiler uses fixed-size path buffers. Cargo's normal
     // package OUT_DIR is long enough to truncate asset names, so keep the
     // native scratch tree directly under the target tree.
-    let build_root = native_build_root(&out_dir, &target);
+    let target_base = cargo_target_base(&out_dir);
+    let build_root = native_build_root(&target_base, &target);
     let source_copy = build_root.join("source");
     copy_tree(&vendored_root, &source_copy);
     let source = source_copy.join("libpiper");
-    let build = build_root.join("build");
-    let install = build_root.join("install");
-    configure_and_build(&source, &build, &install, &target_os);
+    let inputs = require_verified_inputs(&source, &target_base, &target);
+    // Keep the verified-input graph separate from pre-migration CMake caches,
+    // whose ExternalProject source directory points at an in-tree Git clone.
+    let build = build_root.join("b1");
+    let install = build_root.join("i1");
+    configure_and_build(&source, &build, &install, &inputs, &target_os);
 
     let library_dir = install.join("lib");
     let espeak_data_dir = install.join("share/espeak-ng-data");
@@ -227,7 +311,12 @@ fn main() {
         "CMAKE_GENERATOR",
         "CMAKE_TOOLCHAIN_FILE",
         "OMNIVOX_PIPER_RELOCATABLE",
+        "OMNIVOX_PIPER_INPUTS_DIR",
     ] {
         println!("cargo:rerun-if-env-changed={variable}");
     }
+    println!(
+        "cargo:rerun-if-changed={}",
+        manifest_dir.join("native-inputs.json").display()
+    );
 }

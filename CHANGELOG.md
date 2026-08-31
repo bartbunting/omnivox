@@ -24,6 +24,9 @@ Versioning for published releases.
   lookup. The helper prefers the matching eSpeak data inside that directory.
 - Added atomic Linux x64 Piper companion staging with relative native-library
   lookup, matching eSpeak data, notices, provenance, and payload checksums.
+- Piper's Linux x64 build now verifies locked eSpeak NG, Sonic, and ONNX
+  Runtime archives before CMake uses them and supports repeat builds with
+  network access disabled.
 
 ### Fixed
 

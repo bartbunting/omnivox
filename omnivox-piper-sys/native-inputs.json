@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "piper_version": "1.7.0",
+  "targets": {
+    "x86_64-unknown-linux-gnu": {
+      "espeak_ng": {
+        "archive": "espeak-ng-212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz",
+        "archive_root": "espeak-ng-212928b394a96e8fd2096616bfd54e17845c48f6",
+        "commit": "212928b394a96e8fd2096616bfd54e17845c48f6",
+        "destination": "espeak-ng",
+        "sha256": "1f201cabc73e569a7cb434d40d3b30980f923010f8ecd4d1c4ae94691ac2888a",
+        "source_tree_sha256": "21b6becbf3a759595fc59b70d95b2860c84e865421d5eba5e624575e86eefe13",
+        "url": "https://github.com/espeak-ng/espeak-ng/archive/212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz"
+      },
+      "onnxruntime": {
+        "archive": "onnxruntime-linux-x64-1.22.0.tgz",
+        "archive_root": "onnxruntime-linux-x64-1.22.0",
+        "destination": "onnxruntime",
+        "sha256": "8344d55f93d5bc5021ce342db50f62079daf39aaafb5d311a451846228be49b3",
+        "source_tree_sha256": "7f0cba6dc12a82ea46ff46888c9b8b87840850370fcda8ce951c3262a909f205",
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-linux-x64-1.22.0.tgz",
+        "version": "1.22.0"
+      },
+      "sonic": {
+        "archive": "sonic-fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104.tar.gz",
+        "archive_root": "sonic-fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104",
+        "commit": "fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104",
+        "destination": "sonic",
+        "sha256": "715827b5a39b79e56e44397d7b845910df996d4cca74777b3b61629b1ddc98c1",
+        "source_tree_sha256": "386f814417c85103bb1b94aaad3e2def3153835f1d0ba33f546fbc1a2a182c78",
+        "url": "https://github.com/waywardgeek/sonic/archive/fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104.tar.gz"
+      }
+    }
+  }
+}

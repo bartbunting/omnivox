@@ -38,9 +38,19 @@ python3 tools/build_piper.py --release
 ```
 
 The staging command validates `$ORIGIN` runtime lookup and rejects unresolved
-or developer-tree native-library paths. It records the current ONNX Runtime
-archive digest but does not yet verify that input before the build, so this is
-still a developer payload rather than a publishable release archive.
+or developer-tree native-library paths. Before Cargo runs,
+`prepare_piper_inputs.py` downloads the target's checked-in eSpeak NG, Sonic,
+and ONNX Runtime archives, verifies their SHA-256 digests, safely extracts
+them, and records the extracted-tree digests. A prepared cache can be checked
+without network access:
+
+```sh
+python3 tools/prepare_piper_inputs.py \
+  --target x86_64-unknown-linux-gnu --check
+```
+
+Companion archive construction and verification remain open release work, so
+the staged directory is not yet a publishable release artifact.
 
 ## Release archive verification
 

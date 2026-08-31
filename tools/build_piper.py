@@ -18,6 +18,7 @@ from typing import Iterable
 PIPER_VERSION = "1.7.0"
 PIPER_COMMIT = "7b8e8f7197a480047677715f00d3d78903b55a2a"
 ESPEAK_COMMIT = "212928b394a96e8fd2096616bfd54e17845c48f6"
+SONIC_COMMIT = "fbf75c3d6d846bad3bb3d456cbc5d07d9fd8c104"
 ONNXRUNTIME_VERSION = "1.22.0"
 LINUX_TARGET = "x86_64-unknown-linux-gnu"
 RUNTIME_FILES = (
@@ -125,6 +126,19 @@ def run_cargo_build(arguments: list[str]) -> tuple[list[Path], list[Path]]:
     return executables, library_directories
 
 
+def prepare_inputs(repository: Path) -> None:
+    command = [
+        sys.executable,
+        str(repository / "tools/prepare_piper_inputs.py"),
+        "--target",
+        LINUX_TARGET,
+    ]
+    if configured := os.environ.get("OMNIVOX_PIPER_INPUTS_DIR"):
+        command.extend(["--output", configured])
+    print("+ " + " ".join(command), file=sys.stderr)
+    subprocess.run(command, check=True)
+
+
 def select_unique(paths: Iterable[Path], description: str) -> Path:
     candidates = sorted(set(paths))
     if len(candidates) != 1:
@@ -198,7 +212,7 @@ def validate_native_layout(executable: Path, library_dir: Path) -> tuple[Path, P
     native_root = install_dir.parent
     if (
         library_dir.name != "lib"
-        or install_dir.name != "install"
+        or install_dir.name != "i1"
         or native_root.name != LINUX_TARGET
         or native_root.parent.name != PIPER_VERSION
     ):
@@ -212,18 +226,23 @@ def validate_native_layout(executable: Path, library_dir: Path) -> tuple[Path, P
     return native_root, data_dir
 
 
+def native_inputs_root(native_root: Path) -> Path:
+    configured = os.environ.get("OMNIVOX_PIPER_INPUTS_DIR")
+    if configured:
+        inputs = Path(configured).resolve()
+    else:
+        target_base = native_root.parent.parent.parent
+        inputs = target_base / "piper-inputs" / PIPER_VERSION / native_root.name
+    if not (inputs / "PREPARED.json").is_file():
+        raise StagingError(f"verified Piper inputs are missing: {inputs}")
+    return inputs
+
+
 def stage_notices(repository: Path, native_root: Path, destination: Path) -> None:
-    espeak_source = native_root / "build/espeak_ng/src/espeak_ng_external"
-    sonic_source = (
-        native_root
-        / "build/espeak_ng/src/espeak_ng_external-build/_deps/sonic-git-src"
-    )
-    onnx_candidates = sorted(
-        (native_root / "source/libpiper/lib").glob(
-            f"onnxruntime-linux-x64-{ONNXRUNTIME_VERSION}"
-        )
-    )
-    onnx_source = select_unique(onnx_candidates, "extracted ONNX Runtime")
+    inputs = native_inputs_root(native_root)
+    espeak_source = inputs / "sources/espeak-ng"
+    sonic_source = inputs / "sources/sonic"
+    onnx_source = inputs / "sources/onnxruntime"
 
     copy_required(
         repository / "omnivox-piper-helper/runtime-assets/THIRD-PARTY-NOTICES.md",
@@ -258,24 +277,26 @@ def stage_notices(repository: Path, native_root: Path, destination: Path) -> Non
 
 
 def provenance(repository: Path, native_root: Path) -> dict[str, object]:
-    espeak_source = native_root / "build/espeak_ng/src/espeak_ng_external"
-    espeak_head = git_output(espeak_source, "rev-parse", "HEAD")
-    if espeak_head != ESPEAK_COMMIT:
+    inputs = native_inputs_root(native_root)
+    prepared = json.loads((inputs / "PREPARED.json").read_text(encoding="utf-8"))
+    components = prepared.get("components")
+    if not isinstance(components, dict):
+        raise StagingError("prepared Piper input marker has no components object")
+    espeak = components.get("espeak_ng")
+    sonic = components.get("sonic")
+    onnxruntime = components.get("onnxruntime")
+    if not all(isinstance(value, dict) for value in (espeak, sonic, onnxruntime)):
+        raise StagingError("prepared Piper input marker is incomplete")
+    assert isinstance(espeak, dict)
+    assert isinstance(sonic, dict)
+    assert isinstance(onnxruntime, dict)
+    if espeak.get("commit") != ESPEAK_COMMIT or sonic.get("commit") != SONIC_COMMIT:
         raise StagingError(
-            f"eSpeak source is {espeak_head}, expected locked commit {ESPEAK_COMMIT}"
+            "prepared Piper source commit does not match the staging lock"
         )
-    if git_output(espeak_source, "status", "--porcelain", "--untracked-files=no"):
+    if onnxruntime.get("version") != ONNXRUNTIME_VERSION:
         raise StagingError(
-            "the eSpeak source used by libpiper has tracked modifications"
-        )
-
-    onnx_archive = (
-        native_root
-        / f"build/download/onnxruntime-linux-x64-{ONNXRUNTIME_VERSION}.tgz"
-    )
-    if not onnx_archive.is_file():
-        raise StagingError(
-            f"downloaded ONNX Runtime archive is missing: {onnx_archive}"
+            "prepared ONNX Runtime version does not match the staging lock"
         )
 
     tracked_status = git_output(
@@ -301,16 +322,29 @@ def provenance(repository: Path, native_root: Path) -> dict[str, object]:
         },
         "espeak_ng": {
             "repository": "https://github.com/espeak-ng/espeak-ng",
-            "commit": espeak_head,
-            "source_tree_sha256": source_tree_digest(espeak_source),
+            "commit": ESPEAK_COMMIT,
+            "archive": espeak["archive"],
+            "archive_sha256": espeak["sha256"],
+            "source_tree_sha256": espeak["source_tree_sha256"],
+            "verified_before_build": True,
+        },
+        "sonic": {
+            "repository": "https://github.com/waywardgeek/sonic",
+            "commit": SONIC_COMMIT,
+            "archive": sonic["archive"],
+            "archive_sha256": sonic["sha256"],
+            "source_tree_sha256": sonic["source_tree_sha256"],
+            "verified_before_build": True,
         },
         "onnxruntime": {
             "repository": "https://github.com/microsoft/onnxruntime",
             "version": ONNXRUNTIME_VERSION,
-            "archive": onnx_archive.name,
-            "archive_sha256": sha256_file(onnx_archive),
-            "verified_before_build": False,
+            "archive": onnxruntime["archive"],
+            "archive_sha256": onnxruntime["sha256"],
+            "source_tree_sha256": onnxruntime["source_tree_sha256"],
+            "verified_before_build": True,
         },
+        "native_input_lock_sha256": prepared["lock_file_sha256"],
         "voice_model_included": False,
     }
 
@@ -444,6 +478,7 @@ def main() -> int:
         return 0
     repository = Path(__file__).resolve().parent.parent
     try:
+        prepare_inputs(repository)
         executables, library_directories = run_cargo_build(sys.argv[1:])
         executable = select_unique(executables, "Piper helper executable")
         library_dir = select_unique(

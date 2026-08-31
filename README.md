@@ -137,14 +137,14 @@ make build-piper
 The Piper native build uses the vendored `v1.7.0` C API from the maintained
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl) project. It
 requires CMake 3.26, a C++17-capable compiler, and currently requires network
-access on the first build for upstream's pinned eSpeak source and ONNX Runtime
-1.22.0. Linux x64 development synthesis is verified. `make build-piper` stages
-an isolated `target/release/piper/` directory with the helper, native
-libraries, matching eSpeak data, notices, provenance, and checksums.
-Checksum-controlled dependency preparation, archive verification, and
-Windows/macOS runner validation are still release work, so treat it as a
-developer payload rather than a publishable release archive for now. Native
-Piper code remains confined to the helper executable.
+access on the first build to download checksum-locked eSpeak NG, Sonic, and
+ONNX Runtime 1.22.0 inputs. Repeated Linux x64 builds verify that cache and run
+offline. `make build-piper` stages an isolated `target/release/piper/`
+directory with the helper, native libraries, matching eSpeak data, notices,
+provenance, and checksums. Archive verification and Windows/macOS runner
+validation are still release work, so treat it as a developer payload rather
+than a publishable release archive for now. Native Piper code remains confined
+to the helper executable.
 
 Running Piper requires a compatible `.onnx` model and its adjacent
 configuration, named either `<model>.onnx.json` or `<model>.json`. Model

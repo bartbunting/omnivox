@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc stage-piper build-piper install-piper
+.PHONY: all build test elisp-test clean run dev check lint fmt fmt-check docs-check doc prepare-piper stage-piper build-piper install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -70,8 +70,11 @@ install: build
 	cp -R target/release/third-party-licenses/. "$(OMNIVOX_INSTALL_BIN)/third-party-licenses/"
 	cp target/release/LICENSE target/release/LICENSING.md "$(OMNIVOX_INSTALL_BIN)/"
 
-# Build and stage the isolated Piper companion (requires cmake + network on
-# first run until dependency preparation is implemented).
+# Build and stage the isolated Piper companion. Its preparation step downloads
+# checksum-locked native inputs on first use; repeated builds can run offline.
+prepare-piper:
+	$(PYTHON) tools/prepare_piper_inputs.py --target x86_64-unknown-linux-gnu
+
 stage-piper:
 	$(PYTHON) tools/build_piper.py --release
 

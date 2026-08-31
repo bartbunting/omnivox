@@ -9,9 +9,9 @@ members = [
     "omnivox-piper-sys",
 ]
 # Normal builds compile the helper protocol library and its tests, but not the
-# Piper executable or native library; those require CMake and currently require
-# network access on first use. `make build-piper` builds the executable beside
-# the main binary.
+# Piper executable or native library. `make build-piper` prepares verified
+# native inputs, builds the helper with CMake, and stages its isolated runtime
+# beside the main binary.
 default-members = [
     "omnivox-core",
     "omnivox-tts",

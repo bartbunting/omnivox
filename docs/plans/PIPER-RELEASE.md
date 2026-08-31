@@ -54,8 +54,11 @@ Cargo's requested native target, and fails closed for unsupported or
 cross-compiled helper targets. The Rust adapter consumes every returned
 float-audio chunk, including the final `PIPER_DONE` chunk, and observes
 cancellation between chunks. Linux x64 real synthesis passes with the existing
-local test model. Dependency verification, staging, archive verification, and
-other native runners remain open.
+local test model. Linux x64 now prepares checksum-locked eSpeak NG, Sonic, and
+ONNX Runtime inputs before CMake runs, and a second build passes with Cargo
+offline and dead network proxies. Relocatable staging is complete; archive
+verification, corresponding-source review, and other native runners remain
+open.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
@@ -176,6 +179,8 @@ support.
    not return.
 3. **Completed on Linux x64:** add a staging command that produces one complete
    relocatable companion payload and records source-input and payload digests.
+   Its native-input preparation verifies every implicit upstream download and
+   supports an offline repeat build.
 4. Teach archive verification to reject missing, unexpected, host-architecture,
    or dynamically unresolved files in a Piper companion archive.
 5. Add native-runner CI one platform at a time. Do not add a platform to the
