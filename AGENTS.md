@@ -1,5 +1,9 @@
 # Omnivox repository workflow
 
+- Before changing architecture, engine process boundaries, helper protocols,
+  release contents, or packaging policy, read every architecture decision
+  record under `docs/adr/` and follow all accepted decisions. Do not rely on a
+  single record in isolation; later records may refine earlier decisions.
 - Use the exact Rust toolchain selected by `rust-toolchain.toml`; do not invoke
   an unpinned global `rustfmt`, `cargo`, or `clippy`.
 - Before any mutating formatter command, run `make fmt-check`. If the committed

@@ -20,6 +20,12 @@ historical material so a proposal cannot be mistaken for a shipped feature.
   licensing. The root [LICENSE](../LICENSE) contains the MIT text for
   Omnivox-authored source.
 
+## Architecture decision records
+
+- [ADR 0001: Speech Engine Process Boundaries](adr/0001-speech-engine-process-boundaries.md)
+  — criteria for built-in engines and isolated helpers, including runtime and
+  distribution boundaries.
+
 ## Protocol specifications
 
 - [Legacy line protocol](protocols/LEGACY-PROTOCOL.md) — baseline Emacspeak
@@ -67,6 +73,7 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 Describe shipped behavior in the current references or protocol
 specifications, future work in `plans/`, and obsolete context in `history/`.
+Use `adr/` for accepted architectural decisions and their rationale.
 Keep testable examples in `protocol-fixtures/` and update their Rust validation
 when a wire contract changes. Run `make docs-check` after moving or linking a
 document; CI applies the same local-link check to every tracked Markdown file.
