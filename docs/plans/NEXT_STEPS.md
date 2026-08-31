@@ -74,6 +74,33 @@ The structured identity model remains:
 
 These are not current features and require design or scope approval:
 
+- **RHVoice:** evaluate this first as a low-latency accessibility engine. A
+  prototype must exercise its native streamed-PCM cancellation and
+  word/sentence callbacks, character and key message modes, physical voice
+  discovery, and rate, pitch, volume, and punctuation controls. Compare warm
+  and cold onset, rapid replacement, high-rate intelligibility, resource use,
+  packaging, and licensing against eSpeak NG, Eloquence, and Piper before
+  approving a permanent adapter.
+- **sherpa-onnx with Inflect Micro and Kitten Nano:** evaluate one optional,
+  isolated sherpa-onnx adapter rather than model-specific integrations. Measure
+  model load, first-audio and complete-synthesis latency, PCM callback cadence,
+  cancellation and replacement without helper restart, working set, high-rate
+  intelligibility, and the consequences of absent source-accurate word
+  markers. Keep runtime and model assets separately auditable, with explicit
+  per-model licence and provenance records.
+- **Flite:** evaluate it as a small, promptly restartable, low-latency English
+  fallback, not as a replacement for the Unicode-capable eSpeak NG fallback.
+  Record its startup and interruption distributions, available voice quality
+  and licensing, language and text-repertoire limits, marker capabilities, and
+  usable rate range before deciding whether its extra engine surface is
+  justified.
+- **RuTTS (`poretsky/ru_tts`):** evaluate it as a compact, low-latency
+  Russian-only engine, not as a Ukrainian or general multilingual fallback.
+  Measure cold and warm onset, interruption and replacement behavior, CPU and
+  memory use, high-rate intelligibility, and the audible effect of its legacy
+  8-bit 10 kHz output. Verify the text-encoding boundary, native-library
+  integration, packaging, and licensing before deciding whether the narrow
+  language coverage and voice quality justify another engine adapter.
 - **Multiple instances of one engine:** do not add a second Eloquence helper
   merely as a precaution. First collect long-session failure evidence for the
   persistent ECI owner-thread implementation. Revisit per-instance identity,
