@@ -32,8 +32,7 @@ after a native call starts but before that call needs quarantine.
 
 WinRT remains truthful as `playback_only`: Omnivox does not claim to cancel the
 Windows native operation, only to isolate its stale result. Piper is different.
-`make build-piper` produces `omnivox` and `omnivox-piper-helper` beside one
-another. The main server launches the helper through the versioned JSON
+The main server launches `omnivox-piper-helper` through the versioned JSON
 protocol, and the helper advertises `synthesis_and_playback` because the host
 can terminate its process. A cancel is acknowledged on the helper protocol
 thread. The maintained libpiper API returns sentence-level audio chunks, so the
@@ -42,9 +41,11 @@ not returned within 250 ms, the generic helper watchdog kills and reaps the
 process. The next usable request negotiates a fresh helper and reloads the
 model.
 
-By default the server resolves `omnivox-piper-helper` beside its own executable.
+By default the server first resolves `piper/omnivox-piper-helper` beside its own
+executable, then accepts the legacy directly adjacent helper.
 `OMNIVOX_PIPER_HELPER` may provide an explicit path, and
 `OMNIVOX_PIPER_MODEL` or `--piper-model` supplies the model. Paths are passed as
-separate process arguments, so spaces do not require shell quoting. Deployment
-must copy both executables and the helper's native dynamic libraries together;
-the main `omnivox` binary no longer carries Piper rpaths or native linkage.
+separate process arguments, so spaces do not require shell quoting. The
+companion directory keeps the helper, its native libraries, and its generated
+eSpeak data together; the main `omnivox` binary carries no Piper rpaths or
+native linkage.

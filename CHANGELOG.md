@@ -19,6 +19,9 @@ Versioning for published releases.
   the vendored maintained libpiper v1.7 C API. Piper now consumes chunked float
   audio and observes cancellation between chunks while retaining process
   retirement for blocked native calls.
+- Piper-enabled servers now prefer an isolated `piper/` companion directory,
+  while retaining the explicit helper override and legacy adjacent-helper
+  lookup. The helper prefers the matching eSpeak data inside that directory.
 
 ### Fixed
 

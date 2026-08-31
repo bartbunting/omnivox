@@ -390,8 +390,8 @@ fn find_config_path(model_path: &Path) -> Option<PathBuf> {
 ///
 /// Search order:
 /// 1. `OMNIVOX_PIPER_ESPEAK_DATA` env var
-/// 2. `ESPEAK_NG_DATA` env var (shared with the espeak TTS backend)
-/// 3. Data adjacent to the helper executable
+/// 2. Data adjacent to the helper executable
+/// 3. `ESPEAK_NG_DATA` env var (shared with the espeak TTS backend)
 /// 4. Build-time path captured by omnivox-piper-sys/build.rs
 /// 5. Well-known system paths
 fn find_espeak_data() -> Option<PathBuf> {
@@ -405,21 +405,21 @@ fn find_espeak_data() -> Option<PathBuf> {
         }
     }
 
-    // 2. Shared espeak env var
+    // 2. Companion data staged beside omnivox-piper-helper. Prefer this over
+    // the main server's shared ESPEAK_NG_DATA so the two builds cannot select
+    // one another's generated data after installation.
+    if let Ok(executable) = std::env::current_exe() {
+        if let Some(path) = adjacent_espeak_data(&executable) {
+            debug!("Using Piper eSpeak data next to helper executable");
+            return Some(path);
+        }
+    }
+
+    // 3. Shared espeak env var
     if let Ok(dir) = std::env::var("ESPEAK_NG_DATA") {
         if !dir.is_empty() {
             if let Some(path) = normalize_espeak_data(Path::new(&dir)) {
                 debug!("Using espeak data from ESPEAK_NG_DATA: {}", dir);
-                return Some(path);
-            }
-        }
-    }
-
-    // 3. Shared data staged beside omnivox and omnivox-piper-helper.
-    if let Ok(executable) = std::env::current_exe() {
-        if let Some(parent) = executable.parent() {
-            if let Some(path) = normalize_espeak_data(parent) {
-                debug!("Using espeak data next to executable");
                 return Some(path);
             }
         }
@@ -462,6 +462,10 @@ fn normalize_espeak_data(path: &Path) -> Option<PathBuf> {
     }
     let nested = path.join("espeak-ng-data");
     nested.join("phontab").is_file().then_some(nested)
+}
+
+fn adjacent_espeak_data(executable: &Path) -> Option<PathBuf> {
+    normalize_espeak_data(executable.parent()?)
 }
 
 struct SpeakingGuard<'a>(&'a AtomicBool);
@@ -550,6 +554,24 @@ mod tests {
 
         assert_eq!(normalize_espeak_data(&root), Some(data.clone()));
         assert_eq!(normalize_espeak_data(&data), Some(data));
+
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn test_espeak_data_is_found_beside_companion_helper() {
+        let root = std::env::temp_dir().join(format!(
+            "omnivox-piper-adjacent-data-test-{}",
+            std::process::id()
+        ));
+        let data = root.join("piper/espeak-ng-data");
+        std::fs::create_dir_all(&data).unwrap();
+        std::fs::write(data.join("phontab"), b"test").unwrap();
+
+        assert_eq!(
+            adjacent_espeak_data(&root.join("piper/omnivox-piper-helper")),
+            Some(data)
+        );
 
         std::fs::remove_dir_all(root).unwrap();
     }

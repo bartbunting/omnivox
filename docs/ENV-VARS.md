@@ -83,15 +83,17 @@ not accepted startup values for `--engine` or `OMNIVOX_ENGINE`.
 `OMNIVOX_PIPER_HELPER`
 
 - Optional path to `omnivox-piper-helper`.
-- Otherwise the server looks beside its own executable.
+- Otherwise the server first looks in a `piper/` companion directory beside
+  its own executable, then accepts the legacy layout with the helper directly
+  beside it.
 
 `OMNIVOX_PIPER_ESPEAK_DATA`
 
 - Optional Piper-specific path to `espeak-ng-data/` or its parent directory.
 - Read by the Piper engine inside `omnivox-piper-helper`; the main server
-  inherits this environment into the child. The helper otherwise checks the
-  shared data beside its executable, its build-time path, and compatible system
-  data.
+  inherits this environment into the child. The helper otherwise prefers the
+  companion data beside itself before checking `ESPEAK_NG_DATA`, its build-time
+  path, and compatible system data.
 
 `ESPEAK_NG_DATA`
 

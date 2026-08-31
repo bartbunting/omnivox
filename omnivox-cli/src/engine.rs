@@ -12,8 +12,8 @@ use omnivox_tts::macos::MacOsTtsEngine;
 #[cfg(target_os = "windows")]
 use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::TtsEngine;
-#[cfg(any(target_os = "windows", feature = "piper"))]
-use std::path::PathBuf;
+#[cfg(any(target_os = "windows", feature = "piper", test))]
+use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 #[cfg(any(target_os = "windows", feature = "piper", test))]
@@ -200,27 +200,31 @@ fn create_windows_engines(
     })
 }
 
-#[cfg(any(target_os = "windows", feature = "piper"))]
+#[cfg(target_os = "windows")]
 fn helper_config(
     engine_id: &str,
     environment_variable: &str,
     adjacent_filename: &str,
+) -> Option<HelperEngineConfig> {
+    helper_config_with_candidates(
+        engine_id,
+        environment_variable,
+        &[PathBuf::from(adjacent_filename)],
+    )
+}
+
+#[cfg(any(target_os = "windows", feature = "piper"))]
+fn helper_config_with_candidates(
+    engine_id: &str,
+    environment_variable: &str,
+    adjacent_candidates: &[PathBuf],
 ) -> Option<HelperEngineConfig> {
     let explicitly_configured = std::env::var_os(environment_variable)
         .filter(|value| !value.is_empty())
         .map(PathBuf::from);
     let program = match explicitly_configured {
         Some(program) => program,
-        None => {
-            let adjacent = std::env::current_exe()
-                .ok()?
-                .parent()?
-                .join(adjacent_filename);
-            if !adjacent.is_file() {
-                return None;
-            }
-            adjacent
-        }
+        None => resolve_adjacent_helper(&std::env::current_exe().ok()?, adjacent_candidates)?,
     };
 
     let mut config = HelperEngineConfig::new(engine_id, program);
@@ -230,6 +234,15 @@ fn helper_config(
     // longer allowance needed by ordinary long passages.
     config.synthesis_idle_timeout = helper_synthesis_idle_timeout(engine_id);
     Some(config)
+}
+
+#[cfg(any(target_os = "windows", feature = "piper", test))]
+fn resolve_adjacent_helper(executable: &Path, candidates: &[PathBuf]) -> Option<PathBuf> {
+    let executable_dir = executable.parent()?;
+    candidates
+        .iter()
+        .map(|candidate| executable_dir.join(candidate))
+        .find(|candidate| candidate.is_file())
 }
 
 #[cfg(any(target_os = "windows", feature = "piper"))]
@@ -448,10 +461,15 @@ fn piper_helper_config(model: Option<&str>) -> Result<HelperEngineConfig> {
             )
         })?;
     let helper_filename = format!("omnivox-piper-helper{}", std::env::consts::EXE_SUFFIX);
-    let mut config =
-        helper_config("piper", "OMNIVOX_PIPER_HELPER", &helper_filename).ok_or_else(|| {
+    let candidates = [
+        PathBuf::from("piper").join(&helper_filename),
+        PathBuf::from(&helper_filename),
+    ];
+    let mut config = helper_config_with_candidates("piper", "OMNIVOX_PIPER_HELPER", &candidates)
+        .ok_or_else(|| {
             anyhow::anyhow!(
-                "{} was not found beside Omnivox; set OMNIVOX_PIPER_HELPER",
+                "{} was not found in the Piper companion directory or beside Omnivox; set \
+                 OMNIVOX_PIPER_HELPER",
                 helper_filename
             )
         })?;
@@ -494,7 +512,8 @@ pub fn apply_audio_target_env(state: &mut TtsState) {
 mod tests {
     #[cfg(target_os = "macos")]
     use super::create_engines;
-    use super::{engine_preference_order, helper_synthesis_idle_timeout};
+    use super::{engine_preference_order, helper_synthesis_idle_timeout, resolve_adjacent_helper};
+    use std::path::PathBuf;
     #[cfg(target_os = "macos")]
     use std::sync::atomic::AtomicU64;
     #[cfg(target_os = "macos")]
@@ -515,6 +534,35 @@ mod tests {
             helper_synthesis_idle_timeout("piper"),
             Duration::from_secs(60)
         );
+    }
+
+    #[test]
+    fn piper_companion_directory_precedes_legacy_adjacent_helper() {
+        let root = std::env::temp_dir().join(format!(
+            "omnivox-piper-helper-resolution-test-{}",
+            std::process::id()
+        ));
+        let companion = root.join("piper/omnivox-piper-helper");
+        let legacy = root.join("omnivox-piper-helper");
+        std::fs::create_dir_all(companion.parent().unwrap()).unwrap();
+        std::fs::write(&companion, b"companion").unwrap();
+        std::fs::write(&legacy, b"legacy").unwrap();
+
+        let candidates = [
+            PathBuf::from("piper/omnivox-piper-helper"),
+            PathBuf::from("omnivox-piper-helper"),
+        ];
+        assert_eq!(
+            resolve_adjacent_helper(&root.join("omnivox"), &candidates),
+            Some(companion.clone())
+        );
+
+        std::fs::remove_file(companion).unwrap();
+        assert_eq!(
+            resolve_adjacent_helper(&root.join("omnivox"), &candidates),
+            Some(legacy)
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

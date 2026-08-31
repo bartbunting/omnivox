@@ -48,13 +48,14 @@ release:
 - the ordinary release archive and archive verifier intentionally know nothing
   about the Piper helper or its runtime files.
 
-The first two defects and the custom bridge have now been removed. The native
-build consumes vendored libpiper v1.7.0, checks Cargo's requested native target,
-and fails closed for unsupported or cross-compiled helper targets. The Rust
-adapter consumes every returned float-audio chunk, including the final
-`PIPER_DONE` chunk, and observes cancellation between chunks. Linux x64 real
-synthesis passes with the existing local test model. Dependency verification,
-staging, archive verification, and other native runners remain open.
+The moving libpiper fetch, target-selection defect, and custom bridge have now
+been removed. The native build consumes vendored libpiper v1.7.0, checks
+Cargo's requested native target, and fails closed for unsupported or
+cross-compiled helper targets. The Rust adapter consumes every returned
+float-audio chunk, including the final `PIPER_DONE` chunk, and observes
+cancellation between chunks. Linux x64 real synthesis passes with the existing
+local test model. Dependency verification, staging, archive verification, and
+other native runners remain open.
 
 The maintained upstream is
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl). Release
@@ -72,7 +73,7 @@ The main Omnivox executable may be built with helper discovery enabled on all
 platforms; that feature does not itself link Piper. Publish Piper separately as
 a platform-specific optional companion payload containing:
 
-- `omnivox-engine-piper`;
+- `omnivox-piper-helper`;
 - the matching `libpiper` and ONNX Runtime libraries;
 - the eSpeak data and runtime files required by that exact libpiper build;
 - third-party notices, GPL text, locked source identity, and corresponding
@@ -82,6 +83,12 @@ a platform-specific optional companion payload containing:
 
 Do not include a voice model in that payload. The user supplies an `.onnx`
 model and its adjacent configuration after reviewing its `MODEL_CARD`.
+
+Install the companion as an isolated `piper/` directory beside `omnivox`.
+Omnivox prefers the helper there, while retaining the old directly adjacent
+helper lookup and the explicit `OMNIVOX_PIPER_HELPER` override. Isolation
+prevents the Piper build's generated eSpeak data from overwriting the generic
+Omnivox archive's different eSpeak payload.
 
 Separate companion archives keep a large GPL/native payload optional and let
 the generic server remain useful without a model. They do not remove the GPL
