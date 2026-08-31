@@ -9,7 +9,7 @@
         "commit": "212928b394a96e8fd2096616bfd54e17845c48f6",
         "destination": "espeak-ng",
         "sha256": "1f201cabc73e569a7cb434d40d3b30980f923010f8ecd4d1c4ae94691ac2888a",
-        "source_tree_sha256": "21b6becbf3a759595fc59b70d95b2860c84e865421d5eba5e624575e86eefe13",
+        "source_tree_sha256": "5c61cfae6d2702d0d54087aaba0e6c1ebdb0a1aeae7e1a647e4a1d72d5c1d751",
         "url": "https://github.com/espeak-ng/espeak-ng/archive/212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz"
       },
       "onnxruntime": {
@@ -38,7 +38,7 @@
         "commit": "212928b394a96e8fd2096616bfd54e17845c48f6",
         "destination": "espeak-ng",
         "sha256": "1f201cabc73e569a7cb434d40d3b30980f923010f8ecd4d1c4ae94691ac2888a",
-        "source_tree_sha256": "21b6becbf3a759595fc59b70d95b2860c84e865421d5eba5e624575e86eefe13",
+        "source_tree_sha256": "5c61cfae6d2702d0d54087aaba0e6c1ebdb0a1aeae7e1a647e4a1d72d5c1d751",
         "url": "https://github.com/espeak-ng/espeak-ng/archive/212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz"
       },
       "onnxruntime": {
@@ -68,7 +68,7 @@
         "destination": "espeak-ng",
         "materialize_symlinks": true,
         "sha256": "1f201cabc73e569a7cb434d40d3b30980f923010f8ecd4d1c4ae94691ac2888a",
-        "source_tree_sha256": "c215dcc074474d171f21732c9d681c3bea40d2a150e3ffa46e3c53d6f7a751f8",
+        "source_tree_sha256": "4f31826a4392f1b1a81b61d40cf0d1e8d03d21b15947dd33cf1bfafc127a4c53",
         "url": "https://github.com/espeak-ng/espeak-ng/archive/212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz"
       },
       "onnxruntime": {
@@ -97,7 +97,7 @@
         "commit": "212928b394a96e8fd2096616bfd54e17845c48f6",
         "destination": "espeak-ng",
         "sha256": "1f201cabc73e569a7cb434d40d3b30980f923010f8ecd4d1c4ae94691ac2888a",
-        "source_tree_sha256": "21b6becbf3a759595fc59b70d95b2860c84e865421d5eba5e624575e86eefe13",
+        "source_tree_sha256": "5c61cfae6d2702d0d54087aaba0e6c1ebdb0a1aeae7e1a647e4a1d72d5c1d751",
         "url": "https://github.com/espeak-ng/espeak-ng/archive/212928b394a96e8fd2096616bfd54e17845c48f6.tar.gz"
       },
       "onnxruntime": {
