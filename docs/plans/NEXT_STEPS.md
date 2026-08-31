@@ -43,13 +43,12 @@ The structured identity model remains:
 
 1. Expand real Windows repetition, cancellation, crash, and recovery testing
    for WinRT, Eloquence, and DECtalk, including helper working-set measurement.
-2. Stabilize Piper dependency pinning and model packaging, cross-platform
-   builds, cold start, cancellation/restart latency, and documented model
-   ownership. Treat this as a reproducible optional-helper release problem,
-   separate from the engine-registry policy, and solve it consistently for
-   Windows, Linux, and macOS. Once distributable, a configured Piper helper can
-   join the retained server registry without displacing each platform's
-   built-in engines.
+2. Execute the dependency, packaging, platform, and acceptance slices in the
+   [Piper release plan](PIPER-RELEASE.md). Treat this as a reproducible
+   optional-helper release problem, separate from engine-registry policy. A
+   configured Piper helper can join the retained registry without displacing
+   each platform's built-in engines, but it is not yet a distributable release
+   component.
 3. Improve macOS marker and cancellation coverage without overstating what
    AVSpeechSynthesizer exposes.
 4. Verify logical-language and text-repertoire routing against live

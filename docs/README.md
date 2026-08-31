@@ -50,6 +50,9 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 - [NEXT_STEPS.md](plans/NEXT_STEPS.md) is the active roadmap. Its entries are
   not promises of current behavior.
+- [PIPER-RELEASE.md](plans/PIPER-RELEASE.md) records the audited gap between
+  the experimental Piper helper and a reproducible cross-platform companion
+  release, including the source-acquisition decision required before work.
 - [SPEECHD-PLAN.md](plans/SPEECHD-PLAN.md) is an unimplemented design proposal
   that must be reconciled with current engine contracts before use.
 - [CHUNKING-IMPLEMENTATION.md](history/CHUNKING-IMPLEMENTATION.md) is a short

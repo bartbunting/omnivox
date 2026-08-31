@@ -58,6 +58,13 @@ wrapper's MIT declaration does not relicense those fetched dependencies or any
 model. Review and package all applicable source, model, runtime, and notice
 terms before distributing a Piper-enabled build.
 
+The proposed replacement uses the maintained GPL-3.0-or-later upstream and is
+therefore a dependency, packaging, and corresponding-source decision rather
+than an automatic upgrade. See the
+[Piper release plan](plans/PIPER-RELEASE.md) for the audited current defects,
+release boundary, and options. No Piper companion archive is currently
+published.
+
 ## Proprietary engines and other dependencies
 
 Eloquence and DECtalk runtimes, dictionaries, and voices are user-supplied and
