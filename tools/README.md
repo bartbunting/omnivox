@@ -99,9 +99,11 @@ exact payload and notice sets, clean source provenance, native binary
 architecture, platform library lookup, and optional model-backed voice
 discovery and WAV output. Linux uses ELF/RUNPATH and `ldd` checks, macOS uses
 Mach-O, `@loader_path`, and `otool` checks, and Windows validates the PE import
-chain from the helper through `piper.dll` to ONNX Runtime. Corresponding-source
-review, release CI, and model-backed acceptance on every native runner remain
-open, so no Piper archive is published yet.
+chain from the helper through `piper.dll` to ONNX Runtime. When a model is
+supplied, it also confirms that missing and corrupt Piper models preserve the
+eSpeak fallback. Corresponding-source review, release CI, and model-backed
+acceptance on every native runner remain open, so no Piper archive is
+published yet.
 
 ## Release archive verification
 

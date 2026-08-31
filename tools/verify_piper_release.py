@@ -486,6 +486,32 @@ def verify_synthesis(
     common.read_wav(raw, canonical=False)
     common.read_wav(wav, canonical=True)
 
+    def verify_espeak_fallback(candidate: Path, label: str) -> None:
+        fallback_environment = common.clean_environment()
+        fallback_environment["OMNIVOX_PIPER_MODEL"] = str(candidate.resolve())
+        fallback_voices = common.run(
+            [command, "--engine", "piper", "--list-voices"],
+            working,
+            fallback_environment,
+        )
+        require(
+            re.search(r"\[espeak:[^\]\s]+\]", fallback_voices) is not None,
+            f"{label} Piper model did not preserve the eSpeak fallback",
+        )
+        require(
+            "[piper:" not in fallback_voices,
+            f"{label} Piper model unexpectedly registered a Piper voice",
+        )
+
+    verify_espeak_fallback(working / "missing model.onnx", "missing")
+    corrupt_model = working / "corrupt model.onnx"
+    corrupt_model.write_bytes(b"not an ONNX model\n")
+    source_config = model.with_suffix(model.suffix + ".json")
+    if not source_config.is_file():
+        source_config = model.with_suffix(".json")
+    shutil.copy2(source_config, corrupt_model.with_suffix(".onnx.json"))
+    verify_espeak_fallback(corrupt_model, "corrupt")
+
 
 def verify(arguments: argparse.Namespace, configuration: PlatformConfig) -> None:
     archive = arguments.archive.resolve()
@@ -536,7 +562,7 @@ def verify(arguments: argparse.Namespace, configuration: PlatformConfig) -> None
 
     mode = "structural and native-runtime"
     if arguments.model is not None:
-        mode += " with real synthesis"
+        mode += " with real synthesis and model-failure fallback"
     print(f"PASS {archive.name}: {mode} verification")
 
 
