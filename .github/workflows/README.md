@@ -96,8 +96,9 @@ The manual `piper-native.yml` workflow builds and atomically stages the
 optional companion on Ubuntu 24.04 x64, Windows 2025 x64, macOS 15 ARM64, and
 macOS 15 Intel. Each job prepares the platform's checksum-locked native
 inputs, builds on the matching architecture, applies native layout and binary
-checks, rechecks the input cache without network access, and uploads only the
-staged candidate for inspection.
+checks, rechecks the input cache without network access, creates the native
+`.tar.gz` or `.zip`, verifies it after safe extraction into a relocated path,
+and uploads the verified candidate plus its checksum for inspection.
 
 This provisional workflow does not publish release assets or a voice model.
 Model-backed synthesis and release integration are added only after the
@@ -111,7 +112,7 @@ pull request main  format + build + test
 v* tag             format + build + test + package + draft + verify + publish
 manual main ref    format + build + test
 manual v* tag ref  format + build + test + package + draft + verify + publish
-manual Piper flow  native companion staging only; never publishes
+manual Piper flow  native companion package and verification; never publishes
 ```
 
 `workflow_dispatch` is a fallback for manually running the same workflow. Run

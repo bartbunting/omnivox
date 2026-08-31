@@ -65,9 +65,16 @@ jobs:
       - name: Recheck prepared inputs without network
         run: python tools/prepare_piper_inputs.py --target ${{ matrix.target }} --check
 
-      - name: Upload staged companion
+      - name: Package and verify companion
+        run: |
+          python tools/package_piper.py
+          python tools/verify_piper_release.py
+
+      - name: Upload verified companion candidate
         uses: actions/upload-artifact@v4
         with:
           name: omnivox-piper-${{ matrix.name }}
-          path: target/release/piper/
+          path: |
+            target/release/omnivox-*-piper-${{ matrix.name }}.*
+            target/release/piper-sha256sums.txt
           if-no-files-found: error
