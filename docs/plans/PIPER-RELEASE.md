@@ -1,6 +1,6 @@
 # Piper Release Plan
 
-Status: design decision required before dependency or native-API changes.
+Status: option A selected; implementation in progress.
 
 Piper is already represented by an optional out-of-process Omnivox helper, but
 it is not a distributable release component. This plan defines the work needed
@@ -23,6 +23,8 @@ third-party voice-model licences.
 - Treat Piper as an optional release payload with its own native dependencies,
   notices, source provenance, and platform verification. Do not infer that a
   working developer build is a redistributable archive.
+- Publish Piper as a separate optional companion archive rather than adding its
+  native runtime to every generic Omnivox archive.
 - Defer multiple live instances of one engine until long-session evidence
   shows that restart and fallback are insufficient.
 
@@ -80,9 +82,10 @@ is an engineering component map, not legal advice.
 
 ## Source acquisition decision
 
-Choose one of these before changing `omnivox-piper-sys`:
+Option A was selected. Option B remains documented so the trade-off is not
+lost if repository size or source-publication requirements change.
 
-### A. Vendor the maintained libpiper source subtree (recommended)
+### A. Vendor the maintained libpiper source subtree (selected)
 
 Import the exact `v1.7.0` libpiper source, upstream licence, and required build
 metadata under a clearly separately licensed third-party directory. Pin and
@@ -104,7 +107,7 @@ Costs:
   pressure; and
 - upstream updates become explicit import/review work.
 
-### B. Require a verified upstream source cache
+### B. Require a verified upstream source cache (not selected)
 
 Add a preparation command that downloads an exact upstream tag or commit,
 checks a recorded SHA-256 digest, and places it in a versioned cache. Cargo

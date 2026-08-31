@@ -58,9 +58,11 @@ wrapper's MIT declaration does not relicense those fetched dependencies or any
 model. Review and package all applicable source, model, runtime, and notice
 terms before distributing a Piper-enabled build.
 
-The proposed replacement uses the maintained GPL-3.0-or-later upstream and is
-therefore a dependency, packaging, and corresponding-source decision rather
-than an automatic upgrade. See the
+The selected replacement uses the maintained GPL-3.0-or-later upstream. Its
+exact `v1.7.0` `libpiper` source and GPL text are preserved under
+[`third-party/piper1-gpl`](../third-party/piper1-gpl/UPSTREAM.md). The active
+experimental build has not yet migrated to that source, so this import does not
+make the helper distributable by itself. See the
 [Piper release plan](plans/PIPER-RELEASE.md) for the audited current defects,
 release boundary, and options. No Piper companion archive is currently
 published.
