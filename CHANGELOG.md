@@ -41,7 +41,9 @@ Versioning for published releases.
   for Linux x64, Windows x64, and macOS ARM64/x64 native artifacts.
 - Added a manual, non-publishing native-runner workflow; Linux x64, Windows
   x64, and both macOS architectures now build and stage, recheck locked inputs,
-  verify relocated deterministic archives, and synthesize real audio.
+  verify relocated deterministic archives, synthesize real audio, exercise a
+  persistent 25-request session, and cancel an in-flight request without stale
+  output.
 - Completed native Windows x64 Piper build and staging, including offline input
   rechecks and PE validation.
 - Locked the upstream libpiper English test model, configuration, and model

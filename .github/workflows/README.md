@@ -105,9 +105,11 @@ checks, rechecks the input cache without network access, creates the native
 `.tar.gz` or `.zip`, verifies it after safe extraction into a relocated path,
 downloads and verifies the locked CI-only model, and runs real synthesis
 through a Piper-enabled server. A persistent helper-session test performs 25
-syntheses with varied supported settings, validates protocol/audio framing and
-health, records observable memory, and requests clean shutdown. The job then
-uploads the verified companion candidate plus its checksum for inspection.
+syntheses with varied supported settings, validates protocol/audio framing,
+cancels one long in-flight synthesis without accepting stale output, confirms
+the helper remains responsive, records observable memory, and requests clean
+shutdown. The job then uploads the verified companion candidate plus its
+checksum for inspection.
 
 This provisional workflow does not publish release assets or a voice model.
 The model remains outside the staged directory, companion archive, and upload

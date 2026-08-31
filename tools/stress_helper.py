@@ -2,8 +2,8 @@
 """Exercise one Omnivox capture helper repeatedly in a single process.
 
 The test validates protocol ordering, PCM framing, marker bounds, health pings,
-and clean shutdown.  It uses only the Python standard library so it can run
-from WSL against the Windows helper executables.
+optional in-flight cancellation, and clean shutdown.  It uses only the Python
+standard library so it can run from WSL against the Windows helper executables.
 """
 
 import argparse
@@ -24,6 +24,10 @@ TEST_TEXTS = (
     "First sentence has several words. Second sentence checks completion!",
     "Unicode café and naïve words work here. Another sentence follows?",
     "A short clause, followed by another clause; then the sentence ends.",
+)
+CANCEL_PROBE_TEXT = " ".join(
+    f"Cancellation probe sentence {number} should not reach the audio mixer."
+    for number in range(1, 17)
 )
 
 
@@ -62,11 +66,11 @@ class HelperSession:
         self.process.stdin.write(json.dumps(request, separators=(",", ":")) + "\n")
         self.process.stdin.flush()
 
-    def receive(self, request_id, timeout=FRAME_TIMEOUT_SECONDS):
+    def receive_any(self, timeout=FRAME_TIMEOUT_SECONDS):
         try:
             line = self.responses.get(timeout=timeout)
         except queue.Empty as error:
-            raise RuntimeError(f"timed out waiting for helper request {request_id}") from error
+            raise RuntimeError("timed out waiting for a helper response") from error
         if line is None:
             raise RuntimeError(
                 f"helper closed stdout with status {self.process.poll()}; "
@@ -78,12 +82,16 @@ class HelperSession:
             raise RuntimeError(f"helper emitted invalid JSON: {line[:200]!r}") from error
         if response.get("protocol_version") != PROTOCOL_VERSION:
             raise RuntimeError(f"unexpected protocol version: {response}")
-        if response.get("request_id") != request_id:
-            raise RuntimeError(f"unexpected request ID: {response}")
         if response.get("type") == "error":
             raise RuntimeError(
                 f"helper error {response.get('code')}: {response.get('message')}"
             )
+        return response
+
+    def receive(self, request_id, timeout=FRAME_TIMEOUT_SECONDS):
+        response = self.receive_any(timeout)
+        if response.get("request_id") != request_id:
+            raise RuntimeError(f"unexpected request ID: {response}")
         return response
 
     def stop(self):
@@ -235,12 +243,72 @@ def synthesize(
             raise RuntimeError(f"unexpected synthesis response: {response}")
 
 
+def cancel_synthesis(session, request_id, cancel_id, voice_id):
+    session.send(
+        request(
+            request_id,
+            "synthesize",
+            text=CANCEL_PROBE_TEXT,
+            settings={
+                "voice_id": voice_id,
+                "rate": 0.35,
+                "pitch": 1.0,
+                "volume": 1.0,
+            },
+            anchors=[],
+        )
+    )
+    started = session.receive(request_id)
+    if started.get("type") != "synthesis_started":
+        raise RuntimeError(f"cancellation probe did not start synthesis: {started}")
+
+    session.send(request(cancel_id, "cancel", target_request_id=request_id))
+    acknowledged = False
+    deadline = time.monotonic() + FRAME_TIMEOUT_SECONDS
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError("timed out waiting for cancellation to finish")
+        response = session.receive_any(remaining)
+        response_id = response.get("request_id")
+        response_type = response.get("type")
+        if response_id == cancel_id:
+            if (
+                acknowledged
+                or response_type != "cancel_accepted"
+                or response.get("target_request_id") != request_id
+            ):
+                raise RuntimeError(f"invalid cancellation acknowledgement: {response}")
+            acknowledged = True
+        elif response_id == request_id:
+            if response_type in ("audio_chunk", "markers"):
+                if acknowledged:
+                    raise RuntimeError(
+                        f"helper emitted stale synthesis output after cancellation: {response_type}"
+                    )
+            elif response_type == "synthesis_cancelled":
+                if not acknowledged:
+                    raise RuntimeError("synthesis ended before cancellation was acknowledged")
+                return
+            elif response_type == "synthesis_completed":
+                raise RuntimeError("cancellation probe completed as successful synthesis")
+            else:
+                raise RuntimeError(f"unexpected cancellation response: {response}")
+        else:
+            raise RuntimeError(f"response belongs to an unknown request: {response}")
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("helper", help="path to an Omnivox helper executable")
     parser.add_argument("--engine-id", required=True, help="expected descriptor engine ID")
     parser.add_argument("--voice-id", help="voice to exercise; defaults to helper default")
     parser.add_argument("--iterations", type=int, default=100)
+    parser.add_argument(
+        "--cancel-probe",
+        action="store_true",
+        help="cancel one long synthesis and verify the helper remains usable",
+    )
     parser.add_argument(
         "--require-acss",
         action="append",
@@ -340,6 +408,16 @@ def main():
                 if pong.get("type") != "pong":
                     raise RuntimeError(f"helper failed health ping: {pong}")
                 print(f"completed {iteration + 1}/{args.iterations}", flush=True)
+
+        if args.cancel_probe:
+            cancel_synthesis(session, next_request_id, next_request_id + 1, voice_id)
+            next_request_id += 2
+            session.send(request(next_request_id, "ping"))
+            pong = session.receive(next_request_id)
+            next_request_id += 1
+            if pong.get("type") != "pong":
+                raise RuntimeError(f"helper failed health ping after cancellation: {pong}")
+            print("completed in-flight cancellation probe", flush=True)
 
         session.send(request(next_request_id, "shutdown"))
         shutting_down = session.receive(next_request_id)

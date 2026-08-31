@@ -69,6 +69,12 @@ jobs:
       - name: Recheck prepared inputs without network
         run: python tools/prepare_piper_inputs.py --target ${{ matrix.target }} --check
 
+      - name: Lint native Piper crates
+        run: >-
+          cargo clippy --locked
+          --package omnivox-piper-helper --package omnivox-piper-sys
+          --all-targets --all-features -- -D warnings
+
       - name: Package and verify companion
         run: |
           python tools/package_piper.py
@@ -83,7 +89,7 @@ jobs:
         run: >-
           python tools/stress_helper.py
           target/release/piper/${{ matrix.helper }}
-          --engine-id piper --iterations 25 --require-acss rate
+          --engine-id piper --iterations 25 --cancel-probe --require-acss rate
           --helper-arg=--model
           --helper-arg=target/piper-test-model/en_US-lessac-medium.onnx
 
