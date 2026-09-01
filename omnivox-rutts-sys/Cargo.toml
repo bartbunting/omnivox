@@ -1,0 +1,10 @@
+[package]
+name = "omnivox-rutts-sys"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+links = "omnivox_rutts"
+
+[build-dependencies]
+cc = "1"
