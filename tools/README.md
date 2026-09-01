@@ -108,7 +108,10 @@ validates x64 PE identities. Native runner synthesis remains the final dynamic
 loading check on every platform. Before Cargo runs,
 `prepare_piper_inputs.py` downloads the target's checked-in eSpeak NG, Sonic,
 and ONNX Runtime archives, verifies their SHA-256 digests, safely extracts
-them, and records the extracted-tree digests. It detects Linux x64, Windows
+them, and records the extracted-tree digests. Downloads and extraction are
+bounded to 100,000 members and 4 GiB compressed/downloaded or uncompressed
+data, preventing a validly named pathological input from exhausting local
+storage. It detects Linux x64, Windows
 x64, and macOS ARM64/x64 native targets; `--target` remains available for an
 explicit cache. A prepared cache can be checked without network access:
 
@@ -194,6 +197,9 @@ published yet.
 `sha256sums.txt`. It safely extracts into a relocated path, validates the
 published payload and binary architecture, and can exercise real headless
 engine synthesis through `--dump-wav` without requiring an audio device.
+Extraction rejects encrypted or special entries, duplicate or unsafe paths,
+more than 100,000 members, and more than 4 GiB of declared uncompressed data.
+The same bounds protect companion and corresponding-source verification.
 
 For example:
 

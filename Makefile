@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test latency-benchmark-test latency-benchmark-suite-test server-stress-test helper-soak-test diagnostics-redaction-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite package-flite verify-flite package-flite-source verify-flite-source install-flite prepare-rutts stage-rutts stage-rutts-dev build-rutts package-rutts verify-rutts package-rutts-source verify-rutts-source install-rutts prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
+.PHONY: all build test elisp-test latency-benchmark-test latency-benchmark-suite-test server-stress-test helper-soak-test diagnostics-redaction-test archive-safety-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite package-flite verify-flite package-flite-source verify-flite-source install-flite prepare-rutts stage-rutts stage-rutts-dev build-rutts package-rutts verify-rutts package-rutts-source verify-rutts-source install-rutts prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -16,7 +16,7 @@ dev: stage-rhvoice-dev stage-flite-dev stage-rutts-dev
 	$(PYTHON) tools/build.py --package omnivox-cli --features piper
 
 # Run tests
-test: windows-helpers-test latency-benchmark-test latency-benchmark-suite-test server-stress-test helper-soak-test diagnostics-redaction-test
+test: windows-helpers-test latency-benchmark-test latency-benchmark-suite-test server-stress-test helper-soak-test diagnostics-redaction-test archive-safety-test
 	cargo test --locked
 
 latency-benchmark-test:
@@ -38,6 +38,10 @@ helper-soak-test:
 diagnostics-redaction-test:
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_redact_diagnostics.py
+
+archive-safety-test:
+	PYTHONDONTWRITEBYTECODE=1 \
+		$(PYTHON) -W error::ResourceWarning tools/test_archive_safety.py
 
 # Build the GPL-2.0-or-later 32-bit Windows capture helpers.  A reproducible
 # Emacsvox bundle supplies its pinned compiler and reference assemblies through

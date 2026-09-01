@@ -51,6 +51,9 @@ Versioning for published releases.
 - Added tested diagnostic redaction that removes synthesis-text records,
   checkout and common user-home paths, process command lines, and Git filenames
   from default support bundles while retaining bounded lifecycle evidence.
+- Bounded locked-input downloads and all release/source archive extraction by
+  member count and uncompressed bytes; encrypted ZIP entries are rejected in
+  addition to existing path, duplicate, link, checksum, and layout checks.
 - Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
   female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
   volume, bounded PCM, and cooperative cancellation handling. RuLex is not

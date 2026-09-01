@@ -24,6 +24,8 @@ class VerificationError(RuntimeError):
 
 LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES = {"1.4.1"}
 FIRST_RELEASE_WITH_RHVOICE_HELPER = (1, 5, 1)
+MAX_ARCHIVE_MEMBERS = 100_000
+MAX_ARCHIVE_UNCOMPRESSED_BYTES = 4 * 1024 * 1024 * 1024
 
 
 def require(condition: bool, message: str) -> None:
@@ -81,7 +83,12 @@ def safe_parts(name: str) -> tuple[str, ...]:
 def extract_tar(archive: Path, destination: Path) -> None:
     with tarfile.open(archive, "r:gz") as bundle:
         seen: set[PurePosixPath] = set()
-        for member in bundle.getmembers():
+        total_bytes = 0
+        for index, member in enumerate(bundle, start=1):
+            require(
+                index <= MAX_ARCHIVE_MEMBERS,
+                f"tar archive exceeds the {MAX_ARCHIVE_MEMBERS}-member limit",
+            )
             member_path = PurePosixPath(*safe_parts(member.name))
             require(member_path not in seen, f"duplicate tar member: {member.name!r}")
             seen.add(member_path)
@@ -90,6 +97,12 @@ def extract_tar(archive: Path, destination: Path) -> None:
                 target.mkdir(parents=True, exist_ok=True)
                 continue
             require(member.isfile(), f"unsupported tar member: {member.name!r}")
+            total_bytes += member.size
+            require(
+                total_bytes <= MAX_ARCHIVE_UNCOMPRESSED_BYTES,
+                "tar archive exceeds the "
+                f"{MAX_ARCHIVE_UNCOMPRESSED_BYTES}-byte uncompressed limit",
+            )
             source = bundle.extractfile(member)
             require(source is not None, f"cannot read tar member: {member.name!r}")
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -100,8 +113,19 @@ def extract_tar(archive: Path, destination: Path) -> None:
 
 def extract_zip(archive: Path, destination: Path) -> None:
     with zipfile.ZipFile(archive) as bundle:
+        members = bundle.infolist()
+        require(
+            len(members) <= MAX_ARCHIVE_MEMBERS,
+            f"zip archive exceeds the {MAX_ARCHIVE_MEMBERS}-member limit",
+        )
+        total_bytes = sum(member.file_size for member in members if not member.is_dir())
+        require(
+            total_bytes <= MAX_ARCHIVE_UNCOMPRESSED_BYTES,
+            "zip archive exceeds the "
+            f"{MAX_ARCHIVE_UNCOMPRESSED_BYTES}-byte uncompressed limit",
+        )
         seen: set[PurePosixPath] = set()
-        for member in bundle.infolist():
+        for member in members:
             member_path = PurePosixPath(*safe_parts(member.filename))
             require(
                 member_path not in seen,
@@ -113,6 +137,10 @@ def extract_zip(archive: Path, destination: Path) -> None:
                 target.mkdir(parents=True, exist_ok=True)
                 continue
             mode = member.external_attr >> 16
+            require(
+                member.flag_bits & 0x1 == 0,
+                f"encrypted zip member is not allowed: {member.filename!r}",
+            )
             require(
                 (mode & 0o170000) != 0o120000,
                 f"zip symlink is not allowed: {member.filename!r}",

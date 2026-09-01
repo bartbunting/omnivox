@@ -22,6 +22,11 @@ class PreparationError(RuntimeError):
     """A native input did not satisfy the checked-in lock."""
 
 
+MAX_INPUT_ARCHIVE_MEMBERS = 100_000
+MAX_INPUT_ARCHIVE_UNCOMPRESSED_BYTES = 4 * 1024 * 1024 * 1024
+MAX_INPUT_ARCHIVE_DOWNLOAD_BYTES = 4 * 1024 * 1024 * 1024
+
+
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise PreparationError(message)
@@ -121,7 +126,21 @@ def extract_tar_archive(
     materialize_symlinks: bool,
 ) -> Path:
     with tarfile.open(archive, "r:gz") as bundle:
-        members = bundle.getmembers()
+        members = []
+        total_bytes = 0
+        for index, member in enumerate(bundle, start=1):
+            require(
+                index <= MAX_INPUT_ARCHIVE_MEMBERS,
+                f"archive exceeds the {MAX_INPUT_ARCHIVE_MEMBERS}-member limit",
+            )
+            if member.isfile():
+                total_bytes += member.size
+                require(
+                    total_bytes <= MAX_INPUT_ARCHIVE_UNCOMPRESSED_BYTES,
+                    "archive exceeds the "
+                    f"{MAX_INPUT_ARCHIVE_UNCOMPRESSED_BYTES}-byte uncompressed limit",
+                )
+            members.append(member)
         member_paths: set[PurePosixPath] = set()
         link_paths: set[PurePosixPath] = set()
         link_targets: dict[PurePosixPath, PurePosixPath] = {}
@@ -186,8 +205,19 @@ def extract_tar_archive(
 
 def extract_zip_archive(archive: Path, destination: Path, archive_root: str) -> Path:
     with zipfile.ZipFile(archive) as bundle:
+        members = bundle.infolist()
+        require(
+            len(members) <= MAX_INPUT_ARCHIVE_MEMBERS,
+            f"archive exceeds the {MAX_INPUT_ARCHIVE_MEMBERS}-member limit",
+        )
+        total_bytes = sum(member.file_size for member in members if not member.is_dir())
+        require(
+            total_bytes <= MAX_INPUT_ARCHIVE_UNCOMPRESSED_BYTES,
+            "archive exceeds the "
+            f"{MAX_INPUT_ARCHIVE_UNCOMPRESSED_BYTES}-byte uncompressed limit",
+        )
         member_paths: set[PurePosixPath] = set()
-        for member in bundle.infolist():
+        for member in members:
             parts = safe_parts(member.filename)
             require(parts[0] == archive_root, f"unexpected archive root: {member.filename}")
             member_path = PurePosixPath(*parts)
@@ -198,11 +228,15 @@ def extract_zip_archive(archive: Path, destination: Path, archive_root: str) -> 
             member_paths.add(member_path)
             mode = member.external_attr >> 16
             require(
+                member.flag_bits & 0x1 == 0,
+                f"encrypted zip member is not allowed: {member.filename}",
+            )
+            require(
                 (mode & 0o170000) != 0o120000,
                 f"zip symlink is not allowed: {member.filename}",
             )
 
-        for member in bundle.infolist():
+        for member in members:
             target = destination.joinpath(*safe_parts(member.filename))
             if member.is_dir():
                 target.mkdir(parents=True, exist_ok=True)
@@ -235,10 +269,16 @@ def download(url: str, destination: Path, expected_sha256: str) -> None:
     temporary = destination.with_name(f".{destination.name}.tmp-{os.getpid()}")
     try:
         request = urllib.request.Request(url, headers={"User-Agent": "Omnivox-build"})
-        with urllib.request.urlopen(request, timeout=120) as source, temporary.open(
-            "wb"
-        ) as output:
-            shutil.copyfileobj(source, output)
+        with urllib.request.urlopen(request, timeout=120) as source, temporary.open("wb") as output:
+            copied = 0
+            while chunk := source.read(1024 * 1024):
+                copied += len(chunk)
+                require(
+                    copied <= MAX_INPUT_ARCHIVE_DOWNLOAD_BYTES,
+                    "download exceeds the "
+                    f"{MAX_INPUT_ARCHIVE_DOWNLOAD_BYTES}-byte limit",
+                )
+                output.write(chunk)
         actual = sha256_file(temporary)
         require(
             actual == expected_sha256,
