@@ -265,6 +265,13 @@ impl SynthRequest {
         }
     }
 
+    fn diagnostic_protocol_generation(&self) -> Option<u64> {
+        match self {
+            Self::Timeline { timeline, .. } => Some(timeline.generation),
+            _ => None,
+        }
+    }
+
     fn generation(&self) -> u64 {
         match self {
             Self::Batch { gen, .. }
@@ -795,14 +802,16 @@ fn write_stdout_record(record: &str, kind: &str) {
 fn enqueue_synthesis(tx: &WorkQueueSender<SynthRequest>, request: SynthRequest) -> bool {
     let request_kind = request.diagnostic_kind();
     let request_identifier = request.diagnostic_identifier();
-    let request_generation = request.generation();
+    let stop_epoch = request.generation();
+    let protocol_generation = request.diagnostic_protocol_generation();
     let outcome = tx.try_send_with_commit(request, SynthRequest::commit_admission);
     if outcome.accepted {
         info!(
             lifecycle_stage = "protocol_admitted",
             request_kind,
             request_identifier = ?request_identifier,
-            generation = request_generation,
+            stop_epoch,
+            protocol_generation = ?protocol_generation,
             "Speech lifecycle admitted request"
         );
     }
@@ -824,12 +833,16 @@ fn report_retired_synthesis(retired: RetiredWork<SynthRequest>) {
     let message = retirement_message(reason);
     let request_kind = work.diagnostic_kind();
     let request_identifier = work.diagnostic_identifier();
+    let stop_epoch = work.generation();
+    let protocol_generation = work.diagnostic_protocol_generation();
     let admission_elapsed_us = work.lifecycle().elapsed_us();
     match status {
         BatchStatus::Cancelled => info!(
             lifecycle_stage = "request_retired",
             request_kind,
             request_identifier = ?request_identifier,
+            stop_epoch,
+            protocol_generation = ?protocol_generation,
             admission_elapsed_us = ?admission_elapsed_us,
             reason = message,
             "Retired queued synthesis request"
@@ -838,6 +851,8 @@ fn report_retired_synthesis(retired: RetiredWork<SynthRequest>) {
             lifecycle_stage = "request_rejected",
             request_kind,
             request_identifier = ?request_identifier,
+            stop_epoch,
+            protocol_generation = ?protocol_generation,
             admission_elapsed_us = ?admission_elapsed_us,
             reason = message,
             "Rejected synthesis request"
@@ -933,7 +948,8 @@ pub fn synthesis_worker(
     while let Some(request) = rx.recv() {
         let request_kind = request.diagnostic_kind();
         let request_identifier = request.diagnostic_identifier();
-        let request_generation = request.generation();
+        let stop_epoch = request.generation();
+        let protocol_generation = request.diagnostic_protocol_generation();
         let request_lifecycle = request.lifecycle().clone();
         let worker_started_at = Instant::now();
         let queue_wait_us = request_lifecycle.elapsed_us_at(worker_started_at);
@@ -941,7 +957,8 @@ pub fn synthesis_worker(
             "speech_request",
             request_kind,
             request_identifier = ?request_identifier,
-            generation = request_generation
+            stop_epoch,
+            protocol_generation = ?protocol_generation
         );
         let _request_span_guard = request_span.enter();
         info!(
@@ -3079,6 +3096,30 @@ mod tests {
         assert!(rejected_lifecycle.admitted_at().is_none());
 
         drop(receiver.recv());
+    }
+
+    #[test]
+    fn timeline_diagnostics_separate_protocol_generation_from_stop_epoch() {
+        let engines = EngineRegistry::new();
+        let request = SynthRequest::Timeline {
+            timeline: timeline_envelope(
+                27,
+                91,
+                PresentationDeliveryPolicy::Replaceable,
+                Some("navigation"),
+            ),
+            state: TtsState::default(),
+            logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
+                &LogicalVoiceRegistry::default(),
+                &engines,
+            ),
+            cancellation: None,
+            lifecycle: RequestLifecycle::default(),
+            gen: 3,
+        };
+
+        assert_eq!(request.generation(), 3);
+        assert_eq!(request.diagnostic_protocol_generation(), Some(27));
     }
 
     #[test]
