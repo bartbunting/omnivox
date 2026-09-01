@@ -31,6 +31,8 @@ Versioning for published releases.
 - DECtalk cancellation received after request acceptance but before native
   dispatch now prevents synthesis instead of allowing the cancelled request to
   reach the native runtime.
+- Flite companion development builds now link on Windows GNU targets despite
+  the pinned runtime's Microsoft-style external inline declarations.
 
 ### Documentation
 
