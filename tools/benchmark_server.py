@@ -189,9 +189,10 @@ class ServerSession:
         if self.process.poll() is not None:
             raise RuntimeError(f"server exited before input: {self.failure_context()}")
         assert self.process.stdin is not None
+        sent_at = time.perf_counter_ns()
         self.process.stdin.write(line + "\n")
         self.process.stdin.flush()
-        return time.perf_counter_ns()
+        return sent_at
 
     def receive_line(self, deadline: float) -> tuple[int, str]:
         remaining = deadline - time.monotonic()
@@ -213,6 +214,18 @@ class ServerSession:
             "request_id": request_id,
             "type": "capabilities",
         }
+        response, observed_at = self.request_control(request)
+        if response.get("type") != "capabilities":
+            raise RuntimeError(f"capability request failed: {response}")
+        missing = REQUIRED_FEATURES - set(response.get("features", []))
+        if missing:
+            raise RuntimeError(f"server omits required benchmark features: {sorted(missing)}")
+        return response, observed_at
+
+    def request_control(self, request: dict[str, Any]) -> tuple[dict[str, Any], int]:
+        request_id = request.get("request_id")
+        if not isinstance(request_id, int):
+            raise ValueError("control request requires an integer request_id")
         self.send_line(f"omnivox_control {encode_record(request)}")
         deadline = time.monotonic() + self.timeout
         while True:
@@ -222,11 +235,6 @@ class ServerSession:
             response = decode_record(line[len(CONTROL_PREFIX) :])
             if response.get("request_id") != request_id:
                 continue
-            if response.get("type") != "capabilities":
-                raise RuntimeError(f"capability request failed: {response}")
-            missing = REQUIRED_FEATURES - set(response.get("features", []))
-            if missing:
-                raise RuntimeError(f"server omits required benchmark features: {sorted(missing)}")
             return response, observed_at
 
     def send_timeline(self, timeline: dict[str, Any], multipart_parts: int = 0) -> int:

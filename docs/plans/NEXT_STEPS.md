@@ -31,10 +31,11 @@ The structured identity model remains:
    character, word, ordinary line, dense-action timeline, multipart timeline,
    and rapid keyed replacement workloads. Preserve raw samples and compare
    p50, p95, and p99 rather than averages alone.
-3. Stress domain-scoped cancellation with interleaved replacement keys,
-   ordered and urgent traffic, queued/buffered audio, late engine completion,
-   and helper restart. Verify that stale audio, markers, semantic callbacks,
-   and terminal history cannot escape.
+3. Maintain `tools/stress_server.py` across real engines and platforms for
+   interleaved replacement keys, ordered and urgent traffic, hard stops,
+   queued/buffered audio, late completion, and helper restart. Keep verifying
+   that stale markers, semantic callbacks, and duplicate or late terminal
+   history cannot escape; add physical-output observation where available.
 4. Measure long-session memory, decoded-resource cache behavior, helper working
    sets, and quarantined native-call capacity on real platforms.
 5. Keep malformed-input, queue-saturation, multipart timeout, and partial-write

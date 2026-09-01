@@ -84,6 +84,35 @@ reports the slowest stale-dispatch terminal cancellation in each burst as well
 as the winning dispatch's onset. These remain mixer-source observations, not
 microphone or physical audible-onset measurements.
 
+Use `tools/stress_server.py` to repeat domain-scoped replacement with
+interleaved ordered and urgent work. It periodically issues a hard stop and
+then verifies recovery. Every dispatch must produce exactly one expected
+terminal status; marker sequences must be contiguous; completed survivors must
+reach their mixer-source and semantic callbacks; and no marker or callback may
+arrive after terminal history:
+
+```sh
+python3 tools/stress_server.py ../emacsvox/servers/omnivox \
+  --engine flite --expected-engine-id flite \
+  --iterations 25 --stop-every 5 \
+  --provenance ../emacsvox/servers/omnivox-bin/current/PROVENANCE \
+  --json-output /path/to/private/flite-stress.json
+```
+
+Helper fault injection is opt-in. The tool snapshots processes before starting
+its dedicated server and refuses to act unless it resolves exactly one new
+helper with the requested executable name beneath that server. It kills only
+that PID, verifies the explicitly configured fallback, requests an engine
+recovery probe, and requires a later dispatch to return to the recovered
+engine. For the staged Windows Flite runtime:
+
+```sh
+python3 tools/stress_server.py ../emacsvox/servers/omnivox \
+  --engine flite --expected-engine-id flite --iterations 5 \
+  --fault-helper-process omnivox-flite-helper.exe \
+  --fault-engine-id flite --fallback-engine-id espeak
+```
+
 If speech stops, collect evidence before manually restarting it:
 
 ```sh

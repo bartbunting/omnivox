@@ -238,6 +238,38 @@ host and Python identity, server version, command, actual engine counts, and an
 optional bounded `KEY=VALUE` provenance file. Marker receipt measures
 mixer-source consumption and may precede audible device output.
 
+## Server cancellation and recovery stress
+
+`stress_server.py` uses the same public protocol client to interleave two
+replaceable domains with ordered and urgent survivors. It validates contiguous
+marker sequence, completed semantic callbacks, expected cancellation, exactly
+one terminal record, absence of post-terminal events, periodic hard stops, and
+successful speech after each stop:
+
+```sh
+python3 tools/stress_server.py ../emacsvox/servers/omnivox \
+  --engine flite --expected-engine-id flite \
+  --iterations 25 --stop-every 5 \
+  --provenance ../emacsvox/servers/omnivox-bin/current/PROVENANCE \
+  --json-output /path/to/private/flite-stress.json
+```
+
+The optional helper fault probe takes an exact process name, snapshots the
+process table before starting its dedicated server, and refuses ambiguous,
+pre-existing, or unrelated targets. It kills only the one validated child PID,
+then requires the named fallback, requests an engine recovery probe, and
+requires a later dispatch to return to the recovered engine:
+
+```sh
+python3 tools/stress_server.py ../emacsvox/servers/omnivox \
+  --engine flite --expected-engine-id flite --iterations 5 \
+  --fault-helper-process omnivox-flite-helper.exe \
+  --fault-engine-id flite --fallback-engine-id espeak
+```
+
+On POSIX, use the helper executable's exact basename without `.exe`. Fault
+injection is never enabled by default.
+
 ## Failure diagnostics
 
 `collect_diagnostics.sh` creates a bounded archive containing recent Omnivox
