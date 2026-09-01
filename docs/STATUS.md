@@ -114,13 +114,14 @@ in the linked protocol specifications; future work belongs in
   markers; eSpeak remains the Unicode fallback.
 - RuTTS uses checksum-locked v6.3.3 source and exposes its built-in male and
   female Russian voices without RuLex. Linux x64 local acceptance covers both
-  voices, ACSS, bounded PCM, cancellation, relocation, and clean shutdown; its
-  C core also cross-compiles for Windows x64 with MinGW. The release matrix
-  targets Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows x64/ARM64,
-  but targets are not labelled runtime-accepted until their native workflow
-  gates pass. The helper converts its KOI8-R repertoire losslessly and routes
-  unsupported Unicode text to fallback; it provides no synchronization
-  markers.
+  voices, ACSS, bounded PCM, cancellation, relocation, and clean shutdown. The
+  complete Windows x64 GNU helper also builds from WSL and passes 25 male and
+  five female syntheses, ACSS, cancellation, and clean shutdown through Windows
+  interop. The release matrix targets Linux x64/ARM64, macOS Intel/Apple
+  Silicon, and Windows x64/ARM64 with MSVC; those release targets are not
+  labelled runtime-accepted until their native workflow gates pass. The helper
+  converts its KOI8-R repertoire losslessly and routes unsupported Unicode text
+  to fallback; it provides no synchronization markers.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.

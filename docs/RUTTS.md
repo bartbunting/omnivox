@@ -48,7 +48,9 @@ cancellation, and clean shutdown on the native runner. Compiling a target
 alone is not runtime acceptance. Windows release candidates use MSVC;
 `x86_64-pc-windows-gnu` is additionally supported for Emacsvox's pinned MinGW
 development build and records the distinct `windows-x64-gnu` target in its
-provenance.
+provenance. That GNU target has passed a complete WSL-to-Windows build plus
+male/female synthesis, ACSS, cancellation, and shutdown acceptance. The two
+MSVC release targets remain subject to their native workflow gates.
 
 ## Build locally
 

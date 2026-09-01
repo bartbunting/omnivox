@@ -229,8 +229,9 @@ engines harder for users, contributors, and release maintainers to evaluate.
 ## Implementation status
 
 WinRT, AVSpeechSynthesizer, and eSpeak NG currently use the built-in boundary.
-Piper, Eloquence/ECI, and DECtalk currently use the helper protocol. The
-existing Windows helpers and their user-supplied runtime boundary are described
-in the [Windows helper guide](../../windows-helpers/README.md). RuTTS remains
-unimplemented, but its companion boundary and distribution policy are accepted
-in [ADR 0003](0003-rutts-source-built-companion.md).
+Piper, RHVoice, Flite, RuTTS, Eloquence/ECI, and DECtalk currently use the
+helper protocol. The existing Windows helpers and their user-supplied runtime
+boundary are described in the
+[Windows helper guide](../../windows-helpers/README.md). RuTTS's implemented
+companion boundary and distribution policy are defined in
+[ADR 0003](0003-rutts-source-built-companion.md).
