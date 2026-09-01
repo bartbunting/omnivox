@@ -266,6 +266,48 @@ characters that RuTTS can convert losslessly to KOI8-R. Exact-voice selection
 uses the public logical-voice registry and rejects fallback at registration or
 dispatch. Reports carrying physical-voice fields use report schema version 2.
 
+For cross-engine comparison, put common settings and strict per-engine routes
+in a bounded JSON plan, then let `benchmark_suite.py` randomize their order for
+every repeat using a recorded seed:
+
+```json
+{
+  "plan_version": 1,
+  "server": "../../emacsvox/servers/omnivox",
+  "provenance": "../../emacsvox/servers/omnivox-bin/current/PROVENANCE",
+  "seed": 20260901,
+  "repeats": 2,
+  "benchmark": {"mode": "both", "iterations": 20, "warmups": 2},
+  "runs": [
+    {
+      "id": "winrt",
+      "engine": "native",
+      "expected_engine_id": "winrt"
+    },
+    {
+      "id": "rutts-male",
+      "engine": "rutts",
+      "expected_engine_id": "rutts",
+      "voice_id": "male",
+      "text_profile": "rutts-ru"
+    }
+  ]
+}
+```
+
+Paths are resolved relative to the plan. Run it with a new output directory:
+
+```sh
+python3 tools/benchmark_suite.py /path/to/plan.json \
+  /path/to/new-benchmark-evidence
+```
+
+The runner refuses an existing output directory. It writes one raw schema-v2
+benchmark report per run plus an atomically updated `suite.json` containing the
+plan hash, seed, realized execution order, report hashes, and completion state.
+If a benchmark fails, partial evidence remains labelled `failed` for inspection
+instead of being overwritten or mistaken for a complete suite.
+
 ## Server cancellation and recovery stress
 
 `stress_server.py` uses the same public protocol client to interleave two

@@ -103,6 +103,13 @@ python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
   --json-output /path/to/private/rutts-female-latency.json
 ```
 
+Use `tools/benchmark_suite.py PLAN NEW_OUTPUT_DIRECTORY` for comparisons across
+engines or repeated runs. The bounded plan records a random seed and exact
+routes; the suite index preserves the shuffled order and SHA-256 of every raw
+report. The output directory must not already exist, preventing accidental
+replacement of earlier evidence. See the [developer tool reference](../tools/README.md)
+for the plan shape.
+
 Use `tools/stress_server.py` to repeat domain-scoped replacement with
 interleaved ordered and urgent work. It periodically issues a hard stop and
 then verifies recovery. Every dispatch must produce exactly one expected

@@ -28,6 +28,9 @@ Versioning for published releases.
   Russian workload profile cover both RuTTS voices; a runtime preference option
   also covers registered-only engines such as Windows Eloquence and DECtalk
   without treating them as startup selectors.
+- Added a bounded benchmark-suite plan runner that randomizes cross-engine order
+  with a recorded seed, repeats complete runs, preserves separate raw reports
+  and checksums, and refuses to overwrite an existing evidence directory.
 - Added server-level stress tooling for interleaved replacement domains,
   ordered and urgent survivors, hard-stop recovery, marker and semantic-event
   ordering, exactly-once terminal history, and opt-in validated helper fault,

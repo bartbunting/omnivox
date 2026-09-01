@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test latency-benchmark-test server-stress-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite package-flite verify-flite package-flite-source verify-flite-source install-flite prepare-rutts stage-rutts stage-rutts-dev build-rutts package-rutts verify-rutts package-rutts-source verify-rutts-source install-rutts prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
+.PHONY: all build test elisp-test latency-benchmark-test latency-benchmark-suite-test server-stress-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite package-flite verify-flite package-flite-source verify-flite-source install-flite prepare-rutts stage-rutts stage-rutts-dev build-rutts package-rutts verify-rutts package-rutts-source verify-rutts-source install-rutts prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -16,12 +16,16 @@ dev: stage-rhvoice-dev stage-flite-dev stage-rutts-dev
 	$(PYTHON) tools/build.py --package omnivox-cli --features piper
 
 # Run tests
-test: windows-helpers-test latency-benchmark-test server-stress-test
+test: windows-helpers-test latency-benchmark-test latency-benchmark-suite-test server-stress-test
 	cargo test --locked
 
 latency-benchmark-test:
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_benchmark_server.py
+
+latency-benchmark-suite-test:
+	PYTHONDONTWRITEBYTECODE=1 \
+		$(PYTHON) -W error::ResourceWarning tools/test_benchmark_suite.py
 
 server-stress-test:
 	PYTHONDONTWRITEBYTECODE=1 \
