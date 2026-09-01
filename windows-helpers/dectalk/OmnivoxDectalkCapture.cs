@@ -231,6 +231,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
     private Dictionary<uint, OmnivoxHelperMarker> pendingTextMarkers;
     private Exception callbackError;
     private bool discardAudio;
+    private bool nativeSynthesisActive;
     private bool shuttingDown;
     private bool memoryOpen;
     private string runtimeVersion;
@@ -302,19 +303,28 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
     }
 
     internal OmnivoxCaptureResult Synthesize(string text, string voiceCode,
-        int rate, int pitch, string voiceParameters, double volume)
+        int rate, int pitch, string voiceParameters, double volume,
+        Func<bool> cancellationRequested)
     {
         lock (synthesisLock)
         {
+            ThrowIfCancellationRequested(cancellationRequested);
             BeginCapture();
             try
             {
+                ThrowIfCancellationRequested(cancellationRequested);
                 Check(native.TextToSpeechSetRate(handle,
                     (uint)rate), "TextToSpeechSetRate");
+                ThrowIfCancellationRequested(cancellationRequested);
                 Speak("[" + voiceCode + " :dv ap " +
                     pitch.ToString(CultureInfo.InvariantCulture) +
                     voiceParameters + "] " +
                     BuildTextWithIndexes(text));
+                ThrowIfCancellationRequested(cancellationRequested);
+                lock (stateLock)
+                {
+                    nativeSynthesisActive = true;
+                }
                 OmnivoxHelperLog.Event("native_call_started",
                     "engine=dectalk call=TextToSpeechSync");
                 Check(native.TextToSpeechSync(handle),
@@ -334,6 +344,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             {
                 lock (stateLock)
                 {
+                    nativeSynthesisActive = false;
                     if (capture != null)
                     {
                         capture.Dispose();
@@ -346,11 +357,30 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         }
     }
 
+    private static void ThrowIfCancellationRequested(
+        Func<bool> cancellationRequested)
+    {
+        if (cancellationRequested())
+        {
+            throw new OperationCanceledException(
+                "DECtalk synthesis was cancelled");
+        }
+    }
+
     internal void Stop()
     {
+        bool shouldReset;
         lock (stateLock)
         {
-            discardAudio = true;
+            shouldReset = nativeSynthesisActive;
+            if (shouldReset)
+            {
+                discardAudio = true;
+            }
+        }
+        if (!shouldReset)
+        {
+            return;
         }
         try
         {

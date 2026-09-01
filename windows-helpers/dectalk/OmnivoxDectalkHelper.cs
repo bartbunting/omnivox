@@ -112,7 +112,7 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
     public OmnivoxCaptureResult Synthesize(string text, string voiceId,
         double rate, double pitch, double? pitchRange, double? stress,
         double? richness, double volume,
-        OmnivoxHelperAnchor[] anchors)
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested)
     {
         string voiceCode;
         if (!VoiceCodes.TryGetValue(voiceId, out voiceCode))
@@ -136,7 +136,7 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
         nativePitch = Math.Max(50, Math.Min(500, nativePitch));
         string voiceParameters = MapExtendedAcss(pitchRange, stress, richness);
         return capture.Synthesize(text, voiceCode, nativeRate, nativePitch,
-            voiceParameters, volume);
+            voiceParameters, volume, cancellationRequested);
     }
 
     internal static string MapExtendedAcss(double? pitchRange,

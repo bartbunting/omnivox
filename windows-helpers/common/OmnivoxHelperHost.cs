@@ -225,7 +225,8 @@ internal interface IOmnivoxCaptureEngine : IDisposable
     OmnivoxHelperCapabilities Capabilities { get; }
     OmnivoxCaptureResult Synthesize(string text, string voiceId, double rate,
         double pitch, double? pitchRange, double? stress, double? richness,
-        double volume, OmnivoxHelperAnchor[] anchors);
+        double volume, OmnivoxHelperAnchor[] anchors,
+        Func<bool> cancellationRequested);
     void Stop();
 }
 
@@ -764,10 +765,16 @@ internal sealed class OmnivoxHelperHost
         try
         {
             OmnivoxHelperLog.Event("native_synthesis_started", request);
+            if (synthesis.Cancelled)
+            {
+                WriteSimple(synthesis.RequestId, "synthesis_cancelled");
+                return;
+            }
             OmnivoxCaptureResult result = engine.Synthesize(synthesis.Text,
                 synthesis.VoiceId, synthesis.Rate, synthesis.Pitch,
                 synthesis.PitchRange, synthesis.Stress, synthesis.Richness,
-                synthesis.Volume, synthesis.Anchors);
+                synthesis.Volume, synthesis.Anchors,
+                delegate() { return synthesis.Cancelled; });
             if (result == null)
             {
                 throw new InvalidOperationException(

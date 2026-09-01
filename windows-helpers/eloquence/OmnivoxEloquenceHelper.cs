@@ -19,6 +19,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         internal string VoiceParameters;
         internal int Volume;
         internal OmnivoxHelperAnchor[] Anchors;
+        internal Func<bool> CancellationRequested;
         internal volatile bool Cancelled;
         internal OmnivoxCaptureResult Result;
         internal Exception Error;
@@ -125,7 +126,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
     public OmnivoxCaptureResult Synthesize(string text, string voiceId,
         double rate, double pitch, double? pitchRange, double? stress,
         double? richness, double volume,
-        OmnivoxHelperAnchor[] anchors)
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested)
     {
         // Existing Emacsvox Eloquence operation treats 75 as its normal
         // speed. Protocol v4's 2.0 maximum maps to 240, within ECI's native
@@ -146,6 +147,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         job.VoiceParameters = voiceParameters;
         job.Volume = nativeVolume;
         job.Anchors = anchors;
+        job.CancellationRequested = cancellationRequested;
         lock (stateLock)
         {
             if (shuttingDown || ownerError != null)
@@ -276,7 +278,10 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
                         job.Result = capture.Synthesize(job.Text, job.VoiceId,
                             job.Rate, job.Pitch, job.VoiceParameters,
                             job.Volume, job.Anchors,
-                            delegate() { return job.Cancelled; });
+                            delegate() {
+                                return job.Cancelled ||
+                                    job.CancellationRequested();
+                            });
                     }
                     catch (Exception error)
                     {
