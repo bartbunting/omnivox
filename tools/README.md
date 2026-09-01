@@ -219,6 +219,38 @@ Every current release target performs native synthesis verification. An empty
 engine list remains available for an intentional structural and architecture
 check that does not exercise synthesis.
 
+## Speech-rate audit
+
+`audit_speech_rates.py` measures both the raw synthesized WAV and the canonical
+WAV after Omnivox silence trimming and output processing. Reported WPM uses the
+canonical duration. It uses exact diagnostic engine selection, so an absent
+helper fails instead of contributing fallback samples. Repeated targets may
+select an exact voice after `=`:
+
+```sh
+python3 tools/audit_speech_rates.py target/debug/omnivox \
+  --target espeak --target flite=cmu_us_slt \
+  --rates 0.3,0.4,0.5,0.6,0.8 --repetitions 3 \
+  --json-output /path/to/private/english-rate-audit.json
+```
+
+Run language-specific engines separately with a representative corpus. For
+example, audit RuTTS with Russian text and an exact built-in voice rather than
+comparing its Russian duration with English engines:
+
+```sh
+python3 tools/audit_speech_rates.py target/debug/omnivox \
+  --target rutts=male --text 'Проверка скорости русской речи.' \
+  --rates 0.3,0.4,0.5,0.6,0.8
+```
+
+The JSON report records the corpus hash, byte and word counts, executable hash,
+raw samples, and median duration/WPM, but not the corpus text or absolute
+program path. Existing reports are never overwritten. Use `--work-dir` to
+retain audio for listening; existing WAVs are never overwritten. When WSL
+launches a Windows executable directly, add `--windows-output-paths`; for
+reliable Windows-local I/O, choose a `--work-dir` below `/mnt/c`.
+
 ## Server lifecycle benchmarks
 
 `benchmark_server.py` measures cold and warm lifecycle latency through the

@@ -84,6 +84,15 @@ reports the slowest stale-dispatch terminal cancellation in each burst as well
 as the winning dispatch's onset. These remain mixer-source observations, not
 microphone or physical audible-onset measurements.
 
+For rate normalization work, use `tools/audit_speech_rates.py` rather than
+timing playback by hand. It drives exact diagnostic engines through raw WAV
+synthesis, reports repeated raw and canonical duration plus WPM samples, and
+can write a privacy-conscious JSON record containing a corpus hash rather than
+its text.
+Keep engines for different languages in separate runs. Direct Windows
+executables under WSL need `--windows-output-paths`; a work directory below
+`/mnt/c` avoids depending on Windows access to the WSL network filesystem.
+
 Windows Eloquence and DECtalk can be selected initially with `--engine ENGINE`
 when their helper and user runtime are installed. Use
 `--preferred-engine-id ENGINE` as well when the test specifically needs to

@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Added a standard-library cross-platform speech-rate audit that drives exact
+  diagnostic engines through `--dump-wav`, measures raw and canonical WAV
+  duration plus words per minute over repeated normalized rates, and can retain
+  privacy-conscious JSON evidence without storing the spoken text.
 - Added isolated RHVoice and Flite helpers with a shared bounded helper host.
   RHVoice loads a compatible user-installed 1.14-or-later 1.x C API runtime;
   Flite is reproducibly source-built from pinned v2.2 with only `cmu_us_slt`
