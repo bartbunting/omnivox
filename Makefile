@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
+.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -8,11 +8,11 @@ OMNIVOX_INSTALL_BIN ?= $(HOME)/.cargo/bin
 all: build
 
 # Build release binary
-build:
+build: stage-rhvoice
 	$(PYTHON) tools/build.py --release --package omnivox-cli --features piper
 
 # Build debug binary
-dev:
+dev: stage-rhvoice-dev
 	$(PYTHON) tools/build.py --package omnivox-cli --features piper
 
 # Run tests
@@ -82,10 +82,23 @@ watch:
 # OMNIVOX_INSTALL_BIN when Cargo is configured with a different install root.
 install: build
 	cargo install --locked --path omnivox-cli --features piper
-	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses"
+	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses" "$(OMNIVOX_INSTALL_BIN)/rhvoice"
 	cp -R target/release/espeak-ng-data/. "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data/"
 	cp -R target/release/third-party-licenses/. "$(OMNIVOX_INSTALL_BIN)/third-party-licenses/"
+	cp -R target/release/rhvoice/. "$(OMNIVOX_INSTALL_BIN)/rhvoice/"
 	cp target/release/LICENSE target/release/LICENSING.md "$(OMNIVOX_INSTALL_BIN)/"
+
+# Build the portable RHVoice helper. The user supplies the separately licensed
+# native runtime, language data, and voice data at run time.
+stage-rhvoice:
+	$(PYTHON) tools/build_rhvoice.py --release
+
+stage-rhvoice-dev:
+	$(PYTHON) tools/build_rhvoice.py
+
+build-rhvoice: build
+
+install-rhvoice: install
 
 # Build and stage the isolated Piper companion. Its preparation step downloads
 # checksum-locked native inputs on first use; repeated builds can run offline.
@@ -99,7 +112,7 @@ stage-piper:
 	$(PYTHON) tools/build_piper.py --release
 
 # Build the main server and isolated Piper companion together.
-build-piper: stage-piper
+build-piper: stage-piper stage-rhvoice
 	$(PYTHON) tools/build.py --release -p omnivox-cli --features piper
 
 # Create and structurally verify the optional native companion archive.
@@ -121,8 +134,9 @@ verify-piper-source: package-piper-source
 # Install the server payload and the isolated Piper companion.
 install-piper: build-piper
 	cargo install --locked --path omnivox-cli --features piper
-	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses" "$(OMNIVOX_INSTALL_BIN)/piper"
+	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses" "$(OMNIVOX_INSTALL_BIN)/rhvoice" "$(OMNIVOX_INSTALL_BIN)/piper"
 	cp -R target/release/espeak-ng-data/. "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data/"
 	cp -R target/release/third-party-licenses/. "$(OMNIVOX_INSTALL_BIN)/third-party-licenses/"
+	cp -R target/release/rhvoice/. "$(OMNIVOX_INSTALL_BIN)/rhvoice/"
 	cp -R target/release/piper/. "$(OMNIVOX_INSTALL_BIN)/piper/"
 	cp target/release/LICENSE target/release/LICENSING.md "$(OMNIVOX_INSTALL_BIN)/"
