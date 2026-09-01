@@ -103,6 +103,21 @@ restrictive terms for some voices. The user's selected runtime and voice terms
 continue to apply. See the [RHVoice companion guide](RHVOICE.md) and the licence
 files supplied by RHVoice and each installed voice.
 
+## Optional Flite integration
+
+The generic binary releases do not contain Flite. The separate Flite companion
+statically incorporates the pinned Flite v2.2 source and the `cmu_us_slt`
+voice in its isolated helper executable. Flite's upstream `COPYING` grants a
+BSD-like licence subject to its copyright, disclaimer, modification-marking,
+author-retention, and non-endorsement conditions. Every supported companion
+stages that complete text as `third-party-licenses/Flite-COPYING.txt` together
+with exact source provenance and payload checksums.
+
+The Omnivox-authored C and Rust boundary remains under MIT; it does not
+relicense Flite or a user-supplied `.flitevox` file. Release companions contain
+no additional voice files. Review the source and voice terms before adding or
+redistributing one. See the [Flite companion guide](FLITE.md).
+
 ## Proprietary engines and other dependencies
 
 Eloquence and DECtalk runtimes and their dictionary or voice data are

@@ -8,6 +8,16 @@ Versioning for published releases.
 
 ## [1.5.1] - 2026-09-01
 
+### Added
+
+- Added isolated RHVoice and Flite helpers with a shared bounded helper host.
+  RHVoice loads a compatible user-installed 1.14-or-later 1.x C API runtime;
+  Flite is reproducibly source-built from pinned v2.2 with only `cmu_us_slt`
+  compiled in and optional local English `.flitevox` voice files.
+- Added checksum-locked Flite source preparation, portable GCC/Clang/MSVC
+  builds, atomic companion staging, full upstream licensing, provenance,
+  payload checksums, real synthesis tests, and helper-session stress coverage.
+
 ### Changed
 
 - Moved the GPL-2.0-or-later Eloquence and DECtalk capture-helper source,
@@ -32,6 +42,9 @@ Versioning for published releases.
   installation paths, including the durable DECtalk release and a separately
   labelled newer development build without treating it as a distributable or
   default-pinned runtime.
+- Documented RHVoice installation/runtime discovery and the Flite SLT
+  companion's installation, source build, optional voice files, platform
+  acceptance, verification, licensing, and removal.
 
 ## [1.5.0] - 2026-08-31
 

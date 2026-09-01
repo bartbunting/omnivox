@@ -37,6 +37,23 @@ runtime contract:
 python3 tools/build_rhvoice.py --release
 ```
 
+`prepare_flite_inputs.py` downloads, safely extracts, and verifies the exact
+Flite v2.2 release source and complete tree digest recorded in
+`omnivox-flite-sys/source-inputs.json`. `--check` performs an offline cache
+audit. `build_flite.py` then builds the helper with the target C compiler and
+atomically stages `flite/` with the executable, Flite licence, Cargo lock,
+source provenance, and exhaustive payload checksums:
+
+```sh
+make prepare-flite
+python3 tools/prepare_flite_inputs.py --check
+python3 tools/build_flite.py --release
+```
+
+Set `OMNIVOX_FLITE_INPUTS_DIR` to use a different verified cache. See the
+[Flite companion guide](../docs/FLITE.md) for installation and optional local
+voice configuration.
+
 `build_piper.py` builds the optional helper in relocatable mode, selects the
 native Linux x64, Windows x64, or macOS ARM64/x64 library layout, and
 atomically stages the companion as `piper/` beside the Cargo profile output.

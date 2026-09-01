@@ -23,6 +23,8 @@ omnivox-piper-helper/  optional isolated Piper executable and protocol tests
 omnivox-piper-sys/     optional maintained libpiper C API build and bindings
 omnivox-helper-host/   shared bounded lifecycle for native TTS helpers
 omnivox-rhvoice-helper/ dynamically loaded user-installed RHVoice adapter
+omnivox-flite-helper/  isolated Flite engine adapter and voice discovery
+omnivox-flite-sys/     pinned portable C build and narrow native boundary
 windows-helpers/       32-bit Eloquence/DECtalk capture processes and host
 third-party/           separately licensed, provenance-recorded native source
 elisp/                 standalone upstream-Emacspeak compatibility adapter

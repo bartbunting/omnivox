@@ -26,8 +26,8 @@ in the linked protocol specifications; future work belongs in
 ### Routing and synthesis
 
 - macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
-- Optional out-of-process Piper, RHVoice, Eloquence, and DECtalk engines;
-  Flite companion work is in progress.
+- Optional out-of-process Piper, RHVoice, Flite, Eloquence, and DECtalk
+  engines.
 - Structured engine/voice inventory and deterministic per-span logical routing.
 - Server registration retains WinRT and eSpeak on Windows,
   AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. Configured
@@ -104,6 +104,11 @@ in the linked protocol specifications; future work belongs in
   Linux x64 has passed real synthesis, marker, ACSS, cancellation, and shutdown
   acceptance with 1.14.0. Other desktop targets currently have helper compile
   coverage only; Windows requires an explicit C API DLL path.
+- Flite uses checksum-locked v2.2 source, has only `cmu_us_slt` compiled in,
+  and accepts optional local English Clustergen `.flitevox` files. Its helper
+  has passed real Linux x64 synthesis, ACSS, cancellation-protocol, repeated
+  session, and clean-shutdown acceptance. Flite has an ASCII input guarantee
+  and no synchronization markers; eSpeak remains the Unicode fallback.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.

@@ -39,9 +39,9 @@ runtime. Their native code never enters the main server process. The
 Speech Dispatcher remains a design proposal, not an implemented backend.
 
 Current supported `make build` and `make dev` stage the portable RHVoice helper
-and enable discovery of RHVoice, Flite, and Piper companions. They do not link
-those engines into the main server. `make build-piper` and the Flite companion
-build stage their separate source-built native payloads when wanted.
+and the source-built Flite SLT companion, and enable discovery of RHVoice,
+Flite, and Piper companions. They do not link those engines into the main
+server. `make build-piper` stages Piper's separate native payload when wanted.
 
 Server mode registers all available built-in engines for runtime routing and
 fallback. Windows retains WinRT and eSpeak plus configured proprietary
@@ -144,6 +144,22 @@ Build the optional Piper helper and Piper-enabled server together with:
 ```sh
 make build-piper
 ```
+
+The standard build already stages the Flite v2.2 companion with its sole
+compiled-in `cmu_us_slt` voice. To prepare or build only that companion:
+
+```sh
+make prepare-flite
+python3 tools/prepare_flite_inputs.py --check
+make build-flite
+```
+
+The first preparation downloads the exact checksum-locked upstream source;
+subsequent builds can use the verified cache offline. Optional local English
+Clustergen `.flitevox` files are accepted through `OMNIVOX_FLITE_VOICES` and
+are never downloaded or redistributed. The [Flite companion guide](docs/FLITE.md)
+covers release installation, the six-target build matrix, capabilities,
+verification, licensing, and removal.
 
 The Piper native build uses the vendored `v1.7.0` C API from the maintained
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl) project. It

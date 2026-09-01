@@ -110,7 +110,18 @@ platform status, and verification.
 
 - Optional path to `omnivox-flite-helper`.
 - Otherwise Omnivox checks `flite/` beside itself and then the legacy adjacent
-  location. See the Flite companion guide for voice-file configuration.
+  location.
+
+`OMNIVOX_FLITE_VOICES`
+
+- Optional platform-separated list of absolute `.flitevox` file paths (`:` on
+  Linux/macOS, `;` on Windows).
+- Only English Clustergen voices compatible with Flite v2.2 can load in the
+  SLT-only companion. Invalid entries degrade the engine but do not remove the
+  built-in `cmu_us_slt` voice.
+
+See [FLITE.md](FLITE.md) for installation, build, voice-file, verification,
+and licensing details.
 
 `OMNIVOX_PIPER_MODEL`
 
