@@ -1,0 +1,10 @@
+{
+  "archive": "ru_tts-2848d289.tar.gz",
+  "archive_root": "ru_tts-2848d2892097320ed37fc963b439b15803f47f0c",
+  "commit": "2848d2892097320ed37fc963b439b15803f47f0c",
+  "rutts_version": "6.3.3",
+  "schema_version": 1,
+  "sha256": "eed0bb2fd6521bf969cbf0ea2d3d3408b17695abe27068afe74a3722dab271c9",
+  "source_tree_sha256": "2226f57d1be0e6437b8f9cda319a5a6d6a162795fc864bf3dcc4f1a945b19166",
+  "url": "https://codeload.github.com/poretsky/ru_tts/tar.gz/2848d2892097320ed37fc963b439b15803f47f0c"
+}
