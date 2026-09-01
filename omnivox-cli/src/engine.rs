@@ -378,13 +378,15 @@ fn engine_preference_order(
     requested: &str,
     native_engine_id: Option<&'static str>,
 ) -> Vec<&'static str> {
-    let mut order = Vec::with_capacity(6);
+    let mut order = Vec::with_capacity(8);
     match requested {
         "espeak" => order.push("espeak"),
         "piper" => order.push("piper"),
         "rhvoice" => order.push("rhvoice"),
         "flite" => order.push("flite"),
         "rutts" => order.push("rutts"),
+        "eloquence" => order.push("eloquence"),
+        "dectalk" => order.push("dectalk"),
         _ => {
             if let Some(native) = native_engine_id {
                 order.push(native);
@@ -397,6 +399,14 @@ fn engine_preference_order(
     if let Some(native) = native_engine_id {
         if !order.contains(&native) {
             order.push(native);
+        }
+    }
+    if native_engine_id == Some("winrt") {
+        if !order.contains(&"eloquence") {
+            order.push("eloquence");
+        }
+        if !order.contains(&"dectalk") {
+            order.push("dectalk");
         }
     }
     if !order.contains(&"piper") {
@@ -463,18 +473,17 @@ fn configured_helper_configs(requested: &str, model: Option<&str>) -> Vec<Helper
     configs
 }
 
-/// Create a TTS engine by name, falling back through the platform default to espeak-ng.
+/// Create one exact TTS engine for a diagnostic action.
 ///
 /// `engine_name` may be empty (use `OMNIVOX_ENGINE` env var or platform default),
-/// `"espeak"`, `"piper"`, `"rhvoice"`, `"flite"`, or `"rutts"`.
+/// `"native"`, `"espeak"`, `"piper"`, `"rhvoice"`, `"flite"`, or `"rutts"`.
+/// Windows also accepts `"winrt"`, `"eloquence"`, and `"dectalk"`; macOS
+/// accepts `"macos"`. An explicitly requested unavailable engine is an error,
+/// so diagnostic results cannot silently describe a fallback engine.
 /// `piper_model` is the path to a `.onnx` model file; if `None`,
 /// `OMNIVOX_PIPER_MODEL` is consulted.
 pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Arc<dyn TtsEngine>> {
-    let forced = if engine_name.is_empty() {
-        std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
-    } else {
-        engine_name.to_string()
-    };
+    let forced = requested_engine(engine_name);
 
     if forced == "piper" {
         #[cfg(feature = "piper")]
@@ -486,15 +495,13 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
                     info!("Using Piper neural TTS helper");
                     return Ok(Arc::new(engine));
                 }
-                Err(error) => {
-                    warn!("Piper TTS helper not available: {error}; falling back to espeak-ng")
-                }
+                Err(error) => anyhow::bail!("Piper TTS helper is not available: {error}"),
             }
         }
         #[cfg(not(feature = "piper"))]
-        warn!(
-            "OMNIVOX_ENGINE=piper but omnivox was built without piper support. \
-             Rebuild with --features piper. Falling back to espeak-ng."
+        anyhow::bail!(
+            "Piper was requested but omnivox was built without Piper support; \
+             rebuild with --features piper"
         );
     }
 
@@ -513,36 +520,81 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
                 info!("Using {engine_id} TTS helper");
                 return Ok(Arc::new(engine));
             }
-            Err(error) => {
-                warn!("{engine_id} TTS helper not available: {error}; falling back to espeak-ng")
-            }
+            Err(error) => anyhow::bail!("{engine_id} TTS helper is not available: {error}"),
         }
     }
 
-    if !matches!(
-        forced.as_str(),
-        "espeak" | "piper" | "rhvoice" | "flite" | "rutts"
-    ) {
-        #[cfg(target_os = "macos")]
+    if matches!(forced.as_str(), "eloquence" | "dectalk") {
+        #[cfg(target_os = "windows")]
+        {
+            let (environment_variable, adjacent_filename) = match forced.as_str() {
+                "eloquence" => ("OMNIVOX_ELOQUENCE_HELPER", "OmnivoxEloquenceHelper32.exe"),
+                "dectalk" => ("OMNIVOX_DECTALK_HELPER", "OmnivoxDectalkHelper32.exe"),
+                _ => unreachable!(),
+            };
+            let config = helper_config(&forced, environment_variable, adjacent_filename)
+                .ok_or_else(|| anyhow::anyhow!("the {forced} helper was not found"))?;
+            let engine = HelperTtsEngine::new(config).map_err(|error| {
+                anyhow::anyhow!("{forced} TTS helper is not available: {error}")
+            })?;
+            info!("Using {forced} TTS helper");
+            return Ok(Arc::new(engine));
+        }
+        #[cfg(not(target_os = "windows"))]
+        anyhow::bail!("{forced} is available only on Windows");
+    }
+
+    #[cfg(target_os = "macos")]
+    if forced.is_empty() {
         match MacOsTtsEngine::new() {
             Ok(engine) => {
                 info!("Using macOS AVSpeechSynthesizer engine");
                 return Ok(Arc::new(engine));
             }
-            Err(e) => warn!("macOS TTS not available: {}, falling back to espeak-ng", e),
+            Err(error) => warn!("macOS TTS is not available: {error}; trying eSpeak NG"),
         }
+    }
 
-        #[cfg(target_os = "windows")]
+    #[cfg(target_os = "macos")]
+    if matches!(forced.as_str(), "native" | "macos") {
+        return match MacOsTtsEngine::new() {
+            Ok(engine) => {
+                info!("Using macOS AVSpeechSynthesizer engine");
+                Ok(Arc::new(engine))
+            }
+            Err(error) => anyhow::bail!("macOS TTS is not available: {error}"),
+        };
+    }
+
+    #[cfg(target_os = "windows")]
+    if forced.is_empty() {
         match WindowsTtsEngine::new() {
             Ok(engine) => {
                 info!("Using Windows WinRT engine");
                 return Ok(Arc::new(engine));
             }
-            Err(e) => warn!(
-                "Windows WinRT not available: {}, falling back to espeak-ng",
-                e
-            ),
+            Err(error) => warn!("Windows WinRT is not available: {error}; trying eSpeak NG"),
         }
+    }
+
+    #[cfg(target_os = "windows")]
+    if matches!(forced.as_str(), "native" | "winrt") {
+        return match WindowsTtsEngine::new() {
+            Ok(engine) => {
+                info!("Using Windows WinRT engine");
+                Ok(Arc::new(engine))
+            }
+            Err(error) => anyhow::bail!("Windows WinRT is not available: {error}"),
+        };
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let use_espeak = matches!(forced.as_str(), "" | "native" | "espeak");
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    let use_espeak = matches!(forced.as_str(), "" | "espeak");
+
+    if !use_espeak {
+        anyhow::bail!("unknown TTS engine: {forced}");
     }
 
     match EspeakTtsEngine::new() {
@@ -550,7 +602,7 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
             info!("Using espeak-ng engine");
             Ok(Arc::new(engine))
         }
-        Err(e) => anyhow::bail!("No TTS engine available: {}", e),
+        Err(error) => anyhow::bail!("eSpeak NG is not available: {error}"),
     }
 }
 
@@ -746,11 +798,29 @@ mod tests {
     fn windows_defaults_to_winrt_with_espeak_fallback() {
         assert_eq!(
             engine_preference_order("", Some("winrt")),
-            ["winrt", "espeak", "piper", "rhvoice", "flite", "rutts"]
+            [
+                "winrt",
+                "espeak",
+                "eloquence",
+                "dectalk",
+                "piper",
+                "rhvoice",
+                "flite",
+                "rutts"
+            ]
         );
         assert_eq!(
             engine_preference_order("native", Some("winrt")),
-            ["winrt", "espeak", "piper", "rhvoice", "flite", "rutts"]
+            [
+                "winrt",
+                "espeak",
+                "eloquence",
+                "dectalk",
+                "piper",
+                "rhvoice",
+                "flite",
+                "rutts"
+            ]
         );
     }
 
@@ -758,23 +828,94 @@ mod tests {
     fn windows_honours_explicit_engine_preferences() {
         assert_eq!(
             engine_preference_order("espeak", Some("winrt")),
-            ["espeak", "winrt", "piper", "rhvoice", "flite", "rutts"]
+            [
+                "espeak",
+                "winrt",
+                "eloquence",
+                "dectalk",
+                "piper",
+                "rhvoice",
+                "flite",
+                "rutts"
+            ]
         );
         assert_eq!(
             engine_preference_order("piper", Some("winrt")),
-            &["piper", "espeak", "winrt", "rhvoice", "flite", "rutts"]
+            &[
+                "piper",
+                "espeak",
+                "winrt",
+                "eloquence",
+                "dectalk",
+                "rhvoice",
+                "flite",
+                "rutts"
+            ]
         );
         assert_eq!(
             engine_preference_order("rhvoice", Some("winrt")),
-            &["rhvoice", "espeak", "winrt", "piper", "flite", "rutts"]
+            &[
+                "rhvoice",
+                "espeak",
+                "winrt",
+                "eloquence",
+                "dectalk",
+                "piper",
+                "flite",
+                "rutts"
+            ]
         );
         assert_eq!(
             engine_preference_order("flite", Some("winrt")),
-            &["flite", "espeak", "winrt", "piper", "rhvoice", "rutts"]
+            &[
+                "flite",
+                "espeak",
+                "winrt",
+                "eloquence",
+                "dectalk",
+                "piper",
+                "rhvoice",
+                "rutts"
+            ]
         );
         assert_eq!(
             engine_preference_order("rutts", Some("winrt")),
-            &["rutts", "espeak", "winrt", "piper", "rhvoice", "flite"]
+            &[
+                "rutts",
+                "espeak",
+                "winrt",
+                "eloquence",
+                "dectalk",
+                "piper",
+                "rhvoice",
+                "flite"
+            ]
+        );
+        assert_eq!(
+            engine_preference_order("eloquence", Some("winrt")),
+            &[
+                "eloquence",
+                "espeak",
+                "winrt",
+                "dectalk",
+                "piper",
+                "rhvoice",
+                "flite",
+                "rutts"
+            ]
+        );
+        assert_eq!(
+            engine_preference_order("dectalk", Some("winrt")),
+            &[
+                "dectalk",
+                "espeak",
+                "winrt",
+                "eloquence",
+                "piper",
+                "rhvoice",
+                "flite",
+                "rutts"
+            ]
         );
     }
 

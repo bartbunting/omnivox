@@ -26,8 +26,7 @@ Versioning for published releases.
   monotonic samples, build provenance, actual engines and physical voices, and
   p50/p95/p99 timing. Strict exact-voice selection and a KOI8-R-compatible
   Russian workload profile cover both RuTTS voices; a runtime preference option
-  also covers registered-only engines such as Windows Eloquence and DECtalk
-  without treating them as startup selectors.
+  also exercises live policy replacement independently of startup selection.
 - Added a bounded benchmark-suite plan runner that randomizes cross-engine order
   with a recorded seed, repeats complete runs, preserves separate raw reports
   and checksums, and refuses to overwrite an existing evidence directory.
@@ -35,7 +34,7 @@ Versioning for published releases.
   ordered and urgent survivors, hard-stop recovery, marker and semantic-event
   ordering, exactly-once terminal history, and opt-in validated helper fault,
   fallback, and restart testing. Reports now retain exact physical voices;
-  strict voice selection, runtime-only engine selection, and a Russian stress
+  strict voice selection, runtime engine selection, and a Russian stress
   profile cover both RuTTS voices and registered Windows helpers.
 - Added machine-readable helper soak reports with periodic health and
   cancellation probes plus working-set, private-byte, handle, thread, and CPU
@@ -65,6 +64,11 @@ Versioning for published releases.
 
 ### Fixed
 
+- Diagnostic actions now select an explicitly requested engine exactly instead
+  of silently measuring a fallback. `--check` and `--dump-wav` also honor the
+  CLI voice, rate, pitch, volume, and Piper-model settings.  Windows Eloquence
+  and DECtalk helpers are accepted as initial server preferences and direct
+  diagnostic engines.
 - eSpeak voice discovery can now reuse a bounded, schema-checked inventory
   cache for verified content-addressed data, while mismatched, corrupt, custom,
   and system data safely fall back to native discovery.

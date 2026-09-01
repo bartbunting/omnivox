@@ -72,11 +72,11 @@ fn main() -> Result<()> {
         "check" => {
             #[cfg(target_os = "macos")]
             {
-                let engine = cli.engine.clone();
-                run_macos_cli_action(move || cli::cmd_check(&engine))?;
+                let diagnostic_cli = cli.clone();
+                run_macos_cli_action(move || cli::cmd_check(&diagnostic_cli))?;
             }
             #[cfg(not(target_os = "macos"))]
-            cli::cmd_check(&cli.engine);
+            cli::cmd_check(&cli);
             return Ok(());
         }
         "list-voices" => {
@@ -126,13 +126,15 @@ fn main() -> Result<()> {
             };
             #[cfg(target_os = "macos")]
             {
-                let engine = cli.engine.clone();
+                let diagnostic_cli = cli.clone();
                 let voice = voice.to_owned();
                 let output = output.to_owned();
-                run_macos_cli_action(move || cli::cmd_dump_wav(&engine, &voice, &output, &text))?;
+                run_macos_cli_action(move || {
+                    cli::cmd_dump_wav(&diagnostic_cli, &voice, &output, &text)
+                })?;
             }
             #[cfg(not(target_os = "macos"))]
-            cli::cmd_dump_wav(&cli.engine, voice, output, &text);
+            cli::cmd_dump_wav(&cli, voice, output, &text);
             return Ok(());
         }
         _ => {}

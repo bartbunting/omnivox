@@ -10,13 +10,14 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 use crate::engine::{create_engine, native_engine_name};
-use crate::pipeline::canonicalize_synthesis_result;
+use crate::pipeline::{build_speech_pipeline, canonicalize_synthesis_result};
 use crate::text::home_dir;
 
 // ---------------------------------------------------------------------------
 // CLI arguments
 // ---------------------------------------------------------------------------
 
+#[derive(Clone)]
 pub struct CliArgs {
     pub engine: String,
     pub action: String,
@@ -168,7 +169,7 @@ pub fn print_help() {
     println!("    --check          Run diagnostic self-test (inspect printed statuses)");
     println!("    --list-voices    List available TTS voices");
     println!("    --list-voices-alist  List voices as Emacs-readable alist");
-    println!("    --engine NAME    Select: native, espeak, piper, rhvoice, flite, or rutts");
+    println!("    --engine NAME    Prefer in server mode; select exactly for diagnostics");
     println!("    --voice ID       Set default voice (copy ID from --list-voices)");
     println!("    --rate FLOAT     Host rate 0.0-2.0 (0.5 normal; engines may clamp)");
     println!("    --pitch FLOAT    Pitch multiplier 0.5-2.0 (1.0 = normal)");
@@ -190,6 +191,10 @@ pub fn print_help() {
     println!("    rhvoice   RHVoice (requires helper plus a user-installed native runtime)");
     println!("    flite     Flite compact English companion (compiled-in SLT voice)");
     println!("    rutts     RuTTS compact Russian companion (built-in male and female voices)");
+    if cfg!(target_os = "windows") {
+        println!("    eloquence Windows Eloquence helper (user-installed ECI runtime)");
+        println!("    dectalk   Windows DECtalk helper (user-installed DECtalk runtime)");
+    }
     println!();
     println!("Without options, starts the speech-server protocol on stdin.");
     println!();
@@ -200,6 +205,10 @@ pub fn print_help() {
     println!("    OMNIVOX_RHVOICE_HELPER Override path to omnivox-rhvoice-helper");
     println!("    OMNIVOX_FLITE_HELPER   Override path to omnivox-flite-helper");
     println!("    OMNIVOX_RUTTS_HELPER   Override path to omnivox-rutts-helper");
+    if cfg!(target_os = "windows") {
+        println!("    OMNIVOX_ELOQUENCE_HELPER Override path to OmnivoxEloquenceHelper32.exe");
+        println!("    OMNIVOX_DECTALK_HELPER Override path to OmnivoxDectalkHelper32.exe");
+    }
     println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (process-wide routing)");
     println!("    ESPEAK_NG_DATA         Parent directory containing espeak-ng-data");
     println!("    OMNIVOX_LOG_SYNTHESIS_TEXT  Opt in to sensitive full-text diagnostics");
@@ -277,7 +286,7 @@ pub fn cmd_list_voices_alist(engine: &dyn TtsEngine) {
     println!("{}", format_voices_alist(&voices));
 }
 
-pub fn cmd_check(engine_name: &str) {
+pub fn cmd_check(cli: &CliArgs) {
     println!("Omnivox v{} diagnostic check", crate::VERSION);
     println!("=============================\n");
 
@@ -297,7 +306,7 @@ pub fn cmd_check(engine_name: &str) {
     println!();
 
     println!("[engine]");
-    let engine: Arc<dyn TtsEngine> = match create_engine(engine_name, None) {
+    let engine: Arc<dyn TtsEngine> = match create_engine(&cli.engine, cli.piper_model.as_deref()) {
         Ok(e) => {
             println!("  Status: OK");
             e
@@ -321,7 +330,9 @@ pub fn cmd_check(engine_name: &str) {
     println!();
 
     println!("[synthesis]");
-    let settings = TtsSettings::default();
+    let mut state = TtsState::default();
+    apply_cli_flags(cli, &mut state);
+    let settings = settings_from_state(&state);
     let test_request = SynthesisRequest::new("test", settings.clone());
     match engine.synthesize(&test_request).and_then(|result| {
         result.validate(&test_request)?;
@@ -369,10 +380,13 @@ pub fn cmd_check(engine_name: &str) {
                 Ok(result)
             }) {
                 Ok(result) => {
-                    let buf = canonicalize_synthesis_result(result).audio;
-                    match streams.queue(StreamType::Speech, &buf) {
-                        Ok(_) => println!("  Test speech: playing..."),
-                        Err(e) => println!("  Test speech: FAILED - {}", e),
+                    let mut buf = canonicalize_synthesis_result(result).audio;
+                    match build_speech_pipeline(&state, true).process(&mut buf) {
+                        Ok(()) => match streams.queue(StreamType::Speech, &buf) {
+                            Ok(_) => println!("  Test speech: playing..."),
+                            Err(e) => println!("  Test speech: FAILED - {}", e),
+                        },
+                        Err(e) => println!("  Test speech pipeline: FAILED - {}", e),
                     }
                 }
                 Err(e) => println!("  Test speech: FAILED - {}", e),
@@ -441,11 +455,30 @@ pub fn write_wav(path: &str, samples: &[f32], sample_rate: u32, channels: u16) -
     Ok(())
 }
 
-pub fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
-    use crate::pipeline::{build_speech_pipeline, canonicalize_synthesis_result};
+fn settings_from_state(state: &TtsState) -> TtsSettings {
+    TtsSettings {
+        voice: state.current_voice.clone(),
+        rate: state.speech_rate,
+        pitch: state.pitch_multiplier,
+        // Omnivox applies process speech gain once in the output pipeline.
+        volume: 1.0,
+    }
+}
+
+fn dump_wav_state(cli: &CliArgs, positional_voice: &str) -> TtsState {
+    let mut state = TtsState::default();
+    apply_cli_flags(cli, &mut state);
+    if !positional_voice.is_empty() {
+        state.current_voice = positional_voice.to_owned();
+    }
+    state
+}
+
+pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) {
+    use crate::pipeline::canonicalize_synthesis_result;
     use omnivox_audio::AudioBuffer;
 
-    let engine = match create_engine(engine_name, None) {
+    let engine = match create_engine(&cli.engine, cli.piper_model.as_deref()) {
         Ok(e) => e,
         Err(e) => {
             eprintln!("Failed to create engine: {}", e);
@@ -453,19 +486,8 @@ pub fn cmd_dump_wav(engine_name: &str, voice: &str, output: &str, text: &str) {
         }
     };
 
-    let mut state = TtsState::default();
-    if !voice.is_empty() {
-        let parts: Vec<&str> = voice.splitn(2, ':').collect();
-        let _ = parts; // splitn result unused; voice is always valid either way
-        state.current_voice = voice.to_string();
-    }
-
-    let settings = TtsSettings {
-        voice: state.current_voice.clone(),
-        rate: state.speech_rate,
-        pitch: state.pitch_multiplier,
-        volume: 1.0,
-    };
+    let state = dump_wav_state(cli, voice);
+    let settings = settings_from_state(&state);
 
     let request = SynthesisRequest::new(text, settings);
     match engine.synthesize(&request).and_then(|result| {
@@ -590,5 +612,48 @@ mod tests {
         assert_eq!(state.speech_routing.channel_mode, ChannelMode::Left);
         assert_eq!(state.tone_routing.channel_mode, ChannelMode::Left);
         assert_eq!(state.sound_routing.channel_mode, ChannelMode::Left);
+    }
+
+    #[test]
+    fn dump_wav_uses_cli_synthesis_settings_and_positional_voice() {
+        let cli = CliArgs {
+            engine: "flite".to_owned(),
+            action: "dump-wav".to_owned(),
+            voice: Some("flag-voice".to_owned()),
+            rate: Some(0.7),
+            pitch: Some(1.2),
+            voice_volume: Some(0.4),
+            tone_volume: None,
+            sound_volume: None,
+            audio_target: None,
+            piper_model: None,
+        };
+
+        let state = dump_wav_state(&cli, "positional-voice");
+        let settings = settings_from_state(&state);
+
+        assert_eq!(settings.voice, "positional-voice");
+        assert_eq!(settings.rate, 0.7);
+        assert_eq!(settings.pitch, 1.2);
+        assert_eq!(settings.volume, 1.0);
+        assert_eq!(state.voice_volume, 0.4);
+    }
+
+    #[test]
+    fn dump_wav_empty_positional_voice_retains_voice_flag() {
+        let cli = CliArgs {
+            engine: String::new(),
+            action: "dump-wav".to_owned(),
+            voice: Some("flag-voice".to_owned()),
+            rate: None,
+            pitch: None,
+            voice_volume: None,
+            tone_volume: None,
+            sound_volume: None,
+            audio_target: None,
+            piper_model: None,
+        };
+
+        assert_eq!(dump_wav_state(&cli, "").current_voice, "flag-voice");
     }
 }

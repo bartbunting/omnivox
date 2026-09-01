@@ -766,8 +766,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--preferred-engine-id",
         help=(
-            "set one runtime routing preference after negotiation; use for "
-            "registered engines that are not startup selectors"
+            "set one runtime routing preference after negotiation; use to "
+            "exercise live policy replacement independently of startup selection"
         ),
     )
     parser.add_argument(

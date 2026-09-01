@@ -105,16 +105,16 @@ omnivox.exe --engine piper --dump-wav "piper:VOICE_ID" piper-test.wav "Piper is 
 Replace `piper:VOICE_ID` with the exact `piper:...` identifier reported by
 `--list-voices`.
 
-`--piper-model` can override the model for server and voice-list actions. The
-current `--dump-wav` action reads `OMNIVOX_PIPER_MODEL`, so the environment
-variable is the least surprising check across all actions. See
+`--piper-model` can override the model for server and diagnostic actions,
+including `--check` and `--dump-wav`. `OMNIVOX_PIPER_MODEL` remains the
+persistent alternative. See
 [ENV-VARS.md](ENV-VARS.md) for helper and eSpeak-data overrides.
 
 If the helper, model, configuration, or native runtime is unavailable, Piper
 is not registered in server mode and normal platform/eSpeak routes remain. A
-single-action `--engine piper` diagnostic falls back to eSpeak instead of
-presenting a broken Piper voice. Check the reported physical voice ID rather
-than assuming that a successful command used Piper.
+single-action `--engine piper` diagnostic fails if the exact Piper helper,
+model, configuration, or runtime is unavailable, so a successful command is
+evidence that Piper produced the result.
 
 ## Upgrade or remove
 

@@ -19,7 +19,7 @@ the selected backend.
 | `--check` | Run the diagnostic self-test; inspect each printed status and confirm that its tone and speech are audible. |
 | `--list-voices` | Print voices for the selected startup engine. |
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
-| `--engine NAME` | Select `native`, `espeak`, `piper`, `rhvoice`, `flite`, or `rutts`. |
+| `--engine NAME` | Prefer `native`, `espeak`, `piper`, `rhvoice`, `flite`, or `rutts`; Windows also accepts `winrt`, `eloquence`, and `dectalk`, while macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
 | `--voice ID` | Set the startup physical voice; copy an exact ID from `--list-voices`. |
 | `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 is normal. |
 | `--pitch FLOAT` | Set pitch multiplier from 0.5 through 2.0. |
@@ -27,7 +27,7 @@ the selected backend.
 | `--tone-volume FLOAT` | Set tone gain from 0.0 through 1.0. |
 | `--sound-volume FLOAT` | Set sound/icon gain from 0.0 through 1.0. |
 | `--audio-target TARGET` | Route to `left`, `right`, or `both`. |
-| `--piper-model PATH` | Supply a Piper `.onnx` model for the server or voice-list actions. |
+| `--piper-model PATH` | Supply a Piper `.onnx` model for the server or diagnostic actions. |
 | `--dump-wav VOICE OUTPUT [TEXT]` | Synthesize a canonical diagnostic WAV and a raw intermediate WAV. |
 | `--play-wav FILE` | Play a WAV through the Omnivox audio path. |
 
@@ -37,17 +37,20 @@ values greater than 1 by 100 and then clamps the normalized value to `0.0..2.0`
 (`50` becomes `0.5`, `150` becomes `1.5`, and `300` becomes `2.0`). Higher
 values request faster speech; individual engines may impose a lower maximum.
 An invalid `--audio-target` is logged and leaves the default `both` routing in
-place. Unsupported `--engine` names currently select the platform default; use
-only the documented names rather than relying on that fallback.
+place. In server mode an unavailable initial preference can fall through the
+registered engine order. Single-action diagnostics select an explicit engine
+exactly: unknown or unavailable engines fail rather than silently reporting
+measurements from a fallback.
 
 `--check` exits nonzero when it cannot create an engine. Synthesis and audio
 device failures discovered later in the check are printed as `FAILED` but do
 not currently change its exit status, so successful process exit alone is not
 a complete pass. `--dump-wav` writes `OUTPUT` after canonical conversion and a
 second path formed by replacing `.wav` with `_raw.wav`; use an output filename
-ending in `.wav` to keep those files distinct. The `--piper-model` option is not
-currently forwarded to `--check` or `--dump-wav`; set `OMNIVOX_PIPER_MODEL` for
-those two diagnostic actions.
+ending in `.wav` to keep those files distinct. Both `--check` and `--dump-wav`
+honor `--voice`, `--rate`, `--pitch`, `--voice-volume`, and `--piper-model`.
+For `--dump-wav`, a nonempty positional `VOICE` takes precedence over
+`--voice`; pass an empty positional string to use the flag or engine default.
 
 ## Server environment
 
@@ -65,6 +68,10 @@ those two diagnostic actions.
   voice.
 - `rutts` selects the source-built RuTTS companion and its built-in Russian
   voices.
+- On Windows, `eloquence` and `dectalk` select their adjacent or explicitly
+  configured helper and user-installed runtime; `winrt` explicitly selects the
+  native engine.
+- On macOS, `macos` explicitly selects AVSpeechSynthesizer.
 - Equivalent startup option: `--engine`.
 
 In server mode, the selected startup engine controls the initial preference;
@@ -75,8 +82,8 @@ eSpeak. Staged or explicitly configured RHVoice, Flite, and RuTTS companions
 register on every desktop platform. A build with Piper support also registers
 Piper when `OMNIVOX_PIPER_MODEL` or `--piper-model` supplies a model. Single-action
 diagnostics such as `--list-voices` continue to create only the selected
-engine. Eloquence and DECtalk remain runtime-routing inventory IDs rather than
-accepted startup values.
+engine. An explicit diagnostic selection fails when that exact engine is not
+available.
 
 ### RHVoice helper and runtime
 

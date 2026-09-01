@@ -244,9 +244,9 @@ host and Python identity, server version, command, actual engine and physical
 voice counts, and an optional bounded `KEY=VALUE` provenance file. Marker
 receipt measures mixer-source consumption and may precede audible device output.
 
-Eloquence and DECtalk are Windows runtime-routing inventory IDs rather than
-startup selectors. Benchmark either without changing that boundary by starting
-the ordinary native server and applying one strict session preference:
+Eloquence and DECtalk are accepted Windows startup preferences when their
+helpers and user runtimes are installed. To exercise routing-policy replacement,
+start the ordinary native server and apply one strict session preference:
 
 ```sh
 python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \

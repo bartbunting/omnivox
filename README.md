@@ -29,8 +29,9 @@ There are two supported consumers with deliberately different Lisp adapters:
 
 The Windows Eloquence and DECtalk engines run in separate 32-bit helper
 processes and require user-supplied proprietary runtimes. Omnivox and Emacsvox
-do not distribute those runtimes. They are discovered as helper engines for
-runtime routing rather than selected with the startup `--engine` option. The
+do not distribute those runtimes. When their helpers and runtimes are present,
+they can be selected as the initial server preference or as an exact diagnostic
+engine with `--engine eloquence` or `--engine dectalk`. The
 [helper source and build](windows-helpers/README.md) live in this repository;
 Emacsvox consumes those outputs when staging its WSL Windows bundle. Piper,
 Flite, and RuTTS are source-built companions; RHVoice loads a user-installed
@@ -297,12 +298,15 @@ omnivox --list-voices
 omnivox --engine espeak --rate 0.6
 omnivox --voice-volume 1.0 --tone-volume 0.1 --sound-volume 0.5
 omnivox --audio-target left
-omnivox --dump-wav VOICE output.wav "Text to synthesize"
+omnivox --engine espeak --rate 0.6 \
+  --dump-wav VOICE output.wav "Text to synthesize"
 ```
 
 Piper additionally uses `--engine piper --piper-model /path/to/model.onnx`,
-with the matching JSON configuration beside the model. Without an action
-option, Omnivox runs the stdin speech-server protocol.
+with the matching JSON configuration beside the model. Diagnostic actions
+select an explicit engine exactly and fail if it is unavailable; `--check` and
+`--dump-wav` honor the voice, rate, pitch, voice-volume, and Piper-model flags.
+Without an action option, Omnivox runs the stdin speech-server protocol.
 
 See [ENV-VARS.md](docs/ENV-VARS.md) for the complete CLI and environment
 reference.

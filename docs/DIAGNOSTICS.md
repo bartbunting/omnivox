@@ -84,10 +84,10 @@ reports the slowest stale-dispatch terminal cancellation in each burst as well
 as the winning dispatch's onset. These remain mixer-source observations, not
 microphone or physical audible-onset measurements.
 
-Windows Eloquence and DECtalk are runtime-routing inventory IDs, not accepted
-startup selectors. Use `--engine native --preferred-engine-id ENGINE` for those
-engines. The harness applies that preference through the public control
-protocol to every cold process and once to the warm process; keep
+Windows Eloquence and DECtalk can be selected initially with `--engine ENGINE`
+when their helper and user runtime are installed. Use
+`--preferred-engine-id ENGINE` as well when the test specifically needs to
+exercise public routing-policy replacement after negotiation. Keep
 `--expected-engine-id ENGINE` so any fallback fails the run instead of entering
 the measured distribution.
 
