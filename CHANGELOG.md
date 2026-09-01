@@ -59,6 +59,10 @@ Versioning for published releases.
 
 ### Fixed
 
+- Helper response collection now rejects PCM chunks received after the marker
+  stream begins, enforcing the documented synthesis response ordering.
+- Incomplete multipart timeline timeout and input-closure paths now have
+  explicit regression coverage for their owned failed terminal identity.
 - DECtalk cancellation received after request acceptance but before native
   dispatch now prevents synthesis instead of allowing the cancelled request to
   reach the native runtime.

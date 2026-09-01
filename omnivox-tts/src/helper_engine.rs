@@ -341,7 +341,8 @@ fn split_helper_markers(markers: Vec<HelperMarker>) -> (Vec<SynthesisMarker>, Ve
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SynthesisPhase {
     AwaitingStart,
-    Streaming,
+    StreamingAudio,
+    StreamingMarkers,
     Terminal,
 }
 
@@ -413,10 +414,12 @@ impl HelperSynthesisCollector {
                 }
                 self.format = Some(format);
                 self.actual_voice_id = Some(actual_voice_id);
-                self.phase = SynthesisPhase::Streaming;
+                self.phase = SynthesisPhase::StreamingAudio;
                 Ok(None)
             }
-            HelperResponseBody::AudioChunk { chunk } if self.phase == SynthesisPhase::Streaming => {
+            HelperResponseBody::AudioChunk { chunk }
+                if self.phase == SynthesisPhase::StreamingAudio =>
+            {
                 if chunk.sequence != self.next_sequence {
                     return Err(HelperEngineError::AudioSequenceMismatch {
                         expected: self.next_sequence,
@@ -450,15 +453,24 @@ impl HelperSynthesisCollector {
                 self.next_sequence = self.next_sequence.wrapping_add(1);
                 Ok(None)
             }
-            HelperResponseBody::Markers { markers } if self.phase == SynthesisPhase::Streaming => {
+            HelperResponseBody::Markers { markers }
+                if matches!(
+                    self.phase,
+                    SynthesisPhase::StreamingAudio | SynthesisPhase::StreamingMarkers
+                ) =>
+            {
                 if self.markers.len().saturating_add(markers.len()) > MAX_HELPER_MARKERS {
                     return Err(crate::helper_protocol::HelperProtocolError::TooManyMarkers.into());
                 }
                 self.markers.extend(markers);
+                self.phase = SynthesisPhase::StreamingMarkers;
                 Ok(None)
             }
             HelperResponseBody::SynthesisCompleted { frame_count }
-                if self.phase == SynthesisPhase::Streaming =>
+                if matches!(
+                    self.phase,
+                    SynthesisPhase::StreamingAudio | SynthesisPhase::StreamingMarkers
+                ) =>
             {
                 let format = self
                     .format
@@ -513,6 +525,13 @@ impl HelperSynthesisCollector {
             HelperResponseBody::SynthesisStarted { .. } => Err(
                 HelperEngineError::UnexpectedResponse("duplicate synthesis_started"),
             ),
+            HelperResponseBody::AudioChunk { .. }
+                if self.phase == SynthesisPhase::StreamingMarkers =>
+            {
+                Err(HelperEngineError::UnexpectedResponse(
+                    "audio_chunk after marker stream",
+                ))
+            }
             HelperResponseBody::AudioChunk { .. }
             | HelperResponseBody::Markers { .. }
             | HelperResponseBody::SynthesisCompleted { .. } => Err(
@@ -1723,6 +1742,10 @@ mod tests {
             .unwrap()
             .is_none());
         assert!(collector
+            .accept(audio(11, 1, &[16_384, 32_767]))
+            .unwrap()
+            .is_none());
+        assert!(collector
             .accept(response(
                 11,
                 HelperResponseBody::Markers {
@@ -1735,10 +1758,6 @@ mod tests {
                     }],
                 },
             ))
-            .unwrap()
-            .is_none());
-        assert!(collector
-            .accept(audio(11, 1, &[16_384, 32_767]))
             .unwrap()
             .is_none());
 
@@ -1781,6 +1800,27 @@ mod tests {
                 expected: 0,
                 received: 1
             }
+        ));
+    }
+
+    #[test]
+    fn rejects_audio_after_the_marker_stream_begins() {
+        let mut collector = HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 12, None);
+        collector.accept(started(12, 1)).unwrap();
+        collector
+            .accept(response(
+                12,
+                HelperResponseBody::Markers {
+                    markers: Vec::new(),
+                },
+            ))
+            .unwrap();
+
+        assert!(matches!(
+            collector.accept(audio(12, 0, &[1])),
+            Err(HelperEngineError::UnexpectedResponse(
+                "audio_chunk after marker stream"
+            ))
         ));
     }
 

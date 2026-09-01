@@ -1925,6 +1925,22 @@ fn read_structured_submission(
     receiver: &mpsc::Receiver<io::Result<String>>,
     state: &TtsState,
 ) -> Result<StructuredSubmissionRead> {
+    read_structured_submission_with_timeout(
+        generations,
+        first,
+        receiver,
+        state,
+        TIMELINE_MULTIPART_TIMEOUT,
+    )
+}
+
+fn read_structured_submission_with_timeout(
+    generations: &PresentationGenerations,
+    first: Command,
+    receiver: &mpsc::Receiver<io::Result<String>>,
+    state: &TtsState,
+    multipart_timeout: Duration,
+) -> Result<StructuredSubmissionRead> {
     if first.id == CommandId::EmacsvoxTimeline {
         return Ok(validate_structured_action_windows(
             prepare_structured_presentation(generations, &first),
@@ -1942,7 +1958,7 @@ fn read_structured_submission(
     };
     let generation = assembler.generation();
     let dispatch_id = assembler.dispatch_id();
-    let deadline = Instant::now() + TIMELINE_MULTIPART_TIMEOUT;
+    let deadline = Instant::now() + multipart_timeout;
     loop {
         if assembler.is_complete() {
             let read = match assembler.finish(generations) {
@@ -3657,6 +3673,58 @@ mod tests {
                 if presentation.generation == 12
                     && presentation.timeline.dispatch_id == 34
                     && presentation.timeline.spans[0].text == "café 日本"
+        ));
+    }
+
+    #[test]
+    fn incomplete_multipart_timeout_preserves_owned_failure_identity() {
+        let first = multipart_commands(12, 34).into_iter().next().unwrap();
+        let (_sender, receiver) = mpsc::channel();
+
+        let read = read_structured_submission_with_timeout(
+            &PresentationGenerations::default(),
+            first,
+            &receiver,
+            &TtsState::default(),
+            Duration::ZERO,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            read,
+            StructuredSubmissionRead::Aborted(AbortedStructuredSubmission {
+                generation: 12,
+                dispatch_id: 34,
+                status: BatchStatus::Failed,
+                deferred_command: None,
+                input_closed: false,
+            })
+        ));
+    }
+
+    #[test]
+    fn incomplete_multipart_eof_preserves_owned_failure_identity() {
+        let first = multipart_commands(13, 35).into_iter().next().unwrap();
+        let (sender, receiver) = mpsc::channel();
+        drop(sender);
+
+        let read = read_structured_submission(
+            &PresentationGenerations::default(),
+            first,
+            &receiver,
+            &TtsState::default(),
+        )
+        .unwrap();
+
+        assert!(matches!(
+            read,
+            StructuredSubmissionRead::Aborted(AbortedStructuredSubmission {
+                generation: 13,
+                dispatch_id: 35,
+                status: BatchStatus::Failed,
+                deferred_command: None,
+                input_closed: true,
+            })
         ));
     }
 
