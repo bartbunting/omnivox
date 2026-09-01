@@ -1,0 +1,15 @@
+[package]
+name = "omnivox-flite-helper"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+omnivox-flite-sys = { path = "../omnivox-flite-sys" }
+omnivox-helper-host = { path = "../omnivox-helper-host" }
+omnivox-tts = { path = "../omnivox-tts", default-features = false }
+
+[[bin]]
+name = "omnivox-flite-helper"
+path = "src/main.rs"
