@@ -67,7 +67,7 @@ fresh process; warm samples reuse one process after configurable warmups. The
 default cases cover a character, word, ordinary line, dense semantic-action
 timeline, multipart timeline, and rapid keyed replacement. Each summary uses
 nearest-rank p50, p95, and p99 values and the optional JSON report retains every
-raw monotonic sample and actual engine ID:
+raw monotonic sample, actual engine ID, and exact physical voice when reported:
 
 ```sh
 python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
@@ -90,6 +90,18 @@ engines. The harness applies that preference through the public control
 protocol to every cold process and once to the warm process; keep
 `--expected-engine-id ENGINE` so any fallback fails the run instead of entering
 the measured distribution.
+
+Use `--voice-id ID` together with `--expected-engine-id ENGINE` to register a
+strict exact route and reject a different or unreported physical voice. RuTTS
+measurements should use its lossless Russian workload profile and select each
+built-in voice explicitly:
+
+```sh
+python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
+  --engine rutts --expected-engine-id rutts --voice-id female \
+  --text-profile rutts-ru --mode both --iterations 20 --warmups 2 \
+  --json-output /path/to/private/rutts-female-latency.json
+```
 
 Use `tools/stress_server.py` to repeat domain-scoped replacement with
 interleaved ordered and urgent work. It periodically issues a hard stop and

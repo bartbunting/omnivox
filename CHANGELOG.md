@@ -23,9 +23,11 @@ Versioning for published releases.
   or control protocols.
 - Added a cross-platform cold/warm server benchmark for character, word, line,
   dense-action, multipart, and rapid-replacement workloads. Reports retain raw
-  monotonic samples, build provenance, actual engines, and p50/p95/p99 timing;
-  a runtime preference option also covers registered-only engines such as
-  Windows Eloquence and DECtalk without treating them as startup selectors.
+  monotonic samples, build provenance, actual engines and physical voices, and
+  p50/p95/p99 timing. Strict exact-voice selection and a KOI8-R-compatible
+  Russian workload profile cover both RuTTS voices; a runtime preference option
+  also covers registered-only engines such as Windows Eloquence and DECtalk
+  without treating them as startup selectors.
 - Added server-level stress tooling for interleaved replacement domains,
   ordered and urgent survivors, hard-stop recovery, marker and semantic-event
   ordering, exactly-once terminal history, and opt-in validated helper fault,

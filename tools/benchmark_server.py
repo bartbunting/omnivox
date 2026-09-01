@@ -28,7 +28,40 @@ from typing import Any, Iterable
 CONTROL_PREFIX = "__OMNIVOX_CONTROL__ "
 MARKER_PREFIX = "__EMACSVOX_MARKER__ "
 TRACKED_PREFIX = "__EMACSVOX_TRACKED__ "
+REPORT_VERSION = 2
 DEFAULT_CASES = ("character", "word", "line", "dense", "multipart", "replacement")
+DEFAULT_TEXT_PROFILE = "english"
+BENCHMARK_LOGICAL_VOICE_ID = "benchmark-exact-voice"
+WORKLOAD_TEXTS = {
+    "english": {
+        "character": "A",
+        "word": "latency",
+        "line": "The quick brown fox checks interactive speech latency.",
+        "dense": (
+            "Dense presentation actions follow every word while one short speech "
+            "span keeps the workload useful for interactive latency measurement."
+        ),
+        "multipart": "Multipart presentation assembly checks one short spoken line.",
+        "replacement": (
+            "Rapid replacement should retire this deliberately longer navigation "
+            "message before stale audio can continue through the mixer."
+        ),
+    },
+    "rutts-ru": {
+        "character": "Я",
+        "word": "задержка",
+        "line": "Быстрая речь проверяет задержку интерактивного синтеза.",
+        "dense": (
+            "Плотные действия следуют за каждым словом, пока короткая фраза "
+            "проверяет задержку интерактивной речи."
+        ),
+        "multipart": "Составная передача проверяет одну короткую фразу.",
+        "replacement": (
+            "Быстрая замена должна отменить это длинное сообщение навигации, "
+            "прежде чем устаревший звук продолжит воспроизведение."
+        ),
+    },
+}
 REQUIRED_FEATURES = {
     "control_v1",
     "playback_marker_events_v2",
@@ -94,11 +127,24 @@ def summarize_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
             "maximum": max(values),
         }
     engines: dict[str, int] = {}
+    voices: dict[str, dict[str, int]] = {}
     for sample in samples:
         engine = sample.get("engine_id")
         if engine:
             engines[engine] = engines.get(engine, 0) + 1
-    return {"sample_count": len(samples), "engines": engines, "metrics": summaries}
+        actual_voice = sample.get("actual_voice")
+        if isinstance(actual_voice, dict):
+            voice_engine = actual_voice.get("engine_id")
+            voice_id = actual_voice.get("voice_id")
+            if isinstance(voice_engine, str) and isinstance(voice_id, str):
+                engine_voices = voices.setdefault(voice_engine, {})
+                engine_voices[voice_id] = engine_voices.get(voice_id, 0) + 1
+    return {
+        "sample_count": len(samples),
+        "engines": engines,
+        "voices": voices,
+        "metrics": summaries,
+    }
 
 
 def read_provenance(path: str) -> dict[str, str]:
@@ -148,6 +194,70 @@ def configure_preferred_engine(
     ):
         raise RuntimeError(
             f"server rejected benchmark routing preference {engine_id!r}: {response}"
+        )
+    return response
+
+
+def configure_exact_voice(
+    session: "ServerSession",
+    capabilities: dict[str, Any],
+    engine_id: str,
+    voice_id: str,
+    request_id: int,
+) -> dict[str, Any]:
+    """Register one strict exact physical voice for benchmark timelines."""
+    if "logical_voice_registration" not in capabilities.get("features", []):
+        raise RuntimeError(
+            "server does not advertise logical_voice_registration required by "
+            "--voice-id"
+        )
+    response, _ = session.request_control(
+        {
+            "protocol_version": 1,
+            "request_id": request_id,
+            "type": "register_logical_voices",
+            "registry_generation": 1,
+            "definitions": [
+                {
+                    "id": BENCHMARK_LOGICAL_VOICE_ID,
+                    "language": None,
+                    "preferences": [
+                        {
+                            "kind": "exact",
+                            "engine_id": engine_id,
+                            "voice_id": voice_id,
+                        }
+                    ],
+                    "acss": {},
+                    "effects": {},
+                }
+            ],
+            "fallback_policy": {
+                "preferred_engines": [],
+                "allow_same_language_on_requested_engine": False,
+                "global_default": None,
+                "fallback_engines": [],
+            },
+        }
+    )
+    registration = response.get("registration", {})
+    bindings = (
+        registration.get("bindings", []) if isinstance(registration, dict) else []
+    )
+    binding = (
+        bindings[0] if len(bindings) == 1 and isinstance(bindings[0], dict) else {}
+    )
+    resolution = binding.get("resolution", {}) if isinstance(binding, dict) else {}
+    realized = resolution.get("realized", {}) if isinstance(resolution, dict) else {}
+    if (
+        response.get("type") != "logical_voices_registered"
+        or registration.get("registry_generation") != 1
+        or binding.get("status") != "resolved"
+        or realized.get("engine_id") != engine_id
+        or realized.get("voice_id") != voice_id
+    ):
+        raise RuntimeError(
+            f"server rejected benchmark exact voice {engine_id}/{voice_id}: {response}"
         )
     return response
 
@@ -288,6 +398,7 @@ class ServerSession:
                 "terminal_at_ns": None,
                 "status": None,
                 "engine_id": None,
+                "actual_voice": None,
             }
             for identifier in identifiers
         }
@@ -304,6 +415,7 @@ class ServerSession:
                 ):
                     results[identifier]["source_at_ns"] = observed_at
                     results[identifier]["engine_id"] = event.get("engine_id")
+                    results[identifier]["actual_voice"] = event.get("actual_voice")
                 continue
             if not line.startswith(TRACKED_PREFIX):
                 continue
@@ -378,30 +490,24 @@ def timeline_for_case(
     generation: int,
     dispatch_id: int,
     replacement_key: str | None = None,
+    text_profile: str = DEFAULT_TEXT_PROFILE,
+    logical_voice_id: str | None = None,
 ) -> dict[str, Any]:
-    texts = {
-        "character": "A",
-        "word": "latency",
-        "line": "The quick brown fox checks interactive speech latency.",
-        "dense": (
-            "Dense presentation actions follow every word while one short speech "
-            "span keeps the workload useful for interactive latency measurement."
-        ),
-        "multipart": "Multipart presentation assembly checks one short spoken line.",
-        "replacement": (
-            "Rapid replacement should retire this deliberately longer navigation "
-            "message before stale audio can continue through the mixer."
-        ),
-    }
+    texts = WORKLOAD_TEXTS.get(text_profile)
+    if texts is None:
+        raise ValueError(f"unknown benchmark text profile: {text_profile}")
     if case not in texts:
         raise ValueError(f"unknown benchmark case: {case}")
     text = texts[case]
+    span: dict[str, Any] = {"id": 1, "text": text}
+    if logical_voice_id:
+        span["logical_voice_id"] = logical_voice_id
     timeline = {
         "protocol_version": 3,
         "generation": generation,
         "dispatch_id": dispatch_id,
         "delivery_policy": "replaceable" if replacement_key else "ordered",
-        "spans": [{"id": 1, "text": text}],
+        "spans": [span],
         "actions": dense_actions(text) if case == "dense" else [],
     }
     if replacement_key:
@@ -422,13 +528,21 @@ def execute_case(
     identities: IdentitySequence,
     expected_engine_id: str | None,
     replacement_burst: int,
+    expected_voice_id: str | None = None,
+    text_profile: str = DEFAULT_TEXT_PROFILE,
 ) -> dict[str, Any]:
+    logical_voice_id = BENCHMARK_LOGICAL_VOICE_ID if expected_voice_id else None
     if case == "replacement":
         sent: dict[int, int] = {}
         for _ in range(replacement_burst):
             generation, identifier = identities.next()
             timeline = timeline_for_case(
-                case, generation, identifier, "benchmark-navigation"
+                case,
+                generation,
+                identifier,
+                "benchmark-navigation",
+                text_profile,
+                logical_voice_id,
             )
             sent[identifier] = session.send_timeline(timeline)
         results = session.wait_for_dispatches(set(sent))
@@ -452,6 +566,7 @@ def execute_case(
         sample = {
             "dispatch_id": winner,
             "engine_id": result["engine_id"],
+            "actual_voice": result["actual_voice"],
             "status": result["status"],
             "cancelled_dispatches": len(stale),
             "sent_at_monotonic_ns": sent[winner],
@@ -464,7 +579,13 @@ def execute_case(
         }
     else:
         generation, identifier = identities.next()
-        timeline = timeline_for_case(case, generation, identifier)
+        timeline = timeline_for_case(
+            case,
+            generation,
+            identifier,
+            text_profile=text_profile,
+            logical_voice_id=logical_voice_id,
+        )
         sent_at = session.send_timeline(
             timeline, multipart_parts=3 if case == "multipart" else 0
         )
@@ -475,6 +596,7 @@ def execute_case(
         sample = {
             "dispatch_id": identifier,
             "engine_id": result["engine_id"],
+            "actual_voice": result["actual_voice"],
             "status": result["status"],
             "sent_at_monotonic_ns": sent_at,
             "source_observed_at_monotonic_ns": source_at,
@@ -487,6 +609,16 @@ def execute_case(
         raise RuntimeError(
             f"expected engine {expected_engine_id!r}, realized {sample['engine_id']!r}"
         )
+    if expected_voice_id:
+        expected_voice = {
+            "engine_id": expected_engine_id,
+            "voice_id": expected_voice_id,
+        }
+        if sample["actual_voice"] != expected_voice:
+            raise RuntimeError(
+                f"expected voice {expected_voice!r}, realized "
+                f"{sample['actual_voice']!r}"
+            )
     return sample
 
 
@@ -498,6 +630,8 @@ def cold_samples(
     iterations: int,
     identities: IdentitySequence,
     expected_engine_id: str | None,
+    expected_voice_id: str | None,
+    text_profile: str,
     replacement_burst: int,
     timeout: float,
 ) -> list[dict[str, Any]]:
@@ -515,8 +649,23 @@ def cold_samples(
                     preferred_engine_id,
                     identities.dispatch_id + 10_000_001,
                 )
+            if expected_voice_id:
+                assert expected_engine_id is not None
+                configure_exact_voice(
+                    session,
+                    capabilities,
+                    expected_engine_id,
+                    expected_voice_id,
+                    identities.dispatch_id + 10_000_002,
+                )
             sample = execute_case(
-                session, case, identities, expected_engine_id, replacement_burst
+                session,
+                case,
+                identities,
+                expected_engine_id,
+                replacement_burst,
+                expected_voice_id,
+                text_profile,
             )
             sample["server_version"] = capabilities.get("server_version")
             sample["process_start_to_ready_ms"] = milliseconds(
@@ -538,12 +687,30 @@ def warm_samples(
     warmups: int,
     identities: IdentitySequence,
     expected_engine_id: str | None,
+    expected_voice_id: str | None,
+    text_profile: str,
     replacement_burst: int,
 ) -> list[dict[str, Any]]:
     for _ in range(warmups):
-        execute_case(session, case, identities, expected_engine_id, replacement_burst)
+        execute_case(
+            session,
+            case,
+            identities,
+            expected_engine_id,
+            replacement_burst,
+            expected_voice_id,
+            text_profile,
+        )
     return [
-        execute_case(session, case, identities, expected_engine_id, replacement_burst)
+        execute_case(
+            session,
+            case,
+            identities,
+            expected_engine_id,
+            replacement_burst,
+            expected_voice_id,
+            text_profile,
+        )
         for _ in range(iterations)
     ]
 
@@ -590,6 +757,13 @@ def parse_args() -> argparse.Namespace:
         help="fail if the first source marker reports another engine",
     )
     parser.add_argument(
+        "--voice-id",
+        help=(
+            "register and require this exact physical voice; requires "
+            "--expected-engine-id"
+        ),
+    )
+    parser.add_argument(
         "--preferred-engine-id",
         help=(
             "set one runtime routing preference after negotiation; use for "
@@ -605,6 +779,12 @@ def parse_args() -> argparse.Namespace:
         dest="cases",
         choices=DEFAULT_CASES,
         help="workload to run; repeat to select several (default: all)",
+    )
+    parser.add_argument(
+        "--text-profile",
+        choices=tuple(WORKLOAD_TEXTS),
+        default=DEFAULT_TEXT_PROFILE,
+        help="language-specific workload text (default: english)",
     )
     parser.add_argument("--iterations", type=int, default=5)
     parser.add_argument("--warmups", type=int, default=1)
@@ -631,12 +811,14 @@ def main() -> None:
         raise SystemExit("--replacement-burst must be at least two")
     if args.timeout <= 0:
         raise SystemExit("--timeout must be positive")
+    if args.voice_id and not args.expected_engine_id:
+        raise SystemExit("--voice-id requires --expected-engine-id")
 
     command = [args.server, *args.server_arg]
     cases = args.cases or list(DEFAULT_CASES)
     identities = IdentitySequence()
     report: dict[str, Any] = {
-        "report_version": 1,
+        "report_version": REPORT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "measurement": {
             "clock": "time.perf_counter_ns",
@@ -653,6 +835,8 @@ def main() -> None:
             "engine": args.engine,
             "preferred_engine_id": args.preferred_engine_id,
             "expected_engine_id": args.expected_engine_id,
+            "voice_id": args.voice_id,
+            "text_profile": args.text_profile,
             "mode": args.mode,
             "cases": cases,
             "iterations": args.iterations,
@@ -676,6 +860,8 @@ def main() -> None:
                 args.iterations,
                 identities,
                 args.expected_engine_id,
+                args.voice_id,
+                args.text_profile,
                 args.replacement_burst,
                 args.timeout,
             )
@@ -698,6 +884,14 @@ def main() -> None:
                     args.preferred_engine_id,
                     identities.dispatch_id + 20_000_001,
                 )
+            if args.voice_id:
+                configure_exact_voice(
+                    session,
+                    capabilities,
+                    args.expected_engine_id,
+                    args.voice_id,
+                    identities.dispatch_id + 20_000_002,
+                )
             report["server"] = {
                 "version": capabilities.get("server_version"),
                 "features": capabilities.get("features", []),
@@ -713,6 +907,8 @@ def main() -> None:
                     args.warmups,
                     identities,
                     args.expected_engine_id,
+                    args.voice_id,
+                    args.text_profile,
                     args.replacement_burst,
                 )
                 report["results"]["warm"][case] = {

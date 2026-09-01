@@ -20,6 +20,7 @@ import sys
 
 parts = {}
 selected_engine = "fake"
+selected_voice = "default"
 
 def encoded(record):
     payload = json.dumps(record, separators=(",", ":")).encode()
@@ -34,6 +35,10 @@ def finish(timeline):
         "type": "utterance_started",
         "utterance_id": 1,
         "engine_id": selected_engine,
+        "actual_voice": {
+            "engine_id": selected_engine,
+            "voice_id": selected_voice,
+        },
     }
     print("__EMACSVOX_MARKER__ " + encoded(marker), flush=True)
     print(f"__EMACSVOX_TRACKED__ {identifier} completed", flush=True)
@@ -54,9 +59,10 @@ for raw_line in sys.stdin:
                     "presentation_timeline_v3",
                     "tracked_playback_completion",
                     "runtime_routing_policy",
+                    "logical_voice_registration",
                 ],
             }
-        else:
+        elif request["type"] == "set_routing_policy":
             selected_engine = request["preferred_engine_ids"][0]
             response = {
                 "protocol_version": 1,
@@ -72,6 +78,34 @@ for raw_line in sys.stdin:
                 },
                 "logical_voices": {"registry_generation": 0, "bindings": []},
                 "inventory_generation": 1,
+            }
+        else:
+            definition = request["definitions"][0]
+            selector = definition["preferences"][0]
+            selected_engine = selector["engine_id"]
+            selected_voice = selector["voice_id"]
+            response = {
+                "protocol_version": 1,
+                "request_id": request["request_id"],
+                "type": "logical_voices_registered",
+                "inventory_generation": 1,
+                "registration": {
+                    "registry_generation": request["registry_generation"],
+                    "bindings": [
+                        {
+                            "status": "resolved",
+                            "resolution": {
+                                "logical_voice_id": definition["id"],
+                                "realized": {
+                                    "engine_id": selected_engine,
+                                    "voice_id": selected_voice,
+                                },
+                                "requested_engine_id": selected_engine,
+                                "degraded": False,
+                            },
+                        }
+                    ],
+                },
             }
         print("__OMNIVOX_CONTROL__ " + encoded(response), flush=True)
     elif line.startswith("emacsvox_timeline "):
@@ -92,6 +126,9 @@ for raw_line in sys.stdin:
 
 
 class BenchmarkServerTests(unittest.TestCase):
+    def test_current_report_schema_records_physical_voices(self) -> None:
+        self.assertEqual(benchmark_server.REPORT_VERSION, 2)
+
     def test_nearest_rank_percentiles_are_reproducible(self) -> None:
         values = list(range(1, 101))
         self.assertEqual(benchmark_server.nearest_rank(values, 0.50), 50)
@@ -111,6 +148,18 @@ class BenchmarkServerTests(unittest.TestCase):
         text_size = len(timeline["spans"][0]["text"].encode("utf-8"))
         offsets = [action["position"]["utf8_offset"] for action in timeline["actions"]]
         self.assertGreater(len(offsets), 10)
+        self.assertEqual(offsets, sorted(set(offsets)))
+        self.assertTrue(all(0 <= offset <= text_size for offset in offsets))
+
+    def test_rutts_profile_is_koi8_r_and_keeps_utf8_offsets(self) -> None:
+        timeline = benchmark_server.timeline_for_case(
+            "dense", 3, 8, text_profile="rutts-ru"
+        )
+        text = timeline["spans"][0]["text"]
+        text.encode("koi8_r")
+        text_size = len(text.encode("utf-8"))
+        offsets = [action["position"]["utf8_offset"] for action in timeline["actions"]]
+        self.assertGreater(len(offsets), 8)
         self.assertEqual(offsets, sorted(set(offsets)))
         self.assertTrue(all(0 <= offset <= text_size for offset in offsets))
 
@@ -139,10 +188,57 @@ class BenchmarkServerTests(unittest.TestCase):
                 )
                 self.assertEqual(sample["status"], "completed")
                 self.assertEqual(sample["engine_id"], "fake")
+                self.assertEqual(
+                    sample["actual_voice"],
+                    {"engine_id": "fake", "voice_id": "default"},
+                )
                 self.assertGreaterEqual(sample["dispatch_to_source_ms"], 0)
         finally:
             session.close()
         self.assertEqual(session.process.returncode, 0)
+
+    def test_session_registers_and_enforces_exact_voice(self) -> None:
+        session = benchmark_server.ServerSession(
+            [sys.executable, "-c", FAKE_SERVER], None, 5.0
+        )
+        identities = benchmark_server.IdentitySequence()
+        try:
+            capabilities, _ = session.negotiate(103)
+            response = benchmark_server.configure_exact_voice(
+                session, capabilities, "rutts", "female", 104
+            )
+            self.assertEqual(response["type"], "logical_voices_registered")
+            sample = benchmark_server.execute_case(
+                session,
+                "word",
+                identities,
+                "rutts",
+                3,
+                "female",
+                "rutts-ru",
+            )
+            self.assertEqual(
+                sample["actual_voice"],
+                {"engine_id": "rutts", "voice_id": "female"},
+            )
+        finally:
+            session.close()
+        self.assertEqual(session.process.returncode, 0)
+
+    def test_summary_counts_physical_voices(self) -> None:
+        summary = benchmark_server.summarize_samples(
+            [
+                {
+                    "engine_id": "rutts",
+                    "actual_voice": {"engine_id": "rutts", "voice_id": "male"},
+                },
+                {
+                    "engine_id": "rutts",
+                    "actual_voice": {"engine_id": "rutts", "voice_id": "male"},
+                },
+            ]
+        )
+        self.assertEqual(summary["voices"], {"rutts": {"male": 2}})
 
     def test_session_applies_runtime_engine_preference(self) -> None:
         session = benchmark_server.ServerSession(

@@ -192,8 +192,10 @@ remaining performance work are tracked in
 `tools/benchmark_server.py` runs the tracked protocol against a selected native
 server or launcher and reports raw cold/warm character, word, line,
 dense-action, multipart, and rapid-replacement samples with nearest-rank
-p50/p95/p99 summaries. Its source boundary is the first mixer-consumption
-marker; it does not turn those results into an acoustic-onset claim.
+p50/p95/p99 summaries. New reports preserve and can strictly enforce the exact
+physical voice, and a KOI8-R-compatible Russian profile covers RuTTS. The
+source boundary is the first mixer-consumption marker; it does not turn those
+results into an acoustic-onset claim.
 
 The [2026-09-01 Windows x64 development baseline](benchmarks/2026-09-01-windows-x64-c9458361eb57b94a.md)
 preserves 1,440 raw samples across WinRT, eSpeak NG, RHVoice, Flite, DECtalk,

@@ -219,10 +219,10 @@ check that does not exercise synthesis.
 public Omnivox protocol using only the Python standard library. It negotiates
 capabilities, sends structured presentations, timestamps the first
 `utterance_started` mixer-source marker and tracked terminal record with a
-monotonic clock, verifies the realized engine when requested, and reports
-nearest-rank p50/p95/p99 values. Default workloads cover character, word, line,
-dense semantic actions, multipart assembly, and a rapid same-key replacement
-burst:
+monotonic clock, verifies the realized engine and physical voice when requested,
+and reports nearest-rank p50/p95/p99 values. Default workloads cover character,
+word, line, dense semantic actions, multipart assembly, and a rapid same-key
+replacement burst:
 
 ```sh
 python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
@@ -234,9 +234,9 @@ python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
 
 Repeat `--case` to select workloads. Cold mode starts a new server for every
 sample; warm mode keeps one process alive. The JSON report includes raw samples,
-host and Python identity, server version, command, actual engine counts, and an
-optional bounded `KEY=VALUE` provenance file. Marker receipt measures
-mixer-source consumption and may precede audible device output.
+host and Python identity, server version, command, actual engine and physical
+voice counts, and an optional bounded `KEY=VALUE` provenance file. Marker
+receipt measures mixer-source consumption and may precede audible device output.
 
 Eloquence and DECtalk are Windows runtime-routing inventory IDs rather than
 startup selectors. Benchmark either without changing that boundary by starting
@@ -251,6 +251,20 @@ python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
 The harness applies the public routing policy to every cold process and once to
 the warm process. It configures no fallback engines, and the expected-engine
 check prevents a different realized engine from contaminating results.
+
+Use the Russian profile and an exact voice for meaningful RuTTS measurements:
+
+```sh
+python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
+  --engine rutts --expected-engine-id rutts --voice-id male \
+  --text-profile rutts-ru --mode both --iterations 20 --warmups 2 \
+  --json-output /path/to/private/rutts-male-latency.json
+```
+
+Repeat with `--voice-id female`. The profile contains only ASCII and Russian
+characters that RuTTS can convert losslessly to KOI8-R. Exact-voice selection
+uses the public logical-voice registry and rejects fallback at registration or
+dispatch. Reports carrying physical-voice fields use report schema version 2.
 
 ## Server cancellation and recovery stress
 
