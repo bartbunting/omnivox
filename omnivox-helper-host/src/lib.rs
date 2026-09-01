@@ -902,6 +902,36 @@ mod tests {
         }
     }
 
+    struct EmptyEngine;
+
+    impl TtsEngine for EmptyEngine {
+        fn descriptor(&self) -> EngineDescriptor {
+            descriptor()
+        }
+
+        fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+            Ok(SynthesisResult::audio(
+                "mock",
+                request.requested_voice.clone(),
+                AudioBuffer::empty(),
+            ))
+        }
+
+        fn stop(&self) {}
+
+        fn is_speaking(&self) -> bool {
+            false
+        }
+
+        fn available_voices(&self) -> Vec<VoiceInfo> {
+            Vec::new()
+        }
+
+        fn voice_info(&self, _identifier: &str) -> Option<VoiceInfo> {
+            None
+        }
+    }
+
     struct UnavailableEngine;
 
     impl TtsEngine for UnavailableEngine {
@@ -1071,6 +1101,35 @@ mod tests {
         assert!(responses.iter().any(|response| matches!(
             response.body,
             HelperResponseBody::SynthesisCompleted { frame_count: 2 }
+        )));
+    }
+
+    #[test]
+    fn empty_synthesis_omits_empty_stream_frames() {
+        let writer = SharedWriter::default();
+        let engine: Arc<dyn TtsEngine> = Arc::new(EmptyEngine);
+        let runtime = Arc::new(
+            HelperRuntime::new(
+                engine,
+                writer.clone(),
+                "Test helper".to_owned(),
+                "1".to_owned(),
+            )
+            .unwrap(),
+        );
+
+        runtime.handle(hello(1)).unwrap();
+        runtime.handle(synthesis(2)).unwrap();
+        writer.wait_for(|body| matches!(body, HelperResponseBody::SynthesisCompleted { .. }));
+
+        let responses = writer.responses();
+        assert!(!responses.iter().any(|response| matches!(
+            response.body,
+            HelperResponseBody::AudioChunk { .. } | HelperResponseBody::Markers { .. }
+        )));
+        assert!(responses.iter().any(|response| matches!(
+            response.body,
+            HelperResponseBody::SynthesisCompleted { frame_count: 0 }
         )));
     }
 

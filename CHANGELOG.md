@@ -65,6 +65,9 @@ Versioning for published releases.
 
 ### Fixed
 
+- Empty helper audio chunks and marker batches are now rejected so content-free
+  frames cannot indefinitely refresh synthesis progress timeouts. Helpers omit
+  those response types when a synthesis has no audio or markers.
 - Helper response collection now rejects PCM chunks received after the marker
   stream begins, enforcing the documented synthesis response ordering.
 - Incomplete multipart timeline timeout and input-closure paths now have

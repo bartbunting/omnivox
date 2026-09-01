@@ -1529,12 +1529,6 @@ mod tests {
                         ));
                         self.push(self.response(
                             *target_request_id,
-                            HelperResponseBody::Markers {
-                                markers: Vec::new(),
-                            },
-                        ));
-                        self.push(self.response(
-                            *target_request_id,
                             HelperResponseBody::SynthesisCompleted { frame_count: 4 },
                         ));
                         self.push(self.response(
@@ -1811,7 +1805,13 @@ mod tests {
             .accept(response(
                 12,
                 HelperResponseBody::Markers {
-                    markers: Vec::new(),
+                    markers: vec![HelperMarker {
+                        kind: HelperMarkerKind::Word,
+                        frame_offset: 0,
+                        text_start: Some(0),
+                        text_length: Some(1),
+                        value: None,
+                    }],
                 },
             ))
             .unwrap();

@@ -94,7 +94,12 @@ contains one complete sequence. Its frames are independently deserialized and
 validated by a repository test.
 
 PCM chunks are Base64 encoded once in their JSON field and decode to at most
-256 KiB. Each chunk contains complete interleaved audio frames.
+256 KiB. Each chunk contains at least one complete interleaved audio frame;
+helpers omit `audio_chunk` entirely when a synthesis produces no audio. A
+`markers` response similarly contains at least one marker, and helpers with no
+markers omit that response type. Empty synthesis remains valid and proceeds
+from `synthesis_started` directly to a terminal response whose frame count is
+zero.
 `synthesis_completed` carries the total audio frame count so the host can
 reject missing, repeated, or truncated chunks. A marker identifies a word,
 sentence, phoneme, or native engine index using an audio-frame offset and

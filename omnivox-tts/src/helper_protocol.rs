@@ -65,7 +65,7 @@ pub enum HelperProtocolError {
     #[error("helper PCM chunk is not valid Base64: {0}")]
     InvalidAudioEncoding(base64::DecodeError),
 
-    #[error("helper PCM chunk must contain complete signed 16-bit samples")]
+    #[error("helper PCM chunk must contain one or more complete signed 16-bit samples")]
     InvalidAudioLength,
 
     #[error("helper marker batch exceeds the {MAX_HELPER_MARKERS}-marker limit")]
@@ -339,6 +339,9 @@ impl HelperResponse {
                 chunk.decode_bytes()?;
             }
             HelperResponseBody::Markers { markers } => {
+                if markers.is_empty() {
+                    return Err(HelperProtocolError::InvalidField("markers"));
+                }
                 if markers.len() > MAX_HELPER_MARKERS {
                     return Err(HelperProtocolError::TooManyMarkers);
                 }
@@ -478,7 +481,7 @@ fn validate_pcm_bytes(bytes: &[u8]) -> Result<(), HelperProtocolError> {
     if bytes.len() > MAX_HELPER_AUDIO_CHUNK_BYTES {
         return Err(HelperProtocolError::AudioChunkTooLarge);
     }
-    if bytes.len() & 1 != 0 {
+    if bytes.is_empty() || bytes.len() & 1 != 0 {
         return Err(HelperProtocolError::InvalidAudioLength);
     }
     Ok(())
@@ -814,6 +817,10 @@ mod tests {
     #[test]
     fn pcm_chunks_enforce_alignment_encoding_and_size_bounds() {
         assert!(matches!(
+            HelperPcmChunk::from_bytes(0, &[]),
+            Err(HelperProtocolError::InvalidAudioLength)
+        ));
+        assert!(matches!(
             HelperPcmChunk::from_bytes(0, &[1]),
             Err(HelperProtocolError::InvalidAudioLength)
         ));
@@ -828,6 +835,34 @@ mod tests {
             }
             .decode_bytes(),
             Err(HelperProtocolError::InvalidAudioEncoding(_))
+        ));
+    }
+
+    #[test]
+    fn responses_reject_empty_audio_and_marker_frames() {
+        let empty_audio = HelperResponse::for_request(
+            3,
+            HelperResponseBody::AudioChunk {
+                chunk: HelperPcmChunk {
+                    sequence: 0,
+                    data_base64: String::new(),
+                },
+            },
+        );
+        assert!(matches!(
+            empty_audio.validate(),
+            Err(HelperProtocolError::InvalidAudioLength)
+        ));
+
+        let empty_markers = HelperResponse::for_request(
+            3,
+            HelperResponseBody::Markers {
+                markers: Vec::new(),
+            },
+        );
+        assert!(matches!(
+            empty_markers.validate(),
+            Err(HelperProtocolError::InvalidField("markers"))
         ));
     }
 

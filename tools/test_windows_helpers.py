@@ -47,6 +47,14 @@ class WindowsHelperSourceTests(unittest.TestCase):
         self.assertIn('capabilities["text_repertoire"]', host)
         self.assertIn("IsWellFormedUnicode(value)", host)
 
+    def test_host_omits_empty_synthesis_stream_frames(self) -> None:
+        host = source("common/OmnivoxHelperHost.cs")
+        self.assertIn(
+            "for (int offset = 0; offset < audio.Length; offset += maximumChunk)",
+            host,
+        )
+        self.assertIn("if (markers.Length > 0)", host)
+
     def test_native_encoders_never_use_replacement_fallback(self) -> None:
         for relative in (
             "eloquence/OmnivoxEloquenceCapture.cs",
