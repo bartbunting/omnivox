@@ -148,6 +148,12 @@ package-rutts: stage-rutts
 verify-rutts: package-rutts
 	$(PYTHON) tools/verify_rutts_release.py
 
+package-rutts-source:
+	$(PYTHON) tools/package_rutts_source.py
+
+verify-rutts-source: package-rutts-source
+	$(PYTHON) tools/verify_rutts_source.py
+
 install-rutts: install
 
 # Build and stage the isolated Piper companion. Its preparation step downloads
