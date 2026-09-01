@@ -195,6 +195,12 @@ dense-action, multipart, and rapid-replacement samples with nearest-rank
 p50/p95/p99 summaries. Its source boundary is the first mixer-consumption
 marker; it does not turn those results into an acoustic-onset claim.
 
+The [2026-09-01 Windows x64 development baseline](benchmarks/2026-09-01-windows-x64-c9458361eb57b94a.md)
+preserves 1,440 raw samples across WinRT, eSpeak NG, RHVoice, Flite, DECtalk,
+and Eloquence with build provenance and checksums. It was collected from a
+post-v1.5.1 development build and is not evidence about the published v1.5.1
+artifact or physical acoustic onset.
+
 `tools/stress_server.py` verifies interleaved replacement domains, ordered and
 urgent survival, repeated hard-stop recovery, contiguous marker and semantic
 event history, and exactly-once terminal status. Its optional fault mode kills

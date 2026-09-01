@@ -57,6 +57,8 @@ historical material so a proposal cannot be mistaken for a shipped feature.
   DECtalk helper ownership, build, test, runtime, and licensing boundaries.
 - [DIAGNOSTICS.md](DIAGNOSTICS.md) — log collection, privacy boundaries, and
   optional Windows crash dumps.
+- [Benchmark evidence](benchmarks/README.md) — immutable reports, raw samples,
+  provenance, checksums, and measurement limitations.
 - [Release and deployment guide](../.github/DEPLOYMENT.md) — archives,
   verification, installation, and physical acceptance checks.
 - [Workflow reference](../.github/workflows/README.md) — CI and release job

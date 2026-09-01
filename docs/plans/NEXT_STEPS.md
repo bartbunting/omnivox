@@ -30,7 +30,10 @@ The structured identity model remains:
 2. Maintain and extend `tools/benchmark_server.py` across real platforms for
    character, word, ordinary line, dense-action timeline, multipart timeline,
    and rapid keyed replacement workloads. Preserve raw samples and compare
-   p50, p95, and p99 rather than averages alone.
+   p50, p95, and p99 rather than averages alone. The initial
+   [Windows x64 development baseline](../benchmarks/2026-09-01-windows-x64-c9458361eb57b94a.md)
+   records all six workloads for WinRT, eSpeak NG, RHVoice, Flite, DECtalk,
+   and Eloquence; other platforms and repeat runs remain outstanding.
 3. Maintain `tools/stress_server.py` across real engines and platforms for
    interleaved replacement keys, ordered and urgent traffic, hard stops,
    queued/buffered audio, late completion, and helper restart. Keep verifying
