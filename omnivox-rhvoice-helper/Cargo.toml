@@ -1,0 +1,16 @@
+[package]
+name = "omnivox-rhvoice-helper"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+libloading = "0.8"
+omnivox-helper-host = { path = "../omnivox-helper-host" }
+omnivox-tts = { path = "../omnivox-tts", default-features = false }
+thiserror.workspace = true
+
+[[bin]]
+name = "omnivox-rhvoice-helper"
+path = "src/main.rs"

@@ -692,6 +692,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "omnivox-rhvoice-helper"
+version = "1.5.1"
+dependencies = [
+ "libloading",
+ "omnivox-helper-host",
+ "omnivox-tts",
+ "thiserror",
+]
+
+[[package]]
 name = "omnivox-tts"
 version = "1.5.1"
 dependencies = [

@@ -8,6 +8,7 @@ members = [
     "omnivox-helper-host",
     "omnivox-piper-helper",
     "omnivox-piper-sys",
+    "omnivox-rhvoice-helper",
 ]
 # Normal builds compile the helper protocol library and its tests, but not the
 # Piper executable or native library. `make build-piper` prepares verified
@@ -20,6 +21,7 @@ default-members = [
     "omnivox-cli",
     "omnivox-helper-host",
     "omnivox-piper-helper",
+    "omnivox-rhvoice-helper",
 ]
 
 [workspace.dependencies]
