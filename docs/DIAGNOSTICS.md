@@ -174,8 +174,13 @@ tools/collect_diagnostics.sh
 The command prints the generated archive path. It includes bounded excerpts
 from logs written during the previous 24 hours, source and runtime versions,
 relevant WSL and Windows process inventory, Windows Application events, and a
-listing of available crash dumps. It does not include dump contents. The
-archive is created with mode `0600`; inspect it before sharing it.
+listing of available crash dumps. It does not include dump contents. Before
+archiving, it removes synthesis-text records, replaces explicit checkout/log
+paths and common user-home paths, records process names and IDs without command
+lines, and reduces Git state to a dirty-file count. Runtime checksums retain
+only file basenames. The archive is created with mode `0600`; inspect it before
+sharing it because arbitrary native error messages can still contain private
+data that no automatic filter recognizes.
 
 Pass an output path as the first argument when `/tmp` is unsuitable:
 

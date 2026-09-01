@@ -311,14 +311,16 @@ reference.
 
 `omnivox --check` exercises engine and audio initialization. The Emacsvox WSL
 launcher also writes private, rotated log parts for each session. To collect a
-bounded bundle without memory-dump contents:
+bounded bundle without memory-dump contents or process command lines:
 
 ```sh
 tools/collect_diagnostics.sh
 ```
 
 See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) before enabling full synthesis
-text or Windows crash dumps; both can contain private spoken content.
+text or Windows crash dumps; both can contain private spoken content. The
+collector strips synthesis-text records and common private paths, but its
+output still requires review before sharing.
 
 Useful distinctions when investigating responsiveness:
 

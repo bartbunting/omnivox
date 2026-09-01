@@ -11,6 +11,15 @@ log_directory=${OMNIVOX_LOG_DIRECTORY:-"$state_directory/emacsvox/omnivox"}
 timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 output=${1:-"/tmp/omnivox-diagnostics-$timestamp.tar.gz"}
 bundle_directory=$(mktemp -d "${TMPDIR:-/tmp}/omnivox-diagnostics.XXXXXX")
+redactor="$script_directory/redact_diagnostics.py"
+
+redact_stream() {
+    python3 "$redactor" \
+        --private "$HOME" \
+        --private "$omnivox_directory" \
+        --private "$emacsvox_directory" \
+        --private "$log_directory"
+}
 
 cleanup() {
     rm -rf -- "$bundle_directory"
@@ -21,17 +30,19 @@ mkdir -p -- "$bundle_directory/logs"
 
 {
     printf 'collected_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    printf 'omnivox_source=%s\n' "$omnivox_directory"
-    printf 'emacsvox_source=%s\n' "$emacsvox_directory"
-    printf 'log_directory=%s\n' "$log_directory"
-    uname -a
+    printf 'omnivox_checkout_present=%s\n' "$([ -d "$omnivox_directory/.git" ] && printf yes || printf no)"
+    printf 'emacsvox_checkout_present=%s\n' "$([ -d "$emacsvox_directory/.git" ] && printf yes || printf no)"
+    printf 'log_directory_present=%s\n' "$([ -d "$log_directory" ] && printf yes || printf no)"
+    uname -srmo
     rustc --version 2>&1 || true
     cargo --version 2>&1 || true
     git -C "$omnivox_directory" rev-parse HEAD 2>&1 || true
-    git -C "$omnivox_directory" status --short 2>&1 || true
+    printf 'omnivox_worktree_changes='
+    git -C "$omnivox_directory" status --porcelain 2>/dev/null | wc -l || true
     if [ -d "$emacsvox_directory/.git" ]; then
         git -C "$emacsvox_directory" rev-parse HEAD 2>&1 || true
-        git -C "$emacsvox_directory" status --short 2>&1 || true
+        printf 'emacsvox_worktree_changes='
+        git -C "$emacsvox_directory" status --porcelain 2>/dev/null | wc -l || true
     fi
 } >"$bundle_directory/overview.txt"
 
@@ -45,11 +56,13 @@ if [ -d "$log_directory" ]; then
             sed -n '1,200p' "$log_file"
             printf '\n--- final 20000 lines ---\n'
             tail -n 20000 "$log_file"
-        } >"$bundle_directory/logs/$log_name"
+        } | redact_stream >"$bundle_directory/logs/$log_name"
     done
 fi
 
-ps -ef >"$bundle_directory/wsl-processes.txt" 2>&1 || true
+ps -eo pid=,ppid=,comm= 2>&1 |
+    awk '$3 ~ /^(omnivox|Omnivox)/ { print }' \
+    >"$bundle_directory/wsl-processes.txt" || true
 
 if command -v powershell.exe >/dev/null 2>&1; then
     powershell.exe -NoProfile -Command '
@@ -61,11 +74,10 @@ if command -v powershell.exe >/dev/null 2>&1; then
                     "OmnivoxDectalkHelper32.exe"
                 )
             } |
-            Select-Object ProcessId, ParentProcessId, Name, CreationDate,
-                ExecutablePath, CommandLine |
+            Select-Object ProcessId, ParentProcessId, Name, CreationDate |
             Sort-Object CreationDate |
             Format-List
-    ' >"$bundle_directory/windows-processes.txt" 2>&1 || true
+    ' 2>&1 | redact_stream >"$bundle_directory/windows-processes.txt" || true
 
     powershell.exe -NoProfile -Command '
         Get-WinEvent -FilterHashtable @{
@@ -79,11 +91,11 @@ if command -v powershell.exe >/dev/null 2>&1; then
             Select-Object TimeCreated, Id, ProviderName, LevelDisplayName,
                 Message |
             Format-List
-    ' >"$bundle_directory/windows-events.txt" 2>&1 || true
+    ' 2>&1 | redact_stream >"$bundle_directory/windows-events.txt" || true
 
     powershell.exe -NoProfile -Command '
         $dumpDirectory = Join-Path $env:LOCALAPPDATA "Emacsvox\Omnivox\dumps"
-        "dump_directory=$dumpDirectory"
+        "dump_directory_configured=$($null -ne $dumpDirectory)"
         Get-ChildItem -LiteralPath $dumpDirectory -Filter *.dmp -ErrorAction SilentlyContinue |
             Select-Object Name, Length, CreationTimeUtc, LastWriteTimeUtc |
             Format-List
@@ -96,16 +108,18 @@ if command -v powershell.exe >/dev/null 2>&1; then
                 Where-Object { $_.PSChildName -match "^Omnivox" } |
                 ForEach-Object { Get-ItemProperty -LiteralPath $_.PSPath }
         }
-    ' >"$bundle_directory/windows-dumps.txt" 2>&1 || true
+    ' 2>&1 | redact_stream >"$bundle_directory/windows-dumps.txt" || true
 fi
 
 if [ -d "$emacsvox_directory/servers/omnivox-bin/current" ]; then
     resolved_runtime=$(readlink -f -- "$emacsvox_directory/servers/omnivox-bin/current")
-    printf 'runtime=%s\n' "$resolved_runtime" \
-        >"$bundle_directory/runtime.txt"
+    printf 'runtime_present=yes\n' >"$bundle_directory/runtime.txt"
     find "$resolved_runtime" -maxdepth 1 -type f \
         \( -iname '*.exe' -o -iname '*.dll' \) -print0 |
-        xargs -0 -r sha256sum >>"$bundle_directory/runtime.txt"
+    while IFS= read -r -d '' runtime_file; do
+        runtime_hash=$(sha256sum "$runtime_file" | cut -d ' ' -f 1)
+        printf '%s  %s\n' "$runtime_hash" "$(basename -- "$runtime_file")"
+    done >>"$bundle_directory/runtime.txt"
 fi
 
 mkdir -p -- "$(dirname -- "$output")"

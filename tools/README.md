@@ -386,7 +386,10 @@ observation instead of including an unrelated process.
 
 `collect_diagnostics.sh` creates a bounded archive containing recent Omnivox
 session logs, build/runtime identity, process inventory, and relevant Windows
-events. It does not include Windows memory dumps. See
+events. It strips synthesis-text log records, redacts checkout and common
+user-home paths, omits process command lines, and stores runtime hashes by
+basename. It does not include Windows memory dumps; inspect the result before
+sharing because native error text can still carry unexpected private data. See
 [`docs/DIAGNOSTICS.md`](../docs/DIAGNOSTICS.md) for the failure workflow and the
 opt-in `configure_windows_crash_dumps.ps1` helper.
 

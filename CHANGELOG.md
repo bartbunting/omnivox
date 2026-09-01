@@ -48,6 +48,9 @@ Versioning for published releases.
   resolves the current dedicated child before acting, verifies exactly-once
   cancellation of outstanding work, proves the configured fallback, and then
   requires explicit recovery to the requested physical voice.
+- Added tested diagnostic redaction that removes synthesis-text records,
+  checkout and common user-home paths, process command lines, and Git filenames
+  from default support bundles while retaining bounded lifecycle evidence.
 - Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
   female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
   volume, bounded PCM, and cooperative cancellation handling. RuLex is not
