@@ -1,7 +1,7 @@
 # GitHub Actions Workflow
 
-[`build.yml`](build.yml) is the authoritative generic, Flite, and Piper release
-matrix.
+[`build.yml`](build.yml) is the authoritative generic, Flite, RuTTS, and Piper
+release matrix.
 [`piper-native.yml`](piper-native.yml) is a manual, non-publishing validation
 workflow for the optional Piper companion. User-facing artifact and
 installation details are in [../DEPLOYMENT.md](../DEPLOYMENT.md).
@@ -82,12 +82,30 @@ in-flight cancellation, remains responsive, and shuts down cleanly. The
 archive contains Flite's full licence and exact source provenance but no
 external `.flitevox` files.
 
+### `build_rutts`
+
+Every push, pull request, and release build compiles, tests, lints, stages,
+packages, relocates, and exercises the RuTTS companion on the same six native
+runners as Flite. Each helper performs 25 male and five female syntheses,
+reports rate/pitch/intonation/volume support, exercises cancellation, remains
+responsive, and shuts down cleanly. The archive contains RuTTS's full MIT
+licence and exact source provenance; it contains both built-in Russian voices
+but no RuLex library or dictionary.
+
 ### `package_flite_source`
 
 The tag-only source job creates and verifies
 `omnivox-VERSION-flite-source.tar.gz`. It contains the exact tagged Omnivox
 tree, checksum-locked upstream Flite v2.2 archive, provenance, and an exhaustive
 manifest. Verification reconstructs the prepared Flite source offline.
+
+### `package_rutts_source`
+
+The tag-only source job creates and verifies
+`omnivox-VERSION-rutts-source.tar.gz`. It contains the exact tagged Omnivox
+tree, checksum-locked upstream RuTTS v6.3.3 archive, provenance, and an
+exhaustive manifest. Verification reconstructs the prepared RuTTS source
+offline and confirms that RuLex is excluded.
 
 ### `package_piper_source_release`
 
@@ -99,8 +117,8 @@ archives used by the four companions.
 ### `package_release`
 
 Runs only for refs beginning `refs/tags/v` and depends on successful format,
-generic build/test, six Flite builds, four Piper builds, and both source jobs.
-It rejects a tag
+generic build/test, six Flite builds, six RuTTS builds, four Piper builds, and
+all three source jobs. It rejects a tag
 that does not match the compiled Linux binary version, restores Unix executable
 modes after the Actions artifact round-trip, creates five generic archives,
 adds all companion and source archives, and writes one exhaustive SHA-256 file.
@@ -139,14 +157,24 @@ syntheses, cancellation, and shutdown. The source verifier downloads the exact
 source artifact and repeats its manifest, Git-tree, source-lock, and offline
 preparation checks from the release tag.
 
+### `verify_rutts_release` and `verify_rutts_source_release`
+
+Six native runners download their exact RuTTS assets from the draft and
+recheck layout, architecture, payload hashes, relocation, ACSS reporting,
+male/female synthesis, cancellation, and shutdown. The source verifier
+downloads the exact source artifact and repeats its manifest, Git-tree,
+source-lock, RuLex-exclusion, and offline-preparation checks from the release
+tag.
+
 ### `publish_release`
 
-Publishes the draft only after every generic, Flite, Piper, and source
+Publishes the draft only after every generic, Flite, RuTTS, Piper, and source
 verification passes. Any failure leaves the release as a draft for inspection.
 
-The release does not package voice models, external Flite voices, Eloquence or
-DECtalk helpers, proprietary DLLs, or proprietary dictionaries. Generic
-archives contain the RHVoice helper but not an RHVoice runtime or voice data.
+The release does not package voice models, external Flite voices, RuLex,
+Eloquence or DECtalk helpers, proprietary DLLs, or proprietary dictionaries.
+Generic archives contain the RHVoice helper but not an RHVoice runtime or
+voice data.
 
 ### Piper native validation
 
@@ -175,11 +203,11 @@ release tag.
 ## Triggers
 
 ```text
-push to main       format + build + test
-pull request main  format + build + test
-v* tag             generic/Flite/Piper/source + draft + verify + publish
-manual main ref    format + build + test
-manual v* tag ref  format + build + test + package + draft + verify + publish
+push to main       format + generic/test + Flite/RuTTS companion gates
+pull request main  format + generic/test + Flite/RuTTS companion gates
+v* tag             generic/Flite/RuTTS/Piper/source + draft + verify + publish
+manual main ref    format + generic/test + Flite/RuTTS companion gates
+manual v* tag ref  all build/package/draft/verify/publish gates
 manual Piper flow  native companion package and verification; never publishes
 ```
 
@@ -188,7 +216,7 @@ it against `main` for the ordinary CI gates or against a `v*` tag to exercise
 the complete release path. If a draft was created but verification could not
 finish, dispatch against `main` with `draft_version` set to the version without
 its leading `v` (for example, `1.5.0`). The workflow skips the build matrix,
-downloads that existing draft's generic, Piper, and source assets, reruns every
+downloads that existing draft's generic, Flite, RuTTS, Piper, and source assets, reruns every
 native verification, and publishes only if every verifier passes. Generic and
 Piper checks use the verifier code from the dispatched ref, allowing a verifier
 defect to be repaired without replacing immutable release assets; the source

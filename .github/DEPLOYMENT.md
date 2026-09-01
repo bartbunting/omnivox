@@ -38,9 +38,22 @@ The same workflow publishes these SLT-only Flite companions:
 | Windows ARM64 | `omnivox-VERSION-flite-windows-arm64.zip` |
 | All six | `omnivox-VERSION-flite-source.tar.gz` |
 
+It also publishes these self-contained RuTTS companions with built-in male and
+female Russian voices:
+
+| Platform | Companion archive |
+|---|---|
+| Linux x64 | `omnivox-VERSION-rutts-linux-x64.tar.gz` |
+| Linux ARM64 | `omnivox-VERSION-rutts-linux-arm64.tar.gz` |
+| macOS Apple Silicon | `omnivox-VERSION-rutts-macos-arm64.tar.gz` |
+| macOS Intel | `omnivox-VERSION-rutts-macos-x64.tar.gz` |
+| Windows x64 | `omnivox-VERSION-rutts-windows-x64.zip` |
+| Windows ARM64 | `omnivox-VERSION-rutts-windows-arm64.zip` |
+| All six | `omnivox-VERSION-rutts-source.tar.gz` |
+
 Releases also publish one `sha256sums.txt` covering every generic, companion,
 and source archive. The workflow does **not** publish Linux ARM64 or Windows
-ARM64 Piper companions, voice models, proprietary-engine helpers, or
+ARM64 Piper companions, voice models, RuLex, proprietary-engine helpers, or
 proprietary runtimes.
 
 Published release `v1.4.1` predates the root `LICENSE` and `LICENSING.md`
@@ -88,6 +101,10 @@ The release version and archive prefix come from the tag name with its leading
   ACSS reporting, cancellation, and shutdown on Linux x64/ARM64, macOS
   Intel/Apple Silicon, and Windows x64/ARM64, plus the exact deterministic
   source artifact and offline source preparation.
+- Native RuTTS companion builds, archives, relocation, repeated male/female
+  synthesis, ACSS reporting, cancellation, and shutdown on Linux x64/ARM64,
+  macOS Intel/Apple Silicon, and Windows x64/ARM64, plus the exact deterministic
+  source artifact, RuLex-exclusion check, and offline source preparation.
 - Native Piper companion staging, linkage, relocation, persistent synthesis,
   cancellation, missing/corrupt-model fallback, and exact draft-asset Piper
   synthesis on Linux x64, Windows x64, and macOS ARM64/x64.
@@ -100,8 +117,9 @@ The release version and archive prefix come from the tag name with its leading
 The publishing workflow does not exercise real Eloquence or DECtalk runtimes,
 physical audible onset or audio-device playback, or Emacsvox's content-addressed
 Windows staging contract. The separate manual Piper workflow remains available
-for non-publishing engineering validation. Any failed generic, Piper, source,
-or draft-asset verification gate leaves the GitHub release unpublished.
+for non-publishing engineering validation. Any failed generic, Flite, RuTTS,
+Piper, source, or draft-asset verification gate leaves the GitHub release
+unpublished.
 
 ## Installing an archive
 
@@ -189,7 +207,10 @@ the runtime isolated. Supply a separately reviewed voice model and follow the
 require adjacent executables and user-supplied runtimes. For Flite, extract the
 matching companion's `flite/` directory beside the generic executable; its
 built-in SLT voice requires no additional runtime. See the
-[Flite companion guide](../docs/FLITE.md). The generic `rhvoice/` helper still
+[Flite companion guide](../docs/FLITE.md). For RuTTS, extract the matching
+companion's `rutts/` directory beside the generic executable; its built-in
+male and female voices require no additional runtime. See the
+[RuTTS companion guide](../docs/RUTTS.md). The generic `rhvoice/` helper still
 requires a separately installed compatible runtime and voice; see the
 [RHVoice guide](../docs/RHVOICE.md). The
 [Windows helper guide](../windows-helpers/README.md#runtime-requirements-and-installation)
@@ -283,7 +304,8 @@ or cancellation at the speaker.
 - Code signing/notarization is not part of the workflow; see the installation
   warning above.
 - Linux ARM64 artifacts and broad Linux distribution compatibility tests are
-  absent for the generic server. Linux ARM64 Flite has a native companion job.
+  absent for the generic server. Linux ARM64 Flite and RuTTS have native
+  companion jobs.
 - Optional helper/model packaging is separate from generic release archives.
 - Performance/onset and real proprietary-engine smoke tests are not CI gates.
 - Physical audible checks use commit-equivalent pre-tag builds; the workflow

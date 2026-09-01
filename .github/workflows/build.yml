@@ -310,6 +310,94 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
+  build_rutts:
+    name: Build RuTTS ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    if: github.event_name != 'workflow_dispatch' || inputs.draft_version == ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - name: macos-arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+          - name: macos-x64
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - name: windows-arm64
+            os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libasound2-dev pkg-config
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: rutts-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: rutts-${{ runner.os }}-${{ matrix.target }}-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: rutts-${{ runner.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
+          restore-keys: rutts-${{ runner.os }}-${{ matrix.target }}-build-
+
+      - name: Build and stage companion
+        run: python tools/build_rutts.py --release
+
+      - name: Recheck prepared source without network
+        run: python tools/prepare_rutts_inputs.py --check
+
+      - name: Test and lint native RuTTS crates
+        run: |
+          cargo test --locked --package omnivox-rutts-helper --package omnivox-rutts-sys -- --test-threads=1
+          cargo clippy --locked --package omnivox-rutts-helper --package omnivox-rutts-sys --all-targets -- -D warnings
+
+      - name: Package and verify companion
+        run: |
+          python tools/package_rutts.py
+          python tools/verify_rutts_release.py --iterations 25
+
+      - name: Upload verified companion
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnivox-rutts-${{ matrix.name }}
+          path: |
+            target/release/omnivox-*-rutts-${{ matrix.name }}.*
+            target/release/rutts-sha256sums.txt
+          compression-level: 0
+          if-no-files-found: error
+
   build_piper_release:
     name: Build Piper Release ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -481,9 +569,39 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
+  package_rutts_source:
+    name: Package RuTTS Source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Package and verify source artifact
+        run: |
+          python tools/package_rutts_source.py
+          python tools/verify_rutts_source.py
+
+      - name: Upload verified source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnivox-rutts-source
+          path: |
+            target/release/omnivox-*-rutts-source.tar.gz
+            target/release/rutts-source-sha256sums.txt
+          compression-level: 0
+          if-no-files-found: error
+
   package_release:
     name: Package Release
-    needs: [format, build, test, build_flite, build_piper_release, package_flite_source, package_piper_source_release]
+    needs: [format, build, test, build_flite, build_rutts, build_piper_release, package_flite_source, package_rutts_source, package_piper_source_release]
     runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     outputs:
@@ -543,6 +661,13 @@ jobs:
           cp omnivox-flite-windows-x64/omnivox-*-flite-windows-x64.zip .
           cp omnivox-flite-windows-arm64/omnivox-*-flite-windows-arm64.zip .
           cp omnivox-flite-source/omnivox-*-flite-source.tar.gz .
+          cp omnivox-rutts-linux-x64/omnivox-*-rutts-linux-x64.tar.gz .
+          cp omnivox-rutts-linux-arm64/omnivox-*-rutts-linux-arm64.tar.gz .
+          cp omnivox-rutts-macos-arm64/omnivox-*-rutts-macos-arm64.tar.gz .
+          cp omnivox-rutts-macos-x64/omnivox-*-rutts-macos-x64.tar.gz .
+          cp omnivox-rutts-windows-x64/omnivox-*-rutts-windows-x64.zip .
+          cp omnivox-rutts-windows-arm64/omnivox-*-rutts-windows-arm64.zip .
+          cp omnivox-rutts-source/omnivox-*-rutts-source.tar.gz .
 
       - name: Generate checksums
         run: |
@@ -694,6 +819,26 @@ jobs:
             their own licences. The exact upstream Flite source and Omnivox
             build integration are in
             `omnivox-${{ needs.package_release.outputs.version }}-flite-source.tar.gz`.
+
+            ### Optional RuTTS companions
+
+            RuTTS is a compact Russian out-of-process engine with built-in
+            `male` and `female` voices. Extract the matching archive's
+            top-level `rutts/` directory beside the generic executable. No
+            system RuTTS installation or separate voice download is required.
+
+            | Platform | Architecture | File |
+            |----------|-------------|------|
+            | Linux | x64 | `omnivox-${{ needs.package_release.outputs.version }}-rutts-linux-x64.tar.gz` |
+            | Linux | ARM64 | `omnivox-${{ needs.package_release.outputs.version }}-rutts-linux-arm64.tar.gz` |
+            | macOS | Apple Silicon | `omnivox-${{ needs.package_release.outputs.version }}-rutts-macos-arm64.tar.gz` |
+            | macOS | Intel | `omnivox-${{ needs.package_release.outputs.version }}-rutts-macos-x64.tar.gz` |
+            | Windows | x64 | `omnivox-${{ needs.package_release.outputs.version }}-rutts-windows-x64.zip` |
+            | Windows | ARM64 | `omnivox-${{ needs.package_release.outputs.version }}-rutts-windows-arm64.zip` |
+
+            This companion is built without RuLex. The exact upstream RuTTS
+            source and Omnivox build integration are in
+            `omnivox-${{ needs.package_release.outputs.version }}-rutts-source.tar.gz`.
 
             These binaries are not code-signed or notarized, so Gatekeeper or
             SmartScreen may warn. Verify `sha256sums.txt`; do not disable
@@ -1066,15 +1211,153 @@ jobs:
           --checksums downloaded/sha256sums.txt
           --version "$RELEASE_VERSION"
 
+  verify_rutts_release:
+    name: Verify RuTTS Release ${{ matrix.name }}
+    needs: [package_release, create_draft_release]
+    runs-on: ${{ matrix.os }}
+    if: >-
+      always() &&
+      (
+        (
+          startsWith(github.ref, 'refs/tags/v') &&
+          needs.package_release.result == 'success' &&
+          needs.create_draft_release.result == 'success'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.draft_version != ''
+        )
+      )
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
+      RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            name: linux-x64
+            suffix: linux-x64
+            extension: tar.gz
+          - os: ubuntu-24.04-arm
+            name: linux-arm64
+            suffix: linux-arm64
+            extension: tar.gz
+          - os: macos-15
+            name: macos-arm64
+            suffix: macos-arm64
+            extension: tar.gz
+          - os: macos-15-intel
+            name: macos-x64
+            suffix: macos-x64
+            extension: tar.gz
+          - os: windows-latest
+            name: windows-x64
+            suffix: windows-x64
+            extension: zip
+          - os: windows-11-arm
+            name: windows-arm64
+            suffix: windows-arm64
+            extension: zip
+
+    steps:
+      - name: Checkout verification code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download draft RuTTS asset
+        shell: bash
+        run: >-
+          gh release download "$RELEASE_TAG"
+          --repo "${{ github.repository }}"
+          --pattern "omnivox-$RELEASE_VERSION-rutts-${{ matrix.suffix }}.${{ matrix.extension }}"
+          --pattern sha256sums.txt
+          --dir downloaded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify exact downloaded RuTTS archive
+        shell: bash
+        run: >-
+          python tools/verify_rutts_release.py
+          --archive "downloaded/omnivox-$RELEASE_VERSION-rutts-${{ matrix.suffix }}.${{ matrix.extension }}"
+          --checksums downloaded/sha256sums.txt
+          --version "$RELEASE_VERSION"
+          --iterations 25
+
+  verify_rutts_source_release:
+    name: Verify RuTTS Source Release
+    needs: [package_release, create_draft_release]
+    runs-on: ubuntu-24.04
+    if: >-
+      always() &&
+      (
+        (
+          startsWith(github.ref, 'refs/tags/v') &&
+          needs.package_release.result == 'success' &&
+          needs.create_draft_release.result == 'success'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.draft_version != ''
+        )
+      )
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
+      RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
+
+    steps:
+      - name: Checkout verification code from release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download draft RuTTS source asset
+        shell: bash
+        run: >-
+          gh release download "$RELEASE_TAG"
+          --repo "${{ github.repository }}"
+          --pattern "omnivox-$RELEASE_VERSION-rutts-source.tar.gz"
+          --pattern sha256sums.txt
+          --dir downloaded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify exact downloaded RuTTS source artifact
+        shell: bash
+        run: >-
+          python tools/verify_rutts_source.py
+          --archive "downloaded/omnivox-$RELEASE_VERSION-rutts-source.tar.gz"
+          --checksums downloaded/sha256sums.txt
+          --version "$RELEASE_VERSION"
+
   publish_release:
     name: Publish Verified Release
-    needs: [verify_release, verify_flite_release, verify_flite_source_release, verify_piper_release, verify_piper_source_release]
+    needs: [verify_release, verify_flite_release, verify_flite_source_release, verify_rutts_release, verify_rutts_source_release, verify_piper_release, verify_piper_source_release]
     runs-on: ubuntu-latest
     if: >-
       always() &&
       needs.verify_release.result == 'success' &&
       needs.verify_flite_release.result == 'success' &&
       needs.verify_flite_source_release.result == 'success' &&
+      needs.verify_rutts_release.result == 'success' &&
+      needs.verify_rutts_source_release.result == 'success' &&
       needs.verify_piper_release.result == 'success' &&
       needs.verify_piper_source_release.result == 'success' &&
       (

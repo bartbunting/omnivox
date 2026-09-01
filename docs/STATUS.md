@@ -162,10 +162,11 @@ voice file. Publication also requires the exact Flite source artifact to pass
 its manifest, Git-tree, source-lock, and offline-preparation checks.
 
 RuTTS has deterministic binary and corresponding-source packaging with local
-Linux x64 verification. Its planned native gates use the same six companion
-targets as Flite and must pass real synthesis with both built-in voices,
+Linux x64 verification. Its checked-in native gates use the same six companion
+targets as Flite and require real synthesis with both built-in voices,
 cancellation, relocation, provenance, and offline source preparation before a
-tag can publish the assets.
+tag can publish the assets. Those new non-Linux-x64 gates remain pending until
+their hosted workflows pass.
 
 ## Validation
 
