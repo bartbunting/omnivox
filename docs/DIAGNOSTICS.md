@@ -139,6 +139,13 @@ python3 tools/stress_server.py ../emacsvox/servers/omnivox \
   --fault-engine-id flite --fallback-engine-id espeak
 ```
 
+Schema-v2 stress reports preserve completed dispatches' physical voices. Use
+`--voice-id ID` with `--expected-engine-id ENGINE` for strict voice testing,
+`--preferred-engine-id ENGINE` for registered-only Windows helpers, and
+`--text-profile rutts-ru` when exercising either RuTTS voice. A fault probe
+records the fallback voice separately, then requires the recovered helper to
+return to the requested exact voice.
+
 If speech stops, collect evidence before manually restarting it:
 
 ```sh

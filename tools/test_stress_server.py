@@ -22,6 +22,7 @@ def marker(identifier: int, sequence: int, event_type: str) -> str:
     }
     if event_type == "utterance_started":
         record["engine_id"] = "fake"
+        record["actual_voice"] = {"engine_id": "fake", "voice_id": "voice"}
     return benchmark_server.MARKER_PREFIX + base64.b64encode(
         json.dumps(record).encode()
     ).decode()
@@ -55,6 +56,27 @@ class StressServerTests(unittest.TestCase):
         stress_server.validate_histories(histories, {11: "completed"}, "fake")
         self.assertEqual(histories[11]["marker_sequences"], [1, 2])
         self.assertEqual(histories[11]["terminal_count"], 1)
+        self.assertEqual(
+            histories[11]["actual_voice"],
+            {"engine_id": "fake", "voice_id": "voice"},
+        )
+
+    def test_validates_exact_physical_voice(self) -> None:
+        session = FakeSession(
+            [
+                marker(14, 1, "semantic_event_reached"),
+                marker(14, 2, "utterance_started"),
+                f"{benchmark_server.TRACKED_PREFIX}14 completed",
+            ]
+        )
+        histories = stress_server.collect_histories(session, {14}, 0)
+        stress_server.validate_histories(
+            histories, {14: "completed"}, "fake", "voice"
+        )
+        with self.assertRaisesRegex(RuntimeError, "expected voice"):
+            stress_server.validate_histories(
+                histories, {14: "completed"}, "fake", "different"
+            )
 
     def test_rejects_a_marker_after_terminal(self) -> None:
         session = FakeSession(
@@ -94,11 +116,38 @@ class StressServerTests(unittest.TestCase):
 
     def test_semantic_timeline_keeps_domains_explicit(self) -> None:
         timeline = stress_server.semantic_timeline(
-            7, 13, "replacement", "replaceable", "navigation"
+            7,
+            13,
+            "replacement",
+            "replaceable",
+            "navigation",
+            benchmark_server.BENCHMARK_LOGICAL_VOICE_ID,
         )
         self.assertEqual(timeline["generation"], 7)
         self.assertEqual(timeline["replacement_key"], "navigation")
         self.assertEqual(timeline["actions"][0]["type"], "semantic_event")
+        self.assertEqual(
+            timeline["spans"][0]["logical_voice_id"],
+            benchmark_server.BENCHMARK_LOGICAL_VOICE_ID,
+        )
+
+    def test_rutts_stress_profile_is_lossless_koi8_r(self) -> None:
+        for text in stress_server.STRESS_TEXTS["rutts-ru"].values():
+            text.format(number=1).encode("koi8_r")
+
+    def test_realized_voices_are_unique_and_sorted(self) -> None:
+        histories = {
+            1: {"actual_voice": {"engine_id": "rutts", "voice_id": "male"}},
+            2: {"actual_voice": {"engine_id": "rutts", "voice_id": "female"}},
+            3: {"actual_voice": {"engine_id": "rutts", "voice_id": "male"}},
+        }
+        self.assertEqual(
+            stress_server.realized_voices(histories, {1, 2, 3}),
+            [
+                {"engine_id": "rutts", "voice_id": "female"},
+                {"engine_id": "rutts", "voice_id": "male"},
+            ],
+        )
 
 
 if __name__ == "__main__":

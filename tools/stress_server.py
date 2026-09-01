@@ -27,19 +27,58 @@ from typing import Any
 import benchmark_server
 
 
+STRESS_REPORT_VERSION = 2
+DEFAULT_TEXT_PROFILE = "english"
+STRESS_TEXTS = {
+    "english": {
+        "stale_segment": "Stale navigation segment {number} must be cancelled promptly.",
+        "ordered_survivor": "ordered survivor",
+        "navigation_winner": "navigation winner",
+        "urgent_survivor": "urgent survivor",
+        "completion_winner": "completion winner",
+        "hard_stop_segment": "Hard stop segment {number} must never survive cancellation.",
+        "hard_stop_recovery": "speech recovered after hard stop",
+        "helper_fallback": "helper failure should use fallback",
+        "helper_recovery": "helper restarted after recovery probe",
+    },
+    "rutts-ru": {
+        "stale_segment": "Устаревший фрагмент навигации {number} должен быть быстро отменён.",
+        "ordered_survivor": "упорядоченная речь продолжается",
+        "navigation_winner": "новая навигация продолжается",
+        "urgent_survivor": "срочная речь продолжается",
+        "completion_winner": "новое завершение продолжается",
+        "hard_stop_segment": "Фрагмент остановки {number} не должен пережить отмену.",
+        "hard_stop_recovery": "речь восстановилась после остановки",
+        "helper_fallback": "после сбоя помощника нужен резервный голос",
+        "helper_recovery": "помощник перезапущен после проверки",
+    },
+}
+
+
+def profile_text(profile: str, key: str, **fields: int) -> str:
+    texts = STRESS_TEXTS.get(profile)
+    if texts is None:
+        raise ValueError(f"unknown stress text profile: {profile}")
+    return texts[key].format(**fields)
+
+
 def semantic_timeline(
     generation: int,
     dispatch_id: int,
     text: str,
     policy: str,
     replacement_key: str | None = None,
+    logical_voice_id: str | None = None,
 ) -> dict[str, Any]:
+    span: dict[str, Any] = {"id": 1, "text": text}
+    if logical_voice_id:
+        span["logical_voice_id"] = logical_voice_id
     timeline: dict[str, Any] = {
         "protocol_version": 3,
         "generation": generation,
         "dispatch_id": dispatch_id,
         "delivery_policy": policy,
-        "spans": [{"id": 1, "text": text}],
+        "spans": [span],
         "actions": [
             {
                 "id": f"semantic-{dispatch_id}",
@@ -64,6 +103,7 @@ def empty_history() -> dict[str, Any]:
         "marker_types": [],
         "source_at_monotonic_ns": None,
         "engine_id": None,
+        "actual_voice": None,
         "terminal_at_monotonic_ns": None,
         "status": None,
         "terminal_count": 0,
@@ -99,6 +139,7 @@ def record_output_line(
         ):
             history["source_at_monotonic_ns"] = observed_at
             history["engine_id"] = event.get("engine_id")
+            history["actual_voice"] = event.get("actual_voice")
         return
 
     if not line.startswith(benchmark_server.TRACKED_PREFIX):
@@ -150,6 +191,7 @@ def validate_histories(
     histories: dict[int, dict[str, Any]],
     expected_statuses: dict[int, str],
     expected_engine_id: str | None,
+    expected_voice_id: str | None = None,
 ) -> None:
     for identifier, expected_status in expected_statuses.items():
         history = histories[identifier]
@@ -169,6 +211,16 @@ def validate_histories(
                     f"dispatch {identifier} expected engine {expected_engine_id!r}, "
                     f"realized {history['engine_id']!r}"
                 )
+            if expected_voice_id:
+                expected_voice = {
+                    "engine_id": expected_engine_id,
+                    "voice_id": expected_voice_id,
+                }
+                if history["actual_voice"] != expected_voice:
+                    raise RuntimeError(
+                        f"dispatch {identifier} expected voice {expected_voice!r}, "
+                        f"realized {history['actual_voice']!r}"
+                    )
 
 
 def send_timeline(
@@ -177,42 +229,136 @@ def send_timeline(
     text: str,
     policy: str,
     replacement_key: str | None = None,
+    logical_voice_id: str | None = None,
 ) -> tuple[int, int]:
     generation, identifier = identities.next()
     sent_at = session.send_timeline(
-        semantic_timeline(generation, identifier, text, policy, replacement_key)
+        semantic_timeline(
+            generation,
+            identifier,
+            text,
+            policy,
+            replacement_key,
+            logical_voice_id,
+        )
     )
     return identifier, sent_at
+
+
+def realized_voices(
+    histories: dict[int, dict[str, Any]],
+    identifiers: set[int],
+) -> list[dict[str, str]]:
+    voices = {
+        (voice["engine_id"], voice["voice_id"])
+        for identifier in identifiers
+        if isinstance((voice := histories[identifier].get("actual_voice")), dict)
+        and isinstance(voice.get("engine_id"), str)
+        and isinstance(voice.get("voice_id"), str)
+    }
+    return [
+        {"engine_id": engine_id, "voice_id": voice_id}
+        for engine_id, voice_id in sorted(voices)
+    ]
 
 
 def run_replacement_iteration(
     session: benchmark_server.ServerSession,
     identities: benchmark_server.IdentitySequence,
     expected_engine_id: str | None,
+    expected_voice_id: str | None,
+    text_profile: str,
     quiet_seconds: float,
 ) -> dict[str, Any]:
+    logical_voice_id = (
+        benchmark_server.BENCHMARK_LOGICAL_VOICE_ID if expected_voice_id else None
+    )
     stale_text = " ".join(
-        f"Stale navigation segment {number} must be cancelled promptly."
+        profile_text(text_profile, "stale_segment", number=number)
         for number in range(1, 13)
     )
     sends = []
     sends.append(
-        (*send_timeline(session, identities, stale_text, "replaceable", "navigation"), "cancelled")
+        (
+            *send_timeline(
+                session,
+                identities,
+                stale_text,
+                "replaceable",
+                "navigation",
+                logical_voice_id,
+            ),
+            "cancelled",
+        )
     )
     sends.append(
-        (*send_timeline(session, identities, stale_text, "replaceable", "completion"), "cancelled")
+        (
+            *send_timeline(
+                session,
+                identities,
+                stale_text,
+                "replaceable",
+                "completion",
+                logical_voice_id,
+            ),
+            "cancelled",
+        )
     )
-    sends.append((*send_timeline(session, identities, "ordered survivor", "ordered"), "completed"))
     sends.append(
-        (*send_timeline(session, identities, "navigation winner", "replaceable", "navigation"), "completed")
+        (
+            *send_timeline(
+                session,
+                identities,
+                profile_text(text_profile, "ordered_survivor"),
+                "ordered",
+                logical_voice_id=logical_voice_id,
+            ),
+            "completed",
+        )
     )
-    sends.append((*send_timeline(session, identities, "urgent survivor", "urgent"), "completed"))
     sends.append(
-        (*send_timeline(session, identities, "completion winner", "replaceable", "completion"), "completed")
+        (
+            *send_timeline(
+                session,
+                identities,
+                profile_text(text_profile, "navigation_winner"),
+                "replaceable",
+                "navigation",
+                logical_voice_id,
+            ),
+            "completed",
+        )
+    )
+    sends.append(
+        (
+            *send_timeline(
+                session,
+                identities,
+                profile_text(text_profile, "urgent_survivor"),
+                "urgent",
+                logical_voice_id=logical_voice_id,
+            ),
+            "completed",
+        )
+    )
+    sends.append(
+        (
+            *send_timeline(
+                session,
+                identities,
+                profile_text(text_profile, "completion_winner"),
+                "replaceable",
+                "completion",
+                logical_voice_id,
+            ),
+            "completed",
+        )
     )
     expected = {identifier: status for identifier, _, status in sends}
     histories = collect_histories(session, set(expected), quiet_seconds)
-    validate_histories(histories, expected, expected_engine_id)
+    validate_histories(
+        histories, expected, expected_engine_id, expected_voice_id
+    )
     terminal_ms = {
         str(identifier): benchmark_server.milliseconds(
             histories[identifier]["terminal_at_monotonic_ns"], sent_at
@@ -223,6 +369,14 @@ def run_replacement_iteration(
         "dispatches": len(sends),
         "cancelled": sum(status == "cancelled" for status in expected.values()),
         "completed": sum(status == "completed" for status in expected.values()),
+        "actual_voices": realized_voices(
+            histories,
+            {
+                identifier
+                for identifier, status in expected.items()
+                if status == "completed"
+            },
+        ),
         "cancelled_with_reached_markers": sum(
             bool(histories[identifier]["marker_sequences"])
             for identifier, status in expected.items()
@@ -236,15 +390,33 @@ def run_hard_stop(
     session: benchmark_server.ServerSession,
     identities: benchmark_server.IdentitySequence,
     expected_engine_id: str | None,
+    expected_voice_id: str | None,
+    text_profile: str,
     quiet_seconds: float,
 ) -> dict[str, Any]:
+    logical_voice_id = (
+        benchmark_server.BENCHMARK_LOGICAL_VOICE_ID if expected_voice_id else None
+    )
     long_text = " ".join(
-        f"Hard stop segment {number} must never survive cancellation."
+        profile_text(text_profile, "hard_stop_segment", number=number)
         for number in range(1, 17)
     )
     stopped = [
-        send_timeline(session, identities, long_text, "ordered"),
-        send_timeline(session, identities, long_text, "replaceable", "hard-stop"),
+        send_timeline(
+            session,
+            identities,
+            long_text,
+            "ordered",
+            logical_voice_id=logical_voice_id,
+        ),
+        send_timeline(
+            session,
+            identities,
+            long_text,
+            "replaceable",
+            "hard-stop",
+            logical_voice_id,
+        ),
     ]
     stop_sent_at = session.send_line("s")
     expected = {identifier: "cancelled" for identifier, _ in stopped}
@@ -252,10 +424,19 @@ def run_hard_stop(
     validate_histories(histories, expected, None)
 
     survivor, survivor_sent = send_timeline(
-        session, identities, "speech recovered after hard stop", "ordered"
+        session,
+        identities,
+        profile_text(text_profile, "hard_stop_recovery"),
+        "ordered",
+        logical_voice_id=logical_voice_id,
     )
     survivor_history = collect_histories(session, {survivor}, quiet_seconds)
-    validate_histories(survivor_history, {survivor: "completed"}, expected_engine_id)
+    validate_histories(
+        survivor_history,
+        {survivor: "completed"},
+        expected_engine_id,
+        expected_voice_id,
+    )
     return {
         "cancelled": len(stopped),
         "stop_to_last_terminal_ms": max(
@@ -267,6 +448,7 @@ def run_hard_stop(
         "recovery_dispatch_to_source_ms": benchmark_server.milliseconds(
             survivor_history[survivor]["source_at_monotonic_ns"], survivor_sent
         ),
+        "actual_voice": survivor_history[survivor]["actual_voice"],
     }
 
 
@@ -420,12 +602,21 @@ def run_helper_recovery(
     injector: HelperFaultInjector,
     fault_engine_id: str,
     fallback_engine_id: str | None,
+    recovered_voice_id: str | None,
+    text_profile: str,
     quiet_seconds: float,
     control_request_id: int,
 ) -> dict[str, Any]:
+    logical_voice_id = (
+        benchmark_server.BENCHMARK_LOGICAL_VOICE_ID if recovered_voice_id else None
+    )
     killed_pid = injector.kill(session.process.pid)
     failed_id, failed_sent = send_timeline(
-        session, identities, "helper failure should use fallback", "ordered"
+        session,
+        identities,
+        profile_text(text_profile, "helper_fallback"),
+        "ordered",
+        logical_voice_id=logical_voice_id,
     )
     failed_history = collect_histories(session, {failed_id}, quiet_seconds)
     validate_histories(failed_history, {failed_id: "completed"}, fallback_engine_id)
@@ -445,20 +636,29 @@ def run_helper_recovery(
         raise RuntimeError(f"server rejected helper recovery probe: {response}")
 
     recovered_id, recovered_sent = send_timeline(
-        session, identities, "helper restarted after recovery probe", "ordered"
+        session,
+        identities,
+        profile_text(text_profile, "helper_recovery"),
+        "ordered",
+        logical_voice_id=logical_voice_id,
     )
     recovered_history = collect_histories(session, {recovered_id}, quiet_seconds)
     validate_histories(
-        recovered_history, {recovered_id: "completed"}, fault_engine_id
+        recovered_history,
+        {recovered_id: "completed"},
+        fault_engine_id,
+        recovered_voice_id,
     )
     return {
         "provider": injector.provider,
         "killed_process_id": killed_pid,
         "fallback_engine_id": realized_fallback,
+        "fallback_actual_voice": failed_history[failed_id]["actual_voice"],
         "fallback_dispatch_to_source_ms": benchmark_server.milliseconds(
             failed_history[failed_id]["source_at_monotonic_ns"], failed_sent
         ),
         "recovered_engine_id": recovered_history[recovered_id]["engine_id"],
+        "recovered_actual_voice": recovered_history[recovered_id]["actual_voice"],
         "recovery_dispatch_to_source_ms": benchmark_server.milliseconds(
             recovered_history[recovered_id]["source_at_monotonic_ns"], recovered_sent
         ),
@@ -471,6 +671,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--server-arg", action="append", default=[])
     parser.add_argument("--engine", help="set OMNIVOX_ENGINE for the server")
     parser.add_argument("--expected-engine-id")
+    parser.add_argument(
+        "--preferred-engine-id",
+        help="set one strict runtime engine preference before stress dispatches",
+    )
+    parser.add_argument(
+        "--voice-id",
+        help="register and require an exact voice; requires --expected-engine-id",
+    )
+    parser.add_argument(
+        "--text-profile",
+        choices=tuple(STRESS_TEXTS),
+        default=DEFAULT_TEXT_PROFILE,
+        help="language-specific stress text (default: english)",
+    )
     parser.add_argument("--iterations", type=int, default=10)
     parser.add_argument("--stop-every", type=int, default=5)
     parser.add_argument("--quiet-seconds", type=float, default=0.1)
@@ -508,6 +722,16 @@ def main() -> None:
         )
     if args.fault_helper_process and not args.fallback_engine_id:
         raise SystemExit("--fallback-engine-id is required for helper fault recovery")
+    if args.voice_id and not args.expected_engine_id:
+        raise SystemExit("--voice-id requires --expected-engine-id")
+    if (
+        args.fault_engine_id
+        and args.preferred_engine_id
+        and args.fault_engine_id != args.preferred_engine_id
+    ):
+        raise SystemExit(
+            "--preferred-engine-id must equal --fault-engine-id during fault recovery"
+        )
 
     injector = (
         HelperFaultInjector(args.fault_helper_process)
@@ -519,13 +743,16 @@ def main() -> None:
     )
     identities = benchmark_server.IdentitySequence()
     report: dict[str, Any] = {
-        "report_version": 1,
+        "report_version": STRESS_REPORT_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "host": {"platform": platform.platform(), "python": platform.python_version()},
         "configuration": {
             "server": [args.server, *args.server_arg],
             "engine": args.engine,
+            "preferred_engine_id": args.preferred_engine_id,
             "expected_engine_id": args.expected_engine_id,
+            "voice_id": args.voice_id,
+            "text_profile": args.text_profile,
             "iterations": args.iterations,
             "stop_every": args.stop_every,
             "quiet_seconds": args.quiet_seconds,
@@ -565,12 +792,29 @@ def main() -> None:
                 raise RuntimeError(
                     f"server rejected fault-test routing policy: {routing_response}"
                 )
+        elif args.preferred_engine_id:
+            benchmark_server.configure_preferred_engine(
+                session,
+                capabilities,
+                args.preferred_engine_id,
+                30_000_001,
+            )
+        if args.voice_id:
+            benchmark_server.configure_exact_voice(
+                session,
+                capabilities,
+                args.expected_engine_id,
+                args.voice_id,
+                30_000_002,
+            )
         for iteration in range(1, args.iterations + 1):
             report["replacement_iterations"].append(
                 run_replacement_iteration(
                     session,
                     identities,
                     args.expected_engine_id,
+                    args.voice_id,
+                    args.text_profile,
                     args.quiet_seconds,
                 )
             )
@@ -580,6 +824,8 @@ def main() -> None:
                         session,
                         identities,
                         args.expected_engine_id,
+                        args.voice_id,
+                        args.text_profile,
                         args.quiet_seconds,
                     )
                 )
@@ -595,8 +841,10 @@ def main() -> None:
                 injector,
                 args.fault_engine_id,
                 args.fallback_engine_id,
+                args.voice_id,
+                args.text_profile,
                 args.quiet_seconds,
-                30_000_002,
+                30_000_003,
             )
             print(
                 "completed validated helper fault and recovery",

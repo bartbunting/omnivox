@@ -207,4 +207,6 @@ artifact or physical acoustic onset.
 urgent survival, repeated hard-stop recovery, contiguous marker and semantic
 event history, and exactly-once terminal status. Its optional fault mode kills
 only one uniquely resolved child of its dedicated server, then verifies the
-configured fallback and explicit helper recovery probe.
+configured fallback and explicit helper recovery probe. Schema-v2 reports
+retain physical voices, and strict exact-voice plus Russian-profile controls
+cover both RuTTS voices without weakening fallback validation.

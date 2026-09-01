@@ -34,7 +34,9 @@ Versioning for published releases.
 - Added server-level stress tooling for interleaved replacement domains,
   ordered and urgent survivors, hard-stop recovery, marker and semantic-event
   ordering, exactly-once terminal history, and opt-in validated helper fault,
-  fallback, and restart testing.
+  fallback, and restart testing. Reports now retain exact physical voices;
+  strict voice selection, runtime-only engine selection, and a Russian stress
+  profile cover both RuTTS voices and registered Windows helpers.
 - Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
   female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
   volume, bounded PCM, and cooperative cancellation handling. RuLex is not

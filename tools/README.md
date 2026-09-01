@@ -314,7 +314,8 @@ instead of being overwritten or mistaken for a complete suite.
 replaceable domains with ordered and urgent survivors. It validates contiguous
 marker sequence, completed semantic callbacks, expected cancellation, exactly
 one terminal record, absence of post-terminal events, periodic hard stops, and
-successful speech after each stop:
+successful speech after each stop. Schema-v2 reports retain the exact physical
+voices observed on completed dispatches:
 
 ```sh
 python3 tools/stress_server.py ../emacsvox/servers/omnivox \
@@ -339,6 +340,23 @@ python3 tools/stress_server.py ../emacsvox/servers/omnivox \
 
 On POSIX, use the helper executable's exact basename without `.exe`. Fault
 injection is never enabled by default.
+
+The stress harness accepts the benchmark tool's strict routing controls. Use
+`--preferred-engine-id` for registered-only DECtalk or Eloquence, and combine
+`--voice-id` with `--expected-engine-id` to reject a different physical voice.
+RuTTS needs its Russian profile:
+
+```sh
+python3 tools/stress_server.py ../emacsvox/servers/omnivox \
+  --engine rutts --expected-engine-id rutts --voice-id female \
+  --text-profile rutts-ru --iterations 25 --stop-every 5 \
+  --json-output /path/to/private/rutts-female-stress.json
+```
+
+The exact logical route is used for ordinary, replaceable, urgent, and hard-stop
+recovery speech. During an explicit helper-fault probe, the fallback voice is
+recorded without being mistaken for the requested voice; the recovered helper
+must return to the requested engine and physical voice.
 
 ## Failure diagnostics
 
