@@ -25,6 +25,11 @@ TEST_TEXTS = (
     "Unicode café and naïve words work here. Another sentence follows?",
     "A short clause, followed by another clause; then the sentence ends.",
 )
+RUTTS_TEST_TEXTS = (
+    "Первое предложение содержит несколько слов. Второе проверяет завершение!",
+    "Русский текст использует букву ё. Следующее предложение продолжается?",
+    "Короткая фраза, затем другая фраза; и предложение заканчивается.",
+)
 CANCEL_PROBE_TEXT = " ".join(
     f"Cancellation probe sentence {number} should not reach the audio mixer."
     for number in range(1, 17)
@@ -389,10 +394,11 @@ def main():
             )
 
         next_request_id = 3
+        test_texts = RUTTS_TEST_TEXTS if args.engine_id == "rutts" else TEST_TEXTS
         for iteration in range(args.iterations):
             text = exercise_text(
                 args.engine_id,
-                TEST_TEXTS[iteration % len(TEST_TEXTS)],
+                test_texts[iteration % len(test_texts)],
                 marker_capabilities,
             )
             frames, markers, byte_count = synthesize(

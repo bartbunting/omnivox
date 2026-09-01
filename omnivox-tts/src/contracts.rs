@@ -408,6 +408,8 @@ pub enum TextRepertoire {
     Windows1252,
     #[serde(rename = "iso_8859_1")]
     Iso8859_1,
+    #[serde(rename = "koi8_r")]
+    Koi8R,
 }
 
 impl TextRepertoire {
@@ -429,6 +431,11 @@ impl TextRepertoire {
             Self::Unicode => true,
             Self::Iso8859_1 => u32::from(character) <= 0xff,
             Self::Windows1252 => windows_1252_supports(character),
+            Self::Koi8R => {
+                character.is_ascii()
+                    || matches!(character, '\u{0401}' | '\u{0451}')
+                    || ('\u{0410}'..='\u{044f}').contains(&character)
+            }
             Self::Unknown => character.is_ascii(),
         }
     }
@@ -699,6 +706,9 @@ mod tests {
         assert!(!TextRepertoire::Windows1252.supports_text("e\u{301}"));
         assert!(TextRepertoire::Iso8859_1.supports_text("café ÿ"));
         assert!(!TextRepertoire::Iso8859_1.supports_text("€"));
+        assert!(TextRepertoire::Koi8R.supports_text("Привет, мир! Ёж."));
+        assert!(!TextRepertoire::Koi8R.supports_text("Привет — мир"));
+        assert!(!TextRepertoire::Koi8R.supports_text("Вітаю"));
         assert!(TextRepertoire::Unknown.supports_text("ASCII only"));
         assert!(!TextRepertoire::Unknown.supports_text("café"));
         assert_eq!(
@@ -708,6 +718,10 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&TextRepertoire::Iso8859_1).unwrap(),
             "\"iso_8859_1\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TextRepertoire::Koi8R).unwrap(),
+            "\"koi8_r\""
         );
     }
 

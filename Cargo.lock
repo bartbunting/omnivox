@@ -718,6 +718,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "omnivox-rutts-helper"
+version = "1.5.1"
+dependencies = [
+ "omnivox-helper-host",
+ "omnivox-rutts-sys",
+ "omnivox-tts",
+]
+
+[[package]]
 name = "omnivox-rutts-sys"
 version = "1.5.1"
 dependencies = [

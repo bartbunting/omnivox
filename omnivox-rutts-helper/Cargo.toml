@@ -1,0 +1,15 @@
+[package]
+name = "omnivox-rutts-helper"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+omnivox-helper-host = { path = "../omnivox-helper-host" }
+omnivox-rutts-sys = { path = "../omnivox-rutts-sys" }
+omnivox-tts = { path = "../omnivox-tts", default-features = false }
+
+[[bin]]
+name = "omnivox-rutts-helper"
+path = "src/main.rs"
