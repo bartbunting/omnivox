@@ -358,6 +358,23 @@ recovery speech. During an explicit helper-fault probe, the fallback voice is
 recorded without being mistaken for the requested voice; the recovered helper
 must return to the requested engine and physical voice.
 
+Long runs can sample the complete server/helper process tree. A direct native
+server needs only `--resource-sample-every N`; when WSL uses a launcher script,
+also name the exact Windows root:
+
+```sh
+python3 tools/stress_server.py ../emacsvox/servers/omnivox \
+  --engine flite --expected-engine-id flite --iterations 100 \
+  --resource-sample-every 5 --resource-process-name omnivox.exe \
+  --json-output /path/to/private/flite-server-soak.json
+```
+
+The report aggregates the root and its current descendants and also groups
+metrics by executable basename. It includes a complete launch-to-shutdown
+summary and a separate steady-state summary that excludes the initial process
+sample. Exact new-root resolution is mandatory on Windows; ambiguity disables
+observation instead of including an unrelated process.
+
 ## Failure diagnostics
 
 `collect_diagnostics.sh` creates a bounded archive containing recent Omnivox
@@ -399,6 +416,10 @@ repeated in-flight cancellation, `--health-every N` for liveness probes, and
 `--json-output FILE` report contains elapsed samples and first/last/minimum/
 maximum/growth summaries for available working-set, private-byte, virtual-byte,
 handle, thread, and CPU counters.
+
+Both the complete resource summary and a steady-state summary excluding the
+initial process sample are retained, so runtime initialization is not silently
+reported as long-session growth.
 
 When WSL launches a Windows `.exe`, the tool snapshots Windows processes first
 and binds only one newly created process with the exact executable name. It

@@ -564,6 +564,13 @@ def main():
             **observer.description(),
             "samples": resource_samples,
             "summary": process_metrics.summarize_samples(resource_samples),
+            "steady_state_summary": process_metrics.summarize_samples(
+                [
+                    sample
+                    for sample in resource_samples
+                    if sample["phase"] != "started"
+                ]
+            ),
         },
     }
     serialized = json.dumps(report, indent=2, sort_keys=True) + "\n"

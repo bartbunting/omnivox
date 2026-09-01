@@ -41,6 +41,9 @@ Versioning for published releases.
   cancellation probes plus working-set, private-byte, handle, thread, and CPU
   samples. Native Windows helper metrics are resolved conservatively from WSL;
   ambiguous processes are never sampled as evidence.
+- Added opt-in server process-tree sampling to stress reports, including
+  aggregate and per-executable steady-state resource summaries for the server
+  and every helper descendant without storing executable paths.
 - Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
   female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
   volume, bounded PCM, and cooperative cancellation handling. RuLex is not

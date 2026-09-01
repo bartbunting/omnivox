@@ -43,7 +43,9 @@ The structured identity model remains:
    sets, and quarantined native-call capacity on real platforms. The helper
    soak tool now records working-set/private-byte, handle, thread, and CPU
    samples on POSIX and native Windows helpers; multi-engine evidence and
-   explicit release thresholds remain outstanding.
+   explicit release thresholds remain outstanding. Server stress can also
+   group the root and all helper descendants by executable, separating startup
+   growth from steady-state growth.
 5. Keep malformed-input, queue-saturation, multipart timeout, and partial-write
    tests aligned with every protocol change.
 

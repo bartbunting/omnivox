@@ -216,3 +216,6 @@ in-flight cancellations in one persistent helper session while recording
 machine-readable process-resource samples. It observes native Windows helper
 counters from WSL only after resolving one unique new process; ambiguity is
 reported as unavailable rather than attributed to the wrong helper.
+Server stress can also sample the complete server/helper process tree, with
+aggregate and per-executable steady-state summaries. This is opt-in so process
+inspection overhead does not contaminate ordinary latency measurements.

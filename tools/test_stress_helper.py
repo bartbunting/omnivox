@@ -107,6 +107,44 @@ class StressHelperTests(unittest.TestCase):
             "omnivox-helper.exe",
         )
 
+    def test_process_tree_aggregation_excludes_unrelated_processes(self) -> None:
+        snapshot = {
+            10: {
+                "parent": 1,
+                "name": "omnivox.exe",
+                "working_set_bytes": 100,
+                "handle_count": 4,
+            },
+            11: {
+                "parent": 10,
+                "name": "helper.exe",
+                "working_set_bytes": 50,
+                "handle_count": 2,
+            },
+            12: {
+                "parent": 11,
+                "name": "worker.exe",
+                "working_set_bytes": 25,
+                "handle_count": 1,
+            },
+            20: {
+                "parent": 1,
+                "name": "helper.exe",
+                "working_set_bytes": 999,
+                "handle_count": 99,
+            },
+        }
+        aggregate = process_metrics.aggregate_tree(10, snapshot)
+        self.assertEqual(
+            process_metrics.tree_process_ids(10, snapshot), {10, 11, 12}
+        )
+        self.assertIsNotNone(aggregate)
+        assert aggregate is not None
+        self.assertEqual(aggregate["process_count"], 3)
+        self.assertEqual(aggregate["working_set_bytes"], 175)
+        self.assertEqual(aggregate["handle_count"], 7)
+        self.assertEqual(aggregate["by_name"]["helper.exe"]["process_count"], 1)
+
     def test_fake_helper_soak_writes_metrics_and_periodic_cancellations(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             report_path = Path(directory) / "soak.json"
@@ -147,6 +185,9 @@ class StressHelperTests(unittest.TestCase):
         self.assertNotIn("helper", report["configuration"])
         self.assertEqual(report["resources"]["provider"], "procfs")
         self.assertGreaterEqual(report["resources"]["summary"]["sample_count"], 3)
+        self.assertGreaterEqual(
+            report["resources"]["steady_state_summary"]["sample_count"], 2
+        )
 
 
 if __name__ == "__main__":

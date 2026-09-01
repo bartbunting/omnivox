@@ -25,6 +25,7 @@ import time
 from typing import Any
 
 import benchmark_server
+import process_metrics
 
 
 STRESS_REPORT_VERSION = 2
@@ -690,6 +691,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--quiet-seconds", type=float, default=0.1)
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument(
+        "--resource-sample-every",
+        type=int,
+        default=0,
+        help="sample the server process tree every N iterations (default: disabled)",
+    )
+    parser.add_argument(
+        "--resource-process-name",
+        help="exact native Windows server name to resolve from a WSL launcher",
+    )
+    parser.add_argument(
         "--fault-helper-process",
         help="exact child executable name to kill once, such as omnivox-flite-helper.exe",
     )
@@ -716,6 +727,12 @@ def main() -> None:
         raise SystemExit("--quiet-seconds cannot be negative")
     if args.timeout <= 0:
         raise SystemExit("--timeout must be positive")
+    if args.resource_sample_every < 0:
+        raise SystemExit("--resource-sample-every cannot be negative")
+    if args.resource_process_name and not args.resource_sample_every:
+        raise SystemExit(
+            "--resource-process-name requires --resource-sample-every"
+        )
     if bool(args.fault_helper_process) != bool(args.fault_engine_id):
         raise SystemExit(
             "--fault-helper-process and --fault-engine-id must be supplied together"
@@ -738,9 +755,38 @@ def main() -> None:
         if args.fault_helper_process
         else None
     )
+    resource_observer = (
+        process_metrics.ProcessTreeObserver(
+            args.server, args.resource_process_name
+        )
+        if args.resource_sample_every
+        else None
+    )
     session = benchmark_server.ServerSession(
         [args.server, *args.server_arg], args.engine, args.timeout
     )
+    if resource_observer is not None:
+        resource_observer.bind(session.process.pid)
+    resource_samples: list[dict[str, Any]] = []
+
+    def capture_resources(iteration: int, phase: str) -> None:
+        if resource_observer is None:
+            return
+        sample = resource_observer.sample()
+        if sample is None:
+            return
+        resource_samples.append(
+            {
+                "iteration": iteration,
+                "phase": phase,
+                "elapsed_ms": benchmark_server.milliseconds(
+                    time.perf_counter_ns(), session.started_at_ns
+                ),
+                **sample,
+            }
+        )
+
+    capture_resources(0, "started")
     identities = benchmark_server.IdentitySequence()
     report: dict[str, Any] = {
         "report_version": STRESS_REPORT_VERSION,
@@ -757,6 +803,8 @@ def main() -> None:
             "stop_every": args.stop_every,
             "quiet_seconds": args.quiet_seconds,
             "timeout_seconds": args.timeout,
+            "resource_sample_every": args.resource_sample_every,
+            "resource_process_name": args.resource_process_name,
         },
         "provenance": (
             benchmark_server.read_provenance(args.provenance)
@@ -766,6 +814,7 @@ def main() -> None:
         "replacement_iterations": [],
         "hard_stops": [],
         "helper_recovery": None,
+        "resources": None,
     }
     progress_stream = sys.stderr if args.json_output == "-" else sys.stdout
     try:
@@ -776,6 +825,7 @@ def main() -> None:
                 ready_at, session.started_at_ns
             ),
         }
+        capture_resources(0, "ready")
         if injector is not None:
             routing_response, _ = session.request_control(
                 {
@@ -829,6 +879,11 @@ def main() -> None:
                         args.quiet_seconds,
                     )
                 )
+            if (
+                args.resource_sample_every
+                and iteration % args.resource_sample_every == 0
+            ):
+                capture_resources(iteration, "interval")
             print(
                 f"completed stress iteration {iteration}/{args.iterations}",
                 file=progress_stream,
@@ -851,8 +906,23 @@ def main() -> None:
                 file=progress_stream,
                 flush=True,
             )
+        capture_resources(args.iterations, "before_shutdown")
     finally:
         session.close()
+
+    if resource_observer is not None:
+        report["resources"] = {
+            **resource_observer.description(),
+            "samples": resource_samples,
+            "summary": process_metrics.summarize_tree_samples(resource_samples),
+            "steady_state_summary": process_metrics.summarize_tree_samples(
+                [
+                    sample
+                    for sample in resource_samples
+                    if sample["phase"] != "started"
+                ]
+            ),
+        }
 
     serialized = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.json_output == "-":

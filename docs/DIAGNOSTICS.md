@@ -146,6 +146,13 @@ Schema-v2 stress reports preserve completed dispatches' physical voices. Use
 records the fallback voice separately, then requires the recovered helper to
 return to the requested exact voice.
 
+For a long server run, add `--resource-sample-every N`. From a WSL launcher,
+also use `--resource-process-name omnivox.exe` so the tool resolves one new
+native Windows root and follows only its descendants. Reports contain aggregate
+and per-executable resource samples plus full-run and steady-state summaries;
+they retain basenames and process IDs but omit executable paths. Resource
+sampling is disabled by default because process inspection can perturb latency.
+
 If speech stops, collect evidence before manually restarting it:
 
 ```sh
