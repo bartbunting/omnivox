@@ -92,8 +92,10 @@ unsigned and no Piper companion archive is currently published. See the
 
 ## Proprietary engines and other dependencies
 
-Eloquence and DECtalk runtimes, dictionaries, and voices are user-supplied and
-are not distributed by Omnivox. Their vendor terms continue to apply. Omnivox
-also depends on Rust crates and platform frameworks that retain their own
-licenses. This component map is not an exhaustive replacement for their source
-license files or package metadata.
+Eloquence and DECtalk runtimes and their dictionary or voice data are
+user-supplied and are not distributed by Omnivox. Their vendor terms continue
+to apply. Public availability of a DECtalk source or binary download does not
+replace its restrictive `LICENCE` or establish that a particular user is
+authorized to use it. Omnivox also depends on Rust crates and platform
+frameworks that retain their own licenses. This component map is not an
+exhaustive replacement for their source license files or package metadata.

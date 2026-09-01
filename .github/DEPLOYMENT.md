@@ -165,7 +165,10 @@ For a release that lists Piper, verify and extract the matching companion into
 the generic executable's directory; its one top-level `piper/` directory keeps
 the runtime isolated. Supply a separately reviewed voice model and follow the
 [Piper companion guide](../docs/PIPER.md). Other optional helper engines still
-require adjacent executables and user-supplied proprietary runtimes.
+require adjacent executables and user-supplied proprietary runtimes. The
+[Windows helper guide](../windows-helpers/README.md#runtime-requirements-and-installation)
+documents the complete Eloquence and DECtalk requirements, the durable DECtalk
+binary, and the separately labelled newer-build path.
 
 Release binaries are not code-signed or notarized. macOS Gatekeeper or Windows
 SmartScreen may therefore warn or refuse the first launch. Verify the SHA-256

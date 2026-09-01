@@ -178,7 +178,8 @@ python3 tools/stress_helper.py \
 
 python3 tools/stress_helper.py \
   windows-helpers/bin/OmnivoxDectalkHelper32.exe \
-  --engine-id dectalk --iterations 100
+  --engine-id dectalk --iterations 100 --cancel-probe \
+  --helper-arg "$(wslpath -w /path/to/IA32/DECtalk.dll)"
 ```
 
 Use `--voice-id` to select a non-default voice and repeat `--helper-arg` when a

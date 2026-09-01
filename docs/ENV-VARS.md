@@ -179,7 +179,11 @@ guidance.
 `OMNIVOX_ECI_DLL`
 
 - Optional absolute path inherited and read by the Eloquence helper for a
-  user-supplied 32-bit `ECI.DLL`.
+  complete licensed 32-bit ECI 6.1 installation's `ECI.DLL`.
+- Defaults to
+  `C:\Program Files (x86)\Freedom Scientific\Shared\Eloquence\6.1\ECI.DLL`.
+- Keep the DLL with its matching installed ECI configuration, dictionary, and
+  voice data.
 
 `OMNIVOX_DECTALK_HELPER`
 
@@ -190,11 +194,16 @@ guidance.
 
 - Optional absolute path inherited and read by the DECtalk helper for a
   user-supplied 32-bit `DECtalk.dll`.
-- `dtalk_us.dic` must be in the same directory.
+- A matching `dtalk_us.dic` from the same build must be in the same directory.
+- Without an override, the helper checks beside itself and in the sibling
+  `runtime` directory.
 
 A missing helper or runtime removes only that engine from usable inventory;
 normal fallback remains available. Proprietary runtimes are not distributed
-by Omnivox or Emacsvox.
+by Omnivox or Emacsvox. See the
+[Windows helper guide](../windows-helpers/README.md#runtime-requirements-and-installation)
+for acquisition, installation, architecture, dependency, and verification
+details.
 
 ## Emacsvox adapter
 
