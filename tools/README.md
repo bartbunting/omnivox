@@ -27,6 +27,16 @@ python3 tools/build.py --release --target aarch64-apple-darwin
 
 The wrapper fails rather than choose between non-identical eSpeak data outputs.
 
+`build_rhvoice.py` builds the portable RHVoice helper with locked Cargo
+dependencies and atomically stages it as `rhvoice/` beside the selected Cargo
+profile output. It deliberately stages no RHVoice library or voice data; see
+the [RHVoice companion guide](../docs/RHVOICE.md) for the user-installed
+runtime contract:
+
+```sh
+python3 tools/build_rhvoice.py --release
+```
+
 `build_piper.py` builds the optional helper in relocatable mode, selects the
 native Linux x64, Windows x64, or macOS ARM64/x64 library layout, and
 atomically stages the companion as `piper/` beside the Cargo profile output.

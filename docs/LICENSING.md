@@ -90,6 +90,19 @@ four companions in its draft and verification gates. Release code remains
 unsigned and no Piper companion archive is currently published. See the
 [Piper release plan](plans/PIPER-RELEASE.md) for the remaining release work.
 
+## Optional RHVoice integration
+
+The MIT-licensed `omnivox-rhvoice-helper` is a separate executable that loads a
+user-installed RHVoice C API library at run time. Generic Omnivox payloads may
+contain that helper but do not contain the RHVoice library, its language data,
+or voice data.
+
+Upstream describes the main RHVoice library as LGPL-2.1-or-later, with combined
+build terms affected by optional components, and documents additional or
+restrictive terms for some voices. The user's selected runtime and voice terms
+continue to apply. See the [RHVoice companion guide](RHVOICE.md) and the licence
+files supplied by RHVoice and each installed voice.
+
 ## Proprietary engines and other dependencies
 
 Eloquence and DECtalk runtimes and their dictionary or voice data are

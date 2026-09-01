@@ -43,6 +43,8 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 ## Operations and releases
 
+- [RHVOICE.md](RHVOICE.md) — user-installed runtime requirements, platform
+  status, explicit paths, verification, licensing, and removal.
 - [PIPER.md](PIPER.md) — optional companion build, layout, model setup,
   verification, upgrade, and removal.
 - [Windows capture helpers](../windows-helpers/README.md) — Eloquence and

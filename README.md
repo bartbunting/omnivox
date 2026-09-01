@@ -23,31 +23,33 @@ There are two supported consumers with deliberately different Lisp adapters:
 
 | Platform | Default/native engine | Other available engines |
 |---|---|---|
-| macOS | AVSpeechSynthesizer | eSpeak NG; optional Piper helper |
-| Windows | WinRT SpeechSynthesizer | eSpeak NG; optional Eloquence, DECtalk, and Piper helpers |
-| Linux | eSpeak NG | optional Piper helper |
+| macOS | AVSpeechSynthesizer | eSpeak NG; optional Piper, RHVoice, and Flite helpers |
+| Windows | WinRT SpeechSynthesizer | eSpeak NG; optional Eloquence, DECtalk, Piper, RHVoice, and Flite helpers |
+| Linux | eSpeak NG | optional Piper, RHVoice, and Flite helpers |
 
 The Windows Eloquence and DECtalk engines run in separate 32-bit helper
 processes and require user-supplied proprietary runtimes. Omnivox and Emacsvox
 do not distribute those runtimes. They are discovered as helper engines for
 runtime routing rather than selected with the startup `--engine` option. The
 [helper source and build](windows-helpers/README.md) live in this repository;
-Emacsvox consumes those outputs when staging its WSL Windows bundle. The
-Piper backend is opt-in and is built separately so its native dependencies
-never enter the main server process. Speech Dispatcher remains a design
-proposal, not an implemented backend.
+Emacsvox consumes those outputs when staging its WSL Windows bundle. Piper and
+Flite are source-built companions; RHVoice loads a user-installed
+runtime. Their native code never enters the main server process. The
+[RHVoice guide](docs/RHVOICE.md) covers runtime installation and verification.
+Speech Dispatcher remains a design proposal, not an implemented backend.
 
-Current supported `make build`, `make dev`, and generic release builds enable
-only Piper helper discovery in the main server. They do not link libpiper or
-include its companion. `make build-piper` builds and stages that separate
-native payload when it is wanted.
+Current supported `make build` and `make dev` stage the portable RHVoice helper
+and enable discovery of RHVoice, Flite, and Piper companions. They do not link
+those engines into the main server. `make build-piper` and the Flite companion
+build stage their separate source-built native payloads when wanted.
 
 Server mode registers all available built-in engines for runtime routing and
 fallback. Windows retains WinRT and eSpeak plus configured proprietary
 helpers; macOS retains AVSpeechSynthesizer and eSpeak; Linux retains eSpeak.
-A Piper-enabled server also registers its helper on any platform when a model
-is configured. `--engine` changes the initial preference without hiding the
-other registered engines. Registration makes an engine available to routing;
+A staged RHVoice or Flite helper registers on any desktop platform; a
+Piper-enabled server registers Piper when a model is configured. `--engine`
+changes the initial preference without hiding the other registered engines.
+Registration makes an engine available to routing;
 it does not promise that engines synthesize in parallel.
 
 The eSpeak backend is compiled from source. Supported local builds stage the

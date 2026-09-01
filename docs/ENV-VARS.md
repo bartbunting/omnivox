@@ -19,7 +19,7 @@ the selected backend.
 | `--check` | Run the diagnostic self-test; inspect each printed status and confirm that its tone and speech are audible. |
 | `--list-voices` | Print voices for the selected startup engine. |
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
-| `--engine NAME` | Select `native`, `espeak`, or opt-in `piper`. |
+| `--engine NAME` | Select `native`, `espeak`, `piper`, `rhvoice`, or `flite`. |
 | `--voice ID` | Set the startup physical voice; copy an exact ID from `--list-voices`. |
 | `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 is normal. |
 | `--pitch FLOAT` | Set pitch multiplier from 0.5 through 2.0. |
@@ -38,7 +38,7 @@ values greater than 1 by 100 and then clamps the normalized value to `0.0..2.0`
 values request faster speech; individual engines may impose a lower maximum.
 An invalid `--audio-target` is logged and leaves the default `both` routing in
 place. Unsupported `--engine` names currently select the platform default; use
-only the three documented names rather than relying on that fallback.
+only the documented names rather than relying on that fallback.
 
 `--check` exits nonzero when it cannot create an engine. Synthesis and audio
 device failures discovered later in the check are printed as `FAILED` but do
@@ -60,17 +60,57 @@ those two diagnostic actions.
 - `espeak` selects eSpeak NG as the startup engine.
 - `piper` selects the optional helper-backed Piper engine and requires a
   Piper-enabled build plus a model.
+- `rhvoice` selects the helper-backed, user-installed RHVoice runtime.
+- `flite` selects the source-built Flite companion and its compiled-in SLT
+  voice.
 - Equivalent startup option: `--engine`.
 
 In server mode, the selected startup engine controls the initial preference;
 it does not remove other available engines from inventory. Windows registers
 WinRT and eSpeak plus adjacent or explicitly configured Eloquence and DECtalk
 helpers. macOS registers AVSpeechSynthesizer and eSpeak, while Linux registers
-eSpeak. A build with Piper support also registers Piper on any platform when
+eSpeak. Staged or explicitly configured RHVoice and Flite companions register
+on every desktop platform. A build with Piper support also registers Piper when
 `OMNIVOX_PIPER_MODEL` or `--piper-model` supplies a model. Single-action
 diagnostics such as `--list-voices` continue to create only the selected
-engine. Eloquence and DECtalk are helper inventory IDs used by runtime routing,
-not accepted startup values for `--engine` or `OMNIVOX_ENGINE`.
+engine. Eloquence and DECtalk remain runtime-routing inventory IDs rather than
+accepted startup values.
+
+### RHVoice helper and runtime
+
+`OMNIVOX_RHVOICE_HELPER`
+
+- Optional path to `omnivox-rhvoice-helper`.
+- Otherwise Omnivox first checks the `rhvoice/` directory beside itself, then
+  accepts the legacy layout with the helper directly beside it.
+
+`OMNIVOX_RHVOICE_LIBRARY`
+
+- Absolute path to the user-installed RHVoice C API library. It overrides
+  restricted platform discovery and is required on Windows.
+
+`OMNIVOX_RHVOICE_DATA`
+
+- Optional absolute RHVoice data directory containing installed languages and
+  voices.
+
+`OMNIVOX_RHVOICE_CONFIG`
+
+- Optional absolute RHVoice configuration directory.
+
+`OMNIVOX_RHVOICE_RESOURCES`
+
+- Optional platform-separated list of absolute additional language/voice
+  resource directories.
+
+See [RHVOICE.md](RHVOICE.md) for compatible versions, installation paths,
+platform status, and verification.
+
+`OMNIVOX_FLITE_HELPER`
+
+- Optional path to `omnivox-flite-helper`.
+- Otherwise Omnivox checks `flite/` beside itself and then the legacy adjacent
+  location. See the Flite companion guide for voice-file configuration.
 
 `OMNIVOX_PIPER_MODEL`
 

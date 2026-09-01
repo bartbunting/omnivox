@@ -26,11 +26,14 @@ in the linked protocol specifications; future work belongs in
 ### Routing and synthesis
 
 - macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
-- Optional out-of-process Piper, Eloquence, and DECtalk engines.
+- Optional out-of-process Piper, RHVoice, Eloquence, and DECtalk engines;
+  Flite companion work is in progress.
 - Structured engine/voice inventory and deterministic per-span logical routing.
 - Server registration retains WinRT and eSpeak on Windows,
   AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. Configured
-  Piper helpers join that registry in Piper-enabled builds on every platform.
+  Piper helpers join that registry in Piper-enabled builds. Staged or
+  explicitly configured RHVoice and Flite helpers are discovered on every
+  desktop platform.
 - Ordered fallback for missing voices, unsupported text repertoires, engine
   failure, and transient engine pressure.
 - Persistent health circuits, bounded cooldowns, one recovery probe, and
@@ -97,6 +100,10 @@ in the linked protocol specifications; future work belongs in
   implemented and passes exhaustive manifest, Git-tree, input, model-exclusion,
   and offline Cargo verification. The gated tag workflow is implemented, but
   no release containing the companion has been published yet.
+- RHVoice uses a user-installed 1.14-or-later compatible 1.x C API runtime.
+  Linux x64 has passed real synthesis, marker, ACSS, cancellation, and shutdown
+  acceptance with 1.14.0. Other desktop targets currently have helper compile
+  coverage only; Windows requires an explicit C API DLL path.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
