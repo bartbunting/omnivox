@@ -10,6 +10,7 @@ use omnivox_tts::contracts::{
     MarkerCapabilities, PhysicalVoiceId, TextRepertoire, VoiceDescriptor, VoiceGender,
 };
 use omnivox_tts::helper_protocol::MAX_HELPER_SYNTHESIS_BYTES;
+use omnivox_tts::rate_calibration::interpolate;
 use omnivox_tts::{
     AudioBuffer, SynthesisCancellationToken, SynthesisRequest, SynthesisResult, TtsEngine,
     TtsError, VoiceInfo, VoiceQuality,
@@ -277,12 +278,22 @@ fn descriptor() -> EngineDescriptor {
 }
 
 fn map_rate(rate: f32) -> i32 {
-    let rate = rate.clamp(0.0, 2.0);
-    if rate <= 0.5 {
-        (20.0 + rate * 160.0).round() as i32
-    } else {
-        (100.0 + (rate - 0.5) * (400.0 / 1.5)).round() as i32
-    }
+    // Russian reference and saturation policy: docs/RATE-CALIBRATION.md.
+    const CALIBRATION: &[(f32, f32)] = &[
+        (0.0, 67.697_849),
+        (0.1, 78.578_08),
+        (0.2, 96.268_38),
+        (0.3, 111.978_17),
+        (0.4, 132.210_04),
+        (0.5, 152.467_25),
+        (0.6, 179.160_37),
+        (0.7, 209.018_16),
+        (0.8, 300.603_45),
+        (0.9, 393.356_38),
+        (1.0, 478.062_56),
+        (1.2, 500.000_000),
+    ];
+    interpolate(rate, CALIBRATION).round() as i32
 }
 
 fn map_pitch(pitch: f32) -> i32 {
@@ -371,11 +382,15 @@ mod tests {
     }
 
     #[test]
-    fn parameter_mappings_preserve_normal_and_bound_extremes() {
+    fn parameter_mappings_preserve_calibrated_rate_and_other_bounds() {
         assert_eq!(
             (map_rate(0.0), map_rate(0.5), map_rate(2.0)),
-            (20, 100, 500)
+            (68, 152, 500)
         );
+        let mapped: Vec<_> = (0..=20)
+            .map(|point| map_rate(point as f32 / 10.0))
+            .collect();
+        assert!(mapped.windows(2).all(|pair| pair[0] <= pair[1]));
         assert_eq!(
             (map_pitch(0.5), map_pitch(1.0), map_pitch(2.0)),
             (50, 100, 300)

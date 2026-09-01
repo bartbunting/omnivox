@@ -16,6 +16,7 @@ use omnivox_tts::contracts::{
     VoiceGender,
 };
 use omnivox_tts::helper_protocol::{MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES};
+use omnivox_tts::rate_calibration::interpolate;
 use omnivox_tts::{
     AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
     TtsEngine, TtsError, VoiceInfo, VoiceQuality, STANDARD_SAMPLE_RATE,
@@ -805,12 +806,18 @@ fn language_tag(language: &str, country: &str) -> String {
 }
 
 fn map_rate(rate: f32) -> f64 {
-    let rate = if rate.is_finite() { rate } else { 0.5 }.clamp(0.0, 2.0);
-    if rate < 0.5 {
-        f64::from(rate / 0.5 - 1.0)
-    } else {
-        f64::from((rate - 0.5) / 1.5)
-    }
+    // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+    const CALIBRATION: &[(f32, f32)] = &[
+        (0.0, -1.000_000),
+        (0.1, -0.798_056),
+        (0.2, -0.472_908),
+        (0.3, -0.140_148),
+        (0.4, 0.176_818),
+        (0.5, 0.446_861),
+        (0.6, 0.823_423),
+        (0.7, 1.000_000),
+    ];
+    f64::from(interpolate(rate, CALIBRATION))
 }
 
 fn map_pitch(pitch: f32) -> f64 {
@@ -1065,10 +1072,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parameter_mappings_preserve_neutral_and_endpoints() {
+    fn parameter_mappings_preserve_calibrated_rate_and_other_endpoints() {
         assert_eq!(map_rate(0.0), -1.0);
-        assert_eq!(map_rate(0.5), 0.0);
+        assert!((map_rate(0.5) - 0.446_861).abs() < 0.000_001);
+        assert_eq!(map_rate(0.7), 1.0);
         assert_eq!(map_rate(2.0), 1.0);
+        let mapped: Vec<_> = (0..=20)
+            .map(|point| map_rate(point as f32 / 10.0))
+            .collect();
+        assert!(mapped.windows(2).all(|pair| pair[0] <= pair[1]));
         assert_eq!(map_pitch(0.5), -1.0);
         assert_eq!(map_pitch(1.0), 0.0);
         assert_eq!(map_pitch(2.0), 1.0);

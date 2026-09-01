@@ -135,6 +135,11 @@ in the linked protocol specifications; future work belongs in
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
+- WinRT, eSpeak NG, Piper, RHVoice, Flite, RuTTS, and DECtalk have measured
+  monotonic rate curves anchored to the established Eloquence behavior.
+  Individual voices still vary and several engines saturate before Eloquence's
+  extended high-rate range. AVSpeechSynthesizer retains its system-native rate
+  mapping until the repeatable audit is run on macOS.
 
 ## Platform and CI coverage
 

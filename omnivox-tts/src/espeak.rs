@@ -8,6 +8,7 @@ use crate::contracts::{
     Availability, CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor,
     EngineHealth, MarkerCapabilities, PhysicalVoiceId, VoiceDescriptor,
 };
+use crate::rate_calibration::interpolate;
 #[cfg(test)]
 use crate::TtsSettings;
 use crate::{
@@ -352,19 +353,21 @@ impl EspeakTtsEngine {
         })
     }
 
-    /// Map TtsSettings rate (0.0..1.0, 0.5=normal) to espeak-ng rate (80..450, 175=normal)
+    /// Map the host rate to eSpeak NG's 80-through-450 words-per-minute control.
     fn map_rate(rate: f32) -> c_int {
-        // Map 0.0..1.0 to 80..450 with 0.5 -> 175
-        let rate = rate.clamp(0.0, 1.0);
-        if rate <= 0.5 {
-            // 0.0 -> 80, 0.5 -> 175
-            let t = rate / 0.5;
-            (80.0 + t * 95.0) as c_int
-        } else {
-            // 0.5 -> 175, 1.0 -> 450
-            let t = (rate - 0.5) / 0.5;
-            (175.0 + t * 275.0) as c_int
-        }
+        // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+        const CALIBRATION: &[(f32, f32)] = &[
+            (0.0, 80.000_000),
+            (0.1, 100.906_27),
+            (0.2, 128.206_04),
+            (0.3, 156.756_2),
+            (0.4, 198.985_5),
+            (0.5, 249.314_9),
+            (0.6, 318.873_4),
+            (0.7, 389.706_24),
+            (0.8, 450.000_000),
+        ];
+        interpolate(rate, CALIBRATION).round() as c_int
     }
 
     /// Map TtsSettings pitch (0.5..2.0, 1.0=normal) to espeak-ng pitch (0..99, 50=normal)
@@ -1112,15 +1115,16 @@ mod tests {
 
     #[test]
     fn test_rate_mapping() {
-        // 0.0 -> 80
         assert_eq!(EspeakTtsEngine::map_rate(0.0), 80);
-        // 0.5 -> 175
-        assert_eq!(EspeakTtsEngine::map_rate(0.5), 175);
-        // 1.0 -> 450
-        assert_eq!(EspeakTtsEngine::map_rate(1.0), 450);
-        // clamping
+        assert_eq!(EspeakTtsEngine::map_rate(0.5), 249);
+        assert_eq!(EspeakTtsEngine::map_rate(0.8), 450);
         assert_eq!(EspeakTtsEngine::map_rate(-1.0), 80);
         assert_eq!(EspeakTtsEngine::map_rate(2.0), 450);
+
+        let mapped: Vec<_> = (0..=20)
+            .map(|point| EspeakTtsEngine::map_rate(point as f32 / 10.0))
+            .collect();
+        assert!(mapped.windows(2).all(|pair| pair[0] <= pair[1]));
     }
 
     #[test]

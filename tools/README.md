@@ -251,6 +251,15 @@ retain audio for listening; existing WAVs are never overwritten. When WSL
 launches a Windows executable directly, add `--windows-output-paths`; for
 reliable Windows-local I/O, choose a `--work-dir` below `/mnt/c`.
 
+The tool invokes the one-shot `--dump-wav` action separately for each sample,
+so every sample starts a fresh Omnivox process and engine. That is a consequence
+of the current exact diagnostic interface, provides no benefit to the duration
+calculation, and makes a sweep slower. Startup and synthesis wall-clock time
+are not measurements: only the completed WAV frame count contributes to
+duration and WPM. See the
+[speech-rate calibration guide](../docs/RATE-CALIBRATION.md) for the current
+reference procedure.
+
 ## Server lifecycle benchmarks
 
 `benchmark_server.py` measures cold and warm lifecycle latency through the

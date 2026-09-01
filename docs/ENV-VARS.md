@@ -21,7 +21,7 @@ the selected backend.
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
 | `--engine NAME` | Prefer `native`, `espeak`, `piper`, `rhvoice`, `flite`, or `rutts`; Windows also accepts `winrt`, `eloquence`, and `dectalk`, while macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
 | `--voice ID` | Set the startup physical voice; copy an exact ID from `--list-voices`. |
-| `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 is normal. |
+| `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 targets the calibrated normal reference speed. |
 | `--pitch FLOAT` | Set pitch multiplier from 0.5 through 2.0. |
 | `--voice-volume FLOAT` | Set speech gain from 0.0 through 1.0. |
 | `--tone-volume FLOAT` | Set tone gain from 0.0 through 1.0. |
@@ -36,6 +36,11 @@ rate commands conventionally use Emacspeak's integer scale. Omnivox divides
 values greater than 1 by 100 and then clamps the normalized value to `0.0..2.0`
 (`50` becomes `0.5`, `150` becomes `1.5`, and `300` becomes `2.0`). Higher
 values request faster speech; individual engines may impose a lower maximum.
+Measured engines use monotonic per-engine calibration rather than treating
+unrelated native midpoints as equal. A rate stops accelerating when an engine
+reaches its real native limit. See [RATE-CALIBRATION.md](RATE-CALIBRATION.md)
+for reference voices, audit procedure, and limitations.
+
 An invalid `--audio-target` is logged and leaves the default `both` routing in
 place. In server mode an unavailable initial preference can fall through the
 registered engine order. Single-action diagnostics select an explicit engine

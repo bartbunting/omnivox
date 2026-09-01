@@ -17,6 +17,7 @@ pub mod marker_protocol;
 #[cfg(feature = "piper")]
 pub mod piper;
 pub mod presentation;
+pub mod rate_calibration;
 pub mod resolver;
 pub mod routing_policy;
 pub mod synthesis;
@@ -81,7 +82,7 @@ pub enum VoiceQuality {
 pub struct TtsSettings {
     /// Voice identifier
     pub voice: String,
-    /// Host speech rate (0.0 to 2.0, 0.5 = normal); engines may clamp lower.
+    /// Host speech rate (0.0 to 2.0, 0.5 = calibrated normal); engines may saturate lower.
     pub rate: f32,
     /// Pitch multiplier (0.5 to 2.0, 1.0 = normal)
     pub pitch: f32,

@@ -90,6 +90,7 @@ mod impl_windows {
     use crate::contracts::{
         Availability, EngineDescriptor, EngineHealth, PhysicalVoiceId, VoiceDescriptor,
     };
+    use crate::rate_calibration::interpolate;
     use crate::{
         AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
         TtsEngine, TtsError, VoiceInfo, VoiceQuality,
@@ -135,18 +136,24 @@ mod impl_windows {
             })
         }
 
-        /// Map TtsSettings rate (0.0..1.0, 0.5=normal) to WinRT speaking rate.
-        /// WinRT: 0.5 = half speed, 1.0 = normal, 6.0 = max.
+        /// Map the host rate to WinRT's speaking-rate multiplier.
         pub(crate) fn map_rate(rate: f32) -> f64 {
-            let rate = rate.clamp(0.0, 1.0);
-            if rate <= 0.5 {
-                // 0.0 -> 0.5, 0.5 -> 1.0
-                0.5 + rate as f64
-            } else {
-                // 0.5 -> 1.0, 1.0 -> 6.0
-                let t = (rate - 0.5) / 0.5;
-                1.0 + t as f64 * 5.0
-            }
+            // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+            const CALIBRATION: &[(f32, f32)] = &[
+                (0.0, 0.500_000),
+                (0.1, 0.572_672),
+                (0.2, 0.723_501),
+                (0.3, 0.875_270),
+                (0.4, 1.097_730),
+                (0.5, 1.329_290),
+                (0.6, 1.683_660),
+                (0.7, 2.023_500),
+                (0.8, 2.676_280),
+                (0.9, 3.197_120),
+                (1.0, 4.121_940),
+                (1.2, 6.000_000),
+            ];
+            f64::from(interpolate(rate, CALIBRATION))
         }
 
         /// Map TtsSettings volume (0.0..1.0) to WinRT volume (0.0..1.0). Direct.
@@ -682,12 +689,15 @@ mod tests {
 
     #[test]
     fn test_rate_mapping() {
-        // 0.0 -> 0.5 (half speed)
         assert!((WindowsTtsEngine::map_rate(0.0) - 0.5).abs() < 0.01);
-        // 0.5 -> 1.0 (normal)
-        assert!((WindowsTtsEngine::map_rate(0.5) - 1.0).abs() < 0.01);
-        // 1.0 -> 6.0 (max)
-        assert!((WindowsTtsEngine::map_rate(1.0) - 6.0).abs() < 0.01);
+        assert!((WindowsTtsEngine::map_rate(0.5) - 1.329_29).abs() < 0.01);
+        assert!((WindowsTtsEngine::map_rate(1.0) - 4.121_94).abs() < 0.01);
+        assert!((WindowsTtsEngine::map_rate(2.0) - 6.0).abs() < 0.01);
+
+        let mapped: Vec<_> = (0..=20)
+            .map(|point| WindowsTtsEngine::map_rate(point as f32 / 10.0))
+            .collect();
+        assert!(mapped.windows(2).all(|pair| pair[0] <= pair[1]));
     }
 
     #[test]

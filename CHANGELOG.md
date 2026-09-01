@@ -68,6 +68,11 @@ Versioning for published releases.
 
 ### Fixed
 
+- Normalized speech rates now use measured, monotonic per-engine curves for
+  WinRT, eSpeak NG, Piper, RHVoice, Flite, RuTTS, and DECtalk, anchored to the
+  established Eloquence English rate and a same-language Russian audit for
+  RuTTS. Native limits remain explicit saturation points instead of causing
+  unrelated midpoint speeds or WinRT's former sharp transition above `0.5`.
 - Diagnostic actions now select an explicitly requested engine exactly instead
   of silently measuring a fallback. `--check` and `--dump-wav` also honor the
   CLI voice, rate, pitch, volume, and Piper-model settings.  Windows Eloquence

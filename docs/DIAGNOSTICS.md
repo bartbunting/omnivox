@@ -88,7 +88,11 @@ For rate normalization work, use `tools/audit_speech_rates.py` rather than
 timing playback by hand. It drives exact diagnostic engines through raw WAV
 synthesis, reports repeated raw and canonical duration plus WPM samples, and
 can write a privacy-conscious JSON record containing a corpus hash rather than
-its text.
+its text. Each sample currently uses a fresh one-shot process; that makes a
+sweep slower but does not enter the WAV-duration measurement. See
+[RATE-CALIBRATION.md](RATE-CALIBRATION.md) for the calibration policy and
+reference voices.
+
 Keep engines for different languages in separate runs. Direct Windows
 executables under WSL need `--windows-output-paths`; a work directory below
 `/mnt/c` avoids depending on Windows access to the WSL network filesystem.

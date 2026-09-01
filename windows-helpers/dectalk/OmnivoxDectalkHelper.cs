@@ -68,6 +68,14 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
         { 0, 14, 28, 42, 56, 70, 60, 70, 80, 100 };
     private static readonly int[] Smoothness =
         { 100, 80, 60, 40, 20, 3, 24, 16, 8, 0 };
+    private static readonly double[] RatePoints =
+        { 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2 };
+    private static readonly double[] NativeRatePoints =
+        {
+            75.0000, 75.0000, 114.0177, 161.4411,
+            222.5271, 288.5925, 368.4105, 426.14775,
+            477.4305, 509.9715, 544.3800, 600.0000
+        };
 
     private static readonly OmnivoxHelperCapabilities EngineCapabilities =
         new OmnivoxHelperCapabilities
@@ -120,16 +128,7 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
             throw new ArgumentException("Unknown DECtalk voice", "voiceId");
         }
 
-        // Preserve DECtalk's established 225 WPM midpoint while covering its
-        // supported 75-through-600 range. Protocol v4 can carry higher rates
-        // for engines with more headroom, so clamp only at DECtalk's native
-        // maximum.
-        double boundedRate = Math.Min(rate, 1.0);
-        double mapped = boundedRate <= 0.5 ?
-            75.0 + boundedRate * 300.0 :
-            225.0 + (boundedRate - 0.5) * 750.0;
-        int nativeRate = (int)Math.Round(mapped,
-            MidpointRounding.AwayFromZero);
+        int nativeRate = MapRate(rate);
         int nativePitch = (int)Math.Round(
             VoiceAveragePitch[voiceId] * pitch,
             MidpointRounding.AwayFromZero);
@@ -137,6 +136,36 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
         string voiceParameters = MapExtendedAcss(pitchRange, stress, richness);
         return capture.Synthesize(text, voiceCode, nativeRate, nativePitch,
             voiceParameters, volume, cancellationRequested);
+    }
+
+    internal static int MapRate(double rate)
+    {
+        // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+        if (Double.IsNaN(rate) || Double.IsInfinity(rate))
+        {
+            rate = 0.5;
+        }
+        double mapped = NativeRatePoints[NativeRatePoints.Length - 1];
+        if (rate <= RatePoints[0])
+        {
+            mapped = NativeRatePoints[0];
+        }
+        else
+        {
+            for (int index = 1; index < RatePoints.Length; index++)
+            {
+                if (rate <= RatePoints[index])
+                {
+                    double position = (rate - RatePoints[index - 1]) /
+                        (RatePoints[index] - RatePoints[index - 1]);
+                    mapped = NativeRatePoints[index - 1] +
+                        (NativeRatePoints[index] -
+                            NativeRatePoints[index - 1]) * position;
+                    break;
+                }
+            }
+        }
+        return (int)Math.Round(mapped, MidpointRounding.AwayFromZero);
     }
 
     internal static string MapExtendedAcss(double? pitchRange,

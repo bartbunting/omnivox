@@ -170,26 +170,21 @@ impl PiperTtsEngine {
         Self::new(&model)
     }
 
-    /// Map TtsSettings.rate (0.0..2.0, 0.5=normal) to piper length_scale.
-    ///
-    /// Rate convention: 0.0=slowest, 0.5=normal, 1.0=fast (2x), 2.0=very fast (~10x).
-    /// piper length_scale: 1.0=normal, <1.0=faster, >1.0=slower (inverse of rate).
-    ///
-    /// Mapping:
-    ///   rate 0.0 -> length_scale 2.0  (slowest)
-    ///   rate 0.5 -> length_scale 1.0  (normal)
-    ///   rate 1.0 -> length_scale 0.5  (2x speed)
-    ///   rate 1.5 -> length_scale 0.1  (clamped floor, ~10x speed)
-    ///   rate 2.0 -> length_scale 0.1  (same floor)
+    /// Map the host rate to Piper's inverse duration scale.
     fn map_rate_to_length_scale(rate: f32) -> f32 {
-        let rate = rate.clamp(0.0, 2.0);
-        if rate >= 0.5 {
-            // Linear: 0.5 -> 1.0 (normal), 1.0 -> 0.5 (2x fast), 1.5+ -> 0.1 floor
-            (1.5 - rate).max(0.1)
-        } else {
-            // 0.0 -> 2.0 (slowest), 0.5 -> 1.0 (normal)
-            1.0 + (0.5 - rate) * 2.0
-        }
+        // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+        const CALIBRATION: &[(f32, f32)] = &[
+            (0.0, 2.000_000),
+            (0.1, 1.688_762),
+            (0.2, 1.268_878),
+            (0.3, 0.964_370),
+            (0.4, 0.682_429),
+            (0.5, 0.522_731),
+            (0.6, 0.344_740),
+            (0.7, 0.165_929),
+            (0.8, 0.100_000),
+        ];
+        crate::rate_calibration::interpolate(rate, CALIBRATION)
     }
 }
 
@@ -509,18 +504,15 @@ mod tests {
 
     #[test]
     fn test_rate_mapping() {
-        // rate 0.0 (slow) -> length_scale 2.0 (slowest/longest)
         assert!((PiperTtsEngine::map_rate_to_length_scale(0.0) - 2.0).abs() < 0.001);
-        // rate 0.5 (normal) -> length_scale 1.0 (normal)
-        assert!((PiperTtsEngine::map_rate_to_length_scale(0.5) - 1.0).abs() < 0.001);
-        // rate 1.0 (fast) -> length_scale 0.5 (2x speed)
-        assert!((PiperTtsEngine::map_rate_to_length_scale(1.0) - 0.5).abs() < 0.001);
-        // rate 1.5 (very fast) -> length_scale 0.1 (floor)
-        assert!((PiperTtsEngine::map_rate_to_length_scale(1.5) - 0.1).abs() < 0.001);
-        // rate 2.0 -> floor
+        assert!((PiperTtsEngine::map_rate_to_length_scale(0.5) - 0.522_731).abs() < 0.001);
+        assert!((PiperTtsEngine::map_rate_to_length_scale(0.8) - 0.1).abs() < 0.001);
         assert!((PiperTtsEngine::map_rate_to_length_scale(2.0) - 0.1).abs() < 0.001);
-        // Clamping
         assert!((PiperTtsEngine::map_rate_to_length_scale(-1.0) - 2.0).abs() < 0.001);
+        let mapped: Vec<_> = (0..=20)
+            .map(|point| PiperTtsEngine::map_rate_to_length_scale(point as f32 / 10.0))
+            .collect();
+        assert!(mapped.windows(2).all(|pair| pair[0] >= pair[1]));
     }
 
     #[test]

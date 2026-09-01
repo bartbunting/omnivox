@@ -15,6 +15,7 @@ use omnivox_tts::contracts::{
     EngineHealth, MarkerCapabilities, PhysicalVoiceId, TextRepertoire, VoiceDescriptor,
 };
 use omnivox_tts::helper_protocol::{MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES};
+use omnivox_tts::rate_calibration::interpolate;
 use omnivox_tts::{
     AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
     TtsEngine, TtsError, VoiceInfo, VoiceQuality, STANDARD_SAMPLE_RATE,
@@ -429,12 +430,22 @@ fn native_voice_name(pointer: *mut FliteVoice) -> Result<String, String> {
 }
 
 fn map_rate_to_duration(rate: f32) -> f32 {
-    let rate = rate.clamp(0.0, 2.0);
-    if rate >= 0.5 {
-        (1.5 - rate).max(0.1)
-    } else {
-        1.0 + (0.5 - rate) * 2.0
-    }
+    // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+    const CALIBRATION: &[(f32, f32)] = &[
+        (0.0, 2.000_000),
+        (0.1, 1.666_442),
+        (0.2, 1.314_194),
+        (0.3, 1.079_852),
+        (0.4, 0.850_347),
+        (0.5, 0.690_226),
+        (0.6, 0.550_129),
+        (0.7, 0.445_190),
+        (0.8, 0.334_819),
+        (0.9, 0.254_232),
+        (1.0, 0.107_539),
+        (1.2, 0.100_000),
+    ];
+    interpolate(rate, CALIBRATION)
 }
 
 fn positive_u32(value: i32, name: &str) -> Result<u32, TtsError> {
@@ -532,11 +543,15 @@ mod tests {
     use omnivox_tts::{AnchorAffinity, AnchorResolution, RequestedAnchor, TtsSettings};
 
     #[test]
-    fn rate_mapping_preserves_normal_and_bounds_extremes() {
+    fn rate_mapping_is_calibrated_and_bounds_extremes() {
         assert_eq!(map_rate_to_duration(0.0), 2.0);
-        assert_eq!(map_rate_to_duration(0.5), 1.0);
-        assert_eq!(map_rate_to_duration(1.0), 0.5);
+        assert!((map_rate_to_duration(0.5) - 0.690_226).abs() < 0.000_001);
+        assert!((map_rate_to_duration(1.0) - 0.107_539).abs() < 0.000_001);
         assert_eq!(map_rate_to_duration(2.0), 0.1);
+        let mapped: Vec<_> = (0..=20)
+            .map(|point| map_rate_to_duration(point as f32 / 10.0))
+            .collect();
+        assert!(mapped.windows(2).all(|pair| pair[0] >= pair[1]));
     }
 
     #[test]

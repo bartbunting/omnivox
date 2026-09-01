@@ -54,6 +54,12 @@ changes the initial preference without hiding the other registered engines.
 Registration makes an engine available to routing;
 it does not promise that engines synthesize in parallel.
 
+Speech rate is normalized with measured per-engine curves so an ordinary
+logical-voice change does not also cause a large avoidable speed change.
+Engines still saturate at their real native limits, and individual voices can
+vary. See the [speech-rate calibration guide](docs/RATE-CALIBRATION.md) for the
+reference voices, repeatable WAV-duration audit, and current macOS limitation.
+
 The eSpeak backend is compiled from source. Supported local builds stage the
 matching generated voice data beside the executable, and generic GitHub release
 archives include that `espeak-ng-data` directory and its third-party notices.
@@ -66,6 +72,8 @@ release path independently stages and records its pinned runtime inputs.
 - Bounded, nonblocking protocol admission and synthesis handoff.
 - Deterministic logical-voice resolution across engines and physical voices,
   with runtime fallback, health circuits, and recovery probes.
+- Empirically calibrated, monotonic speech-rate mapping across measured
+  engines, with truthful saturation at native limits.
 - Canonical stereo 44.1 kHz PCM processing, silence trimming, volume and
   channel control, and post-synthesis filtering, reverb, and echo.
 - Structured Aural timelines with speech spans, inserted or overlaid audio and

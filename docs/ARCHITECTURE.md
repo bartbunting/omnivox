@@ -188,6 +188,15 @@ single recovery probe keep repeated requests on healthy fallbacks.
 Immediate speech and letter commands have no logical-voice ID. They still use
 the current global engine policy and runtime health snapshot.
 
+Normalized speech rate is translated by a monotonic engine-specific curve
+before native synthesis. The measured curves target the established Eloquence
+English rate; RuTTS uses same-language Russian evidence, and an engine
+saturates when its native rate control has no further headroom. Calibration is
+based on canonical WAV duration, never engine startup or wall-clock synthesis
+time. The policy and reproducible evidence procedure are in
+[ADR 0004](adr/0004-per-engine-speech-rate-calibration.md) and
+[RATE-CALIBRATION.md](RATE-CALIBRATION.md).
+
 ## Native-call isolation and helper engines
 
 WinRT and helper-backed engines are wrapped by a generation-aware isolated-call
