@@ -23,30 +23,31 @@ There are two supported consumers with deliberately different Lisp adapters:
 
 | Platform | Default/native engine | Other available engines |
 |---|---|---|
-| macOS | AVSpeechSynthesizer | eSpeak NG; optional Piper, RHVoice, and Flite helpers |
-| Windows | WinRT SpeechSynthesizer | eSpeak NG; optional Eloquence, DECtalk, Piper, RHVoice, and Flite helpers |
-| Linux | eSpeak NG | optional Piper, RHVoice, and Flite helpers |
+| macOS | AVSpeechSynthesizer | eSpeak NG; optional Piper, RHVoice, Flite, and RuTTS helpers |
+| Windows | WinRT SpeechSynthesizer | eSpeak NG; optional Eloquence, DECtalk, Piper, RHVoice, Flite, and RuTTS helpers |
+| Linux | eSpeak NG | optional Piper, RHVoice, Flite, and RuTTS helpers |
 
 The Windows Eloquence and DECtalk engines run in separate 32-bit helper
 processes and require user-supplied proprietary runtimes. Omnivox and Emacsvox
 do not distribute those runtimes. They are discovered as helper engines for
 runtime routing rather than selected with the startup `--engine` option. The
 [helper source and build](windows-helpers/README.md) live in this repository;
-Emacsvox consumes those outputs when staging its WSL Windows bundle. Piper and
-Flite are source-built companions; RHVoice loads a user-installed
+Emacsvox consumes those outputs when staging its WSL Windows bundle. Piper,
+Flite, and RuTTS are source-built companions; RHVoice loads a user-installed
 runtime. Their native code never enters the main server process. The
 [RHVoice guide](docs/RHVOICE.md) covers runtime installation and verification.
 Speech Dispatcher remains a design proposal, not an implemented backend.
 
 Current supported `make build` and `make dev` stage the portable RHVoice helper
-and the source-built Flite SLT companion, and enable discovery of RHVoice,
-Flite, and Piper companions. They do not link those engines into the main
-server. `make build-piper` stages Piper's separate native payload when wanted.
+and the source-built Flite SLT and RuTTS companions, and enable discovery of
+RHVoice, Flite, RuTTS, and Piper companions. They do not link those engines
+into the main server. `make build-piper` stages Piper's separate native payload
+when wanted.
 
 Server mode registers all available built-in engines for runtime routing and
 fallback. Windows retains WinRT and eSpeak plus configured proprietary
 helpers; macOS retains AVSpeechSynthesizer and eSpeak; Linux retains eSpeak.
-A staged RHVoice or Flite helper registers on any desktop platform; a
+A staged RHVoice, Flite, or RuTTS helper registers on any desktop platform; a
 Piper-enabled server registers Piper when a model is configured. `--engine`
 changes the initial preference without hiding the other registered engines.
 Registration makes an engine available to routing;
@@ -94,11 +95,13 @@ native archives for Linux x64, macOS Apple Silicon and Intel, and Windows x64
 and ARM64. Archives produced by the current workflow contain the executable,
 the matching generated `espeak-ng-data`, project and third-party licensing
 files, the portable RHVoice helper (without its runtime or voices), and the
-upstream Emacspeak adapter. Separate Flite companions cover Linux x64/ARM64,
-macOS Intel/Apple Silicon, and Windows x64/ARM64. A `sha256sums.txt` file is
-published alongside them. Published release `v1.4.1` predates the root `LICENSE` and
-`LICENSING.md` archive entries; those files are included beginning with the
-next release. Linux ARM64 is not currently published or CI-verified.
+upstream Emacspeak adapter. Separate Flite and RuTTS companion candidates cover
+Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows x64/ARM64, with a
+corresponding-source artifact for each engine. A `sha256sums.txt` file is
+published alongside release assets. Published release `v1.4.1` predates the
+root `LICENSE` and `LICENSING.md` archive entries; those files are included
+beginning with the next release. Linux ARM64 is not currently published or
+CI-verified.
 
 Follow the [release and deployment guide](.github/DEPLOYMENT.md) for archive
 selection, checksum commands, installation, unsigned-binary warnings, and the
@@ -162,6 +165,20 @@ Clustergen `.flitevox` files are accepted through `OMNIVOX_FLITE_VOICES` and
 are never downloaded or redistributed. The [Flite companion guide](docs/FLITE.md)
 covers release installation, the six-target build matrix, capabilities,
 verification, licensing, and removal.
+
+The standard build also stages RuTTS v6.3.3 with its built-in male and female
+Russian voices. It is self-contained and built without the separate RuLex
+dictionary stack:
+
+```sh
+make prepare-rutts
+python3 tools/prepare_rutts_inputs.py --check
+make build-rutts
+```
+
+The [RuTTS companion guide](docs/RUTTS.md) covers release installation,
+Unicode-to-KOI8-R routing, manual stress annotations, the six-target build
+matrix, verification, licensing, and removal.
 
 The Piper native build uses the vendored `v1.7.0` C API from the maintained
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl) project. It
@@ -324,7 +341,7 @@ limitations, or [ENV-VARS.md](docs/ENV-VARS.md) for configuration.
 Omnivox-authored source is available under the [MIT License](LICENSE), except
 where a file carries another notice. The
 [component licensing map](docs/LICENSING.md) explains the separately licensed
-Emacspeak adapter, eSpeak NG, optional Flite and Piper integrations,
+Emacspeak adapter, eSpeak NG, optional Flite, RuTTS, and Piper integrations,
 proprietary runtimes, and other dependencies.
 
 Distributed executables statically incorporate GPL-3.0-or-later eSpeak NG and

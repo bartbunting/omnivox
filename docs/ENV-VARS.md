@@ -19,7 +19,7 @@ the selected backend.
 | `--check` | Run the diagnostic self-test; inspect each printed status and confirm that its tone and speech are audible. |
 | `--list-voices` | Print voices for the selected startup engine. |
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
-| `--engine NAME` | Select `native`, `espeak`, `piper`, `rhvoice`, or `flite`. |
+| `--engine NAME` | Select `native`, `espeak`, `piper`, `rhvoice`, `flite`, or `rutts`. |
 | `--voice ID` | Set the startup physical voice; copy an exact ID from `--list-voices`. |
 | `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 is normal. |
 | `--pitch FLOAT` | Set pitch multiplier from 0.5 through 2.0. |
@@ -63,15 +63,17 @@ those two diagnostic actions.
 - `rhvoice` selects the helper-backed, user-installed RHVoice runtime.
 - `flite` selects the source-built Flite companion and its compiled-in SLT
   voice.
+- `rutts` selects the source-built RuTTS companion and its built-in Russian
+  voices.
 - Equivalent startup option: `--engine`.
 
 In server mode, the selected startup engine controls the initial preference;
 it does not remove other available engines from inventory. Windows registers
 WinRT and eSpeak plus adjacent or explicitly configured Eloquence and DECtalk
 helpers. macOS registers AVSpeechSynthesizer and eSpeak, while Linux registers
-eSpeak. Staged or explicitly configured RHVoice and Flite companions register
-on every desktop platform. A build with Piper support also registers Piper when
-`OMNIVOX_PIPER_MODEL` or `--piper-model` supplies a model. Single-action
+eSpeak. Staged or explicitly configured RHVoice, Flite, and RuTTS companions
+register on every desktop platform. A build with Piper support also registers
+Piper when `OMNIVOX_PIPER_MODEL` or `--piper-model` supplies a model. Single-action
 diagnostics such as `--list-voices` continue to create only the selected
 engine. Eloquence and DECtalk remain runtime-routing inventory IDs rather than
 accepted startup values.
@@ -122,6 +124,20 @@ platform status, and verification.
 
 See [FLITE.md](FLITE.md) for installation, build, voice-file, verification,
 and licensing details.
+
+`OMNIVOX_RUTTS_HELPER`
+
+- Optional path to `omnivox-rutts-helper`.
+- Otherwise Omnivox checks `rutts/` beside itself and then the legacy adjacent
+  location.
+
+The source-build wrapper additionally accepts `OMNIVOX_RUTTS_INPUTS_DIR` as a
+verified-cache override. Advanced direct Cargo builds use
+`OMNIVOX_RUTTS_SOURCE_DIR` to name an already verified RuTTS v6.3.3 source
+tree; this is a build input, not a server runtime setting.
+
+See [RUTTS.md](RUTTS.md) for installation, source build, text repertoire,
+pronunciation, verification, and licensing details.
 
 `OMNIVOX_PIPER_MODEL`
 

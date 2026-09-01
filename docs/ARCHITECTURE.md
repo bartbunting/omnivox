@@ -25,6 +25,8 @@ omnivox-helper-host/   shared bounded lifecycle for native TTS helpers
 omnivox-rhvoice-helper/ dynamically loaded user-installed RHVoice adapter
 omnivox-flite-helper/  isolated Flite engine adapter and voice discovery
 omnivox-flite-sys/     pinned portable C build and narrow native boundary
+omnivox-rutts-helper/  isolated RuTTS adapter and UTF-8/KOI8-R boundary
+omnivox-rutts-sys/     pinned portable C build and narrow native boundary
 windows-helpers/       32-bit Eloquence/DECtalk capture processes and host
 third-party/           separately licensed, provenance-recorded native source
 elisp/                 standalone upstream-Emacspeak compatibility adapter
@@ -153,9 +155,9 @@ terminal, preventing a late completion from removing a newer domain token.
 Server mode eagerly registers available built-in engines. Windows retains
 WinRT and eSpeak NG, then independently discovers optional adjacent Eloquence
 and DECtalk helpers. macOS retains AVSpeechSynthesizer and eSpeak NG; Linux
-retains eSpeak NG. RHVoice and Flite companion helpers are discovered on every
-desktop build when staged or explicitly configured. A Piper-enabled build also
-registers Piper on every platform when a model is configured. Startup
+retains eSpeak NG. RHVoice, Flite, and RuTTS companion helpers are discovered
+on every desktop build when staged or explicitly configured. A Piper-enabled
+build also registers Piper on every platform when a model is configured. Startup
 selection chooses the initial preference without removing the other registered
 engines.
 
@@ -182,7 +184,8 @@ the process. A cancelled native task cannot return PCM to the pipeline. If its
 engine slot remains occupied after a bounded wait, routing chooses another
 engine rather than queueing behind stale work.
 
-Eloquence, DECtalk, Piper, RHVoice, and Flite use the versioned helper protocol.
+Eloquence, DECtalk, Piper, RHVoice, Flite, and RuTTS use the versioned helper
+protocol.
 The main server validates helper inventory, request/response order, PCM totals,
 markers, and exact requested voice realization. A helper keeps reading
 cancellation and health commands while its native synthesis worker runs. Piper
@@ -195,8 +198,10 @@ Proprietary DLLs remain outside the repository.
 
 RHVoice dynamically loads a user-installed 1.x C API runtime and keeps its
 language/voice data outside Omnivox. Flite is source-built and statically linked
-only into its SLT-only companion. Both reuse the engine-neutral helper host but
-never share a native process.
+only into its SLT-only companion. RuTTS is likewise source-built only into its
+companion; the adapter converts supported Unicode input to KOI8-R, expands its
+signed 8-bit 10 kHz PCM into canonical samples, and ships without RuLex. All
+three reuse the engine-neutral helper host but never share a native process.
 
 The Windows helpers require absolute native-library paths, validate x86 PE
 identity and required exports before engine calls, and load dependencies only

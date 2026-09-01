@@ -58,7 +58,12 @@ The structured identity model remains:
    acceptance.
 5. Verify logical-language and text-repertoire routing against live
    multilingual voices on every supported engine.
-6. Keep eSpeak NG as the reliable Unicode-capable final fallback and extend
+6. Complete RuTTS native acceptance on Linux ARM64, macOS Intel/Apple Silicon,
+   and Windows x64/ARM64, then measure cold/warm onset, high-rate
+   intelligibility, cancellation latency, and long-session helper memory.
+   Evaluate RuLex later as its own licensing, provenance, database, and
+   cross-platform decision rather than silently adding it to the companion.
+7. Keep eSpeak NG as the reliable Unicode-capable final fallback and extend
    native marker coverage only when mappings remain source-accurate.
 
 ## Priority 3: deployment and user diagnostics
@@ -86,13 +91,6 @@ These are not current features and require design or scope approval:
   intelligibility, and the consequences of absent source-accurate word
   markers. Keep runtime and model assets separately auditable, with explicit
   per-model licence and provenance records.
-- **RuTTS (`poretsky/ru_tts`):** evaluate it as a compact, low-latency
-  Russian-only engine, not as a Ukrainian or general multilingual fallback.
-  Measure cold and warm onset, interruption and replacement behavior, CPU and
-  memory use, high-rate intelligibility, and the audible effect of its legacy
-  8-bit 10 kHz output. Verify the text-encoding boundary, native-library
-  integration, packaging, and licensing before deciding whether the narrow
-  language coverage and voice quality justify another engine adapter.
 - **Multiple instances of one engine:** do not add a second Eloquence helper
   merely as a precaution. First collect long-session failure evidence for the
   persistent ECI owner-thread implementation. Revisit per-instance identity,

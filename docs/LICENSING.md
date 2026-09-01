@@ -118,6 +118,21 @@ relicense Flite or a user-supplied `.flitevox` file. Release companions contain
 no additional voice files. Review the source and voice terms before adding or
 redistributing one. See the [Flite companion guide](FLITE.md).
 
+## Optional RuTTS integration
+
+The generic binary releases do not contain RuTTS. The separate RuTTS
+companion statically incorporates the checksum-locked upstream v6.3.3 source,
+including its built-in male and female voice data, in an isolated helper
+executable. Upstream distributes RuTTS under the MIT licence; every companion
+stages its complete `LICENSE` as `third-party-licenses/RuTTS-LICENSE.txt`
+together with exact source provenance and payload checksums.
+
+The Omnivox-authored C and Rust boundary remains under MIT. The companion does
+not include or load the separately licensed RuLex library or its dictionary
+database. A corresponding-source artifact contains the pinned upstream archive
+and exact Omnivox integration used to build the helper. See the
+[RuTTS companion guide](RUTTS.md).
+
 ## Proprietary engines and other dependencies
 
 Eloquence and DECtalk runtimes and their dictionary or voice data are

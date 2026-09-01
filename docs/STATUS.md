@@ -26,14 +26,14 @@ in the linked protocol specifications; future work belongs in
 ### Routing and synthesis
 
 - macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
-- Optional out-of-process Piper, RHVoice, Flite, Eloquence, and DECtalk
+- Optional out-of-process Piper, RHVoice, Flite, RuTTS, Eloquence, and DECtalk
   engines.
 - Structured engine/voice inventory and deterministic per-span logical routing.
 - Server registration retains WinRT and eSpeak on Windows,
   AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. Configured
   Piper helpers join that registry in Piper-enabled builds. Staged or
-  explicitly configured RHVoice and Flite helpers are discovered on every
-  desktop platform.
+  explicitly configured RHVoice, Flite, and RuTTS helpers are discovered on
+  every desktop platform.
 - Ordered fallback for missing voices, unsupported text repertoires, engine
   failure, and transient engine pressure.
 - Persistent health circuits, bounded cooldowns, one recovery probe, and
@@ -112,6 +112,15 @@ in the linked protocol specifications; future work belongs in
   x64/ARM64 each verify relocation, ACSS, 25 real SLT syntheses, cancellation,
   and clean shutdown. Flite has an ASCII input guarantee and no synchronization
   markers; eSpeak remains the Unicode fallback.
+- RuTTS uses checksum-locked v6.3.3 source and exposes its built-in male and
+  female Russian voices without RuLex. Linux x64 local acceptance covers both
+  voices, ACSS, bounded PCM, cancellation, relocation, and clean shutdown; its
+  C core also cross-compiles for Windows x64 with MinGW. The release matrix
+  targets Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows x64/ARM64,
+  but targets are not labelled runtime-accepted until their native workflow
+  gates pass. The helper converts its KOI8-R repertoire losslessly and routes
+  unsupported Unicode text to fallback; it provides no synchronization
+  markers.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
@@ -151,6 +160,12 @@ the same pinned C/Rust boundary, verifies the relocated archive, performs 25
 SLT syntheses, exercises cancellation and shutdown, and uploads no external
 voice file. Publication also requires the exact Flite source artifact to pass
 its manifest, Git-tree, source-lock, and offline-preparation checks.
+
+RuTTS has deterministic binary and corresponding-source packaging with local
+Linux x64 verification. Its planned native gates use the same six companion
+targets as Flite and must pass real synthesis with both built-in voices,
+cancellation, relocation, provenance, and offline source preparation before a
+tag can publish the assets.
 
 ## Validation
 

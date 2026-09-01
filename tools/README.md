@@ -65,6 +65,32 @@ make verify-flite
 make verify-flite-source
 ```
 
+`prepare_rutts_inputs.py` performs the equivalent locked archive and complete
+tree verification for RuTTS v6.3.3. `build_rutts.py` compiles the portable C
+core and Rust adapter, then atomically stages `rutts/` with both built-in
+Russian voices, licensing, provenance, and exhaustive payload checksums:
+
+```sh
+make prepare-rutts
+python3 tools/prepare_rutts_inputs.py --check
+python3 tools/build_rutts.py --release
+```
+
+Set `OMNIVOX_RUTTS_INPUTS_DIR` to use a different verified cache. The
+[RuTTS companion guide](../docs/RUTTS.md) documents the KOI8-R text boundary,
+built-in voices, RuLex exclusion, and installation.
+
+`package_rutts.py` and `verify_rutts_release.py` create and verify the
+deterministic native `.tar.gz` or `.zip`, including safe relocation and real
+male/female synthesis. `package_rutts_source.py` and
+`verify_rutts_source.py` create and audit the platform-neutral upstream-source
+and build-integration artifact:
+
+```sh
+make verify-rutts
+make verify-rutts-source
+```
+
 `build_piper.py` builds the optional helper in relocatable mode, selects the
 native Linux x64, Windows x64, or macOS ARM64/x64 library layout, and
 atomically stages the companion as `piper/` beside the Cargo profile output.

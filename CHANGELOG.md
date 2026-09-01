@@ -15,6 +15,14 @@ Versioning for published releases.
 - Added checksum-locked Flite source preparation, portable GCC/Clang/MSVC
   builds, atomic companion staging, full upstream licensing, provenance,
   payload checksums, real synthesis tests, and helper-session stress coverage.
+- Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
+  female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
+  volume, bounded PCM, and cooperative cancellation handling. RuLex is not
+  included.
+- Added locked RuTTS source preparation, portable companion staging,
+  deterministic binary and corresponding-source artifacts, provenance,
+  licensing, relocation checks, and real helper-session acceptance tooling for
+  a six-target Linux, macOS, and Windows release matrix.
 
 ### Fixed
 
@@ -27,6 +35,9 @@ Versioning for published releases.
 - Documented RHVoice installation/runtime discovery and the Flite SLT
   companion's installation, source build, optional voice files, platform
   acceptance, verification, licensing, and removal.
+- Documented RuTTS installation, source builds, built-in voices, KOI8-R
+  repertoire routing, manual stress notation, verification, licensing, RuLex
+  exclusion, and removal.
 
 ## [1.5.1] - 2026-09-01
 
