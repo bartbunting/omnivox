@@ -298,6 +298,7 @@ fn register_companion_helpers(
     for (engine_id, environment_variable) in [
         ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
         ("flite", "OMNIVOX_FLITE_HELPER"),
+        ("rutts", "OMNIVOX_RUTTS_HELPER"),
     ] {
         register_optional_helper(
             registry,
@@ -321,12 +322,13 @@ fn engine_preference_order(
     requested: &str,
     native_engine_id: Option<&'static str>,
 ) -> Vec<&'static str> {
-    let mut order = Vec::with_capacity(5);
+    let mut order = Vec::with_capacity(6);
     match requested {
         "espeak" => order.push("espeak"),
         "piper" => order.push("piper"),
         "rhvoice" => order.push("rhvoice"),
         "flite" => order.push("flite"),
+        "rutts" => order.push("rutts"),
         _ => {
             if let Some(native) = native_engine_id {
                 order.push(native);
@@ -349,6 +351,9 @@ fn engine_preference_order(
     }
     if !order.contains(&"flite") {
         order.push("flite");
+    }
+    if !order.contains(&"rutts") {
+        order.push("rutts");
     }
     order
 }
@@ -410,8 +415,9 @@ fn register_configured_piper(
 /// Create a TTS engine by name, falling back through the platform default to espeak-ng.
 ///
 /// `engine_name` may be empty (use `OMNIVOX_ENGINE` env var or platform default),
-/// `"espeak"`, `"piper"`, `"rhvoice"`, or `"flite"`. `piper_model` is the
-/// path to a `.onnx` model file; if `None`, `OMNIVOX_PIPER_MODEL` is consulted.
+/// `"espeak"`, `"piper"`, `"rhvoice"`, `"flite"`, or `"rutts"`.
+/// `piper_model` is the path to a `.onnx` model file; if `None`,
+/// `OMNIVOX_PIPER_MODEL` is consulted.
 pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Arc<dyn TtsEngine>> {
     let forced = if engine_name.is_empty() {
         std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
@@ -441,11 +447,12 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
         );
     }
 
-    if matches!(forced.as_str(), "rhvoice" | "flite") {
-        let (engine_id, environment_variable) = if forced == "rhvoice" {
-            ("rhvoice", "OMNIVOX_RHVOICE_HELPER")
-        } else {
-            ("flite", "OMNIVOX_FLITE_HELPER")
+    if matches!(forced.as_str(), "rhvoice" | "flite" | "rutts") {
+        let (engine_id, environment_variable) = match forced.as_str() {
+            "rhvoice" => ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
+            "flite" => ("flite", "OMNIVOX_FLITE_HELPER"),
+            "rutts" => ("rutts", "OMNIVOX_RUTTS_HELPER"),
+            _ => unreachable!(),
         };
         match companion_helper_config(engine_id, environment_variable)
             .ok_or_else(|| anyhow::anyhow!("the {engine_id} helper was not found"))
@@ -461,7 +468,10 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
         }
     }
 
-    if !matches!(forced.as_str(), "espeak" | "piper" | "rhvoice" | "flite") {
+    if !matches!(
+        forced.as_str(),
+        "espeak" | "piper" | "rhvoice" | "flite" | "rutts"
+    ) {
         #[cfg(target_os = "macos")]
         match MacOsTtsEngine::new() {
             Ok(engine) => {
@@ -501,7 +511,7 @@ fn isolate_server_engine(
 ) -> Arc<dyn TtsEngine> {
     if !matches!(
         engine.descriptor().id.as_str(),
-        "piper" | "rhvoice" | "flite"
+        "piper" | "rhvoice" | "flite" | "rutts"
     ) {
         return engine;
     }
@@ -604,6 +614,10 @@ mod tests {
             helper_synthesis_idle_timeout("flite"),
             Duration::from_secs(60)
         );
+        assert_eq!(
+            helper_synthesis_idle_timeout("rutts"),
+            Duration::from_secs(60)
+        );
     }
 
     #[test]
@@ -639,11 +653,11 @@ mod tests {
     fn windows_defaults_to_winrt_with_espeak_fallback() {
         assert_eq!(
             engine_preference_order("", Some("winrt")),
-            ["winrt", "espeak", "piper", "rhvoice", "flite"]
+            ["winrt", "espeak", "piper", "rhvoice", "flite", "rutts"]
         );
         assert_eq!(
             engine_preference_order("native", Some("winrt")),
-            ["winrt", "espeak", "piper", "rhvoice", "flite"]
+            ["winrt", "espeak", "piper", "rhvoice", "flite", "rutts"]
         );
     }
 
@@ -651,19 +665,23 @@ mod tests {
     fn windows_honours_explicit_engine_preferences() {
         assert_eq!(
             engine_preference_order("espeak", Some("winrt")),
-            ["espeak", "winrt", "piper", "rhvoice", "flite"]
+            ["espeak", "winrt", "piper", "rhvoice", "flite", "rutts"]
         );
         assert_eq!(
             engine_preference_order("piper", Some("winrt")),
-            &["piper", "espeak", "winrt", "rhvoice", "flite"]
+            &["piper", "espeak", "winrt", "rhvoice", "flite", "rutts"]
         );
         assert_eq!(
             engine_preference_order("rhvoice", Some("winrt")),
-            &["rhvoice", "espeak", "winrt", "piper", "flite"]
+            &["rhvoice", "espeak", "winrt", "piper", "flite", "rutts"]
         );
         assert_eq!(
             engine_preference_order("flite", Some("winrt")),
-            &["flite", "espeak", "winrt", "piper", "rhvoice"]
+            &["flite", "espeak", "winrt", "piper", "rhvoice", "rutts"]
+        );
+        assert_eq!(
+            engine_preference_order("rutts", Some("winrt")),
+            &["rutts", "espeak", "winrt", "piper", "rhvoice", "flite"]
         );
     }
 
@@ -671,15 +689,15 @@ mod tests {
     fn macos_retains_native_and_espeak_for_each_preference() {
         assert_eq!(
             engine_preference_order("", Some("macos")),
-            ["macos", "espeak", "piper", "rhvoice", "flite"]
+            ["macos", "espeak", "piper", "rhvoice", "flite", "rutts"]
         );
         assert_eq!(
             engine_preference_order("espeak", Some("macos")),
-            ["espeak", "macos", "piper", "rhvoice", "flite"]
+            ["espeak", "macos", "piper", "rhvoice", "flite", "rutts"]
         );
         assert_eq!(
             engine_preference_order("piper", Some("macos")),
-            ["piper", "espeak", "macos", "rhvoice", "flite"]
+            ["piper", "espeak", "macos", "rhvoice", "flite", "rutts"]
         );
     }
 
@@ -697,11 +715,11 @@ mod tests {
     fn linux_retains_espeak_when_piper_is_preferred() {
         assert_eq!(
             engine_preference_order("", None),
-            ["espeak", "piper", "rhvoice", "flite"]
+            ["espeak", "piper", "rhvoice", "flite", "rutts"]
         );
         assert_eq!(
             engine_preference_order("piper", None),
-            ["piper", "espeak", "rhvoice", "flite"]
+            ["piper", "espeak", "rhvoice", "flite", "rutts"]
         );
     }
 

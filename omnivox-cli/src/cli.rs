@@ -168,7 +168,7 @@ pub fn print_help() {
     println!("    --check          Run diagnostic self-test (inspect printed statuses)");
     println!("    --list-voices    List available TTS voices");
     println!("    --list-voices-alist  List voices as Emacs-readable alist");
-    println!("    --engine NAME    Select: native, espeak, piper, rhvoice, or flite");
+    println!("    --engine NAME    Select: native, espeak, piper, rhvoice, flite, or rutts");
     println!("    --voice ID       Set default voice (copy ID from --list-voices)");
     println!("    --rate FLOAT     Host rate 0.0-2.0 (0.5 normal; engines may clamp)");
     println!("    --pitch FLOAT    Pitch multiplier 0.5-2.0 (1.0 = normal)");
@@ -189,6 +189,7 @@ pub fn print_help() {
     );
     println!("    rhvoice   RHVoice (requires helper plus a user-installed native runtime)");
     println!("    flite     Flite compact English companion (compiled-in SLT voice)");
+    println!("    rutts     RuTTS compact Russian companion (built-in male and female voices)");
     println!();
     println!("Without options, starts the speech-server protocol on stdin.");
     println!();
@@ -198,6 +199,7 @@ pub fn print_help() {
     println!("    OMNIVOX_PIPER_HELPER   Override path to omnivox-piper-helper");
     println!("    OMNIVOX_RHVOICE_HELPER Override path to omnivox-rhvoice-helper");
     println!("    OMNIVOX_FLITE_HELPER   Override path to omnivox-flite-helper");
+    println!("    OMNIVOX_RUTTS_HELPER   Override path to omnivox-rutts-helper");
     println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (process-wide routing)");
     println!("    ESPEAK_NG_DATA         Parent directory containing espeak-ng-data");
     println!("    OMNIVOX_LOG_SYNTHESIS_TEXT  Opt in to sensitive full-text diagnostics");
