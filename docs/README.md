@@ -23,8 +23,10 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 ## Architecture decision records
 
 - [ADR 0001: Speech Engine Process Boundaries](adr/0001-speech-engine-process-boundaries.md)
-  — criteria for built-in engines and isolated helpers, including runtime and
-  distribution boundaries.
+  — criteria for built-in engines and isolated helpers.
+- [ADR 0002: RHVoice and Flite Companion Policy](adr/0002-rhvoice-and-flite-companions.md)
+  — runtime, voice-data, platform, and distribution boundaries for the two
+  optional companions.
 
 ## Protocol specifications
 
