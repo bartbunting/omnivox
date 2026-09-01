@@ -131,22 +131,26 @@ where
         helper_version: String,
     ) -> Result<Self, HelperServerError> {
         let mut descriptor = engine.descriptor();
-        if descriptor.id.is_empty() || !descriptor.can_synthesize() {
+        if descriptor.id.is_empty() {
             return Err(HelperServerError::Descriptor(
-                "engine must have a non-empty ID and be available".to_owned(),
+                "engine must have a non-empty ID".to_owned(),
             ));
         }
-        if descriptor.capabilities.audio_output != AudioOutputMode::BufferedPcm {
+        if descriptor.can_synthesize()
+            && descriptor.capabilities.audio_output != AudioOutputMode::BufferedPcm
+        {
             return Err(HelperServerError::Descriptor(
                 "engine must return buffered PCM".to_owned(),
             ));
         }
-        if descriptor.default_voice_id.as_ref().is_none_or(|default| {
-            !descriptor
-                .voices
-                .iter()
-                .any(|voice| voice.id.voice_id == *default)
-        }) {
+        if descriptor.can_synthesize()
+            && descriptor.default_voice_id.as_ref().is_none_or(|default| {
+                !descriptor
+                    .voices
+                    .iter()
+                    .any(|voice| voice.id.voice_id == *default)
+            })
+        {
             return Err(HelperServerError::Descriptor(
                 "engine must advertise a valid default voice".to_owned(),
             ));
@@ -215,6 +219,16 @@ where
 
         let result = match request.body {
             HelperRequestBody::Describe => {
+                if !self.descriptor.can_synthesize() {
+                    self.send_error(
+                        Some(request_id),
+                        protocol_version,
+                        HelperErrorCode::NotAvailable,
+                        unavailable_reason(&self.descriptor),
+                        true,
+                    )?;
+                    return Ok(HandleOutcome::Continue);
+                }
                 self.send(
                     Some(request_id),
                     protocol_version,
@@ -358,6 +372,13 @@ where
         settings: HelperSynthesisSettings,
         anchors: Vec<omnivox_tts::RequestedAnchor>,
     ) -> Result<HandleOutcome, RemoteFault> {
+        if !self.descriptor.can_synthesize() {
+            return Err(RemoteFault::new(
+                HelperErrorCode::NotAvailable,
+                unavailable_reason(&self.descriptor),
+                true,
+            ));
+        }
         let voice_id = settings
             .voice_id
             .clone()
@@ -660,6 +681,16 @@ fn error_response_body(fault: RemoteFault) -> HelperResponseBody {
     }
 }
 
+fn unavailable_reason(descriptor: &EngineDescriptor) -> &str {
+    match &descriptor.availability {
+        omnivox_tts::contracts::Availability::Unavailable { reason } => reason,
+        omnivox_tts::contracts::Availability::Available => match &descriptor.health {
+            omnivox_tts::contracts::EngineHealth::Failed { reason } => reason,
+            _ => "the helper engine is not available",
+        },
+    }
+}
+
 fn map_tts_error(error: TtsError) -> RemoteFault {
     match error {
         TtsError::VoiceNotFound(message) => {
@@ -854,6 +885,38 @@ mod tests {
                 request.requested_voice.clone(),
                 AudioBuffer::new(vec![0.5, -0.5, 1.0, -1.0]),
             ))
+        }
+
+        fn stop(&self) {}
+
+        fn is_speaking(&self) -> bool {
+            false
+        }
+
+        fn available_voices(&self) -> Vec<VoiceInfo> {
+            Vec::new()
+        }
+
+        fn voice_info(&self, _identifier: &str) -> Option<VoiceInfo> {
+            None
+        }
+    }
+
+    struct UnavailableEngine;
+
+    impl TtsEngine for UnavailableEngine {
+        fn descriptor(&self) -> EngineDescriptor {
+            let mut descriptor = descriptor();
+            descriptor.availability = Availability::Unavailable {
+                reason: "test runtime is missing".to_owned(),
+            };
+            descriptor.voices.clear();
+            descriptor.default_voice_id = None;
+            descriptor
+        }
+
+        fn synthesize(&self, _request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+            Err(TtsError::NotAvailable)
         }
 
         fn stop(&self) {}
@@ -1116,5 +1179,57 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn unavailable_engine_negotiates_and_reports_runtime_diagnostics() {
+        let writer = SharedWriter::default();
+        let engine: Arc<dyn TtsEngine> = Arc::new(UnavailableEngine);
+        let runtime = Arc::new(
+            HelperRuntime::new(
+                engine,
+                writer.clone(),
+                "Test helper".to_owned(),
+                "1".to_owned(),
+            )
+            .unwrap(),
+        );
+
+        runtime.handle(hello(1)).unwrap();
+        runtime
+            .handle(HelperRequest::new(2, HelperRequestBody::Describe))
+            .unwrap();
+        runtime.handle(synthesis(3)).unwrap();
+        runtime
+            .handle(HelperRequest::new(4, HelperRequestBody::Ping))
+            .unwrap();
+        assert_eq!(
+            runtime
+                .handle(HelperRequest::new(5, HelperRequestBody::Shutdown))
+                .unwrap(),
+            HandleOutcome::Shutdown
+        );
+
+        let responses = writer.responses();
+        let unavailable = responses
+            .iter()
+            .filter(|response| {
+                matches!(
+                    &response.body,
+                    HelperResponseBody::Error {
+                        code: HelperErrorCode::NotAvailable,
+                        message,
+                        retryable: true,
+                    } if message == "test runtime is missing"
+                )
+            })
+            .count();
+        assert_eq!(unavailable, 2);
+        assert!(responses
+            .iter()
+            .any(|response| matches!(response.body, HelperResponseBody::Pong)));
+        assert!(responses
+            .iter()
+            .any(|response| matches!(response.body, HelperResponseBody::ShuttingDown)));
     }
 }
