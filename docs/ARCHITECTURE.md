@@ -165,6 +165,14 @@ independent helper process-start costs no longer accumulate serially. Startup
 selection chooses the initial preference without removing the other registered
 engines.
 
+When packaging supplies eSpeak data in a SHA-256-named directory with the
+matching `omnivox-espeak-data.sha256` identity file, Omnivox may reuse a
+bounded, schema- and eSpeak-version-checked voice inventory stored beside that
+data. Only normalized voice records are cached; engine capabilities, health,
+and the runtime default are reconstructed from the live engine. A missing,
+oversized, malformed, mismatched, or non-content-addressed cache falls back to
+native voice discovery and cannot make eSpeak unavailable.
+
 The registry owns stable engine descriptors and physical voices. A separate
 logical registry owns portable definitions; routing policy owns preferred,
 fallback, and disabled engine lists. Registrations and policies are

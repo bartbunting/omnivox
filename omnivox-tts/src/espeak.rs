@@ -15,19 +15,35 @@ use crate::{
     SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
 };
 use once_cell::sync::OnceCell;
+use serde::{Deserialize, Serialize};
 use std::ffi::{CStr, CString};
+use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Write};
 use std::os::raw::{c_int, c_short, c_void};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 /// Global espeak-ng initialization guard.
 /// espeak-ng uses global state internally, so we need a mutex to serialize access.
 static ESPEAK_LOCK: OnceCell<Mutex<EspeakState>> = OnceCell::new();
 
+const VOICE_CACHE_SCHEMA_VERSION: u32 = 1;
+const VOICE_CACHE_FILE_NAME: &str = "omnivox-espeak-voices-v1.json";
+const VOICE_CACHE_IDENTITY_FILE_NAME: &str = "omnivox-espeak-data.sha256";
+const MAX_VOICE_CACHE_BYTES: u64 = 1024 * 1024;
+const MAX_CACHED_VOICES: usize = 4096;
+const MAX_CACHED_IDENTIFIER_BYTES: usize = 4096;
+const MAX_CACHED_NAME_BYTES: usize = 1024;
+const MAX_CACHED_LANGUAGE_BYTES: usize = 128;
+static VOICE_CACHE_WRITE_SEQUENCE: AtomicU64 = AtomicU64::new(1);
+
 /// Internal state for espeak-ng synthesis
 struct EspeakState {
     sample_rate: u32,
     initialized: bool,
+    data_parent: Option<PathBuf>,
 }
 
 /// Defensive limit for the native callback's zero-terminated event array.
@@ -62,6 +78,29 @@ struct EspeakNativeMarker {
 /// espeak-ng TTS engine
 pub struct EspeakTtsEngine {
     descriptor: EngineDescriptor,
+}
+
+struct EspeakDataLocation {
+    parent: PathBuf,
+    native_path: CString,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EspeakVoiceCache {
+    schema_version: u32,
+    data_identity: String,
+    engine_version: String,
+    voices: Vec<CachedEspeakVoice>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CachedEspeakVoice {
+    identifier: String,
+    name: String,
+    language: String,
+    quality: VoiceQuality,
 }
 
 // SAFETY: All espeak-ng access is serialized through the ESPEAK_LOCK mutex
@@ -184,7 +223,15 @@ impl EspeakTtsEngine {
     /// Find the espeak-ng data directory.
     /// Checks (in order): ESPEAK_NG_DATA env var, next to executable, build-time path, system paths.
     /// Returns the parent directory (espeak-ng appends "espeak-ng-data" itself).
-    fn find_data_path() -> Option<CString> {
+    fn data_location(parent: PathBuf) -> Option<EspeakDataLocation> {
+        let native_path = CString::new(parent.to_string_lossy().as_bytes()).ok()?;
+        Some(EspeakDataLocation {
+            parent,
+            native_path,
+        })
+    }
+
+    fn find_data_path() -> Option<EspeakDataLocation> {
         // 1. Runtime environment variable
         if let Ok(dir) = std::env::var("ESPEAK_NG_DATA") {
             if !dir.is_empty()
@@ -194,7 +241,7 @@ impl EspeakTtsEngine {
                     .exists()
             {
                 debug!("Using espeak-ng data from ESPEAK_NG_DATA env: {}", dir);
-                return CString::new(dir).ok();
+                return Self::data_location(PathBuf::from(dir));
             }
         }
 
@@ -206,7 +253,7 @@ impl EspeakTtsEngine {
                 let data_check = exe_dir.join("espeak-ng-data").join("phontab");
                 if data_check.exists() {
                     debug!("Using espeak-ng data next to executable");
-                    return CString::new(exe_dir.to_string_lossy().as_ref()).ok();
+                    return Self::data_location(exe_dir.to_path_buf());
                 }
             }
         }
@@ -220,7 +267,7 @@ impl EspeakTtsEngine {
                 .exists()
         {
             debug!("Using espeak-ng data from build path: {}", ESPEAK_DATA_DIR);
-            return CString::new(ESPEAK_DATA_DIR).ok();
+            return Self::data_location(PathBuf::from(ESPEAK_DATA_DIR));
         }
 
         // 4. System paths
@@ -236,7 +283,7 @@ impl EspeakTtsEngine {
             let data_dir = format!("{}/espeak-ng-data", candidate);
             if std::path::Path::new(&data_dir).exists() {
                 debug!("Found espeak-ng data at: {}", data_dir);
-                return CString::new(*candidate).ok();
+                return Self::data_location(PathBuf::from(candidate));
             }
         }
 
@@ -254,7 +301,7 @@ impl EspeakTtsEngine {
 
                 let sample_rate = unsafe {
                     let path_ptr = match &data_path {
-                        Some(p) => p.as_ptr(),
+                        Some(location) => location.native_path.as_ptr(),
                         None => std::ptr::null(),
                     };
 
@@ -284,6 +331,7 @@ impl EspeakTtsEngine {
                 Ok(Mutex::new(EspeakState {
                     sample_rate,
                     initialized: true,
+                    data_parent: data_path.map(|location| location.parent),
                 }))
             })
             .map_err(|e| TtsError::SynthesisFailed(format!("Failed to init espeak-ng: {}", e)))?;
@@ -295,11 +343,12 @@ impl EspeakTtsEngine {
         if !guard.initialized {
             return Err(TtsError::NotAvailable);
         }
+        let data_parent = guard.data_parent.clone();
 
         drop(guard);
 
         Ok(Self {
-            descriptor: Self::discover_descriptor(),
+            descriptor: Self::discover_descriptor(data_parent.as_deref()),
         })
     }
 
@@ -416,12 +465,12 @@ impl EspeakTtsEngine {
             .map(|voice| voice.id.voice_id.clone())
     }
 
-    fn discover_descriptor() -> EngineDescriptor {
-        let voices = Self::discover_available_voices()
+    fn discover_descriptor(data_parent: Option<&Path>) -> EngineDescriptor {
+        let (version, runtime_default) = Self::runtime_metadata();
+        let voices = Self::available_voices_with_cache(data_parent, version.as_deref())
             .into_iter()
             .map(|voice| VoiceDescriptor::from_voice_info("espeak", voice))
             .collect::<Vec<_>>();
-        let (version, runtime_default) = Self::runtime_metadata();
         let default_voice_id = Self::default_voice_id(&voices, runtime_default);
 
         EngineDescriptor {
@@ -434,6 +483,206 @@ impl EspeakTtsEngine {
             voices,
             default_voice_id,
         }
+    }
+
+    fn available_voices_with_cache(
+        data_parent: Option<&Path>,
+        engine_version: Option<&str>,
+    ) -> Vec<VoiceInfo> {
+        if let (Some(data_parent), Some(version)) = (data_parent, engine_version) {
+            match Self::load_cached_voices(data_parent, version) {
+                Ok(Some(voices)) => return voices,
+                Ok(None) => {}
+                Err(error) => warn!(
+                    cache = %data_parent.join(VOICE_CACHE_FILE_NAME).display(),
+                    %error,
+                    "Ignoring invalid eSpeak voice cache"
+                ),
+            }
+        }
+
+        let voices = Self::discover_available_voices();
+        if !voices.is_empty() {
+            if let (Some(data_parent), Some(version)) = (data_parent, engine_version) {
+                if let Err(error) = Self::store_cached_voices(data_parent, version, &voices) {
+                    warn!(
+                        cache = %data_parent.join(VOICE_CACHE_FILE_NAME).display(),
+                        %error,
+                        "Could not store eSpeak voice cache"
+                    );
+                }
+            }
+        }
+        voices
+    }
+
+    fn cache_location(data_parent: &Path) -> Option<(PathBuf, String)> {
+        let identity = data_parent.file_name()?.to_str()?;
+        if identity.len() != 64
+            || !identity
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return None;
+        }
+        let identity_file = File::open(data_parent.join(VOICE_CACHE_IDENTITY_FILE_NAME)).ok()?;
+        let mut encoded_identity = Vec::with_capacity(65);
+        identity_file
+            .take(66)
+            .read_to_end(&mut encoded_identity)
+            .ok()?;
+        if encoded_identity != format!("{identity}\n").as_bytes() {
+            return None;
+        }
+        Some((data_parent.join(VOICE_CACHE_FILE_NAME), identity.to_owned()))
+    }
+
+    fn load_cached_voices(
+        data_parent: &Path,
+        engine_version: &str,
+    ) -> Result<Option<Vec<VoiceInfo>>, String> {
+        let Some((cache_path, data_identity)) = Self::cache_location(data_parent) else {
+            return Ok(None);
+        };
+        let file = match File::open(&cache_path) {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error.to_string()),
+        };
+        let metadata = file.metadata().map_err(|error| error.to_string())?;
+        if !metadata.is_file() || metadata.len() > MAX_VOICE_CACHE_BYTES {
+            return Err(format!(
+                "cache must be a regular file no larger than {MAX_VOICE_CACHE_BYTES} bytes"
+            ));
+        }
+        let mut encoded = Vec::with_capacity(metadata.len() as usize);
+        file.take(MAX_VOICE_CACHE_BYTES + 1)
+            .read_to_end(&mut encoded)
+            .map_err(|error| error.to_string())?;
+        if encoded.len() as u64 > MAX_VOICE_CACHE_BYTES {
+            return Err(format!(
+                "cache exceeds the {MAX_VOICE_CACHE_BYTES}-byte limit"
+            ));
+        }
+        let cache: EspeakVoiceCache =
+            serde_json::from_slice(&encoded).map_err(|error| error.to_string())?;
+        Self::validate_voice_cache(&cache, &data_identity, engine_version)?;
+        let voices = cache
+            .voices
+            .into_iter()
+            .map(|voice| VoiceInfo {
+                identifier: voice.identifier,
+                name: voice.name,
+                language: voice.language,
+                quality: voice.quality,
+            })
+            .collect::<Vec<_>>();
+        info!(
+            cache = %cache_path.display(),
+            voice_count = voices.len(),
+            "Loaded cached eSpeak voice inventory"
+        );
+        Ok(Some(voices))
+    }
+
+    fn validate_voice_cache(
+        cache: &EspeakVoiceCache,
+        data_identity: &str,
+        engine_version: &str,
+    ) -> Result<(), String> {
+        if cache.schema_version != VOICE_CACHE_SCHEMA_VERSION {
+            return Err(format!("unsupported cache schema {}", cache.schema_version));
+        }
+        if cache.data_identity != data_identity {
+            return Err("cache data identity does not match its directory".to_owned());
+        }
+        if cache.engine_version != engine_version {
+            return Err("cache eSpeak version does not match the loaded runtime".to_owned());
+        }
+        if cache.voices.is_empty() || cache.voices.len() > MAX_CACHED_VOICES {
+            return Err(format!(
+                "cache must contain between 1 and {MAX_CACHED_VOICES} voices"
+            ));
+        }
+        for voice in &cache.voices {
+            if !voice.identifier.starts_with("espeak:")
+                || voice.identifier.len() <= "espeak:".len()
+                || voice.identifier.len() > MAX_CACHED_IDENTIFIER_BYTES
+                || voice.identifier.contains('\0')
+                || voice.name.is_empty()
+                || voice.name.len() > MAX_CACHED_NAME_BYTES
+                || voice.name.contains('\0')
+                || voice.language.len() > MAX_CACHED_LANGUAGE_BYTES
+                || voice.language.contains('\0')
+            {
+                return Err("cache contains an invalid voice record".to_owned());
+            }
+        }
+        Ok(())
+    }
+
+    fn store_cached_voices(
+        data_parent: &Path,
+        engine_version: &str,
+        voices: &[VoiceInfo],
+    ) -> Result<(), String> {
+        let Some((cache_path, data_identity)) = Self::cache_location(data_parent) else {
+            return Ok(());
+        };
+        let cache = EspeakVoiceCache {
+            schema_version: VOICE_CACHE_SCHEMA_VERSION,
+            data_identity,
+            engine_version: engine_version.to_owned(),
+            voices: voices
+                .iter()
+                .map(|voice| CachedEspeakVoice {
+                    identifier: voice.identifier.clone(),
+                    name: voice.name.clone(),
+                    language: voice.language.clone(),
+                    quality: voice.quality,
+                })
+                .collect(),
+        };
+        Self::validate_voice_cache(&cache, cache.data_identity.as_str(), engine_version)?;
+        let encoded = serde_json::to_vec(&cache).map_err(|error| error.to_string())?;
+        if encoded.len() as u64 > MAX_VOICE_CACHE_BYTES {
+            return Err(format!(
+                "encoded cache exceeds the {MAX_VOICE_CACHE_BYTES}-byte limit"
+            ));
+        }
+
+        let sequence = VOICE_CACHE_WRITE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let temporary_path = data_parent.join(format!(
+            ".{VOICE_CACHE_FILE_NAME}.{}.{}.tmp",
+            std::process::id(),
+            sequence
+        ));
+        let write_result = (|| -> Result<(), String> {
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temporary_path)
+                .map_err(|error| error.to_string())?;
+            file.write_all(&encoded)
+                .map_err(|error| error.to_string())?;
+            file.sync_all().map_err(|error| error.to_string())?;
+            drop(file);
+            if cache_path.exists() {
+                fs::remove_file(&cache_path).map_err(|error| error.to_string())?;
+            }
+            fs::rename(&temporary_path, &cache_path).map_err(|error| error.to_string())?;
+            Ok(())
+        })();
+        if write_result.is_err() {
+            let _ = fs::remove_file(&temporary_path);
+        }
+        write_result?;
+        info!(
+            cache = %cache_path.display(),
+            voice_count = voices.len(),
+            "Stored eSpeak voice inventory cache"
+        );
+        Ok(())
     }
 
     fn discover_available_voices() -> Vec<VoiceInfo> {
@@ -749,6 +998,117 @@ fn utf8_range_for_character_boundaries(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct CacheTestDirectory(PathBuf);
+
+    impl CacheTestDirectory {
+        fn new(label: &str) -> Self {
+            let sequence = VOICE_CACHE_WRITE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "omnivox-espeak-cache-{label}-{}-{sequence}",
+                std::process::id()
+            ));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+
+        fn data_parent(&self) -> PathBuf {
+            let path = self.0.join("a".repeat(64));
+            fs::create_dir(&path).unwrap();
+            fs::write(
+                path.join(VOICE_CACHE_IDENTITY_FILE_NAME),
+                format!("{}\n", "a".repeat(64)),
+            )
+            .unwrap();
+            path
+        }
+    }
+
+    impl Drop for CacheTestDirectory {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn cached_voice() -> VoiceInfo {
+        VoiceInfo {
+            identifier: r"espeak:gmw\en-US".to_owned(),
+            name: "English (America)".to_owned(),
+            language: "en-us".to_owned(),
+            quality: VoiceQuality::Compact,
+        }
+    }
+
+    #[test]
+    fn voice_cache_requires_a_lowercase_sha256_data_directory() {
+        let directory = CacheTestDirectory::new("identity");
+        let data_parent = directory.data_parent();
+        assert!(EspeakTtsEngine::cache_location(&data_parent).is_some());
+
+        fs::remove_file(data_parent.join(VOICE_CACHE_IDENTITY_FILE_NAME)).unwrap();
+        assert!(EspeakTtsEngine::cache_location(&data_parent).is_none());
+
+        let invalid = directory.0.join("A".repeat(64));
+        fs::create_dir(&invalid).unwrap();
+        fs::write(
+            invalid.join(VOICE_CACHE_IDENTITY_FILE_NAME),
+            format!("{}\n", "A".repeat(64)),
+        )
+        .unwrap();
+        assert!(EspeakTtsEngine::cache_location(&invalid).is_none());
+    }
+
+    #[test]
+    fn cached_voice_inventory_round_trips_without_native_discovery() {
+        let directory = CacheTestDirectory::new("round-trip");
+        let data_parent = directory.data_parent();
+        let expected = vec![cached_voice()];
+        EspeakTtsEngine::store_cached_voices(&data_parent, "1.52.0", &expected).unwrap();
+
+        let loaded = EspeakTtsEngine::available_voices_with_cache(
+            Some(data_parent.as_path()),
+            Some("1.52.0"),
+        );
+
+        assert_eq!(loaded, expected);
+    }
+
+    #[test]
+    fn voice_cache_rejects_version_mismatch_and_invalid_records() {
+        let directory = CacheTestDirectory::new("validation");
+        let data_parent = directory.data_parent();
+        EspeakTtsEngine::store_cached_voices(&data_parent, "1.52.0", &[cached_voice()]).unwrap();
+
+        let version_error =
+            EspeakTtsEngine::load_cached_voices(&data_parent, "1.53.0").unwrap_err();
+        assert!(version_error.contains("version"));
+
+        let cache_path = data_parent.join(VOICE_CACHE_FILE_NAME);
+        OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(&cache_path)
+            .unwrap()
+            .set_len(MAX_VOICE_CACHE_BYTES + 1)
+            .unwrap();
+        let size_error = EspeakTtsEngine::load_cached_voices(&data_parent, "1.52.0").unwrap_err();
+        assert!(size_error.contains("no larger"));
+
+        let invalid = EspeakVoiceCache {
+            schema_version: VOICE_CACHE_SCHEMA_VERSION,
+            data_identity: "a".repeat(64),
+            engine_version: "1.52.0".to_owned(),
+            voices: vec![CachedEspeakVoice {
+                identifier: "other:voice".to_owned(),
+                name: "Other".to_owned(),
+                language: "en".to_owned(),
+                quality: VoiceQuality::Compact,
+            }],
+        };
+        let validation_error =
+            EspeakTtsEngine::validate_voice_cache(&invalid, &"a".repeat(64), "1.52.0").unwrap_err();
+        assert!(validation_error.contains("invalid voice"));
+    }
 
     #[test]
     fn test_rate_mapping() {

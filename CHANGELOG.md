@@ -65,6 +65,9 @@ Versioning for published releases.
 
 ### Fixed
 
+- eSpeak voice discovery can now reuse a bounded, schema-checked inventory
+  cache for verified content-addressed data, while mismatched, corrupt, custom,
+  and system data safely fall back to native discovery.
 - Optional helper engines now initialize concurrently with built-in discovery,
   preserving a complete deterministic first inventory without accumulating
   every helper's process-start latency during a fresh server launch.

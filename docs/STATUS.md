@@ -36,6 +36,9 @@ in the linked protocol specifications; future work belongs in
   every desktop platform. Independent helpers initialize concurrently with
   built-in discovery, then join the complete initial inventory in deterministic
   order before the command loop opens.
+- Verified content-addressed eSpeak data can reuse a bounded cached voice
+  inventory; unverified, custom, stale, or malformed cache state falls back to
+  live discovery without changing the complete first-inventory contract.
 - Ordered fallback for missing voices, unsupported text repertoires, engine
   failure, and transient engine pressure.
 - Persistent health circuits, bounded cooldowns, one recovery probe, and
