@@ -21,6 +21,9 @@ Versioning for published releases.
   admission, synthesis queue wait, engine attempts, audio queueing, first
   mixer-source consumption, and terminal playback without changing the marker
   or control protocols.
+- Added a cross-platform cold/warm server benchmark for character, word, line,
+  dense-action, multipart, and rapid-replacement workloads. Reports retain raw
+  monotonic samples, build provenance, actual engines, and p50/p95/p99 timing.
 - Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
   female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
   volume, bounded PCM, and cooperative cancellation handling. RuLex is not

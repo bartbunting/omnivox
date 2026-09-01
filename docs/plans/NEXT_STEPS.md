@@ -27,9 +27,10 @@ The structured identity model remains:
 1. Extend the correlated Emacs submission, protocol admission, synthesis, and
    mixer-source telemetry to first audible device output where a platform
    exposes a truthful measurement callback.
-2. Maintain reproducible warm/cold latency benchmarks for character, word,
-   ordinary line, dense-action timeline, multipart timeline, and rapid keyed
-   replacement workloads. Report p50, p95, and p99 rather than averages alone.
+2. Maintain and extend `tools/benchmark_server.py` across real platforms for
+   character, word, ordinary line, dense-action timeline, multipart timeline,
+   and rapid keyed replacement workloads. Preserve raw samples and compare
+   p50, p95, and p99 rather than averages alone.
 3. Stress domain-scoped cancellation with interleaved replacement keys,
    ordered and urgent traffic, queued/buffered audio, late engine completion,
    and helper restart. Verify that stale audio, markers, semantic callbacks,

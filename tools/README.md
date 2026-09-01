@@ -213,6 +213,31 @@ Every current release target performs native synthesis verification. An empty
 engine list remains available for an intentional structural and architecture
 check that does not exercise synthesis.
 
+## Server lifecycle benchmarks
+
+`benchmark_server.py` measures cold and warm lifecycle latency through the
+public Omnivox protocol using only the Python standard library. It negotiates
+capabilities, sends structured presentations, timestamps the first
+`utterance_started` mixer-source marker and tracked terminal record with a
+monotonic clock, verifies the realized engine when requested, and reports
+nearest-rank p50/p95/p99 values. Default workloads cover character, word, line,
+dense semantic actions, multipart assembly, and a rapid same-key replacement
+burst:
+
+```sh
+python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
+  --engine native --expected-engine-id winrt \
+  --mode both --iterations 20 --warmups 2 \
+  --provenance ../emacsvox/servers/omnivox-bin/current/PROVENANCE \
+  --json-output /path/to/private/winrt-latency.json
+```
+
+Repeat `--case` to select workloads. Cold mode starts a new server for every
+sample; warm mode keeps one process alive. The JSON report includes raw samples,
+host and Python identity, server version, command, actual engine counts, and an
+optional bounded `KEY=VALUE` provenance file. Marker receipt measures
+mixer-source consumption and may precede audible device output.
+
 ## Failure diagnostics
 
 `collect_diagnostics.sh` creates a bounded archive containing recent Omnivox

@@ -39,7 +39,8 @@ The normal info-level log records monotonic elapsed microseconds for each
 speech request. Tracked and marker-aware requests use their dispatch ID as
 `request_identifier`; preview requests use their control request ID. Events
 inside the `speech_request` tracing span inherit that identifier, request kind,
-and interrupt generation.
+stop epoch, and the submitted protocol generation when the request is a
+structured timeline.
 
 The lifecycle is reported at these boundaries:
 
@@ -59,6 +60,29 @@ Windows process. Match them with Emacsvox's opt-in aural diagnostic records by
 dispatch ID. The first mixer-source measurement is not physical acoustic
 onset: operating-system, device, and hardware buffers can add latency after
 the mixer requests its first sample.
+
+Use `tools/benchmark_server.py` to collect repeatable client-observed cold and
+warm distributions through the public server protocol. Cold samples start a
+fresh process; warm samples reuse one process after configurable warmups. The
+default cases cover a character, word, ordinary line, dense semantic-action
+timeline, multipart timeline, and rapid keyed replacement. Each summary uses
+nearest-rank p50, p95, and p99 values and the optional JSON report retains every
+raw monotonic sample and actual engine ID:
+
+```sh
+python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
+  --engine flite --expected-engine-id flite \
+  --mode both --iterations 20 --warmups 2 \
+  --provenance ../emacsvox/servers/omnivox-bin/current/PROVENANCE \
+  --json-output /path/to/private/flite-latency.json
+```
+
+Select individual workloads by repeating `--case`. The `multipart` workload
+deliberately fragments a short presentation, so it measures assembly without
+turning playback duration into a large-text benchmark. The replacement result
+reports the slowest stale-dispatch terminal cancellation in each burst as well
+as the winning dispatch's onset. These remain mixer-source observations, not
+microphone or physical audible-onset measurements.
 
 If speech stops, collect evidence before manually restarting it:
 

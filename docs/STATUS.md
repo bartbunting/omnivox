@@ -188,3 +188,9 @@ consumption, and terminal playback by dispatch ID using monotonic elapsed
 microseconds. Physical device onset remains unmeasured; methodology and the
 remaining performance work are tracked in
 [NEXT_STEPS.md](plans/NEXT_STEPS.md).
+
+`tools/benchmark_server.py` runs the tracked protocol against a selected native
+server or launcher and reports raw cold/warm character, word, line,
+dense-action, multipart, and rapid-replacement samples with nearest-rank
+p50/p95/p99 summaries. Its source boundary is the first mixer-consumption
+marker; it does not turn those results into an acoustic-onset claim.
