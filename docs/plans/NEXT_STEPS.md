@@ -51,9 +51,14 @@ The structured identity model remains:
    published component.
 3. Improve macOS marker and cancellation coverage without overstating what
    AVSpeechSynthesizer exposes.
-4. Verify logical-language and text-repertoire routing against live
+4. Extend RHVoice live-runtime acceptance beyond Linux x64 and Windows x64,
+   prioritizing Linux ARM64 where upstream runtime support is available. Keep
+   macOS and Windows ARM64 labelled compile-only until compatible native
+   runtimes pass discovery, synthesis, marker, cancellation, and shutdown
+   acceptance.
+5. Verify logical-language and text-repertoire routing against live
    multilingual voices on every supported engine.
-5. Keep eSpeak NG as the reliable Unicode-capable final fallback and extend
+6. Keep eSpeak NG as the reliable Unicode-capable final fallback and extend
    native marker coverage only when mappings remain source-accurate.
 
 ## Priority 3: deployment and user diagnostics
@@ -74,13 +79,6 @@ The structured identity model remains:
 
 These are not current features and require design or scope approval:
 
-- **RHVoice:** evaluate this first as a low-latency accessibility engine. A
-  prototype must exercise its native streamed-PCM cancellation and
-  word/sentence callbacks, character and key message modes, physical voice
-  discovery, and rate, pitch, volume, and punctuation controls. Compare warm
-  and cold onset, rapid replacement, high-rate intelligibility, resource use,
-  packaging, and licensing against eSpeak NG, Eloquence, and Piper before
-  approving a permanent adapter.
 - **sherpa-onnx with Inflect Micro and Kitten Nano:** evaluate one optional,
   isolated sherpa-onnx adapter rather than model-specific integrations. Measure
   model load, first-audio and complete-synthesis latency, PCM callback cadence,
@@ -88,12 +86,6 @@ These are not current features and require design or scope approval:
   intelligibility, and the consequences of absent source-accurate word
   markers. Keep runtime and model assets separately auditable, with explicit
   per-model licence and provenance records.
-- **Flite:** evaluate it as a small, promptly restartable, low-latency English
-  fallback, not as a replacement for the Unicode-capable eSpeak NG fallback.
-  Record its startup and interruption distributions, available voice quality
-  and licensing, language and text-repertoire limits, marker capabilities, and
-  usable rate range before deciding whether its extra engine surface is
-  justified.
 - **RuTTS (`poretsky/ru_tts`):** evaluate it as a compact, low-latency
   Russian-only engine, not as a Ukrainian or general multilingual fallback.
   Measure cold and warm onset, interruption and replacement behavior, CPU and

@@ -101,14 +101,17 @@ in the linked protocol specifications; future work belongs in
   and offline Cargo verification. The gated tag workflow is implemented, but
   no release containing the companion has been published yet.
 - RHVoice uses a user-installed 1.14-or-later compatible 1.x C API runtime.
-  Linux x64 has passed real synthesis, marker, ACSS, cancellation, and shutdown
-  acceptance with 1.14.0. Other desktop targets currently have helper compile
-  coverage only; Windows requires an explicit C API DLL path.
+  Linux x64 and Windows x64 have passed real synthesis, marker, ACSS,
+  cancellation, and shutdown acceptance with 1.14.0; Windows uses an explicit
+  C API DLL path. Linux ARM64 has helper compile coverage, Windows ARM64 has no
+  accepted compatible runtime, and macOS remains compile-only because upstream
+  does not claim macOS support.
 - Flite uses checksum-locked v2.2 source, has only `cmu_us_slt` compiled in,
-  and accepts optional local English Clustergen `.flitevox` files. Its helper
-  has passed real Linux x64 synthesis, ACSS, cancellation-protocol, repeated
-  session, and clean-shutdown acceptance. Flite has an ASCII input guarantee
-  and no synchronization markers; eSpeak remains the Unicode fallback.
+  and accepts optional local English Clustergen `.flitevox` files. Native
+  release runners on Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows
+  x64/ARM64 each verify relocation, ACSS, 25 real SLT syntheses, cancellation,
+  and clean shutdown. Flite has an ASCII input guarantee and no synchronization
+  markers; eSpeak remains the Unicode fallback.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
@@ -117,12 +120,12 @@ in the linked protocol specifications; future work belongs in
 
 | Platform | Runtime status | GitHub release artifact |
 |---|---|---|
-| macOS ARM64 | AVSpeechSynthesizer and eSpeak NG; optional Piper candidate verified | Yes |
-| macOS x64 | AVSpeechSynthesizer and eSpeak NG; optional Piper candidate verified | Yes |
-| Windows x64 | WinRT and eSpeak NG; optional Piper and proprietary helpers | Yes |
-| Windows ARM64 | WinRT and eSpeak NG | Yes |
-| Linux x64 | eSpeak NG; optional Piper candidate verified | Yes (Ubuntu 24.04 ABI baseline) |
-| Linux ARM64 | Not CI-built or runtime-verified | No current workflow artifact |
+| macOS ARM64 | AVSpeechSynthesizer and eSpeak NG; optional Piper and Flite companions verified | Yes |
+| macOS x64 | AVSpeechSynthesizer and eSpeak NG; optional Piper and Flite companions verified | Yes |
+| Windows x64 | WinRT and eSpeak NG; RHVoice and Flite accepted; optional Piper and proprietary helpers | Yes |
+| Windows ARM64 | WinRT and eSpeak NG; Flite companion verified | Yes |
+| Linux x64 | eSpeak NG; RHVoice accepted; optional Piper and Flite companions verified | Yes (Ubuntu 24.04 ABI baseline) |
+| Linux ARM64 | Flite companion verified; generic server artifact pending | No current generic workflow artifact |
 
 The checked-in workflow builds, tests, and runs Clippy on all five release
 targets using native runners. Linux x64 is built on Ubuntu 24.04; compatibility
