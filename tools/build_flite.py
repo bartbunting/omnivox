@@ -20,6 +20,7 @@ SUPPORTED_TARGETS = {
     "aarch64-pc-windows-msvc": ("windows-arm64", "omnivox-flite-helper.exe"),
     "aarch64-unknown-linux-gnu": ("linux-arm64", "omnivox-flite-helper"),
     "x86_64-apple-darwin": ("macos-x64", "omnivox-flite-helper"),
+    "x86_64-pc-windows-gnu": ("windows-x64-gnu", "omnivox-flite-helper.exe"),
     "x86_64-pc-windows-msvc": ("windows-x64", "omnivox-flite-helper.exe"),
     "x86_64-unknown-linux-gnu": ("linux-x64", "omnivox-flite-helper"),
 }

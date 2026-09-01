@@ -47,6 +47,11 @@ Release support requires real helper discovery, synthesis, PCM validation,
 cancellation or helper retirement, and clean shutdown on the native runner;
 compiling a target alone is not treated as runtime acceptance.
 
+The published Windows companions use the MSVC targets above. The
+`x86_64-pc-windows-gnu` target is also supported for Emacsvox's pinned MinGW
+development and reproducible source-build runtime; companion provenance names
+that distinct build `windows-x64-gnu`.
+
 ## Build locally
 
 Install the general Omnivox prerequisites plus a C compiler for the target.

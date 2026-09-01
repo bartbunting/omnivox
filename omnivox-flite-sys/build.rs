@@ -126,6 +126,7 @@ fn main() {
         .unwrap_or_else(|| repository.join("target/flite-inputs/2.2/source"));
     let wrapper = manifest.join("native/omnivox_flite.c");
     let target_family = env::var("CARGO_CFG_TARGET_FAMILY").unwrap();
+    let target_environment = env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
 
     require_file(&source.join("COPYING"));
     require_file(&source.join("lang/cmu_us_slt/cmu_us_slt.c"));
@@ -142,6 +143,12 @@ fn main() {
 
     let mmap_source = if target_family == "windows" {
         build.define("WIN32", None);
+        if target_environment == "gnu" {
+            let mingw_compat = manifest.join("native/omnivox_flite_mingw_compat.c");
+            require_file(&mingw_compat);
+            println!("cargo:rerun-if-changed={}", mingw_compat.display());
+            build.file(mingw_compat);
+        }
         "src/utils/cst_mmap_win32.c"
     } else {
         "src/utils/cst_mmap_none.c"
