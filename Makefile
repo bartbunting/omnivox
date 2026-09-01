@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
+.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -99,6 +99,11 @@ stage-rhvoice-dev:
 build-rhvoice: build
 
 install-rhvoice: install
+
+# Download and verify the exact Flite v2.2 corresponding source used by the
+# portable companion build. The native build itself never accesses the network.
+prepare-flite:
+	$(PYTHON) tools/prepare_flite_inputs.py
 
 # Build and stage the isolated Piper companion. Its preparation step downloads
 # checksum-locked native inputs on first use; repeated builds can run offline.

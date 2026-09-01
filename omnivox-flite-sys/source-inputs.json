@@ -1,0 +1,10 @@
+{
+  "archive": "flite-e9e2e37c.tar.gz",
+  "archive_root": "flite-e9e2e37c329dbe98bfeb27a1828ef9a71fa84f88",
+  "commit": "e9e2e37c329dbe98bfeb27a1828ef9a71fa84f88",
+  "flite_version": "2.2",
+  "schema_version": 1,
+  "sha256": "1eebf476797cea10b4706cfbb9db9ba34f7b8ccb1fe7e0069b0b7528e0b0be46",
+  "source_tree_sha256": "ffb7f46e938f224b6df8724845fcc79cbd1673f2c8ff0cac6667186c688cae34",
+  "url": "https://codeload.github.com/festvox/flite/tar.gz/e9e2e37c329dbe98bfeb27a1828ef9a71fa84f88"
+}
