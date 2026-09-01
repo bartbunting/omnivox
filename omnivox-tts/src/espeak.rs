@@ -1051,7 +1051,8 @@ mod tests {
         fs::remove_file(data_parent.join(VOICE_CACHE_IDENTITY_FILE_NAME)).unwrap();
         assert!(EspeakTtsEngine::cache_location(&data_parent).is_none());
 
-        let invalid = directory.0.join("A".repeat(64));
+        let invalid_directory = CacheTestDirectory::new("invalid-identity");
+        let invalid = invalid_directory.0.join("A".repeat(64));
         fs::create_dir(&invalid).unwrap();
         fs::write(
             invalid.join(VOICE_CACHE_IDENTITY_FILE_NAME),
