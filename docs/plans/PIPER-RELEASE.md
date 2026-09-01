@@ -1,12 +1,12 @@
 # Piper Release Plan
 
-Status: option A selected; implementation in progress.
+Status: implemented for v1.6.0.
 
-Piper is already represented by an optional out-of-process Omnivox helper, but
-it is not a distributable release component. This plan defines the work needed
-to make it reproducible on Windows, Linux, and macOS without weakening the
-failure containment of the helper architecture or silently taking ownership of
-third-party voice-model licences.
+Piper is represented by an optional out-of-process Omnivox helper and is
+published as a separate companion beginning with v1.6.0. This plan records the
+work that made it reproducible on Windows, Linux, and macOS without weakening
+the failure containment of the helper architecture or silently taking
+ownership of third-party voice-model licences.
 
 ## Decisions already made
 

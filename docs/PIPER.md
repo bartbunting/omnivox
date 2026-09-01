@@ -1,10 +1,9 @@
 # Piper Companion Guide
 
-Piper is an optional out-of-process engine. Current Omnivox source and CI
-candidates support Linux x64, Windows x64, macOS Apple Silicon, and macOS
-Intel. No Piper companion is published in a GitHub release yet. Published
-Omnivox v1.4.1 also predates Piper discovery in the generic executable, so use
-a current source build or a later release that explicitly lists Piper support.
+Piper is an optional out-of-process engine. Beginning with v1.6.0, Omnivox
+publishes companion archives for Linux x64, Windows x64, macOS Apple Silicon,
+and macOS Intel. Releases through v1.5.1 do not contain a Piper companion, so
+use v1.6.0 or later, or build the current source.
 
 ## Payload boundary
 
@@ -55,9 +54,9 @@ directory. This command installs the main executable and copies the main
 eSpeak payload, notices, project licensing files, and complete `piper/`
 companion. It does not install a model.
 
-## Install a companion candidate
+## Install a companion archive
 
-A verified candidate is named for its platform:
+A published archive is named for its platform:
 
 - `omnivox-VERSION-piper-linux-x64.tar.gz`;
 - `omnivox-VERSION-piper-windows-x64.zip`;
@@ -71,12 +70,12 @@ creates the layout shown above. Do not combine a companion with a main
 executable from another version or source commit; `SOURCE-PROVENANCE.json`
 inside the companion records its exact Omnivox source.
 
-The manual Piper workflow retains these as non-publishing engineering
-artifacts. The tag workflow separately builds release candidates,
-downloads them back from a draft, and requires native real synthesis before
-publication. No release containing a Piper companion has been published yet.
+The manual Piper workflow retains its builds as non-publishing engineering
+artifacts. Beginning with v1.6.0, the tag workflow separately builds release
+archives, downloads them back from a draft, and requires native real synthesis
+before publication.
 
-The platform-neutral `omnivox-VERSION-piper-source.tar.gz` candidate contains
+The platform-neutral `omnivox-VERSION-piper-source.tar.gz` archive contains
 the committed Omnivox/libpiper source, locked Cargo sources, and the exact
 source and binary inputs used across all four companions. Build it with
 `make package-piper-source` and verify it with

@@ -80,15 +80,15 @@ revision is accepted only for CI based on its model card's public-domain
 LibriVox and trained-from-scratch declarations; this is not approval to add it
 to a release or recommend it to users.
 
-The deterministic `omnivox-VERSION-piper-source.tar.gz` candidate contains the
+The deterministic `omnivox-VERSION-piper-source.tar.gz` archive contains the
 exact committed Omnivox and libpiper source, every locked Cargo dependency
 source, the eSpeak NG and Sonic sources, all four ONNX Runtime binary build
 inputs, and the corresponding ONNX Runtime source. Its verifier checks an
 exhaustive manifest, the recorded Git tree and input locks, model exclusion,
 and offline Cargo resolution. The tag workflow includes this artifact and all
-four companions in its draft and verification gates. Release code remains
-unsigned and no Piper companion archive is currently published. See the
-[Piper release plan](plans/PIPER-RELEASE.md) for the remaining release work.
+four companions in its draft and verification gates. Piper companion archives
+are published beginning with v1.6.0. Release code remains unsigned. See the
+[Piper release plan](plans/PIPER-RELEASE.md) for the completed release work.
 
 ## Optional RHVoice integration
 

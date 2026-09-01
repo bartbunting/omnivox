@@ -104,13 +104,14 @@ native archives for Linux x64, macOS Apple Silicon and Intel, and Windows x64
 and ARM64. Archives produced by the current workflow contain the executable,
 the matching generated `espeak-ng-data`, project and third-party licensing
 files, the portable RHVoice helper (without its runtime or voices), and the
-upstream Emacspeak adapter. Separate Flite and RuTTS companion candidates cover
-Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows x64/ARM64, with a
-corresponding-source artifact for each engine. A `sha256sums.txt` file is
-published alongside release assets. Published release `v1.4.1` predates the
-root `LICENSE` and `LICENSING.md` archive entries; those files are included
-beginning with the next release. Linux ARM64 is not currently published or
-CI-verified.
+upstream Emacspeak adapter. Beginning with v1.6.0, separate Flite and RuTTS
+companion archives cover Linux x64/ARM64, macOS Intel/Apple Silicon, and
+Windows x64/ARM64; Piper companion archives cover Linux x64, macOS
+Intel/Apple Silicon, and Windows x64. Each engine also has a corresponding-
+source artifact. A `sha256sums.txt` file is published alongside release assets.
+Published release `v1.4.1` predates the root `LICENSE` and `LICENSING.md`
+archive entries; those files are included beginning with v1.5.0. Linux ARM64
+generic archives are not currently published or CI-verified.
 
 Follow the [release and deployment guide](.github/DEPLOYMENT.md) for archive
 selection, checksum commands, installation, unsigned-binary warnings, and the
@@ -208,10 +209,10 @@ artifacts, and is not presented as a user recommendation.
 `make package-piper-source` creates the deterministic corresponding-source and
 locked-build-input candidate; `python3 tools/verify_piper_source.py` checks it
 against the committed Git tree and resolves the included Cargo sources
-offline. The tag workflow now builds and re-verifies all four companions and
-that source artifact. Release binaries are not code-signed or notarized, and no
-Piper archive has been published yet. Native Piper code remains confined to the
-helper executable.
+offline. The tag workflow builds and re-verifies all four companions and that
+source artifact. Piper companion archives are published beginning with v1.6.0.
+Release binaries are not code-signed or notarized. Native Piper code remains
+confined to the helper executable.
 
 Running Piper requires a compatible `.onnx` model and its adjacent
 configuration, named either `<model>.onnx.json` or `<model>.json`. Model

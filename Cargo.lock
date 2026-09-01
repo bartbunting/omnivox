@@ -632,7 +632,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-audio"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "anyhow",
  "omnivox-core",
@@ -644,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-cli"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "anyhow",
  "omnivox-audio",
@@ -658,7 +658,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-core"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "once_cell",
  "regex",
@@ -669,7 +669,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-flite-helper"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "omnivox-flite-sys",
  "omnivox-helper-host",
@@ -678,14 +678,14 @@ dependencies = [
 
 [[package]]
 name = "omnivox-flite-sys"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "cc",
 ]
 
 [[package]]
 name = "omnivox-helper-host"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "omnivox-tts",
  "thiserror",
@@ -693,7 +693,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-piper-helper"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "omnivox-helper-host",
  "omnivox-piper-sys",
@@ -702,14 +702,14 @@ dependencies = [
 
 [[package]]
 name = "omnivox-piper-sys"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "bindgen 0.69.5",
 ]
 
 [[package]]
 name = "omnivox-rhvoice-helper"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "libloading",
  "omnivox-helper-host",
@@ -719,7 +719,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-rutts-helper"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "omnivox-helper-host",
  "omnivox-rutts-sys",
@@ -728,14 +728,14 @@ dependencies = [
 
 [[package]]
 name = "omnivox-rutts-sys"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "cc",
 ]
 
 [[package]]
 name = "omnivox-tts"
-version = "1.5.1"
+version = "1.6.0"
 dependencies = [
  "base64",
  "cc",
