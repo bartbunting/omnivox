@@ -1,0 +1,1981 @@
+{
+  "configuration": {
+    "engine": "rutts",
+    "expected_engine_id": "rutts",
+    "fault_count": 0,
+    "fault_delay_ms": 0.0,
+    "fault_mode": "idle",
+    "iterations": 10,
+    "preferred_engine_id": null,
+    "quiet_seconds": 0.1,
+    "resource_process_name": "omnivox.exe",
+    "resource_sample_every": 1,
+    "server": [
+      "../emacsvox/servers/omnivox"
+    ],
+    "stop_every": 3,
+    "text_profile": "rutts-ru",
+    "timeout_seconds": 60.0,
+    "voice_id": "male"
+  },
+  "created_at": "2026-09-01T14:07:17.972517+00:00",
+  "hard_stops": [
+    {
+      "actual_voice": {
+        "engine_id": "rutts",
+        "voice_id": "male"
+      },
+      "cancelled": 2,
+      "recovery_dispatch_to_source_ms": 28.161135,
+      "stop_to_last_terminal_ms": 0.898722
+    },
+    {
+      "actual_voice": {
+        "engine_id": "rutts",
+        "voice_id": "male"
+      },
+      "cancelled": 2,
+      "recovery_dispatch_to_source_ms": 28.453074,
+      "stop_to_last_terminal_ms": 0.666395
+    },
+    {
+      "actual_voice": {
+        "engine_id": "rutts",
+        "voice_id": "male"
+      },
+      "cancelled": 2,
+      "recovery_dispatch_to_source_ms": 27.99714,
+      "stop_to_last_terminal_ms": 0.912497
+    }
+  ],
+  "helper_recoveries": [],
+  "helper_recovery": null,
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "provenance": {
+    "build_id": "23baa0a64c9cf117",
+    "build_kind": "local-dirty-worktree",
+    "cargo_lock_sha256": "b1b53cfded24be219a85773260e9476e9e2b543d73409c377274258c5ee8f7ff",
+    "dectalk_runtime": "bundled-pinned-archive",
+    "dockerfile_sha256": "33e2df54152f81abd75143954a5aaaab0c20e098970afba68d8b024fb7169efa",
+    "eloquence_runtime": "external-user-supplied-not-bundled",
+    "eloquence_runtime_sha256": "external-not-observed",
+    "emacsvox_commit": "084749cac66ab81e26344ce59ae478630df27e99",
+    "emacsvox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "espeak_data_sha256": "9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "flite_companion": "local-omnivox-build",
+    "flite_companion_tree_sha256": "dcabe8aebe9ba366a14e1da7e39b679fa4e355d5607c374d6ee94ecd468abd41",
+    "flite_compiled_voice": "cmu_us_slt",
+    "flite_target": "x86_64-pc-windows-gnu",
+    "format": "emacsvox-omnivox-provenance-v1",
+    "mingw_gcc": "x86_64-w64-mingw32-gcc-win32 (GCC) 12-win32",
+    "net40_reference_assemblies_nupkg_sha256": "54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694",
+    "omnivox_commit": "6711c2675c18a13f6488444641c6233c8e5ad1bc",
+    "omnivox_executable_sha256": "497ff87abf0fdd1024ce0f73402e783cfcbcddfc5c519b2a2cb4aa7bff52c589",
+    "omnivox_features": "none",
+    "omnivox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "piper_companion": "not-included",
+    "piper_companion_archive_sha256": "not-included",
+    "piper_companion_commit": "not-included",
+    "piper_companion_tree_sha256": "not-included",
+    "piper_companion_version": "not-included",
+    "piper_model": "not-included",
+    "piper_model_config_sha256": "not-observed",
+    "piper_model_sha256": "not-observed",
+    "release_image_id": "sha256:3186f03b16a6b9cc62befb0902a40974b6297426483582464e3c421bb9873204",
+    "rhvoice_companion": "local-omnivox-build",
+    "rhvoice_companion_tree_sha256": "0a76caeba82669171c39768dd504f0019a490d9aab8ded23ff49ba714e26817c",
+    "rhvoice_config_tree_sha256": "not-configured",
+    "rhvoice_configuration": "recorded-windows-paths",
+    "rhvoice_data_tree_sha256": "a20abbc6f19bdef73b1f97e57c8fd3cb5c15e7fc3d1c04aafa9cde6f1254c5ce",
+    "rhvoice_library_sha256": "3014e72aa5a989c3082cbbc42977919601a8444f4e6dcdb73e5ae0c664272aed",
+    "rhvoice_runtime": "external-user-supplied-not-bundled",
+    "roslyn_csc": "5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)",
+    "roslyn_csc_sha256": "4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee",
+    "roslyn_nupkg_sha256": "302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "rutts_built_in_voices": "male,female",
+    "rutts_companion": "local-omnivox-build",
+    "rutts_companion_tree_sha256": "96822d7d7a894f7eddd108645e44ce60861ee490b897d8dd8a58a3a0f44fce73",
+    "rutts_rulex": "not-included",
+    "rutts_target": "x86_64-pc-windows-gnu",
+    "rutts_version": "6.3.3",
+    "target": "x86_64-pc-windows-gnu",
+    "toolchain_lock_sha256": "7bb2a052c5627df7e8c50fc5f55285fcdaf2f1d5af939df320ddf6e321e3d487",
+    "unstripped_diagnostics": "retained-local-not-staged",
+    "windows_helpers_license": "GPL-2.0-or-later",
+    "windows_helpers_source": "omnivox",
+    "windows_rustflags": "-C link-arg=-Wl,--no-insert-timestamp",
+    "windows_strip": "SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all"
+  },
+  "replacement_iterations": [
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000000": 2.01923,
+        "1000001": 55.503778,
+        "1000002": 2100.441805,
+        "1000003": 4010.403705,
+        "1000004": 5670.642415,
+        "1000005": 7610.468609
+      }
+    },
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000006": 52.322143,
+        "1000007": 21.672387,
+        "1000008": 2092.93193,
+        "1000009": 4002.801123,
+        "1000010": 5662.992578,
+        "1000011": 7603.055362
+      }
+    },
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000012": 46.20702,
+        "1000013": 23.033964,
+        "1000014": 2083.766529,
+        "1000015": 3993.861624,
+        "1000016": 5653.787706,
+        "1000017": 7593.750789
+      }
+    },
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000021": 48.617462,
+        "1000022": 29.188533,
+        "1000023": 2100.328087,
+        "1000024": 4010.975529,
+        "1000025": 5670.325728,
+        "1000026": 7610.192634
+      }
+    },
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000027": 0.930044,
+        "1000028": 44.327323,
+        "1000029": 2081.735979,
+        "1000030": 4001.723283,
+        "1000031": 5651.865617,
+        "1000032": 7591.664673
+      }
+    },
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000033": 42.114863,
+        "1000034": 27.87668,
+        "1000035": 2081.942472,
+        "1000036": 3992.002375,
+        "1000037": 5652.091885,
+        "1000038": 7591.819761
+      }
+    },
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000042": 1.195333,
+        "1000043": 42.919702,
+        "1000044": 2078.72023,
+        "1000045": 3999.098691,
+        "1000046": 5648.927749,
+        "1000047": 7588.718392
+      }
+    },
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000048": 45.352737,
+        "1000049": 25.037425,
+        "1000050": 2085.860169,
+        "1000051": 3995.94386,
+        "1000052": 5655.8547,
+        "1000053": 7595.79217
+      }
+    },
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000054": 0.911689,
+        "1000055": 41.810964,
+        "1000056": 2078.059562,
+        "1000057": 3988.263893,
+        "1000058": 5648.011143,
+        "1000059": 7587.890747
+      }
+    },
+    {
+      "actual_voices": [
+        {
+          "engine_id": "rutts",
+          "voice_id": "male"
+        }
+      ],
+      "cancelled": 2,
+      "cancelled_with_reached_markers": 0,
+      "completed": 4,
+      "dispatches": 6,
+      "terminal_ms": {
+        "1000063": 61.151601,
+        "1000064": 24.354591,
+        "1000065": 2125.513494,
+        "1000066": 4035.673714,
+        "1000067": 5686.140474,
+        "1000068": 7625.258991
+      }
+    }
+  ],
+  "report_version": 2,
+  "resources": {
+    "error": null,
+    "process_id": 25816,
+    "process_name": "omnivox.exe",
+    "provider": "windows-cim-tree",
+    "samples": [
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 353,
+            "private_bytes": 16142336,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 28991488
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 371,
+            "private_bytes": 18202624,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 30892032
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1585152,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 7663616
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1708032,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 8429568
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1568768,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 7475200
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 2812500,
+            "handle_count": 477,
+            "private_bytes": 14725120,
+            "process_count": 1,
+            "thread_count": 16,
+            "working_set_bytes": 38932480
+          }
+        },
+        "cpu_100ns": 6406250,
+        "elapsed_ms": 1464.326648,
+        "handle_count": 1598,
+        "iteration": 0,
+        "phase": "started",
+        "private_bytes": 55463936,
+        "process_count": 7,
+        "thread_count": 50,
+        "working_set_bytes": 130519040
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 353,
+            "private_bytes": 16142336,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 28991488
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 371,
+            "private_bytes": 18202624,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 30892032
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1585152,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 7663616
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1708032,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 8429568
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1568768,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 7475200
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 3125000,
+            "handle_count": 477,
+            "private_bytes": 14577664,
+            "process_count": 1,
+            "thread_count": 16,
+            "working_set_bytes": 39419904
+          }
+        },
+        "cpu_100ns": 6718750,
+        "elapsed_ms": 2169.051135,
+        "handle_count": 1598,
+        "iteration": 0,
+        "phase": "ready",
+        "private_bytes": 55316480,
+        "process_count": 7,
+        "thread_count": 50,
+        "working_set_bytes": 131006464
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 353,
+            "private_bytes": 16142336,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 28991488
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 371,
+            "private_bytes": 18202624,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 30892032
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1585152,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 7663616
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1708032,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 13746176
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 98,
+            "private_bytes": 1699840,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 7905280
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 3906250,
+            "handle_count": 477,
+            "private_bytes": 15159296,
+            "process_count": 1,
+            "thread_count": 16,
+            "working_set_bytes": 44642304
+          }
+        },
+        "cpu_100ns": 8750000,
+        "elapsed_ms": 10567.835581,
+        "handle_count": 1598,
+        "iteration": 1,
+        "phase": "interval",
+        "private_bytes": 56029184,
+        "process_count": 7,
+        "thread_count": 50,
+        "working_set_bytes": 141975552
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 358,
+            "private_bytes": 16236544,
+            "process_count": 1,
+            "thread_count": 11,
+            "working_set_bytes": 29126656
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 376,
+            "private_bytes": 18309120,
+            "process_count": 1,
+            "thread_count": 11,
+            "working_set_bytes": 31010816
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1585152,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 16990208
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1708032,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 13746176
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 2343750,
+            "handle_count": 98,
+            "private_bytes": 2342912,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 13479936
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 5000000,
+            "handle_count": 477,
+            "private_bytes": 15179776,
+            "process_count": 1,
+            "thread_count": 16,
+            "working_set_bytes": 44683264
+          }
+        },
+        "cpu_100ns": 10781250,
+        "elapsed_ms": 18906.926828,
+        "handle_count": 1608,
+        "iteration": 2,
+        "phase": "interval",
+        "private_bytes": 56893440,
+        "process_count": 7,
+        "thread_count": 52,
+        "working_set_bytes": 157171712
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 358,
+            "private_bytes": 16236544,
+            "process_count": 1,
+            "thread_count": 11,
+            "working_set_bytes": 29126656
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 376,
+            "private_bytes": 18309120,
+            "process_count": 1,
+            "thread_count": 11,
+            "working_set_bytes": 31010816
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1585152,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 16990208
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1708032,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 13746176
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 3593750,
+            "handle_count": 98,
+            "private_bytes": 2322432,
+            "process_count": 1,
+            "thread_count": 4,
+            "working_set_bytes": 13479936
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 6406250,
+            "handle_count": 477,
+            "private_bytes": 15253504,
+            "process_count": 1,
+            "thread_count": 16,
+            "working_set_bytes": 44744704
+          }
+        },
+        "cpu_100ns": 13437500,
+        "elapsed_ms": 29600.232148,
+        "handle_count": 1608,
+        "iteration": 3,
+        "phase": "interval",
+        "private_bytes": 56946688,
+        "process_count": 7,
+        "thread_count": 52,
+        "working_set_bytes": 157233152
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 360,
+            "private_bytes": 16429056,
+            "process_count": 1,
+            "thread_count": 13,
+            "working_set_bytes": 29241344
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 378,
+            "private_bytes": 18468864,
+            "process_count": 1,
+            "thread_count": 13,
+            "working_set_bytes": 31092736
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1486848,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 16941056
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1609728,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13697024
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 5000000,
+            "handle_count": 98,
+            "private_bytes": 2072576,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13316096
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 7187500,
+            "handle_count": 478,
+            "private_bytes": 15360000,
+            "process_count": 1,
+            "thread_count": 18,
+            "working_set_bytes": 44822528
+          }
+        },
+        "cpu_100ns": 15625000,
+        "elapsed_ms": 37978.907059,
+        "handle_count": 1613,
+        "iteration": 4,
+        "phase": "interval",
+        "private_bytes": 56958976,
+        "process_count": 7,
+        "thread_count": 49,
+        "working_set_bytes": 157245440
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 361,
+            "private_bytes": 16506880,
+            "process_count": 1,
+            "thread_count": 14,
+            "working_set_bytes": 29274112
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 379,
+            "private_bytes": 18546688,
+            "process_count": 1,
+            "thread_count": 14,
+            "working_set_bytes": 31133696
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1486848,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 16941056
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1609728,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13697024
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 5937500,
+            "handle_count": 98,
+            "private_bytes": 2269184,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13508608
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 8281250,
+            "handle_count": 478,
+            "private_bytes": 15466496,
+            "process_count": 1,
+            "thread_count": 18,
+            "working_set_bytes": 44883968
+          }
+        },
+        "cpu_100ns": 17656250,
+        "elapsed_ms": 46288.693009,
+        "handle_count": 1615,
+        "iteration": 5,
+        "phase": "interval",
+        "private_bytes": 57417728,
+        "process_count": 7,
+        "thread_count": 51,
+        "working_set_bytes": 157573120
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 360,
+            "private_bytes": 16429056,
+            "process_count": 1,
+            "thread_count": 13,
+            "working_set_bytes": 29241344
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 378,
+            "private_bytes": 18468864,
+            "process_count": 1,
+            "thread_count": 13,
+            "working_set_bytes": 31096832
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1486848,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 16941056
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1609728,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13697024
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 7343750,
+            "handle_count": 98,
+            "private_bytes": 2179072,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13422592
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 9687500,
+            "handle_count": 478,
+            "private_bytes": 15429632,
+            "process_count": 1,
+            "thread_count": 18,
+            "working_set_bytes": 44904448
+          }
+        },
+        "cpu_100ns": 20468750,
+        "elapsed_ms": 57041.901186,
+        "handle_count": 1613,
+        "iteration": 6,
+        "phase": "interval",
+        "private_bytes": 57135104,
+        "process_count": 7,
+        "thread_count": 49,
+        "working_set_bytes": 157437952
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 361,
+            "private_bytes": 16195584,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 29143040
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 379,
+            "private_bytes": 18235392,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 30994432
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1486848,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 16941056
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1609728,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13697024
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 8437500,
+            "handle_count": 98,
+            "private_bytes": 2277376,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13484032
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 11875000,
+            "handle_count": 478,
+            "private_bytes": 15458304,
+            "process_count": 1,
+            "thread_count": 15,
+            "working_set_bytes": 44867584
+          }
+        },
+        "cpu_100ns": 23750000,
+        "elapsed_ms": 65414.754619,
+        "handle_count": 1615,
+        "iteration": 7,
+        "phase": "interval",
+        "private_bytes": 56795136,
+        "process_count": 7,
+        "thread_count": 40,
+        "working_set_bytes": 157261824
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 361,
+            "private_bytes": 16195584,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 29143040
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 379,
+            "private_bytes": 18235392,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 30994432
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1486848,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 16941056
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1609728,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13697024
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 9843750,
+            "handle_count": 98,
+            "private_bytes": 2244608,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13467648
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 13906250,
+            "handle_count": 478,
+            "private_bytes": 15413248,
+            "process_count": 1,
+            "thread_count": 15,
+            "working_set_bytes": 44892160
+          }
+        },
+        "cpu_100ns": 27187500,
+        "elapsed_ms": 73742.814185,
+        "handle_count": 1615,
+        "iteration": 8,
+        "phase": "interval",
+        "private_bytes": 56717312,
+        "process_count": 7,
+        "thread_count": 40,
+        "working_set_bytes": 157270016
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 361,
+            "private_bytes": 16195584,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 29143040
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 379,
+            "private_bytes": 18235392,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 30994432
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1486848,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 16941056
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1609728,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13697024
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 11250000,
+            "handle_count": 98,
+            "private_bytes": 2142208,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13365248
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 15468750,
+            "handle_count": 478,
+            "private_bytes": 15351808,
+            "process_count": 1,
+            "thread_count": 15,
+            "working_set_bytes": 44875776
+          }
+        },
+        "cpu_100ns": 30156250,
+        "elapsed_ms": 84535.302524,
+        "handle_count": 1615,
+        "iteration": 9,
+        "phase": "interval",
+        "private_bytes": 56553472,
+        "process_count": 7,
+        "thread_count": 40,
+        "working_set_bytes": 157151232
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 361,
+            "private_bytes": 16195584,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 29143040
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 379,
+            "private_bytes": 18235392,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 30994432
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1486848,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 16941056
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1609728,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13697024
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 12968750,
+            "handle_count": 98,
+            "private_bytes": 2093056,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13332480
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 17656250,
+            "handle_count": 478,
+            "private_bytes": 15302656,
+            "process_count": 1,
+            "thread_count": 15,
+            "working_set_bytes": 44826624
+          }
+        },
+        "cpu_100ns": 34062500,
+        "elapsed_ms": 92918.519496,
+        "handle_count": 1615,
+        "iteration": 10,
+        "phase": "interval",
+        "private_bytes": 56455168,
+        "process_count": 7,
+        "thread_count": 40,
+        "working_set_bytes": 157069312
+      },
+      {
+        "by_name": {
+          "OmnivoxDectalkHelper32.exe": {
+            "cpu_100ns": 1406250,
+            "handle_count": 361,
+            "private_bytes": 16195584,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 29143040
+          },
+          "OmnivoxEloquenceHelper32.exe": {
+            "cpu_100ns": 1562500,
+            "handle_count": 379,
+            "private_bytes": 18235392,
+            "process_count": 1,
+            "thread_count": 10,
+            "working_set_bytes": 30994432
+          },
+          "conhost.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 103,
+            "private_bytes": 1531904,
+            "process_count": 1,
+            "thread_count": 2,
+            "working_set_bytes": 8134656
+          },
+          "omnivox-flite-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1486848,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 16941056
+          },
+          "omnivox-rhvoice-helper.exe": {
+            "cpu_100ns": 156250,
+            "handle_count": 98,
+            "private_bytes": 1609728,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13697024
+          },
+          "omnivox-rutts-helper.exe": {
+            "cpu_100ns": 12968750,
+            "handle_count": 98,
+            "private_bytes": 2093056,
+            "process_count": 1,
+            "thread_count": 1,
+            "working_set_bytes": 13332480
+          },
+          "omnivox.exe": {
+            "cpu_100ns": 17656250,
+            "handle_count": 478,
+            "private_bytes": 15302656,
+            "process_count": 1,
+            "thread_count": 15,
+            "working_set_bytes": 44826624
+          }
+        },
+        "cpu_100ns": 34062500,
+        "elapsed_ms": 93585.110928,
+        "handle_count": 1615,
+        "iteration": 10,
+        "phase": "before_shutdown",
+        "private_bytes": 56455168,
+        "process_count": 7,
+        "thread_count": 40,
+        "working_set_bytes": 157069312
+      }
+    ],
+    "steady_state_summary": {
+      "by_name": {
+        "OmnivoxDectalkHelper32.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 1406250,
+              "growth": 0,
+              "last": 1406250,
+              "maximum": 1406250,
+              "minimum": 1406250
+            },
+            "handle_count": {
+              "first": 353,
+              "growth": 8,
+              "last": 361,
+              "maximum": 361,
+              "minimum": 353
+            },
+            "private_bytes": {
+              "first": 16142336,
+              "growth": 53248,
+              "last": 16195584,
+              "maximum": 16506880,
+              "minimum": 16142336
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 10,
+              "growth": 0,
+              "last": 10,
+              "maximum": 14,
+              "minimum": 10
+            },
+            "working_set_bytes": {
+              "first": 28991488,
+              "growth": 151552,
+              "last": 29143040,
+              "maximum": 29274112,
+              "minimum": 28991488
+            }
+          },
+          "sample_count": 12
+        },
+        "OmnivoxEloquenceHelper32.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 1562500,
+              "growth": 0,
+              "last": 1562500,
+              "maximum": 1562500,
+              "minimum": 1562500
+            },
+            "handle_count": {
+              "first": 371,
+              "growth": 8,
+              "last": 379,
+              "maximum": 379,
+              "minimum": 371
+            },
+            "private_bytes": {
+              "first": 18202624,
+              "growth": 32768,
+              "last": 18235392,
+              "maximum": 18546688,
+              "minimum": 18202624
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 10,
+              "growth": 0,
+              "last": 10,
+              "maximum": 14,
+              "minimum": 10
+            },
+            "working_set_bytes": {
+              "first": 30892032,
+              "growth": 102400,
+              "last": 30994432,
+              "maximum": 31133696,
+              "minimum": 30892032
+            }
+          },
+          "sample_count": 12
+        },
+        "conhost.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 156250,
+              "growth": 0,
+              "last": 156250,
+              "maximum": 156250,
+              "minimum": 156250
+            },
+            "handle_count": {
+              "first": 103,
+              "growth": 0,
+              "last": 103,
+              "maximum": 103,
+              "minimum": 103
+            },
+            "private_bytes": {
+              "first": 1531904,
+              "growth": 0,
+              "last": 1531904,
+              "maximum": 1531904,
+              "minimum": 1531904
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 2,
+              "growth": 0,
+              "last": 2,
+              "maximum": 2,
+              "minimum": 2
+            },
+            "working_set_bytes": {
+              "first": 8134656,
+              "growth": 0,
+              "last": 8134656,
+              "maximum": 8134656,
+              "minimum": 8134656
+            }
+          },
+          "sample_count": 12
+        },
+        "omnivox-flite-helper.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 156250,
+              "growth": 0,
+              "last": 156250,
+              "maximum": 156250,
+              "minimum": 156250
+            },
+            "handle_count": {
+              "first": 98,
+              "growth": 0,
+              "last": 98,
+              "maximum": 98,
+              "minimum": 98
+            },
+            "private_bytes": {
+              "first": 1585152,
+              "growth": -98304,
+              "last": 1486848,
+              "maximum": 1585152,
+              "minimum": 1486848
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 4,
+              "growth": -3,
+              "last": 1,
+              "maximum": 4,
+              "minimum": 1
+            },
+            "working_set_bytes": {
+              "first": 7663616,
+              "growth": 9277440,
+              "last": 16941056,
+              "maximum": 16990208,
+              "minimum": 7663616
+            }
+          },
+          "sample_count": 12
+        },
+        "omnivox-rhvoice-helper.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 156250,
+              "growth": 0,
+              "last": 156250,
+              "maximum": 156250,
+              "minimum": 156250
+            },
+            "handle_count": {
+              "first": 98,
+              "growth": 0,
+              "last": 98,
+              "maximum": 98,
+              "minimum": 98
+            },
+            "private_bytes": {
+              "first": 1708032,
+              "growth": -98304,
+              "last": 1609728,
+              "maximum": 1708032,
+              "minimum": 1609728
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 4,
+              "growth": -3,
+              "last": 1,
+              "maximum": 4,
+              "minimum": 1
+            },
+            "working_set_bytes": {
+              "first": 8429568,
+              "growth": 5267456,
+              "last": 13697024,
+              "maximum": 13746176,
+              "minimum": 8429568
+            }
+          },
+          "sample_count": 12
+        },
+        "omnivox-rutts-helper.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 156250,
+              "growth": 12812500,
+              "last": 12968750,
+              "maximum": 12968750,
+              "minimum": 156250
+            },
+            "handle_count": {
+              "first": 98,
+              "growth": 0,
+              "last": 98,
+              "maximum": 98,
+              "minimum": 98
+            },
+            "private_bytes": {
+              "first": 1568768,
+              "growth": 524288,
+              "last": 2093056,
+              "maximum": 2342912,
+              "minimum": 1568768
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 4,
+              "growth": -3,
+              "last": 1,
+              "maximum": 4,
+              "minimum": 1
+            },
+            "working_set_bytes": {
+              "first": 7475200,
+              "growth": 5857280,
+              "last": 13332480,
+              "maximum": 13508608,
+              "minimum": 7475200
+            }
+          },
+          "sample_count": 12
+        },
+        "omnivox.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 3125000,
+              "growth": 14531250,
+              "last": 17656250,
+              "maximum": 17656250,
+              "minimum": 3125000
+            },
+            "handle_count": {
+              "first": 477,
+              "growth": 1,
+              "last": 478,
+              "maximum": 478,
+              "minimum": 477
+            },
+            "private_bytes": {
+              "first": 14577664,
+              "growth": 724992,
+              "last": 15302656,
+              "maximum": 15466496,
+              "minimum": 14577664
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 16,
+              "growth": -1,
+              "last": 15,
+              "maximum": 18,
+              "minimum": 15
+            },
+            "working_set_bytes": {
+              "first": 39419904,
+              "growth": 5406720,
+              "last": 44826624,
+              "maximum": 44904448,
+              "minimum": 39419904
+            }
+          },
+          "sample_count": 12
+        }
+      },
+      "metrics": {
+        "cpu_100ns": {
+          "first": 6718750,
+          "growth": 27343750,
+          "last": 34062500,
+          "maximum": 34062500,
+          "minimum": 6718750
+        },
+        "handle_count": {
+          "first": 1598,
+          "growth": 17,
+          "last": 1615,
+          "maximum": 1615,
+          "minimum": 1598
+        },
+        "private_bytes": {
+          "first": 55316480,
+          "growth": 1138688,
+          "last": 56455168,
+          "maximum": 57417728,
+          "minimum": 55316480
+        },
+        "process_count": {
+          "first": 7,
+          "growth": 0,
+          "last": 7,
+          "maximum": 7,
+          "minimum": 7
+        },
+        "thread_count": {
+          "first": 50,
+          "growth": -10,
+          "last": 40,
+          "maximum": 52,
+          "minimum": 40
+        },
+        "working_set_bytes": {
+          "first": 131006464,
+          "growth": 26062848,
+          "last": 157069312,
+          "maximum": 157573120,
+          "minimum": 131006464
+        }
+      },
+      "sample_count": 12
+    },
+    "summary": {
+      "by_name": {
+        "OmnivoxDectalkHelper32.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 1406250,
+              "growth": 0,
+              "last": 1406250,
+              "maximum": 1406250,
+              "minimum": 1406250
+            },
+            "handle_count": {
+              "first": 353,
+              "growth": 8,
+              "last": 361,
+              "maximum": 361,
+              "minimum": 353
+            },
+            "private_bytes": {
+              "first": 16142336,
+              "growth": 53248,
+              "last": 16195584,
+              "maximum": 16506880,
+              "minimum": 16142336
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 10,
+              "growth": 0,
+              "last": 10,
+              "maximum": 14,
+              "minimum": 10
+            },
+            "working_set_bytes": {
+              "first": 28991488,
+              "growth": 151552,
+              "last": 29143040,
+              "maximum": 29274112,
+              "minimum": 28991488
+            }
+          },
+          "sample_count": 13
+        },
+        "OmnivoxEloquenceHelper32.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 1562500,
+              "growth": 0,
+              "last": 1562500,
+              "maximum": 1562500,
+              "minimum": 1562500
+            },
+            "handle_count": {
+              "first": 371,
+              "growth": 8,
+              "last": 379,
+              "maximum": 379,
+              "minimum": 371
+            },
+            "private_bytes": {
+              "first": 18202624,
+              "growth": 32768,
+              "last": 18235392,
+              "maximum": 18546688,
+              "minimum": 18202624
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 10,
+              "growth": 0,
+              "last": 10,
+              "maximum": 14,
+              "minimum": 10
+            },
+            "working_set_bytes": {
+              "first": 30892032,
+              "growth": 102400,
+              "last": 30994432,
+              "maximum": 31133696,
+              "minimum": 30892032
+            }
+          },
+          "sample_count": 13
+        },
+        "conhost.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 156250,
+              "growth": 0,
+              "last": 156250,
+              "maximum": 156250,
+              "minimum": 156250
+            },
+            "handle_count": {
+              "first": 103,
+              "growth": 0,
+              "last": 103,
+              "maximum": 103,
+              "minimum": 103
+            },
+            "private_bytes": {
+              "first": 1531904,
+              "growth": 0,
+              "last": 1531904,
+              "maximum": 1531904,
+              "minimum": 1531904
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 2,
+              "growth": 0,
+              "last": 2,
+              "maximum": 2,
+              "minimum": 2
+            },
+            "working_set_bytes": {
+              "first": 8134656,
+              "growth": 0,
+              "last": 8134656,
+              "maximum": 8134656,
+              "minimum": 8134656
+            }
+          },
+          "sample_count": 13
+        },
+        "omnivox-flite-helper.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 156250,
+              "growth": 0,
+              "last": 156250,
+              "maximum": 156250,
+              "minimum": 156250
+            },
+            "handle_count": {
+              "first": 98,
+              "growth": 0,
+              "last": 98,
+              "maximum": 98,
+              "minimum": 98
+            },
+            "private_bytes": {
+              "first": 1585152,
+              "growth": -98304,
+              "last": 1486848,
+              "maximum": 1585152,
+              "minimum": 1486848
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 4,
+              "growth": -3,
+              "last": 1,
+              "maximum": 4,
+              "minimum": 1
+            },
+            "working_set_bytes": {
+              "first": 7663616,
+              "growth": 9277440,
+              "last": 16941056,
+              "maximum": 16990208,
+              "minimum": 7663616
+            }
+          },
+          "sample_count": 13
+        },
+        "omnivox-rhvoice-helper.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 156250,
+              "growth": 0,
+              "last": 156250,
+              "maximum": 156250,
+              "minimum": 156250
+            },
+            "handle_count": {
+              "first": 98,
+              "growth": 0,
+              "last": 98,
+              "maximum": 98,
+              "minimum": 98
+            },
+            "private_bytes": {
+              "first": 1708032,
+              "growth": -98304,
+              "last": 1609728,
+              "maximum": 1708032,
+              "minimum": 1609728
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 4,
+              "growth": -3,
+              "last": 1,
+              "maximum": 4,
+              "minimum": 1
+            },
+            "working_set_bytes": {
+              "first": 8429568,
+              "growth": 5267456,
+              "last": 13697024,
+              "maximum": 13746176,
+              "minimum": 8429568
+            }
+          },
+          "sample_count": 13
+        },
+        "omnivox-rutts-helper.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 156250,
+              "growth": 12812500,
+              "last": 12968750,
+              "maximum": 12968750,
+              "minimum": 156250
+            },
+            "handle_count": {
+              "first": 98,
+              "growth": 0,
+              "last": 98,
+              "maximum": 98,
+              "minimum": 98
+            },
+            "private_bytes": {
+              "first": 1568768,
+              "growth": 524288,
+              "last": 2093056,
+              "maximum": 2342912,
+              "minimum": 1568768
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 4,
+              "growth": -3,
+              "last": 1,
+              "maximum": 4,
+              "minimum": 1
+            },
+            "working_set_bytes": {
+              "first": 7475200,
+              "growth": 5857280,
+              "last": 13332480,
+              "maximum": 13508608,
+              "minimum": 7475200
+            }
+          },
+          "sample_count": 13
+        },
+        "omnivox.exe": {
+          "metrics": {
+            "cpu_100ns": {
+              "first": 2812500,
+              "growth": 14843750,
+              "last": 17656250,
+              "maximum": 17656250,
+              "minimum": 2812500
+            },
+            "handle_count": {
+              "first": 477,
+              "growth": 1,
+              "last": 478,
+              "maximum": 478,
+              "minimum": 477
+            },
+            "private_bytes": {
+              "first": 14725120,
+              "growth": 577536,
+              "last": 15302656,
+              "maximum": 15466496,
+              "minimum": 14577664
+            },
+            "process_count": {
+              "first": 1,
+              "growth": 0,
+              "last": 1,
+              "maximum": 1,
+              "minimum": 1
+            },
+            "thread_count": {
+              "first": 16,
+              "growth": -1,
+              "last": 15,
+              "maximum": 18,
+              "minimum": 15
+            },
+            "working_set_bytes": {
+              "first": 38932480,
+              "growth": 5894144,
+              "last": 44826624,
+              "maximum": 44904448,
+              "minimum": 38932480
+            }
+          },
+          "sample_count": 13
+        }
+      },
+      "metrics": {
+        "cpu_100ns": {
+          "first": 6406250,
+          "growth": 27656250,
+          "last": 34062500,
+          "maximum": 34062500,
+          "minimum": 6406250
+        },
+        "handle_count": {
+          "first": 1598,
+          "growth": 17,
+          "last": 1615,
+          "maximum": 1615,
+          "minimum": 1598
+        },
+        "private_bytes": {
+          "first": 55463936,
+          "growth": 991232,
+          "last": 56455168,
+          "maximum": 57417728,
+          "minimum": 55316480
+        },
+        "process_count": {
+          "first": 7,
+          "growth": 0,
+          "last": 7,
+          "maximum": 7,
+          "minimum": 7
+        },
+        "thread_count": {
+          "first": 50,
+          "growth": -10,
+          "last": 40,
+          "maximum": 52,
+          "minimum": 40
+        },
+        "working_set_bytes": {
+          "first": 130519040,
+          "growth": 26550272,
+          "last": 157069312,
+          "maximum": 157573120,
+          "minimum": 130519040
+        }
+      },
+      "sample_count": 13
+    }
+  },
+  "server": {
+    "process_start_to_ready_ms": 1468.680279,
+    "version": "1.5.1"
+  }
+}

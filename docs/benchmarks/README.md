@@ -9,6 +9,9 @@ Recorded baselines:
 
 - [2026-09-01 Windows x64 development baseline](2026-09-01-windows-x64-c9458361eb57b94a.md)
   covers WinRT, eSpeak NG, RHVoice, Flite, DECtalk, and Eloquence.
+- [2026-09-01 Windows x64 RuTTS development acceptance](2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)
+  covers both built-in voices, exact routing, cancellation, resource sampling,
+  mixed queues, hard stops, fallback, and repeated helper recovery.
 
 ## Preservation policy
 

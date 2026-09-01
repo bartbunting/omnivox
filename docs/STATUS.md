@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-01
+**Last reviewed:** 2026-09-02
 **Workspace version:** 1.5.1
 
 This file records present behavior and limitations. Protocol guarantees belong
@@ -116,13 +116,17 @@ in the linked protocol specifications; future work belongs in
 - RuTTS uses checksum-locked v6.3.3 source and exposes its built-in male and
   female Russian voices without RuLex. Linux x64 local acceptance covers both
   voices, ACSS, bounded PCM, cancellation, relocation, and clean shutdown. The
-  complete Windows x64 GNU helper also builds from WSL and passes 25 male and
-  five female syntheses, ACSS, cancellation, and clean shutdown through Windows
-  interop. The release matrix targets Linux x64/ARM64, macOS Intel/Apple
+  complete Windows x64 GNU payload also builds and installs from WSL. Both
+  voices pass persistent 25-synthesis helper sessions, repeated cancellation,
+  exact full-server routing, mixed queue and hard-stop stress, Windows resource
+  sampling, and dispatch-time helper death with eSpeak fallback and explicit
+  recovery. The release matrix targets Linux x64/ARM64, macOS Intel/Apple
   Silicon, and Windows x64/ARM64 with MSVC; those release targets are not
-  labelled runtime-accepted until their native workflow gates pass. The helper
-  converts its KOI8-R repertoire losslessly and routes unsupported Unicode text
-  to fallback; it provides no synchronization markers.
+  labelled runtime-accepted until their native workflow gates pass. The
+  [Windows evidence pack](benchmarks/2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)
+  records the bounded GNU-target results. The helper converts its KOI8-R
+  repertoire losslessly and routes unsupported Unicode text to fallback; it
+  provides no synchronization markers.
 - The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.

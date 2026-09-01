@@ -49,8 +49,12 @@ alone is not runtime acceptance. Windows release candidates use MSVC;
 `x86_64-pc-windows-gnu` is additionally supported for Emacsvox's pinned MinGW
 development build and records the distinct `windows-x64-gnu` target in its
 provenance. That GNU target has passed a complete WSL-to-Windows build plus
-male/female synthesis, ACSS, cancellation, and shutdown acceptance. The two
-MSVC release targets remain subject to their native workflow gates.
+male/female synthesis, ACSS, cancellation, exact server routing, mixed queues,
+hard stops, resource sampling, repeated helper death, fallback, recovery, and
+shutdown acceptance. The bounded
+[Windows evidence pack](benchmarks/2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)
+contains the raw reports. The two MSVC release targets remain subject to their
+native workflow gates.
 
 ## Build locally
 

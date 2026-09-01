@@ -83,6 +83,9 @@ Versioning for published releases.
 - Documented RuTTS installation, source builds, built-in voices, KOI8-R
   repertoire routing, manual stress notation, verification, licensing, RuLex
   exclusion, and removal.
+- Recorded bounded Windows x64 GNU acceptance for both RuTTS voices, including
+  exact server routing, cancellation, resource samples, mixed queues, hard
+  stops, repeated helper death, eSpeak fallback, and explicit recovery.
 
 ## [1.5.1] - 2026-09-01
 

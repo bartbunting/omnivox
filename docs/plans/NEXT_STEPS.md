@@ -69,8 +69,10 @@ The structured identity model remains:
 5. Verify logical-language and text-repertoire routing against live
    multilingual voices on every supported engine.
 6. Complete RuTTS native acceptance on Linux ARM64, macOS Intel/Apple Silicon,
-   and Windows x64/ARM64, then measure cold/warm onset, high-rate
-   intelligibility, cancellation latency, and long-session helper memory.
+   and Windows x64/ARM64 MSVC. Windows x64 GNU development acceptance now
+   covers both voices, exact routing, cancellation latency, helper resources,
+   hard stops, repeated helper death, fallback, and recovery. Continue with
+   cold onset, high-rate intelligibility, and multi-hour helper memory evidence.
    Evaluate RuLex later as its own licensing, provenance, database, and
    cross-platform decision rather than silently adding it to the companion.
 7. Keep eSpeak NG as the reliable Unicode-capable final fallback and extend
