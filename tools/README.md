@@ -375,8 +375,9 @@ engine (including a DECtalk native-index probe), periodic pings, and clean
 shutdown. With `--cancel-probe`, it also
 cancels one long in-flight synthesis, rejects stale output after the
 acknowledgement, and checks that the helper remains responsive. It records
-process memory on systems with a compatible `/proc` entry. The native Piper
-workflow uses both paths on every initial platform.
+process resources through `/proc` for native POSIX helpers and Windows CIM for
+`.exe` helpers launched from WSL. The native Piper workflow uses both paths on
+every initial platform.
 
 From WSL, after running `make windows-helpers` in the Omnivox checkout:
 
@@ -392,9 +393,19 @@ python3 tools/stress_helper.py \
 ```
 
 Use `--voice-id` to select a non-default voice and repeat `--helper-arg` when a
-helper needs an explicit native DLL argument. The RSS value available from WSL
-belongs to its interop launcher; use native Windows process tooling for a
-working-set growth measurement.
+helper needs an explicit native DLL argument. Use `--cancel-every N` for
+repeated in-flight cancellation, `--health-every N` for liveness probes, and
+`--resource-sample-every N` for long-session measurements. A successful
+`--json-output FILE` report contains elapsed samples and first/last/minimum/
+maximum/growth summaries for available working-set, private-byte, virtual-byte,
+handle, thread, and CPU counters.
+
+When WSL launches a Windows `.exe`, the tool snapshots Windows processes first
+and binds only one newly created process with the exact executable name. It
+reports metrics as unavailable rather than guessing when resolution is
+ambiguous. Reports retain only the helper basename and argument count, not
+local runtime paths. No memory-growth limit is implied; release or experiment
+plans must state any threshold explicitly.
 
 The in-process eSpeak counterpart is ignored during ordinary unit tests and
 can be run explicitly:

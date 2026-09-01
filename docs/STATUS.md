@@ -210,3 +210,9 @@ only one uniquely resolved child of its dedicated server, then verifies the
 configured fallback and explicit helper recovery probe. Schema-v2 reports
 retain physical voices, and strict exact-voice plus Russian-profile controls
 cover both RuTTS voices without weakening fallback validation.
+
+`tools/stress_helper.py` can now place repeated synthesis, health checks, and
+in-flight cancellations in one persistent helper session while recording
+machine-readable process-resource samples. It observes native Windows helper
+counters from WSL only after resolving one unique new process; ambiguity is
+reported as unavailable rather than attributed to the wrong helper.

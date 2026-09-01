@@ -8,14 +8,17 @@ standard library so it can run from WSL against the Windows helper executables.
 
 import argparse
 import base64
+from datetime import datetime, timezone
 import json
-import os
 from pathlib import Path
+import platform
 import queue
 import subprocess
 import sys
 import threading
 import time
+
+import process_metrics
 
 
 PROTOCOL_VERSION = 4
@@ -32,6 +35,10 @@ RUTTS_TEST_TEXTS = (
 )
 CANCEL_PROBE_TEXT = " ".join(
     f"Cancellation probe sentence {number} should not reach the audio mixer."
+    for number in range(1, 17)
+)
+RUTTS_CANCEL_PROBE_TEXT = " ".join(
+    f"Фраза проверки отмены {number} не должна попасть в звуковой микшер."
     for number in range(1, 17)
 )
 DECTALK_NATIVE_INDEX = "[:index mark 12345]"
@@ -119,18 +126,6 @@ def request(request_id, request_type, **fields):
         "type": request_type,
         **fields,
     }
-
-
-def resident_bytes(process_id):
-    """Return observable launcher RSS on procfs systems, or None."""
-    status = Path(f"/proc/{process_id}/status")
-    try:
-        for line in status.read_text(encoding="utf-8").splitlines():
-            if line.startswith("VmRSS:"):
-                return int(line.split()[1]) * 1024
-    except (OSError, ValueError):
-        return None
-    return None
 
 
 def validate_marker(marker, frame_count, text_size):
@@ -255,12 +250,12 @@ def synthesize(
             raise RuntimeError(f"unexpected synthesis response: {response}")
 
 
-def cancel_synthesis(session, request_id, cancel_id, voice_id):
+def cancel_synthesis(session, request_id, cancel_id, voice_id, text=CANCEL_PROBE_TEXT):
     session.send(
         request(
             request_id,
             "synthesize",
-            text=CANCEL_PROBE_TEXT,
+            text=text,
             settings={
                 "voice_id": voice_id,
                 "rate": 0.35,
@@ -322,6 +317,24 @@ def parse_args():
         help="cancel one long synthesis and verify the helper remains usable",
     )
     parser.add_argument(
+        "--cancel-every",
+        type=int,
+        default=0,
+        help="run an in-flight cancellation probe after every N syntheses",
+    )
+    parser.add_argument(
+        "--health-every",
+        type=int,
+        default=25,
+        help="send a ping after every N syntheses (default: 25; 0 disables)",
+    )
+    parser.add_argument(
+        "--resource-sample-every",
+        type=int,
+        default=25,
+        help="sample process resources every N syntheses (default: 25; 0 disables)",
+    )
+    parser.add_argument(
         "--require-acss",
         action="append",
         default=[],
@@ -341,6 +354,10 @@ def parse_args():
         default=[],
         help="additional helper argument, such as an explicit native DLL path",
     )
+    parser.add_argument(
+        "--json-output",
+        help="write a machine-readable soak report to this file, or '-' for stdout",
+    )
     return parser.parse_args()
 
 
@@ -348,14 +365,41 @@ def main():
     args = parse_args()
     if args.iterations <= 0:
         raise SystemExit("--iterations must be positive")
+    for field in ("cancel_every", "health_every", "resource_sample_every"):
+        if getattr(args, field) < 0:
+            raise SystemExit(f"--{field.replace('_', '-')} cannot be negative")
     command = [args.helper, *args.helper_arg]
+    observer = process_metrics.ProcessObserver(command[0])
     session = HelperSession(command)
     started_at = time.monotonic()
-    initial_rss = resident_bytes(session.process.pid)
-    peak_rss = initial_rss
+    observer.bind(session.process.pid)
+    resource_samples = []
     total_frames = 0
     total_markers = 0
     total_bytes = 0
+    cancellation_probes = 0
+    progress_stream = sys.stderr if args.json_output == "-" else sys.stdout
+
+    def capture_resources(iteration, phase):
+        metrics = observer.sample()
+        if metrics is None:
+            return
+        resource_samples.append(
+            {
+                "iteration": iteration,
+                "phase": phase,
+                "elapsed_ms": (time.monotonic() - started_at) * 1000.0,
+                **metrics,
+            }
+        )
+
+    def health_ping(request_id):
+        session.send(request(request_id, "ping"))
+        pong = session.receive(request_id)
+        if pong.get("type") != "pong":
+            raise RuntimeError(f"helper failed health ping: {pong}")
+
+    capture_resources(0, "started")
     try:
         session.send(
             request(
@@ -392,9 +436,15 @@ def main():
             raise RuntimeError(
                 f"helper omitted required ACSS capabilities: {missing_acss}"
             )
+        capture_resources(0, "ready")
 
         next_request_id = 3
         test_texts = RUTTS_TEST_TEXTS if args.engine_id == "rutts" else TEST_TEXTS
+        cancel_text = (
+            RUTTS_CANCEL_PROBE_TEXT
+            if args.engine_id == "rutts"
+            else CANCEL_PROBE_TEXT
+        )
         for iteration in range(args.iterations):
             text = exercise_text(
                 args.engine_id,
@@ -414,28 +464,53 @@ def main():
             total_frames += frames
             total_markers += markers
             total_bytes += byte_count
-            current_rss = resident_bytes(session.process.pid)
-            if current_rss is not None:
-                peak_rss = max(peak_rss or current_rss, current_rss)
 
-            if (iteration + 1) % 25 == 0:
-                session.send(request(next_request_id, "ping"))
-                pong = session.receive(next_request_id)
+            completed_iterations = iteration + 1
+            if args.cancel_every and completed_iterations % args.cancel_every == 0:
+                cancel_synthesis(
+                    session,
+                    next_request_id,
+                    next_request_id + 1,
+                    voice_id,
+                    cancel_text,
+                )
+                next_request_id += 2
+                cancellation_probes += 1
+                health_ping(next_request_id)
                 next_request_id += 1
-                if pong.get("type") != "pong":
-                    raise RuntimeError(f"helper failed health ping: {pong}")
-                print(f"completed {iteration + 1}/{args.iterations}", flush=True)
+            if (
+                args.resource_sample_every
+                and completed_iterations % args.resource_sample_every == 0
+            ):
+                capture_resources(completed_iterations, "interval")
+            if args.health_every and completed_iterations % args.health_every == 0:
+                health_ping(next_request_id)
+                next_request_id += 1
+                print(
+                    f"completed {completed_iterations}/{args.iterations}",
+                    file=progress_stream,
+                    flush=True,
+                )
 
         if args.cancel_probe:
-            cancel_synthesis(session, next_request_id, next_request_id + 1, voice_id)
+            cancel_synthesis(
+                session,
+                next_request_id,
+                next_request_id + 1,
+                voice_id,
+                cancel_text,
+            )
             next_request_id += 2
-            session.send(request(next_request_id, "ping"))
-            pong = session.receive(next_request_id)
+            cancellation_probes += 1
+            health_ping(next_request_id)
             next_request_id += 1
-            if pong.get("type") != "pong":
-                raise RuntimeError(f"helper failed health ping after cancellation: {pong}")
-            print("completed in-flight cancellation probe", flush=True)
+            print(
+                "completed in-flight cancellation probe",
+                file=progress_stream,
+                flush=True,
+            )
 
+        capture_resources(args.iterations, "before_shutdown")
         session.send(request(next_request_id, "shutdown"))
         shutting_down = session.receive(next_request_id)
         if shutting_down.get("type") != "shutting_down":
@@ -451,18 +526,60 @@ def main():
         raise
 
     duration = time.monotonic() - started_at
-    rss_summary = "unavailable"
-    if initial_rss is not None and peak_rss is not None:
-        rss_summary = (
-            f"start={initial_rss / 1048576:.1f} MiB, "
-            f"peak={peak_rss / 1048576:.1f} MiB"
-        )
+    report = {
+        "report_version": 1,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "host": {
+            "platform": platform.platform(),
+            "python": platform.python_version(),
+        },
+        "configuration": {
+            "helper_name": process_metrics.executable_name(command[0]),
+            "helper_argument_count": len(args.helper_arg),
+            "engine_id": args.engine_id,
+            "voice_id": voice_id,
+            "iterations": args.iterations,
+            "cancel_probe": args.cancel_probe,
+            "cancel_every": args.cancel_every,
+            "health_every": args.health_every,
+            "resource_sample_every": args.resource_sample_every,
+            "required_acss": args.require_acss,
+        },
+        "helper": {
+            "engine_id": descriptor.get("id"),
+            "version": descriptor.get("version"),
+            "voice_id": voice_id,
+            "capabilities": descriptor.get("capabilities", {}),
+        },
+        "result": {
+            "status": "completed",
+            "duration_seconds": duration,
+            "syntheses": args.iterations,
+            "cancellation_probes": cancellation_probes,
+            "frames": total_frames,
+            "markers": total_markers,
+            "pcm_bytes": total_bytes,
+        },
+        "resources": {
+            **observer.description(),
+            "samples": resource_samples,
+            "summary": process_metrics.summarize_samples(resource_samples),
+        },
+    }
+    serialized = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    if args.json_output == "-":
+        print(serialized, end="")
+        return
+
     print(
-        f"PASS {args.engine_id}: {args.iterations} syntheses, "
-        f"{total_frames} frames, {total_markers} markers, "
-        f"{total_bytes / 1048576:.1f} MiB PCM in {duration:.1f}s; "
-        f"launcher RSS {rss_summary}"
+        f"PASS {args.engine_id}/{voice_id}: {args.iterations} syntheses, "
+        f"{cancellation_probes} cancellations, {total_frames} frames, "
+        f"{total_markers} markers, {total_bytes / 1048576:.1f} MiB PCM "
+        f"in {duration:.1f}s; resources={observer.provider}"
     )
+    if args.json_output:
+        Path(args.json_output).write_text(serialized, encoding="utf-8")
+        print(f"wrote raw helper soak report to {args.json_output}")
 
 
 if __name__ == "__main__":

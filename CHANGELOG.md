@@ -37,6 +37,10 @@ Versioning for published releases.
   fallback, and restart testing. Reports now retain exact physical voices;
   strict voice selection, runtime-only engine selection, and a Russian stress
   profile cover both RuTTS voices and registered Windows helpers.
+- Added machine-readable helper soak reports with periodic health and
+  cancellation probes plus working-set, private-byte, handle, thread, and CPU
+  samples. Native Windows helper metrics are resolved conservatively from WSL;
+  ambiguous processes are never sampled as evidence.
 - Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
   female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
   volume, bounded PCM, and cooperative cancellation handling. RuLex is not

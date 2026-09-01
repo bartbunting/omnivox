@@ -88,13 +88,17 @@ target/release/omnivox --engine rutts \
   --dump-wav male rutts-test.wav "Привет, мир!"
 python3 tools/stress_helper.py \
   target/release/rutts/omnivox-rutts-helper \
-  --engine-id rutts --voice-id male --iterations 25 --cancel-probe \
+  --engine-id rutts --voice-id male --iterations 100 \
+  --cancel-every 25 --resource-sample-every 10 \
+  --json-output /path/to/private/rutts-male-soak.json \
   --require-acss rate --require-acss average_pitch \
   --require-acss pitch_range --require-acss volume
 ```
 
 On Windows, use the `.exe` helper path. Repeat with `--voice-id female` to
-exercise the other built-in voice.
+exercise the other built-in voice. The soak report records native Windows
+working set, private bytes, handles, threads, and CPU when run from WSL with
+PowerShell available; it does not define an automatic memory-growth threshold.
 
 ## Pronunciation and text support
 

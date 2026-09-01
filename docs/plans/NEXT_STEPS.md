@@ -40,7 +40,10 @@ The structured identity model remains:
    that stale markers, semantic callbacks, and duplicate or late terminal
    history cannot escape; add physical-output observation where available.
 4. Measure long-session memory, decoded-resource cache behavior, helper working
-   sets, and quarantined native-call capacity on real platforms.
+   sets, and quarantined native-call capacity on real platforms. The helper
+   soak tool now records working-set/private-byte, handle, thread, and CPU
+   samples on POSIX and native Windows helpers; multi-engine evidence and
+   explicit release thresholds remain outstanding.
 5. Keep malformed-input, queue-saturation, multipart timeout, and partial-write
    tests aligned with every protocol change.
 
