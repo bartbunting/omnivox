@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite package-flite verify-flite package-flite-source verify-flite-source install-flite prepare-rutts stage-rutts stage-rutts-dev build-rutts install-rutts prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
+.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite package-flite verify-flite package-flite-source verify-flite-source install-flite prepare-rutts stage-rutts stage-rutts-dev build-rutts package-rutts verify-rutts package-rutts-source verify-rutts-source install-rutts prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -141,6 +141,12 @@ stage-rutts-dev:
 	$(PYTHON) tools/build_rutts.py
 
 build-rutts: stage-rutts
+
+package-rutts: stage-rutts
+	$(PYTHON) tools/package_rutts.py
+
+verify-rutts: package-rutts
+	$(PYTHON) tools/verify_rutts_release.py
 
 install-rutts: install
 
