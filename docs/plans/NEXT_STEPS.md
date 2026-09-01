@@ -24,9 +24,9 @@ The structured identity model remains:
 
 ## Priority 1: latency and lifecycle evidence
 
-1. Add end-to-end onset telemetry that correlates Emacs submission, protocol
-   admission, synthesis, mixer-source consumption, and—where the platform
-   permits measurement—first audible device output.
+1. Extend the correlated Emacs submission, protocol admission, synthesis, and
+   mixer-source telemetry to first audible device output where a platform
+   exposes a truthful measurement callback.
 2. Maintain reproducible warm/cold latency benchmarks for character, word,
    ordinary line, dense-action timeline, multipart timeline, and rapid keyed
    replacement workloads. Report p50, p95, and p99 rather than averages alone.

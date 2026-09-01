@@ -182,5 +182,9 @@ make lint
 
 Real helper, cancellation, and audio-device behavior also require the relevant
 platform runtimes. A passing unit suite is not evidence of acceptable audible
-onset latency; measurement methodology and remaining performance work are
-tracked in [NEXT_STEPS.md](plans/NEXT_STEPS.md).
+onset latency. Normal diagnostics now correlate protocol admission, queue
+wait, engine synthesis attempts, audio queueing, first mixer-source
+consumption, and terminal playback by dispatch ID using monotonic elapsed
+microseconds. Physical device onset remains unmeasured; methodology and the
+remaining performance work are tracked in
+[NEXT_STEPS.md](plans/NEXT_STEPS.md).

@@ -14,8 +14,10 @@ use omnivox_tts::{AnchorResolution, SynthesisMarker};
 use std::cell::Cell;
 use std::io::{self, Write};
 use std::sync::{mpsc, Arc, Condvar, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tracing::warn;
+
+use crate::lifecycle::RequestLifecycle;
 
 const MAX_QUEUED_MARKER_EVENTS: usize = 8 * 1024;
 const MAX_QUEUED_MARKER_BYTES: usize = 16 * 1024 * 1024;
@@ -372,6 +374,7 @@ pub struct MarkerDispatchContext {
     next_sequence: Cell<u64>,
     next_utterance_id: Cell<u64>,
     output: MarkerEventOutput,
+    lifecycle: Option<RequestLifecycle>,
 }
 
 impl MarkerDispatchContext {
@@ -382,6 +385,7 @@ impl MarkerDispatchContext {
             next_sequence: Cell::new(0),
             next_utterance_id: Cell::new(0),
             output,
+            lifecycle: None,
         }
     }
 
@@ -394,7 +398,13 @@ impl MarkerDispatchContext {
             next_sequence: Cell::new(0),
             next_utterance_id: Cell::new(0),
             output,
+            lifecycle: None,
         }
+    }
+
+    pub fn with_lifecycle(mut self, lifecycle: RequestLifecycle) -> Self {
+        self.lifecycle = Some(lifecycle);
+        self
     }
 
     pub fn supports_timeline_events(&self) -> bool {
@@ -556,6 +566,7 @@ impl MarkerDispatchContext {
             cues,
             events: Arc::new(events),
             output: self.output.clone(),
+            lifecycle: self.lifecycle.clone(),
         }
     }
 }
@@ -578,6 +589,7 @@ pub struct PreparedMarkerPlayback {
     cues: Vec<PlaybackCue>,
     events: Arc<Vec<Arc<MarkerEventEnvelope>>>,
     output: MarkerEventOutput,
+    lifecycle: Option<RequestLifecycle>,
 }
 
 impl PreparedMarkerPlayback {
@@ -622,7 +634,13 @@ impl PreparedMarkerPlayback {
         };
         let mut events = events.into_iter().map(Some).collect::<Vec<_>>();
         let output = self.output;
+        let lifecycle = self.lifecycle.clone();
         let on_cue = move |cue: PlaybackCue| {
+            if cue.identifier == 0 {
+                if let Some(lifecycle) = &lifecycle {
+                    lifecycle.record_mixer_source_started();
+                }
+            }
             if let Some(event) = events
                 .get_mut(cue.identifier as usize)
                 .and_then(Option::take)
@@ -630,7 +648,8 @@ impl PreparedMarkerPlayback {
                 output.emit(event);
             }
         };
-        if let Some(cancellation) = cancellation {
+        let queue_attempted_at = Instant::now();
+        let result = if let Some(cancellation) = cancellation {
             control.queue_tracked_with_cue_callback_cancellable_if(
                 StreamType::Speech,
                 buffer,
@@ -647,7 +666,13 @@ impl PreparedMarkerPlayback {
                 on_cue,
                 predicate,
             )
+        };
+        if matches!(result, Ok(Some(_))) {
+            if let Some(lifecycle) = &self.lifecycle {
+                lifecycle.record_audio_queued_at(queue_attempted_at);
+            }
         }
+        result
     }
 }
 

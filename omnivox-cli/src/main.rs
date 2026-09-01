@@ -23,6 +23,7 @@ mod diagnostics;
 mod engine;
 mod engine_execution;
 mod health;
+mod lifecycle;
 mod marker_events;
 mod pipeline;
 mod routing;

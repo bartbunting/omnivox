@@ -677,6 +677,7 @@ fn synthesize_with_runtime_fallback_anchored_inner(
         request.anchors = anchors.to_vec();
         let started_at = Instant::now();
         info!(
+            lifecycle_stage = "synthesis_started",
             logical_voice = route.logical_voice_id,
             engine_id = route.realized.engine_id,
             voice_id = route.realized.voice_id,
@@ -714,11 +715,14 @@ fn synthesize_with_runtime_fallback_anchored_inner(
             Ok(result) => {
                 runtime_health.record_success(&route.realized.engine_id, permit);
                 info!(
+                    lifecycle_stage = "synthesis_completed",
                     logical_voice = route.logical_voice_id,
                     engine_id = route.realized.engine_id,
                     voice_id = route.realized.voice_id,
                     attempt,
                     frames = result.audio.frame_count(),
+                    synthesis_elapsed_us =
+                        u64::try_from(started_at.elapsed().as_micros()).unwrap_or(u64::MAX),
                     elapsed_ms = started_at.elapsed().as_millis(),
                     recovered = permit == EnginePermit::RecoveryProbe,
                     "Routed synthesis completed"
@@ -752,13 +756,16 @@ fn synthesize_with_runtime_fallback_anchored_inner(
                     }
                 }
                 warn!(
-                    "Logical voice {} synthesis attempt {}/{} failed on engine {} voice {}: {}",
-                    route.logical_voice_id,
+                    lifecycle_stage = "synthesis_failed",
+                    logical_voice = route.logical_voice_id,
+                    engine_id = route.realized.engine_id,
+                    voice_id = route.realized.voice_id,
                     attempt,
-                    MAX_RUNTIME_SYNTHESIS_ATTEMPTS,
-                    route.realized.engine_id,
-                    route.realized.voice_id,
-                    error
+                    max_attempts = MAX_RUNTIME_SYNTHESIS_ATTEMPTS,
+                    synthesis_elapsed_us = u64::try_from(started_at.elapsed().as_micros())
+                        .unwrap_or(u64::MAX),
+                    error = %error,
+                    "Routed synthesis failed"
                 );
                 match select_retry(route, routing, engine_registry, &error, attempt) {
                     Ok(retry) => *route = retry,

@@ -322,6 +322,9 @@ text or Windows crash dumps; both can contain private spoken content.
 
 Useful distinctions when investigating responsiveness:
 
+- normal session logs correlate protocol admission, synthesis queue wait,
+  engine calls, audio queueing, mixer-source onset, and terminal playback by
+  dispatch ID using process-local elapsed times;
 - a protocol write or tracked terminal record is not proof of physical audio;
 - playback marker events report mixer-source consumption and may precede the
   audible device output by its buffer latency;

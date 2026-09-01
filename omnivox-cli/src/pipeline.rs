@@ -32,9 +32,11 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-use tracing::{debug, warn};
+use std::time::Instant;
+use tracing::{debug, info, warn};
 
 use crate::health::RuntimeEngineHealth;
+use crate::lifecycle::RequestLifecycle;
 use crate::marker_events::{
     MarkerDispatchContext, PlaybackSemanticEvent, PlaybackTimelineResolution,
 };
@@ -163,6 +165,7 @@ pub struct SynthCtx<'a> {
     pub gen: u64,
     pub gen_counter: &'a AtomicU64,
     pub cancellation: Option<&'a SynthesisCancellationToken>,
+    pub lifecycle: &'a RequestLifecycle,
     pub engine: &'a dyn TtsEngine,
     pub control: &'a AudioControl,
     pub playback_tickets: Option<&'a Mutex<Vec<PlaybackTicket>>>,
@@ -197,6 +200,7 @@ impl SynthCtx<'_> {
         if stream == StreamType::Speech {
             self.flush_overlays();
         }
+        let queue_attempted_at = Instant::now();
         let needs_ticket = self.playback_tickets.is_some()
             || (stream == StreamType::Speech && self.presentation_clock.is_some());
         let result = if let Some(cancellation) = self.cancellation {
@@ -205,26 +209,32 @@ impl SynthCtx<'_> {
                     !self.is_stale()
                 })
                 .map(|ticket| {
+                    let queued = ticket.is_some();
                     if let Some(ticket) = ticket {
                         self.record_ticket(stream, ticket);
                     }
+                    queued
                 })
         } else if needs_ticket {
             self.control
                 .queue_tracked_if(stream, buffer, || !self.is_stale())
                 .map(|ticket| {
+                    let queued = ticket.is_some();
                     if let Some(ticket) = ticket {
                         self.record_ticket(stream, ticket);
                     }
+                    queued
                 })
         } else {
-            self.control
-                .queue_if(stream, buffer, || !self.is_stale())
-                .map(|_| ())
+            self.control.queue_if(stream, buffer, || !self.is_stale())
         };
-        if let Err(error) = result {
-            self.mark_failed();
-            warn!("{:?} queue error: {}", stream, error);
+        match result {
+            Ok(true) => self.lifecycle.record_audio_queued_at(queue_attempted_at),
+            Ok(false) => {}
+            Err(error) => {
+                self.mark_failed();
+                warn!("{:?} queue error: {}", stream, error);
+            }
         }
     }
 
@@ -506,7 +516,15 @@ pub fn synthesize_chunk_with_tones(
             .expect("prepared capitalization offsets are valid"),
         ctx,
     );
-    match ctx.engine.synthesize(&request).and_then(|mut result| {
+    let engine_id = ctx.engine.descriptor().id;
+    let synthesis_started_at = Instant::now();
+    info!(
+        lifecycle_stage = "synthesis_started",
+        engine_id = %engine_id,
+        text_bytes = chunk.len(),
+        "Speech lifecycle started direct synthesis"
+    );
+    let synthesis = ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(
             &request,
             ctx.engine
@@ -517,8 +535,19 @@ pub fn synthesize_chunk_with_tones(
         );
         result.validate(&request)?;
         Ok(result)
-    }) {
+    });
+    match synthesis {
         Ok(result) => {
+            info!(
+                lifecycle_stage = "synthesis_completed",
+                engine_id = %engine_id,
+                frames = result.audio.frame_count(),
+                synthesis_elapsed_us = u64::try_from(
+                    synthesis_started_at.elapsed().as_micros()
+                )
+                .unwrap_or(u64::MAX),
+                "Speech lifecycle completed direct synthesis"
+            );
             if ctx.is_stale() {
                 return false;
             }
@@ -538,6 +567,16 @@ pub fn synthesize_chunk_with_tones(
             !ctx.is_stale()
         }
         Err(e) => {
+            warn!(
+                lifecycle_stage = "synthesis_failed",
+                engine_id = %engine_id,
+                synthesis_elapsed_us = u64::try_from(
+                    synthesis_started_at.elapsed().as_micros()
+                )
+                .unwrap_or(u64::MAX),
+                error = %e,
+                "Speech lifecycle failed direct synthesis"
+            );
             ctx.mark_failed();
             warn!("Synthesis error: {}", e);
             true
@@ -1496,13 +1535,31 @@ fn synthesize_direct_timeline_chunk(
             return true;
         }
     };
-    match ctx.engine.synthesize(&request).and_then(|mut result| {
+    let synthesis_started_at = Instant::now();
+    info!(
+        lifecycle_stage = "synthesis_started",
+        engine_id = %descriptor.id,
+        text_bytes = chunk.text.len(),
+        "Speech lifecycle started structured synthesis"
+    );
+    let synthesis = ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(&request, descriptor.capabilities.markers.requested_anchors);
         result.degraded_acss = acss.omitted.clone();
         result.validate(&request)?;
         Ok(result)
-    }) {
+    });
+    match synthesis {
         Ok(result) => {
+            info!(
+                lifecycle_stage = "synthesis_completed",
+                engine_id = %descriptor.id,
+                frames = result.audio.frame_count(),
+                synthesis_elapsed_us = u64::try_from(
+                    synthesis_started_at.elapsed().as_micros()
+                )
+                .unwrap_or(u64::MAX),
+                "Speech lifecycle completed structured synthesis"
+            );
             if ctx.is_stale() {
                 return false;
             }
@@ -1522,6 +1579,16 @@ fn synthesize_direct_timeline_chunk(
             !ctx.is_stale()
         }
         Err(error) => {
+            warn!(
+                lifecycle_stage = "synthesis_failed",
+                engine_id = %descriptor.id,
+                synthesis_elapsed_us = u64::try_from(
+                    synthesis_started_at.elapsed().as_micros()
+                )
+                .unwrap_or(u64::MAX),
+                error = %error,
+                "Speech lifecycle failed structured synthesis"
+            );
             ctx.mark_failed();
             warn!("Structured timeline synthesis error: {error}");
             true

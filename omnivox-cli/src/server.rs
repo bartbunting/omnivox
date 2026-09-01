@@ -34,9 +34,10 @@ use std::mem;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info, info_span, warn};
 
 use crate::health::RuntimeEngineHealth;
+use crate::lifecycle::RequestLifecycle;
 use crate::marker_events::{MarkerDispatchContext, MarkerEventOutput};
 use crate::pipeline::{
     build_sound_pipeline, build_tone_pipeline, process_batch, process_letter,
@@ -171,6 +172,7 @@ pub enum SynthRequest {
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
         tracking: Option<DispatchTracking>,
+        lifecycle: RequestLifecycle,
         gen: u64,
     },
     /// Render one atomic structured presentation with marker v2 tracking.
@@ -179,6 +181,7 @@ pub enum SynthRequest {
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
         cancellation: Option<KeyedCancellationLease>,
+        lifecycle: RequestLifecycle,
         gen: u64,
     },
     /// Synthesize one explicitly selected voice without mutating server state.
@@ -188,6 +191,7 @@ pub enum SynthRequest {
         requested: VoiceSelector,
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
+        lifecycle: RequestLifecycle,
         gen: u64,
     },
     /// Synthesize and play a single string immediately (`tts_say`).
@@ -195,6 +199,7 @@ pub enum SynthRequest {
         text: String,
         state: TtsState,
         preferred_routing: LogicalVoiceRoutingSnapshot,
+        lifecycle: RequestLifecycle,
         gen: u64,
     },
     /// Synthesize and play a single letter (`l`).
@@ -202,24 +207,38 @@ pub enum SynthRequest {
         text: String,
         state: TtsState,
         preferred_routing: LogicalVoiceRoutingSnapshot,
+        lifecycle: RequestLifecycle,
         gen: u64,
     },
     /// Play a sound file immediately on the sound stream (`p`).
     PlaySound {
         path: std::path::PathBuf,
         state: TtsState,
+        lifecycle: RequestLifecycle,
         gen: u64,
     },
 }
 
 impl SynthRequest {
     fn commit_admission(&mut self) {
+        self.lifecycle().commit_admission();
         if let Self::Timeline {
             cancellation: Some(cancellation),
             ..
         } = self
         {
             cancellation.activate();
+        }
+    }
+
+    fn lifecycle(&self) -> &RequestLifecycle {
+        match self {
+            Self::Batch { lifecycle, .. }
+            | Self::Timeline { lifecycle, .. }
+            | Self::Preview { lifecycle, .. }
+            | Self::Immediate { lifecycle, .. }
+            | Self::Letter { lifecycle, .. }
+            | Self::PlaySound { lifecycle, .. } => lifecycle,
         }
     }
 
@@ -520,6 +539,7 @@ pub(crate) struct TrackedPlayback {
     completion: PlaybackCompletion,
     status: BatchStatus,
     tickets: Vec<PlaybackTicket>,
+    lifecycle: Option<RequestLifecycle>,
     // Keep the registry lease alive until every tagged source is terminal.
     cancellation: Option<KeyedCancellationLease>,
 }
@@ -566,9 +586,22 @@ fn tracked_playback_reporter(
             completion,
             status,
             tickets,
+            lifecycle,
             cancellation,
         } = playback;
         let status = await_tracked_playback(status, tickets);
+        if let Some(lifecycle) = lifecycle {
+            let identifier = playback_completion_identifier(&completion);
+            info!(
+                lifecycle_stage = "playback_terminal",
+                request_identifier = identifier,
+                status = tracked_status_name(status),
+                admission_to_audio_queued_us = ?lifecycle.audio_queued_us(),
+                admission_to_mixer_source_us = ?lifecycle.mixer_source_started_us(),
+                admission_to_terminal_us = ?lifecycle.elapsed_us(),
+                "Speech lifecycle reached terminal playback"
+            );
+        }
         let record = match completion {
             PlaybackCompletion::Tracked(identifier) => tracked_status_record(identifier, status),
             PlaybackCompletion::Preview {
@@ -592,6 +625,13 @@ fn tracked_playback_reporter(
             warn!("Playback reporter stopped before a terminal record was written");
         }
         drop(cancellation);
+    }
+}
+
+fn playback_completion_identifier(completion: &PlaybackCompletion) -> u64 {
+    match completion {
+        PlaybackCompletion::Tracked(identifier) => *identifier,
+        PlaybackCompletion::Preview { request_id, .. } => *request_id,
     }
 }
 
@@ -753,17 +793,19 @@ fn write_stdout_record(record: &str, kind: &str) {
 }
 
 fn enqueue_synthesis(tx: &WorkQueueSender<SynthRequest>, request: SynthRequest) -> bool {
-    let outcome = if matches!(
-        &request,
-        SynthRequest::Timeline {
-            cancellation: Some(_),
-            ..
-        }
-    ) {
-        tx.try_send_with_commit(request, SynthRequest::commit_admission)
-    } else {
-        tx.try_send(request)
-    };
+    let request_kind = request.diagnostic_kind();
+    let request_identifier = request.diagnostic_identifier();
+    let request_generation = request.generation();
+    let outcome = tx.try_send_with_commit(request, SynthRequest::commit_admission);
+    if outcome.accepted {
+        info!(
+            lifecycle_stage = "protocol_admitted",
+            request_kind,
+            request_identifier = ?request_identifier,
+            generation = request_generation,
+            "Speech lifecycle admitted request"
+        );
+    }
     for retired in outcome.retired {
         report_retired_synthesis(retired);
     }
@@ -782,16 +824,21 @@ fn report_retired_synthesis(retired: RetiredWork<SynthRequest>) {
     let message = retirement_message(reason);
     let request_kind = work.diagnostic_kind();
     let request_identifier = work.diagnostic_identifier();
+    let admission_elapsed_us = work.lifecycle().elapsed_us();
     match status {
         BatchStatus::Cancelled => info!(
+            lifecycle_stage = "request_retired",
             request_kind,
             request_identifier = ?request_identifier,
+            admission_elapsed_us = ?admission_elapsed_us,
             reason = message,
             "Retired queued synthesis request"
         ),
         BatchStatus::Failed => error!(
+            lifecycle_stage = "request_rejected",
             request_kind,
             request_identifier = ?request_identifier,
+            admission_elapsed_us = ?admission_elapsed_us,
             reason = message,
             "Rejected synthesis request"
         ),
@@ -887,12 +934,20 @@ pub fn synthesis_worker(
         let request_kind = request.diagnostic_kind();
         let request_identifier = request.diagnostic_identifier();
         let request_generation = request.generation();
-        let request_started_at = Instant::now();
-        info!(
+        let request_lifecycle = request.lifecycle().clone();
+        let worker_started_at = Instant::now();
+        let queue_wait_us = request_lifecycle.elapsed_us_at(worker_started_at);
+        let request_span = info_span!(
+            "speech_request",
             request_kind,
             request_identifier = ?request_identifier,
-            generation = request_generation,
-            "Synthesis worker accepted request"
+            generation = request_generation
+        );
+        let _request_span_guard = request_span.enter();
+        info!(
+            lifecycle_stage = "worker_started",
+            queue_wait_us = ?queue_wait_us,
+            "Speech lifecycle started synthesis worker"
         );
         match request {
             SynthRequest::Batch {
@@ -900,6 +955,7 @@ pub fn synthesis_worker(
                 state,
                 mut logical_voice_routing,
                 tracking,
+                lifecycle: _,
                 gen,
             } => {
                 let runtime_inventory = runtime_health
@@ -915,15 +971,16 @@ pub fn synthesis_worker(
                 let failed = AtomicBool::new(false);
                 let marker_dispatch = tracking.and_then(|tracking| match tracking {
                     DispatchTracking::Completion(_) => None,
-                    DispatchTracking::Markers(identifier) => Some(MarkerDispatchContext::new(
-                        identifier,
-                        marker_output.clone(),
-                    )),
+                    DispatchTracking::Markers(identifier) => Some(
+                        MarkerDispatchContext::new(identifier, marker_output.clone())
+                            .with_lifecycle(request_lifecycle.clone()),
+                    ),
                 });
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,
+                    lifecycle: &request_lifecycle,
                     engine: &*batch_engine,
                     control: &control,
                     playback_tickets: tracking.map(|_| &tickets),
@@ -949,6 +1006,7 @@ pub fn synthesis_worker(
                         completion: PlaybackCompletion::Tracked(identifier),
                         status,
                         tickets: tickets.into_inner().unwrap(),
+                        lifecycle: Some(request_lifecycle.clone()),
                         cancellation: None,
                     };
                     if tracked_playback_tx.send(playback).is_err() {
@@ -962,6 +1020,7 @@ pub fn synthesis_worker(
                 state,
                 mut logical_voice_routing,
                 cancellation,
+                lifecycle: _,
                 gen,
             } => {
                 let runtime_inventory = runtime_health
@@ -978,11 +1037,13 @@ pub fn synthesis_worker(
                 let marker_dispatch = MarkerDispatchContext::with_timeline_events(
                     timeline.dispatch_id,
                     marker_output.clone(),
-                );
+                )
+                .with_lifecycle(request_lifecycle.clone());
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: cancellation.as_ref().map(KeyedCancellationLease::token),
+                    lifecycle: &request_lifecycle,
                     engine: &*batch_engine,
                     control: &control,
                     playback_tickets: Some(&tickets),
@@ -1007,6 +1068,7 @@ pub fn synthesis_worker(
                     completion: PlaybackCompletion::Tracked(dispatch_id),
                     status,
                     tickets: tickets.into_inner().unwrap(),
+                    lifecycle: Some(request_lifecycle.clone()),
                     cancellation,
                 };
                 if tracked_playback_tx.send(playback).is_err() {
@@ -1020,6 +1082,7 @@ pub fn synthesis_worker(
                 requested,
                 state,
                 mut logical_voice_routing,
+                lifecycle: _,
                 gen,
             } => {
                 let runtime_inventory = runtime_health
@@ -1035,6 +1098,7 @@ pub fn synthesis_worker(
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,
+                    lifecycle: &request_lifecycle,
                     engine: &*engine,
                     control: &control,
                     playback_tickets: Some(&tickets),
@@ -1065,6 +1129,7 @@ pub fn synthesis_worker(
                     },
                     status: result.status,
                     tickets: tickets.into_inner().unwrap(),
+                    lifecycle: Some(request_lifecycle.clone()),
                     cancellation: None,
                 };
                 if tracked_playback_tx.send(playback).is_err() {
@@ -1076,6 +1141,7 @@ pub fn synthesis_worker(
                 text,
                 state,
                 mut preferred_routing,
+                lifecycle: _,
                 gen,
             } => {
                 let runtime_inventory = runtime_health
@@ -1091,6 +1157,7 @@ pub fn synthesis_worker(
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,
+                    lifecycle: &request_lifecycle,
                     engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
@@ -1119,6 +1186,7 @@ pub fn synthesis_worker(
                 text,
                 state,
                 mut preferred_routing,
+                lifecycle: _,
                 gen,
             } => {
                 let runtime_inventory = runtime_health
@@ -1134,6 +1202,7 @@ pub fn synthesis_worker(
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,
+                    lifecycle: &request_lifecycle,
                     engine: &*preferred_engine,
                     control: &control,
                     playback_tickets: None,
@@ -1157,11 +1226,17 @@ pub fn synthesis_worker(
                 );
             }
 
-            SynthRequest::PlaySound { path, state, gen } => {
+            SynthRequest::PlaySound {
+                path,
+                state,
+                lifecycle: _,
+                gen,
+            } => {
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,
+                    lifecycle: &request_lifecycle,
                     engine: &*engine,
                     control: &control,
                     playback_tickets: None,
@@ -1193,11 +1268,12 @@ pub fn synthesis_worker(
             }
         }
         info!(
-            request_kind,
-            request_identifier = ?request_identifier,
-            generation = request_generation,
-            elapsed_ms = request_started_at.elapsed().as_millis(),
-            "Synthesis worker finished request"
+            lifecycle_stage = "worker_finished",
+            worker_elapsed_us = u64::try_from(worker_started_at.elapsed().as_micros())
+                .unwrap_or(u64::MAX),
+            admission_elapsed_us = ?request_lifecycle.elapsed_us(),
+            admission_to_audio_queued_us = ?request_lifecycle.audio_queued_us(),
+            "Speech lifecycle finished synthesis worker"
         );
     }
 }
@@ -2054,6 +2130,7 @@ fn execute_structured_presentation(
                 routing_policy,
             ),
             cancellation,
+            lifecycle: RequestLifecycle::default(),
             gen: current_gen,
         },
     );
@@ -2186,6 +2263,7 @@ fn dispatch_preview(
             engine_registry,
             routing_policy,
         ),
+        lifecycle: RequestLifecycle::default(),
         gen,
     };
     enqueue_synthesis(tx, request);
@@ -2330,6 +2408,7 @@ fn handle_command(
                                         routing_policy,
                                     ),
                                 tracking: None,
+                                lifecycle: RequestLifecycle::default(),
                                 gen: *current_gen,
                             },
                         );
@@ -2367,6 +2446,7 @@ fn handle_command(
                                 routing_policy,
                             ),
                             tracking: Some(DispatchTracking::Completion(identifier)),
+                            lifecycle: RequestLifecycle::default(),
                             gen: *current_gen,
                         },
                     ),
@@ -2406,6 +2486,7 @@ fn handle_command(
                                 routing_policy,
                             ),
                             tracking: Some(DispatchTracking::Markers(identifier)),
+                            lifecycle: RequestLifecycle::default(),
                             gen: *current_gen,
                         },
                     ),
@@ -2457,6 +2538,7 @@ fn handle_command(
                             engine_registry,
                             routing_policy,
                         ),
+                        lifecycle: RequestLifecycle::default(),
                         gen: *current_gen,
                     },
                 );
@@ -2485,6 +2567,7 @@ fn handle_command(
                             engine_registry,
                             routing_policy,
                         ),
+                        lifecycle: RequestLifecycle::default(),
                         gen: *current_gen,
                     },
                 );
@@ -2501,6 +2584,7 @@ fn handle_command(
                             SynthRequest::PlaySound {
                                 path,
                                 state: state.clone(),
+                                lifecycle: RequestLifecycle::default(),
                                 gen: *current_gen,
                             },
                         );
@@ -2522,6 +2606,7 @@ fn handle_command(
                         engine_registry,
                         routing_policy,
                     ),
+                    lifecycle: RequestLifecycle::default(),
                     gen: *current_gen,
                 },
             );
@@ -2812,6 +2897,7 @@ mod tests {
             completion: PlaybackCompletion::Tracked(identifier),
             status: BatchStatus::Completed,
             tickets: Vec::new(),
+            lifecycle: None,
             cancellation: None,
         }
     }
@@ -2976,6 +3062,26 @@ mod tests {
     }
 
     #[test]
+    fn synthesis_admission_stamps_only_accepted_requests() {
+        let (sender, receiver) = bounded_work_queue(WorkQueueLimits {
+            max_items: 1,
+            max_payload_bytes: usize::MAX,
+        });
+        let accepted = timeline_request(1, 11, PresentationDeliveryPolicy::Ordered, None);
+        let accepted_lifecycle = accepted.lifecycle().clone();
+        assert!(enqueue_synthesis(&sender, accepted));
+        assert!(accepted_lifecycle.admitted_at().is_some());
+
+        let rejected = timeline_request(2, 12, PresentationDeliveryPolicy::Ordered, None);
+        let rejected_lifecycle = rejected.lifecycle().clone();
+        let rejected = sender.try_send_with_commit(rejected, SynthRequest::commit_admission);
+        assert!(!rejected.accepted);
+        assert!(rejected_lifecycle.admitted_at().is_none());
+
+        drop(receiver.recv());
+    }
+
+    #[test]
     fn queue_retirement_maps_replacement_to_cancel_and_saturation_to_failure() {
         for reason in [
             RetirementReason::Replaced,
@@ -3070,6 +3176,7 @@ mod tests {
                 &engines,
             ),
             cancellation: None,
+            lifecycle: RequestLifecycle::default(),
             gen: generation,
         }
     }
@@ -3149,6 +3256,7 @@ mod tests {
             completion: PlaybackCompletion::Tracked(11),
             status: BatchStatus::Completed,
             tickets: Vec::new(),
+            lifecycle: None,
             cancellation: Some(first),
         };
 
@@ -3246,6 +3354,7 @@ mod tests {
                     &engines,
                 ),
                 cancellation: Some(active_cancellation),
+                lifecycle: RequestLifecycle::default(),
                 gen: 1,
             },
         ));
@@ -3289,6 +3398,7 @@ mod tests {
                     &engines,
                 ),
                 cancellation: Some(replacement_cancellation),
+                lifecycle: RequestLifecycle::default(),
                 gen: 4,
             },
             SynthRequest::commit_admission,

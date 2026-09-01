@@ -33,6 +33,33 @@ Git status, runtime identity, and relevant Windows events. Keep logs private,
 inspect diagnostic archives before sharing them, and unset
 `OMNIVOX_LOG_SYNTHESIS_TEXT` when the capture is no longer needed.
 
+## Latency and lifecycle records
+
+The normal info-level log records monotonic elapsed microseconds for each
+speech request. Tracked and marker-aware requests use their dispatch ID as
+`request_identifier`; preview requests use their control request ID. Events
+inside the `speech_request` tracing span inherit that identifier, request kind,
+and interrupt generation.
+
+The lifecycle is reported at these boundaries:
+
+| `lifecycle_stage` | Meaning |
+|---|---|
+| `protocol_admitted` | The bounded synthesis queue accepted the request. |
+| `worker_started` | The synthesis worker dequeued it; `queue_wait_us` measures time since admission. |
+| `synthesis_started` | One engine attempt began. A fallback retry produces another attempt record. |
+| `synthesis_completed` or `synthesis_failed` | That engine attempt ended; `synthesis_elapsed_us` covers the native or helper call and result validation. |
+| `worker_finished` | Request processing finished; the record includes time since admission and, when audio was accepted, `admission_to_audio_queued_us`. |
+| `playback_terminal` | All tracked mixer sources completed or were cancelled. It summarizes `admission_to_mixer_source_us` for the first consumed speech source and total `admission_to_terminal_us`. |
+| `request_retired` or `request_rejected` | Work ended before the synthesis worker could complete it. |
+
+These durations come from one monotonic clock inside Omnivox and can therefore
+be compared safely even when Emacs runs in WSL and Omnivox runs as a native
+Windows process. Match them with Emacsvox's opt-in aural diagnostic records by
+dispatch ID. The first mixer-source measurement is not physical acoustic
+onset: operating-system, device, and hardware buffers can add latency after
+the mixer requests its first sample.
+
 If speech stops, collect evidence before manually restarting it:
 
 ```sh

@@ -17,6 +17,10 @@ Versioning for published releases.
   payload checksums, real synthesis tests, and helper-session stress coverage.
 - Added native Flite word-start markers and word-boundary resolution for
   caller-supplied synchronization anchors.
+- Added dispatch-correlated, monotonic lifecycle telemetry for protocol
+  admission, synthesis queue wait, engine attempts, audio queueing, first
+  mixer-source consumption, and terminal playback without changing the marker
+  or control protocols.
 - Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
   female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
   volume, bounded PCM, and cooperative cancellation handling. RuLex is not

@@ -97,6 +97,7 @@ pub(crate) fn bounded_work_queue<T>(
 impl<T: BoundedWork> WorkQueueSender<T> {
     /// Admit work without blocking, coalescing or evicting queued replaceable
     /// work only when the incoming request can be committed atomically.
+    #[cfg(test)]
     pub(crate) fn try_send(&self, work: T) -> EnqueueOutcome<T> {
         self.try_send_with_commit(work, |_| {})
     }
