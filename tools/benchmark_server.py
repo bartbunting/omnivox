@@ -116,6 +116,42 @@ def read_provenance(path: str) -> dict[str, str]:
     return fields
 
 
+def configure_preferred_engine(
+    session: "ServerSession",
+    capabilities: dict[str, Any],
+    engine_id: str,
+    request_id: int,
+) -> dict[str, Any]:
+    """Make ENGINE_ID the sole runtime preference for SESSION."""
+    if "runtime_routing_policy" not in capabilities.get("features", []):
+        raise RuntimeError(
+            "server does not advertise runtime_routing_policy required by "
+            "--preferred-engine-id"
+        )
+    response, _ = session.request_control(
+        {
+            "protocol_version": 1,
+            "request_id": request_id,
+            "type": "set_routing_policy",
+            "routing_policy_generation": 1,
+            "preferred_engine_ids": [engine_id],
+            "fallback_engine_ids": [],
+            "disabled_engine_ids": [],
+        }
+    )
+    applied = response.get("routing_policy", {})
+    policy = applied.get("policy", {}) if isinstance(applied, dict) else {}
+    if (
+        response.get("type") != "routing_policy_applied"
+        or applied.get("routing_policy_generation") != 1
+        or policy.get("preferred_engine_ids") != [engine_id]
+    ):
+        raise RuntimeError(
+            f"server rejected benchmark routing preference {engine_id!r}: {response}"
+        )
+    return response
+
+
 def multipart_timeline_lines(timeline: dict[str, Any], part_count: int) -> list[str]:
     if part_count < 2:
         raise ValueError("multipart timelines require at least two parts")
@@ -457,6 +493,7 @@ def execute_case(
 def cold_samples(
     command: list[str],
     engine: str | None,
+    preferred_engine_id: str | None,
     case: str,
     iterations: int,
     identities: IdentitySequence,
@@ -471,6 +508,13 @@ def cold_samples(
             capabilities, ready_at = session.negotiate(
                 identities.dispatch_id + 10_000_000
             )
+            if preferred_engine_id:
+                configure_preferred_engine(
+                    session,
+                    capabilities,
+                    preferred_engine_id,
+                    identities.dispatch_id + 10_000_001,
+                )
             sample = execute_case(
                 session, case, identities, expected_engine_id, replacement_burst
             )
@@ -546,6 +590,13 @@ def parse_args() -> argparse.Namespace:
         help="fail if the first source marker reports another engine",
     )
     parser.add_argument(
+        "--preferred-engine-id",
+        help=(
+            "set one runtime routing preference after negotiation; use for "
+            "registered engines that are not startup selectors"
+        ),
+    )
+    parser.add_argument(
         "--mode", choices=("cold", "warm", "both"), default="both"
     )
     parser.add_argument(
@@ -600,6 +651,7 @@ def main() -> None:
         "configuration": {
             "server_command": command,
             "engine": args.engine,
+            "preferred_engine_id": args.preferred_engine_id,
             "expected_engine_id": args.expected_engine_id,
             "mode": args.mode,
             "cases": cases,
@@ -619,6 +671,7 @@ def main() -> None:
             samples = cold_samples(
                 command,
                 args.engine,
+                args.preferred_engine_id,
                 case,
                 args.iterations,
                 identities,
@@ -638,6 +691,13 @@ def main() -> None:
         session = ServerSession(command, args.engine, args.timeout)
         try:
             capabilities, ready_at = session.negotiate(identities.dispatch_id + 20_000_000)
+            if args.preferred_engine_id:
+                configure_preferred_engine(
+                    session,
+                    capabilities,
+                    args.preferred_engine_id,
+                    identities.dispatch_id + 20_000_001,
+                )
             report["server"] = {
                 "version": capabilities.get("server_version"),
                 "features": capabilities.get("features", []),

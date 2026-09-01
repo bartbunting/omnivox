@@ -84,6 +84,13 @@ reports the slowest stale-dispatch terminal cancellation in each burst as well
 as the winning dispatch's onset. These remain mixer-source observations, not
 microphone or physical audible-onset measurements.
 
+Windows Eloquence and DECtalk are runtime-routing inventory IDs, not accepted
+startup selectors. Use `--engine native --preferred-engine-id ENGINE` for those
+engines. The harness applies that preference through the public control
+protocol to every cold process and once to the warm process; keep
+`--expected-engine-id ENGINE` so any fallback fails the run instead of entering
+the measured distribution.
+
 Use `tools/stress_server.py` to repeat domain-scoped replacement with
 interleaved ordered and urgent work. It periodically issues a hard stop and
 then verifies recovery. Every dispatch must produce exactly one expected

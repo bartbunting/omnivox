@@ -19,6 +19,7 @@ import json
 import sys
 
 parts = {}
+selected_engine = "fake"
 
 def encoded(record):
     payload = json.dumps(record, separators=(",", ":")).encode()
@@ -32,7 +33,7 @@ def finish(timeline):
         "sequence": 1,
         "type": "utterance_started",
         "utterance_id": 1,
-        "engine_id": "fake",
+        "engine_id": selected_engine,
     }
     print("__EMACSVOX_MARKER__ " + encoded(marker), flush=True)
     print(f"__EMACSVOX_TRACKED__ {identifier} completed", flush=True)
@@ -41,18 +42,37 @@ for raw_line in sys.stdin:
     line = raw_line.rstrip("\r\n")
     if line.startswith("omnivox_control "):
         request = json.loads(base64.b64decode(line.split(" ", 1)[1]))
-        response = {
-            "protocol_version": 1,
-            "request_id": request["request_id"],
-            "type": "capabilities",
-            "server_version": "test",
-            "features": [
-                "control_v1",
-                "playback_marker_events_v2",
-                "presentation_timeline_v3",
-                "tracked_playback_completion",
-            ],
-        }
+        if request["type"] == "capabilities":
+            response = {
+                "protocol_version": 1,
+                "request_id": request["request_id"],
+                "type": "capabilities",
+                "server_version": "test",
+                "features": [
+                    "control_v1",
+                    "playback_marker_events_v2",
+                    "presentation_timeline_v3",
+                    "tracked_playback_completion",
+                    "runtime_routing_policy",
+                ],
+            }
+        else:
+            selected_engine = request["preferred_engine_ids"][0]
+            response = {
+                "protocol_version": 1,
+                "request_id": request["request_id"],
+                "type": "routing_policy_applied",
+                "routing_policy": {
+                    "routing_policy_generation": request["routing_policy_generation"],
+                    "policy": {
+                        "preferred_engine_ids": request["preferred_engine_ids"],
+                        "fallback_engine_ids": request["fallback_engine_ids"],
+                        "disabled_engine_ids": request["disabled_engine_ids"],
+                    },
+                },
+                "logical_voices": {"registry_generation": 0, "bindings": []},
+                "inventory_generation": 1,
+            }
         print("__OMNIVOX_CONTROL__ " + encoded(response), flush=True)
     elif line.startswith("emacsvox_timeline "):
         finish(json.loads(base64.b64decode(line.split(" ", 1)[1])))
@@ -120,6 +140,25 @@ class BenchmarkServerTests(unittest.TestCase):
                 self.assertEqual(sample["status"], "completed")
                 self.assertEqual(sample["engine_id"], "fake")
                 self.assertGreaterEqual(sample["dispatch_to_source_ms"], 0)
+        finally:
+            session.close()
+        self.assertEqual(session.process.returncode, 0)
+
+    def test_session_applies_runtime_engine_preference(self) -> None:
+        session = benchmark_server.ServerSession(
+            [sys.executable, "-c", FAKE_SERVER], None, 5.0
+        )
+        identities = benchmark_server.IdentitySequence()
+        try:
+            capabilities, _ = session.negotiate(101)
+            response = benchmark_server.configure_preferred_engine(
+                session, capabilities, "registered-helper", 102
+            )
+            self.assertEqual(response["type"], "routing_policy_applied")
+            sample = benchmark_server.execute_case(
+                session, "character", identities, "registered-helper", 3
+            )
+            self.assertEqual(sample["engine_id"], "registered-helper")
         finally:
             session.close()
         self.assertEqual(session.process.returncode, 0)

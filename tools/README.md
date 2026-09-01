@@ -238,6 +238,20 @@ host and Python identity, server version, command, actual engine counts, and an
 optional bounded `KEY=VALUE` provenance file. Marker receipt measures
 mixer-source consumption and may precede audible device output.
 
+Eloquence and DECtalk are Windows runtime-routing inventory IDs rather than
+startup selectors. Benchmark either without changing that boundary by starting
+the ordinary native server and applying one strict session preference:
+
+```sh
+python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
+  --engine native --preferred-engine-id dectalk \
+  --expected-engine-id dectalk --iterations 20
+```
+
+The harness applies the public routing policy to every cold process and once to
+the warm process. It configures no fallback engines, and the expected-engine
+check prevents a different realized engine from contaminating results.
+
 ## Server cancellation and recovery stress
 
 `stress_server.py` uses the same public protocol client to interleave two
