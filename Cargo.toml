@@ -6,6 +6,7 @@ members = [
     "omnivox-audio",
     "omnivox-cli",
     "omnivox-helper-host",
+    "omnivox-flite-sys",
     "omnivox-piper-helper",
     "omnivox-piper-sys",
     "omnivox-rhvoice-helper",

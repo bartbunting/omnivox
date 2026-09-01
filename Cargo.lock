@@ -668,6 +668,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "omnivox-flite-sys"
+version = "1.5.1"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "omnivox-helper-host"
 version = "1.5.1"
 dependencies = [
