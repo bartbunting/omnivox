@@ -632,7 +632,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-audio"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "anyhow",
  "omnivox-core",
@@ -644,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-cli"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "anyhow",
  "omnivox-audio",
@@ -658,7 +658,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-core"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "once_cell",
  "regex",
@@ -669,7 +669,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-piper-helper"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "omnivox-piper-sys",
  "omnivox-tts",
@@ -678,14 +678,14 @@ dependencies = [
 
 [[package]]
 name = "omnivox-piper-sys"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "bindgen 0.69.5",
 ]
 
 [[package]]
 name = "omnivox-tts"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "base64",
  "cc",

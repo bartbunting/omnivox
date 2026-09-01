@@ -6,6 +6,8 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-01
+
 ### Changed
 
 - Moved the GPL-2.0-or-later Eloquence and DECtalk capture-helper source,
@@ -23,6 +25,13 @@ Versioning for published releases.
   beside the companion, so missing or corrupt model tests exercise the packaged
   eSpeak fallback rather than a build-tree data path. Recovery publication now
   also evaluates after its intentionally skipped build ancestors.
+
+### Documentation
+
+- Documented the complete Eloquence and DECtalk runtime requirements and
+  installation paths, including the durable DECtalk release and a separately
+  labelled newer development build without treating it as a distributable or
+  default-pinned runtime.
 
 ## [1.5.0] - 2026-08-31
 
@@ -144,6 +153,7 @@ superseded by `v1.4.1` and its assets should not be used.
 - Added recovery for a draft release whose native verification needs to be
   rerun without rebuilding or replacing its uploaded assets.
 
-[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/bartbunting/omnivox/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/bartbunting/omnivox/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/bartbunting/omnivox/compare/v1.3.0...v1.4.1
