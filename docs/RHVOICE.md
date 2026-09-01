@@ -24,7 +24,7 @@ release or another major version with a protocol-visible diagnostic.
 |---|---|
 | Linux x64 | Native discovery, synthesis, PCM, word/sentence markers, ACSS, cancellation, and shutdown tested with RHVoice 1.14.0 |
 | Linux ARM64 | Helper compiles; live native acceptance is pending |
-| Windows x64 | Helper supported with an explicit compatible `RHVoice.dll`; live acceptance is pending |
+| Windows x64 | Native discovery, synthesis, PCM, word/sentence markers, ACSS, cancellation, and shutdown tested with an explicit RHVoice 1.14.0 C API runtime and SLT voice |
 | Windows ARM64 | Helper compiles; no compatible upstream runtime has passed acceptance |
 | macOS Intel/Apple Silicon | Helper compiles and accepts explicit paths; RHVoice does not claim macOS support and live acceptance is pending |
 
@@ -117,6 +117,18 @@ different checkout has the same layout. The library architecture must match
 the Omnivox helper architecture. The helper loads dependencies only from the
 selected DLL directory and Windows System32; it does not search the current
 working directory.
+
+The Windows x64 acceptance run used the independently packaged
+[`rhvoice-wrapper-bin` 0.5.0](https://pypi.org/project/rhvoice-wrapper-bin/0.5.0/)
+RHVoice 1.14.0 C API wheel (SHA-256
+`184de2fefd6794b48b490ac7a4b62d4b0fb999aff753193fb2d6e4b48faa60a1`)
+with only the English language and SLT voice selected from its matching data
+wheel (SHA-256
+`1ae0a9dcf3b08e75f271b1194a3364a54ac14029f1ea65b2bfc863f3f1247f46`).
+This records reproducible test evidence; it does not make those third-party
+Python packages an Omnivox dependency or replace the current upstream source
+build instructions. Review both package licences and the selected voice
+licence before using the same inputs.
 
 ## Explicit runtime configuration
 
