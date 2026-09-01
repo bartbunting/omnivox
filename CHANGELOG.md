@@ -15,6 +15,8 @@ Versioning for published releases.
 - Added checksum-locked Flite source preparation, portable GCC/Clang/MSVC
   builds, atomic companion staging, full upstream licensing, provenance,
   payload checksums, real synthesis tests, and helper-session stress coverage.
+- Added native Flite word-start markers and word-boundary resolution for
+  caller-supplied synchronization anchors.
 - Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
   female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
   volume, bounded PCM, and cooperative cancellation handling. RuLex is not

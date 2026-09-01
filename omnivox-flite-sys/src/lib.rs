@@ -9,7 +9,15 @@ pub const FLITE_VERSION: &str = "2.2";
 pub const FLITE_COMMIT: &str = "e9e2e37c329dbe98bfeb27a1828ef9a71fa84f88";
 
 pub type FliteVoice = c_void;
-pub type FliteWave = c_void;
+pub type FliteSynthesis = c_void;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[repr(C)]
+pub struct FliteWordMarker {
+    pub frame_offset: c_int,
+    pub text_start: c_int,
+    pub text_length: c_int,
+}
 
 unsafe extern "C" {
     pub fn omnivox_flite_initialize() -> c_int;
@@ -22,12 +30,18 @@ unsafe extern "C" {
         text: *const c_char,
         duration_stretch: c_float,
         f0_shift: c_float,
-    ) -> *mut FliteWave;
-    pub fn omnivox_flite_wave_sample_rate(wave: *const FliteWave) -> c_int;
-    pub fn omnivox_flite_wave_sample_count(wave: *const FliteWave) -> c_int;
-    pub fn omnivox_flite_wave_channel_count(wave: *const FliteWave) -> c_int;
-    pub fn omnivox_flite_wave_samples(wave: *const FliteWave) -> *const c_short;
-    pub fn omnivox_flite_delete_wave(wave: *mut FliteWave);
+    ) -> *mut FliteSynthesis;
+    pub fn omnivox_flite_synthesis_sample_rate(synthesis: *mut FliteSynthesis) -> c_int;
+    pub fn omnivox_flite_synthesis_sample_count(synthesis: *mut FliteSynthesis) -> c_int;
+    pub fn omnivox_flite_synthesis_channel_count(synthesis: *mut FliteSynthesis) -> c_int;
+    pub fn omnivox_flite_synthesis_samples(synthesis: *mut FliteSynthesis) -> *const c_short;
+    pub fn omnivox_flite_synthesis_word_markers(
+        synthesis: *mut FliteSynthesis,
+        text: *const c_char,
+        markers: *mut FliteWordMarker,
+        capacity: c_int,
+    ) -> c_int;
+    pub fn omnivox_flite_delete_synthesis(synthesis: *mut FliteSynthesis);
 }
 
 #[cfg(test)]
@@ -49,13 +63,42 @@ mod tests {
             );
 
             let text = CString::new("Flite is ready.").unwrap();
-            let wave = omnivox_flite_synthesize(voice, text.as_ptr(), 1.0, 1.0);
-            assert!(!wave.is_null());
-            assert_eq!(omnivox_flite_wave_sample_rate(wave), 16_000);
-            assert_eq!(omnivox_flite_wave_channel_count(wave), 1);
-            assert!(omnivox_flite_wave_sample_count(wave) > 1_000);
-            assert!(!omnivox_flite_wave_samples(wave).is_null());
-            omnivox_flite_delete_wave(wave);
+            let synthesis = omnivox_flite_synthesize(voice, text.as_ptr(), 1.0, 1.0);
+            assert!(!synthesis.is_null());
+            assert_eq!(omnivox_flite_synthesis_sample_rate(synthesis), 16_000);
+            assert_eq!(omnivox_flite_synthesis_channel_count(synthesis), 1);
+            assert!(omnivox_flite_synthesis_sample_count(synthesis) > 1_000);
+            assert!(!omnivox_flite_synthesis_samples(synthesis).is_null());
+
+            let mut markers = [FliteWordMarker::default(); 8];
+            let marker_count = omnivox_flite_synthesis_word_markers(
+                synthesis,
+                text.as_ptr(),
+                markers.as_mut_ptr(),
+                markers.len() as c_int,
+            );
+            assert_eq!(marker_count, 3);
+            assert_eq!(markers[0].text_start, 0);
+            assert_eq!(markers[0].text_length, 5);
+            assert_eq!(markers[1].text_start, 6);
+            assert_eq!(markers[1].text_length, 2);
+            assert_eq!(markers[2].text_start, 9);
+            assert_eq!(markers[2].text_length, 5);
+            assert!(markers[..marker_count as usize]
+                .windows(2)
+                .all(|pair| pair[0].frame_offset <= pair[1].frame_offset));
+
+            let mut undersized = [FliteWordMarker::default(); 2];
+            assert_eq!(
+                omnivox_flite_synthesis_word_markers(
+                    synthesis,
+                    text.as_ptr(),
+                    undersized.as_mut_ptr(),
+                    undersized.len() as c_int,
+                ),
+                -1
+            );
+            omnivox_flite_delete_synthesis(synthesis);
         }
     }
 }

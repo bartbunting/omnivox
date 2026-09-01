@@ -110,8 +110,9 @@ in the linked protocol specifications; future work belongs in
   and accepts optional local English Clustergen `.flitevox` files. Native
   release runners on Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows
   x64/ARM64 each verify relocation, ACSS, 25 real SLT syntheses, cancellation,
-  and clean shutdown. Flite has an ASCII input guarantee and no synchronization
-  markers; eSpeak remains the Unicode fallback.
+  and clean shutdown. Flite has an ASCII input guarantee, native word-start
+  markers, and word-boundary requested-anchor resolution, but no sentence,
+  phoneme, or exact user-defined markers; eSpeak remains the Unicode fallback.
 - RuTTS uses checksum-locked v6.3.3 source and exposes its built-in male and
   female Russian voices without RuLex. Linux x64 local acceptance covers both
   voices, ACSS, bounded PCM, cancellation, relocation, and clean shutdown. The

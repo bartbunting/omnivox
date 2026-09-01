@@ -78,8 +78,10 @@ never accesses the network; an advanced direct build must point
 Select Flite initially with `--engine flite` or `OMNIVOX_ENGINE=flite`. The
 physical voice ID is `cmu_us_slt`. It is a compact US English fallback with an
 ASCII input guarantee. Flite provides rate, average-pitch, and volume control
-but no word, sentence, or phoneme markers. eSpeak NG remains the final
-Unicode-capable fallback.
+and native word-start markers derived from its synthesized token and segment
+relations. Requested synchronization anchors can therefore resolve to word
+boundaries. Flite does not provide sentence, phoneme, or exact user-defined
+markers. eSpeak NG remains the final Unicode-capable fallback.
 
 For a quick native acceptance check:
 

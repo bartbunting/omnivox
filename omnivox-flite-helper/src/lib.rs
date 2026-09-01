@@ -8,15 +8,16 @@ use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
-use omnivox_flite_sys::{FliteVoice, FliteWave};
+use omnivox_flite_sys::{FliteSynthesis, FliteVoice, FliteWordMarker};
 use omnivox_tts::contracts::{
-    buffered_post_synthesis_dimensions, AcssCapabilities, AudioOutputMode, Availability,
-    CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor, EngineHealth,
-    MarkerCapabilities, PhysicalVoiceId, TextRepertoire, VoiceDescriptor,
+    buffered_post_synthesis_dimensions, AcssCapabilities, AnchorSupport, AudioOutputMode,
+    Availability, CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor,
+    EngineHealth, MarkerCapabilities, PhysicalVoiceId, TextRepertoire, VoiceDescriptor,
 };
-use omnivox_tts::helper_protocol::MAX_HELPER_SYNTHESIS_BYTES;
+use omnivox_tts::helper_protocol::{MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES};
 use omnivox_tts::{
-    AudioBuffer, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
+    AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
+    TtsEngine, TtsError, VoiceInfo, VoiceQuality, STANDARD_SAMPLE_RATE,
 };
 
 const ENGINE_ID: &str = "flite";
@@ -192,7 +193,7 @@ impl TtsEngine for FliteTtsEngine {
         self.cancellation.store(false, Ordering::Release);
         self.speaking.store(true, Ordering::Release);
         let _speaking = SpeakingGuard(&self.speaking);
-        let wave = unsafe {
+        let synthesis = unsafe {
             omnivox_flite_sys::omnivox_flite_synthesize(
                 voice.pointer,
                 text.as_ptr(),
@@ -200,12 +201,12 @@ impl TtsEngine for FliteTtsEngine {
                 request.settings.pitch.clamp(0.5, 2.0),
             )
         };
-        if wave.is_null() {
+        if synthesis.is_null() {
             return Err(TtsError::SynthesisFailed(
-                "Flite did not return a waveform".to_owned(),
+                "Flite did not return a synthesis result".to_owned(),
             ));
         }
-        let wave = WaveGuard(wave);
+        let synthesis = SynthesisGuard(synthesis);
         if self.cancellation.load(Ordering::Acquire) {
             return Err(TtsError::SynthesisFailed(
                 "Flite synthesis was cancelled".to_owned(),
@@ -213,27 +214,27 @@ impl TtsEngine for FliteTtsEngine {
         }
 
         let sample_rate = positive_u32(
-            unsafe { omnivox_flite_sys::omnivox_flite_wave_sample_rate(wave.0) },
+            unsafe { omnivox_flite_sys::omnivox_flite_synthesis_sample_rate(synthesis.0) },
             "sample rate",
         )?;
         let frame_count = positive_usize(
-            unsafe { omnivox_flite_sys::omnivox_flite_wave_sample_count(wave.0) },
+            unsafe { omnivox_flite_sys::omnivox_flite_synthesis_sample_count(synthesis.0) },
             "sample count",
         )?;
-        let channels =
-            u16::try_from(unsafe { omnivox_flite_sys::omnivox_flite_wave_channel_count(wave.0) })
-                .ok()
-                .filter(|channels| matches!(channels, 1 | 2))
-                .ok_or_else(|| {
-                    TtsError::SynthesisFailed("Flite returned invalid channels".to_owned())
-                })?;
+        let channels = u16::try_from(unsafe {
+            omnivox_flite_sys::omnivox_flite_synthesis_channel_count(synthesis.0)
+        })
+        .ok()
+        .filter(|channels| matches!(channels, 1 | 2))
+        .ok_or_else(|| TtsError::SynthesisFailed("Flite returned invalid channels".to_owned()))?;
         let sample_count = frame_count
             .checked_mul(usize::from(channels))
             .filter(|count| *count <= MAX_NATIVE_SAMPLES)
             .ok_or_else(|| {
                 TtsError::SynthesisFailed("Flite PCM exceeds the helper limit".to_owned())
             })?;
-        let samples_pointer = unsafe { omnivox_flite_sys::omnivox_flite_wave_samples(wave.0) };
+        let samples_pointer =
+            unsafe { omnivox_flite_sys::omnivox_flite_synthesis_samples(synthesis.0) };
         if samples_pointer.is_null() {
             return Err(TtsError::SynthesisFailed(
                 "Flite returned null PCM".to_owned(),
@@ -249,7 +250,15 @@ impl TtsEngine for FliteTtsEngine {
             .map_err(|error| {
                 TtsError::SynthesisFailed(format!("could not canonicalize Flite PCM: {error}"))
             })?;
-        let mut result = SynthesisResult::audio(ENGINE_ID, actual_voice, audio);
+        let markers = native_word_markers(
+            synthesis.0,
+            &text,
+            &request.text,
+            sample_rate,
+            frame_count as u64,
+            audio.frame_count() as u64,
+        )?;
+        let mut result = SynthesisResult::new(ENGINE_ID, actual_voice, audio, markers);
         result.degraded_acss = request
             .normalized_acss
             .clone()
@@ -294,12 +303,12 @@ impl Drop for SpeakingGuard<'_> {
     }
 }
 
-struct WaveGuard(*mut FliteWave);
+struct SynthesisGuard(*mut FliteSynthesis);
 
-impl Drop for WaveGuard {
+impl Drop for SynthesisGuard {
     fn drop(&mut self) {
         if !self.0.is_null() {
-            unsafe { omnivox_flite_sys::omnivox_flite_delete_wave(self.0) };
+            unsafe { omnivox_flite_sys::omnivox_flite_delete_synthesis(self.0) };
             self.0 = ptr::null_mut();
         }
     }
@@ -316,7 +325,11 @@ fn capabilities() -> EngineCapabilities {
         audio_output: AudioOutputMode::BufferedPcm,
         cancellation: CancellationSupport::PlaybackOnly,
         concurrency: ConcurrencyModel::Serialized,
-        markers: MarkerCapabilities::default(),
+        markers: MarkerCapabilities {
+            word: true,
+            requested_anchors: AnchorSupport::WordBoundary,
+            ..MarkerCapabilities::default()
+        },
         language_switching: false,
         text_repertoire: TextRepertoire::Unknown,
         post_synthesis_dimensions: buffered_post_synthesis_dimensions(),
@@ -438,10 +451,85 @@ fn positive_usize(value: i32, name: &str) -> Result<usize, TtsError> {
         .ok_or_else(|| TtsError::SynthesisFailed(format!("Flite returned invalid {name}")))
 }
 
+fn native_word_markers(
+    synthesis: *mut FliteSynthesis,
+    native_text: &CString,
+    request_text: &str,
+    sample_rate: u32,
+    native_frame_count: u64,
+    canonical_frame_count: u64,
+) -> Result<Vec<SynthesisMarker>, TtsError> {
+    let mut native_markers = vec![FliteWordMarker::default(); MAX_HELPER_MARKERS];
+    let count = unsafe {
+        omnivox_flite_sys::omnivox_flite_synthesis_word_markers(
+            synthesis,
+            native_text.as_ptr(),
+            native_markers.as_mut_ptr(),
+            MAX_HELPER_MARKERS as i32,
+        )
+    };
+    let count = usize::try_from(count).map_err(|_| {
+        TtsError::SynthesisFailed(format!(
+            "Flite returned more than {MAX_HELPER_MARKERS} word markers"
+        ))
+    })?;
+    native_markers.truncate(count);
+
+    let mut markers = Vec::with_capacity(count);
+    for marker in native_markers {
+        let frame_offset = u64::try_from(marker.frame_offset).map_err(|_| {
+            TtsError::SynthesisFailed("Flite returned a negative word frame".to_owned())
+        })?;
+        if frame_offset > native_frame_count {
+            return Err(TtsError::SynthesisFailed(
+                "Flite returned a word frame outside its PCM".to_owned(),
+            ));
+        }
+        let text_start = u32::try_from(marker.text_start).map_err(|_| {
+            TtsError::SynthesisFailed("Flite returned a negative word offset".to_owned())
+        })?;
+        let text_length = u32::try_from(marker.text_length).map_err(|_| {
+            TtsError::SynthesisFailed("Flite returned a negative word length".to_owned())
+        })?;
+        let start = text_start as usize;
+        let end = start
+            .checked_add(text_length as usize)
+            .filter(|end| *end <= request_text.len())
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(
+                    "Flite returned a word range outside its source text".to_owned(),
+                )
+            })?;
+        if !request_text.is_char_boundary(start) || !request_text.is_char_boundary(end) {
+            return Err(TtsError::SynthesisFailed(
+                "Flite returned a word range outside UTF-8 boundaries".to_owned(),
+            ));
+        }
+        markers.push(SynthesisMarker {
+            kind: SynthesisMarkerKind::Word,
+            frame_offset: scale_frame(frame_offset, sample_rate, canonical_frame_count),
+            text_start: Some(text_start),
+            text_length: Some(text_length),
+            value: None,
+        });
+    }
+    markers.sort_by_key(|marker| marker.frame_offset);
+    Ok(markers)
+}
+
+fn scale_frame(frame: u64, source_rate: u32, target_frame_count: u64) -> u64 {
+    frame
+        .saturating_mul(u64::from(STANDARD_SAMPLE_RATE))
+        .saturating_add(u64::from(source_rate) / 2)
+        .checked_div(u64::from(source_rate))
+        .unwrap_or_default()
+        .min(target_frame_count)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use omnivox_tts::TtsSettings;
+    use omnivox_tts::{AnchorAffinity, AnchorResolution, RequestedAnchor, TtsSettings};
 
     #[test]
     fn rate_mapping_preserves_normal_and_bounds_extremes() {
@@ -462,15 +550,21 @@ mod tests {
             Some(BUILT_IN_VOICE_ID)
         );
         assert_eq!(descriptor.voices.len(), 1);
+        assert!(descriptor.capabilities.markers.word);
+        assert_eq!(
+            descriptor.capabilities.markers.requested_anchors,
+            AnchorSupport::WordBoundary
+        );
 
+        let text = "The compact SLT voice is ready.";
         let request = SynthesisRequest::new(
-            "The compact SLT voice is ready.",
+            text,
             TtsSettings {
                 voice: BUILT_IN_VOICE_ID.to_owned(),
                 ..TtsSettings::default()
             },
         );
-        let result = engine.synthesize(&request).unwrap();
+        let mut result = engine.synthesize(&request).unwrap();
         assert_eq!(result.engine_id, ENGINE_ID);
         assert_eq!(
             result
@@ -480,5 +574,35 @@ mod tests {
             Some(BUILT_IN_VOICE_ID)
         );
         assert!(!result.audio.is_empty());
+        let ranges = result
+            .markers
+            .iter()
+            .map(|marker| {
+                let start = marker.text_start.unwrap() as usize;
+                let end = start + marker.text_length.unwrap() as usize;
+                (&text[start..end], marker.frame_offset)
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            ranges.iter().map(|(word, _)| *word).collect::<Vec<_>>(),
+            ["The", "compact", "SLT", "voice", "is", "ready"]
+        );
+        assert!(ranges.windows(2).all(|pair| pair[0].1 <= pair[1].1));
+        assert!(ranges
+            .iter()
+            .all(|(_, frame)| *frame <= result.audio.frame_count() as u64));
+
+        let anchored_request = request
+            .with_anchors(vec![RequestedAnchor::new(
+                "compact",
+                4,
+                AnchorAffinity::Before,
+            )])
+            .unwrap();
+        result.resolve_anchors(&anchored_request, AnchorSupport::WordBoundary);
+        assert_eq!(result.anchors.len(), 1);
+        assert_eq!(result.anchors[0].id, "compact");
+        assert_eq!(result.anchors[0].resolution, AnchorResolution::WordBoundary);
+        assert_eq!(result.anchors[0].frame_offset, Some(ranges[1].1));
     }
 }
