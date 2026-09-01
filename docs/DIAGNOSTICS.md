@@ -130,21 +130,32 @@ its dedicated server and refuses to act unless it resolves exactly one new
 helper with the requested executable name beneath that server. It kills only
 that PID, verifies the explicitly configured fallback, requests an engine
 recovery probe, and requires a later dispatch to return to the recovered
-engine. For the staged Windows Flite runtime:
+engine. Dispatch mode first submits a bounded long request, kills the resolved
+helper while that dispatch is outstanding, hard-stops it, and verifies its
+exactly-once cancellation before a separate fallback probe. For the staged
+Windows Flite runtime:
 
 ```sh
 python3 tools/stress_server.py ../emacsvox/servers/omnivox \
   --engine flite --expected-engine-id flite --iterations 5 \
   --fault-helper-process omnivox-flite-helper.exe \
-  --fault-engine-id flite --fallback-engine-id espeak
+  --fault-engine-id flite --fallback-engine-id espeak \
+  --fault-mode dispatch --fault-count 3
 ```
+
+Use `--fault-mode idle` for the original kill-before-dispatch behavior.
+Repeated cycles re-resolve the current helper; `--fault-count` is bounded from
+1 through 100. A dispatch-mode `--fault-delay-ms` is optional and capped at
+five seconds.
 
 Schema-v2 stress reports preserve completed dispatches' physical voices. Use
 `--voice-id ID` with `--expected-engine-id ENGINE` for strict voice testing,
 `--preferred-engine-id ENGINE` for registered-only Windows helpers, and
 `--text-profile rutts-ru` when exercising either RuTTS voice. A fault probe
 records the fallback voice separately, then requires the recovered helper to
-return to the requested exact voice.
+return to the requested exact voice. Dispatch-mode reports also preserve the
+cancelled fault dispatch's timing, marker count, and physical voice when it had
+already reached the mixer.
 
 For a long server run, add `--resource-sample-every N`. From a WSL launcher,
 also use `--resource-process-name omnivox.exe` so the tool resolves one new

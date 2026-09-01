@@ -329,17 +329,24 @@ The optional helper fault probe takes an exact process name, snapshots the
 process table before starting its dedicated server, and refuses ambiguous,
 pre-existing, or unrelated targets. It kills only the one validated child PID,
 then requires the named fallback, requests an engine recovery probe, and
-requires a later dispatch to return to the recovered engine:
+requires a later dispatch to return to the recovered engine. Dispatch mode
+submits a bounded long request before the kill, hard-stops that request, and
+checks its exactly-once cancellation before separately proving fallback:
 
 ```sh
 python3 tools/stress_server.py ../emacsvox/servers/omnivox \
   --engine flite --expected-engine-id flite --iterations 5 \
   --fault-helper-process omnivox-flite-helper.exe \
-  --fault-engine-id flite --fallback-engine-id espeak
+  --fault-engine-id flite --fallback-engine-id espeak \
+  --fault-mode dispatch --fault-count 3
 ```
 
 On POSIX, use the helper executable's exact basename without `.exe`. Fault
-injection is never enabled by default.
+injection is never enabled by default. `--fault-mode idle` retains the original
+kill-before-dispatch probe. `--fault-count` bounds repeated crash cycles from 1
+through 100; each cycle re-resolves one current child before acting. Optional
+`--fault-delay-ms` applies only after dispatch submission and is capped at five
+seconds.
 
 The stress harness accepts the benchmark tool's strict routing controls. Use
 `--preferred-engine-id` for registered-only DECtalk or Eloquence, and combine

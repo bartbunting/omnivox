@@ -210,6 +210,10 @@ only one uniquely resolved child of its dedicated server, then verifies the
 configured fallback and explicit helper recovery probe. Schema-v2 reports
 retain physical voices, and strict exact-voice plus Russian-profile controls
 cover both RuTTS voices without weakening fallback validation.
+Dispatch-time fault mode can repeat a bounded crash cycle: it submits work,
+terminates the pre-resolved current helper, cancels the outstanding dispatch,
+and independently verifies fallback and exact-voice recovery. Idle fault mode
+remains available for compatibility.
 
 `tools/stress_helper.py` can now place repeated synthesis, health checks, and
 in-flight cancellations in one persistent helper session while recording

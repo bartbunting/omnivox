@@ -44,6 +44,10 @@ Versioning for published releases.
 - Added opt-in server process-tree sampling to stress reports, including
   aggregate and per-executable steady-state resource summaries for the server
   and every helper descendant without storing executable paths.
+- Added bounded repeated dispatch-time helper fault injection. Each cycle
+  resolves the current dedicated child before acting, verifies exactly-once
+  cancellation of outstanding work, proves the configured fallback, and then
+  requires explicit recovery to the requested physical voice.
 - Added an isolated, source-built RuTTS v6.3.3 companion with built-in male and
   female Russian voices, Unicode-to-KOI8-R conversion, rate, pitch, intonation,
   volume, bounded PCM, and cooperative cancellation handling. RuLex is not

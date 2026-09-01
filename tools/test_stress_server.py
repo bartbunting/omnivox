@@ -6,6 +6,7 @@ from __future__ import annotations
 import base64
 import json
 import queue
+from types import SimpleNamespace
 import time
 import unittest
 
@@ -13,7 +14,13 @@ import benchmark_server
 import stress_server
 
 
-def marker(identifier: int, sequence: int, event_type: str) -> str:
+def marker(
+    identifier: int,
+    sequence: int,
+    event_type: str,
+    engine_id: str = "fake",
+    voice_id: str = "voice",
+) -> str:
     record = {
         "protocol_version": 2,
         "dispatch_id": identifier,
@@ -21,8 +28,8 @@ def marker(identifier: int, sequence: int, event_type: str) -> str:
         "type": event_type,
     }
     if event_type == "utterance_started":
-        record["engine_id"] = "fake"
-        record["actual_voice"] = {"engine_id": "fake", "voice_id": "voice"}
+        record["engine_id"] = engine_id
+        record["actual_voice"] = {"engine_id": engine_id, "voice_id": voice_id}
     return benchmark_server.MARKER_PREFIX + base64.b64encode(
         json.dumps(record).encode()
     ).decode()
@@ -41,6 +48,72 @@ class FakeSession:
 
     def failure_context(self) -> str:
         return "fake session"
+
+
+class RecoverySession(FakeSession):
+    def __init__(self) -> None:
+        super().__init__([])
+        self.process = SimpleNamespace(pid=123)
+        self.dispatch_count = 0
+
+    def send_timeline(self, timeline: dict[str, object]) -> int:
+        self.dispatch_count += 1
+        identifier = int(timeline["dispatch_id"])
+        if self.dispatch_count == 1:
+            self.output.put(
+                (
+                    time.perf_counter_ns(),
+                    f"{benchmark_server.TRACKED_PREFIX}{identifier} cancelled",
+                )
+            )
+            return time.perf_counter_ns()
+        if self.dispatch_count == 2:
+            engine_id, voice_id = "espeak", "en-us"
+        else:
+            engine_id, voice_id = "flite", "cmu_us_slt"
+        for line in (
+            marker(identifier, 1, "semantic_event_reached"),
+            marker(identifier, 2, "utterance_started", engine_id, voice_id),
+            f"{benchmark_server.TRACKED_PREFIX}{identifier} completed",
+        ):
+            self.output.put((time.perf_counter_ns(), line))
+        return time.perf_counter_ns()
+
+    def send_line(self, line: str) -> int:
+        if line != "s":
+            raise AssertionError("wrong server command")
+        return time.perf_counter_ns()
+
+    def request_control(self, request: dict[str, object]):
+        return (
+            {
+                "protocol_version": 1,
+                "request_id": request["request_id"],
+                "type": "engine_recovery_probe_requested",
+            },
+            time.perf_counter_ns(),
+        )
+
+
+class FakeInjector:
+    provider = "fake"
+
+    def __init__(self) -> None:
+        self.kills = 0
+
+    def resolve(self, server_process_id: int) -> int:
+        if server_process_id != 123:
+            raise AssertionError("wrong server process")
+        return 900 + self.kills + 1
+
+    def terminate(self, target: int) -> int:
+        self.kills += 1
+        if target != 900 + self.kills:
+            raise AssertionError("wrong helper process")
+        return target
+
+    def kill(self, server_process_id: int) -> int:
+        return self.terminate(self.resolve(server_process_id))
 
 
 class StressServerTests(unittest.TestCase):
@@ -134,6 +207,36 @@ class StressServerTests(unittest.TestCase):
     def test_rutts_stress_profile_is_lossless_koi8_r(self) -> None:
         for text in stress_server.STRESS_TEXTS["rutts-ru"].values():
             text.format(number=1).encode("koi8_r")
+
+    def test_dispatch_fault_requires_fallback_then_exact_recovery(self) -> None:
+        session = RecoverySession()
+        injector = FakeInjector()
+        result = stress_server.run_helper_recovery(
+            session,
+            benchmark_server.IdentitySequence(),
+            injector,
+            "flite",
+            "espeak",
+            "cmu_us_slt",
+            "english",
+            0,
+            99,
+            "dispatch",
+            0,
+        )
+        self.assertEqual(injector.kills, 1)
+        self.assertEqual(result["fault_mode"], "dispatch")
+        self.assertEqual(result["fault_dispatch"]["marker_count"], 0)
+        self.assertIsNone(result["fault_dispatch"]["actual_voice"])
+        self.assertEqual(result["fallback_engine_id"], "espeak")
+        self.assertEqual(
+            result["fallback_actual_voice"],
+            {"engine_id": "espeak", "voice_id": "en-us"},
+        )
+        self.assertEqual(
+            result["recovered_actual_voice"],
+            {"engine_id": "flite", "voice_id": "cmu_us_slt"},
+        )
 
     def test_realized_voices_are_unique_and_sorted(self) -> None:
         histories = {

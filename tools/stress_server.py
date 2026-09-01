@@ -40,6 +40,7 @@ STRESS_TEXTS = {
         "hard_stop_segment": "Hard stop segment {number} must never survive cancellation.",
         "hard_stop_recovery": "speech recovered after hard stop",
         "helper_fallback": "helper failure should use fallback",
+        "helper_inflight": "Helper fault segment {number} keeps native synthesis busy until failure.",
         "helper_recovery": "helper restarted after recovery probe",
     },
     "rutts-ru": {
@@ -51,6 +52,7 @@ STRESS_TEXTS = {
         "hard_stop_segment": "Фрагмент остановки {number} не должен пережить отмену.",
         "hard_stop_recovery": "речь восстановилась после остановки",
         "helper_fallback": "после сбоя помощника нужен резервный голос",
+        "helper_inflight": "Фрагмент сбоя {number} удерживает синтез до отказа помощника.",
         "helper_recovery": "помощник перезапущен после проверки",
     },
 }
@@ -546,6 +548,7 @@ class HelperFaultInjector:
             shutil.which("powershell") if platform.system() == "Windows" else None
         )
         self.provider = "windows" if self.powershell and helper_name.lower().endswith(".exe") else "proc"
+        self.taskkill = shutil.which("taskkill.exe") if self.provider == "windows" else None
         self.before = self.snapshot()
 
     def snapshot(self) -> dict[int, dict[str, Any]]:
@@ -556,7 +559,7 @@ class HelperFaultInjector:
             raise RuntimeError("helper fault injection requires Windows process data or /proc")
         return proc_process_snapshot()
 
-    def kill(self, server_process_id: int) -> int:
+    def resolve(self, server_process_id: int) -> int:
         after = self.snapshot()
         if self.provider == "windows":
             server_ids = {
@@ -569,19 +572,16 @@ class HelperFaultInjector:
             server_ids = {server_process_id}
         if not server_ids:
             raise RuntimeError("could not identify the dedicated Omnivox server process")
-        target = select_fault_target(
+        return select_fault_target(
             self.before, after, self.helper_name, server_ids
         )
+
+    def terminate(self, target: int) -> int:
         if self.provider == "windows":
-            assert self.powershell is not None
+            if self.taskkill is None:
+                raise RuntimeError("Windows helper fault injection requires taskkill.exe")
             subprocess.run(
-                [
-                    self.powershell,
-                    "-NoProfile",
-                    "-NonInteractive",
-                    "-Command",
-                    f"Stop-Process -Id {target} -Force -ErrorAction Stop",
-                ],
+                [self.taskkill, "/PID", str(target), "/F"],
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -596,6 +596,9 @@ class HelperFaultInjector:
             raise RuntimeError(f"helper process {target} remained alive after fault injection")
         return target
 
+    def kill(self, server_process_id: int) -> int:
+        return self.terminate(self.resolve(server_process_id))
+
 
 def run_helper_recovery(
     session: benchmark_server.ServerSession,
@@ -607,18 +610,60 @@ def run_helper_recovery(
     text_profile: str,
     quiet_seconds: float,
     control_request_id: int,
+    fault_mode: str,
+    fault_delay_ms: float,
 ) -> dict[str, Any]:
     logical_voice_id = (
         benchmark_server.BENCHMARK_LOGICAL_VOICE_ID if recovered_voice_id else None
     )
-    killed_pid = injector.kill(session.process.pid)
-    failed_id, failed_sent = send_timeline(
-        session,
-        identities,
-        profile_text(text_profile, "helper_fallback"),
-        "ordered",
-        logical_voice_id=logical_voice_id,
-    )
+    fault_dispatch = None
+    if fault_mode == "dispatch":
+        target = injector.resolve(session.process.pid)
+        failure_text = " ".join(
+            profile_text(text_profile, "helper_inflight", number=number)
+            for number in range(1, 129)
+        )
+        fault_id, fault_sent = send_timeline(
+            session,
+            identities,
+            failure_text,
+            "ordered",
+            logical_voice_id=logical_voice_id,
+        )
+        if fault_delay_ms:
+            time.sleep(fault_delay_ms / 1000.0)
+        killed_pid = injector.terminate(target)
+        stop_sent = session.send_line("s")
+        fault_history = collect_histories(session, {fault_id}, quiet_seconds)
+        validate_histories(fault_history, {fault_id: "cancelled"}, None)
+        fault_dispatch = {
+            "dispatch_to_stop_ms": benchmark_server.milliseconds(
+                stop_sent, fault_sent
+            ),
+            "stop_to_terminal_ms": benchmark_server.milliseconds(
+                fault_history[fault_id]["terminal_at_monotonic_ns"], stop_sent
+            ),
+            "marker_count": len(fault_history[fault_id]["marker_sequences"]),
+            "actual_voice": fault_history[fault_id]["actual_voice"],
+        }
+        failed_id, failed_sent = send_timeline(
+            session,
+            identities,
+            profile_text(text_profile, "helper_fallback"),
+            "ordered",
+            logical_voice_id=logical_voice_id,
+        )
+    elif fault_mode == "idle":
+        killed_pid = injector.kill(session.process.pid)
+        failed_id, failed_sent = send_timeline(
+            session,
+            identities,
+            profile_text(text_profile, "helper_fallback"),
+            "ordered",
+            logical_voice_id=logical_voice_id,
+        )
+    else:
+        raise ValueError(f"unknown helper fault mode: {fault_mode}")
     failed_history = collect_histories(session, {failed_id}, quiet_seconds)
     validate_histories(failed_history, {failed_id: "completed"}, fallback_engine_id)
     realized_fallback = failed_history[failed_id]["engine_id"]
@@ -651,6 +696,9 @@ def run_helper_recovery(
         recovered_voice_id,
     )
     return {
+        "fault_mode": fault_mode,
+        "fault_delay_ms": fault_delay_ms,
+        "fault_dispatch": fault_dispatch,
         "provider": injector.provider,
         "killed_process_id": killed_pid,
         "fallback_engine_id": realized_fallback,
@@ -702,7 +750,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--fault-helper-process",
-        help="exact child executable name to kill once, such as omnivox-flite-helper.exe",
+        help="exact child executable name to kill, such as omnivox-flite-helper.exe",
     )
     parser.add_argument(
         "--fault-engine-id",
@@ -711,6 +759,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--fallback-engine-id",
         help="required realized fallback after the optional helper fault",
+    )
+    parser.add_argument(
+        "--fault-mode",
+        choices=("idle", "dispatch"),
+        default="idle",
+        help="kill before a probe or while a long dispatch is outstanding",
+    )
+    parser.add_argument(
+        "--fault-count",
+        type=int,
+        default=1,
+        help="number of bounded fault/fallback/recovery cycles (default: 1)",
+    )
+    parser.add_argument(
+        "--fault-delay-ms",
+        type=float,
+        default=0.0,
+        help="delay after dispatch before killing its helper (default: 0)",
     )
     parser.add_argument("--provenance")
     parser.add_argument("--json-output")
@@ -739,6 +805,14 @@ def main() -> None:
         )
     if args.fault_helper_process and not args.fallback_engine_id:
         raise SystemExit("--fallback-engine-id is required for helper fault recovery")
+    if not 1 <= args.fault_count <= 100:
+        raise SystemExit("--fault-count must be from 1 through 100")
+    if args.fault_count != 1 and not args.fault_helper_process:
+        raise SystemExit("--fault-count requires --fault-helper-process")
+    if not 0 <= args.fault_delay_ms <= 5000:
+        raise SystemExit("--fault-delay-ms must be from 0 through 5000")
+    if args.fault_delay_ms and args.fault_mode != "dispatch":
+        raise SystemExit("--fault-delay-ms requires --fault-mode dispatch")
     if args.voice_id and not args.expected_engine_id:
         raise SystemExit("--voice-id requires --expected-engine-id")
     if (
@@ -805,6 +879,9 @@ def main() -> None:
             "timeout_seconds": args.timeout,
             "resource_sample_every": args.resource_sample_every,
             "resource_process_name": args.resource_process_name,
+            "fault_mode": args.fault_mode,
+            "fault_count": args.fault_count if injector is not None else 0,
+            "fault_delay_ms": args.fault_delay_ms,
         },
         "provenance": (
             benchmark_server.read_provenance(args.provenance)
@@ -814,6 +891,7 @@ def main() -> None:
         "replacement_iterations": [],
         "hard_stops": [],
         "helper_recovery": None,
+        "helper_recoveries": [],
         "resources": None,
     }
     progress_stream = sys.stderr if args.json_output == "-" else sys.stdout
@@ -890,22 +968,29 @@ def main() -> None:
                 flush=True,
             )
         if injector is not None:
-            report["helper_recovery"] = run_helper_recovery(
-                session,
-                identities,
-                injector,
-                args.fault_engine_id,
-                args.fallback_engine_id,
-                args.voice_id,
-                args.text_profile,
-                args.quiet_seconds,
-                30_000_003,
-            )
-            print(
-                "completed validated helper fault and recovery",
-                file=progress_stream,
-                flush=True,
-            )
+            for fault_index in range(1, args.fault_count + 1):
+                recovery = run_helper_recovery(
+                    session,
+                    identities,
+                    injector,
+                    args.fault_engine_id,
+                    args.fallback_engine_id,
+                    args.voice_id,
+                    args.text_profile,
+                    args.quiet_seconds,
+                    30_000_002 + fault_index,
+                    args.fault_mode,
+                    args.fault_delay_ms,
+                )
+                recovery["fault_index"] = fault_index
+                report["helper_recoveries"].append(recovery)
+                report["helper_recovery"] = recovery
+                print(
+                    f"completed validated helper fault and recovery "
+                    f"{fault_index}/{args.fault_count}",
+                    file=progress_stream,
+                    flush=True,
+                )
         capture_resources(args.iterations, "before_shutdown")
     finally:
         session.close()
