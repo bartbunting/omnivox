@@ -5,29 +5,23 @@ use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::espeak::EspeakTtsEngine;
-#[cfg(any(target_os = "windows", feature = "piper"))]
 use omnivox_tts::helper_engine::{HelperEngineConfig, HelperTtsEngine};
 #[cfg(target_os = "macos")]
 use omnivox_tts::macos::MacOsTtsEngine;
 #[cfg(target_os = "windows")]
 use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::TtsEngine;
-#[cfg(any(target_os = "windows", feature = "piper", test))]
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
-#[cfg(any(target_os = "windows", feature = "piper", test))]
 use std::time::Duration;
 use tracing::{info, warn};
 
 use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
 
-#[cfg(any(target_os = "windows", feature = "piper", test))]
 const ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_millis(500);
-#[cfg(any(target_os = "windows", feature = "piper", test))]
 const NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 
-#[cfg(any(target_os = "windows", feature = "piper", test))]
 fn helper_synthesis_idle_timeout(engine_id: &str) -> Duration {
     if engine_id == "eloquence" {
         ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT
@@ -106,9 +100,10 @@ fn create_non_windows_engines(
         &mut registry,
         &requested,
         piper_model,
-        generation,
-        isolation_budget,
+        Arc::clone(&generation),
+        Arc::clone(&isolation_budget),
     )?;
+    register_companion_helpers(&mut registry, generation, isolation_budget)?;
 
     let preferred = engine_preference_order(&requested, native_registry_engine_id())
         .iter()
@@ -184,6 +179,7 @@ fn create_windows_engines(
         Arc::clone(&generation),
         Arc::clone(&isolation_budget),
     )?;
+    register_companion_helpers(&mut registry, generation, isolation_budget)?;
 
     let preferred = engine_preference_order(&forced, Some("winrt"))
         .iter()
@@ -213,7 +209,6 @@ fn helper_config(
     )
 }
 
-#[cfg(any(target_os = "windows", feature = "piper"))]
 fn helper_config_with_candidates(
     engine_id: &str,
     environment_variable: &str,
@@ -236,7 +231,6 @@ fn helper_config_with_candidates(
     Some(config)
 }
 
-#[cfg(any(target_os = "windows", feature = "piper", test))]
 fn resolve_adjacent_helper(executable: &Path, candidates: &[PathBuf]) -> Option<PathBuf> {
     let executable_dir = executable.parent()?;
     candidates
@@ -245,7 +239,6 @@ fn resolve_adjacent_helper(executable: &Path, candidates: &[PathBuf]) -> Option<
         .find(|candidate| candidate.is_file())
 }
 
-#[cfg(any(target_os = "windows", feature = "piper"))]
 fn register_optional_helper(
     registry: &mut EngineRegistry,
     config: Option<HelperEngineConfig>,
@@ -281,6 +274,41 @@ fn register_optional_helper(
     Ok(())
 }
 
+fn companion_helper_config(
+    engine_id: &str,
+    environment_variable: &str,
+) -> Option<HelperEngineConfig> {
+    let candidates = companion_helper_candidates(engine_id);
+    helper_config_with_candidates(engine_id, environment_variable, &candidates)
+}
+
+fn companion_helper_candidates(engine_id: &str) -> [PathBuf; 2] {
+    let helper_filename = format!("omnivox-{engine_id}-helper{}", std::env::consts::EXE_SUFFIX);
+    [
+        PathBuf::from(engine_id).join(&helper_filename),
+        PathBuf::from(&helper_filename),
+    ]
+}
+
+fn register_companion_helpers(
+    registry: &mut EngineRegistry,
+    generation: Arc<AtomicU64>,
+    isolation_budget: Arc<IsolationBudget>,
+) -> Result<()> {
+    for (engine_id, environment_variable) in [
+        ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
+        ("flite", "OMNIVOX_FLITE_HELPER"),
+    ] {
+        register_optional_helper(
+            registry,
+            companion_helper_config(engine_id, environment_variable),
+            Arc::clone(&generation),
+            Arc::clone(&isolation_budget),
+        )?;
+    }
+    Ok(())
+}
+
 fn requested_engine(engine_name: &str) -> String {
     if engine_name.is_empty() {
         std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
@@ -293,10 +321,12 @@ fn engine_preference_order(
     requested: &str,
     native_engine_id: Option<&'static str>,
 ) -> Vec<&'static str> {
-    let mut order = Vec::with_capacity(3);
+    let mut order = Vec::with_capacity(5);
     match requested {
         "espeak" => order.push("espeak"),
         "piper" => order.push("piper"),
+        "rhvoice" => order.push("rhvoice"),
+        "flite" => order.push("flite"),
         _ => {
             if let Some(native) = native_engine_id {
                 order.push(native);
@@ -313,6 +343,12 @@ fn engine_preference_order(
     }
     if !order.contains(&"piper") {
         order.push("piper");
+    }
+    if !order.contains(&"rhvoice") {
+        order.push("rhvoice");
+    }
+    if !order.contains(&"flite") {
+        order.push("flite");
     }
     order
 }
@@ -374,8 +410,8 @@ fn register_configured_piper(
 /// Create a TTS engine by name, falling back through the platform default to espeak-ng.
 ///
 /// `engine_name` may be empty (use `OMNIVOX_ENGINE` env var or platform default),
-/// `"espeak"`, or `"piper"`.  `piper_model` is the path to a `.onnx` model file;
-/// if `None`, `OMNIVOX_PIPER_MODEL` is consulted.
+/// `"espeak"`, `"piper"`, `"rhvoice"`, or `"flite"`. `piper_model` is the
+/// path to a `.onnx` model file; if `None`, `OMNIVOX_PIPER_MODEL` is consulted.
 pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Arc<dyn TtsEngine>> {
     let forced = if engine_name.is_empty() {
         std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
@@ -405,7 +441,27 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
         );
     }
 
-    if forced != "espeak" && forced != "piper" {
+    if matches!(forced.as_str(), "rhvoice" | "flite") {
+        let (engine_id, environment_variable) = if forced == "rhvoice" {
+            ("rhvoice", "OMNIVOX_RHVOICE_HELPER")
+        } else {
+            ("flite", "OMNIVOX_FLITE_HELPER")
+        };
+        match companion_helper_config(engine_id, environment_variable)
+            .ok_or_else(|| anyhow::anyhow!("the {engine_id} helper was not found"))
+            .and_then(|config| HelperTtsEngine::new(config).map_err(anyhow::Error::from))
+        {
+            Ok(engine) => {
+                info!("Using {engine_id} TTS helper");
+                return Ok(Arc::new(engine));
+            }
+            Err(error) => {
+                warn!("{engine_id} TTS helper not available: {error}; falling back to espeak-ng")
+            }
+        }
+    }
+
+    if !matches!(forced.as_str(), "espeak" | "piper" | "rhvoice" | "flite") {
         #[cfg(target_os = "macos")]
         match MacOsTtsEngine::new() {
             Ok(engine) => {
@@ -443,7 +499,10 @@ fn isolate_server_engine(
     generation: Arc<AtomicU64>,
     isolation_budget: Arc<IsolationBudget>,
 ) -> Arc<dyn TtsEngine> {
-    if engine.descriptor().id != "piper" {
+    if !matches!(
+        engine.descriptor().id.as_str(),
+        "piper" | "rhvoice" | "flite"
+    ) {
         return engine;
     }
     Arc::new(IsolatedTtsEngine::new(engine, generation, isolation_budget))
@@ -512,7 +571,10 @@ pub fn apply_audio_target_env(state: &mut TtsState) {
 mod tests {
     #[cfg(target_os = "macos")]
     use super::create_engines;
-    use super::{engine_preference_order, helper_synthesis_idle_timeout, resolve_adjacent_helper};
+    use super::{
+        companion_helper_candidates, engine_preference_order, helper_synthesis_idle_timeout,
+        resolve_adjacent_helper,
+    };
     use std::path::PathBuf;
     #[cfg(target_os = "macos")]
     use std::sync::atomic::AtomicU64;
@@ -532,6 +594,14 @@ mod tests {
         );
         assert_eq!(
             helper_synthesis_idle_timeout("piper"),
+            Duration::from_secs(60)
+        );
+        assert_eq!(
+            helper_synthesis_idle_timeout("rhvoice"),
+            Duration::from_secs(60)
+        );
+        assert_eq!(
+            helper_synthesis_idle_timeout("flite"),
             Duration::from_secs(60)
         );
     }
@@ -569,11 +639,11 @@ mod tests {
     fn windows_defaults_to_winrt_with_espeak_fallback() {
         assert_eq!(
             engine_preference_order("", Some("winrt")),
-            ["winrt", "espeak", "piper"]
+            ["winrt", "espeak", "piper", "rhvoice", "flite"]
         );
         assert_eq!(
             engine_preference_order("native", Some("winrt")),
-            ["winrt", "espeak", "piper"]
+            ["winrt", "espeak", "piper", "rhvoice", "flite"]
         );
     }
 
@@ -581,11 +651,19 @@ mod tests {
     fn windows_honours_explicit_engine_preferences() {
         assert_eq!(
             engine_preference_order("espeak", Some("winrt")),
-            ["espeak", "winrt", "piper"]
+            ["espeak", "winrt", "piper", "rhvoice", "flite"]
         );
         assert_eq!(
             engine_preference_order("piper", Some("winrt")),
-            &["piper", "espeak", "winrt"]
+            &["piper", "espeak", "winrt", "rhvoice", "flite"]
+        );
+        assert_eq!(
+            engine_preference_order("rhvoice", Some("winrt")),
+            &["rhvoice", "espeak", "winrt", "piper", "flite"]
+        );
+        assert_eq!(
+            engine_preference_order("flite", Some("winrt")),
+            &["flite", "espeak", "winrt", "piper", "rhvoice"]
         );
     }
 
@@ -593,15 +671,15 @@ mod tests {
     fn macos_retains_native_and_espeak_for_each_preference() {
         assert_eq!(
             engine_preference_order("", Some("macos")),
-            ["macos", "espeak", "piper"]
+            ["macos", "espeak", "piper", "rhvoice", "flite"]
         );
         assert_eq!(
             engine_preference_order("espeak", Some("macos")),
-            ["espeak", "macos", "piper"]
+            ["espeak", "macos", "piper", "rhvoice", "flite"]
         );
         assert_eq!(
             engine_preference_order("piper", Some("macos")),
-            ["piper", "espeak", "macos"]
+            ["piper", "espeak", "macos", "rhvoice", "flite"]
         );
     }
 
@@ -617,7 +695,40 @@ mod tests {
 
     #[test]
     fn linux_retains_espeak_when_piper_is_preferred() {
-        assert_eq!(engine_preference_order("", None), ["espeak", "piper"]);
-        assert_eq!(engine_preference_order("piper", None), ["piper", "espeak"]);
+        assert_eq!(
+            engine_preference_order("", None),
+            ["espeak", "piper", "rhvoice", "flite"]
+        );
+        assert_eq!(
+            engine_preference_order("piper", None),
+            ["piper", "espeak", "rhvoice", "flite"]
+        );
+    }
+
+    #[test]
+    fn companion_directory_precedes_legacy_adjacent_helper() {
+        let root = std::env::temp_dir().join(format!(
+            "omnivox-rhvoice-helper-resolution-test-{}",
+            std::process::id()
+        ));
+        let companion = root.join(format!(
+            "rhvoice/omnivox-rhvoice-helper{}",
+            std::env::consts::EXE_SUFFIX
+        ));
+        let legacy = root.join(format!(
+            "omnivox-rhvoice-helper{}",
+            std::env::consts::EXE_SUFFIX
+        ));
+        std::fs::create_dir_all(companion.parent().unwrap()).unwrap();
+        std::fs::write(&companion, b"companion").unwrap();
+        std::fs::write(&legacy, b"legacy").unwrap();
+
+        let candidates = companion_helper_candidates("rhvoice");
+        assert_eq!(
+            resolve_adjacent_helper(&root.join("omnivox"), &candidates),
+            Some(companion)
+        );
+
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

@@ -168,7 +168,7 @@ pub fn print_help() {
     println!("    --check          Run diagnostic self-test (inspect printed statuses)");
     println!("    --list-voices    List available TTS voices");
     println!("    --list-voices-alist  List voices as Emacs-readable alist");
-    println!("    --engine NAME    Select TTS engine: native, espeak, piper");
+    println!("    --engine NAME    Select: native, espeak, piper, rhvoice, or flite");
     println!("    --voice ID       Set default voice (copy ID from --list-voices)");
     println!("    --rate FLOAT     Host rate 0.0-2.0 (0.5 normal; engines may clamp)");
     println!("    --pitch FLOAT    Pitch multiplier 0.5-2.0 (1.0 = normal)");
@@ -187,6 +187,8 @@ pub fn print_help() {
     println!(
         "    piper     Piper neural TTS (make build-piper; requires adjacent helper and model)"
     );
+    println!("    rhvoice   RHVoice (requires helper plus a user-installed native runtime)");
+    println!("    flite     Flite compact English companion (compiled-in SLT voice)");
     println!();
     println!("Without options, starts the speech-server protocol on stdin.");
     println!();
@@ -194,6 +196,8 @@ pub fn print_help() {
     println!("    OMNIVOX_ENGINE         Same as --engine");
     println!("    OMNIVOX_PIPER_MODEL    Piper model path; used by diagnostic actions too");
     println!("    OMNIVOX_PIPER_HELPER   Override path to omnivox-piper-helper");
+    println!("    OMNIVOX_RHVOICE_HELPER Override path to omnivox-rhvoice-helper");
+    println!("    OMNIVOX_FLITE_HELPER   Override path to omnivox-flite-helper");
     println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (process-wide routing)");
     println!("    ESPEAK_NG_DATA         Parent directory containing espeak-ng-data");
     println!("    OMNIVOX_LOG_SYNTHESIS_TEXT  Opt in to sensitive full-text diagnostics");
