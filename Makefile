@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
+.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite install-flite prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -8,11 +8,11 @@ OMNIVOX_INSTALL_BIN ?= $(HOME)/.cargo/bin
 all: build
 
 # Build release binary
-build: stage-rhvoice
+build: stage-rhvoice stage-flite
 	$(PYTHON) tools/build.py --release --package omnivox-cli --features piper
 
 # Build debug binary
-dev: stage-rhvoice-dev
+dev: stage-rhvoice-dev stage-flite-dev
 	$(PYTHON) tools/build.py --package omnivox-cli --features piper
 
 # Run tests
@@ -82,10 +82,11 @@ watch:
 # OMNIVOX_INSTALL_BIN when Cargo is configured with a different install root.
 install: build
 	cargo install --locked --path omnivox-cli --features piper
-	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses" "$(OMNIVOX_INSTALL_BIN)/rhvoice"
+	mkdir -p "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data" "$(OMNIVOX_INSTALL_BIN)/third-party-licenses" "$(OMNIVOX_INSTALL_BIN)/rhvoice" "$(OMNIVOX_INSTALL_BIN)/flite"
 	cp -R target/release/espeak-ng-data/. "$(OMNIVOX_INSTALL_BIN)/espeak-ng-data/"
 	cp -R target/release/third-party-licenses/. "$(OMNIVOX_INSTALL_BIN)/third-party-licenses/"
 	cp -R target/release/rhvoice/. "$(OMNIVOX_INSTALL_BIN)/rhvoice/"
+	cp -R target/release/flite/. "$(OMNIVOX_INSTALL_BIN)/flite/"
 	cp target/release/LICENSE target/release/LICENSING.md "$(OMNIVOX_INSTALL_BIN)/"
 
 # Build the portable RHVoice helper. The user supplies the separately licensed
@@ -104,6 +105,16 @@ install-rhvoice: install
 # portable companion build. The native build itself never accesses the network.
 prepare-flite:
 	$(PYTHON) tools/prepare_flite_inputs.py
+
+stage-flite:
+	$(PYTHON) tools/build_flite.py --release
+
+stage-flite-dev:
+	$(PYTHON) tools/build_flite.py
+
+build-flite: stage-flite
+
+install-flite: install
 
 # Build and stage the isolated Piper companion. Its preparation step downloads
 # checksum-locked native inputs on first use; repeated builds can run offline.
