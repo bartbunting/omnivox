@@ -668,12 +668,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "omnivox-helper-host"
+version = "1.5.1"
+dependencies = [
+ "omnivox-tts",
+ "thiserror",
+]
+
+[[package]]
 name = "omnivox-piper-helper"
 version = "1.5.1"
 dependencies = [
+ "omnivox-helper-host",
  "omnivox-piper-sys",
  "omnivox-tts",
- "thiserror",
 ]
 
 [[package]]

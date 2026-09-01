@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use omnivox_piper_helper::run_stdio;
+use omnivox_helper_host::run_stdio;
 use omnivox_tts::piper::PiperTtsEngine;
 use omnivox_tts::TtsEngine;
 

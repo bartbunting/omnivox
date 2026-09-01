@@ -9,9 +9,6 @@ license.workspace = true
 default = []
 piper = ["omnivox-tts/piper", "dep:omnivox-piper-sys"]
 
-[lib]
-name = "omnivox_piper_helper"
-
 [[bin]]
 name = "omnivox-piper-helper"
 path = "src/main.rs"
@@ -19,5 +16,5 @@ required-features = ["piper"]
 
 [dependencies]
 omnivox-tts = { path = "../omnivox-tts", default-features = false }
+omnivox-helper-host = { path = "../omnivox-helper-host" }
 omnivox-piper-sys = { path = "../omnivox-piper-sys", optional = true }
-thiserror.workspace = true

@@ -1,4 +1,4 @@
-//! Helper-protocol host used to keep synchronous Piper synthesis out of Omnivox.
+//! Engine-neutral helper-protocol host for isolated Omnivox TTS adapters.
 
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::panic::{self, AssertUnwindSafe};
@@ -414,7 +414,7 @@ where
             if state.active.is_some() {
                 return Err(RemoteFault::new(
                     HelperErrorCode::Busy,
-                    "Piper permits one active synthesis",
+                    "the helper engine permits one active synthesis",
                     true,
                 ));
             }
@@ -439,7 +439,7 @@ where
 
         let runtime = Arc::clone(self);
         let spawn = thread::Builder::new()
-            .name("omnivox-piper-native".to_owned())
+            .name("omnivox-helper-native".to_owned())
             .spawn(move || runtime.synthesis_worker(protocol_version, active, request));
         if let Err(error) = spawn {
             self.clear_active(request_id);
@@ -471,7 +471,7 @@ where
                 Ok(Err(error)) => error_response_body(map_tts_error(error)),
                 Err(_) => error_response_body(RemoteFault::new(
                     HelperErrorCode::Internal,
-                    "Piper synthesis panicked",
+                    "helper synthesis panicked",
                     false,
                 )),
             }
@@ -496,10 +496,10 @@ where
             .samples
             .len()
             .checked_mul(std::mem::size_of::<i16>())
-            .ok_or_else(|| TtsError::SynthesisFailed("Piper PCM size overflowed".to_owned()))?;
+            .ok_or_else(|| TtsError::SynthesisFailed("helper PCM size overflowed".to_owned()))?;
         if sample_bytes > MAX_HELPER_SYNTHESIS_BYTES {
             return Err(TtsError::SynthesisFailed(format!(
-                "Piper PCM exceeds the {MAX_HELPER_SYNTHESIS_BYTES}-byte helper limit"
+                "PCM exceeds the {MAX_HELPER_SYNTHESIS_BYTES}-byte helper limit"
             )));
         }
 
@@ -667,7 +667,7 @@ fn map_tts_error(error: TtsError) -> RemoteFault {
         }
         TtsError::NotAvailable => RemoteFault::new(
             HelperErrorCode::NotAvailable,
-            "Piper is not available",
+            "the helper engine is not available",
             true,
         ),
         TtsError::InvalidParameter(message) => {
@@ -721,7 +721,7 @@ fn helper_markers(result: &SynthesisResult) -> Result<Vec<HelperMarker>, TtsErro
     );
     if markers.len() > MAX_HELPER_MARKERS {
         return Err(TtsError::SynthesisFailed(format!(
-            "Piper returned more than {MAX_HELPER_MARKERS} helper markers"
+            "the engine returned more than {MAX_HELPER_MARKERS} helper markers"
         )));
     }
     markers.sort_by_key(|marker| marker.frame_offset);
@@ -811,14 +811,14 @@ mod tests {
 
     fn descriptor() -> EngineDescriptor {
         let voice = VoiceInfo {
-            identifier: "piper:test".to_owned(),
+            identifier: "mock:test".to_owned(),
             name: "Test".to_owned(),
             language: "en-US".to_owned(),
             quality: VoiceQuality::Enhanced,
         };
         EngineDescriptor {
-            id: "piper".to_owned(),
-            display_name: "Test Piper".to_owned(),
+            id: "mock".to_owned(),
+            display_name: "Test helper engine".to_owned(),
             version: Some("test".to_owned()),
             availability: Availability::Available,
             health: EngineHealth::Healthy,
@@ -836,8 +836,8 @@ mod tests {
                 post_synthesis_dimensions: Vec::new(),
                 native_extensions: Vec::new(),
             },
-            voices: vec![VoiceDescriptor::from_voice_info("piper", voice)],
-            default_voice_id: Some("piper:test".to_owned()),
+            voices: vec![VoiceDescriptor::from_voice_info("mock", voice)],
+            default_voice_id: Some("mock:test".to_owned()),
         }
     }
 
@@ -850,7 +850,7 @@ mod tests {
 
         fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
             Ok(SynthesisResult::audio(
-                "piper",
+                "mock",
                 request.requested_voice.clone(),
                 AudioBuffer::new(vec![0.5, -0.5, 1.0, -1.0]),
             ))
@@ -914,7 +914,7 @@ mod tests {
                 released = self.changed.wait(released).unwrap();
             }
             Ok(SynthesisResult::audio(
-                "piper",
+                "mock",
                 request.requested_voice.clone(),
                 AudioBuffer::empty(),
             ))
@@ -950,9 +950,9 @@ mod tests {
         HelperRequest::new(
             request_id,
             HelperRequestBody::Synthesize {
-                text: "Piper helper".to_owned(),
+                text: "Helper protocol".to_owned(),
                 settings: HelperSynthesisSettings {
-                    voice_id: Some("piper:test".to_owned()),
+                    voice_id: Some("mock:test".to_owned()),
                     rate: 0.5,
                     pitch: 1.0,
                     volume: 1.0,

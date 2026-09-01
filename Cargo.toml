@@ -5,6 +5,7 @@ members = [
     "omnivox-tts",
     "omnivox-audio",
     "omnivox-cli",
+    "omnivox-helper-host",
     "omnivox-piper-helper",
     "omnivox-piper-sys",
 ]
@@ -17,6 +18,7 @@ default-members = [
     "omnivox-tts",
     "omnivox-audio",
     "omnivox-cli",
+    "omnivox-helper-host",
     "omnivox-piper-helper",
 ]
 

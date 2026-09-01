@@ -1,0 +1,10 @@
+[package]
+name = "omnivox-helper-host"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+omnivox-tts = { path = "../omnivox-tts", default-features = false }
+thiserror.workspace = true
