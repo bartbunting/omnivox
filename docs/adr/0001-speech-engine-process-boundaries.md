@@ -111,9 +111,12 @@ present helper absence as failure of an otherwise working server.
 ### Keep process and distribution decisions distinct
 
 Using a helper does not by itself decide whether its external runtime may be
-distributed. For ECI, DECtalk, and initially RuTTS, Omnivox distributions ship
-the compiled helper and applicable source and notices, while the user supplies
-the speech library and its required voice, dictionary, or other runtime data.
+distributed. For ECI and DECtalk, Omnivox distributions ship the compiled
+helper and applicable source and notices, while the user supplies the speech
+library and its required voice, dictionary, or other runtime data. RuTTS's
+provisional runtime-supply decision is superseded by
+[ADR 0003](0003-rutts-source-built-companion.md), which defines a separate
+source-built companion without RuLex.
 
 An open helper runtime may be published as a separately reviewed companion, as
 intended for Piper, only after its provenance, licence, corresponding-source
@@ -138,7 +141,7 @@ The intended boundaries are:
 | Piper | Helper | Optional model and native dependency stack with an independent lifecycle. |
 | Freedom Scientific Eloquence/ECI | Helper | User-supplied proprietary library, 32-bit ABI, and native failure isolation. |
 | Software DECtalk | Helper | User-supplied legacy runtime, dictionary data, 32-bit callback ABI, and native failure isolation. |
-| RuTTS | Helper initially | External candidate whose ABI, packaging, licensing, and reliability require evaluation. |
+| RuTTS | Helper | Pinned source-built companion; legacy encoding and initial native reliability remain isolated. |
 
 This table records the process boundary, not an assertion that every listed
 integration is implemented, published, or supported on every platform.
@@ -216,8 +219,8 @@ engines harder for users, contributors, and release maintainers to evaluate.
    opt-in acceptance and stress tests for legally installed real runtimes.
 4. Complete Piper's separate companion-release gates before treating a build
    candidate as a published runtime.
-5. Evaluate RuTTS through an isolated helper before considering it a supported
-   engine.
+5. Apply the source-built RuTTS companion and acceptance policy in
+   [ADR 0003](0003-rutts-source-built-companion.md).
 6. Keep current implementation facts in
    [ARCHITECTURE.md](../ARCHITECTURE.md), platform claims in
    [STATUS.md](../STATUS.md), and runtime supply terms in
@@ -228,5 +231,6 @@ engines harder for users, contributors, and release maintainers to evaluate.
 WinRT, AVSpeechSynthesizer, and eSpeak NG currently use the built-in boundary.
 Piper, Eloquence/ECI, and DECtalk currently use the helper protocol. The
 existing Windows helpers and their user-supplied runtime boundary are described
-in the [Windows helper guide](../../windows-helpers/README.md). RuTTS remains an
-evaluation candidate rather than an implemented engine.
+in the [Windows helper guide](../../windows-helpers/README.md). RuTTS remains
+unimplemented, but its companion boundary and distribution policy are accepted
+in [ADR 0003](0003-rutts-source-built-companion.md).
