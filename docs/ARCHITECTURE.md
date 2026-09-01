@@ -157,7 +157,11 @@ WinRT and eSpeak NG, then independently discovers optional adjacent Eloquence
 and DECtalk helpers. macOS retains AVSpeechSynthesizer and eSpeak NG; Linux
 retains eSpeak NG. RHVoice, Flite, and RuTTS companion helpers are discovered
 on every desktop build when staged or explicitly configured. A Piper-enabled
-build also registers Piper on every platform when a model is configured. Startup
+build also registers Piper on every platform when a model is configured.
+Configured helpers initialize concurrently with built-in discovery, but the
+server joins them and registers their descriptors in deterministic order before
+opening its command loop. The first inventory therefore remains complete while
+independent helper process-start costs no longer accumulate serially. Startup
 selection chooses the initial preference without removing the other registered
 engines.
 

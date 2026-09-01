@@ -269,7 +269,9 @@ AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. A Piper-enabled
 server also registers Piper when a model is configured; Windows additionally
 discovers configured Eloquence and DECtalk helpers. `OMNIVOX_ENGINE` changes
 the initial preference without removing another available engine from
-inventory. Descriptors are snapshotted before the reader loop starts, so
+inventory. Independent helpers initialize concurrently with built-in discovery
+and are joined in deterministic registration order. Descriptors are
+snapshotted before the reader loop starts, so
 inventory requests cannot block stop commands behind synchronous synthesis.
 Registry inventory is sorted by stable engine ID, and its generation advances
 when engines or their descriptor state change. Persistent runtime circuit

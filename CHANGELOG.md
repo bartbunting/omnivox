@@ -65,6 +65,9 @@ Versioning for published releases.
 
 ### Fixed
 
+- Optional helper engines now initialize concurrently with built-in discovery,
+  preserving a complete deterministic first inventory without accumulating
+  every helper's process-start latency during a fresh server launch.
 - Empty helper audio chunks and marker batches are now rejected so content-free
   frames cannot indefinitely refresh synthesis progress timeouts. Helpers omit
   those response types when a synthesis has no audio or markers.

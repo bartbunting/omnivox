@@ -14,7 +14,8 @@ use omnivox_tts::TtsEngine;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
-use std::time::Duration;
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
 use tracing::{info, warn};
 
 use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
@@ -38,10 +39,11 @@ pub struct CreatedEngines {
 
 /// Create all engines that should be available to the server process.
 ///
-/// Server mode eagerly initializes the available built-in engines so runtime
-/// routing can retain fallbacks. Piper remains opt-in through model
-/// configuration because starting its helper loads a comparatively large
-/// voice model.
+/// Server mode eagerly initializes every available engine so the first
+/// inventory is complete and runtime routing can retain fallbacks. Independent
+/// helper processes initialize concurrently with the built-in engines. Piper
+/// remains opt-in through model configuration because starting its helper
+/// loads a comparatively large voice model.
 pub fn create_engines(
     engine_name: &str,
     piper_model: Option<&str>,
@@ -67,6 +69,8 @@ fn create_non_windows_engines(
     isolation_budget: Arc<IsolationBudget>,
 ) -> Result<CreatedEngines> {
     let requested = requested_engine(engine_name);
+    let helper_initializations =
+        start_helper_initializations(configured_helper_configs(&requested, piper_model));
     let mut registry = EngineRegistry::new();
 
     #[cfg(target_os = "macos")]
@@ -96,14 +100,12 @@ fn create_non_windows_engines(
         Err(error) => warn!("espeak-ng fallback not available: {error}"),
     }
 
-    register_configured_piper(
+    register_initialized_helpers(
         &mut registry,
-        &requested,
-        piper_model,
-        Arc::clone(&generation),
-        Arc::clone(&isolation_budget),
+        helper_initializations,
+        generation,
+        isolation_budget,
     )?;
-    register_companion_helpers(&mut registry, generation, isolation_budget)?;
 
     let preferred = engine_preference_order(&requested, native_registry_engine_id())
         .iter()
@@ -128,6 +130,23 @@ fn create_windows_engines(
     isolation_budget: Arc<IsolationBudget>,
 ) -> Result<CreatedEngines> {
     let forced = requested_engine(engine_name);
+    let mut helper_configs = [
+        helper_config(
+            "eloquence",
+            "OMNIVOX_ELOQUENCE_HELPER",
+            "OmnivoxEloquenceHelper32.exe",
+        ),
+        helper_config(
+            "dectalk",
+            "OMNIVOX_DECTALK_HELPER",
+            "OmnivoxDectalkHelper32.exe",
+        ),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+    helper_configs.extend(configured_helper_configs(&forced, piper_model));
+    let helper_initializations = start_helper_initializations(helper_configs);
     let mut registry = EngineRegistry::new();
 
     match WindowsTtsEngine::new() {
@@ -151,35 +170,12 @@ fn create_windows_engines(
         Err(error) => warn!("espeak-ng fallback not available: {}", error),
     }
 
-    register_optional_helper(
+    register_initialized_helpers(
         &mut registry,
-        helper_config(
-            "eloquence",
-            "OMNIVOX_ELOQUENCE_HELPER",
-            "OmnivoxEloquenceHelper32.exe",
-        ),
-        Arc::clone(&generation),
-        Arc::clone(&isolation_budget),
+        helper_initializations,
+        generation,
+        isolation_budget,
     )?;
-    register_optional_helper(
-        &mut registry,
-        helper_config(
-            "dectalk",
-            "OMNIVOX_DECTALK_HELPER",
-            "OmnivoxDectalkHelper32.exe",
-        ),
-        Arc::clone(&generation),
-        Arc::clone(&isolation_budget),
-    )?;
-
-    register_configured_piper(
-        &mut registry,
-        &forced,
-        piper_model,
-        Arc::clone(&generation),
-        Arc::clone(&isolation_budget),
-    )?;
-    register_companion_helpers(&mut registry, generation, isolation_budget)?;
 
     let preferred = engine_preference_order(&forced, Some("winrt"))
         .iter()
@@ -239,37 +235,104 @@ fn resolve_adjacent_helper(executable: &Path, candidates: &[PathBuf]) -> Option<
         .find(|candidate| candidate.is_file())
 }
 
-fn register_optional_helper(
+struct PendingHelperInitialization<T> {
+    engine_id: String,
+    helper_path: PathBuf,
+    handle: JoinHandle<(T, Duration)>,
+}
+
+type HelperInitializationResult =
+    Result<HelperTtsEngine, omnivox_tts::helper_engine::HelperEngineError>;
+type PendingHelper = PendingHelperInitialization<HelperInitializationResult>;
+
+fn start_helper_initializations(configs: Vec<HelperEngineConfig>) -> Vec<PendingHelper> {
+    start_helper_initializations_with(configs, HelperTtsEngine::new)
+}
+
+fn start_helper_initializations_with<T, F>(
+    configs: Vec<HelperEngineConfig>,
+    initialize: F,
+) -> Vec<PendingHelperInitialization<T>>
+where
+    T: Send + 'static,
+    F: Fn(HelperEngineConfig) -> T + Send + Sync + 'static,
+{
+    let initialize = Arc::new(initialize);
+    configs
+        .into_iter()
+        .filter_map(|config| {
+            let engine_id = config.engine_id.clone();
+            let helper_path = config.program.clone();
+            let thread_name = format!("omnivox-{engine_id}-init");
+            let initialize = Arc::clone(&initialize);
+            match thread::Builder::new().name(thread_name).spawn(move || {
+                let started_at = Instant::now();
+                let result = initialize(config);
+                (result, started_at.elapsed())
+            }) {
+                Ok(handle) => Some(PendingHelperInitialization {
+                    engine_id,
+                    helper_path,
+                    handle,
+                }),
+                Err(error) => {
+                    warn!(
+                        engine_id,
+                        helper = %helper_path.display(),
+                        %error,
+                        "Could not start helper initialization thread"
+                    );
+                    None
+                }
+            }
+        })
+        .collect()
+}
+
+fn register_initialized_helpers(
     registry: &mut EngineRegistry,
-    config: Option<HelperEngineConfig>,
+    pending: Vec<PendingHelper>,
     generation: Arc<AtomicU64>,
     isolation_budget: Arc<IsolationBudget>,
 ) -> Result<()> {
-    let Some(config) = config else {
-        return Ok(());
-    };
-    let engine_id = config.engine_id.clone();
-    let helper_path = config.program.clone();
-    match HelperTtsEngine::new(config) {
-        Ok(engine) => {
-            let engine: Arc<dyn TtsEngine> = Arc::new(engine);
-            registry.register(Arc::new(IsolatedTtsEngine::new(
-                engine,
-                generation,
-                isolation_budget,
-            )))?;
-            info!(
-                "Registered {} helper engine: {}",
-                engine_id,
-                helper_path.display()
-            );
-        }
-        Err(error) => warn!(
-            "{} helper at {} is not available: {}",
+    for initialization in pending {
+        let PendingHelperInitialization {
             engine_id,
-            helper_path.display(),
-            error
-        ),
+            helper_path,
+            handle,
+        } = initialization;
+        match handle.join() {
+            Ok((Ok(engine), elapsed)) => {
+                let elapsed_ms = u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX);
+                let engine: Arc<dyn TtsEngine> = Arc::new(engine);
+                registry.register(Arc::new(IsolatedTtsEngine::new(
+                    engine,
+                    Arc::clone(&generation),
+                    Arc::clone(&isolation_budget),
+                )))?;
+                info!(
+                    engine_id,
+                    helper = %helper_path.display(),
+                    elapsed_ms,
+                    "Registered helper engine"
+                );
+            }
+            Ok((Err(error), elapsed)) => {
+                let elapsed_ms = u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX);
+                warn!(
+                    engine_id,
+                    helper = %helper_path.display(),
+                    elapsed_ms,
+                    %error,
+                    "Helper is not available"
+                );
+            }
+            Err(_) => warn!(
+                engine_id,
+                helper = %helper_path.display(),
+                "Helper initialization thread panicked"
+            ),
+        }
     }
     Ok(())
 }
@@ -290,24 +353,17 @@ fn companion_helper_candidates(engine_id: &str) -> [PathBuf; 2] {
     ]
 }
 
-fn register_companion_helpers(
-    registry: &mut EngineRegistry,
-    generation: Arc<AtomicU64>,
-    isolation_budget: Arc<IsolationBudget>,
-) -> Result<()> {
-    for (engine_id, environment_variable) in [
+fn companion_helper_configs() -> Vec<HelperEngineConfig> {
+    [
         ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
         ("flite", "OMNIVOX_FLITE_HELPER"),
         ("rutts", "OMNIVOX_RUTTS_HELPER"),
-    ] {
-        register_optional_helper(
-            registry,
-            companion_helper_config(engine_id, environment_variable),
-            Arc::clone(&generation),
-            Arc::clone(&isolation_budget),
-        )?;
-    }
-    Ok(())
+    ]
+    .into_iter()
+    .filter_map(|(engine_id, environment_variable)| {
+        companion_helper_config(engine_id, environment_variable)
+    })
+    .collect()
 }
 
 fn requested_engine(engine_name: &str) -> String {
@@ -374,42 +430,37 @@ fn piper_is_configured(model: Option<&str>) -> bool {
 }
 
 #[cfg(feature = "piper")]
-fn register_configured_piper(
-    registry: &mut EngineRegistry,
-    requested: &str,
-    model: Option<&str>,
-    generation: Arc<AtomicU64>,
-    isolation_budget: Arc<IsolationBudget>,
-) -> Result<()> {
+fn configured_piper_helper(requested: &str, model: Option<&str>) -> Option<HelperEngineConfig> {
     if requested != "piper" && !piper_is_configured(model) {
-        return Ok(());
+        return None;
     }
     match piper_helper_config(model) {
-        Ok(config) => {
-            register_optional_helper(registry, Some(config), generation, isolation_budget)
-        }
+        Ok(config) => Some(config),
         Err(error) => {
             warn!("Piper TTS helper not available: {error}");
-            Ok(())
+            None
         }
     }
 }
 
 #[cfg(not(feature = "piper"))]
-fn register_configured_piper(
-    _registry: &mut EngineRegistry,
-    requested: &str,
-    model: Option<&str>,
-    _generation: Arc<AtomicU64>,
-    _isolation_budget: Arc<IsolationBudget>,
-) -> Result<()> {
+fn configured_piper_helper(requested: &str, model: Option<&str>) -> Option<HelperEngineConfig> {
     if requested == "piper" || piper_is_configured(model) {
         warn!(
             "Piper was requested or configured but omnivox was built without Piper support. \
              Rebuild with --features piper."
         );
     }
-    Ok(())
+    None
+}
+
+fn configured_helper_configs(requested: &str, model: Option<&str>) -> Vec<HelperEngineConfig> {
+    let mut configs = Vec::with_capacity(4);
+    if let Some(piper) = configured_piper_helper(requested, model) {
+        configs.push(piper);
+    }
+    configs.extend(companion_helper_configs());
+    configs
 }
 
 /// Create a TTS engine by name, falling back through the platform default to espeak-ng.
@@ -583,14 +634,56 @@ mod tests {
     use super::create_engines;
     use super::{
         companion_helper_candidates, engine_preference_order, helper_synthesis_idle_timeout,
-        resolve_adjacent_helper,
+        resolve_adjacent_helper, start_helper_initializations_with, HelperEngineConfig,
     };
     use std::path::PathBuf;
     #[cfg(target_os = "macos")]
     use std::sync::atomic::AtomicU64;
-    #[cfg(target_os = "macos")]
-    use std::sync::Arc;
+    use std::sync::{mpsc, Arc, Condvar, Mutex};
     use std::time::Duration;
+
+    #[test]
+    fn helper_initialization_starts_concurrently_and_retains_order() {
+        let configs = ["first", "second"]
+            .into_iter()
+            .map(|engine_id| HelperEngineConfig::new(engine_id, "unused-helper"))
+            .collect();
+        let (started_tx, started_rx) = mpsc::channel();
+        let release = Arc::new((Mutex::new(false), Condvar::new()));
+        let worker_release = Arc::clone(&release);
+        let pending = start_helper_initializations_with(configs, move |config| {
+            started_tx.send(config.engine_id.clone()).unwrap();
+            let (lock, changed) = &*worker_release;
+            let released = lock.lock().unwrap();
+            let _ = changed
+                .wait_timeout_while(released, Duration::from_secs(2), |released| !*released)
+                .unwrap();
+            config.engine_id
+        });
+
+        assert_eq!(pending.len(), 2);
+        assert_eq!(
+            pending
+                .iter()
+                .map(|initialization| initialization.engine_id.as_str())
+                .collect::<Vec<_>>(),
+            ["first", "second"]
+        );
+        let mut started = vec![
+            started_rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+            started_rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+        ];
+        started.sort();
+        assert_eq!(started, ["first", "second"]);
+
+        *release.0.lock().unwrap() = true;
+        release.1.notify_all();
+        let completed = pending
+            .into_iter()
+            .map(|initialization| initialization.handle.join().unwrap().0)
+            .collect::<Vec<_>>();
+        assert_eq!(completed, ["first", "second"]);
+    }
 
     #[test]
     fn eloquence_helper_fails_over_after_a_short_idle_timeout() {

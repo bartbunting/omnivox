@@ -33,7 +33,9 @@ in the linked protocol specifications; future work belongs in
   AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. Configured
   Piper helpers join that registry in Piper-enabled builds. Staged or
   explicitly configured RHVoice, Flite, and RuTTS helpers are discovered on
-  every desktop platform.
+  every desktop platform. Independent helpers initialize concurrently with
+  built-in discovery, then join the complete initial inventory in deterministic
+  order before the command loop opens.
 - Ordered fallback for missing voices, unsupported text repertoires, engine
   failure, and transient engine pressure.
 - Persistent health circuits, bounded cooldowns, one recovery probe, and
