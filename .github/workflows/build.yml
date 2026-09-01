@@ -100,6 +100,9 @@ jobs:
           python tools/build.py --release --target ${{ matrix.target }}
           --package omnivox-cli --features piper
 
+      - name: Build portable RHVoice helper
+        run: python tools/build_rhvoice.py --release --target ${{ matrix.target }}
+
       - name: Prepare artifacts (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -111,6 +114,7 @@ jobs:
           Copy-Item elisp\omnivox-voices.el artifacts\omnivox-voices.el
           Copy-Item -Recurse target\${{ matrix.target }}\release\espeak-ng-data artifacts\espeak-ng-data
           Copy-Item -Recurse target\${{ matrix.target }}\release\third-party-licenses artifacts\third-party-licenses
+          Copy-Item -Recurse target\${{ matrix.target }}\release\rhvoice artifacts\rhvoice
 
       - name: Prepare artifacts (Unix)
         if: runner.os != 'Windows'
@@ -122,7 +126,9 @@ jobs:
           cp elisp/omnivox-voices.el artifacts/omnivox-voices.el
           cp -R target/${{ matrix.target }}/release/espeak-ng-data artifacts/espeak-ng-data
           cp -R target/${{ matrix.target }}/release/third-party-licenses artifacts/third-party-licenses
+          cp -R target/${{ matrix.target }}/release/rhvoice artifacts/rhvoice
           chmod +x artifacts/omnivox
+          chmod +x artifacts/rhvoice/omnivox-rhvoice-helper
 
       - name: Validate artifact payload (Windows)
         if: runner.os == 'Windows'
@@ -132,6 +138,7 @@ jobs:
           if (-not (Test-Path artifacts\LICENSE -PathType Leaf)) { throw "missing project LICENSE" }
           if (-not (Test-Path artifacts\LICENSING.md -PathType Leaf)) { throw "missing component licensing map" }
           if (-not (Test-Path artifacts\third-party-licenses\eSpeak-NG-GPL-3.0.txt -PathType Leaf)) { throw "missing eSpeak NG license" }
+          if (-not (Test-Path artifacts\rhvoice\omnivox-rhvoice-helper.exe -PathType Leaf)) { throw "missing RHVoice helper" }
           $env:ESPEAK_NG_DATA = (Resolve-Path artifacts).Path
           & artifacts\omnivox.exe --engine espeak --list-voices | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "packaged eSpeak voice discovery failed" }
@@ -143,6 +150,7 @@ jobs:
           test -f artifacts/LICENSE
           test -f artifacts/LICENSING.md
           test -f artifacts/third-party-licenses/eSpeak-NG-GPL-3.0.txt
+          test -x artifacts/rhvoice/omnivox-rhvoice-helper
 
       - name: Smoke-test packaged eSpeak (native Unix)
         if: runner.os == 'macOS' || matrix.target == 'x86_64-unknown-linux-gnu'
@@ -213,6 +221,94 @@ jobs:
 
       - name: Run clippy
         run: cargo clippy --locked --all-targets -- -D warnings
+
+  build_flite:
+    name: Build Flite ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    if: github.event_name != 'workflow_dispatch' || inputs.draft_version == ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - name: macos-arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+          - name: macos-x64
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - name: windows-arm64
+            os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libasound2-dev pkg-config
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: flite-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: flite-${{ runner.os }}-${{ matrix.target }}-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: flite-${{ runner.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
+          restore-keys: flite-${{ runner.os }}-${{ matrix.target }}-build-
+
+      - name: Build and stage companion
+        run: python tools/build_flite.py --release
+
+      - name: Recheck prepared source without network
+        run: python tools/prepare_flite_inputs.py --check
+
+      - name: Test and lint native Flite crates
+        run: |
+          cargo test --locked --package omnivox-flite-helper --package omnivox-flite-sys -- --test-threads=1
+          cargo clippy --locked --package omnivox-flite-helper --package omnivox-flite-sys --all-targets -- -D warnings
+
+      - name: Package and verify companion
+        run: |
+          python tools/package_flite.py
+          python tools/verify_flite_release.py --iterations 25
+
+      - name: Upload verified companion
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnivox-flite-${{ matrix.name }}
+          path: |
+            target/release/omnivox-*-flite-${{ matrix.name }}.*
+            target/release/flite-sha256sums.txt
+          compression-level: 0
+          if-no-files-found: error
 
   build_piper_release:
     name: Build Piper Release ${{ matrix.name }}
@@ -355,9 +451,39 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
+  package_flite_source:
+    name: Package Flite Source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Package and verify source artifact
+        run: |
+          python tools/package_flite_source.py
+          python tools/verify_flite_source.py
+
+      - name: Upload verified source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnivox-flite-source
+          path: |
+            target/release/omnivox-*-flite-source.tar.gz
+            target/release/flite-source-sha256sums.txt
+          compression-level: 0
+          if-no-files-found: error
+
   package_release:
     name: Package Release
-    needs: [format, build, test, build_piper_release, package_piper_source_release]
+    needs: [format, build, test, build_flite, build_piper_release, package_flite_source, package_piper_source_release]
     runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     outputs:
@@ -370,7 +496,12 @@ jobs:
           path: artifacts
 
       - name: Restore Unix executable permissions
-        run: chmod +x artifacts/omnivox-linux-x64/omnivox artifacts/omnivox-macos-*/omnivox
+        run: >-
+          chmod +x
+          artifacts/omnivox-linux-x64/omnivox
+          artifacts/omnivox-macos-*/omnivox
+          artifacts/omnivox-linux-x64/rhvoice/omnivox-rhvoice-helper
+          artifacts/omnivox-macos-*/rhvoice/omnivox-rhvoice-helper
 
       - name: Validate release version
         id: release_version
@@ -392,11 +523,11 @@ jobs:
             archive="omnivox-${VERSION}-${suffix}"
             if [[ "$suffix" == *"windows"* ]]; then
               cd "$dir"
-              zip -r "../${archive}.zip" omnivox.exe LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses
+              zip -r "../${archive}.zip" omnivox.exe LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses rhvoice
               cd ..
             else
               cd "$dir"
-              tar czf "../${archive}.tar.gz" omnivox LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses
+              tar czf "../${archive}.tar.gz" omnivox LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses rhvoice
               cd ..
             fi
           done
@@ -405,6 +536,13 @@ jobs:
           cp omnivox-piper-macos-x64/omnivox-*-piper-macos-x64.tar.gz .
           cp omnivox-piper-windows-x64/omnivox-*-piper-windows-x64.zip .
           cp omnivox-piper-source/omnivox-*-piper-source.tar.gz .
+          cp omnivox-flite-linux-x64/omnivox-*-flite-linux-x64.tar.gz .
+          cp omnivox-flite-linux-arm64/omnivox-*-flite-linux-arm64.tar.gz .
+          cp omnivox-flite-macos-arm64/omnivox-*-flite-macos-arm64.tar.gz .
+          cp omnivox-flite-macos-x64/omnivox-*-flite-macos-x64.tar.gz .
+          cp omnivox-flite-windows-x64/omnivox-*-flite-windows-x64.zip .
+          cp omnivox-flite-windows-arm64/omnivox-*-flite-windows-arm64.zip .
+          cp omnivox-flite-source/omnivox-*-flite-source.tar.gz .
 
       - name: Generate checksums
         run: |
@@ -462,11 +600,13 @@ jobs:
             binary_directory="$HOME/.local/bin"
             adapter_directory="$HOME/.emacs.d/lisp/omnivox"
             mkdir -p "$binary_directory/espeak-ng-data" \
-              "$binary_directory/third-party-licenses" "$adapter_directory"
+              "$binary_directory/third-party-licenses" \
+              "$binary_directory/rhvoice" "$adapter_directory"
             install -m 755 omnivox "$binary_directory/omnivox"
             install -m 644 omnivox-voices.el "$adapter_directory/omnivox-voices.el"
             cp -R espeak-ng-data/. "$binary_directory/espeak-ng-data/"
             cp -R third-party-licenses/. "$binary_directory/third-party-licenses/"
+            cp -R rhvoice/. "$binary_directory/rhvoice/"
             ```
 
             After extracting on Windows:
@@ -476,12 +616,14 @@ jobs:
             $directories = @(
               $destination,
               "$destination\espeak-ng-data",
-              "$destination\third-party-licenses"
+              "$destination\third-party-licenses",
+              "$destination\rhvoice"
             )
             New-Item -ItemType Directory -Force $directories | Out-Null
             Copy-Item -Force omnivox.exe, omnivox-voices.el $destination
             Copy-Item -Recurse -Force espeak-ng-data\* "$destination\espeak-ng-data"
             Copy-Item -Recurse -Force third-party-licenses\* "$destination\third-party-licenses"
+            Copy-Item -Recurse -Force rhvoice\* "$destination\rhvoice"
             ```
 
             `omnivox-voices.el` is the upstream Emacspeak adapter. Emacsvox uses
@@ -506,6 +648,10 @@ jobs:
             and its third-party notices. This supports registered eSpeak
             fallback on macOS and Windows.
 
+            Every generic archive also contains the portable RHVoice helper,
+            but not the RHVoice runtime, language data, or voices. Install a
+            compatible runtime separately as described in the RHVoice guide.
+
             The Linux archive requires Ubuntu 24.04-compatible glibc,
             libstdc++, libgcc, and ALSA runtime libraries.
 
@@ -527,6 +673,27 @@ jobs:
             `omnivox-${{ needs.package_release.outputs.version }}-piper-source.tar.gz`
             contains the exact corresponding source and locked build inputs for
             all four companions.
+
+            ### Optional Flite companions
+
+            Flite is a compact English out-of-process engine with only
+            `cmu_us_slt` compiled in. Extract the matching archive's top-level
+            `flite/` directory beside the generic executable. No system Flite
+            installation or separate voice download is required.
+
+            | Platform | Architecture | File |
+            |----------|-------------|------|
+            | Linux | x64 | `omnivox-${{ needs.package_release.outputs.version }}-flite-linux-x64.tar.gz` |
+            | Linux | ARM64 | `omnivox-${{ needs.package_release.outputs.version }}-flite-linux-arm64.tar.gz` |
+            | macOS | Apple Silicon | `omnivox-${{ needs.package_release.outputs.version }}-flite-macos-arm64.tar.gz` |
+            | macOS | Intel | `omnivox-${{ needs.package_release.outputs.version }}-flite-macos-x64.tar.gz` |
+            | Windows | x64 | `omnivox-${{ needs.package_release.outputs.version }}-flite-windows-x64.zip` |
+            | Windows | ARM64 | `omnivox-${{ needs.package_release.outputs.version }}-flite-windows-arm64.zip` |
+
+            Optional local `.flitevox` files remain user-supplied and retain
+            their own licences. The exact upstream Flite source and Omnivox
+            build integration are in
+            `omnivox-${{ needs.package_release.outputs.version }}-flite-source.tar.gz`.
 
             These binaries are not code-signed or notarized, so Gatekeeper or
             SmartScreen may warn. Verify `sha256sums.txt`; do not disable
@@ -757,13 +924,157 @@ jobs:
           --checksums downloaded/sha256sums.txt
           --version "$RELEASE_VERSION"
 
+  verify_flite_release:
+    name: Verify Flite Release ${{ matrix.name }}
+    needs: [package_release, create_draft_release]
+    runs-on: ${{ matrix.os }}
+    if: >-
+      always() &&
+      (
+        (
+          startsWith(github.ref, 'refs/tags/v') &&
+          needs.package_release.result == 'success' &&
+          needs.create_draft_release.result == 'success'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.draft_version != ''
+        )
+      )
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
+      RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            name: linux-x64
+            suffix: linux-x64
+            extension: tar.gz
+          - os: ubuntu-24.04-arm
+            name: linux-arm64
+            suffix: linux-arm64
+            extension: tar.gz
+          - os: macos-15
+            name: macos-arm64
+            suffix: macos-arm64
+            extension: tar.gz
+          - os: macos-15-intel
+            name: macos-x64
+            suffix: macos-x64
+            extension: tar.gz
+          - os: windows-latest
+            name: windows-x64
+            suffix: windows-x64
+            extension: zip
+          - os: windows-11-arm
+            name: windows-arm64
+            suffix: windows-arm64
+            extension: zip
+
+    steps:
+      - name: Checkout verification code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Linux runtime dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libasound2
+
+      - name: Download draft Flite asset
+        shell: bash
+        run: >-
+          gh release download "$RELEASE_TAG"
+          --repo "${{ github.repository }}"
+          --pattern "omnivox-$RELEASE_VERSION-flite-${{ matrix.suffix }}.${{ matrix.extension }}"
+          --pattern sha256sums.txt
+          --dir downloaded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify exact downloaded Flite archive
+        shell: bash
+        run: >-
+          python tools/verify_flite_release.py
+          --archive "downloaded/omnivox-$RELEASE_VERSION-flite-${{ matrix.suffix }}.${{ matrix.extension }}"
+          --checksums downloaded/sha256sums.txt
+          --version "$RELEASE_VERSION"
+          --iterations 25
+
+  verify_flite_source_release:
+    name: Verify Flite Source Release
+    needs: [package_release, create_draft_release]
+    runs-on: ubuntu-24.04
+    if: >-
+      always() &&
+      (
+        (
+          startsWith(github.ref, 'refs/tags/v') &&
+          needs.package_release.result == 'success' &&
+          needs.create_draft_release.result == 'success'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.draft_version != ''
+        )
+      )
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
+      RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
+
+    steps:
+      - name: Checkout verification code from release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download draft Flite source asset
+        shell: bash
+        run: >-
+          gh release download "$RELEASE_TAG"
+          --repo "${{ github.repository }}"
+          --pattern "omnivox-$RELEASE_VERSION-flite-source.tar.gz"
+          --pattern sha256sums.txt
+          --dir downloaded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify exact downloaded Flite source artifact
+        shell: bash
+        run: >-
+          python tools/verify_flite_source.py
+          --archive "downloaded/omnivox-$RELEASE_VERSION-flite-source.tar.gz"
+          --checksums downloaded/sha256sums.txt
+          --version "$RELEASE_VERSION"
+
   publish_release:
     name: Publish Verified Release
-    needs: [verify_release, verify_piper_release, verify_piper_source_release]
+    needs: [verify_release, verify_flite_release, verify_flite_source_release, verify_piper_release, verify_piper_source_release]
     runs-on: ubuntu-latest
     if: >-
       always() &&
       needs.verify_release.result == 'success' &&
+      needs.verify_flite_release.result == 'success' &&
+      needs.verify_flite_source_release.result == 'success' &&
       needs.verify_piper_release.result == 'success' &&
       needs.verify_piper_source_release.result == 'success' &&
       (

@@ -12,9 +12,10 @@ The checked-in GitHub Actions workflow publishes these release archives:
 | Windows x64 | `x86_64-pc-windows-msvc` | `omnivox-VERSION-windows-x64.zip` |
 | Windows ARM64 | `aarch64-pc-windows-msvc` | `omnivox-VERSION-windows-arm64.zip` |
 
-Each archive contains the main binary, `omnivox-voices.el`, the matching
-generated `espeak-ng-data`, `LICENSE`, `LICENSING.md`, and
-`third-party-licenses`. A successful current tag workflow also publishes these
+Each archive contains the main binary, portable RHVoice helper,
+`omnivox-voices.el`, the matching generated `espeak-ng-data`, `LICENSE`,
+`LICENSING.md`, and `third-party-licenses`. It does not contain the RHVoice
+runtime or voice data. A successful current tag workflow also publishes these
 optional Piper assets:
 
 | Platform | Companion archive |
@@ -24,6 +25,18 @@ optional Piper assets:
 | macOS Intel | `omnivox-VERSION-piper-macos-x64.tar.gz` |
 | Windows x64 | `omnivox-VERSION-piper-windows-x64.zip` |
 | All four | `omnivox-VERSION-piper-source.tar.gz` |
+
+The same workflow publishes these SLT-only Flite companions:
+
+| Platform | Companion archive |
+|---|---|
+| Linux x64 | `omnivox-VERSION-flite-linux-x64.tar.gz` |
+| Linux ARM64 | `omnivox-VERSION-flite-linux-arm64.tar.gz` |
+| macOS Apple Silicon | `omnivox-VERSION-flite-macos-arm64.tar.gz` |
+| macOS Intel | `omnivox-VERSION-flite-macos-x64.tar.gz` |
+| Windows x64 | `omnivox-VERSION-flite-windows-x64.zip` |
+| Windows ARM64 | `omnivox-VERSION-flite-windows-arm64.zip` |
+| All six | `omnivox-VERSION-flite-source.tar.gz` |
 
 Releases also publish one `sha256sums.txt` covering every generic, companion,
 and source archive. The workflow does **not** publish Linux ARM64 or Windows
@@ -71,7 +84,11 @@ The release version and archive prefix come from the tag name with its leading
 - Non-empty canonical WAV synthesis through eSpeak on Linux x64; through eSpeak
   and WinRT on Windows x64 and ARM64; and through eSpeak and
   AVSpeechSynthesizer on macOS ARM64 and x64.
-- Native companion staging, linkage, relocation, persistent synthesis,
+- Native Flite companion builds, archives, relocation, repeated SLT synthesis,
+  ACSS reporting, cancellation, and shutdown on Linux x64/ARM64, macOS
+  Intel/Apple Silicon, and Windows x64/ARM64, plus the exact deterministic
+  source artifact and offline source preparation.
+- Native Piper companion staging, linkage, relocation, persistent synthesis,
   cancellation, missing/corrupt-model fallback, and exact draft-asset Piper
   synthesis on Linux x64, Windows x64, and macOS ARM64/x64.
 - The exact deterministic Piper source/build-input artifact, including its Git
@@ -123,10 +140,10 @@ Set-Location omnivox-release
 
 An empty checksum lookup is an error: confirm that the archive and checksum
 file came from the same release. After extraction, keep the binary,
-`espeak-ng-data`, and `third-party-licenses` together. Keep the matching adapter
-from the same release as well. `LICENSE` and `LICENSING.md` document the source
-and combined-binary distribution terms; preserve them with redistributed
-copies.
+`espeak-ng-data`, `third-party-licenses`, and `rhvoice` together. Keep the
+matching adapter from the same release as well. `LICENSE` and `LICENSING.md`
+document the source and combined-binary distribution terms; preserve them with
+redistributed copies.
 
 On Linux or macOS, place `omnivox` in a directory on `PATH` and make it
 executable. Linux also requires compatible system C++, GCC, glibc, and ALSA
@@ -136,11 +153,13 @@ runtime libraries:
 binary_directory="$HOME/.local/bin"
 adapter_directory="$HOME/.emacs.d/lisp/omnivox"
 mkdir -p "$binary_directory/espeak-ng-data" \
-  "$binary_directory/third-party-licenses" "$adapter_directory"
+  "$binary_directory/third-party-licenses" \
+  "$binary_directory/rhvoice" "$adapter_directory"
 install -m 755 omnivox "$binary_directory/omnivox"
 install -m 644 omnivox-voices.el "$adapter_directory/omnivox-voices.el"
 cp -R espeak-ng-data/. "$binary_directory/espeak-ng-data/"
 cp -R third-party-licenses/. "$binary_directory/third-party-licenses/"
+cp -R rhvoice/. "$binary_directory/rhvoice/"
 ```
 
 On Windows, copy the extracted payload together into the Emacspeak
@@ -153,19 +172,26 @@ $destination = "$env:USERPROFILE\.emacspeak\servers"
 $directories = @(
   $destination,
   "$destination\espeak-ng-data",
-  "$destination\third-party-licenses"
+  "$destination\third-party-licenses",
+  "$destination\rhvoice"
 )
 New-Item -ItemType Directory -Force $directories | Out-Null
 Copy-Item -Force omnivox.exe, omnivox-voices.el $destination
 Copy-Item -Recurse -Force espeak-ng-data\* "$destination\espeak-ng-data"
 Copy-Item -Recurse -Force third-party-licenses\* "$destination\third-party-licenses"
+Copy-Item -Recurse -Force rhvoice\* "$destination\rhvoice"
 ```
 
 For a release that lists Piper, verify and extract the matching companion into
 the generic executable's directory; its one top-level `piper/` directory keeps
 the runtime isolated. Supply a separately reviewed voice model and follow the
 [Piper companion guide](../docs/PIPER.md). Other optional helper engines still
-require adjacent executables and user-supplied proprietary runtimes. The
+require adjacent executables and user-supplied runtimes. For Flite, extract the
+matching companion's `flite/` directory beside the generic executable; its
+built-in SLT voice requires no additional runtime. See the
+[Flite companion guide](../docs/FLITE.md). The generic `rhvoice/` helper still
+requires a separately installed compatible runtime and voice; see the
+[RHVoice guide](../docs/RHVOICE.md). The
 [Windows helper guide](../windows-helpers/README.md#runtime-requirements-and-installation)
 documents the complete Eloquence and DECtalk requirements, the durable DECtalk
 binary, and the separately labelled newer-build path.
@@ -257,7 +283,7 @@ or cancellation at the speaker.
 - Code signing/notarization is not part of the workflow; see the installation
   warning above.
 - Linux ARM64 artifacts and broad Linux distribution compatibility tests are
-  absent.
+  absent for the generic server. Linux ARM64 Flite has a native companion job.
 - Optional helper/model packaging is separate from generic release archives.
 - Performance/onset and real proprietary-engine smoke tests are not CI gates.
 - Physical audible checks use commit-equivalent pre-tag builds; the workflow

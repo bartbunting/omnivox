@@ -93,8 +93,10 @@ for ownership and data flow.
 native archives for Linux x64, macOS Apple Silicon and Intel, and Windows x64
 and ARM64. Archives produced by the current workflow contain the executable,
 the matching generated `espeak-ng-data`, project and third-party licensing
-files, and the upstream Emacspeak adapter. A `sha256sums.txt` file is published
-alongside them. Published release `v1.4.1` predates the root `LICENSE` and
+files, the portable RHVoice helper (without its runtime or voices), and the
+upstream Emacspeak adapter. Separate Flite companions cover Linux x64/ARM64,
+macOS Intel/Apple Silicon, and Windows x64/ARM64. A `sha256sums.txt` file is
+published alongside them. Published release `v1.4.1` predates the root `LICENSE` and
 `LICENSING.md` archive entries; those files are included beginning with the
 next release. Linux ARM64 is not currently published or CI-verified.
 
@@ -322,8 +324,8 @@ limitations, or [ENV-VARS.md](docs/ENV-VARS.md) for configuration.
 Omnivox-authored source is available under the [MIT License](LICENSE), except
 where a file carries another notice. The
 [component licensing map](docs/LICENSING.md) explains the separately licensed
-Emacspeak adapter, eSpeak NG, optional Piper integration, proprietary runtimes,
-and other dependencies.
+Emacspeak adapter, eSpeak NG, optional Flite and Piper integrations,
+proprietary runtimes, and other dependencies.
 
 Distributed executables statically incorporate GPL-3.0-or-later eSpeak NG and
 must be conveyed in compliance with the applicable terms for that combined

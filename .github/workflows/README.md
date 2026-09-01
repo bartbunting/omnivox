@@ -1,6 +1,7 @@
 # GitHub Actions Workflow
 
-[`build.yml`](build.yml) is the authoritative generic and Piper release matrix.
+[`build.yml`](build.yml) is the authoritative generic, Flite, and Piper release
+matrix.
 [`piper-native.yml`](piper-native.yml) is a manual, non-publishing validation
 workflow for the optional Piper companion. User-facing artifact and
 installation details are in [../DEPLOYMENT.md](../DEPLOYMENT.md).
@@ -33,10 +34,12 @@ Builds locked release binaries for five targets:
 
 The Linux x64 artifact establishes Ubuntu 24.04 as its glibc and C++ runtime
 build baseline. macOS and Windows use a native runner for each architecture.
-Every artifact contains the main executable, `elisp/omnivox-voices.el`, the
+Every artifact contains the main executable, the portable RHVoice helper,
+`elisp/omnivox-voices.el`, the
 matching generated `espeak-ng-data`, `LICENSE`, `LICENSING.md`, and third-party
-notices. The build wrapper derives that data from the exact `espeak-rs-sys`
-output reported by Cargo.
+notices. It does not contain the RHVoice runtime or voice data. The build
+wrapper derives eSpeak data from the exact `espeak-rs-sys` output reported by
+Cargo.
 
 The main executable enables optional Piper helper discovery on every target.
 This does not link libpiper into the server or add the companion to a generic
@@ -69,6 +72,23 @@ macOS x64. Each job performs the same locked-input, native Clippy, relocation,
 25-synthesis, cancellation, real-synthesis, and fallback checks as the manual
 workflow. The CI model remains outside every uploaded artifact.
 
+### `build_flite`
+
+Every push, pull request, and release build compiles, tests, lints, stages,
+packages, relocates, and exercises the SLT-only Flite companion on six native
+runners: Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows x64/ARM64.
+Each helper performs 25 syntheses, reports rate/pitch/volume support, accepts an
+in-flight cancellation, remains responsive, and shuts down cleanly. The
+archive contains Flite's full licence and exact source provenance but no
+external `.flitevox` files.
+
+### `package_flite_source`
+
+The tag-only source job creates and verifies
+`omnivox-VERSION-flite-source.tar.gz`. It contains the exact tagged Omnivox
+tree, checksum-locked upstream Flite v2.2 archive, provenance, and an exhaustive
+manifest. Verification reconstructs the prepared Flite source offline.
+
 ### `package_piper_source_release`
 
 The tag-only source job creates and verifies the platform-neutral
@@ -79,11 +99,11 @@ archives used by the four companions.
 ### `package_release`
 
 Runs only for refs beginning `refs/tags/v` and depends on successful format,
-generic build/test, four Piper build, and Piper source jobs. It rejects a tag
+generic build/test, six Flite builds, four Piper builds, and both source jobs.
+It rejects a tag
 that does not match the compiled Linux binary version, restores Unix executable
 modes after the Actions artifact round-trip, creates five generic archives,
-adds four companions and the source archive, and writes one exhaustive SHA-256
-file.
+adds all companion and source archives, and writes one exhaustive SHA-256 file.
 
 ### `create_draft_release`
 
@@ -111,13 +131,22 @@ missing/corrupt-model fallback. The source verifier downloads the exact large
 source asset and repeats Git-tree, manifest, input-lock, model-exclusion, and
 offline Cargo checks from a checkout of the release tag.
 
+### `verify_flite_release` and `verify_flite_source_release`
+
+Six native runners download their exact Flite assets from the draft, recheck
+layout, architecture, payload hashes, relocation, ACSS reporting, 25 real SLT
+syntheses, cancellation, and shutdown. The source verifier downloads the exact
+source artifact and repeats its manifest, Git-tree, source-lock, and offline
+preparation checks from the release tag.
+
 ### `publish_release`
 
-Publishes the draft only after every generic, Piper, and source verification
-passes. Any failure leaves the release as a draft for inspection.
+Publishes the draft only after every generic, Flite, Piper, and source
+verification passes. Any failure leaves the release as a draft for inspection.
 
-The release does not package voice models, Eloquence or DECtalk helpers,
-proprietary DLLs, or proprietary dictionaries.
+The release does not package voice models, external Flite voices, Eloquence or
+DECtalk helpers, proprietary DLLs, or proprietary dictionaries. Generic
+archives contain the RHVoice helper but not an RHVoice runtime or voice data.
 
 ### Piper native validation
 
@@ -148,7 +177,7 @@ release tag.
 ```text
 push to main       format + build + test
 pull request main  format + build + test
-v* tag             generic/Piper/source + draft + verify + publish
+v* tag             generic/Flite/Piper/source + draft + verify + publish
 manual main ref    format + build + test
 manual v* tag ref  format + build + test + package + draft + verify + publish
 manual Piper flow  native companion package and verification; never publishes

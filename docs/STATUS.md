@@ -142,6 +142,13 @@ candidates on Linux x64, Windows x64, and both macOS architectures. Tag builds
 instead require the corresponding-source artifact and exact draft-asset
 verification before publication. Release binaries remain unsigned.
 
+The Flite workflow has native build and release gates for Linux x64/ARM64,
+macOS Intel/Apple Silicon, and Windows x64/ARM64. Each gate compiles and lints
+the same pinned C/Rust boundary, verifies the relocated archive, performs 25
+SLT syntheses, exercises cancellation and shutdown, and uploads no external
+voice file. Publication also requires the exact Flite source artifact to pass
+its manifest, Git-tree, source-lock, and offline-preparation checks.
+
 ## Validation
 
 The supported local gates are:

@@ -23,6 +23,7 @@ class VerificationError(RuntimeError):
 
 
 LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES = {"1.4.1"}
+FIRST_RELEASE_WITH_RHVOICE_HELPER = (1, 5, 1)
 
 
 def require(condition: bool, message: str) -> None:
@@ -141,6 +142,9 @@ def verify_layout(root: Path, platform: str, version: str) -> Path:
     }
     if version not in LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES:
         expected_root.update(project_license_entries)
+    version_numbers = tuple(int(value) for value in version.split("-", 1)[0].split(".")[:3])
+    if version_numbers >= FIRST_RELEASE_WITH_RHVOICE_HELPER:
+        expected_root.add("rhvoice")
     actual_root = {path.name for path in root.iterdir()}
     allowed_roots = {frozenset(expected_root)}
     if version in LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES:
@@ -203,6 +207,22 @@ def verify_layout(root: Path, platform: str, version: str) -> Path:
         if package_version != version
     )
     require(not wrong_versions, f"packaged workspace version mismatch: {wrong_versions}")
+
+    if "rhvoice" in actual_root:
+        helper_name = (
+            "omnivox-rhvoice-helper.exe"
+            if platform == "windows"
+            else "omnivox-rhvoice-helper"
+        )
+        rhvoice = root / "rhvoice"
+        require(
+            {path.name for path in rhvoice.iterdir()} == {helper_name},
+            "RHVoice helper directory is incomplete or unexpected",
+        )
+        helper = rhvoice / helper_name
+        require(helper.stat().st_size > 0, "RHVoice helper is empty")
+        if platform != "windows":
+            require(helper.stat().st_mode & 0o111 != 0, "RHVoice helper is not executable")
     return binary
 
 
@@ -394,6 +414,20 @@ def verify(arguments: argparse.Namespace) -> None:
         extract_archive(archive, extracted, arguments.platform)
         binary = verify_layout(extracted, arguments.platform, arguments.version)
         verify_architecture(binary, arguments.platform, arguments.arch)
+        rhvoice_helpers = list((extracted / "rhvoice").glob("omnivox-rhvoice-helper*"))
+        if rhvoice_helpers:
+            require(len(rhvoice_helpers) == 1, "ambiguous RHVoice helper payload")
+            verify_architecture(rhvoice_helpers[0], arguments.platform, arguments.arch)
+            if arguments.platform == "linux":
+                dependencies = run(
+                    ["ldd", str(rhvoice_helpers[0].resolve())],
+                    working,
+                    clean_environment(),
+                )
+                require(
+                    "not found" not in dependencies,
+                    f"RHVoice helper has unresolved dependencies:\n{dependencies}",
+                )
         if engines:
             verify_execution(binary, arguments.version, engines, working, arguments.platform)
 

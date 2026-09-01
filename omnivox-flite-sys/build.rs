@@ -16,7 +16,6 @@ const FLITE_SOURCES: &[&str] = &[
     "src/utils/cst_args.c",
     "src/utils/cst_url.c",
     "src/utils/cst_file_stdio.c",
-    "src/utils/cst_mmap_none.c",
     "src/regex/cst_regex.c",
     "src/regex/regexp.c",
     "src/regex/regsub.c",
@@ -126,6 +125,7 @@ fn main() {
         .map(PathBuf::from)
         .unwrap_or_else(|| repository.join("target/flite-inputs/2.2/source"));
     let wrapper = manifest.join("native/omnivox_flite.c");
+    let target_family = env::var("CARGO_CFG_TARGET_FAMILY").unwrap();
 
     require_file(&source.join("COPYING"));
     require_file(&source.join("lang/cmu_us_slt/cmu_us_slt.c"));
@@ -139,6 +139,17 @@ fn main() {
         .define("_CRT_SECURE_NO_WARNINGS", None)
         .flag_if_supported("-std=c99")
         .file(&wrapper);
+
+    let mmap_source = if target_family == "windows" {
+        build.define("WIN32", None);
+        "src/utils/cst_mmap_win32.c"
+    } else {
+        "src/utils/cst_mmap_none.c"
+    };
+    let mmap_path = source.join(mmap_source);
+    require_file(&mmap_path);
+    println!("cargo:rerun-if-changed={}", mmap_path.display());
+    build.file(mmap_path);
 
     for include in INCLUDE_DIRECTORIES {
         build.include(source.join(include));
@@ -158,7 +169,7 @@ fn main() {
     );
     build.compile("omnivox_flite");
 
-    if env::var("CARGO_CFG_TARGET_FAMILY").as_deref() == Ok("unix") {
+    if target_family == "unix" {
         println!("cargo:rustc-link-lib=m");
     }
 }

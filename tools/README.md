@@ -54,6 +54,17 @@ Set `OMNIVOX_FLITE_INPUTS_DIR` to use a different verified cache. See the
 [Flite companion guide](../docs/FLITE.md) for installation and optional local
 voice configuration.
 
+`package_flite.py` and `verify_flite_release.py` create and verify a
+deterministic native `.tar.gz` or `.zip`, including safe relocation and real
+SLT synthesis. `package_flite_source.py` and `verify_flite_source.py` create
+the platform-neutral upstream-source/build-integration artifact and recheck
+its exhaustive manifest, Git tree, input lock, and offline preparation:
+
+```sh
+make verify-flite
+make verify-flite-source
+```
+
 `build_piper.py` builds the optional helper in relocatable mode, selects the
 native Linux x64, Windows x64, or macOS ARM64/x64 library layout, and
 atomically stages the companion as `piper/` beside the Cargo profile output.

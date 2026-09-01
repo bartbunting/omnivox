@@ -11,6 +11,7 @@ import sys
 import tarfile
 import tempfile
 
+sys.dont_write_bytecode = True
 from prepare_piper_inputs import (
     PreparationError,
     download,
