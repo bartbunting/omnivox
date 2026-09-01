@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite install-flite prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
+.PHONY: all build test elisp-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite package-flite verify-flite package-flite-source verify-flite-source install-flite prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -113,6 +113,18 @@ stage-flite-dev:
 	$(PYTHON) tools/build_flite.py
 
 build-flite: stage-flite
+
+package-flite: stage-flite
+	$(PYTHON) tools/package_flite.py
+
+verify-flite: package-flite
+	$(PYTHON) tools/verify_flite_release.py
+
+package-flite-source:
+	$(PYTHON) tools/package_flite_source.py
+
+verify-flite-source: package-flite-source
+	$(PYTHON) tools/verify_flite_source.py
 
 install-flite: install
 
