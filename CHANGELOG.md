@@ -6,8 +6,6 @@ Versioning for published releases.
 
 ## [Unreleased]
 
-## [1.5.1] - 2026-09-01
-
 ### Added
 
 - Added isolated RHVoice and Flite helpers with a shared bounded helper host.
@@ -17,6 +15,20 @@ Versioning for published releases.
 - Added checksum-locked Flite source preparation, portable GCC/Clang/MSVC
   builds, atomic companion staging, full upstream licensing, provenance,
   payload checksums, real synthesis tests, and helper-session stress coverage.
+
+### Fixed
+
+- DECtalk cancellation received after request acceptance but before native
+  dispatch now prevents synthesis instead of allowing the cancelled request to
+  reach the native runtime.
+
+### Documentation
+
+- Documented RHVoice installation/runtime discovery and the Flite SLT
+  companion's installation, source build, optional voice files, platform
+  acceptance, verification, licensing, and removal.
+
+## [1.5.1] - 2026-09-01
 
 ### Changed
 
@@ -42,9 +54,6 @@ Versioning for published releases.
   installation paths, including the durable DECtalk release and a separately
   labelled newer development build without treating it as a distributable or
   default-pinned runtime.
-- Documented RHVoice installation/runtime discovery and the Flite SLT
-  companion's installation, source build, optional voice files, platform
-  acceptance, verification, licensing, and removal.
 
 ## [1.5.0] - 2026-08-31
 
