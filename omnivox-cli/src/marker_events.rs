@@ -21,6 +21,7 @@ use crate::lifecycle::RequestLifecycle;
 
 const MAX_QUEUED_MARKER_EVENTS: usize = 8 * 1024;
 const MAX_QUEUED_MARKER_BYTES: usize = 16 * 1024 * 1024;
+const MAX_PROGRESSIVE_MARKERS: usize = 4096;
 const MARKER_RESERVATION_POLL_INTERVAL: Duration = Duration::from_millis(25);
 
 #[derive(Clone, Copy)]
@@ -567,6 +568,9 @@ impl MarkerDispatchContext {
             events: Arc::new(events),
             output: self.output.clone(),
             lifecycle: self.lifecycle.clone(),
+            dispatch_id: self.dispatch_id,
+            protocol_version: self.protocol_version,
+            utterance_id,
         }
     }
 }
@@ -590,6 +594,96 @@ pub struct PreparedMarkerPlayback {
     events: Arc<Vec<Arc<MarkerEventEnvelope>>>,
     output: MarkerEventOutput,
     lifecycle: Option<RequestLifecycle>,
+    dispatch_id: u64,
+    protocol_version: u32,
+    utterance_id: u64,
+}
+
+/// Producer-side state for adding pre-reserved marker records to a progressive
+/// playback source before audio crosses their frame offsets.
+pub(crate) struct ProgressiveMarkerPublisher {
+    dispatch_id: u64,
+    protocol_version: u32,
+    utterance_id: u64,
+    events: Arc<Mutex<Vec<Option<ReservedMarkerRecord>>>>,
+    output: MarkerEventOutput,
+    marker_count: usize,
+    last_frame_offset: Option<u64>,
+}
+
+impl ProgressiveMarkerPublisher {
+    pub(crate) fn push_markers<P>(
+        &mut self,
+        marker_dispatch: &MarkerDispatchContext,
+        producer: &mut ProgressivePlaybackProducer,
+        markers: Vec<SynthesisMarker>,
+        predicate: P,
+    ) -> Result<bool, AudioError>
+    where
+        P: Fn() -> bool,
+    {
+        if markers.is_empty() {
+            return Err(AudioError::InvalidFormat(
+                "progressive marker batch is empty".to_owned(),
+            ));
+        }
+        if marker_dispatch.dispatch_id != self.dispatch_id
+            || marker_dispatch.protocol_version != self.protocol_version
+        {
+            return Err(AudioError::InvalidFormat(
+                "progressive markers used a different dispatch context".to_owned(),
+            ));
+        }
+        self.marker_count = self
+            .marker_count
+            .checked_add(markers.len())
+            .filter(|count| *count <= MAX_PROGRESSIVE_MARKERS)
+            .ok_or_else(|| {
+                AudioError::InvalidFormat(format!(
+                    "progressive utterance exceeds the {MAX_PROGRESSIVE_MARKERS}-marker limit"
+                ))
+            })?;
+
+        let mut envelopes = Vec::with_capacity(markers.len());
+        let mut cues = Vec::with_capacity(markers.len());
+        let first_identifier = self.events.lock().unwrap().len() as u64;
+        for (index, marker) in markers.into_iter().enumerate() {
+            if self
+                .last_frame_offset
+                .is_some_and(|offset| marker.frame_offset < offset)
+            {
+                return Err(AudioError::InvalidFormat(
+                    "progressive markers are out of playback order".to_owned(),
+                ));
+            }
+            self.last_frame_offset = Some(marker.frame_offset);
+            envelopes.push(Arc::new(MarkerEventEnvelope {
+                protocol_version: self.protocol_version,
+                dispatch_id: self.dispatch_id,
+                sequence: increment(&marker_dispatch.next_sequence),
+                event: MarkerEvent::MarkerReached {
+                    utterance_id: self.utterance_id,
+                    marker,
+                },
+            }));
+            cues.push(PlaybackCue {
+                frame_offset: self.last_frame_offset.unwrap(),
+                identifier: first_identifier.checked_add(index as u64).ok_or_else(|| {
+                    AudioError::InvalidFormat("progressive marker identifier overflowed".to_owned())
+                })?,
+            });
+        }
+        let records = self.output.format_events(&envelopes)?;
+        let Some(records) = self.output.reserve_marker_records(records, &predicate)? else {
+            return Ok(false);
+        };
+        self.events
+            .lock()
+            .unwrap()
+            .extend(records.into_iter().map(Some));
+        producer.push_cues(cues)?;
+        Ok(true)
+    }
 }
 
 impl PreparedMarkerPlayback {
@@ -625,7 +719,14 @@ impl PreparedMarkerPlayback {
         control: &AudioControl,
         cancellation: CancellationToken,
         predicate: F,
-    ) -> Result<Option<(ProgressivePlaybackProducer, PlaybackTicket)>, AudioError>
+    ) -> Result<
+        Option<(
+            ProgressivePlaybackProducer,
+            PlaybackTicket,
+            ProgressiveMarkerPublisher,
+        )>,
+        AudioError,
+    >
     where
         F: Fn() -> bool,
     {
@@ -633,8 +734,10 @@ impl PreparedMarkerPlayback {
         let Some(events) = self.output.reserve_marker_records(records, &predicate)? else {
             return Ok(None);
         };
-        let mut events = events.into_iter().map(Some).collect::<Vec<_>>();
+        let events = Arc::new(Mutex::new(events.into_iter().map(Some).collect::<Vec<_>>()));
+        let callback_events = Arc::clone(&events);
         let output = self.output;
+        let callback_output = output.clone();
         let lifecycle = self.lifecycle.clone();
         let on_cue = move |cue: PlaybackCue| {
             if cue.identifier == 0 {
@@ -642,11 +745,13 @@ impl PreparedMarkerPlayback {
                     lifecycle.record_mixer_source_started();
                 }
             }
-            if let Some(event) = events
+            let event = callback_events
+                .lock()
+                .unwrap()
                 .get_mut(cue.identifier as usize)
-                .and_then(Option::take)
-            {
-                output.emit(event);
+                .and_then(Option::take);
+            if let Some(event) = event {
+                callback_output.emit(event);
             }
         };
         let queue_attempted_at = Instant::now();
@@ -664,7 +769,19 @@ impl PreparedMarkerPlayback {
             return Ok(None);
         };
         producer.push_cues(self.cues)?;
-        Ok(Some((producer, ticket)))
+        Ok(Some((
+            producer,
+            ticket,
+            ProgressiveMarkerPublisher {
+                dispatch_id: self.dispatch_id,
+                protocol_version: self.protocol_version,
+                utterance_id: self.utterance_id,
+                events,
+                output,
+                marker_count: 0,
+                last_frame_offset: None,
+            },
+        )))
     }
 
     fn queue_if_with_cancellation<F>(
@@ -751,6 +868,8 @@ fn push_event(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use omnivox_audio::{AudioBackend, AudioStreams, PlaybackStatus};
+    use omnivox_tts::marker_protocol::{decode_marker_event, MARKER_EVENT_PREFIX};
     use omnivox_tts::SynthesisMarkerKind;
 
     #[derive(Clone, Default)]
@@ -962,6 +1081,59 @@ mod tests {
                 ..
             } if degraded_acss == &[AcssDimension::Richness]
                 && degraded_effects == &[PostSynthesisDimension::Echo]
+        ));
+    }
+
+    #[test]
+    fn progressive_markers_are_reserved_before_their_audio_and_reach_the_reporter() {
+        let writer = RecordingWriter::default();
+        let written = writer.bytes.clone();
+        let (output, reporter) = spawn_marker_event_reporter_with_writer(writer);
+        let context = MarkerDispatchContext::new(93, output);
+        let prepared = context.prepare_utterance("hello", "helper", None, None, 44100, 0, &[], &[]);
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let (mut producer, ticket, mut publisher) = prepared
+            .queue_progressive_cancellable_if(&control, CancellationToken::new(), || true)
+            .unwrap()
+            .unwrap();
+
+        assert!(publisher
+            .push_markers(&context, &mut producer, vec![marker(1, "hello")], || true)
+            .unwrap());
+        producer
+            .push_audio(AudioBuffer::new(vec![0.1, -0.1, 0.2, -0.2]))
+            .unwrap();
+        producer.finish().unwrap();
+
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+        control.drain();
+        drop(publisher);
+        drop(context);
+        drop(control);
+        drop(streams);
+        reporter.join().unwrap();
+
+        let records = String::from_utf8(written.lock().unwrap().clone()).unwrap();
+        let events = records
+            .lines()
+            .map(|record| {
+                let payload = record
+                    .strip_prefix(MARKER_EVENT_PREFIX)
+                    .unwrap()
+                    .trim_start();
+                decode_marker_event(payload).unwrap()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].sequence, 1);
+        assert_eq!(events[1].sequence, 2);
+        assert!(matches!(
+            events[1].event,
+            MarkerEvent::MarkerReached {
+                ref marker,
+                utterance_id: 1,
+            } if marker.frame_offset == 1 && marker.value.as_deref() == Some("hello")
         ));
     }
 

@@ -14,8 +14,8 @@ use omnivox_core::timeline::{
 };
 use omnivox_core::{ChannelMode, QueueItem, TonePlacement, TtsState};
 use omnivox_tts::contracts::{
-    apply_rate_offset, AcssDimension, AudioOutputMode, MarkerCapabilities, NormalizedAcss,
-    PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle,
+    apply_rate_offset, AcssDimension, AudioOutputMode, NormalizedAcss, PhysicalVoiceId,
+    PostSynthesisDimension, PostSynthesisStyle,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::timeline_protocol::{
@@ -30,7 +30,7 @@ use omnivox_tts::{
     SynthesisStreamSink, SynthesisStreamStart, TtsEngine, TtsError, TtsSettings,
     MAX_SYNTHESIS_ANCHORS,
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -41,6 +41,7 @@ use crate::health::RuntimeEngineHealth;
 use crate::lifecycle::RequestLifecycle;
 use crate::marker_events::{
     MarkerDispatchContext, PlaybackSemanticEvent, PlaybackTimelineResolution,
+    ProgressiveMarkerPublisher,
 };
 use crate::routing::{
     legacy_voice_for_engine, LogicalRoute, LogicalVoiceRoutingSnapshot, RuntimeSynthesisOutcome,
@@ -1040,6 +1041,10 @@ struct ProgressiveChunkSink<'a, 'ctx> {
     start: Option<SynthesisStreamStart>,
     trimmer: Option<ProgressiveSilenceTrimmer>,
     producer: Option<ProgressivePlaybackProducer>,
+    marker_publisher: Option<ProgressiveMarkerPublisher>,
+    pending_markers: VecDeque<SynthesisMarker>,
+    marker_count: usize,
+    last_marker_offset: Option<u64>,
     ticket: Option<PlaybackTicket>,
 }
 
@@ -1067,6 +1072,10 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             start: None,
             trimmer: None,
             producer: None,
+            marker_publisher: None,
+            pending_markers: VecDeque::new(),
+            marker_count: 0,
+            last_marker_offset: None,
             ticket: None,
         }
     }
@@ -1084,7 +1093,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                 .cancellation
                 .cloned()
                 .unwrap_or_else(SynthesisCancellationToken::new);
-            let queued = if let Some(marker_dispatch) = self.ctx.marker_dispatch {
+            if let Some(marker_dispatch) = self.ctx.marker_dispatch {
                 let prepared = if marker_dispatch.supports_timeline_events() {
                     marker_dispatch.prepare_timeline_utterance(
                         self.utterance_text,
@@ -1111,34 +1120,97 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                         &[],
                     )
                 };
-                prepared.queue_progressive_cancellable_if(self.ctx.control, cancellation, || {
-                    !self.ctx.is_stale()
-                })
+                let queued = prepared
+                    .queue_progressive_cancellable_if(self.ctx.control, cancellation, || {
+                        !self.ctx.is_stale()
+                    })
+                    .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+                let Some((producer, ticket, marker_publisher)) = queued else {
+                    return Err(TtsError::SynthesisFailed(
+                        "progressive playback was superseded before queueing".to_owned(),
+                    ));
+                };
+                self.producer = Some(producer);
+                self.marker_publisher = Some(marker_publisher);
+                self.ticket = Some(ticket);
             } else {
                 let queued_at = Instant::now();
-                let result = self
+                let queued = self
                     .ctx
                     .control
                     .queue_progressive_speech_with_cue_callback_cancellable_if(
                         |_| {},
                         cancellation,
                         || !self.ctx.is_stale(),
-                    );
-                if matches!(result, Ok(Some(_))) {
+                    )
+                    .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+                if queued.is_some() {
                     self.ctx.lifecycle.record_audio_queued_at(queued_at);
                 }
-                result
+                let Some((producer, ticket)) = queued else {
+                    return Err(TtsError::SynthesisFailed(
+                        "progressive playback was superseded before queueing".to_owned(),
+                    ));
+                };
+                self.producer = Some(producer);
+                self.ticket = Some(ticket);
             }
-            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
-            let Some((producer, ticket)) = queued else {
-                return Err(TtsError::SynthesisFailed(
-                    "progressive playback was superseded before queueing".to_owned(),
-                ));
-            };
-            self.producer = Some(producer);
-            self.ticket = Some(ticket);
         }
         Ok(self.producer.as_mut().unwrap())
+    }
+
+    fn publish_markers_through(
+        &mut self,
+        output_frame: u64,
+        final_report: Option<&SilenceTrimReport>,
+    ) -> Result<(), TtsError> {
+        let Some(marker_dispatch) = self.ctx.marker_dispatch else {
+            self.pending_markers.clear();
+            return Ok(());
+        };
+        let removed_leading = self
+            .trimmer
+            .as_ref()
+            .and_then(ProgressiveSilenceTrimmer::removed_leading_frames);
+        if removed_leading.is_none() && final_report.is_none() {
+            return Ok(());
+        }
+        let removed_leading = removed_leading.unwrap_or(0) as u64;
+        let mut ready = Vec::new();
+        while let Some(marker) = self.pending_markers.front() {
+            let mapped = final_report.map_or_else(
+                || marker.frame_offset.saturating_sub(removed_leading),
+                |report| report.map_frame_offset(marker.frame_offset),
+            );
+            if mapped > output_frame {
+                break;
+            }
+            let mut marker = self.pending_markers.pop_front().unwrap();
+            marker.frame_offset = mapped;
+            ready.push(marker);
+        }
+        if ready.is_empty() {
+            return Ok(());
+        }
+        let producer = self.producer.as_mut().ok_or_else(|| {
+            TtsError::SynthesisFailed(
+                "progressive markers became playable before audio was queued".to_owned(),
+            )
+        })?;
+        let publisher = self.marker_publisher.as_mut().ok_or_else(|| {
+            TtsError::SynthesisFailed(
+                "progressive marker dispatch was not prepared before audio".to_owned(),
+            )
+        })?;
+        if !publisher
+            .push_markers(marker_dispatch, producer, ready, || !self.ctx.is_stale())
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?
+        {
+            return Err(TtsError::SynthesisFailed(
+                "progressive marker playback was superseded".to_owned(),
+            ));
+        }
+        Ok(())
     }
 
     fn process_audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
@@ -1161,7 +1233,20 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
         let unexpected_tail = process_effect_window(&mut audio, &self.effects, false, self.ctx)
             .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
         debug_assert!(unexpected_tail.is_none());
-        self.ensure_playback()?
+        self.ensure_playback()?;
+        let output_frame = self
+            .producer
+            .as_ref()
+            .unwrap()
+            .published_frames()
+            .checked_add(audio.frame_count() as u64)
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed("progressive playback frame count overflowed".to_owned())
+            })?;
+        self.publish_markers_through(output_frame, None)?;
+        self.producer
+            .as_mut()
+            .unwrap()
             .push_audio(audio)
             .map_err(|error| TtsError::SynthesisFailed(error.to_string()))
     }
@@ -1186,6 +1271,14 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                 report.input_frames, completion.frame_count
             )));
         }
+        if self
+            .last_marker_offset
+            .is_some_and(|offset| offset > completion.frame_count)
+        {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine marker exceeds the completed PCM".to_owned(),
+            ));
+        }
         build_speech_output_pipeline(self.state)
             .process(&mut tail)
             .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
@@ -1196,8 +1289,21 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             self.ctx,
         )
         .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        if report.output_frames > 0 {
+            self.ensure_playback()?;
+            self.publish_markers_through(report.output_frames as u64, Some(&report))?;
+        } else {
+            self.pending_markers.clear();
+        }
+        if !self.pending_markers.is_empty() {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine left markers beyond completed playback".to_owned(),
+            ));
+        }
         if !tail.is_empty() {
-            self.ensure_playback()?
+            self.producer
+                .as_mut()
+                .unwrap()
                 .push_audio(tail)
                 .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
         }
@@ -1253,9 +1359,41 @@ impl SynthesisStreamSink for ProgressiveChunkSink<'_, '_> {
         if markers.is_empty() && anchors.is_empty() {
             return Ok(());
         }
-        Err(TtsError::SynthesisFailed(
-            "marker-capable progressive playback is not enabled for this route".to_owned(),
-        ))
+        if !anchors.is_empty() {
+            return Err(TtsError::SynthesisFailed(
+                "requested-anchor progressive playback is not enabled for this route".to_owned(),
+            ));
+        }
+        if self.start.is_none() {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine emitted markers before stream metadata".to_owned(),
+            ));
+        }
+        if self.ctx.marker_dispatch.is_none() {
+            return Ok(());
+        }
+        self.marker_count = self
+            .marker_count
+            .checked_add(markers.len())
+            .filter(|count| *count <= 4096)
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(
+                    "progressive engine emitted more than 4096 markers".to_owned(),
+                )
+            })?;
+        for marker in &markers {
+            if self
+                .last_marker_offset
+                .is_some_and(|offset| marker.frame_offset < offset)
+            {
+                return Err(TtsError::SynthesisFailed(
+                    "progressive engine markers are out of order".to_owned(),
+                ));
+            }
+            self.last_marker_offset = Some(marker.frame_offset);
+        }
+        self.pending_markers.extend(markers);
+        Ok(())
     }
 }
 
@@ -1266,7 +1404,6 @@ fn route_supports_initial_progressive_playback(
 ) -> bool {
     let descriptor = route.engine.descriptor();
     descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm
-        && descriptor.capabilities.markers == MarkerCapabilities::default()
         && anchors.is_empty()
         && ctx
             .timeline_renderer
