@@ -1,8 +1,8 @@
 //! Audio Effects
 //!
-//! Post-processing effects implementing the AudioEffect trait.
-//! The pipeline is extensible for future effects (phaser, echo,
-//! chorus, tremolo, reverb, pan).
+//! Stateless buffer-wide effects implementing the AudioEffect trait. Stateful
+//! presentation effects such as chorus, echo, and reverb live in the bounded
+//! post-synthesis processor.
 
 use crate::buffer::{AudioBuffer, SAMPLE_RATE};
 use crate::pipeline::AudioEffect;

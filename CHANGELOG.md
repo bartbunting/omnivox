@@ -6,6 +6,11 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Added bounded, duration-preserving post-synthesis chorus with persistent
+  render-window state and explicit per-engine capability reporting.
+
 ### Fixed
 
 - Draft Flite verification now installs Ubuntu 24.04's concrete ALSA runtime

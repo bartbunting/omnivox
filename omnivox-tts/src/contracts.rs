@@ -123,6 +123,7 @@ pub enum PostSynthesisDimension {
     LowPass,
     HighPass,
     Pan,
+    Chorus,
     Reverb,
     Echo,
 }
@@ -130,13 +131,14 @@ pub enum PostSynthesisDimension {
 /// Complete normalized state for Omnivox-owned post-synthesis processing.
 ///
 /// Present values are clamped to 0.0..=1.0. Neutral values are gain 0.5,
-/// low-pass 1.0, high-pass 0.0, pan 0.5, and zero reverb/echo.
+/// low-pass 1.0, high-pass 0.0, pan 0.5, and zero chorus/reverb/echo.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct PostSynthesisStyle {
     pub gain: Option<f32>,
     pub low_pass: Option<f32>,
     pub high_pass: Option<f32>,
     pub pan: Option<f32>,
+    pub chorus: Option<f32>,
     pub reverb: Option<f32>,
     pub echo: Option<f32>,
 }
@@ -147,6 +149,7 @@ impl PostSynthesisStyle {
         self.low_pass = self.low_pass.map(clamp_normalized);
         self.high_pass = self.high_pass.map(clamp_normalized);
         self.pan = self.pan.map(clamp_normalized);
+        self.chorus = self.chorus.map(clamp_normalized);
         self.reverb = self.reverb.map(clamp_normalized);
         self.echo = self.echo.map(clamp_normalized);
         self
@@ -165,6 +168,9 @@ impl PostSynthesisStyle {
         }
         if self.pan.is_some() {
             active.push(PostSynthesisDimension::Pan);
+        }
+        if self.chorus.is_some() {
+            active.push(PostSynthesisDimension::Chorus);
         }
         if self.reverb.is_some() {
             active.push(PostSynthesisDimension::Reverb);
@@ -200,6 +206,12 @@ impl PostSynthesisStyle {
         omit_post_synthesis(
             &mut style.pan,
             PostSynthesisDimension::Pan,
+            supported,
+            &mut omitted,
+        );
+        omit_post_synthesis(
+            &mut style.chorus,
+            PostSynthesisDimension::Chorus,
             supported,
             &mut omitted,
         );
@@ -245,6 +257,7 @@ pub fn buffered_post_synthesis_dimensions() -> Vec<PostSynthesisDimension> {
         PostSynthesisDimension::LowPass,
         PostSynthesisDimension::HighPass,
         PostSynthesisDimension::Pan,
+        PostSynthesisDimension::Chorus,
         PostSynthesisDimension::Reverb,
         PostSynthesisDimension::Echo,
     ]
@@ -660,6 +673,7 @@ mod tests {
         let application = PostSynthesisStyle {
             gain: Some(1.5),
             pan: Some(-1.0),
+            chorus: Some(2.0),
             reverb: Some(f32::NAN),
             ..PostSynthesisStyle::default()
         }
@@ -667,8 +681,12 @@ mod tests {
 
         assert_eq!(application.style.gain, Some(1.0));
         assert_eq!(application.style.pan, None);
+        assert_eq!(application.style.chorus, None);
         assert_eq!(application.style.reverb, Some(0.5));
-        assert_eq!(application.omitted, vec![PostSynthesisDimension::Pan]);
+        assert_eq!(
+            application.omitted,
+            vec![PostSynthesisDimension::Pan, PostSynthesisDimension::Chorus]
+        );
     }
 
     #[test]

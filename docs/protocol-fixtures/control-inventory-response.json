@@ -54,6 +54,7 @@
           "low_pass",
           "high_pass",
           "pan",
+          "chorus",
           "reverb",
           "echo"
         ],

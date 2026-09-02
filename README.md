@@ -75,7 +75,7 @@ release path independently stages and records its pinned runtime inputs.
 - Empirically calibrated, monotonic speech-rate mapping across measured
   engines, with truthful saturation at native limits.
 - Canonical stereo 44.1 kHz PCM processing, silence trimming, volume and
-  channel control, and post-synthesis filtering, reverb, and echo.
+  channel control, and post-synthesis filtering, chorus, reverb, and echo.
 - Structured Aural timelines with speech spans, inserted or overlaid audio and
   tones, semantic events, persistent effects, multipart transport, and tracked
   terminal status.

@@ -186,9 +186,11 @@ clients should normally omit it.
 - `end` returns to dry speech.
 
 The initial state is dry. Effect style may contain gain, low-pass, high-pass,
-pan, reverb, and echo. State continues across chunks, logical and physical
-voice changes, and engine fallback until replaced or ended. Effects requiring
-PCM degrade on an external-playback engine without causing text loss.
+pan, chorus, reverb, and echo. Chorus is duration-preserving; its normalized
+amount controls a bounded modulated delayed copy without moving source markers.
+State continues across chunks, logical and physical voice changes, and engine
+fallback until replaced or ended. Effects requiring PCM degrade on an
+external-playback engine without causing text loss.
 
 ## Positions and Lifecycle
 
@@ -227,7 +229,8 @@ seconds. Resource preparation permits at most 64 MiB of retained canonical
 `f32` PCM storage per presentation. Repeated references to one shared decoded
 file count once, while predicted private channel/pan/effect copies, generated
 tones, inserted silence, and effect tails count against the same budget.
-A final post-synthesis reverb/echo tail is capped at four seconds.
+A final post-synthesis reverb/echo tail is capped at four seconds. Chorus does
+not add a final tail.
 Independently, the renderer caps one prepared speech window at 120 seconds of
 primary output. Because synthesized duration is not known at admission, an
 overrun is a runtime failure and can occur after earlier windows have already

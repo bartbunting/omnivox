@@ -12,7 +12,7 @@
       "effects": {
         "mode": "replace",
         "state_id": "focus.1",
-        "style": {"gain": 0.6, "pan": 0.4, "reverb": 0.2}
+        "style": {"gain": 0.6, "pan": 0.4, "chorus": 0.3, "reverb": 0.2}
       }
     },
     {

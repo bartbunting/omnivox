@@ -284,9 +284,9 @@ shared from an LRU cache capped at 128 entries and 64 MiB of `f32` samples; one
 prepared presentation has its own 64 MiB retained-PCM budget, counting shared
 allocations once and predicted private transformed copies. Generated tones and
 silence remain bounded recipes and are materialized only for their render
-window. Post-synthesis gain, low/high-pass filtering, pan, reverb, and echo
-state persists across chunks and engine changes until explicitly replaced or
-ended.
+window. Post-synthesis gain, low/high-pass filtering, pan, chorus, reverb, and
+echo state persists across chunks and engine changes until explicitly replaced
+or ended.
 
 Speech, tone, and sound sinks can play concurrently. Within each sink sources
 are ordered and bounded. Deferred legacy icons wait for their preceding speech

@@ -774,6 +774,7 @@ fn validate_effects(
         ("low_pass", style.low_pass),
         ("high_pass", style.high_pass),
         ("pan", style.pan),
+        ("chorus", style.chorus),
         ("reverb", style.reverb),
         ("echo", style.echo),
     ] {

@@ -691,7 +691,7 @@ Concurrency is `{"mode":"serialized"}` or
 `synthesis_and_playback`. Voice quality is `compact`, `enhanced`, or `premium`.
 ACSS dimensions are `rate`, `average_pitch`, `pitch_range`, `stress`,
 `richness`, and `volume`; post-synthesis dimensions are `gain`, `low_pass`,
-`high_pass`, `pan`, `reverb`, and `echo`.
+`high_pass`, `pan`, `chorus`, `reverb`, and `echo`.
 
 ## Evolution Rules
 

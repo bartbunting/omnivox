@@ -1,8 +1,8 @@
 //! Audio Pipeline
 //!
-//! Defines the AudioEffect trait and the AudioPipeline that chains
-//! effects together. The pipeline is extensible for future effects
-//! (phaser, echo, chorus, tremolo, reverb, pan).
+//! Defines the AudioEffect trait and the AudioPipeline that chains stateless
+//! buffer-wide effects together. Stateful presentation effects use the
+//! separate bounded post-synthesis processor.
 
 use crate::buffer::AudioBuffer;
 use crate::AudioError;

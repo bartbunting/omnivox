@@ -10,6 +10,11 @@ pub const EFFECT_BOUNDARY_RAMP_FRAMES: usize = SAMPLE_RATE as usize / 200; // 5 
 pub const MAX_EFFECT_TAIL_FRAMES: usize = SAMPLE_RATE as usize * 4;
 const QUIET_TAIL_FRAMES: usize = SAMPLE_RATE as usize / 50; // 20 ms
 const QUIET_THRESHOLD: f32 = 0.0001;
+const CHORUS_BASE_DELAY_FRAMES: f32 = SAMPLE_RATE as f32 * 7.0 / 1_000.0;
+const CHORUS_MAX_DEPTH_FRAMES: f32 = SAMPLE_RATE as f32 * 5.0 / 1_000.0;
+const CHORUS_BUFFER_FRAMES: usize = SAMPLE_RATE as usize * 14 / 1_000;
+const CHORUS_LFO_HZ: f32 = 0.8;
+const CHORUS_MAX_WET_MIX: f32 = 0.45;
 const ECHO_DELAY_FRAMES: usize = SAMPLE_RATE as usize * 180 / 1000;
 const REVERB_DELAYS: [usize; 4] = [1309, 1637, 1811, 1931];
 
@@ -21,6 +26,7 @@ pub struct PostSynthesisParameters {
     pub low_pass_hz: Option<f32>,
     pub high_pass_hz: Option<f32>,
     pub pan: f32,
+    pub chorus: f32,
     pub reverb: f32,
     pub echo: f32,
 }
@@ -32,6 +38,7 @@ impl Default for PostSynthesisParameters {
             low_pass_hz: None,
             high_pass_hz: None,
             pan: 0.0,
+            chorus: 0.0,
             reverb: 0.0,
             echo: 0.0,
         }
@@ -48,6 +55,7 @@ impl PostSynthesisParameters {
             .high_pass_hz
             .map(|value| finite_or(value, 20.0).clamp(20.0, 8_000.0));
         self.pan = finite_or(self.pan, 0.0).clamp(-1.0, 1.0);
+        self.chorus = finite_or(self.chorus, 0.0).clamp(0.0, 1.0);
         self.reverb = finite_or(self.reverb, 0.0).clamp(0.0, 1.0);
         self.echo = finite_or(self.echo, 0.0).clamp(0.0, 1.0);
         self
@@ -76,6 +84,7 @@ struct EffectiveParameters {
     high_pass_hz: f32,
     high_pass_mix: f32,
     pan: f32,
+    chorus: f32,
     reverb: f32,
     echo: f32,
 }
@@ -90,6 +99,7 @@ impl From<PostSynthesisParameters> for EffectiveParameters {
             high_pass_hz: value.high_pass_hz.unwrap_or(20.0),
             high_pass_mix: value.high_pass_hz.is_some() as u8 as f32,
             pan: value.pan,
+            chorus: value.chorus,
             reverb: value.reverb,
             echo: value.echo,
         }
@@ -106,6 +116,7 @@ impl EffectiveParameters {
             high_pass_hz: blend(self.high_pass_hz, target.high_pass_hz),
             high_pass_mix: blend(self.high_pass_mix, target.high_pass_mix),
             pan: blend(self.pan, target.pan),
+            chorus: blend(self.chorus, target.chorus),
             reverb: blend(self.reverb, target.reverb),
             echo: blend(self.echo, target.echo),
         }
@@ -119,6 +130,10 @@ pub struct PostSynthesisProcessor {
     low_state: [f32; 2],
     high_input: [f32; 2],
     high_output: [f32; 2],
+    chorus: Vec<[f32; 2]>,
+    chorus_position: usize,
+    chorus_phase: f32,
+    chorus_active: bool,
     echo: Vec<[f32; 2]>,
     echo_position: usize,
     reverb: Vec<Vec<[f32; 2]>>,
@@ -139,6 +154,10 @@ impl PostSynthesisProcessor {
             low_state: [0.0; 2],
             high_input: [0.0; 2],
             high_output: [0.0; 2],
+            chorus: vec![[0.0; 2]; CHORUS_BUFFER_FRAMES],
+            chorus_position: 0,
+            chorus_phase: 0.0,
+            chorus_active: false,
             echo: vec![[0.0; 2]; ECHO_DELAY_FRAMES],
             echo_position: 0,
             reverb: REVERB_DELAYS
@@ -227,6 +246,8 @@ impl PostSynthesisProcessor {
             frame[0] *= 1.0 - parameters.pan;
         }
 
+        frame = self.process_chorus(frame, parameters.chorus);
+
         let delayed = self.echo[self.echo_position];
         let echo_feedback = parameters.echo * 0.72;
         let echo_mix = parameters.echo * 0.7;
@@ -264,6 +285,44 @@ impl PostSynthesisProcessor {
         [frame[0].clamp(-1.0, 1.0), frame[1].clamp(-1.0, 1.0)]
     }
 
+    fn process_chorus(&mut self, frame: [f32; 2], amount: f32) -> [f32; 2] {
+        if amount <= f32::EPSILON {
+            self.chorus[self.chorus_position] = [0.0; 2];
+            self.chorus_position = (self.chorus_position + 1) % self.chorus.len();
+            self.chorus_phase = 0.0;
+            self.chorus_active = false;
+            return frame;
+        }
+
+        if !self.chorus_active {
+            self.chorus.fill([0.0; 2]);
+            self.chorus_position = 0;
+            self.chorus_phase = 0.0;
+            self.chorus_active = true;
+        }
+
+        let depth = CHORUS_MAX_DEPTH_FRAMES * amount;
+        let left_delay = CHORUS_BASE_DELAY_FRAMES + depth * self.chorus_phase.sin();
+        let right_delay =
+            CHORUS_BASE_DELAY_FRAMES + depth * (self.chorus_phase + std::f32::consts::PI).sin();
+        let delayed = [
+            chorus_delayed_sample(&self.chorus, self.chorus_position, 0, left_delay),
+            chorus_delayed_sample(&self.chorus, self.chorus_position, 1, right_delay),
+        ];
+        self.chorus[self.chorus_position] = frame;
+        self.chorus_position = (self.chorus_position + 1) % self.chorus.len();
+        self.chorus_phase = (self.chorus_phase
+            + std::f32::consts::TAU * CHORUS_LFO_HZ / SAMPLE_RATE as f32)
+            % std::f32::consts::TAU;
+
+        let wet = amount * CHORUS_MAX_WET_MIX;
+        let dry = 1.0 - wet * 0.5;
+        [
+            (frame[0] * dry + delayed[0] * wet).clamp(-1.0, 1.0),
+            (frame[1] * dry + delayed[1] * wet).clamp(-1.0, 1.0),
+        ]
+    }
+
     fn flush_tail(&mut self, parameters: EffectiveParameters) -> Vec<f32> {
         let minimum_frames = ECHO_DELAY_FRAMES.max(*REVERB_DELAYS.iter().max().unwrap());
         let mut quiet_frames = 0;
@@ -292,6 +351,19 @@ impl PostSynthesisProcessor {
         }
         tail
     }
+}
+
+fn chorus_delayed_sample(
+    buffer: &[[f32; 2]],
+    write_position: usize,
+    channel: usize,
+    delay_frames: f32,
+) -> f32 {
+    let whole_frames = delay_frames.floor() as usize;
+    let fraction = delay_frames - whole_frames as f32;
+    let newer = (write_position + buffer.len() - whole_frames) % buffer.len();
+    let older = (newer + buffer.len() - 1) % buffer.len();
+    buffer[newer][channel] * (1.0 - fraction) + buffer[older][channel] * fraction
 }
 
 #[cfg(test)]
@@ -327,6 +399,80 @@ mod tests {
         assert!(processed.audio.left(0) > 0.0);
         assert!(processed.audio.left(EFFECT_BOUNDARY_RAMP_FRAMES + 1).abs() < 0.0001);
         assert!(processed.audio.right(EFFECT_BOUNDARY_RAMP_FRAMES + 1) > 0.49);
+    }
+
+    #[test]
+    fn chorus_is_duration_preserving_and_adds_a_modulated_copy() {
+        let mut samples = vec![0.0; CHORUS_BUFFER_FRAMES * 4];
+        samples[0] = 0.5;
+        samples[1] = 0.5;
+        let input = AudioBuffer::new(samples);
+        let mut processor = PostSynthesisProcessor::new();
+
+        let processed = processor.process_window(
+            &input,
+            PostSynthesisParameters {
+                chorus: 1.0,
+                ..PostSynthesisParameters::default()
+            },
+            true,
+        );
+
+        assert_eq!(processed.audio.frame_count(), input.frame_count());
+        assert!(processed.audio.samples[2..]
+            .iter()
+            .any(|sample| sample.abs() > 0.01));
+        assert!(processed.tail.is_none());
+    }
+
+    #[test]
+    fn chorus_delay_state_crosses_render_windows_without_a_tail() {
+        let first_frames = CHORUS_BASE_DELAY_FRAMES as usize / 2;
+        let mut first_samples = vec![0.0; first_frames * 2];
+        first_samples[0] = 0.5;
+        first_samples[1] = 0.5;
+        let first = AudioBuffer::new(first_samples);
+        let second = AudioBuffer::new(vec![0.0; CHORUS_BUFFER_FRAMES * 2]);
+        let parameters = PostSynthesisParameters {
+            chorus: 1.0,
+            ..PostSynthesisParameters::default()
+        };
+        let mut processor = PostSynthesisProcessor::new();
+
+        let first = processor.process_window(&first, parameters, false);
+        let second = processor.process_window(&second, parameters, true);
+
+        assert!(first.tail.is_none());
+        assert!(second
+            .audio
+            .samples
+            .iter()
+            .any(|sample| sample.abs() > 0.01));
+        assert!(second.tail.is_none());
+    }
+
+    #[test]
+    fn enabling_chorus_does_not_replay_earlier_dry_audio() {
+        let dry = AudioBuffer::new(vec![0.5; CHORUS_BUFFER_FRAMES * 2]);
+        let silence = AudioBuffer::new(vec![0.0; CHORUS_BUFFER_FRAMES * 2]);
+        let mut processor = PostSynthesisProcessor::new();
+
+        processor.process_window(&dry, PostSynthesisParameters::default(), false);
+        let processed = processor.process_window(
+            &silence,
+            PostSynthesisParameters {
+                chorus: 1.0,
+                ..PostSynthesisParameters::default()
+            },
+            true,
+        );
+
+        assert!(processed
+            .audio
+            .samples
+            .iter()
+            .all(|sample| sample.abs() < 0.0001));
+        assert!(processed.tail.is_none());
     }
 
     #[test]

@@ -77,7 +77,8 @@ in the linked protocol specifications; future work belongs in
   per presentation.
 - Inserted and overlaid timeline audio/tone actions, inserted silence,
   semantic events, stable cue order, and tracked overlay tails.
-- Persistent post-synthesis gain, filtering, pan, reverb, and echo state.
+- Persistent post-synthesis gain, filtering, pan, chorus, reverb, and echo
+  state. Chorus preserves primary duration and marker positions.
 - Privacy-conscious persistent logs and optional sensitive full-text
   diagnostics.
 
@@ -133,7 +134,6 @@ in the linked protocol specifications; future work belongs in
   records the bounded GNU-target results. The helper converts its KOI8-R
   repertoire losslessly and routes unsupported Unicode text to fallback; it
   provides no synchronization markers.
-- The common effects set does not include a chorus effect.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
 - WinRT, eSpeak NG, Piper, RHVoice, Flite, RuTTS, and DECtalk have measured

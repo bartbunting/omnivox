@@ -728,6 +728,7 @@ fn post_synthesis_parameters(style: &PostSynthesisStyle) -> PostSynthesisParamet
             .high_pass
             .map(|value| logarithmic(20.0, 3_000.0, value)),
         pan: style.pan.map(|value| value * 2.0 - 1.0).unwrap_or(0.0),
+        chorus: style.chorus.unwrap_or(0.0),
         reverb: style.reverb.unwrap_or(0.0),
         echo: style.echo.unwrap_or(0.0),
     }
@@ -2970,6 +2971,7 @@ mod tests {
             low_pass: Some(0.0),
             high_pass: Some(1.0),
             pan: Some(0.25),
+            chorus: Some(0.8),
             reverb: Some(0.4),
             echo: Some(0.6),
         });
@@ -2978,6 +2980,7 @@ mod tests {
         assert_eq!(parameters.low_pass_hz, Some(200.0));
         assert!((parameters.high_pass_hz.unwrap() - 3_000.0).abs() < 0.001);
         assert_eq!(parameters.pan, -0.5);
+        assert_eq!(parameters.chorus, 0.8);
         assert_eq!(parameters.reverb, 0.4);
         assert_eq!(parameters.echo, 0.6);
 
