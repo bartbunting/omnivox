@@ -8,6 +8,7 @@ use crate::buffer::{AudioBuffer, SAMPLE_RATE};
 use crate::pipeline::AudioEffect;
 use crate::AudioError;
 use omnivox_core::ChannelMode;
+use std::collections::VecDeque;
 
 /// Removes leading and trailing silence from an AudioBuffer.
 ///
@@ -161,6 +162,141 @@ impl AudioEffect for SilenceTrimmer {
 
     fn name(&self) -> &str {
         "silence_trimmer"
+    }
+}
+
+/// Stateful silence trimming for canonical PCM delivered in bounded windows.
+///
+/// Leading silence is reduced as soon as the first audible frame arrives.
+/// Silence after audible PCM is retained until later sound proves it internal,
+/// or [`Self::finish`] proves it trailing. This preserves the buffered
+/// trimmer's exact samples across arbitrary input window boundaries.
+pub struct ProgressiveSilenceTrimmer {
+    threshold: f32,
+    leading_padding_frames: usize,
+    trailing_padding_frames: usize,
+    leading: VecDeque<[f32; 2]>,
+    pending_silence: Vec<f32>,
+    input_frames: usize,
+    output_frames: usize,
+    leading_silence_frames: usize,
+    removed_leading_frames: Option<usize>,
+    audible: bool,
+    finished: bool,
+}
+
+impl ProgressiveSilenceTrimmer {
+    /// Create an incremental trimmer with the same settings as
+    /// [`SilenceTrimmer::with_asymmetric_padding`].
+    pub fn with_asymmetric_padding(
+        threshold: f32,
+        leading_padding_secs: f32,
+        trailing_padding_secs: f32,
+    ) -> Self {
+        Self {
+            threshold,
+            leading_padding_frames: (leading_padding_secs * SAMPLE_RATE as f32) as usize,
+            trailing_padding_frames: (trailing_padding_secs * SAMPLE_RATE as f32) as usize,
+            leading: VecDeque::new(),
+            pending_silence: Vec::new(),
+            input_frames: 0,
+            output_frames: 0,
+            leading_silence_frames: 0,
+            removed_leading_frames: None,
+            audible: false,
+            finished: false,
+        }
+    }
+
+    /// Process one canonical PCM window, returning any frames now known to be
+    /// part of the trimmed result.
+    pub fn process_window(&mut self, input: AudioBuffer) -> Result<AudioBuffer, AudioError> {
+        if self.finished {
+            return Err(AudioError::EffectError(
+                "progressive silence trimmer is already finished".to_owned(),
+            ));
+        }
+        let mut output = Vec::with_capacity(input.samples.len());
+        for frame in input.samples.chunks_exact(2) {
+            self.input_frames = self.input_frames.saturating_add(1);
+            let frame = [frame[0], frame[1]];
+            let audible = frame[0].abs() > self.threshold || frame[1].abs() > self.threshold;
+            if !self.audible {
+                if !audible {
+                    self.leading_silence_frames = self.leading_silence_frames.saturating_add(1);
+                    self.leading.push_back(frame);
+                    if self.leading.len() > self.leading_padding_frames {
+                        self.leading.pop_front();
+                    }
+                    continue;
+                }
+                self.audible = true;
+                self.removed_leading_frames = Some(
+                    self.leading_silence_frames
+                        .saturating_sub(self.leading.len()),
+                );
+                while let Some(frame) = self.leading.pop_front() {
+                    output.extend_from_slice(&frame);
+                }
+                output.extend_from_slice(&frame);
+                continue;
+            }
+
+            if audible {
+                output.append(&mut self.pending_silence);
+                output.extend_from_slice(&frame);
+            } else {
+                self.pending_silence.extend_from_slice(&frame);
+            }
+        }
+        self.output_frames = self.output_frames.saturating_add(output.len() / 2);
+        Ok(AudioBuffer::new(output))
+    }
+
+    /// Return final retained trailing padding and the complete trim report.
+    pub fn finish(&mut self) -> Result<(AudioBuffer, SilenceTrimReport), AudioError> {
+        if self.finished {
+            return Err(AudioError::EffectError(
+                "progressive silence trimmer is already finished".to_owned(),
+            ));
+        }
+        self.finished = true;
+        if !self.audible {
+            self.leading.clear();
+            self.pending_silence.clear();
+            self.removed_leading_frames = Some(self.input_frames);
+            return Ok((
+                AudioBuffer::empty(),
+                SilenceTrimReport {
+                    input_frames: self.input_frames,
+                    output_frames: 0,
+                    removed_leading_frames: self.input_frames,
+                    removed_trailing_frames: 0,
+                },
+            ));
+        }
+
+        let pending_frames = self.pending_silence.len() / 2;
+        let retained_frames = pending_frames.min(self.trailing_padding_frames);
+        let retained_samples = retained_frames * 2;
+        let start = self.pending_silence.len().saturating_sub(retained_samples);
+        let tail = AudioBuffer::new(self.pending_silence.split_off(start));
+        self.pending_silence.clear();
+        self.output_frames = self.output_frames.saturating_add(retained_frames);
+        Ok((
+            tail,
+            SilenceTrimReport {
+                input_frames: self.input_frames,
+                output_frames: self.output_frames,
+                removed_leading_frames: self.removed_leading_frames.unwrap_or(0),
+                removed_trailing_frames: pending_frames.saturating_sub(retained_frames),
+            },
+        ))
+    }
+
+    /// Leading frames removed once the first audible frame has been observed.
+    pub fn removed_leading_frames(&self) -> Option<usize> {
+        self.removed_leading_frames
     }
 }
 
@@ -339,6 +475,65 @@ mod tests {
         // Should have sound frame + padding on each side
         assert!(buf.frame_count() >= 1); // at least the sound frame
         assert!(buf.frame_count() <= 1 + padding_frames * 2 + 1); // sound + padding both sides
+    }
+
+    #[test]
+    fn progressive_trimmer_matches_buffered_samples_across_windows() {
+        let leading_padding = 3.5 / SAMPLE_RATE as f32;
+        let trailing_padding = 4.5 / SAMPLE_RATE as f32;
+        let mut samples = vec![0.0; 10 * 2];
+        samples.extend_from_slice(&[0.5, -0.5, 0.4, -0.4]);
+        samples.extend_from_slice(&[0.0; 7 * 2]);
+        samples.extend_from_slice(&[0.3, -0.3]);
+        samples.extend_from_slice(&[0.0; 12 * 2]);
+
+        let mut buffered = AudioBuffer::new(samples.clone());
+        let expected_report =
+            SilenceTrimmer::with_asymmetric_padding(0.01, leading_padding, trailing_padding)
+                .process_with_report(&mut buffered)
+                .unwrap();
+
+        let mut progressive = ProgressiveSilenceTrimmer::with_asymmetric_padding(
+            0.01,
+            leading_padding,
+            trailing_padding,
+        );
+        let mut actual = AudioBuffer::empty();
+        let mut start = 0;
+        for frames in [2, 9, 4, 16, 1] {
+            let end = start + frames * 2;
+            let output = progressive
+                .process_window(AudioBuffer::new(samples[start..end].to_vec()))
+                .unwrap();
+            actual.append(&output);
+            start = end;
+        }
+        let (tail, actual_report) = progressive.finish().unwrap();
+        actual.append(&tail);
+
+        assert_eq!(start, samples.len());
+        assert_eq!(actual.samples, buffered.samples);
+        assert_eq!(actual_report, expected_report);
+    }
+
+    #[test]
+    fn progressive_trimmer_discards_an_all_silent_stream() {
+        let mut progressive =
+            ProgressiveSilenceTrimmer::with_asymmetric_padding(0.01, 0.005, 0.005);
+        assert!(progressive
+            .process_window(AudioBuffer::new(vec![0.0; 200]))
+            .unwrap()
+            .is_empty());
+        assert_eq!(progressive.removed_leading_frames(), None);
+
+        let (tail, report) = progressive.finish().unwrap();
+
+        assert!(tail.is_empty());
+        assert_eq!(report.input_frames, 100);
+        assert_eq!(report.output_frames, 0);
+        assert_eq!(report.removed_leading_frames, 100);
+        assert_eq!(report.removed_trailing_frames, 0);
+        assert_eq!(progressive.removed_leading_frames(), Some(100));
     }
 
     #[test]
