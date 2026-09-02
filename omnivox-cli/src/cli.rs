@@ -191,6 +191,7 @@ pub fn print_help() {
     println!("    rhvoice   RHVoice (requires helper plus a user-installed native runtime)");
     println!("    flite     Flite compact English companion (compiled-in SLT voice)");
     println!("    rutts     RuTTS compact Russian companion (built-in male and female voices)");
+    println!("    tgspeechbox TGSpeechBox experimental formant-synthesis companion");
     if cfg!(target_os = "windows") {
         println!("    eloquence Windows Eloquence helper (user-installed ECI runtime)");
         println!("    dectalk   Windows DECtalk helper (user-installed DECtalk runtime)");
@@ -205,6 +206,7 @@ pub fn print_help() {
     println!("    OMNIVOX_RHVOICE_HELPER Override path to omnivox-rhvoice-helper");
     println!("    OMNIVOX_FLITE_HELPER   Override path to omnivox-flite-helper");
     println!("    OMNIVOX_RUTTS_HELPER   Override path to omnivox-rutts-helper");
+    println!("    OMNIVOX_TGSPEECHBOX_HELPER Override path to omnivox-tgspeechbox-helper");
     if cfg!(target_os = "windows") {
         println!("    OMNIVOX_ELOQUENCE_HELPER Override path to OmnivoxEloquenceHelper32.exe");
         println!("    OMNIVOX_DECTALK_HELPER Override path to OmnivoxDectalkHelper32.exe");

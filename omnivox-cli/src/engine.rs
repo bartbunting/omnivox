@@ -5,7 +5,10 @@ use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::espeak::EspeakTtsEngine;
-use omnivox_tts::helper_engine::{HelperEngineConfig, HelperTtsEngine};
+use omnivox_tts::helper_engine::{
+    load_helper_descriptor_cache, HelperEngineConfig, HelperTtsEngine,
+    HELPER_DESCRIPTOR_CACHE_FILE_NAME,
+};
 #[cfg(target_os = "macos")]
 use omnivox_tts::macos::MacOsTtsEngine;
 #[cfg(target_os = "windows")]
@@ -22,6 +25,9 @@ use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
 
 const ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_millis(500);
 const NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+const TGSPEECHBOX_SAMPLE_RATE_ENVIRONMENT_VARIABLE: &str = "OMNIVOX_TGSPEECHBOX_SAMPLE_RATE";
+const TGSPEECHBOX_22050_CACHE_FILE_NAME: &str = "VOICE-INVENTORY-22050.json";
+const TGSPEECHBOX_44100_CACHE_FILE_NAME: &str = "VOICE-INVENTORY-44100.json";
 
 fn helper_synthesis_idle_timeout(engine_id: &str) -> Duration {
     if engine_id == "eloquence" {
@@ -39,10 +45,11 @@ pub struct CreatedEngines {
 
 /// Create all engines that should be available to the server process.
 ///
-/// Server mode eagerly initializes every available engine so the first
-/// inventory is complete and runtime routing can retain fallbacks. Independent
-/// helper processes initialize concurrently with the built-in engines. Piper
-/// remains opt-in through model configuration because starting its helper
+/// Server mode initializes available engines so the first inventory is complete
+/// and runtime routing can retain fallbacks. Independent helper processes
+/// initialize concurrently with the built-in engines. TGSpeechBox may register
+/// from its build-time inventory cache and defer its process until first use.
+/// Piper remains opt-in through model configuration because starting its helper
 /// loads a comparatively large voice model.
 pub fn create_engines(
     engine_name: &str,
@@ -241,12 +248,68 @@ struct PendingHelperInitialization<T> {
     handle: JoinHandle<(T, Duration)>,
 }
 
-type HelperInitializationResult =
+type HelperConstructionResult =
     Result<HelperTtsEngine, omnivox_tts::helper_engine::HelperEngineError>;
+type HelperInitializationResult =
+    Result<Arc<HelperTtsEngine>, omnivox_tts::helper_engine::HelperEngineError>;
 type PendingHelper = PendingHelperInitialization<HelperInitializationResult>;
 
 fn start_helper_initializations(configs: Vec<HelperEngineConfig>) -> Vec<PendingHelper> {
-    start_helper_initializations_with(configs, HelperTtsEngine::new)
+    start_helper_initializations_with(configs, |config| {
+        let engine_id = config.engine_id.clone();
+        let helper_path = config.program.clone();
+        let result = initialize_server_helper(config).map(Arc::new);
+        if engine_id == "tgspeechbox" {
+            if let Ok(engine) = &result {
+                spawn_tgspeechbox_prewarm(Arc::clone(engine), helper_path);
+            }
+        }
+        result
+    })
+}
+
+fn initialize_server_helper(config: HelperEngineConfig) -> HelperConstructionResult {
+    if config.engine_id != "tgspeechbox" {
+        return HelperTtsEngine::new(config);
+    }
+
+    let helper_directory = config.program.parent().unwrap_or_else(|| Path::new(""));
+    let cache_file_name = tgspeechbox_descriptor_cache_file_name(
+        std::env::var_os(TGSPEECHBOX_SAMPLE_RATE_ENVIRONMENT_VARIABLE).as_deref(),
+    );
+    let mut cache_path = helper_directory.join(cache_file_name);
+    if cache_file_name == TGSPEECHBOX_44100_CACHE_FILE_NAME && !cache_path.is_file() {
+        cache_path = helper_directory.join(HELPER_DESCRIPTOR_CACHE_FILE_NAME);
+    }
+    match load_helper_descriptor_cache(&cache_path, &config.engine_id) {
+        Ok(descriptor) => {
+            info!(
+                engine_id = config.engine_id,
+                helper = %config.program.display(),
+                cache = %cache_path.display(),
+                "Prepared deferred helper from cached voice inventory"
+            );
+            HelperTtsEngine::new_deferred(config, descriptor)
+        }
+        Err(error) => {
+            warn!(
+                engine_id = config.engine_id,
+                helper = %config.program.display(),
+                cache = %cache_path.display(),
+                %error,
+                "Cached voice inventory is unavailable; initializing helper eagerly"
+            );
+            HelperTtsEngine::new(config)
+        }
+    }
+}
+
+fn tgspeechbox_descriptor_cache_file_name(sample_rate: Option<&std::ffi::OsStr>) -> &'static str {
+    if sample_rate == Some(std::ffi::OsStr::new("22050")) {
+        TGSPEECHBOX_22050_CACHE_FILE_NAME
+    } else {
+        TGSPEECHBOX_44100_CACHE_FILE_NAME
+    }
 }
 
 fn start_helper_initializations_with<T, F>(
@@ -304,9 +367,9 @@ fn register_initialized_helpers(
         match handle.join() {
             Ok((Ok(engine), elapsed)) => {
                 let elapsed_ms = u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX);
-                let engine: Arc<dyn TtsEngine> = Arc::new(engine);
+                let registered_engine: Arc<dyn TtsEngine> = engine.clone();
                 registry.register(Arc::new(IsolatedTtsEngine::new(
-                    engine,
+                    registered_engine,
                     Arc::clone(&generation),
                     Arc::clone(&isolation_budget),
                 )))?;
@@ -337,6 +400,40 @@ fn register_initialized_helpers(
     Ok(())
 }
 
+fn spawn_tgspeechbox_prewarm(engine: Arc<HelperTtsEngine>, helper_path: PathBuf) {
+    let thread_name = "omnivox-tgspeechbox-prewarm";
+    let thread_helper_path = helper_path.clone();
+    let spawn = thread::Builder::new()
+        .name(thread_name.to_owned())
+        .spawn(move || {
+            let started_at = Instant::now();
+            match engine.prewarm_connection() {
+                Ok(true) => info!(
+                    engine_id = "tgspeechbox",
+                    helper = %thread_helper_path.display(),
+                    elapsed_ms = started_at.elapsed().as_millis(),
+                    "Pre-warmed helper engine"
+                ),
+                Ok(false) => {}
+                Err(error) => warn!(
+                    engine_id = "tgspeechbox",
+                    helper = %thread_helper_path.display(),
+                    elapsed_ms = started_at.elapsed().as_millis(),
+                    %error,
+                    "Could not pre-warm helper engine; first synthesis will retry"
+                ),
+            }
+        });
+    if let Err(error) = spawn {
+        warn!(
+            engine_id = "tgspeechbox",
+            helper = %helper_path.display(),
+            %error,
+            "Could not start helper pre-warm thread"
+        );
+    }
+}
+
 fn companion_helper_config(
     engine_id: &str,
     environment_variable: &str,
@@ -358,6 +455,7 @@ fn companion_helper_configs() -> Vec<HelperEngineConfig> {
         ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
         ("flite", "OMNIVOX_FLITE_HELPER"),
         ("rutts", "OMNIVOX_RUTTS_HELPER"),
+        ("tgspeechbox", "OMNIVOX_TGSPEECHBOX_HELPER"),
     ]
     .into_iter()
     .filter_map(|(engine_id, environment_variable)| {
@@ -378,13 +476,14 @@ fn engine_preference_order(
     requested: &str,
     native_engine_id: Option<&'static str>,
 ) -> Vec<&'static str> {
-    let mut order = Vec::with_capacity(8);
+    let mut order = Vec::with_capacity(9);
     match requested {
         "espeak" => order.push("espeak"),
         "piper" => order.push("piper"),
         "rhvoice" => order.push("rhvoice"),
         "flite" => order.push("flite"),
         "rutts" => order.push("rutts"),
+        "tgspeechbox" => order.push("tgspeechbox"),
         "eloquence" => order.push("eloquence"),
         "dectalk" => order.push("dectalk"),
         _ => {
@@ -420,6 +519,9 @@ fn engine_preference_order(
     }
     if !order.contains(&"rutts") {
         order.push("rutts");
+    }
+    if !order.contains(&"tgspeechbox") {
+        order.push("tgspeechbox");
     }
     order
 }
@@ -465,7 +567,7 @@ fn configured_piper_helper(requested: &str, model: Option<&str>) -> Option<Helpe
 }
 
 fn configured_helper_configs(requested: &str, model: Option<&str>) -> Vec<HelperEngineConfig> {
-    let mut configs = Vec::with_capacity(4);
+    let mut configs = Vec::with_capacity(5);
     if let Some(piper) = configured_piper_helper(requested, model) {
         configs.push(piper);
     }
@@ -476,7 +578,8 @@ fn configured_helper_configs(requested: &str, model: Option<&str>) -> Vec<Helper
 /// Create one exact TTS engine for a diagnostic action.
 ///
 /// `engine_name` may be empty (use `OMNIVOX_ENGINE` env var or platform default),
-/// `"native"`, `"espeak"`, `"piper"`, `"rhvoice"`, `"flite"`, or `"rutts"`.
+/// `"native"`, `"espeak"`, `"piper"`, `"rhvoice"`, `"flite"`, `"rutts"`, or
+/// `"tgspeechbox"`.
 /// Windows also accepts `"winrt"`, `"eloquence"`, and `"dectalk"`; macOS
 /// accepts `"macos"`. An explicitly requested unavailable engine is an error,
 /// so diagnostic results cannot silently describe a fallback engine.
@@ -505,11 +608,15 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
         );
     }
 
-    if matches!(forced.as_str(), "rhvoice" | "flite" | "rutts") {
+    if matches!(
+        forced.as_str(),
+        "rhvoice" | "flite" | "rutts" | "tgspeechbox"
+    ) {
         let (engine_id, environment_variable) = match forced.as_str() {
             "rhvoice" => ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
             "flite" => ("flite", "OMNIVOX_FLITE_HELPER"),
             "rutts" => ("rutts", "OMNIVOX_RUTTS_HELPER"),
+            "tgspeechbox" => ("tgspeechbox", "OMNIVOX_TGSPEECHBOX_HELPER"),
             _ => unreachable!(),
         };
         match companion_helper_config(engine_id, environment_variable)
@@ -614,7 +721,7 @@ fn isolate_server_engine(
 ) -> Arc<dyn TtsEngine> {
     if !matches!(
         engine.descriptor().id.as_str(),
-        "piper" | "rhvoice" | "flite" | "rutts"
+        "piper" | "rhvoice" | "flite" | "rutts" | "tgspeechbox"
     ) {
         return engine;
     }
@@ -686,7 +793,8 @@ mod tests {
     use super::create_engines;
     use super::{
         companion_helper_candidates, engine_preference_order, helper_synthesis_idle_timeout,
-        resolve_adjacent_helper, start_helper_initializations_with, HelperEngineConfig,
+        resolve_adjacent_helper, start_helper_initializations_with,
+        tgspeechbox_descriptor_cache_file_name, HelperEngineConfig,
     };
     use std::path::PathBuf;
     #[cfg(target_os = "macos")]
@@ -766,6 +874,22 @@ mod tests {
     }
 
     #[test]
+    fn tgspeechbox_inventory_follows_the_native_sample_rate() {
+        assert_eq!(
+            tgspeechbox_descriptor_cache_file_name(None),
+            "VOICE-INVENTORY-44100.json"
+        );
+        assert_eq!(
+            tgspeechbox_descriptor_cache_file_name(Some(std::ffi::OsStr::new("44100"))),
+            "VOICE-INVENTORY-44100.json"
+        );
+        assert_eq!(
+            tgspeechbox_descriptor_cache_file_name(Some(std::ffi::OsStr::new("22050"))),
+            "VOICE-INVENTORY-22050.json"
+        );
+    }
+
+    #[test]
     fn piper_companion_directory_precedes_legacy_adjacent_helper() {
         let root = std::env::temp_dir().join(format!(
             "omnivox-piper-helper-resolution-test-{}",
@@ -806,7 +930,8 @@ mod tests {
                 "piper",
                 "rhvoice",
                 "flite",
-                "rutts"
+                "rutts",
+                "tgspeechbox"
             ]
         );
         assert_eq!(
@@ -819,7 +944,8 @@ mod tests {
                 "piper",
                 "rhvoice",
                 "flite",
-                "rutts"
+                "rutts",
+                "tgspeechbox"
             ]
         );
     }
@@ -836,7 +962,8 @@ mod tests {
                 "piper",
                 "rhvoice",
                 "flite",
-                "rutts"
+                "rutts",
+                "tgspeechbox"
             ]
         );
         assert_eq!(
@@ -849,7 +976,8 @@ mod tests {
                 "dectalk",
                 "rhvoice",
                 "flite",
-                "rutts"
+                "rutts",
+                "tgspeechbox"
             ]
         );
         assert_eq!(
@@ -862,7 +990,8 @@ mod tests {
                 "dectalk",
                 "piper",
                 "flite",
-                "rutts"
+                "rutts",
+                "tgspeechbox"
             ]
         );
         assert_eq!(
@@ -875,7 +1004,8 @@ mod tests {
                 "dectalk",
                 "piper",
                 "rhvoice",
-                "rutts"
+                "rutts",
+                "tgspeechbox"
             ]
         );
         assert_eq!(
@@ -888,7 +1018,8 @@ mod tests {
                 "dectalk",
                 "piper",
                 "rhvoice",
-                "flite"
+                "flite",
+                "tgspeechbox"
             ]
         );
         assert_eq!(
@@ -901,7 +1032,8 @@ mod tests {
                 "piper",
                 "rhvoice",
                 "flite",
-                "rutts"
+                "rutts",
+                "tgspeechbox"
             ]
         );
         assert_eq!(
@@ -914,6 +1046,21 @@ mod tests {
                 "piper",
                 "rhvoice",
                 "flite",
+                "rutts",
+                "tgspeechbox"
+            ]
+        );
+        assert_eq!(
+            engine_preference_order("tgspeechbox", Some("winrt")),
+            &[
+                "tgspeechbox",
+                "espeak",
+                "winrt",
+                "eloquence",
+                "dectalk",
+                "piper",
+                "rhvoice",
+                "flite",
                 "rutts"
             ]
         );
@@ -923,15 +1070,39 @@ mod tests {
     fn macos_retains_native_and_espeak_for_each_preference() {
         assert_eq!(
             engine_preference_order("", Some("macos")),
-            ["macos", "espeak", "piper", "rhvoice", "flite", "rutts"]
+            [
+                "macos",
+                "espeak",
+                "piper",
+                "rhvoice",
+                "flite",
+                "rutts",
+                "tgspeechbox"
+            ]
         );
         assert_eq!(
             engine_preference_order("espeak", Some("macos")),
-            ["espeak", "macos", "piper", "rhvoice", "flite", "rutts"]
+            [
+                "espeak",
+                "macos",
+                "piper",
+                "rhvoice",
+                "flite",
+                "rutts",
+                "tgspeechbox"
+            ]
         );
         assert_eq!(
             engine_preference_order("piper", Some("macos")),
-            ["piper", "espeak", "macos", "rhvoice", "flite", "rutts"]
+            [
+                "piper",
+                "espeak",
+                "macos",
+                "rhvoice",
+                "flite",
+                "rutts",
+                "tgspeechbox"
+            ]
         );
     }
 
@@ -949,11 +1120,25 @@ mod tests {
     fn linux_retains_espeak_when_piper_is_preferred() {
         assert_eq!(
             engine_preference_order("", None),
-            ["espeak", "piper", "rhvoice", "flite", "rutts"]
+            [
+                "espeak",
+                "piper",
+                "rhvoice",
+                "flite",
+                "rutts",
+                "tgspeechbox"
+            ]
         );
         assert_eq!(
             engine_preference_order("piper", None),
-            ["piper", "espeak", "rhvoice", "flite", "rutts"]
+            [
+                "piper",
+                "espeak",
+                "rhvoice",
+                "flite",
+                "rutts",
+                "tgspeechbox"
+            ]
         );
     }
 
