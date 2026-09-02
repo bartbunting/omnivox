@@ -751,8 +751,8 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                         voice_id = route.realized.voice_id,
                         attempt,
                         frames = result.audio.frame_count(),
-                        synthesis_elapsed_us = u64::try_from(started_at.elapsed().as_micros())
-                            .unwrap_or(u64::MAX),
+                        synthesis_elapsed_us =
+                            u64::try_from(started_at.elapsed().as_micros()).unwrap_or(u64::MAX),
                         recovered = permit == EnginePermit::RecoveryProbe,
                         "Routed buffered fallback synthesis completed"
                     );
