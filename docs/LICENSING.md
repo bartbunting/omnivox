@@ -87,7 +87,7 @@ inputs, and the corresponding ONNX Runtime source. Its verifier checks an
 exhaustive manifest, the recorded Git tree and input locks, model exclusion,
 and offline Cargo resolution. The tag workflow includes this artifact and all
 four companions in its draft and verification gates. Piper companion archives
-are published beginning with v1.6.0. Release code remains unsigned. See the
+are published beginning with v1.6.1. Release code remains unsigned. See the
 [Piper release plan](plans/PIPER-RELEASE.md) for the completed release work.
 
 ## Optional RHVoice integration
