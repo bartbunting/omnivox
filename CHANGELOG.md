@@ -20,6 +20,12 @@ Versioning for published releases.
   pre-warming, and explicit no-marker/provisional-rate capability reporting.
   It is not included in generic releases.
 
+### Changed
+
+- TGSpeechBox now retains successfully configured language, profile, and
+  eSpeak voice state across utterances instead of reloading the same language
+  pack and selecting the same phonemizer voice twice for every request.
+
 ### Fixed
 
 - Draft Flite verification now installs Ubuntu 24.04's concrete ALSA runtime

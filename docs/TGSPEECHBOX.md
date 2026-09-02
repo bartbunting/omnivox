@@ -124,7 +124,10 @@ the TGSpeechBox helper connection on a background thread while other engines
 continue initializing. If speech arrives before pre-warming finishes, that
 request waits for the same connection instead of starting a second helper. A
 missing, oversized, malformed, or mismatched cache causes eager live
-initialization instead.
+initialization instead. The persistent helper also retains the last
+successfully configured frontend language, profile, and eSpeak voice, avoiding
+the pack reload and duplicate voice selection when successive utterances use
+the same physical voice.
 
 TGSpeechBox normally runs its native DSP at 44.1 kHz. For controlled A/B tests,
 `OMNIVOX_TGSPEECHBOX_SAMPLE_RATE=22050` selects its supported 22.05 kHz path;

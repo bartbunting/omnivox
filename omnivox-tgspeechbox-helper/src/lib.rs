@@ -43,6 +43,7 @@ struct VoiceSelection {
 struct NativeRuntime {
     handle: NonNull<c_void>,
     espeak_initialized: bool,
+    espeak_language: Option<String>,
 }
 
 // SAFETY: the pointer is owned by this value and all access is serialized by
@@ -197,6 +198,7 @@ impl TgSpeechBoxTtsEngine {
             runtime: Mutex::new(NativeRuntime {
                 handle,
                 espeak_initialized: true,
+                espeak_language: None,
             }),
             cancellation: AtomicBool::new(false),
             speaking: AtomicBool::new(false),
@@ -245,7 +247,7 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
             TtsError::InvalidParameter("TGSpeechBox text contains a null byte".to_owned())
         })?;
         let prepared = prepare_text(&mut runtime, &source_text)?;
-        let ipa = phonemize(&selection.language, &prepared)?;
+        let ipa = phonemize(&prepared)?;
         if ipa.as_bytes().is_empty() {
             return Ok(SynthesisResult::audio(
                 ENGINE_ID,
@@ -565,10 +567,13 @@ fn configure(runtime: &mut NativeRuntime, selection: &VoiceSelection) -> Result<
     let profile = CString::new(selection.profile.native_name.as_str()).map_err(|_| {
         TtsError::InvalidParameter("TGSpeechBox profile contains a null byte".to_owned())
     })?;
-    if unsafe { espeak_rs_sys::espeak_SetVoiceByName(language.as_ptr()) }
-        != espeak_rs_sys::espeak_ERROR_EE_OK
-    {
-        return Err(TtsError::VoiceNotFound(selection.id.clone()));
+    if runtime.espeak_language.as_deref() != Some(selection.language.as_str()) {
+        if unsafe { espeak_rs_sys::espeak_SetVoiceByName(language.as_ptr()) }
+            != espeak_rs_sys::espeak_ERROR_EE_OK
+        {
+            return Err(TtsError::VoiceNotFound(selection.id.clone()));
+        }
+        runtime.espeak_language = Some(selection.language.clone());
     }
     if unsafe {
         omnivox_tgspeechbox_sys::omnivox_tgspeechbox_configure(
@@ -605,18 +610,7 @@ fn prepare_text(runtime: &mut NativeRuntime, source: &CString) -> Result<CString
     })
 }
 
-fn phonemize(language: &str, text: &CString) -> Result<CString, TtsError> {
-    let language = CString::new(language).map_err(|_| {
-        TtsError::InvalidParameter("eSpeak-ng language contains a null byte".to_owned())
-    })?;
-    if unsafe { espeak_rs_sys::espeak_SetVoiceByName(language.as_ptr()) }
-        != espeak_rs_sys::espeak_ERROR_EE_OK
-    {
-        return Err(TtsError::VoiceNotFound(
-            language.to_string_lossy().into_owned(),
-        ));
-    }
-
+fn phonemize(text: &CString) -> Result<CString, TtsError> {
     let mut cursor = text.as_ptr().cast::<c_void>();
     let mut ipa = Vec::new();
     let mut calls = 0usize;

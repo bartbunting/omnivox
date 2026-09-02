@@ -35,6 +35,8 @@ struct engine {
   int sample_rate = 0;
   double volume = 1.0;
   builtin_voice builtin = builtin_voice::adam;
+  std::string configured_language;
+  std::string configured_profile;
   std::string last_error;
 };
 
@@ -291,7 +293,17 @@ int omnivox_tgspeechbox_configure(void *handle, const char *language,
   if (!state || !language || !*language || !profile) return 0;
   try {
     state->last_error.clear();
-    if (!nvspFrontend_setLanguage(state->frontend, language)) {
+    const std::string requested_language(language);
+    const std::string requested_profile(profile);
+    const bool language_changed = state->configured_language != requested_language;
+    const bool profile_changed = state->configured_profile != requested_profile;
+    if (!language_changed && !profile_changed) return 1;
+
+    // Do not leave stale cache entries after a partially applied change. A
+    // later request will then perform a complete safe reconfiguration.
+    state->configured_language.clear();
+    state->configured_profile.clear();
+    if (language_changed && !nvspFrontend_setLanguage(state->frontend, language)) {
       const char *error = nvspFrontend_getLastError(state->frontend);
       state->last_error = error && *error ? error : "TGSpeechBox rejected the language";
       return 0;
@@ -305,6 +317,8 @@ int omnivox_tgspeechbox_configure(void *handle, const char *language,
     }
     nvspFrontend_setFrameExDefaults(state->frontend, 0.0, 0.0, 0.0, 0.0, 1.0);
     set_profile_tone(*state, yaml_profile);
+    state->configured_language = requested_language;
+    state->configured_profile = requested_profile;
     return 1;
   } catch (const std::exception &error) {
     state->last_error = error.what();
@@ -374,7 +388,11 @@ int omnivox_tgspeechbox_reset(void *handle) {
   try {
     if (state->player) speechPlayer_terminate(state->player);
     state->player = nullptr;
-    return initialize_player(*state) ? 1 : 0;
+    if (!initialize_player(*state)) return 0;
+    if (!state->configured_language.empty()) {
+      set_profile_tone(*state, state->builtin == builtin_voice::none);
+    }
+    return 1;
   } catch (...) {
     state->last_error = "exception while resetting TGSpeechBox";
     return 0;
