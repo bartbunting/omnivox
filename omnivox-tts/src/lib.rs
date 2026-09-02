@@ -27,7 +27,8 @@ pub mod windows;
 pub use omnivox_audio::AudioBuffer;
 pub use synthesis::{
     AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisCancellationToken,
-    SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult, MAX_SYNTHESIS_ANCHORS,
+    SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
+    SynthesisStreamCompletion, SynthesisStreamSink, SynthesisStreamStart, MAX_SYNTHESIS_ANCHORS,
     MAX_SYNTHESIS_ANCHOR_ID_BYTES,
 };
 
@@ -117,6 +118,25 @@ pub trait TtsEngine: Send + Sync {
 
     /// Synthesize one structured request and report realized output metadata.
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError>;
+
+    /// Produce one structured request as ordered canonical PCM windows.
+    ///
+    /// Buffered engines inherit this compatibility implementation. Engines
+    /// advertising `streaming_pcm` override it and emit while native synthesis
+    /// remains active.
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        let result = self.synthesize(request)?;
+        synthesis::stream_buffered_result(
+            request,
+            self.descriptor().capabilities.markers.requested_anchors,
+            result,
+            sink,
+        )
+    }
 
     /// Stop current synthesis
     fn stop(&self);

@@ -250,3 +250,10 @@ capture, cancellation, mixed-engine routing, fallback, PCM canonicalization,
 Eloquence exact requested anchors plus word/sentence markers, DECtalk
 word/sentence/phoneme/native-index markers, control mapping, tracked playback
 completion, and process replacement after a helper crash.
+
+The engine-neutral Rust helper host selects progressive delivery only when it
+negotiates version 5 with an engine advertising `streaming_pcm`. The same helper
+downgrades its advertised mode to `buffered_pcm` and calls the complete-result
+path for an older peer. Progressive engine windows are canonical 44.1 kHz
+stereo PCM before the host encodes them, and cumulative bytes remain subject to
+the ordinary 128 MiB synthesis limit.

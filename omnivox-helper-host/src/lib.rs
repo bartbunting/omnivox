@@ -13,12 +13,13 @@ use omnivox_tts::contracts::{
 use omnivox_tts::helper_protocol::{
     read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
     HelperPcmChunk, HelperProtocolError, HelperRequest, HelperRequestBody, HelperResponse,
-    HelperResponseBody, HelperSampleFormat, HelperSynthesisSettings, HELPER_PROTOCOL_VERSION,
-    MAX_HELPER_AUDIO_CHUNK_BYTES, MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES,
-    SUPPORTED_HELPER_PROTOCOL_VERSIONS,
+    HelperResponseBody, HelperSampleFormat, HelperSynthesisSettings, HELPER_PROTOCOL_V5,
+    HELPER_PROTOCOL_VERSION, MAX_HELPER_AUDIO_CHUNK_BYTES, MAX_HELPER_MARKERS,
+    MAX_HELPER_SYNTHESIS_BYTES, SUPPORTED_HELPER_PROTOCOL_VERSIONS,
 };
 use omnivox_tts::{
-    SynthesisMarkerKind, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, TtsSettings,
+    AudioBuffer, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest,
+    SynthesisResult, SynthesisStreamSink, SynthesisStreamStart, TtsEngine, TtsError, TtsSettings,
     STANDARD_CHANNELS, STANDARD_SAMPLE_RATE,
 };
 use thiserror::Error;
@@ -137,10 +138,10 @@ where
             ));
         }
         if descriptor.can_synthesize()
-            && descriptor.capabilities.audio_output != AudioOutputMode::BufferedPcm
+            && descriptor.capabilities.audio_output == AudioOutputMode::ExternalPlayback
         {
             return Err(HelperServerError::Descriptor(
-                "engine must return buffered PCM".to_owned(),
+                "engine must return PCM".to_owned(),
             ));
         }
         if descriptor.can_synthesize()
@@ -229,12 +230,16 @@ where
                     )?;
                     return Ok(HandleOutcome::Continue);
                 }
+                let mut descriptor = self.descriptor.clone();
+                if protocol_version < HELPER_PROTOCOL_V5
+                    && descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm
+                {
+                    descriptor.capabilities.audio_output = AudioOutputMode::BufferedPcm;
+                }
                 self.send(
                     Some(request_id),
                     protocol_version,
-                    HelperResponseBody::Descriptor {
-                        descriptor: self.descriptor.clone(),
-                    },
+                    HelperResponseBody::Descriptor { descriptor },
                 )?;
                 Ok(HandleOutcome::Continue)
             }
@@ -442,26 +447,23 @@ where
             state.active = Some(active.clone());
         }
 
-        if let Err(error) = self.send(
-            Some(request_id),
-            protocol_version,
-            HelperResponseBody::SynthesisStarted {
-                format: HelperAudioFormat {
-                    sample_rate: STANDARD_SAMPLE_RATE,
-                    channels: STANDARD_CHANNELS,
-                    sample_format: HelperSampleFormat::PcmS16Le,
-                },
-                actual_voice_id: voice_id,
-            },
-        ) {
-            self.clear_active(request_id);
-            return Err(RemoteFault::internal(error));
+        let progressive = protocol_version >= HELPER_PROTOCOL_V5
+            && self.descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm;
+        if !progressive {
+            if let Err(error) =
+                self.send_synthesis_started(request_id, protocol_version, voice_id.clone())
+            {
+                self.clear_active(request_id);
+                return Err(RemoteFault::internal(error));
+            }
         }
 
         let runtime = Arc::clone(self);
         let spawn = thread::Builder::new()
             .name("omnivox-helper-native".to_owned())
-            .spawn(move || runtime.synthesis_worker(protocol_version, active, request));
+            .spawn(move || {
+                runtime.synthesis_worker(protocol_version, active, request, progressive)
+            });
         if let Err(error) = spawn {
             self.clear_active(request_id);
             return Err(RemoteFault::internal(error));
@@ -474,7 +476,12 @@ where
         protocol_version: u16,
         active: ActiveSynthesis,
         request: SynthesisRequest,
+        progressive: bool,
     ) {
+        if progressive {
+            self.progressive_synthesis_worker(protocol_version, active, request);
+            return;
+        }
         let synthesis = panic::catch_unwind(AssertUnwindSafe(|| self.engine.synthesize(&request)));
         let terminal = if active.cancelled.load(Ordering::Acquire) {
             HelperResponseBody::SynthesisCancelled
@@ -498,6 +505,68 @@ where
             }
         };
         let _ = self.finish_synthesis(protocol_version, &active, terminal);
+    }
+
+    fn progressive_synthesis_worker(
+        self: Arc<Self>,
+        protocol_version: u16,
+        active: ActiveSynthesis,
+        request: SynthesisRequest,
+    ) {
+        let expected_voice_id = request
+            .voice_id_for_engine(&self.descriptor.id)
+            .expect("validated helper request targets its descriptor")
+            .to_owned();
+        let mut sink =
+            ProgressiveWireSink::new(&self, protocol_version, &active, expected_voice_id.clone());
+        let synthesis = panic::catch_unwind(AssertUnwindSafe(|| {
+            self.engine.synthesize_stream(&request, &mut sink)
+        }));
+        let terminal = if active.cancelled.load(Ordering::Acquire) {
+            HelperResponseBody::SynthesisCancelled
+        } else {
+            match synthesis {
+                Ok(Ok(completion)) => match sink.complete(completion.frame_count) {
+                    Ok(()) => HelperResponseBody::SynthesisCompleted {
+                        frame_count: completion.frame_count,
+                    },
+                    Err(error) => error_response_body(map_tts_error(error)),
+                },
+                Ok(Err(error)) => {
+                    let _ = sink.ensure_started(expected_voice_id);
+                    error_response_body(map_tts_error(error))
+                }
+                Err(_) => {
+                    let _ = sink.ensure_started(expected_voice_id);
+                    error_response_body(RemoteFault::new(
+                        HelperErrorCode::Internal,
+                        "helper synthesis panicked",
+                        false,
+                    ))
+                }
+            }
+        };
+        let _ = self.finish_synthesis(protocol_version, &active, terminal);
+    }
+
+    fn send_synthesis_started(
+        &self,
+        request_id: u64,
+        protocol_version: u16,
+        actual_voice_id: String,
+    ) -> Result<(), HelperServerError> {
+        self.send(
+            Some(request_id),
+            protocol_version,
+            HelperResponseBody::SynthesisStarted {
+                format: HelperAudioFormat {
+                    sample_rate: STANDARD_SAMPLE_RATE,
+                    channels: STANDARD_CHANNELS,
+                    sample_format: HelperSampleFormat::PcmS16Le,
+                },
+                actual_voice_id,
+            },
+        )
     }
 
     fn emit_result(
@@ -652,6 +721,230 @@ where
     }
 }
 
+struct ProgressiveWireSink<'a, W> {
+    runtime: &'a HelperRuntime<W>,
+    protocol_version: u16,
+    active: &'a ActiveSynthesis,
+    expected_voice_id: String,
+    started: bool,
+    next_sequence: u32,
+    frame_count: u64,
+    pcm_bytes: usize,
+    marker_count: usize,
+    last_marker_offset: Option<u64>,
+}
+
+impl<'a, W> ProgressiveWireSink<'a, W>
+where
+    W: Write + Send + 'static,
+{
+    fn new(
+        runtime: &'a HelperRuntime<W>,
+        protocol_version: u16,
+        active: &'a ActiveSynthesis,
+        expected_voice_id: String,
+    ) -> Self {
+        Self {
+            runtime,
+            protocol_version,
+            active,
+            expected_voice_id,
+            started: false,
+            next_sequence: 0,
+            frame_count: 0,
+            pcm_bytes: 0,
+            marker_count: 0,
+            last_marker_offset: None,
+        }
+    }
+
+    fn ensure_active(&self) -> Result<(), TtsError> {
+        if self.active.cancelled.load(Ordering::Acquire) {
+            return Err(TtsError::SynthesisFailed(
+                "helper synthesis was cancelled".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn ensure_started(&mut self, actual_voice_id: String) -> Result<(), TtsError> {
+        if self.started {
+            return Ok(());
+        }
+        self.runtime
+            .send_synthesis_started(
+                self.active.request_id,
+                self.protocol_version,
+                actual_voice_id,
+            )
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        self.started = true;
+        Ok(())
+    }
+
+    fn complete(&mut self, reported_frame_count: u64) -> Result<(), TtsError> {
+        self.ensure_started(self.expected_voice_id.clone())?;
+        if reported_frame_count != self.frame_count {
+            return Err(TtsError::SynthesisFailed(format!(
+                "progressive engine reported {reported_frame_count} frames after emitting {}",
+                self.frame_count
+            )));
+        }
+        if self
+            .last_marker_offset
+            .is_some_and(|offset| offset > reported_frame_count)
+        {
+            return Err(TtsError::SynthesisFailed(format!(
+                "progressive engine marker exceeds the {reported_frame_count}-frame result"
+            )));
+        }
+        Ok(())
+    }
+}
+
+impl<W> SynthesisStreamSink for ProgressiveWireSink<'_, W>
+where
+    W: Write + Send + 'static,
+{
+    fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError> {
+        self.ensure_active()?;
+        if self.started {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine started one synthesis twice".to_owned(),
+            ));
+        }
+        if start.engine_id != self.runtime.descriptor.id {
+            return Err(TtsError::SynthesisFailed(format!(
+                "progressive engine reported {}, expected {}",
+                start.engine_id, self.runtime.descriptor.id
+            )));
+        }
+        let actual_voice = start.actual_voice.ok_or_else(|| {
+            TtsError::SynthesisFailed(
+                "progressive engine did not identify its actual voice".to_owned(),
+            )
+        })?;
+        if actual_voice.engine_id != self.runtime.descriptor.id
+            || actual_voice.voice_id != self.expected_voice_id
+        {
+            return Err(TtsError::SynthesisFailed(format!(
+                "progressive engine synthesized with {}:{}, expected {}:{}",
+                actual_voice.engine_id,
+                actual_voice.voice_id,
+                self.runtime.descriptor.id,
+                self.expected_voice_id
+            )));
+        }
+        self.ensure_started(actual_voice.voice_id)
+    }
+
+    fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+        self.ensure_active()?;
+        if !self.started {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine emitted audio before starting".to_owned(),
+            ));
+        }
+        if audio.is_empty() {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine emitted an empty audio window".to_owned(),
+            ));
+        }
+        let window_bytes = audio
+            .samples
+            .len()
+            .checked_mul(std::mem::size_of::<i16>())
+            .ok_or_else(|| TtsError::SynthesisFailed("helper PCM size overflowed".to_owned()))?;
+        self.pcm_bytes = self
+            .pcm_bytes
+            .checked_add(window_bytes)
+            .filter(|size| *size <= MAX_HELPER_SYNTHESIS_BYTES)
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(format!(
+                    "PCM exceeds the {MAX_HELPER_SYNTHESIS_BYTES}-byte helper limit"
+                ))
+            })?;
+
+        let samples_per_chunk = MAX_HELPER_AUDIO_CHUNK_BYTES / std::mem::size_of::<i16>();
+        for samples in audio.samples.chunks(samples_per_chunk) {
+            self.ensure_active()?;
+            let mut bytes = Vec::with_capacity(samples.len() * std::mem::size_of::<i16>());
+            for sample in samples {
+                bytes.extend_from_slice(&f32_to_i16(*sample).to_le_bytes());
+            }
+            let chunk = HelperPcmChunk::from_bytes(self.next_sequence, &bytes)
+                .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+            self.runtime
+                .send(
+                    Some(self.active.request_id),
+                    self.protocol_version,
+                    HelperResponseBody::AudioChunk { chunk },
+                )
+                .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+            self.next_sequence = self.next_sequence.checked_add(1).ok_or_else(|| {
+                TtsError::SynthesisFailed("helper PCM sequence overflowed".to_owned())
+            })?;
+        }
+        self.frame_count = self
+            .frame_count
+            .checked_add(audio.frame_count() as u64)
+            .ok_or_else(|| TtsError::SynthesisFailed("helper frame count overflowed".to_owned()))?;
+        Ok(())
+    }
+
+    fn markers(
+        &mut self,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<ResolvedAnchor>,
+    ) -> Result<(), TtsError> {
+        self.ensure_active()?;
+        if !self.started {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine emitted markers before starting".to_owned(),
+            ));
+        }
+        let markers = helper_markers_from_parts(&markers, &anchors)?;
+        if markers.is_empty() {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine emitted an empty marker batch".to_owned(),
+            ));
+        }
+        self.marker_count = self
+            .marker_count
+            .checked_add(markers.len())
+            .filter(|count| *count <= MAX_HELPER_MARKERS)
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(format!(
+                    "the engine returned more than {MAX_HELPER_MARKERS} helper markers"
+                ))
+            })?;
+        for marker in &markers {
+            if marker.frame_offset < self.frame_count {
+                return Err(TtsError::SynthesisFailed(format!(
+                    "progressive marker at frame {} arrived after {} audio frames",
+                    marker.frame_offset, self.frame_count
+                )));
+            }
+            if self
+                .last_marker_offset
+                .is_some_and(|previous| marker.frame_offset < previous)
+            {
+                return Err(TtsError::SynthesisFailed(
+                    "progressive markers are not monotonic".to_owned(),
+                ));
+            }
+            self.last_marker_offset = Some(marker.frame_offset);
+        }
+        self.runtime
+            .send(
+                Some(self.active.request_id),
+                self.protocol_version,
+                HelperResponseBody::Markers { markers },
+            )
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))
+    }
+}
+
 #[derive(Debug)]
 struct RemoteFault {
     code: HelperErrorCode,
@@ -721,8 +1014,14 @@ fn protocol_error_code(error: &HelperProtocolError) -> HelperErrorCode {
 }
 
 fn helper_markers(result: &SynthesisResult) -> Result<Vec<HelperMarker>, TtsError> {
-    let mut markers = result
-        .markers
+    helper_markers_from_parts(&result.markers, &result.anchors)
+}
+
+fn helper_markers_from_parts(
+    synthesis_markers: &[SynthesisMarker],
+    anchors: &[ResolvedAnchor],
+) -> Result<Vec<HelperMarker>, TtsError> {
+    let mut markers = synthesis_markers
         .iter()
         .map(|marker| HelperMarker {
             kind: match marker.kind {
@@ -738,8 +1037,7 @@ fn helper_markers(result: &SynthesisResult) -> Result<Vec<HelperMarker>, TtsErro
         })
         .collect::<Vec<_>>();
     markers.extend(
-        result
-            .anchors
+        anchors
             .iter()
             .filter(|anchor| anchor.resolution == omnivox_tts::AnchorResolution::Exact)
             .map(|anchor| HelperMarker {
@@ -1030,6 +1328,79 @@ mod tests {
         }
     }
 
+    struct ProgressiveEngine {
+        release: Mutex<bool>,
+        changed: Condvar,
+        first_window_sent: AtomicBool,
+    }
+
+    impl ProgressiveEngine {
+        fn new() -> Self {
+            Self {
+                release: Mutex::new(false),
+                changed: Condvar::new(),
+                first_window_sent: AtomicBool::new(false),
+            }
+        }
+
+        fn release(&self) {
+            *self.release.lock().unwrap() = true;
+            self.changed.notify_all();
+        }
+    }
+
+    impl TtsEngine for ProgressiveEngine {
+        fn descriptor(&self) -> EngineDescriptor {
+            let mut descriptor = descriptor();
+            descriptor.capabilities.audio_output = AudioOutputMode::StreamingPcm;
+            descriptor
+        }
+
+        fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+            Ok(SynthesisResult::audio(
+                "mock",
+                request.requested_voice.clone(),
+                AudioBuffer::new(vec![0.25, -0.25, 0.5, -0.5]),
+            ))
+        }
+
+        fn synthesize_stream(
+            &self,
+            request: &SynthesisRequest,
+            sink: &mut dyn SynthesisStreamSink,
+        ) -> Result<omnivox_tts::SynthesisStreamCompletion, TtsError> {
+            sink.start(SynthesisStreamStart {
+                engine_id: "mock".to_owned(),
+                actual_voice: request.requested_voice.clone(),
+                degraded_acss: Vec::new(),
+            })?;
+            sink.audio(AudioBuffer::new(vec![0.25, -0.25]))?;
+            self.first_window_sent.store(true, Ordering::Release);
+            let mut release = self.release.lock().unwrap();
+            while !*release {
+                release = self.changed.wait(release).unwrap();
+            }
+            sink.audio(AudioBuffer::new(vec![0.5, -0.5]))?;
+            Ok(omnivox_tts::SynthesisStreamCompletion { frame_count: 2 })
+        }
+
+        fn stop(&self) {
+            self.release();
+        }
+
+        fn is_speaking(&self) -> bool {
+            self.first_window_sent.load(Ordering::Acquire)
+        }
+
+        fn available_voices(&self) -> Vec<VoiceInfo> {
+            Vec::new()
+        }
+
+        fn voice_info(&self, _identifier: &str) -> Option<VoiceInfo> {
+            None
+        }
+    }
+
     fn hello(request_id: u64) -> HelperRequest {
         HelperRequest::new(
             request_id,
@@ -1098,6 +1469,50 @@ mod tests {
             .flatten()
             .collect::<Vec<_>>();
         assert_eq!(chunks, vec![16384, -16384, 32767, -32768]);
+        assert!(responses.iter().any(|response| matches!(
+            response.body,
+            HelperResponseBody::SynthesisCompleted { frame_count: 2 }
+        )));
+    }
+
+    #[test]
+    fn progressive_engine_publishes_audio_before_native_completion() {
+        let writer = SharedWriter::default();
+        let native = Arc::new(ProgressiveEngine::new());
+        let engine: Arc<dyn TtsEngine> = native.clone();
+        let runtime = Arc::new(
+            HelperRuntime::new(
+                engine,
+                writer.clone(),
+                "Test helper".to_owned(),
+                "1".to_owned(),
+            )
+            .unwrap(),
+        );
+
+        runtime.handle(hello(1)).unwrap();
+        runtime
+            .handle(HelperRequest::new(2, HelperRequestBody::Describe))
+            .unwrap();
+        runtime.handle(synthesis(3)).unwrap();
+        writer.wait_for(|body| matches!(body, HelperResponseBody::AudioChunk { .. }));
+        assert!(native.first_window_sent.load(Ordering::Acquire));
+        assert!(!writer.responses().iter().any(|response| matches!(
+            response.body,
+            HelperResponseBody::SynthesisCompleted { .. }
+        )));
+
+        native.release();
+        writer.wait_for(|body| matches!(body, HelperResponseBody::SynthesisCompleted { .. }));
+        let responses = writer.responses();
+        let chunks = responses
+            .iter()
+            .filter_map(|response| match &response.body {
+                HelperResponseBody::AudioChunk { chunk } => Some(chunk.decode_samples().unwrap()),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(chunks, vec![vec![8192, -8192], vec![16384, -16384]]);
         assert!(responses.iter().any(|response| matches!(
             response.body,
             HelperResponseBody::SynthesisCompleted { frame_count: 2 }

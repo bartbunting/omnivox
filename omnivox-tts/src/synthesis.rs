@@ -156,6 +156,35 @@ pub struct SynthesisMarker {
     pub value: Option<String>,
 }
 
+/// Metadata known before the first canonical PCM window is produced.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SynthesisStreamStart {
+    pub engine_id: String,
+    pub actual_voice: Option<PhysicalVoiceId>,
+    pub degraded_acss: Vec<AcssDimension>,
+}
+
+/// Metadata finalized after the last canonical PCM window.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SynthesisStreamCompletion {
+    pub frame_count: u64,
+}
+
+/// Consumer for one ordered, canonical progressive synthesis result.
+///
+/// Engines call `start` exactly once, then supply non-empty audio windows and
+/// marker batches in playback order. Returning an error applies bounded
+/// backpressure or cancellation to the producer.
+pub trait SynthesisStreamSink {
+    fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError>;
+    fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError>;
+    fn markers(
+        &mut self,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<ResolvedAnchor>,
+    ) -> Result<(), TtsError>;
+}
+
 /// Buffered synthesis output and metadata describing what was realized.
 #[derive(Debug, Clone)]
 pub struct SynthesisResult {
@@ -319,6 +348,30 @@ impl SynthesisResult {
             }
         }
     }
+}
+
+/// Forward one complete result through the progressive synthesis contract.
+pub(crate) fn stream_buffered_result(
+    request: &SynthesisRequest,
+    support: AnchorSupport,
+    mut result: SynthesisResult,
+    sink: &mut dyn SynthesisStreamSink,
+) -> Result<SynthesisStreamCompletion, TtsError> {
+    result.resolve_anchors(request, support);
+    result.validate(request)?;
+    let frame_count = result.audio.frame_count() as u64;
+    sink.start(SynthesisStreamStart {
+        engine_id: result.engine_id,
+        actual_voice: result.actual_voice,
+        degraded_acss: result.degraded_acss,
+    })?;
+    if !result.audio.is_empty() {
+        sink.audio(result.audio)?;
+    }
+    if !result.markers.is_empty() || !result.anchors.is_empty() {
+        sink.markers(result.markers, result.anchors)?;
+    }
+    Ok(SynthesisStreamCompletion { frame_count })
 }
 
 fn approximate_at_word_boundary(
