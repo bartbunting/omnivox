@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::io::{BufReader, BufWriter};
+use std::fs::File;
+use std::io::{BufReader, BufWriter, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
@@ -10,13 +11,14 @@ use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
+use serde::Deserialize;
 use thiserror::Error;
 use tracing::{info, warn};
 
 use crate::contracts::{
     AudioOutputMode, CancellationSupport, ConcurrencyModel, EngineDescriptor, PhysicalVoiceId,
 };
-use crate::engine_registry::validate_descriptor;
+use crate::engine_registry::validate_descriptor as validate_registry_descriptor;
 use crate::helper_protocol::{
     read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
     HelperRequest, HelperRequestBody, HelperResponse, HelperResponseBody, HelperSynthesisSettings,
@@ -29,6 +31,18 @@ use crate::{
 };
 
 const HELPER_CANCEL_GRACE: Duration = Duration::from_millis(250);
+pub const HELPER_DESCRIPTOR_CACHE_FILE_NAME: &str = "VOICE-INVENTORY.json";
+const HELPER_DESCRIPTOR_CACHE_SCHEMA_VERSION: u32 = 1;
+const MAX_HELPER_DESCRIPTOR_CACHE_BYTES: u64 = 1024 * 1024;
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HelperDescriptorCache {
+    schema_version: u32,
+    engine_id: String,
+    source_identity: String,
+    descriptor: EngineDescriptor,
+}
 
 #[derive(Debug, Error)]
 pub enum HelperEngineError {
@@ -84,6 +98,9 @@ pub enum HelperEngineError {
     #[error("helper returned an invalid engine descriptor: {0}")]
     InvalidDescriptor(String),
 
+    #[error("helper descriptor cache is invalid: {0}")]
+    DescriptorCache(String),
+
     #[error("helper acknowledged cancellation of request {received}, expected {expected}")]
     CancelTargetMismatch { expected: u64, received: u64 },
 }
@@ -109,6 +126,115 @@ impl HelperEngineConfig {
             synthesis_idle_timeout: Duration::from_secs(10),
         }
     }
+}
+
+pub fn load_helper_descriptor_cache(
+    path: &Path,
+    expected_engine_id: &str,
+) -> Result<EngineDescriptor, HelperEngineError> {
+    let file =
+        File::open(path).map_err(|error| HelperEngineError::DescriptorCache(error.to_string()))?;
+    let metadata = file
+        .metadata()
+        .map_err(|error| HelperEngineError::DescriptorCache(error.to_string()))?;
+    if !metadata.is_file() || metadata.len() > MAX_HELPER_DESCRIPTOR_CACHE_BYTES {
+        return Err(HelperEngineError::DescriptorCache(format!(
+            "cache must be a regular file no larger than {MAX_HELPER_DESCRIPTOR_CACHE_BYTES} bytes"
+        )));
+    }
+    let mut encoded = Vec::with_capacity(metadata.len() as usize);
+    file.take(MAX_HELPER_DESCRIPTOR_CACHE_BYTES + 1)
+        .read_to_end(&mut encoded)
+        .map_err(|error| HelperEngineError::DescriptorCache(error.to_string()))?;
+    if encoded.len() as u64 > MAX_HELPER_DESCRIPTOR_CACHE_BYTES {
+        return Err(HelperEngineError::DescriptorCache(format!(
+            "cache exceeds the {MAX_HELPER_DESCRIPTOR_CACHE_BYTES}-byte limit"
+        )));
+    }
+    let cache: HelperDescriptorCache = serde_json::from_slice(&encoded)
+        .map_err(|error| HelperEngineError::DescriptorCache(error.to_string()))?;
+    if cache.schema_version != HELPER_DESCRIPTOR_CACHE_SCHEMA_VERSION {
+        return Err(HelperEngineError::DescriptorCache(format!(
+            "unsupported cache schema {}",
+            cache.schema_version
+        )));
+    }
+    if cache.engine_id != expected_engine_id {
+        return Err(HelperEngineError::DescriptorCache(format!(
+            "cache describes {}, expected {expected_engine_id}",
+            cache.engine_id
+        )));
+    }
+    if cache.source_identity.len() != 64
+        || !cache
+            .source_identity
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(HelperEngineError::DescriptorCache(
+            "cache source identity is not a lowercase SHA-256".to_owned(),
+        ));
+    }
+    let response = HelperResponse::for_request(
+        1,
+        HelperResponseBody::Descriptor {
+            descriptor: cache.descriptor.clone(),
+        },
+    );
+    response.validate()?;
+    let descriptor = prepare_helper_descriptor(expected_engine_id, cache.descriptor)?;
+    info!(
+        engine_id = expected_engine_id,
+        cache = %path.display(),
+        voices = descriptor.voices.len(),
+        "Loaded cached helper voice inventory"
+    );
+    Ok(descriptor)
+}
+
+fn prepare_helper_descriptor(
+    expected_engine_id: &str,
+    mut descriptor: EngineDescriptor,
+) -> Result<EngineDescriptor, HelperEngineError> {
+    descriptor.capabilities.post_synthesis_dimensions =
+        crate::contracts::buffered_post_synthesis_dimensions();
+    validate_helper_descriptor(expected_engine_id, &descriptor)?;
+    Ok(descriptor)
+}
+
+fn validate_helper_descriptor(
+    expected_engine_id: &str,
+    descriptor: &EngineDescriptor,
+) -> Result<(), HelperEngineError> {
+    if descriptor.id != expected_engine_id {
+        return Err(HelperEngineError::EngineIdMismatch {
+            expected: expected_engine_id.to_owned(),
+            received: descriptor.id.clone(),
+        });
+    }
+    validate_registry_descriptor(descriptor)
+        .map_err(|error| HelperEngineError::InvalidDescriptor(error.to_string()))?;
+    if descriptor.capabilities.audio_output != AudioOutputMode::BufferedPcm {
+        return Err(HelperEngineError::InvalidDescriptor(
+            "helper engine must return buffered PCM".to_owned(),
+        ));
+    }
+    if descriptor.capabilities.concurrency != ConcurrencyModel::Serialized {
+        return Err(HelperEngineError::InvalidDescriptor(
+            "helper protocol version 1 requires serialized synthesis".to_owned(),
+        ));
+    }
+    if descriptor.capabilities.cancellation != CancellationSupport::SynthesisAndPlayback {
+        return Err(HelperEngineError::InvalidDescriptor(
+            "helper protocol version 1 requires synthesis cancellation".to_owned(),
+        ));
+    }
+    if !descriptor.can_synthesize() {
+        return Err(HelperEngineError::InvalidDescriptor(
+            "helper engine is not currently available".to_owned(),
+        ));
+    }
+    Ok(())
 }
 
 trait HelperConnection: Send + Sync {
@@ -610,8 +736,10 @@ pub struct HelperTtsEngine {
     connector: Arc<dyn HelperConnector>,
     connection: RwLock<Option<Arc<dyn HelperConnection>>>,
     descriptor: RwLock<Option<EngineDescriptor>>,
+    descriptor_is_deferred: AtomicBool,
     protocol_version: AtomicU64,
     next_request_id: AtomicU64,
+    stop_epoch: AtomicU64,
     active_request_id: Arc<AtomicU64>,
     cancellations_by_target: Mutex<HashMap<u64, Arc<TargetCancellation>>>,
     lifecycle: Mutex<()>,
@@ -624,9 +752,37 @@ impl HelperTtsEngine {
         Self::with_connector(config, connector)
     }
 
+    /// Register a helper from a validated cached descriptor and connect on first use.
+    pub fn new_deferred(
+        config: HelperEngineConfig,
+        descriptor: EngineDescriptor,
+    ) -> Result<Self, HelperEngineError> {
+        let connector = Arc::new(ProcessHelperConnector::new(&config));
+        Self::with_deferred_connector(config, connector, descriptor)
+    }
+
     fn with_connector(
         config: HelperEngineConfig,
         connector: Arc<dyn HelperConnector>,
+    ) -> Result<Self, HelperEngineError> {
+        let engine = Self::without_connection(config, connector, None)?;
+        engine.install_fresh_connection()?;
+        Ok(engine)
+    }
+
+    fn with_deferred_connector(
+        config: HelperEngineConfig,
+        connector: Arc<dyn HelperConnector>,
+        descriptor: EngineDescriptor,
+    ) -> Result<Self, HelperEngineError> {
+        let descriptor = prepare_helper_descriptor(&config.engine_id, descriptor)?;
+        Self::without_connection(config, connector, Some(descriptor))
+    }
+
+    fn without_connection(
+        config: HelperEngineConfig,
+        connector: Arc<dyn HelperConnector>,
+        descriptor: Option<EngineDescriptor>,
     ) -> Result<Self, HelperEngineError> {
         if config.engine_id.is_empty() {
             return Err(HelperEngineError::InvalidDescriptor(
@@ -642,20 +798,21 @@ impl HelperTtsEngine {
             ));
         }
 
-        let engine = Self {
+        let descriptor_is_deferred = descriptor.is_some();
+        Ok(Self {
             config,
             connector,
             connection: RwLock::new(None),
-            descriptor: RwLock::new(None),
+            descriptor: RwLock::new(descriptor),
+            descriptor_is_deferred: AtomicBool::new(descriptor_is_deferred),
             protocol_version: AtomicU64::new(0),
             next_request_id: AtomicU64::new(1),
+            stop_epoch: AtomicU64::new(0),
             active_request_id: Arc::new(AtomicU64::new(0)),
             cancellations_by_target: Mutex::new(HashMap::new()),
             lifecycle: Mutex::new(()),
             dispatch: Mutex::new(()),
-        };
-        engine.install_fresh_connection()?;
-        Ok(engine)
+        })
     }
 
     fn allocate_request_id(&self) -> u64 {
@@ -667,7 +824,26 @@ impl HelperTtsEngine {
         }
     }
 
+    /// Start and retain a deferred helper connection without synthesizing.
+    ///
+    /// Returns `true` when this call installed a connection and `false` when
+    /// one was already ready. A later synthesis retries normally after an
+    /// unsuccessful pre-warm attempt.
+    pub fn prewarm_connection(&self) -> Result<bool, HelperEngineError> {
+        let _lifecycle = self.lifecycle.lock().unwrap();
+        if self.current_connection().is_ok() {
+            return Ok(false);
+        }
+        info!(
+            engine_id = self.config.engine_id,
+            "Pre-warming deferred TTS helper connection"
+        );
+        self.install_fresh_connection()?;
+        Ok(true)
+    }
+
     fn install_fresh_connection(&self) -> Result<(), HelperEngineError> {
+        let started_at = Instant::now();
         info!(
             engine_id = self.config.engine_id,
             "Installing fresh TTS helper connection"
@@ -685,13 +861,26 @@ impl HelperTtsEngine {
                 return Err(error);
             }
         };
+        if self.descriptor_is_deferred.load(Ordering::Acquire) {
+            let cached_descriptor = self.descriptor.read().unwrap();
+            if cached_descriptor.as_ref() != Some(&descriptor) {
+                drop(cached_descriptor);
+                connection.terminate();
+                return Err(HelperEngineError::InvalidDescriptor(
+                    "live helper descriptor differs from its cached voice inventory".to_owned(),
+                ));
+            }
+        }
         *self.descriptor.write().unwrap() = Some(descriptor);
+        self.descriptor_is_deferred.store(false, Ordering::Release);
         self.protocol_version
             .store(u64::from(protocol_version), Ordering::Release);
         *self.connection.write().unwrap() = Some(connection);
         info!(
             engine_id = self.config.engine_id,
-            protocol_version, "TTS helper connection ready"
+            protocol_version,
+            elapsed_ms = started_at.elapsed().as_millis(),
+            "TTS helper connection ready"
         );
         Ok(())
     }
@@ -768,7 +957,7 @@ impl HelperTtsEngine {
                 "descriptor uses a different negotiated protocol version",
             ));
         }
-        let mut descriptor = match response.body {
+        let descriptor = match response.body {
             HelperResponseBody::Descriptor { descriptor } => descriptor,
             HelperResponseBody::Error {
                 code,
@@ -787,42 +976,8 @@ impl HelperTtsEngine {
                 ));
             }
         };
-        descriptor.capabilities.post_synthesis_dimensions =
-            crate::contracts::buffered_post_synthesis_dimensions();
-        self.validate_descriptor(&descriptor)?;
+        let descriptor = prepare_helper_descriptor(&self.config.engine_id, descriptor)?;
         Ok((descriptor, selected_protocol_version))
-    }
-
-    fn validate_descriptor(&self, descriptor: &EngineDescriptor) -> Result<(), HelperEngineError> {
-        if descriptor.id != self.config.engine_id {
-            return Err(HelperEngineError::EngineIdMismatch {
-                expected: self.config.engine_id.clone(),
-                received: descriptor.id.clone(),
-            });
-        }
-        validate_descriptor(descriptor)
-            .map_err(|error| HelperEngineError::InvalidDescriptor(error.to_string()))?;
-        if descriptor.capabilities.audio_output != AudioOutputMode::BufferedPcm {
-            return Err(HelperEngineError::InvalidDescriptor(
-                "helper engine must return buffered PCM".to_owned(),
-            ));
-        }
-        if descriptor.capabilities.concurrency != ConcurrencyModel::Serialized {
-            return Err(HelperEngineError::InvalidDescriptor(
-                "helper protocol version 1 requires serialized synthesis".to_owned(),
-            ));
-        }
-        if descriptor.capabilities.cancellation != CancellationSupport::SynthesisAndPlayback {
-            return Err(HelperEngineError::InvalidDescriptor(
-                "helper protocol version 1 requires synthesis cancellation".to_owned(),
-            ));
-        }
-        if !descriptor.can_synthesize() {
-            return Err(HelperEngineError::InvalidDescriptor(
-                "helper engine is not currently available".to_owned(),
-            ));
-        }
-        Ok(())
     }
 
     fn current_connection(&self) -> Result<Arc<dyn HelperConnection>, HelperEngineError> {
@@ -838,10 +993,17 @@ impl HelperTtsEngine {
         match self.current_connection() {
             Ok(connection) => Ok(connection),
             Err(HelperEngineError::Exited) => {
-                info!(
-                    engine_id = self.config.engine_id,
-                    "Restarting invalidated TTS helper before synthesis"
-                );
+                if self.descriptor_is_deferred.load(Ordering::Acquire) {
+                    info!(
+                        engine_id = self.config.engine_id,
+                        "Starting deferred TTS helper before first synthesis"
+                    );
+                } else {
+                    info!(
+                        engine_id = self.config.engine_id,
+                        "Restarting invalidated TTS helper before synthesis"
+                    );
+                }
                 self.install_fresh_connection()?;
                 self.current_connection()
             }
@@ -1036,6 +1198,7 @@ impl TtsEngine for HelperTtsEngine {
     }
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+        let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
         let _lifecycle = self.lifecycle.lock().unwrap();
         let connection = self.connection_for_synthesis().map_err(Self::map_error)?;
         let descriptor = self.descriptor();
@@ -1098,6 +1261,11 @@ impl TtsEngine for HelperTtsEngine {
 
         {
             let _dispatch = self.dispatch.lock().unwrap();
+            if self.stop_epoch.load(Ordering::Acquire) != stop_epoch {
+                return Err(TtsError::SynthesisFailed(
+                    "helper synthesis cancelled before dispatch".to_owned(),
+                ));
+            }
             if let Err(error) = connection.send(&helper_request) {
                 return Err(self.synthesis_error(&connection, request_id, error));
             }
@@ -1200,6 +1368,7 @@ impl TtsEngine for HelperTtsEngine {
     }
 
     fn stop(&self) {
+        self.stop_epoch.fetch_add(1, Ordering::AcqRel);
         let _dispatch = self.dispatch.lock().unwrap();
         let target_request_id = self.active_request_id.load(Ordering::Acquire);
         if target_request_id == 0 {
@@ -1305,6 +1474,7 @@ impl Drop for HelperTtsEngine {
 #[cfg(test)]
 mod tests {
     use std::collections::VecDeque;
+    use std::fs;
     use std::sync::atomic::{AtomicBool, AtomicUsize};
     use std::sync::Condvar;
     use std::time::Instant;
@@ -1685,6 +1855,15 @@ mod tests {
 
     fn synthesis_request(text: &str) -> SynthesisRequest {
         SynthesisRequest::new(text, helper_settings())
+    }
+
+    fn descriptor_cache_path() -> PathBuf {
+        static SEQUENCE: AtomicUsize = AtomicUsize::new(0);
+        std::env::temp_dir().join(format!(
+            "omnivox-helper-descriptor-cache-{}-{}.json",
+            std::process::id(),
+            SEQUENCE.fetch_add(1, Ordering::AcqRel)
+        ))
     }
 
     fn mock_engine(
@@ -2316,6 +2495,108 @@ mod tests {
             .synthesize(&synthesis_request("next utterance"))
             .is_ok());
         assert!(!recovered.terminated.load(Ordering::Acquire));
+    }
+
+    #[test]
+    fn descriptor_cache_loads_and_canonicalizes_a_valid_inventory() {
+        let path = descriptor_cache_path();
+        let encoded = serde_json::json!({
+            "schema_version": 1,
+            "engine_id": "eloquence",
+            "source_identity": "0".repeat(64),
+            "descriptor": helper_descriptor("eloquence", "1.0"),
+        });
+        fs::write(&path, serde_json::to_vec(&encoded).unwrap()).unwrap();
+
+        let loaded = load_helper_descriptor_cache(&path, "eloquence").unwrap();
+        let _ = fs::remove_file(&path);
+
+        assert_eq!(loaded.version.as_deref(), Some("1.0"));
+        assert_eq!(
+            loaded.capabilities.post_synthesis_dimensions,
+            crate::contracts::buffered_post_synthesis_dimensions()
+        );
+    }
+
+    #[test]
+    fn deferred_helper_uses_cached_descriptor_and_connects_on_first_synthesis() {
+        let descriptor = helper_descriptor("eloquence", "1.0");
+        let connection = Arc::new(MockConnection::new(
+            descriptor.clone(),
+            MockSynthesisMode::Complete,
+        ));
+        let engine = HelperTtsEngine::with_deferred_connector(
+            mock_config("eloquence"),
+            Arc::new(MockConnector::new(vec![Arc::clone(&connection)])),
+            descriptor,
+        )
+        .unwrap();
+
+        assert_eq!(engine.descriptor().version.as_deref(), Some("1.0"));
+        assert!(connection.sent.lock().unwrap().is_empty());
+
+        engine.synthesize(&synthesis_request("deferred")).unwrap();
+
+        let sent = connection.sent.lock().unwrap();
+        assert!(matches!(sent[0].body, HelperRequestBody::Hello { .. }));
+        assert!(matches!(sent[1].body, HelperRequestBody::Describe));
+        assert!(matches!(sent[2].body, HelperRequestBody::Synthesize { .. }));
+    }
+
+    #[test]
+    fn deferred_helper_can_prewarm_without_synthesizing() {
+        let descriptor = helper_descriptor("eloquence", "1.0");
+        let connection = Arc::new(MockConnection::new(
+            descriptor.clone(),
+            MockSynthesisMode::Complete,
+        ));
+        let engine = HelperTtsEngine::with_deferred_connector(
+            mock_config("eloquence"),
+            Arc::new(MockConnector::new(vec![Arc::clone(&connection)])),
+            descriptor,
+        )
+        .unwrap();
+
+        assert!(engine.prewarm_connection().unwrap());
+        assert!(!engine.prewarm_connection().unwrap());
+        {
+            let sent = connection.sent.lock().unwrap();
+            assert_eq!(sent.len(), 2);
+            assert!(matches!(sent[0].body, HelperRequestBody::Hello { .. }));
+            assert!(matches!(sent[1].body, HelperRequestBody::Describe));
+        }
+
+        engine.synthesize(&synthesis_request("warmed")).unwrap();
+        assert!(matches!(
+            connection.sent.lock().unwrap()[2].body,
+            HelperRequestBody::Synthesize { .. }
+        ));
+    }
+
+    #[test]
+    fn deferred_helper_rejects_a_live_descriptor_that_differs_from_cache() {
+        let connection = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.1"),
+            MockSynthesisMode::Complete,
+        ));
+        let engine = HelperTtsEngine::with_deferred_connector(
+            mock_config("eloquence"),
+            Arc::new(MockConnector::new(vec![Arc::clone(&connection)])),
+            helper_descriptor("eloquence", "1.0"),
+        )
+        .unwrap();
+
+        let error = engine
+            .synthesize(&synthesis_request("mismatch"))
+            .unwrap_err();
+
+        assert!(matches!(
+            error,
+            TtsError::SynthesisFailed(message)
+                if message.contains("differs from its cached voice inventory")
+        ));
+        assert!(connection.terminated.load(Ordering::Acquire));
+        assert_eq!(engine.descriptor().version.as_deref(), Some("1.0"));
     }
 
     #[test]
