@@ -4,7 +4,9 @@ This component owns the 32-bit Eloquence and DECtalk capture executables used
 by Omnivox on Windows. The helpers load native speech runtimes out of process,
 capture mono PCM and markers, and speak the versioned
 [engine helper protocol](../docs/protocols/HELPER-PROTOCOL.md) over standard
-input and output. They do not play audio themselves.
+input and output. Under protocol v5 they progressively canonicalize and emit
+callback PCM; versions 1 through 4 retain whole-result delivery. They do not
+play audio themselves.
 
 The two executables deliberately remain separate from the 64-bit Rust server.
 Eloquence's ECI runtime is 32-bit, and the DECtalk callback ABI passes pointer
@@ -165,6 +167,13 @@ After staging, start a fresh Omnivox process and verify that `dectalk` or
 `eloquence` and its voices appear in live inventory. A process already running
 during staging continues to use its previous content-addressed runtime.
 
+For protocol-v5 verification, pass `--require-streaming` to
+`tools/stress_helper.py`. Eloquence should emit its native word/sentence/index
+markers ahead of the associated PCM. DECtalk intentionally retains one
+512-sample native block because its runtime can report an index a few samples
+after the callback containing that frame. The holdback is bounded and is
+flushed at synthesis completion.
+
 Explicit native DLL arguments and environment variables must contain absolute
 paths. Otherwise Eloquence uses the Freedom Scientific 6.1
 installation path; DECtalk checks only beside the helper and the sibling
@@ -176,7 +185,7 @@ reported as `not_available` through the helper protocol.
 
 ## Source and licensing
 
-`common/OmnivoxHelperHost.cs` owns the bounded versions 1 through 4 protocol
+`common/OmnivoxHelperHost.cs` owns the bounded versions 1 through 5 protocol
 loop. Each engine directory owns only its adapter, native capture boundary, and
 entry point. These helper sources retain their original copyright and
 `GPL-2.0-or-later` notices; [COPYING](COPYING) contains the applicable GPL

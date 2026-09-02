@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-02
+**Last reviewed:** 2026-09-03
 **Workspace version:** 1.6.4
 
 This file records present behavior and limitations. Protocol guarantees belong
@@ -91,11 +91,12 @@ in the linked protocol specifications; future work belongs in
   arbitrary multi-device routing is not implemented.
 - An explicit null output backend consumes normal queued sources without
   opening an audio device for silent diagnostics and faster lifecycle tests.
-- Protocol-v5 markerless engines can feed ordinary anchorless speech through
-  bounded progressive isolation, exact cross-window silence trimming, effects,
-  and a single tracked playback source. Requests requiring presentation
-  anchors, or marker-capable progressive engines, remain buffered until their
-  incremental marker remapping path is enabled.
+- Protocol-v5 engines can feed ordinary anchorless speech and ordered native
+  marker batches through bounded progressive isolation, exact cross-window
+  silence trimming, effects, and a single tracked playback source. Marker
+  events are reserved before the corresponding PCM can reach playback.
+  Requests requiring presentation anchors remain buffered until timeline
+  actions and effects can be rendered incrementally with the same semantics.
 - Immediate `tts_say` and letter commands use the global engine order rather
   than a named logical voice.
 - Native cancellation strength differs by engine. WinRT work may continue in a
@@ -154,6 +155,13 @@ in the linked protocol specifications; future work belongs in
   whole-utterance buffered. The
   companion is excluded from generic and Emacsvox releases pending measured
   calibration, corresponding-source packaging, and native workflow gates.
+- Eloquence and DECtalk use the shared 32-bit Windows C# host. Protocol v5
+  forwards their callback PCM as canonical 44.1 kHz stereo windows while
+  preserving Eloquence word/sentence and exact requested-anchor markers, and
+  DECtalk word/sentence/phoneme/native-index markers. DECtalk retains one
+  512-sample native block so late callback markers remain ahead of their audio.
+  Protocol v4 and older clients still receive whole-result buffered output.
+  Proprietary runtimes remain user-supplied under their own terms.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
 - WinRT, eSpeak NG, Piper, RHVoice, Flite, RuTTS, and DECtalk have measured
@@ -256,6 +264,13 @@ for streaming work. The matching
 then reduced warm dispatch-to-source p50 by 94.1% for ordinary line speech and
 97.1% for multipart speech. Its anchored dense-action control remained
 buffered as designed.
+
+The matching
+[Eloquence and DECtalk streaming comparison](benchmarks/2026-09-03-windows-x64-null-eloquence-dectalk-streaming-09b89b3ff537d12b.md)
+records 480 exact-voice winner samples. Warm ordinary character, word, line,
+and multipart source medians improved by 82.3% to 87.0% for Eloquence and by
+55.7% to 62.3% for DECtalk. Their dense-action controls retained buffered
+whole-window rendering.
 
 `tools/stress_server.py` verifies interleaved replacement domains, ordered and
 urgent survival, repeated hard-stop recovery, contiguous marker and semantic

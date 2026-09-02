@@ -490,6 +490,11 @@ voice. The start event exists even when an engine supplies no native markers,
 which makes route and utterance timing observable without overstating engine
 capabilities.
 
+For a nonempty progressive source, `frame_count` is zero because the final
+length is not yet known when playback reaches this event. A positive value is
+the exact completed length of a buffered source. The tracked terminal record
+remains authoritative for progressive completion or cancellation.
+
 An engine marker produces a `marker_reached` event referring to that
 `utterance_id`:
 

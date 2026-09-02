@@ -11,8 +11,8 @@ Versioning for published releases.
 - Added helper protocol v5 and an accepted bounded-progressive-synthesis
   architecture contract for incremental PCM, marker ordering, backpressure,
   cancellation, and safe fallback before first audio. The common Rust helper
-  host now streams opt-in canonical engine windows and preserves buffered
-  behavior when an older protocol is negotiated.
+  host and shared Windows C# host now stream opt-in canonical engine windows
+  and preserve buffered behavior when an older protocol is negotiated.
 - Added an explicit null audio backend for silent, faster-than-real-time server
   and diagnostic runs, plus first-class null-output support in the lifecycle
   benchmark tools and evidence metadata.
@@ -36,6 +36,13 @@ Versioning for published releases.
 - TGSpeechBox now retains successfully configured language, profile, and
   eSpeak voice state across utterances instead of reloading the same language
   pack and selecting the same phonemizer voice twice for every request.
+- Eloquence and DECtalk now forward bounded PCM directly from their native
+  callbacks under helper protocol v5. The server progressively trims and
+  processes ordinary anchorless speech, remaps native markers, and reserves
+  their playback events before audio crosses each marker frame. DECtalk keeps
+  one bounded native block in hand to accommodate markers its runtime reports
+  a few samples late. Version 4 peers and requests containing presentation
+  anchors retain the buffered path.
 
 ### Fixed
 
