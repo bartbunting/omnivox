@@ -6,6 +6,12 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Flite and RuTTS corresponding-source release jobs now prepare and verify
+  their checksum-locked upstream archives on their own clean runners before
+  packaging; the matching local Make targets enforce the same prerequisite.
+
 ## [1.6.0] - 2026-09-02
 
 ### Added

@@ -149,7 +149,7 @@ package-flite: stage-flite
 verify-flite: package-flite
 	$(PYTHON) tools/verify_flite_release.py
 
-package-flite-source:
+package-flite-source: prepare-flite
 	$(PYTHON) tools/package_flite_source.py
 
 verify-flite-source: package-flite-source
@@ -176,7 +176,7 @@ package-rutts: stage-rutts
 verify-rutts: package-rutts
 	$(PYTHON) tools/verify_rutts_release.py
 
-package-rutts-source:
+package-rutts-source: prepare-rutts
 	$(PYTHON) tools/package_rutts_source.py
 
 verify-rutts-source: package-rutts-source

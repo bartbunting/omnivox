@@ -554,6 +554,11 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Prepare and verify locked Flite source
+        run: |
+          python tools/prepare_flite_inputs.py
+          python tools/prepare_flite_inputs.py --check
+
       - name: Package and verify source artifact
         run: |
           python tools/package_flite_source.py
@@ -583,6 +588,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
+      - name: Prepare and verify locked RuTTS source
+        run: |
+          python tools/prepare_rutts_inputs.py
+          python tools/prepare_rutts_inputs.py --check
 
       - name: Package and verify source artifact
         run: |
