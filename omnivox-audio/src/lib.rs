@@ -11,6 +11,7 @@ pub mod loader;
 pub mod output;
 pub mod pipeline;
 pub mod post_synthesis;
+pub mod progressive_pcm;
 pub mod timeline;
 pub mod tone;
 
@@ -32,6 +33,7 @@ pub use post_synthesis::{
     PostSynthesisParameters, PostSynthesisProcessor, ProcessedEffectWindow,
     EFFECT_BOUNDARY_RAMP_FRAMES, MAX_EFFECT_TAIL_FRAMES,
 };
+pub use progressive_pcm::ProgressivePcmCanonicalizer;
 pub use timeline::{
     PreparedAudioResource, RenderedSemanticEvent, RenderedTimelineWindow,
     SharedPreparedAudioResource, TimelineAudioRenderer, MAX_TIMELINE_ACTIONS_PER_WINDOW,
