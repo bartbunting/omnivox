@@ -1,0 +1,23 @@
+{
+  "plan_version": 1,
+  "server": "../../../../emacsvox/servers/omnivox",
+  "provenance": "../../../../emacsvox/servers/omnivox-bin/versions/75f1bf105ec2a65e/PROVENANCE",
+  "seed": 20260903,
+  "repeats": 1,
+  "benchmark": {
+    "mode": "both",
+    "iterations": 20,
+    "warmups": 2,
+    "replacement_burst": 5,
+    "timeout_seconds": 90,
+    "null_audio": true
+  },
+  "runs": [
+    {
+      "id": "tgspeechbox-adam",
+      "engine": "tgspeechbox",
+      "expected_engine_id": "tgspeechbox",
+      "voice_id": "en-us/adam"
+    }
+  ]
+}

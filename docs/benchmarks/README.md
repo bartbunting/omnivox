@@ -14,6 +14,9 @@ Recorded baselines:
 - [2026-09-03 Windows x64 TGSpeechBox state-reuse comparison](2026-09-03-windows-x64-null-tgspeechbox-47d9d79fec39751d.md)
   isolates the first non-streaming optimization at unchanged voice and sample
   rate, before the helper-protocol streaming work.
+- [2026-09-03 Windows x64 TGSpeechBox streaming comparison](2026-09-03-windows-x64-null-tgspeechbox-streaming-75f1bf105ec2a65e.md)
+  measures first-source latency after bounded progressive synthesis, while
+  retaining dense anchored speech as an explicit buffered control.
 - [2026-09-01 Windows x64 development baseline](2026-09-01-windows-x64-c9458361eb57b94a.md)
   covers WinRT, eSpeak NG, RHVoice, Flite, DECtalk, and Eloquence.
 - [2026-09-01 Windows x64 RuTTS development acceptance](2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)

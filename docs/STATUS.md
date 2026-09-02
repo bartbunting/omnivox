@@ -251,7 +251,11 @@ holds its exact voice and 44.1 kHz native rate constant. Reusing successful
 language/profile state reduced warm dispatch-to-source p50 by 35.2% to 95.8%
 across the six workloads without changing a fixed WAV result. The comparison
 still uses fully buffered helper synthesis and establishes the input baseline
-for streaming work.
+for streaming work. The matching
+[streaming comparison](benchmarks/2026-09-03-windows-x64-null-tgspeechbox-streaming-75f1bf105ec2a65e.md)
+then reduced warm dispatch-to-source p50 by 94.1% for ordinary line speech and
+97.1% for multipart speech. Its anchored dense-action control remained
+buffered as designed.
 
 `tools/stress_server.py` verifies interleaved replacement domains, ordered and
 urgent survival, repeated hard-stop recovery, contiguous marker and semantic
