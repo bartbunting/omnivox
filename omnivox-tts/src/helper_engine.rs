@@ -35,6 +35,7 @@ const HELPER_CANCEL_GRACE: Duration = Duration::from_millis(250);
 pub const HELPER_DESCRIPTOR_CACHE_FILE_NAME: &str = "VOICE-INVENTORY.json";
 const HELPER_DESCRIPTOR_CACHE_SCHEMA_VERSION: u32 = 1;
 const MAX_HELPER_DESCRIPTOR_CACHE_BYTES: u64 = 1024 * 1024;
+const HELPER_RESPONSE_QUEUE_CAPACITY: usize = 8;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -299,7 +300,7 @@ struct ProcessHelperConnection {
     child_id: u32,
     terminated: AtomicBool,
     writer: Mutex<Option<BufWriter<ChildStdin>>>,
-    responses: Mutex<mpsc::Receiver<HelperReadResult>>,
+    responses: Mutex<Option<mpsc::Receiver<HelperReadResult>>>,
     child: Mutex<Child>,
     reader_handle: Mutex<Option<JoinHandle<()>>>,
 }
@@ -336,7 +337,8 @@ impl ProcessHelperConnection {
         let stdout = child.stdout.take().ok_or_else(|| {
             HelperEngineError::Transport("helper stdout was not piped".to_owned())
         })?;
-        let (response_sender, response_receiver) = mpsc::channel();
+        let (response_sender, response_receiver) =
+            mpsc::sync_channel(HELPER_RESPONSE_QUEUE_CAPACITY);
         let reader_engine_id = engine_id.to_owned();
         let reader_handle = std::thread::Builder::new()
             .name("omnivox-helper-reader".to_owned())
@@ -381,7 +383,7 @@ impl ProcessHelperConnection {
             child_id,
             terminated: AtomicBool::new(false),
             writer: Mutex::new(Some(BufWriter::new(stdin))),
-            responses: Mutex::new(response_receiver),
+            responses: Mutex::new(Some(response_receiver)),
             child: Mutex::new(child),
             reader_handle: Mutex::new(Some(reader_handle)),
         })
@@ -398,7 +400,9 @@ impl HelperConnection for ProcessHelperConnection {
     }
 
     fn receive(&self, timeout: Duration) -> Result<HelperResponse, HelperEngineError> {
-        match self.responses.lock().unwrap().recv_timeout(timeout) {
+        let responses = self.responses.lock().unwrap();
+        let responses = responses.as_ref().ok_or(HelperEngineError::Exited)?;
+        match responses.recv_timeout(timeout) {
             Ok(result) => result,
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 Err(HelperEngineError::Timeout("helper response"))
@@ -412,6 +416,7 @@ impl HelperConnection for ProcessHelperConnection {
             return;
         }
         self.writer.lock().unwrap().take();
+        self.responses.lock().unwrap().take();
         let exit_status = {
             let mut child = self.child.lock().unwrap();
             if child.try_wait().ok().flatten().is_none() {
