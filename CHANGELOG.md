@@ -6,9 +6,13 @@ Versioning for published releases.
 
 ## [Unreleased]
 
-Correction: v1.6.2 was not published. Its workflow stopped before draft
+## [1.6.3] - 2026-09-02
+
+This is the first published 1.6 release. Correction to the prepared v1.6.2
+entry below: v1.6.2 was not published. Its workflow stopped before draft
 creation because a cross-platform Piper verifier selected each platform's
-default diagnostic engine while requiring an eSpeak voice.
+default diagnostic engine while requiring an eSpeak voice. v1.6.0 and v1.6.1
+likewise published no release assets, as recorded below.
 
 ### Fixed
 
@@ -295,7 +299,8 @@ superseded by `v1.4.1` and its assets should not be used.
 - Added recovery for a draft release whose native verification needs to be
   rerun without rebuilding or replacing its uploaded assets.
 
-[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.6.2...HEAD
+[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.6.3...HEAD
+[1.6.3]: https://github.com/bartbunting/omnivox/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/bartbunting/omnivox/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/bartbunting/omnivox/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/bartbunting/omnivox/compare/v1.5.1...v1.6.0
