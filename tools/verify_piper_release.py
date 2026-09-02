@@ -513,11 +513,31 @@ def verify_synthesis(
     common.read_wav(raw, canonical=False)
     common.read_wav(wav, canonical=True)
 
-    def verify_espeak_fallback(candidate: Path, label: str) -> None:
+    def verify_unavailable_model_behavior(candidate: Path, label: str) -> None:
         fallback_environment = common.clean_environment()
         fallback_environment["OMNIVOX_PIPER_MODEL"] = str(candidate.resolve())
-        fallback_voices = common.run(
+        exact_result = subprocess.run(
             [command, "--engine", "piper", "--list-voices"],
+            cwd=working,
+            env=fallback_environment,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
+            check=False,
+        )
+        require(
+            exact_result.returncode != 0,
+            f"{label} Piper model unexpectedly passed exact-engine diagnostics",
+        )
+        require(
+            "[piper:" not in exact_result.stdout,
+            f"{label} Piper model unexpectedly returned a Piper voice",
+        )
+        fallback_voices = common.run(
+            [command, "--list-voices"],
             working,
             fallback_environment,
         )
@@ -530,14 +550,14 @@ def verify_synthesis(
             f"{label} Piper model unexpectedly registered a Piper voice",
         )
 
-    verify_espeak_fallback(working / "missing model.onnx", "missing")
+    verify_unavailable_model_behavior(working / "missing model.onnx", "missing")
     corrupt_model = working / "corrupt model.onnx"
     corrupt_model.write_bytes(b"not an ONNX model\n")
     source_config = model.with_suffix(model.suffix + ".json")
     if not source_config.is_file():
         source_config = model.with_suffix(".json")
     shutil.copy2(source_config, corrupt_model.with_suffix(".onnx.json"))
-    verify_espeak_fallback(corrupt_model, "corrupt")
+    verify_unavailable_model_behavior(corrupt_model, "corrupt")
 
 
 def verify(arguments: argparse.Namespace, configuration: PlatformConfig) -> None:

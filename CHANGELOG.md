@@ -6,6 +6,13 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Piper release verification now requires missing and corrupt models to fail
+  exact Piper diagnostics while ordinary discovery retains eSpeak, matching
+  the server's exact-engine diagnostic contract instead of expecting silent
+  fallback from an explicitly requested Piper engine.
+
 ## [1.6.1] - 2026-09-02
 
 This is the first published 1.6 release. The `v1.6.0` workflow stopped before
