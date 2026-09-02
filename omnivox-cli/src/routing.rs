@@ -14,8 +14,9 @@ use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::resolver::{resolve_voice, resolve_voice_for_text, VoiceResolution};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
 use omnivox_tts::{
-    RequestedAnchor, SynthesisCancellationToken, SynthesisRequest, SynthesisResult, TtsEngine,
-    TtsError, TtsSettings,
+    AudioBuffer, RequestedAnchor, ResolvedAnchor, SynthesisCancellationToken, SynthesisMarker,
+    SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
+    SynthesisStreamStart, TtsEngine, TtsError, TtsSettings,
 };
 use tracing::{debug, info, warn};
 
@@ -464,6 +465,41 @@ pub enum RuntimeSynthesisOutcome {
     Exhausted,
 }
 
+pub enum RuntimeProgressiveSynthesisOutcome {
+    Streamed(SynthesisStreamCompletion),
+    Buffered(Box<SynthesisResult>),
+    Cancelled,
+    Failed,
+    Exhausted,
+}
+
+struct RoutedAttemptStreamSink<'a> {
+    inner: &'a mut dyn SynthesisStreamSink,
+    degraded_acss: Vec<omnivox_tts::contracts::AcssDimension>,
+    audio_accepted: bool,
+}
+
+impl SynthesisStreamSink for RoutedAttemptStreamSink<'_> {
+    fn start(&mut self, mut start: SynthesisStreamStart) -> Result<(), TtsError> {
+        start.degraded_acss = self.degraded_acss.clone();
+        self.inner.start(start)
+    }
+
+    fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+        self.inner.audio(audio)?;
+        self.audio_accepted = true;
+        Ok(())
+    }
+
+    fn markers(
+        &mut self,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<ResolvedAnchor>,
+    ) -> Result<(), TtsError> {
+        self.inner.markers(markers, anchors)
+    }
+}
+
 /// Synthesize one chunk, re-resolving the logical voice after retryable
 /// failures. Every attempt speaks the identical text and checks cancellation
 /// both before and after the synchronous engine call.
@@ -552,6 +588,308 @@ pub fn synthesize_with_runtime_fallback_anchored_styled(
         generation_counter,
         cancellation,
     )
+}
+
+/// Route one chunk through true progressive engines while preserving buffered
+/// fallback and refusing to splice a retry after accepted PCM.
+#[allow(clippy::too_many_arguments)]
+pub fn synthesize_progressively_with_runtime_fallback_anchored(
+    chunk: &str,
+    anchors: &[RequestedAnchor],
+    settings: &TtsSettings,
+    requested_acss: Option<&NormalizedAcss>,
+    route: &mut LogicalRoute,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    generation: u64,
+    generation_counter: &AtomicU64,
+    cancellation: Option<&SynthesisCancellationToken>,
+    sink: &mut dyn SynthesisStreamSink,
+) -> RuntimeProgressiveSynthesisOutcome {
+    if stale(generation, generation_counter, cancellation) {
+        return RuntimeProgressiveSynthesisOutcome::Cancelled;
+    }
+    let previous_incompatibility = routing.text_incompatibility(route, chunk);
+    let compatible_route = match routing.route_for_text(route, chunk, engine_registry) {
+        Ok(compatible_route) => compatible_route,
+        Err(error) => {
+            warn!(
+                "Logical voice {} has no route capable of preserving this chunk: {}",
+                route.logical_voice_id, error
+            );
+            return RuntimeProgressiveSynthesisOutcome::Exhausted;
+        }
+    };
+    if compatible_route.realized != route.realized {
+        if let Some((utf8_offset, character)) = previous_incompatibility {
+            info!(
+                logical_voice = route.logical_voice_id,
+                previous_engine_id = route.realized.engine_id,
+                previous_voice_id = route.realized.voice_id,
+                engine_id = compatible_route.realized.engine_id,
+                voice_id = compatible_route.realized.voice_id,
+                unsupported_codepoint = format_args!("U+{:04X}", u32::from(character)),
+                utf8_offset,
+                "Rerouted progressive chunk to preserve source text"
+            );
+        }
+    }
+    *route = compatible_route;
+
+    for attempt in 1..=MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
+        if stale(generation, generation_counter, cancellation) {
+            return RuntimeProgressiveSynthesisOutcome::Cancelled;
+        }
+        let permit = match runtime_health.acquire(&route.realized.engine_id) {
+            EngineAccess::Permit(permit) => permit,
+            EngineAccess::Denied { reason } => {
+                warn!(
+                    "Logical voice {} routed around engine {}: {}",
+                    route.logical_voice_id, route.realized.engine_id, reason
+                );
+                let error = TtsError::NotAvailable;
+                match select_retry(route, routing, engine_registry, &error, attempt) {
+                    Ok(retry) => {
+                        *route = retry;
+                        continue;
+                    }
+                    Err(outcome) => return progressive_outcome(outcome),
+                }
+            }
+        };
+        if stale(generation, generation_counter, cancellation) {
+            release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+            return RuntimeProgressiveSynthesisOutcome::Cancelled;
+        }
+        if permit == EnginePermit::RecoveryProbe {
+            if let Err(preparation_error) = route.engine.prepare_recovery_probe() {
+                if stale(generation, generation_counter, cancellation) {
+                    release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+                    return RuntimeProgressiveSynthesisOutcome::Cancelled;
+                }
+                let error = TtsError::SynthesisFailed(format!(
+                    "recovery preparation failed: {preparation_error}"
+                ));
+                let cooldown =
+                    runtime_health.record_failure(&route.realized.engine_id, error.to_string());
+                warn!(
+                    "Engine {} recovery preparation failed; circuit opened for {} seconds: {}",
+                    route.realized.engine_id,
+                    cooldown.as_secs(),
+                    preparation_error
+                );
+                match select_retry(route, routing, engine_registry, &error, attempt) {
+                    Ok(retry) => {
+                        *route = retry;
+                        continue;
+                    }
+                    Err(outcome) => return progressive_outcome(outcome),
+                }
+            }
+        }
+
+        let mut routed_settings = settings.clone();
+        routed_settings.voice = route.realized.voice_id.clone();
+        let acss = requested_acss.map_or_else(
+            || route.acss.clone(),
+            |style| {
+                style
+                    .clone()
+                    .degrade_for(&route.engine.descriptor().capabilities.acss)
+            },
+        );
+        apply_normalized_acss(&mut routed_settings, &acss.style);
+        let mut request =
+            SynthesisRequest::new(chunk, routed_settings).with_normalized_acss(acss.style.clone());
+        request.cancellation = cancellation.cloned();
+        request.requested_voice = Some(route.realized.clone());
+        request.logical_voice_id = route.reported_logical_voice_id.clone();
+        request.anchors = anchors.to_vec();
+        let started_at = Instant::now();
+        let descriptor = route.engine.descriptor();
+        info!(
+            lifecycle_stage = "synthesis_started",
+            logical_voice = route.logical_voice_id,
+            engine_id = route.realized.engine_id,
+            voice_id = route.realized.voice_id,
+            attempt,
+            progressive = descriptor.capabilities.audio_output
+                == omnivox_tts::contracts::AudioOutputMode::StreamingPcm,
+            text_bytes = chunk.len(),
+            recovery_probe = permit == EnginePermit::RecoveryProbe,
+            "Starting routed synthesis"
+        );
+        if crate::diagnostics::synthesis_text_logging_enabled() {
+            info!(
+                logical_voice = route.logical_voice_id,
+                engine_id = route.realized.engine_id,
+                voice_id = route.realized.voice_id,
+                attempt,
+                generation,
+                synthesis_text = ?chunk,
+                "Captured synthesis text"
+            );
+        }
+
+        if descriptor.capabilities.audio_output
+            != omnivox_tts::contracts::AudioOutputMode::StreamingPcm
+        {
+            let synthesis = route.engine.synthesize(&request).and_then(|mut result| {
+                result.resolve_anchors(&request, descriptor.capabilities.markers.requested_anchors);
+                result.validate(&request)?;
+                result.degraded_acss = acss.omitted.clone();
+                Ok(result)
+            });
+            match synthesis {
+                Ok(result) => {
+                    runtime_health.record_success(&route.realized.engine_id, permit);
+                    info!(
+                        lifecycle_stage = "synthesis_completed",
+                        logical_voice = route.logical_voice_id,
+                        engine_id = route.realized.engine_id,
+                        voice_id = route.realized.voice_id,
+                        attempt,
+                        frames = result.audio.frame_count(),
+                        synthesis_elapsed_us = u64::try_from(started_at.elapsed().as_micros())
+                            .unwrap_or(u64::MAX),
+                        recovered = permit == EnginePermit::RecoveryProbe,
+                        "Routed buffered fallback synthesis completed"
+                    );
+                    return if stale(generation, generation_counter, cancellation) {
+                        RuntimeProgressiveSynthesisOutcome::Cancelled
+                    } else {
+                        RuntimeProgressiveSynthesisOutcome::Buffered(Box::new(result))
+                    };
+                }
+                Err(error) => {
+                    if stale(generation, generation_counter, cancellation) {
+                        release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+                        return RuntimeProgressiveSynthesisOutcome::Cancelled;
+                    }
+                    record_synthesis_failure(runtime_health, route, &error, permit);
+                    warn_synthesis_failure(route, attempt, started_at, &error, false);
+                    match select_retry(route, routing, engine_registry, &error, attempt) {
+                        Ok(retry) => {
+                            *route = retry;
+                            continue;
+                        }
+                        Err(outcome) => return progressive_outcome(outcome),
+                    }
+                }
+            }
+        }
+
+        let mut attempt_sink = RoutedAttemptStreamSink {
+            inner: sink,
+            degraded_acss: acss.omitted.clone(),
+            audio_accepted: false,
+        };
+        let synthesis = route.engine.synthesize_stream(&request, &mut attempt_sink);
+        match synthesis {
+            Ok(completion) => {
+                runtime_health.record_success(&route.realized.engine_id, permit);
+                info!(
+                    lifecycle_stage = "synthesis_completed",
+                    logical_voice = route.logical_voice_id,
+                    engine_id = route.realized.engine_id,
+                    voice_id = route.realized.voice_id,
+                    attempt,
+                    frames = completion.frame_count,
+                    synthesis_elapsed_us =
+                        u64::try_from(started_at.elapsed().as_micros()).unwrap_or(u64::MAX),
+                    recovered = permit == EnginePermit::RecoveryProbe,
+                    "Routed progressive synthesis completed"
+                );
+                return if stale(generation, generation_counter, cancellation) {
+                    RuntimeProgressiveSynthesisOutcome::Cancelled
+                } else {
+                    RuntimeProgressiveSynthesisOutcome::Streamed(completion)
+                };
+            }
+            Err(error) => {
+                if stale(generation, generation_counter, cancellation) {
+                    release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+                    return RuntimeProgressiveSynthesisOutcome::Cancelled;
+                }
+                let audio_accepted = attempt_sink.audio_accepted;
+                record_synthesis_failure(runtime_health, route, &error, permit);
+                warn_synthesis_failure(route, attempt, started_at, &error, audio_accepted);
+                if audio_accepted {
+                    warn!(
+                        engine_id = route.realized.engine_id,
+                        attempt,
+                        "Progressive synthesis failed after PCM; refusing cross-engine splice"
+                    );
+                    return RuntimeProgressiveSynthesisOutcome::Failed;
+                }
+                match select_retry(route, routing, engine_registry, &error, attempt) {
+                    Ok(retry) => *route = retry,
+                    Err(outcome) => return progressive_outcome(outcome),
+                }
+            }
+        }
+    }
+
+    unreachable!("the bounded routed synthesis loop always returns")
+}
+
+fn progressive_outcome(outcome: RuntimeSynthesisOutcome) -> RuntimeProgressiveSynthesisOutcome {
+    match outcome {
+        RuntimeSynthesisOutcome::Ready(_) => {
+            unreachable!("retry selection never returns a ready result")
+        }
+        RuntimeSynthesisOutcome::Cancelled => RuntimeProgressiveSynthesisOutcome::Cancelled,
+        RuntimeSynthesisOutcome::Failed => RuntimeProgressiveSynthesisOutcome::Failed,
+        RuntimeSynthesisOutcome::Exhausted => RuntimeProgressiveSynthesisOutcome::Exhausted,
+    }
+}
+
+fn record_synthesis_failure(
+    runtime_health: &RuntimeEngineHealth,
+    route: &LogicalRoute,
+    error: &TtsError,
+    permit: EnginePermit,
+) {
+    match (error, permit) {
+        (TtsError::SynthesisFailed(_), _)
+        | (TtsError::NotAvailable, EnginePermit::RecoveryProbe) => {
+            let cooldown =
+                runtime_health.record_failure(&route.realized.engine_id, error.to_string());
+            warn!(
+                "Engine {} runtime circuit opened for {} seconds",
+                route.realized.engine_id,
+                cooldown.as_secs()
+            );
+        }
+        (TtsError::NotAvailable, EnginePermit::Normal)
+        | (TtsError::VoiceNotFound(_), _)
+        | (TtsError::InvalidParameter(_), _) => {
+            release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+        }
+    }
+}
+
+fn warn_synthesis_failure(
+    route: &LogicalRoute,
+    attempt: usize,
+    started_at: Instant,
+    error: &TtsError,
+    partial_audio: bool,
+) {
+    warn!(
+        lifecycle_stage = "synthesis_failed",
+        logical_voice = route.logical_voice_id,
+        engine_id = route.realized.engine_id,
+        voice_id = route.realized.voice_id,
+        attempt,
+        max_attempts = MAX_RUNTIME_SYNTHESIS_ATTEMPTS,
+        synthesis_elapsed_us =
+            u64::try_from(started_at.elapsed().as_micros()).unwrap_or(u64::MAX),
+        partial_audio,
+        error = %error,
+        "Routed synthesis failed"
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -966,6 +1304,8 @@ mod tests {
         Synthesis,
         SynthesisOnce(AtomicUsize),
         SynthesisAndCancel(SynthesisCancellationToken),
+        StreamBeforeAudio,
+        StreamAfterAudio,
     }
 
     struct MockEngine {
@@ -1029,9 +1369,38 @@ mod tests {
                     cancellation.cancel();
                     Err(TtsError::SynthesisFailed("cancelled mock".to_owned()))
                 }
+                Some(MockFailure::StreamBeforeAudio | MockFailure::StreamAfterAudio) => success(),
                 Some(MockFailure::NotAvailableOnce(_) | MockFailure::SynthesisOnce(_)) => success(),
                 None => success(),
             }
+        }
+
+        fn synthesize_stream(
+            &self,
+            request: &SynthesisRequest,
+            sink: &mut dyn SynthesisStreamSink,
+        ) -> Result<SynthesisStreamCompletion, TtsError> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push((request.text.clone(), request.settings.voice.clone()));
+            sink.start(SynthesisStreamStart {
+                engine_id: self.descriptor.id.clone(),
+                actual_voice: request.requested_voice.clone(),
+                degraded_acss: Vec::new(),
+            })?;
+            if matches!(self.failure.as_ref(), Some(MockFailure::StreamBeforeAudio)) {
+                return Err(TtsError::SynthesisFailed(
+                    "stream failed before audio".to_owned(),
+                ));
+            }
+            sink.audio(AudioBuffer::new(vec![0.25, -0.25]))?;
+            if matches!(self.failure.as_ref(), Some(MockFailure::StreamAfterAudio)) {
+                return Err(TtsError::SynthesisFailed(
+                    "stream failed after audio".to_owned(),
+                ));
+            }
+            Ok(SynthesisStreamCompletion { frame_count: 1 })
         }
 
         fn stop(&self) {}
@@ -1113,6 +1482,46 @@ mod tests {
             normalized_acss: Mutex::new(Vec::new()),
             logical_voice_ids: Mutex::new(Vec::new()),
         })
+    }
+
+    fn streaming_synthesis_engine(
+        engine_id: &str,
+        voice_id: &str,
+        failure: Option<MockFailure>,
+    ) -> Arc<MockEngine> {
+        let mut engine = synthesis_engine(engine_id, voice_id, failure);
+        Arc::get_mut(&mut engine)
+            .unwrap()
+            .descriptor
+            .capabilities
+            .audio_output = AudioOutputMode::StreamingPcm;
+        engine
+    }
+
+    #[derive(Default)]
+    struct RecordingStreamSink {
+        starts: Vec<SynthesisStreamStart>,
+        audio: Vec<AudioBuffer>,
+    }
+
+    impl SynthesisStreamSink for RecordingStreamSink {
+        fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError> {
+            self.starts.push(start);
+            Ok(())
+        }
+
+        fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+            self.audio.push(audio);
+            Ok(())
+        }
+
+        fn markers(
+            &mut self,
+            _markers: Vec<SynthesisMarker>,
+            _anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            Ok(())
+        }
     }
 
     fn synthesis_engine_with_acss(
@@ -1489,6 +1898,113 @@ mod tests {
             engines.descriptor("dectalk").unwrap().health,
             EngineHealth::Healthy
         ));
+    }
+
+    #[test]
+    fn progressive_failure_before_audio_uses_buffered_fallback() {
+        let primary = streaming_synthesis_engine(
+            "tgspeechbox",
+            "en-us:adam",
+            Some(MockFailure::StreamBeforeAudio),
+        );
+        let fallback = synthesis_engine("espeak", "en-us", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![
+                exact("tgspeechbox", "en-us:adam"),
+                exact("espeak", "en-us"),
+            ]),
+            FallbackPolicy::default(),
+        );
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
+        let generation = AtomicU64::new(1);
+        let mut sink = RecordingStreamSink::default();
+
+        let outcome = synthesize_progressively_with_runtime_fallback_anchored(
+            "hello",
+            &[],
+            &TtsSettings::default(),
+            None,
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            1,
+            &generation,
+            None,
+            &mut sink,
+        );
+
+        assert!(matches!(
+            outcome,
+            RuntimeProgressiveSynthesisOutcome::Buffered(_)
+        ));
+        assert_eq!(route.realized, PhysicalVoiceId::new("espeak", "en-us"));
+        assert_eq!(sink.starts.len(), 1);
+        assert!(sink.audio.is_empty());
+        assert_eq!(primary.calls.lock().unwrap().len(), 1);
+        assert_eq!(fallback.calls.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn progressive_failure_after_audio_does_not_splice_a_fallback() {
+        let primary = streaming_synthesis_engine(
+            "tgspeechbox",
+            "en-us:adam",
+            Some(MockFailure::StreamAfterAudio),
+        );
+        let fallback = synthesis_engine("espeak", "en-us", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![
+                exact("tgspeechbox", "en-us:adam"),
+                exact("espeak", "en-us"),
+            ]),
+            FallbackPolicy::default(),
+        );
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
+        let generation = AtomicU64::new(1);
+        let mut sink = RecordingStreamSink::default();
+
+        let outcome = synthesize_progressively_with_runtime_fallback_anchored(
+            "hello",
+            &[],
+            &TtsSettings::default(),
+            None,
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            1,
+            &generation,
+            None,
+            &mut sink,
+        );
+
+        assert!(matches!(
+            outcome,
+            RuntimeProgressiveSynthesisOutcome::Failed
+        ));
+        assert_eq!(route.realized.engine_id, "tgspeechbox");
+        assert_eq!(sink.audio.len(), 1);
+        assert_eq!(primary.calls.lock().unwrap().len(), 1);
+        assert!(fallback.calls.lock().unwrap().is_empty());
     }
 
     #[test]

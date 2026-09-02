@@ -2,7 +2,7 @@
 
 use omnivox_audio::{
     AudioBuffer, AudioControl, AudioError, CancellationToken, PlaybackCue, PlaybackTicket,
-    StreamType,
+    ProgressivePlaybackProducer, StreamType,
 };
 use omnivox_core::timeline::TimelineActionId;
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId, PostSynthesisDimension};
@@ -616,6 +616,55 @@ impl PreparedMarkerPlayback {
         F: Fn() -> bool,
     {
         self.queue_if_with_cancellation(control, buffer, Some(cancellation), predicate)
+    }
+
+    /// Queue a progressive speech source whose events and initial cues are
+    /// already known while its final audio length is not.
+    pub fn queue_progressive_cancellable_if<F>(
+        self,
+        control: &AudioControl,
+        cancellation: CancellationToken,
+        predicate: F,
+    ) -> Result<Option<(ProgressivePlaybackProducer, PlaybackTicket)>, AudioError>
+    where
+        F: Fn() -> bool,
+    {
+        let records = self.output.format_events(&self.events)?;
+        let Some(events) = self.output.reserve_marker_records(records, &predicate)? else {
+            return Ok(None);
+        };
+        let mut events = events.into_iter().map(Some).collect::<Vec<_>>();
+        let output = self.output;
+        let lifecycle = self.lifecycle.clone();
+        let on_cue = move |cue: PlaybackCue| {
+            if cue.identifier == 0 {
+                if let Some(lifecycle) = &lifecycle {
+                    lifecycle.record_mixer_source_started();
+                }
+            }
+            if let Some(event) = events
+                .get_mut(cue.identifier as usize)
+                .and_then(Option::take)
+            {
+                output.emit(event);
+            }
+        };
+        let queue_attempted_at = Instant::now();
+        let result = control.queue_progressive_speech_with_cue_callback_cancellable_if(
+            on_cue,
+            cancellation,
+            predicate,
+        );
+        if matches!(result, Ok(Some(_))) {
+            if let Some(lifecycle) = &self.lifecycle {
+                lifecycle.record_audio_queued_at(queue_attempted_at);
+            }
+        }
+        let Some((mut producer, ticket)) = result? else {
+            return Ok(None);
+        };
+        producer.push_cues(self.cues)?;
+        Ok(Some((producer, ticket)))
     }
 
     fn queue_if_with_cancellation<F>(

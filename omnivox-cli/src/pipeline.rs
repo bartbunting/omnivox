@@ -3,9 +3,10 @@
 use omnivox_audio::{
     buffer::{CHANNELS, SAMPLE_RATE},
     AudioBuffer, AudioControl, AudioFileLoader, AudioPipeline, ChannelRouter, PlaybackTicket,
-    PostSynthesisParameters, PostSynthesisProcessor, SharedPreparedAudioResource,
-    SilenceTrimReport, SilenceTrimmer, StreamType, TimelineAudioRenderer, ToneGenerator,
-    VolumeAdjust, MAX_AUDIO_CACHE_SAMPLES, MAX_EFFECT_TAIL_FRAMES, MAX_TIMELINE_ACTIONS_PER_WINDOW,
+    PostSynthesisParameters, PostSynthesisProcessor, ProgressivePlaybackProducer,
+    ProgressiveSilenceTrimmer, SharedPreparedAudioResource, SilenceTrimReport, SilenceTrimmer,
+    StreamType, TimelineAudioRenderer, ToneGenerator, VolumeAdjust, MAX_AUDIO_CACHE_SAMPLES,
+    MAX_EFFECT_TAIL_FRAMES, MAX_TIMELINE_ACTIONS_PER_WINDOW,
 };
 use omnivox_core::timeline::{
     ActionAffinity, AudioActionMode, EffectBus, PresentationPosition, ResolvedTimelineAction,
@@ -13,8 +14,8 @@ use omnivox_core::timeline::{
 };
 use omnivox_core::{ChannelMode, QueueItem, TonePlacement, TtsState};
 use omnivox_tts::contracts::{
-    apply_rate_offset, AcssDimension, NormalizedAcss, PhysicalVoiceId, PostSynthesisDimension,
-    PostSynthesisStyle,
+    apply_rate_offset, AcssDimension, AudioOutputMode, MarkerCapabilities, NormalizedAcss,
+    PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::timeline_protocol::{
@@ -25,7 +26,8 @@ use omnivox_tts::timeline_protocol::{
 };
 use omnivox_tts::{
     AnchorAffinity, AnchorResolution, RequestedAnchor, ResolvedAnchor, SynthesisCancellationToken,
-    SynthesisMarker, SynthesisRequest, SynthesisResult, TtsEngine, TtsSettings,
+    SynthesisMarker, SynthesisRequest, SynthesisResult, SynthesisStreamCompletion,
+    SynthesisStreamSink, SynthesisStreamStart, TtsEngine, TtsError, TtsSettings,
     MAX_SYNTHESIS_ANCHORS,
 };
 use std::collections::{HashMap, HashSet};
@@ -1021,6 +1023,256 @@ fn process_speech_result(
     Ok(report)
 }
 
+struct CompletedProgressiveChunk {
+    actual_voice: Option<PhysicalVoiceId>,
+    degraded_acss: Vec<AcssDimension>,
+}
+
+struct ProgressiveChunkSink<'a, 'ctx> {
+    utterance_text: &'a str,
+    logical_voice_id: Option<String>,
+    effects: PostSynthesisStyle,
+    degraded_effects: Vec<PostSynthesisDimension>,
+    state: &'a TtsState,
+    is_last_speech: bool,
+    final_timeline_window: bool,
+    ctx: &'a SynthCtx<'ctx>,
+    start: Option<SynthesisStreamStart>,
+    trimmer: Option<ProgressiveSilenceTrimmer>,
+    producer: Option<ProgressivePlaybackProducer>,
+    ticket: Option<PlaybackTicket>,
+}
+
+impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        utterance_text: &'a str,
+        logical_voice_id: Option<&str>,
+        effects: PostSynthesisStyle,
+        degraded_effects: Vec<PostSynthesisDimension>,
+        state: &'a TtsState,
+        is_last_speech: bool,
+        final_timeline_window: bool,
+        ctx: &'a SynthCtx<'ctx>,
+    ) -> Self {
+        Self {
+            utterance_text,
+            logical_voice_id: logical_voice_id.map(str::to_owned),
+            effects,
+            degraded_effects,
+            state,
+            is_last_speech,
+            final_timeline_window,
+            ctx,
+            start: None,
+            trimmer: None,
+            producer: None,
+            ticket: None,
+        }
+    }
+
+    fn ensure_playback(&mut self) -> Result<&mut ProgressivePlaybackProducer, TtsError> {
+        if self.producer.is_none() {
+            let start = self.start.as_ref().ok_or_else(|| {
+                TtsError::SynthesisFailed(
+                    "progressive engine emitted audio before stream metadata".to_owned(),
+                )
+            })?;
+            self.ctx.flush_overlays();
+            let cancellation = self
+                .ctx
+                .cancellation
+                .cloned()
+                .unwrap_or_else(SynthesisCancellationToken::new);
+            let queued = if let Some(marker_dispatch) = self.ctx.marker_dispatch {
+                let prepared = if marker_dispatch.supports_timeline_events() {
+                    marker_dispatch.prepare_timeline_utterance(
+                        self.utterance_text,
+                        &start.engine_id,
+                        start.actual_voice.as_ref(),
+                        self.logical_voice_id.as_deref(),
+                        SAMPLE_RATE,
+                        0,
+                        &[],
+                        &[],
+                        &[],
+                        &start.degraded_acss,
+                        &self.degraded_effects,
+                    )
+                } else {
+                    marker_dispatch.prepare_utterance(
+                        self.utterance_text,
+                        &start.engine_id,
+                        start.actual_voice.as_ref(),
+                        self.logical_voice_id.as_deref(),
+                        SAMPLE_RATE,
+                        0,
+                        &[],
+                        &[],
+                    )
+                };
+                prepared.queue_progressive_cancellable_if(self.ctx.control, cancellation, || {
+                    !self.ctx.is_stale()
+                })
+            } else {
+                let queued_at = Instant::now();
+                let result = self
+                    .ctx
+                    .control
+                    .queue_progressive_speech_with_cue_callback_cancellable_if(
+                        |_| {},
+                        cancellation,
+                        || !self.ctx.is_stale(),
+                    );
+                if matches!(result, Ok(Some(_))) {
+                    self.ctx.lifecycle.record_audio_queued_at(queued_at);
+                }
+                result
+            }
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+            let Some((producer, ticket)) = queued else {
+                return Err(TtsError::SynthesisFailed(
+                    "progressive playback was superseded before queueing".to_owned(),
+                ));
+            };
+            self.producer = Some(producer);
+            self.ticket = Some(ticket);
+        }
+        Ok(self.producer.as_mut().unwrap())
+    }
+
+    fn process_audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+        let mut audio = self
+            .trimmer
+            .as_mut()
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(
+                    "progressive engine emitted audio before stream metadata".to_owned(),
+                )
+            })?
+            .process_window(audio)
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        if audio.is_empty() {
+            return Ok(());
+        }
+        build_speech_output_pipeline(self.state)
+            .process(&mut audio)
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        let unexpected_tail = process_effect_window(&mut audio, &self.effects, false, self.ctx)
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        debug_assert!(unexpected_tail.is_none());
+        self.ensure_playback()?
+            .push_audio(audio)
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))
+    }
+
+    fn finish(
+        &mut self,
+        completion: SynthesisStreamCompletion,
+    ) -> Result<CompletedProgressiveChunk, TtsError> {
+        let (mut tail, report) = self
+            .trimmer
+            .as_mut()
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(
+                    "progressive engine completed before stream metadata".to_owned(),
+                )
+            })?
+            .finish()
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        if report.input_frames as u64 != completion.frame_count {
+            return Err(TtsError::SynthesisFailed(format!(
+                "progressive pipeline received {} frames but engine reported {}",
+                report.input_frames, completion.frame_count
+            )));
+        }
+        build_speech_output_pipeline(self.state)
+            .process(&mut tail)
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        let effect_tail = process_effect_window(
+            &mut tail,
+            &self.effects,
+            self.final_timeline_window,
+            self.ctx,
+        )
+        .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        if !tail.is_empty() {
+            self.ensure_playback()?
+                .push_audio(tail)
+                .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        }
+        if let Some(producer) = self.producer.take() {
+            let ticket = self.ticket.take().expect("queued producer has a ticket");
+            producer
+                .finish()
+                .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+            self.ctx.record_ticket(StreamType::Speech, ticket);
+        }
+        if let Some(tail) = effect_tail {
+            self.ctx.queue_overlay(tail);
+        }
+        let start = self.start.take().ok_or_else(|| {
+            TtsError::SynthesisFailed("progressive engine omitted stream metadata".to_owned())
+        })?;
+        Ok(CompletedProgressiveChunk {
+            actual_voice: start.actual_voice,
+            degraded_acss: start.degraded_acss,
+        })
+    }
+}
+
+impl SynthesisStreamSink for ProgressiveChunkSink<'_, '_> {
+    fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError> {
+        if self.producer.is_some() {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine restarted after publishing audio".to_owned(),
+            ));
+        }
+        self.start = Some(start);
+        self.trimmer = Some(ProgressiveSilenceTrimmer::with_asymmetric_padding(
+            0.01,
+            0.0,
+            if self.is_last_speech {
+                rate_scaled_padding(self.state.speech_rate)
+            } else {
+                0.0
+            },
+        ));
+        Ok(())
+    }
+
+    fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+        self.process_audio(audio)
+    }
+
+    fn markers(
+        &mut self,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<ResolvedAnchor>,
+    ) -> Result<(), TtsError> {
+        if markers.is_empty() && anchors.is_empty() {
+            return Ok(());
+        }
+        Err(TtsError::SynthesisFailed(
+            "marker-capable progressive playback is not enabled for this route".to_owned(),
+        ))
+    }
+}
+
+fn route_supports_initial_progressive_playback(
+    route: &LogicalRoute,
+    anchors: &[RequestedAnchor],
+    ctx: &SynthCtx,
+) -> bool {
+    let descriptor = route.engine.descriptor();
+    descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm
+        && descriptor.capabilities.markers == MarkerCapabilities::default()
+        && anchors.is_empty()
+        && ctx
+            .timeline_renderer
+            .is_none_or(|renderer| !renderer.lock().unwrap().has_overlay_carry())
+}
+
 enum RoutedChunkOutcome {
     Queued {
         realized: PhysicalVoiceId,
@@ -1055,6 +1307,23 @@ fn synthesize_routed_chunk(
         volume: 1.0,
     };
     let anchors = requested_timeline_anchors(capitalization_tones, timeline_actions);
+    if route_supports_initial_progressive_playback(route, &anchors, ctx) {
+        return synthesize_routed_chunk_progressively(
+            chunk,
+            &anchors,
+            &settings,
+            requested_acss,
+            requested_effects,
+            state,
+            is_last_speech,
+            final_timeline_window,
+            route,
+            routing,
+            engine_registry,
+            runtime_health,
+            ctx,
+        );
+    }
     let outcome = if let Some(requested_acss) = requested_acss {
         crate::routing::synthesize_with_runtime_fallback_anchored_styled(
             chunk,
@@ -1127,6 +1396,124 @@ fn synthesize_routed_chunk(
         RuntimeSynthesisOutcome::Cancelled => RoutedChunkOutcome::Cancelled,
         RuntimeSynthesisOutcome::Failed => RoutedChunkOutcome::Failed,
         RuntimeSynthesisOutcome::Exhausted => RoutedChunkOutcome::Exhausted,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn synthesize_routed_chunk_progressively(
+    chunk: &str,
+    anchors: &[RequestedAnchor],
+    settings: &TtsSettings,
+    requested_acss: Option<&NormalizedAcss>,
+    requested_effects: Option<&PostSynthesisStyle>,
+    state: &TtsState,
+    is_last_speech: bool,
+    final_timeline_window: bool,
+    route: &mut LogicalRoute,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    ctx: &SynthCtx,
+) -> RoutedChunkOutcome {
+    let initial_effect_application = requested_effects
+        .cloned()
+        .unwrap_or_else(|| route.effects.style.clone())
+        .degrade_for(
+            &route
+                .engine
+                .descriptor()
+                .capabilities
+                .post_synthesis_dimensions,
+        );
+    let mut sink = ProgressiveChunkSink::new(
+        chunk,
+        route.reported_logical_voice_id.as_deref(),
+        initial_effect_application.style,
+        initial_effect_application.omitted,
+        state,
+        is_last_speech,
+        final_timeline_window,
+        ctx,
+    );
+    let outcome = crate::routing::synthesize_progressively_with_runtime_fallback_anchored(
+        chunk,
+        anchors,
+        settings,
+        requested_acss,
+        route,
+        routing,
+        engine_registry,
+        runtime_health,
+        ctx.gen,
+        ctx.gen_counter,
+        ctx.cancellation,
+        &mut sink,
+    );
+    match outcome {
+        crate::routing::RuntimeProgressiveSynthesisOutcome::Streamed(completion) => {
+            match sink.finish(completion) {
+                Ok(_completed) if ctx.is_stale() => RoutedChunkOutcome::Cancelled,
+                Ok(completed) => RoutedChunkOutcome::Queued {
+                    realized: completed
+                        .actual_voice
+                        .unwrap_or_else(|| route.realized.clone()),
+                    degraded_acss: completed.degraded_acss,
+                    degraded_effects: sink.degraded_effects.clone(),
+                },
+                Err(error) => {
+                    ctx.mark_failed();
+                    warn!("Progressive speech pipeline failed: {error}");
+                    RoutedChunkOutcome::Failed
+                }
+            }
+        }
+        crate::routing::RuntimeProgressiveSynthesisOutcome::Buffered(result) => {
+            let realized = result
+                .actual_voice
+                .clone()
+                .unwrap_or_else(|| route.realized.clone());
+            let degraded_acss = result.degraded_acss.clone();
+            let effect_application = requested_effects
+                .cloned()
+                .unwrap_or_else(|| route.effects.style.clone())
+                .degrade_for(
+                    &route
+                        .engine
+                        .descriptor()
+                        .capabilities
+                        .post_synthesis_dimensions,
+                );
+            let degraded_effects = effect_application.omitted.clone();
+            queue_synthesis_result(
+                *result,
+                chunk,
+                route.reported_logical_voice_id.as_deref(),
+                &[],
+                &[],
+                &effect_application.style,
+                &degraded_effects,
+                state,
+                is_last_speech,
+                final_timeline_window,
+                ctx,
+            );
+            if ctx.is_stale() {
+                RoutedChunkOutcome::Cancelled
+            } else {
+                RoutedChunkOutcome::Queued {
+                    realized,
+                    degraded_acss,
+                    degraded_effects,
+                }
+            }
+        }
+        crate::routing::RuntimeProgressiveSynthesisOutcome::Cancelled => {
+            RoutedChunkOutcome::Cancelled
+        }
+        crate::routing::RuntimeProgressiveSynthesisOutcome::Failed => RoutedChunkOutcome::Failed,
+        crate::routing::RuntimeProgressiveSynthesisOutcome::Exhausted => {
+            RoutedChunkOutcome::Exhausted
+        }
     }
 }
 
