@@ -14,8 +14,9 @@
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
 use crate::{AudioError, CancellationToken};
 use rodio::{OutputStream, OutputStreamHandle, Sink, Source};
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver, Sender, SyncSender, TrySendError};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -24,6 +25,8 @@ use tracing::debug;
 const SPEECH_STOP_FADE_MILLISECONDS: usize = 3;
 const SPEECH_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * SPEECH_STOP_FADE_MILLISECONDS / 1000;
 const NULL_AUDIO_POLL_SAMPLES: usize = 1024;
+const PROGRESSIVE_PLAYBACK_CAPACITY: usize = 4;
+const PROGRESSIVE_PLAYBACK_POLL_INTERVAL: Duration = Duration::from_millis(2);
 
 /// Selects whether streams play through the default device or discard samples.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,6 +75,118 @@ pub struct PlaybackCue {
     pub frame_offset: u64,
     /// Opaque identifier returned unchanged when the cue is reached.
     pub identifier: u64,
+}
+
+enum ProgressivePlaybackMessage {
+    Audio(Vec<f32>),
+    Cues(Vec<PlaybackCue>),
+    Complete,
+}
+
+/// Bounded producer for one progressively queued speech source.
+///
+/// Audio and cues are supplied in playback order. Sending blocks with a short
+/// cancellation-aware poll when the audio consumer is behind, bounding memory
+/// without making request cancellation wait for earlier queued speech.
+pub struct ProgressivePlaybackProducer {
+    sender: Option<SyncSender<ProgressivePlaybackMessage>>,
+    request_cancellation: CancellationToken,
+    stream_cancellation: CancellationToken,
+    published_frames: u64,
+    last_cue_offset: Option<u64>,
+}
+
+impl ProgressivePlaybackProducer {
+    /// Publish one non-empty canonical PCM window.
+    pub fn push_audio(&mut self, audio: AudioBuffer) -> Result<(), AudioError> {
+        if audio.is_empty() {
+            return Err(AudioError::InvalidFormat(
+                "progressive playback audio window is empty".to_owned(),
+            ));
+        }
+        let frames = audio.frame_count() as u64;
+        let published_frames = self.published_frames.checked_add(frames).ok_or_else(|| {
+            AudioError::InvalidFormat("progressive playback frame count overflowed".to_owned())
+        })?;
+        self.send(ProgressivePlaybackMessage::Audio(audio.samples))?;
+        self.published_frames = published_frames;
+        Ok(())
+    }
+
+    /// Publish one non-empty, monotonically ordered cue batch.
+    ///
+    /// A cue must arrive before audio beyond its frame boundary is published.
+    pub fn push_cues(&mut self, cues: Vec<PlaybackCue>) -> Result<(), AudioError> {
+        if cues.is_empty() {
+            return Err(AudioError::InvalidFormat(
+                "progressive playback cue batch is empty".to_owned(),
+            ));
+        }
+        let mut previous = self.last_cue_offset;
+        for cue in &cues {
+            if cue.frame_offset < self.published_frames {
+                return Err(AudioError::InvalidFormat(format!(
+                    "progressive playback cue {} at frame {} arrived after {} frames",
+                    cue.identifier, cue.frame_offset, self.published_frames
+                )));
+            }
+            if previous.is_some_and(|offset| cue.frame_offset < offset) {
+                return Err(AudioError::InvalidFormat(
+                    "progressive playback cues are out of order".to_owned(),
+                ));
+            }
+            previous = Some(cue.frame_offset);
+        }
+        self.send(ProgressivePlaybackMessage::Cues(cues))?;
+        self.last_cue_offset = previous;
+        Ok(())
+    }
+
+    /// Mark the source complete after its final PCM window and cue batch.
+    pub fn finish(mut self) -> Result<(), AudioError> {
+        if let Some(offset) = self
+            .last_cue_offset
+            .filter(|offset| *offset > self.published_frames)
+        {
+            return Err(AudioError::InvalidFormat(format!(
+                "progressive playback cue at frame {offset} exceeds the {}-frame stream",
+                self.published_frames
+            )));
+        }
+        self.send(ProgressivePlaybackMessage::Complete)?;
+        self.sender = None;
+        Ok(())
+    }
+
+    /// Number of canonical frames successfully handed to the bounded source.
+    pub fn published_frames(&self) -> u64 {
+        self.published_frames
+    }
+
+    fn send(&self, mut message: ProgressivePlaybackMessage) -> Result<(), AudioError> {
+        let sender = self.sender.as_ref().ok_or_else(|| {
+            AudioError::PlaybackError("progressive playback is already complete".to_owned())
+        })?;
+        loop {
+            if self.request_cancellation.is_cancelled() || self.stream_cancellation.is_cancelled() {
+                return Err(AudioError::PlaybackError(
+                    "progressive playback was cancelled".to_owned(),
+                ));
+            }
+            match sender.try_send(message) {
+                Ok(()) => return Ok(()),
+                Err(TrySendError::Full(returned)) => {
+                    message = returned;
+                    std::thread::sleep(PROGRESSIVE_PLAYBACK_POLL_INTERVAL);
+                }
+                Err(TrySendError::Disconnected(_)) => {
+                    return Err(AudioError::PlaybackError(
+                        "progressive playback consumer stopped".to_owned(),
+                    ));
+                }
+            }
+        }
+    }
 }
 
 /// Cloneable acknowledgement for a queued or scheduled audio buffer.
@@ -752,6 +867,58 @@ impl AudioControl {
         )
     }
 
+    /// Queue one bounded progressive speech source with dynamic frame cues.
+    ///
+    /// The source is appended immediately and remains one speech-queue item
+    /// while the returned producer supplies canonical PCM windows. Dropping
+    /// the producer without calling [`ProgressivePlaybackProducer::finish`]
+    /// cancels the playback ticket.
+    pub fn queue_progressive_speech_with_cue_callback_cancellable_if<F, P>(
+        &self,
+        on_cue: F,
+        cancellation: CancellationToken,
+        predicate: P,
+    ) -> Result<Option<(ProgressivePlaybackProducer, PlaybackTicket)>, AudioError>
+    where
+        F: FnMut(PlaybackCue) + Send + 'static,
+        P: FnOnce() -> bool,
+    {
+        let stream = StreamType::Speech;
+        let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
+        if !predicate() {
+            return Ok(None);
+        }
+        let (sink, max_depth) = self.sink_and_max(stream);
+        if sink.len() >= max_depth {
+            debug!(
+                "Stream {:?} at capacity ({}/{}), clearing backlog",
+                stream,
+                sink.len(),
+                max_depth
+            );
+            let previous = std::mem::replace(
+                &mut *self.speech_stop_cancellation.lock().unwrap(),
+                CancellationToken::new(),
+            );
+            previous.cancel();
+            sink.clear();
+            sink.play();
+        }
+
+        let stream_cancellation = self
+            .speech_stop_cancellation(stream)
+            .expect("speech has a stream cancellation token");
+        let (producer, source, ticket) = ProgressivePlaybackSource::new(
+            Box::new(on_cue),
+            cancellation,
+            stream_cancellation,
+            Some(SPEECH_STOP_FADE_FRAMES),
+        );
+        sink.append(source);
+        sink.play();
+        Ok(Some((producer, ticket)))
+    }
+
     fn queue_tracked_with_cue_callback_if_with_cancellation<F, P>(
         &self,
         stream: StreamType,
@@ -1047,6 +1214,11 @@ impl Drop for AudioStreams {
         let AudioStreamRuntime::Null { shutdown, workers } = &mut self.runtime else {
             return;
         };
+        self.control
+            .speech_stop_cancellation
+            .lock()
+            .unwrap()
+            .cancel();
         shutdown.store(true, Ordering::Release);
         self.control.speech_sink.shutdown();
         self.control.tone_sink.shutdown();
@@ -1589,6 +1761,145 @@ impl Drop for TrackedBufferSource {
     }
 }
 
+/// Tracked rodio source that stays alive while bounded PCM windows arrive.
+struct ProgressivePlaybackSource {
+    receiver: Receiver<ProgressivePlaybackMessage>,
+    current: BufferSource,
+    position: usize,
+    completion: PlaybackCompletion,
+    cancellation: PlaybackCancellation,
+    cues: VecDeque<PlaybackCue>,
+    cue_callback: Box<dyn FnMut(PlaybackCue) + Send>,
+}
+
+impl ProgressivePlaybackSource {
+    fn new(
+        cue_callback: Box<dyn FnMut(PlaybackCue) + Send>,
+        request_cancellation: CancellationToken,
+        stream_cancellation: CancellationToken,
+        fade_frames: Option<usize>,
+    ) -> (ProgressivePlaybackProducer, Self, PlaybackTicket) {
+        let (sender, receiver) = mpsc::sync_channel(PROGRESSIVE_PLAYBACK_CAPACITY);
+        let (completion, ticket) = PlaybackCompletion::pair();
+        let producer = ProgressivePlaybackProducer {
+            sender: Some(sender),
+            request_cancellation: request_cancellation.clone(),
+            stream_cancellation: stream_cancellation.clone(),
+            published_frames: 0,
+            last_cue_offset: None,
+        };
+        let source = Self {
+            receiver,
+            current: BufferSource::new(Vec::new()),
+            position: 0,
+            completion,
+            cancellation: PlaybackCancellation::new(
+                Some(request_cancellation),
+                Some(stream_cancellation),
+                fade_frames,
+            ),
+            cues: VecDeque::new(),
+            cue_callback,
+        };
+        (producer, source, ticket)
+    }
+
+    fn report_cues_at_current_frame(&mut self) {
+        if !self.position.is_multiple_of(CHANNELS as usize) {
+            return;
+        }
+        let current_frame = (self.position / CHANNELS as usize) as u64;
+        while self
+            .cues
+            .front()
+            .is_some_and(|cue| cue.frame_offset == current_frame)
+        {
+            (self.cue_callback)(self.cues.pop_front().unwrap());
+        }
+    }
+
+    fn report(&mut self, status: PlaybackStatus) {
+        self.completion.report(status);
+    }
+}
+
+impl Iterator for ProgressivePlaybackSource {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let Some(gain) = self.cancellation.next_gain(self.position) else {
+                self.report(PlaybackStatus::Cancelled);
+                return None;
+            };
+            if !self.cancellation.has_begun() {
+                self.report_cues_at_current_frame();
+            }
+            if let Some(sample) = self.current.next() {
+                self.position += 1;
+                return Some(sample * gain);
+            }
+            if self.cancellation.has_begun() {
+                self.report(PlaybackStatus::Cancelled);
+                return None;
+            }
+
+            match self
+                .receiver
+                .recv_timeout(PROGRESSIVE_PLAYBACK_POLL_INTERVAL)
+            {
+                Ok(ProgressivePlaybackMessage::Audio(samples)) => {
+                    self.current = BufferSource::new(samples);
+                }
+                Ok(ProgressivePlaybackMessage::Cues(cues)) => self.cues.extend(cues),
+                Ok(ProgressivePlaybackMessage::Complete) => {
+                    self.report_cues_at_current_frame();
+                    let status = if self.cues.is_empty() {
+                        PlaybackStatus::Completed
+                    } else {
+                        PlaybackStatus::Cancelled
+                    };
+                    self.report(status);
+                    return None;
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                    self.report(PlaybackStatus::Cancelled);
+                    return None;
+                }
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (0, None)
+    }
+}
+
+impl Source for ProgressivePlaybackSource {
+    fn current_frame_len(&self) -> Option<usize> {
+        None
+    }
+
+    fn channels(&self) -> u16 {
+        CHANNELS
+    }
+
+    fn sample_rate(&self) -> u32 {
+        SAMPLE_RATE
+    }
+
+    fn total_duration(&self) -> Option<Duration> {
+        None
+    }
+}
+
+impl Drop for ProgressivePlaybackSource {
+    fn drop(&mut self) {
+        self.report(PlaybackStatus::Cancelled);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1609,6 +1920,86 @@ mod tests {
         assert_eq!(source.next(), Some(-0.1));
         assert_eq!(source.next(), None);
         assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+    }
+
+    #[test]
+    fn progressive_source_consumes_ordered_windows_and_dynamic_cues() {
+        let request_cancellation = CancellationToken::new();
+        let stream_cancellation = CancellationToken::new();
+        let (cue_sender, cue_receiver) = mpsc::channel();
+        let (mut producer, mut source, ticket) = ProgressivePlaybackSource::new(
+            Box::new(move |cue| cue_sender.send(cue).unwrap()),
+            request_cancellation,
+            stream_cancellation,
+            Some(SPEECH_STOP_FADE_FRAMES),
+        );
+        producer.push_cues(vec![cue(0, 10), cue(2, 20)]).unwrap();
+        producer
+            .push_audio(AudioBuffer::new(vec![0.1, -0.1]))
+            .unwrap();
+        producer
+            .push_audio(AudioBuffer::new(vec![0.2, -0.2]))
+            .unwrap();
+        assert_eq!(producer.published_frames(), 2);
+        producer.finish().unwrap();
+
+        assert_eq!(
+            source.by_ref().collect::<Vec<_>>(),
+            vec![0.1, -0.1, 0.2, -0.2]
+        );
+        assert_eq!(cue_receiver.recv().unwrap(), cue(0, 10));
+        assert_eq!(cue_receiver.recv().unwrap(), cue(2, 20));
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+    }
+
+    #[test]
+    fn progressive_source_reports_an_unfinished_producer_as_cancelled() {
+        let (producer, mut source, ticket) = ProgressivePlaybackSource::new(
+            Box::new(|_| {}),
+            CancellationToken::new(),
+            CancellationToken::new(),
+            Some(SPEECH_STOP_FADE_FRAMES),
+        );
+        drop(producer);
+
+        assert_eq!(source.next(), None);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+    }
+
+    #[test]
+    fn progressive_source_cancellation_interrupts_an_empty_stream() {
+        let cancellation = CancellationToken::new();
+        let (_producer, mut source, ticket) = ProgressivePlaybackSource::new(
+            Box::new(|_| {}),
+            cancellation.clone(),
+            CancellationToken::new(),
+            Some(SPEECH_STOP_FADE_FRAMES),
+        );
+        cancellation.cancel();
+
+        assert_eq!(source.next(), None);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+    }
+
+    #[test]
+    fn progressive_producer_rejects_empty_or_late_frames() {
+        let (mut producer, _source, _ticket) = ProgressivePlaybackSource::new(
+            Box::new(|_| {}),
+            CancellationToken::new(),
+            CancellationToken::new(),
+            Some(SPEECH_STOP_FADE_FRAMES),
+        );
+        assert!(matches!(
+            producer.push_audio(AudioBuffer::empty()),
+            Err(AudioError::InvalidFormat(_))
+        ));
+        producer
+            .push_audio(AudioBuffer::new(vec![0.1, -0.1]))
+            .unwrap();
+        assert!(matches!(
+            producer.push_cues(vec![cue(0, 10)]),
+            Err(AudioError::InvalidFormat(_))
+        ));
     }
 
     #[test]
@@ -1694,6 +2085,56 @@ mod tests {
         assert_eq!(cue_receiver.recv().unwrap(), cue(2, 20));
         control.drain();
         assert!(!control.is_playing(StreamType::Speech));
+    }
+
+    #[test]
+    fn null_backend_consumes_progressive_speech_without_a_device() {
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let (cue_sender, cue_receiver) = mpsc::channel();
+        let cancellation = CancellationToken::new();
+        let (mut producer, ticket) = control
+            .queue_progressive_speech_with_cue_callback_cancellable_if(
+                move |cue| cue_sender.send(cue).unwrap(),
+                cancellation,
+                || true,
+            )
+            .unwrap()
+            .unwrap();
+
+        producer.push_cues(vec![cue(0, 30)]).unwrap();
+        producer
+            .push_audio(AudioBuffer::new(vec![0.1, -0.1, 0.2, -0.2]))
+            .unwrap();
+        producer.finish().unwrap();
+
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+        assert_eq!(cue_receiver.recv().unwrap(), cue(0, 30));
+        control.drain();
+        assert!(!control.is_playing(StreamType::Speech));
+    }
+
+    #[test]
+    fn null_backend_shutdown_interrupts_an_idle_progressive_source() {
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let (mut producer, ticket) = control
+            .queue_progressive_speech_with_cue_callback_cancellable_if(
+                |_| {},
+                CancellationToken::new(),
+                || true,
+            )
+            .unwrap()
+            .unwrap();
+        drop(control);
+
+        drop(streams);
+
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+        assert!(matches!(
+            producer.push_audio(AudioBuffer::new(vec![0.1, -0.1])),
+            Err(AudioError::PlaybackError(_))
+        ));
     }
 
     #[test]

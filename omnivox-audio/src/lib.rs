@@ -23,7 +23,7 @@ pub use loader::{
 };
 pub use output::{
     AudioBackend, AudioControl, AudioOutput, AudioStreams, PlaybackCue, PlaybackStatus,
-    PlaybackTicket, StreamType,
+    PlaybackTicket, ProgressivePlaybackProducer, StreamType,
 };
 pub use pipeline::{AudioEffect, AudioPipeline};
 pub use post_synthesis::{
