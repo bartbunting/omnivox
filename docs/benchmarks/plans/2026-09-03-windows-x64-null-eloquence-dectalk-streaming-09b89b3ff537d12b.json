@@ -1,0 +1,31 @@
+{
+  "plan_version": 1,
+  "server": "../../../../emacsvox/servers/omnivox",
+  "provenance": "../../../../emacsvox/servers/omnivox-bin/versions/09b89b3ff537d12b/PROVENANCE",
+  "seed": 20260903,
+  "repeats": 1,
+  "benchmark": {
+    "mode": "both",
+    "iterations": 20,
+    "warmups": 2,
+    "replacement_burst": 5,
+    "timeout_seconds": 90,
+    "null_audio": true
+  },
+  "runs": [
+    {
+      "id": "eloquence-v1",
+      "engine": "native",
+      "preferred_engine_id": "eloquence",
+      "expected_engine_id": "eloquence",
+      "voice_id": "v1"
+    },
+    {
+      "id": "dectalk-paul",
+      "engine": "native",
+      "preferred_engine_id": "dectalk",
+      "expected_engine_id": "dectalk",
+      "voice_id": "paul"
+    }
+  ]
+}

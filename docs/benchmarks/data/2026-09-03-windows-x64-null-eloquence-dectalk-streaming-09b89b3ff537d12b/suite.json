@@ -1,0 +1,47 @@
+{
+  "completed_at": "2026-09-02T23:25:18.250726+00:00",
+  "configuration": {
+    "benchmark": {
+      "iterations": 20,
+      "mode": "both",
+      "null_audio": true,
+      "replacement_burst": 5,
+      "timeout_seconds": 90.0,
+      "warmups": 2
+    },
+    "plan_sha256": "ec71d0d2910339af785df3f445daae9bc7269a50cbf897533ad99457a1f93eb2",
+    "repeats": 1,
+    "run_ids": [
+      "eloquence-v1",
+      "dectalk-paul"
+    ],
+    "seed": 20260903
+  },
+  "created_at": "2026-09-02T23:21:46.567661+00:00",
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "report_version": 1,
+  "runs": [
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T23:21:46.641978+00:00",
+      "order": 1,
+      "repeat": 1,
+      "report": "repeat-001-order-001-eloquence-v1.json",
+      "run_id": "eloquence-v1",
+      "sha256": "f529b8c187a6b86bdd1e134308751d71562fb17467fe5eeae7a99acc0e3c02a2"
+    },
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T23:23:23.454468+00:00",
+      "order": 2,
+      "repeat": 1,
+      "report": "repeat-001-order-002-dectalk-paul.json",
+      "run_id": "dectalk-paul",
+      "sha256": "34bfaf22cb1ba6e15d067f02dcb82874a6f1f2fa03650e1ca1be3f01e619df53"
+    }
+  ],
+  "status": "complete"
+}
