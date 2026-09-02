@@ -6,9 +6,13 @@ Versioning for published releases.
 
 ## [Unreleased]
 
-Correction: v1.6.3 was not published. Its workflow created a draft containing
+## [1.6.4] - 2026-09-02
+
+This is the first published 1.6 release. Correction to the prepared v1.6.3
+entry below: v1.6.3 was not published. Its workflow created a draft containing
 stale Flite and RuTTS archives restored from build caches, so publication was
-canceled before the draft-asset verification jobs completed.
+canceled before the draft-asset verification jobs completed. v1.6.0 through
+v1.6.2 likewise published no release assets, as recorded below.
 
 ### Fixed
 
@@ -310,7 +314,8 @@ superseded by `v1.4.1` and its assets should not be used.
 - Added recovery for a draft release whose native verification needs to be
   rerun without rebuilding or replacing its uploaded assets.
 
-[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.6.3...HEAD
+[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.6.4...HEAD
+[1.6.4]: https://github.com/bartbunting/omnivox/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/bartbunting/omnivox/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/bartbunting/omnivox/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/bartbunting/omnivox/compare/v1.6.0...v1.6.1

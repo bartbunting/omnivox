@@ -1,9 +1,9 @@
 # Piper Companion Guide
 
-Piper is an optional out-of-process engine. Beginning with v1.6.3, Omnivox
+Piper is an optional out-of-process engine. Beginning with v1.6.4, Omnivox
 publishes companion archives for Linux x64, Windows x64, macOS Apple Silicon,
 and macOS Intel. Releases through v1.5.1 do not contain a Piper companion, so
-use v1.6.3 or later, or build the current source.
+use v1.6.4 or later, or build the current source.
 
 ## Payload boundary
 
@@ -71,7 +71,7 @@ executable from another version or source commit; `SOURCE-PROVENANCE.json`
 inside the companion records its exact Omnivox source.
 
 The manual Piper workflow retains its builds as non-publishing engineering
-artifacts. Beginning with v1.6.3, the tag workflow separately builds release
+artifacts. Beginning with v1.6.4, the tag workflow separately builds release
 archives, downloads them back from a draft, and requires native real synthesis
 before publication.
 
