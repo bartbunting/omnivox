@@ -26,8 +26,9 @@ use crate::helper_protocol::{
     MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES, SUPPORTED_HELPER_PROTOCOL_VERSIONS,
 };
 use crate::{
-    AnchorResolution, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest,
-    SynthesisResult, TtsEngine, TtsError, VoiceInfo,
+    AnchorResolution, AudioBuffer, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind,
+    SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
+    SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, STANDARD_CHANNELS, STANDARD_SAMPLE_RATE,
 };
 
 const HELPER_CANCEL_GRACE: Duration = Duration::from_millis(250);
@@ -732,6 +733,239 @@ impl HelperSynthesisCollector {
             )),
         }
     }
+}
+
+struct ProgressiveHelperCollector<'a> {
+    request_id: u64,
+    protocol_version: u16,
+    engine_id: String,
+    expected_voice_id: Option<String>,
+    degraded_acss: Vec<crate::contracts::AcssDimension>,
+    phase: SynthesisPhase,
+    next_sequence: u32,
+    frame_count: u64,
+    pcm_bytes: usize,
+    marker_count: usize,
+    last_marker_offset: Option<u64>,
+    sink: &'a mut dyn SynthesisStreamSink,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProgressiveHelperSynthesisResult {
+    Completed,
+    Cancelled,
+}
+
+impl<'a> ProgressiveHelperCollector<'a> {
+    fn new(
+        request_id: u64,
+        protocol_version: u16,
+        engine_id: String,
+        expected_voice_id: Option<String>,
+        degraded_acss: Vec<crate::contracts::AcssDimension>,
+        sink: &'a mut dyn SynthesisStreamSink,
+    ) -> Self {
+        debug_assert!(protocol_version >= HELPER_PROTOCOL_V5);
+        Self {
+            request_id,
+            protocol_version,
+            engine_id,
+            expected_voice_id,
+            degraded_acss,
+            phase: SynthesisPhase::AwaitingStart,
+            next_sequence: 0,
+            frame_count: 0,
+            pcm_bytes: 0,
+            marker_count: 0,
+            last_marker_offset: None,
+            sink,
+        }
+    }
+
+    fn accept(
+        &mut self,
+        response: HelperResponse,
+    ) -> Result<Option<ProgressiveHelperSynthesisResult>, HelperEngineError> {
+        response.validate()?;
+        if response.protocol_version != self.protocol_version {
+            return Err(HelperEngineError::UnexpectedResponse(
+                "response uses a different negotiated protocol version",
+            ));
+        }
+        if response.request_id != Some(self.request_id) {
+            return Err(HelperEngineError::RequestMismatch {
+                expected: self.request_id,
+                received: response.request_id,
+            });
+        }
+        if self.phase == SynthesisPhase::Terminal {
+            return Err(HelperEngineError::UnexpectedResponse(
+                "response after terminal result",
+            ));
+        }
+
+        match response.body {
+            HelperResponseBody::SynthesisStarted {
+                format,
+                actual_voice_id,
+            } if self.phase == SynthesisPhase::AwaitingStart => {
+                if format.sample_rate != STANDARD_SAMPLE_RATE
+                    || format.channels != STANDARD_CHANNELS
+                {
+                    return Err(HelperEngineError::UnexpectedResponse(
+                        "progressive helper PCM is not in canonical format",
+                    ));
+                }
+                if let Some(expected_voice_id) = &self.expected_voice_id {
+                    if actual_voice_id != *expected_voice_id {
+                        return Err(HelperEngineError::ActualVoiceMismatch {
+                            expected: expected_voice_id.clone(),
+                            received: actual_voice_id,
+                        });
+                    }
+                }
+                self.sink
+                    .start(SynthesisStreamStart {
+                        engine_id: self.engine_id.clone(),
+                        actual_voice: Some(PhysicalVoiceId::new(
+                            self.engine_id.clone(),
+                            actual_voice_id,
+                        )),
+                        degraded_acss: self.degraded_acss.clone(),
+                    })
+                    .map_err(stream_sink_error)?;
+                self.phase = SynthesisPhase::StreamingAudio;
+                Ok(None)
+            }
+            HelperResponseBody::AudioChunk { chunk }
+                if self.phase == SynthesisPhase::StreamingAudio =>
+            {
+                if chunk.sequence != self.next_sequence {
+                    return Err(HelperEngineError::AudioSequenceMismatch {
+                        expected: self.next_sequence,
+                        received: chunk.sequence,
+                    });
+                }
+                let bytes = chunk.decode_bytes()?;
+                let frame_bytes = usize::from(STANDARD_CHANNELS) * std::mem::size_of::<i16>();
+                if !bytes.len().is_multiple_of(frame_bytes) {
+                    return Err(HelperEngineError::AudioFrameAlignment);
+                }
+                self.pcm_bytes = self
+                    .pcm_bytes
+                    .checked_add(bytes.len())
+                    .filter(|size| *size <= MAX_HELPER_SYNTHESIS_BYTES)
+                    .ok_or(HelperEngineError::SynthesisTooLarge)?;
+                let samples = bytes
+                    .chunks_exact(std::mem::size_of::<i16>())
+                    .map(|sample| i16::from_le_bytes([sample[0], sample[1]]))
+                    .collect::<Vec<_>>();
+                self.sink
+                    .audio(
+                        AudioBuffer::try_from_interleaved_i16(
+                            &samples,
+                            STANDARD_SAMPLE_RATE,
+                            STANDARD_CHANNELS,
+                        )
+                        .map_err(|error| HelperEngineError::Transport(error.to_string()))?,
+                    )
+                    .map_err(stream_sink_error)?;
+                self.frame_count += (bytes.len() / frame_bytes) as u64;
+                self.next_sequence = self.next_sequence.checked_add(1).ok_or_else(|| {
+                    HelperEngineError::Transport("helper PCM sequence overflowed".to_owned())
+                })?;
+                Ok(None)
+            }
+            HelperResponseBody::Markers { markers }
+                if self.phase == SynthesisPhase::StreamingAudio =>
+            {
+                self.marker_count = self
+                    .marker_count
+                    .checked_add(markers.len())
+                    .filter(|count| *count <= MAX_HELPER_MARKERS)
+                    .ok_or(crate::helper_protocol::HelperProtocolError::TooManyMarkers)?;
+                for marker in &markers {
+                    if marker.frame_offset < self.frame_count {
+                        return Err(HelperEngineError::MarkerBehindAudio {
+                            offset: marker.frame_offset,
+                            received: self.frame_count,
+                        });
+                    }
+                    if self
+                        .last_marker_offset
+                        .is_some_and(|previous| marker.frame_offset < previous)
+                    {
+                        return Err(HelperEngineError::MarkerOrderMismatch {
+                            previous: self.last_marker_offset.unwrap(),
+                            received: marker.frame_offset,
+                        });
+                    }
+                    self.last_marker_offset = Some(marker.frame_offset);
+                }
+                let (markers, anchors) = split_helper_markers(markers);
+                self.sink
+                    .markers(markers, anchors)
+                    .map_err(stream_sink_error)?;
+                Ok(None)
+            }
+            HelperResponseBody::SynthesisCompleted { frame_count }
+                if self.phase == SynthesisPhase::StreamingAudio =>
+            {
+                if frame_count != self.frame_count {
+                    return Err(HelperEngineError::FrameCountMismatch {
+                        reported: frame_count,
+                        received: self.frame_count,
+                    });
+                }
+                if let Some(offset) = self
+                    .last_marker_offset
+                    .filter(|offset| *offset > frame_count)
+                {
+                    return Err(HelperEngineError::MarkerOutOfRange {
+                        offset,
+                        frame_count,
+                    });
+                }
+                self.phase = SynthesisPhase::Terminal;
+                Ok(Some(ProgressiveHelperSynthesisResult::Completed))
+            }
+            HelperResponseBody::SynthesisCancelled => {
+                self.phase = SynthesisPhase::Terminal;
+                Ok(Some(ProgressiveHelperSynthesisResult::Cancelled))
+            }
+            HelperResponseBody::Error {
+                code,
+                message,
+                retryable,
+            } => {
+                self.phase = SynthesisPhase::Terminal;
+                Err(HelperEngineError::Remote {
+                    code,
+                    message,
+                    retryable,
+                })
+            }
+            HelperResponseBody::SynthesisStarted { .. } => Err(
+                HelperEngineError::UnexpectedResponse("duplicate synthesis_started"),
+            ),
+            HelperResponseBody::AudioChunk { .. }
+            | HelperResponseBody::Markers { .. }
+            | HelperResponseBody::SynthesisCompleted { .. } => Err(
+                HelperEngineError::UnexpectedResponse("synthesis data before synthesis_started"),
+            ),
+            HelperResponseBody::Hello { .. }
+            | HelperResponseBody::Descriptor { .. }
+            | HelperResponseBody::Pong
+            | HelperResponseBody::CancelAccepted { .. }
+            | HelperResponseBody::ShuttingDown => Err(HelperEngineError::UnexpectedResponse(
+                "non-synthesis response in synthesis stream",
+            )),
+        }
+    }
+}
+
+fn stream_sink_error(error: TtsError) -> HelperEngineError {
+    HelperEngineError::Transport(format!("progressive synthesis consumer stopped: {error}"))
 }
 
 const CANCELLATION_ACTIVE: u8 = 0;
@@ -1439,6 +1673,176 @@ impl TtsEngine for HelperTtsEngine {
         }
     }
 
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        if self.descriptor().capabilities.audio_output != AudioOutputMode::StreamingPcm {
+            let result = self.synthesize(request)?;
+            return crate::synthesis::stream_buffered_result(
+                request,
+                self.descriptor().capabilities.markers.requested_anchors,
+                result,
+                sink,
+            );
+        }
+
+        let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
+        let _lifecycle = self.lifecycle.lock().unwrap();
+        let connection = self.connection_for_synthesis().map_err(Self::map_error)?;
+        let descriptor = self.descriptor();
+        let protocol_version = self.protocol_version.load(Ordering::Acquire) as u16;
+        if protocol_version < HELPER_PROTOCOL_V5 {
+            return Err(TtsError::SynthesisFailed(
+                "progressive helper did not negotiate protocol version 5".to_owned(),
+            ));
+        }
+        let request_id = self.allocate_request_id();
+        let started_at = Instant::now();
+        let voice_id = request.voice_id_for_engine(&descriptor.id)?;
+        let requested_voice_id = if voice_id.is_empty() {
+            None
+        } else {
+            Some(voice_id.to_owned())
+        };
+        let acss = &request.normalized_acss;
+        let supported_acss = &descriptor.capabilities.acss;
+        let helper_request = HelperRequest::with_version(
+            protocol_version,
+            request_id,
+            HelperRequestBody::Synthesize {
+                text: request.text.clone(),
+                settings: HelperSynthesisSettings {
+                    voice_id: requested_voice_id.clone(),
+                    rate: request.settings.rate.min(2.0),
+                    pitch: request.settings.pitch,
+                    volume: request.settings.volume,
+                    pitch_range: supported_acss
+                        .pitch_range
+                        .then_some(acss.pitch_range)
+                        .flatten(),
+                    stress: supported_acss.stress.then_some(acss.stress).flatten(),
+                    richness: supported_acss.richness.then_some(acss.richness).flatten(),
+                },
+                anchors: Some(request.anchors.clone()),
+            },
+        );
+        helper_request.validate().map_err(|error| {
+            TtsError::InvalidParameter(format!("invalid helper synthesis request: {error}"))
+        })?;
+        info!(
+            engine_id = self.config.engine_id,
+            request_id,
+            voice_id,
+            text_bytes = request.text.len(),
+            anchors = request.anchors.len(),
+            "Sending progressive TTS helper synthesis request"
+        );
+
+        {
+            let _dispatch = self.dispatch.lock().unwrap();
+            if self.stop_epoch.load(Ordering::Acquire) != stop_epoch {
+                return Err(TtsError::SynthesisFailed(
+                    "helper synthesis cancelled before dispatch".to_owned(),
+                ));
+            }
+            if let Err(error) = connection.send(&helper_request) {
+                return Err(self.synthesis_error(&connection, request_id, error));
+            }
+            self.active_request_id.store(request_id, Ordering::Release);
+        }
+        let active = ActiveRequestGuard {
+            request_id,
+            active_request_id: &self.active_request_id,
+            cancellations_by_target: &self.cancellations_by_target,
+            dispatch: &self.dispatch,
+        };
+        let degraded_acss = request
+            .normalized_acss
+            .clone()
+            .degrade_for(&descriptor.capabilities.acss)
+            .omitted;
+        let mut collector = ProgressiveHelperCollector::new(
+            request_id,
+            protocol_version,
+            descriptor.id.clone(),
+            requested_voice_id,
+            degraded_acss,
+            sink,
+        );
+        loop {
+            let response = match connection.receive(self.config.synthesis_idle_timeout) {
+                Ok(response) => response,
+                Err(error) => {
+                    return Err(self.synthesis_error(&connection, request_id, error));
+                }
+            };
+            if response.protocol_version != protocol_version {
+                return Err(self.synthesis_error(
+                    &connection,
+                    request_id,
+                    HelperEngineError::UnexpectedResponse(
+                        "response uses a different negotiated protocol version",
+                    ),
+                ));
+            }
+            if response.request_id != Some(request_id) {
+                if let Err(error) = response.validate() {
+                    return Err(self.synthesis_error(&connection, request_id, error.into()));
+                }
+                match self.consume_cancel_response(&response) {
+                    Ok(true) => continue,
+                    Ok(false) => {}
+                    Err(error) => {
+                        return Err(self.synthesis_error(&connection, request_id, error));
+                    }
+                }
+                return Err(self.synthesis_error(
+                    &connection,
+                    request_id,
+                    HelperEngineError::RequestMismatch {
+                        expected: request_id,
+                        received: response.request_id,
+                    },
+                ));
+            }
+            let target_is_terminal = response.body.is_synthesis_terminal();
+            let progress = match collector.accept(response) {
+                Ok(progress) => progress,
+                Err(error) => {
+                    if target_is_terminal {
+                        active.mark_target_terminal();
+                    }
+                    return Err(self.synthesis_error(&connection, request_id, error));
+                }
+            };
+            if target_is_terminal {
+                active.mark_target_terminal();
+            }
+            match progress {
+                Some(ProgressiveHelperSynthesisResult::Completed) => {
+                    info!(
+                        engine_id = self.config.engine_id,
+                        request_id,
+                        frames = collector.frame_count,
+                        elapsed_ms = started_at.elapsed().as_millis(),
+                        "Progressive TTS helper synthesis completed"
+                    );
+                    return Ok(SynthesisStreamCompletion {
+                        frame_count: collector.frame_count,
+                    });
+                }
+                Some(ProgressiveHelperSynthesisResult::Cancelled) => {
+                    return Err(TtsError::SynthesisFailed(
+                        "helper synthesis cancelled".to_owned(),
+                    ));
+                }
+                None => {}
+            }
+        }
+    }
+
     fn stop(&self) {
         self.stop_epoch.fetch_add(1, Ordering::AcqRel);
         let _dispatch = self.dispatch.lock().unwrap();
@@ -1565,6 +1969,7 @@ mod tests {
     #[derive(Debug, Clone, Copy)]
     enum MockSynthesisMode {
         Complete,
+        StreamComplete,
         CompleteBeforeCancelResponse,
         WaitForCancel,
         DelayAfterCancelAccepted,
@@ -1665,66 +2070,10 @@ mod tests {
                 }
                 HelperRequestBody::Synthesize {
                     settings, anchors, ..
-                } => {
-                    match mode {
-                        MockSynthesisMode::Complete => {
-                            self.push(
-                                self.response(
-                                    request.request_id,
-                                    HelperResponseBody::SynthesisStarted {
-                                        format: HelperAudioFormat {
-                                            sample_rate: 22_050,
-                                            channels: 1,
-                                            sample_format: HelperSampleFormat::PcmS16Le,
-                                        },
-                                        actual_voice_id: settings
-                                            .voice_id
-                                            .clone()
-                                            .unwrap_or_else(|| "reed".to_owned()),
-                                    },
-                                ),
-                            );
-                            let bytes = [-32_768_i16, 0, 16_384, 32_767]
-                                .into_iter()
-                                .flat_map(i16::to_le_bytes)
-                                .collect::<Vec<_>>();
-                            self.push(self.response(
-                                request.request_id,
-                                HelperResponseBody::AudioChunk {
-                                    chunk: HelperPcmChunk::from_bytes(0, &bytes).unwrap(),
-                                },
-                            ));
-                            let mut markers = vec![HelperMarker {
-                                kind: HelperMarkerKind::Word,
-                                frame_offset: 1,
-                                text_start: Some(0),
-                                text_length: Some(5),
-                                value: None,
-                            }];
-                            if let Some(anchors) = anchors {
-                                markers.extend(anchors.iter().map(|anchor| HelperMarker {
-                                    kind: HelperMarkerKind::RequestedAnchor,
-                                    frame_offset: u64::from(anchor.text_offset).min(4),
-                                    text_start: Some(anchor.text_offset),
-                                    text_length: Some(0),
-                                    value: Some(anchor.id.clone()),
-                                }));
-                            }
-                            self.push(self.response(
-                                request.request_id,
-                                HelperResponseBody::Markers { markers },
-                            ));
-                            self.push(self.response(
-                                request.request_id,
-                                HelperResponseBody::SynthesisCompleted { frame_count: 4 },
-                            ));
-                        }
-                        MockSynthesisMode::CompleteBeforeCancelResponse
-                        | MockSynthesisMode::WaitForCancel
-                        | MockSynthesisMode::IgnoreCancel
-                        | MockSynthesisMode::DelayAfterCancelAccepted => {
-                            self.push(HelperResponse::for_request_version(
-                                self.protocol_version,
+                } => match mode {
+                    MockSynthesisMode::Complete => {
+                        self.push(
+                            self.response(
                                 request.request_id,
                                 HelperResponseBody::SynthesisStarted {
                                     format: HelperAudioFormat {
@@ -1732,28 +2081,139 @@ mod tests {
                                         channels: 1,
                                         sample_format: HelperSampleFormat::PcmS16Le,
                                     },
-                                    actual_voice_id: "reed".to_owned(),
+                                    actual_voice_id: settings
+                                        .voice_id
+                                        .clone()
+                                        .unwrap_or_else(|| "reed".to_owned()),
                                 },
-                            ))
+                            ),
+                        );
+                        let bytes = [-32_768_i16, 0, 16_384, 32_767]
+                            .into_iter()
+                            .flat_map(i16::to_le_bytes)
+                            .collect::<Vec<_>>();
+                        self.push(self.response(
+                            request.request_id,
+                            HelperResponseBody::AudioChunk {
+                                chunk: HelperPcmChunk::from_bytes(0, &bytes).unwrap(),
+                            },
+                        ));
+                        let mut markers = vec![HelperMarker {
+                            kind: HelperMarkerKind::Word,
+                            frame_offset: 1,
+                            text_start: Some(0),
+                            text_length: Some(5),
+                            value: None,
+                        }];
+                        if let Some(anchors) = anchors {
+                            markers.extend(anchors.iter().map(|anchor| HelperMarker {
+                                kind: HelperMarkerKind::RequestedAnchor,
+                                frame_offset: u64::from(anchor.text_offset).min(4),
+                                text_start: Some(anchor.text_offset),
+                                text_length: Some(0),
+                                value: Some(anchor.id.clone()),
+                            }));
                         }
-                        MockSynthesisMode::VoiceMissing => self.push(self.response(
+                        self.push(
+                            self.response(
+                                request.request_id,
+                                HelperResponseBody::Markers { markers },
+                            ),
+                        );
+                        self.push(self.response(
                             request.request_id,
-                            HelperResponseBody::Error {
-                                code: HelperErrorCode::VoiceNotFound,
-                                message: "requested voice is missing".to_owned(),
-                                retryable: false,
-                            },
-                        )),
-                        MockSynthesisMode::RetryableSynthesisFailure => self.push(self.response(
-                            request.request_id,
-                            HelperResponseBody::Error {
-                                code: HelperErrorCode::SynthesisFailed,
-                                message: "native synchronization failed".to_owned(),
-                                retryable: true,
-                            },
-                        )),
+                            HelperResponseBody::SynthesisCompleted { frame_count: 4 },
+                        ));
                     }
-                }
+                    MockSynthesisMode::StreamComplete => {
+                        self.push(
+                            self.response(
+                                request.request_id,
+                                HelperResponseBody::SynthesisStarted {
+                                    format: HelperAudioFormat {
+                                        sample_rate: STANDARD_SAMPLE_RATE,
+                                        channels: STANDARD_CHANNELS,
+                                        sample_format: HelperSampleFormat::PcmS16Le,
+                                    },
+                                    actual_voice_id: settings
+                                        .voice_id
+                                        .clone()
+                                        .unwrap_or_else(|| "reed".to_owned()),
+                                },
+                            ),
+                        );
+                        self.push(self.response(
+                            request.request_id,
+                            HelperResponseBody::Markers {
+                                markers: vec![HelperMarker {
+                                    kind: HelperMarkerKind::Word,
+                                    frame_offset: 2,
+                                    text_start: Some(0),
+                                    text_length: Some(5),
+                                    value: None,
+                                }],
+                            },
+                        ));
+                        for (sequence, samples) in [
+                            [-32_768_i16, -32_768, 0, 0],
+                            [16_384_i16, 16_384, 32_767, 32_767],
+                        ]
+                        .into_iter()
+                        .enumerate()
+                        {
+                            let bytes = samples
+                                .into_iter()
+                                .flat_map(i16::to_le_bytes)
+                                .collect::<Vec<_>>();
+                            self.push(
+                                self.response(
+                                    request.request_id,
+                                    HelperResponseBody::AudioChunk {
+                                        chunk: HelperPcmChunk::from_bytes(sequence as u32, &bytes)
+                                            .unwrap(),
+                                    },
+                                ),
+                            );
+                        }
+                        self.push(self.response(
+                            request.request_id,
+                            HelperResponseBody::SynthesisCompleted { frame_count: 4 },
+                        ));
+                    }
+                    MockSynthesisMode::CompleteBeforeCancelResponse
+                    | MockSynthesisMode::WaitForCancel
+                    | MockSynthesisMode::IgnoreCancel
+                    | MockSynthesisMode::DelayAfterCancelAccepted => {
+                        self.push(HelperResponse::for_request_version(
+                            self.protocol_version,
+                            request.request_id,
+                            HelperResponseBody::SynthesisStarted {
+                                format: HelperAudioFormat {
+                                    sample_rate: 22_050,
+                                    channels: 1,
+                                    sample_format: HelperSampleFormat::PcmS16Le,
+                                },
+                                actual_voice_id: "reed".to_owned(),
+                            },
+                        ))
+                    }
+                    MockSynthesisMode::VoiceMissing => self.push(self.response(
+                        request.request_id,
+                        HelperResponseBody::Error {
+                            code: HelperErrorCode::VoiceNotFound,
+                            message: "requested voice is missing".to_owned(),
+                            retryable: false,
+                        },
+                    )),
+                    MockSynthesisMode::RetryableSynthesisFailure => self.push(self.response(
+                        request.request_id,
+                        HelperResponseBody::Error {
+                            code: HelperErrorCode::SynthesisFailed,
+                            message: "native synchronization failed".to_owned(),
+                            retryable: true,
+                        },
+                    )),
+                },
                 HelperRequestBody::Cancel { target_request_id } => {
                     if matches!(mode, MockSynthesisMode::IgnoreCancel) {
                         return Ok(());
@@ -1945,6 +2405,36 @@ mod tests {
             mock_config("eloquence"),
             Arc::new(MockConnector::new(connections)),
         )
+    }
+
+    #[derive(Default)]
+    struct RecordingStreamSink {
+        starts: Vec<SynthesisStreamStart>,
+        audio: Vec<AudioBuffer>,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<ResolvedAnchor>,
+    }
+
+    impl SynthesisStreamSink for RecordingStreamSink {
+        fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError> {
+            self.starts.push(start);
+            Ok(())
+        }
+
+        fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+            self.audio.push(audio);
+            Ok(())
+        }
+
+        fn markers(
+            &mut self,
+            markers: Vec<SynthesisMarker>,
+            anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            self.markers.extend(markers);
+            self.anchors.extend(anchors);
+            Ok(())
+        }
     }
 
     fn response(request_id: u64, body: HelperResponseBody) -> HelperResponse {
@@ -2151,6 +2641,32 @@ mod tests {
                 received: 2
             })
         ));
+    }
+
+    #[test]
+    fn streams_canonical_helper_windows_and_markers_to_the_consumer() {
+        let mut descriptor = helper_descriptor("eloquence", "0.1.0");
+        descriptor.capabilities.audio_output = AudioOutputMode::StreamingPcm;
+        let connection = Arc::new(MockConnection::new(
+            descriptor,
+            MockSynthesisMode::StreamComplete,
+        ));
+        let engine = mock_engine(vec![connection]).unwrap();
+        let mut sink = RecordingStreamSink::default();
+
+        let completed = engine
+            .synthesize_stream(&synthesis_request("hello"), &mut sink)
+            .unwrap();
+
+        assert_eq!(completed.frame_count, 4);
+        assert_eq!(sink.starts.len(), 1);
+        assert_eq!(sink.starts[0].engine_id, "eloquence");
+        assert_eq!(sink.audio.len(), 2);
+        assert_eq!(sink.audio[0].frame_count(), 2);
+        assert_eq!(sink.audio[1].frame_count(), 2);
+        assert_eq!(sink.markers.len(), 1);
+        assert_eq!(sink.markers[0].frame_offset, 2);
+        assert!(sink.anchors.is_empty());
     }
 
     #[test]
