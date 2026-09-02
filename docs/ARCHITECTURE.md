@@ -2,10 +2,12 @@
 
 ## Runtime boundary
 
-Omnivox is a buffered speech server. All currently registered server engines
-return PCM to the host; Omnivox canonicalizes, processes, schedules, and plays
-that audio. A future external-playback backend would have reduced timeline and
-effects guarantees and must advertise that difference explicitly.
+Omnivox is a host-rendered speech server. Engines return PCM to the host, where
+Omnivox canonicalizes, processes, schedules, and plays it. Buffered engines
+return one complete result; protocol-v5 engines may instead supply bounded
+canonical windows while native synthesis remains active. A future
+external-playback backend would have reduced timeline and effects guarantees
+and must advertise that difference explicitly.
 
 The legacy Emacspeak line protocol and the Emacsvox control/timeline protocols
 share one bounded admission path. Configuration, inventory, and presentation
@@ -66,9 +68,9 @@ single synthesis worker
   - snapshot live engine health and routing policy
   - preprocess and sentence/clause-aware chunk text
   - resolve logical engine/voice route and bounded fallbacks
-  - synthesize with cancellation checks
-  - canonicalize PCM and markers
-  - render effects and timeline actions in bounded windows
+  - synthesize with cancellation checks and no-splice runtime fallback
+  - canonicalize complete PCM or relay bounded progressive windows
+  - render trimming, effects and timeline actions in bounded windows
                 |
                 v
 AudioControl / rodio sinks
@@ -219,7 +221,12 @@ engine rather than queueing behind stale work.
 Eloquence, DECtalk, Piper, RHVoice, Flite, RuTTS, and TGSpeechBox use the
 versioned helper protocol.
 The main server validates helper inventory, request/response order, PCM totals,
-markers, and exact requested voice realization. A helper keeps reading
+markers, and exact requested voice realization. Protocol v5 can relay
+interleaved marker and PCM frames through fixed-capacity isolation and playback
+channels; older protocol peers and engines needing whole-result operations stay
+on the buffered path. Runtime retry is permitted before the first progressive
+PCM window but never after it, preventing repeated or cross-engine speech
+splices. A helper keeps reading
 cancellation and health commands while its native synthesis worker runs. Piper
 uses libpiper's chunked C API and observes stop requests between returned
 chunks. If any helper
@@ -303,9 +310,12 @@ echo state persists across chunks and engine changes until explicitly replaced
 or ended.
 
 Speech, tone, and sound sinks can play concurrently. Within each sink sources
-are ordered and bounded. Deferred legacy icons wait for their preceding speech
-barriers but do not delay following speech; their tail still belongs to tracked
-completion.
+are ordered and bounded. Progressive speech remains one tracked source while a
+fixed-capacity producer supplies PCM windows and frame cues; natural completion
+requires an explicit producer terminal, while cancellation closes the channel
+and preserves the speech de-click fade. Deferred legacy icons wait for their
+preceding speech barriers but do not delay following speech; their tail still
+belongs to tracked completion.
 
 The default output backend connects those sinks to the operating-system audio
 device. An explicit null backend instead drains the same rodio source wrappers

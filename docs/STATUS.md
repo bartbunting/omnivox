@@ -91,6 +91,11 @@ in the linked protocol specifications; future work belongs in
   arbitrary multi-device routing is not implemented.
 - An explicit null output backend consumes normal queued sources without
   opening an audio device for silent diagnostics and faster lifecycle tests.
+- Protocol-v5 markerless engines can feed ordinary anchorless speech through
+  bounded progressive isolation, exact cross-window silence trimming, effects,
+  and a single tracked playback source. Requests requiring presentation
+  anchors, or marker-capable progressive engines, remain buffered until their
+  incremental marker remapping path is enabled.
 - Immediate `tts_say` and letter commands use the global engine order rather
   than a named logical voice.
 - Native cancellation strength differs by engine. WinRT work may continue in a
@@ -143,7 +148,10 @@ in the linked protocol specifications; future work belongs in
   cancellation, Windows audio playback, and clean shutdown. Linux x64 helper
   synthesis also passes as a development smoke check. The frontend currently
   exposes 22 languages across five built-in and two data-defined profiles,
-  advertises no markers, and uses an explicitly provisional rate curve. The
+  advertises no markers, and uses an explicitly provisional rate curve. At the
+  default 44.1 kHz rate its v5 native pulls reach the main server's bounded
+  progressive playback path; the optional 22.05 kHz sinc path remains
+  whole-utterance buffered. The
   companion is excluded from generic and Emacsvox releases pending measured
   calibration, corresponding-source packaging, and native workflow gates.
 - Logical-language routing is implemented, but live multilingual coverage is

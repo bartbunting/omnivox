@@ -28,14 +28,20 @@ Versioning for published releases.
 ### Changed
 
 - TGSpeechBox now progressively emits bounded native DSP pulls at its default
-  44.1 kHz rate under helper protocol v5; the experimental 22.05 kHz mode keeps
-  its existing whole-utterance resampling quality and remains buffered.
+  44.1 kHz rate under helper protocol v5. The main server relays those pulls
+  through bounded isolation and playback queues, applies incremental trimming
+  and effects, and starts markerless ordinary speech before synthesis finishes;
+  the experimental 22.05 kHz mode keeps its existing whole-utterance resampling
+  quality and remains buffered.
 - TGSpeechBox now retains successfully configured language, profile, and
   eSpeak voice state across utterances instead of reloading the same language
   pack and selecting the same phonemizer voice twice for every request.
 
 ### Fixed
 
+- TGSpeechBox's staged voice-inventory generator now negotiates protocol v5,
+  preventing its cached streaming capability from disagreeing with the live
+  helper descriptor.
 - Draft Flite verification now installs Ubuntu 24.04's concrete ALSA runtime
   package instead of the obsolete virtual `libasound2` package name.
 

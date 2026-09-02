@@ -16,7 +16,7 @@ import tempfile
 RELEASE = "v-310b802"
 COMMIT = "7515ae055e45d2d15cae01d7fe081ce951dcd5cd"
 ESPEAK_PACKAGE = "#espeak-rs-sys@0.1.9"
-PROTOCOL_VERSION = 4
+PROTOCOL_VERSION = 5
 VOICE_INVENTORY_SCHEMA_VERSION = 1
 EXPECTED_VOICE_COUNT = 154
 VOICE_INVENTORY_FILENAME = "VOICE-INVENTORY.json"
@@ -287,7 +287,7 @@ def generate_voice_inventory(
             "protocol_version": PROTOCOL_VERSION,
             "request_id": 1,
             "type": "hello",
-            "supported_protocol_versions": [4, 3, 2, 1],
+            "supported_protocol_versions": [5, 4, 3, 2, 1],
         },
         {
             "protocol_version": PROTOCOL_VERSION,

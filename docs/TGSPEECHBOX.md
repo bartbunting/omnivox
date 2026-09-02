@@ -132,7 +132,11 @@ the same physical voice.
 At the default 44.1 kHz native rate, helper protocol v5 forwards each bounded
 DSP pull while synthesis is still active. This removes whole-utterance capture
 from the time-to-first-audio path without changing sample rate or adding a
-resampling boundary. Older Omnivox clients negotiate the buffered path.
+resampling boundary. Omnivox relays ordinary markerless speech through bounded
+isolation and a single tracked playback source while applying the same silence
+trimming, effects, volume, and channel routing across windows. Requests with
+capitalization/timeline anchors currently collect through the compatible
+buffered path. Older Omnivox clients also negotiate the buffered path.
 
 TGSpeechBox normally runs its native DSP at 44.1 kHz. For controlled A/B tests,
 `OMNIVOX_TGSPEECHBOX_SAMPLE_RATE=22050` selects its supported 22.05 kHz path;
