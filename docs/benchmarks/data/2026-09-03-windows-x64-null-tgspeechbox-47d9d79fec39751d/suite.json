@@ -1,0 +1,37 @@
+{
+  "completed_at": "2026-09-02T21:44:11.203676+00:00",
+  "configuration": {
+    "benchmark": {
+      "iterations": 20,
+      "mode": "both",
+      "null_audio": true,
+      "replacement_burst": 5,
+      "timeout_seconds": 90.0,
+      "warmups": 2
+    },
+    "plan_sha256": "312072a16a65fb2f6768695a4163193c73457789d5c046f264579596e6a7324d",
+    "repeats": 1,
+    "run_ids": [
+      "tgspeechbox-adam"
+    ],
+    "seed": 20260903
+  },
+  "created_at": "2026-09-02T21:40:51.419705+00:00",
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "report_version": 1,
+  "runs": [
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T21:40:51.482848+00:00",
+      "order": 1,
+      "repeat": 1,
+      "report": "repeat-001-order-001-tgspeechbox-adam.json",
+      "run_id": "tgspeechbox-adam",
+      "sha256": "b18cd4e935ad2001728149bd3d4112bf712a3fe307bea382210e8285c6b29def"
+    }
+  ],
+  "status": "complete"
+}
