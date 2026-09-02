@@ -21,7 +21,8 @@ import time
 import process_metrics
 
 
-PROTOCOL_VERSION = 4
+PROTOCOL_VERSION = 5
+SUPPORTED_PROTOCOL_VERSIONS = (5, 4, 3, 2, 1)
 FRAME_TIMEOUT_SECONDS = 30.0
 TEST_TEXTS = (
     "First sentence has several words. Second sentence checks completion!",
@@ -154,6 +155,7 @@ def synthesize(
     iteration,
     acss_capabilities,
     marker_capabilities,
+    progressive,
 ):
     settings = {
         "voice_id": voice_id,
@@ -189,6 +191,7 @@ def synthesize(
     next_sequence = 0
     audio_bytes = 0
     markers = []
+    last_marker_offset = None
     while True:
         response = session.receive(request_id)
         response_type = response.get("type")
@@ -220,8 +223,22 @@ def synthesize(
             next_sequence += 1
         elif response_type == "markers":
             values = response.get("markers")
-            if not isinstance(values, list):
+            if not isinstance(values, list) or not values:
                 raise RuntimeError(f"helper emitted an invalid marker batch: {response}")
+            if progressive:
+                published_frames = audio_bytes // (channels * 2)
+                for marker in values:
+                    offset = marker.get("frame_offset")
+                    if not isinstance(offset, int) or offset < published_frames:
+                        raise RuntimeError(
+                            "progressive helper emitted a marker behind published audio: "
+                            f"{response}"
+                        )
+                    if last_marker_offset is not None and offset < last_marker_offset:
+                        raise RuntimeError(
+                            f"progressive helper markers are not monotonic: {response}"
+                        )
+                    last_marker_offset = offset
             markers.extend(values)
         elif response_type == "synthesis_completed":
             if not started:
@@ -311,6 +328,11 @@ def parse_args():
     parser.add_argument("--engine-id", required=True, help="expected descriptor engine ID")
     parser.add_argument("--voice-id", help="voice to exercise; defaults to helper default")
     parser.add_argument("--iterations", type=int, default=100)
+    parser.add_argument(
+        "--require-streaming",
+        action="store_true",
+        help="fail unless protocol v5 reports progressive PCM delivery",
+    )
     parser.add_argument(
         "--cancel-probe",
         action="store_true",
@@ -405,7 +427,7 @@ def main():
             request(
                 1,
                 "hello",
-                supported_protocol_versions=[PROTOCOL_VERSION, 3, 2, 1],
+                supported_protocol_versions=list(SUPPORTED_PROTOCOL_VERSIONS),
             )
         )
         hello = session.receive(1)
@@ -427,6 +449,11 @@ def main():
         marker_capabilities = descriptor.get("capabilities", {}).get(
             "markers", {}
         )
+        audio_output = descriptor.get("capabilities", {}).get("audio_output")
+        if args.require_streaming and audio_output != "streaming_pcm":
+            raise RuntimeError(
+                f"helper did not advertise progressive PCM: {audio_output!r}"
+            )
         missing_acss = [
             dimension
             for dimension in args.require_acss
@@ -459,6 +486,7 @@ def main():
                 iteration,
                 acss_capabilities,
                 marker_capabilities,
+                audio_output == "streaming_pcm",
             )
             next_request_id += 1
             total_frames += frames
@@ -544,6 +572,7 @@ def main():
             "health_every": args.health_every,
             "resource_sample_every": args.resource_sample_every,
             "required_acss": args.require_acss,
+            "require_streaming": args.require_streaming,
         },
         "helper": {
             "engine_id": descriptor.get("id"),

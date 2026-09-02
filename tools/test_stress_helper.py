@@ -22,14 +22,14 @@ import sys
 pending = None
 
 def emit(record):
-    print(json.dumps({"protocol_version": 4, **record}, separators=(",", ":")), flush=True)
+    print(json.dumps({"protocol_version": 5, **record}, separators=(",", ":")), flush=True)
 
 for line in sys.stdin:
     request = json.loads(line)
     identifier = request["request_id"]
     kind = request["type"]
     if kind == "hello":
-        emit({"request_id": identifier, "type": "hello", "selected_protocol_version": 4})
+        emit({"request_id": identifier, "type": "hello", "selected_protocol_version": 5})
     elif kind == "describe":
         emit({
             "request_id": identifier,

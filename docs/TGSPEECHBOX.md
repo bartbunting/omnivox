@@ -94,7 +94,7 @@ python3 tools/stress_helper.py \
   target/x86_64-pc-windows-gnu/release/tgspeechbox/omnivox-tgspeechbox-helper.exe \
   --engine-id tgspeechbox --iterations 25 --cancel-probe --health-every 5 \
   --require-acss rate --require-acss average_pitch \
-  --require-acss pitch_range --require-acss volume
+  --require-acss pitch_range --require-acss volume --require-streaming
 ```
 
 ## Runtime layout and configuration
@@ -129,13 +129,20 @@ successfully configured frontend language, profile, and eSpeak voice, avoiding
 the pack reload and duplicate voice selection when successive utterances use
 the same physical voice.
 
+At the default 44.1 kHz native rate, helper protocol v5 forwards each bounded
+DSP pull while synthesis is still active. This removes whole-utterance capture
+from the time-to-first-audio path without changing sample rate or adding a
+resampling boundary. Older Omnivox clients negotiate the buffered path.
+
 TGSpeechBox normally runs its native DSP at 44.1 kHz. For controlled A/B tests,
 `OMNIVOX_TGSPEECHBOX_SAMPLE_RATE=22050` selects its supported 22.05 kHz path;
 canonical Omnivox output remains stereo 44.1 kHz. The setting changes the live
 engine descriptor. The staged companion carries matching 44.1 and 22.05 kHz
 inventories, so switching needs only the environment change and a server
 restart; rebuilding is unnecessary. The 22.05 kHz mode remains experimental
-until timing and listening results justify changing the default.
+until timing and listening results justify changing the default. It deliberately
+remains buffered so the existing whole-utterance sinc conversion is not replaced
+by lower-quality independent resampling at every native pull boundary.
 
 ## Licensing and removal
 

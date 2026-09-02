@@ -14,8 +14,9 @@ use omnivox_tts::contracts::{
 };
 use omnivox_tts::helper_protocol::MAX_HELPER_SYNTHESIS_BYTES;
 use omnivox_tts::{
-    AudioBuffer, SynthesisCancellationToken, SynthesisRequest, SynthesisResult, TtsEngine,
-    TtsError, VoiceInfo, VoiceQuality,
+    AudioBuffer, SynthesisCancellationToken, SynthesisRequest, SynthesisResult,
+    SynthesisStreamCompletion, SynthesisStreamSink, SynthesisStreamStart, TtsEngine, TtsError,
+    VoiceInfo, VoiceQuality,
 };
 
 const ENGINE_ID: &str = "tgspeechbox";
@@ -325,9 +326,136 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
         result.degraded_acss = request
             .normalized_acss
             .clone()
-            .degrade_for(&capabilities().acss)
+            .degrade_for(&capabilities(self.sample_rate).acss)
             .omitted;
         Ok(result)
+    }
+
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        // Preserve whole-utterance sinc resampling in the optional comparison
+        // mode until a stateful converter can span arbitrary native pulls.
+        if self.sample_rate != DEFAULT_SAMPLE_RATE {
+            let result = self.synthesize(request)?;
+            let frame_count = result.audio.frame_count() as u64;
+            sink.start(SynthesisStreamStart {
+                engine_id: result.engine_id,
+                actual_voice: result.actual_voice,
+                degraded_acss: result.degraded_acss,
+            })?;
+            if !result.audio.is_empty() {
+                sink.audio(result.audio)?;
+            }
+            if !result.markers.is_empty() || !result.anchors.is_empty() {
+                sink.markers(result.markers, result.anchors)?;
+            }
+            return Ok(SynthesisStreamCompletion { frame_count });
+        }
+
+        let voice_id = request.voice_id_for_engine(ENGINE_ID)?;
+        let selection = self.selection(voice_id)?.clone();
+        let actual_voice = Some(PhysicalVoiceId::new(ENGINE_ID, selection.id.clone()));
+        let degraded_acss = request
+            .normalized_acss
+            .clone()
+            .degrade_for(&capabilities(self.sample_rate).acss)
+            .omitted;
+        sink.start(SynthesisStreamStart {
+            engine_id: ENGINE_ID.to_owned(),
+            actual_voice,
+            degraded_acss,
+        })?;
+        if request.text.is_empty() {
+            return Ok(SynthesisStreamCompletion { frame_count: 0 });
+        }
+
+        let mut runtime = self.runtime()?;
+        self.cancellation.store(false, Ordering::Release);
+        self.speaking.store(true, Ordering::Release);
+        let _speaking = SpeakingGuard(&self.speaking);
+        ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
+
+        configure(&mut runtime, &selection)?;
+        let source_text = CString::new(request.text.as_str()).map_err(|_| {
+            TtsError::InvalidParameter("TGSpeechBox text contains a null byte".to_owned())
+        })?;
+        let prepared = prepare_text(&mut runtime, &source_text)?;
+        let ipa = phonemize(&prepared)?;
+        if ipa.as_bytes().is_empty() {
+            return Ok(SynthesisStreamCompletion { frame_count: 0 });
+        }
+
+        let queued = unsafe {
+            omnivox_tgspeechbox_sys::omnivox_tgspeechbox_begin(
+                runtime.handle.as_ptr(),
+                prepared.as_ptr(),
+                ipa.as_ptr(),
+                map_rate(request.settings.rate),
+                map_pitch(request.settings.pitch),
+                request.normalized_acss.pitch_range.unwrap_or(0.5) as f64,
+                request.settings.volume.clamp(0.0, 1.0) as f64,
+            )
+        };
+        if queued == 0 {
+            return Err(last_native_error(
+                &runtime,
+                "TGSpeechBox rejected synthesis",
+            ));
+        }
+
+        let mut emitted_samples = 0usize;
+        let mut chunk = [0i16; PCM_CHUNK_SAMPLES];
+        loop {
+            if is_cancelled(&self.cancellation, request.cancellation.as_ref()) {
+                reset(&mut runtime);
+                return Err(TtsError::SynthesisFailed(
+                    "TGSpeechBox synthesis was cancelled".to_owned(),
+                ));
+            }
+            let count = unsafe {
+                omnivox_tgspeechbox_sys::omnivox_tgspeechbox_next(
+                    runtime.handle.as_ptr(),
+                    chunk.as_mut_ptr(),
+                    chunk.len(),
+                )
+            };
+            if count < 0 {
+                reset(&mut runtime);
+                return Err(last_native_error(
+                    &runtime,
+                    "TGSpeechBox failed while producing PCM",
+                ));
+            }
+            let count = count as usize;
+            if count == 0 {
+                break;
+            }
+            if count > chunk.len() || count > MAX_NATIVE_SAMPLES.saturating_sub(emitted_samples) {
+                reset(&mut runtime);
+                return Err(TtsError::SynthesisFailed(
+                    "TGSpeechBox PCM exceeds the helper limit".to_owned(),
+                ));
+            }
+            let audio = AudioBuffer::try_from_interleaved_i16(&chunk[..count], self.sample_rate, 1)
+                .map_err(|error| {
+                    TtsError::SynthesisFailed(format!(
+                        "could not canonicalize TGSpeechBox PCM: {error}"
+                    ))
+                })?;
+            sink.audio(audio)?;
+            emitted_samples += count;
+            if count < chunk.len() {
+                break;
+            }
+        }
+
+        ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
+        Ok(SynthesisStreamCompletion {
+            frame_count: emitted_samples as u64,
+        })
     }
 
     fn stop(&self) {
@@ -366,7 +494,7 @@ impl Drop for SpeakingGuard<'_> {
     }
 }
 
-fn capabilities() -> EngineCapabilities {
+fn capabilities(sample_rate: u32) -> EngineCapabilities {
     EngineCapabilities {
         acss: AcssCapabilities {
             rate: true,
@@ -375,7 +503,11 @@ fn capabilities() -> EngineCapabilities {
             volume: true,
             ..AcssCapabilities::default()
         },
-        audio_output: AudioOutputMode::BufferedPcm,
+        audio_output: if sample_rate == DEFAULT_SAMPLE_RATE {
+            AudioOutputMode::StreamingPcm
+        } else {
+            AudioOutputMode::BufferedPcm
+        },
         cancellation: CancellationSupport::SynthesisAndPlayback,
         concurrency: ConcurrencyModel::Serialized,
         markers: MarkerCapabilities::default(),
@@ -417,7 +549,7 @@ fn descriptor(
         )),
         availability: Availability::Available,
         health: EngineHealth::Healthy,
-        capabilities: capabilities(),
+        capabilities: capabilities(sample_rate),
         voices,
         default_voice_id: Some(default_voice_id),
     }
@@ -852,6 +984,18 @@ mod tests {
             parse_sample_rate(Some("48000")),
             Err(TtsError::InvalidParameter(message)) if message.contains("22050 or 44100")
         ));
+    }
+
+    #[test]
+    fn only_native_canonical_rate_advertises_progressive_pcm() {
+        assert_eq!(
+            capabilities(DEFAULT_SAMPLE_RATE).audio_output,
+            AudioOutputMode::StreamingPcm
+        );
+        assert_eq!(
+            capabilities(LOWER_SAMPLE_RATE).audio_output,
+            AudioOutputMode::BufferedPcm
+        );
     }
 
     #[test]

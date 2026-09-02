@@ -27,6 +27,9 @@ Versioning for published releases.
 
 ### Changed
 
+- TGSpeechBox now progressively emits bounded native DSP pulls at its default
+  44.1 kHz rate under helper protocol v5; the experimental 22.05 kHz mode keeps
+  its existing whole-utterance resampling quality and remains buffered.
 - TGSpeechBox now retains successfully configured language, profile, and
   eSpeak voice state across utterances instead of reloading the same language
   pack and selecting the same phonemizer voice twice for every request.
