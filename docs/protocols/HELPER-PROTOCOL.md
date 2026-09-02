@@ -10,7 +10,7 @@ fallback, effects, mixing, playback completion, and runtime health policy.
 
 ## Transport and Compatibility
 
-Versions 1 through 4 use a bidirectional stream of newline-terminated UTF-8
+Versions 1 through 5 use a bidirectional stream of newline-terminated UTF-8
 JSON objects. The helper reserves standard output for protocol frames and
 writes diagnostics only to standard error. Each frame contains
 `protocol_version`, a tagged `type`, and normally a positive `request_id`; only
@@ -21,20 +21,20 @@ The host starts every session with `hello` and supplies the versions it
 supports:
 
 ```json
-{"protocol_version":4,"request_id":1,"type":"hello","supported_protocol_versions":[4,3,2,1]}
+{"protocol_version":5,"request_id":1,"type":"hello","supported_protocol_versions":[5,4,3,2,1]}
 ```
 
 The helper selects a common version and describes its implementation:
 
 ```json
-{"protocol_version":4,"request_id":1,"type":"hello","selected_protocol_version":4,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
+{"protocol_version":5,"request_id":1,"type":"hello","selected_protocol_version":5,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
 ```
 
 No inventory or synthesis request is valid until this exchange succeeds.
 Unknown types or fields added by a later incompatible contract require a new
 protocol version; helpers must not guess at incompatible semantics.
 
-Omnivox offers version 4 first and retries each older supported envelope after
+Omnivox offers version 5 first and retries each older supported envelope after
 an `unsupported_version` response. Every later frame uses the selected version.
 Versions 1 through 3 remain byte-compatible with their original contracts.
 
@@ -73,14 +73,21 @@ The host constrains requests negotiated with older helpers to their original
 1.0 maximum. Each helper adapter remains responsible for clamping to a lower
 native engine limit where necessary.
 
-The [validated version 4 synthesis fixture](../protocol-fixtures/helper-synthesize-request-v4.json)
+Version 5 allows an engine that advertises `streaming_pcm` to publish bounded
+PCM while its native synthesis call is still active. It also permits marker
+batches to interleave with audio chunks, subject to the ordering rules below.
+Buffered engines remain valid version 5 peers and retain the version 4 response
+order.
+
+The [validated version 5 synthesis fixture](../protocol-fixtures/helper-synthesize-request-v5.json)
 shows every settings field and one requested anchor. Versions 1 and 2 must omit
 the version 3 style fields; version 1 must also omit `anchors`, while versions 2
-through 4 require that array even when it is empty.
+through 5 require that array even when it is empty.
 
 ## Synthesis Responses
 
-One accepted `synthesize` request produces this ordered sequence:
+In versions 1 through 4, one accepted `synthesize` request produces this ordered
+sequence:
 
 1. exactly one `synthesis_started` with sample rate, channel count, signed
    16-bit little-endian PCM format, and actual physical voice ID;
@@ -89,7 +96,16 @@ One accepted `synthesize` request produces this ordered sequence:
 4. exactly one terminal `synthesis_completed`, `synthesis_cancelled`, or
    `error` response.
 
-The [validated success-stream fixture](../protocol-fixtures/helper-synthesis-success-v4.jsonl)
+In version 5, a `streaming_pcm` helper may interleave non-empty marker batches
+and monotonically sequenced audio chunks between the same start and terminal
+frames. Each marker must be sent before the audio chunk that reaches its frame
+offset, and its offset must not be earlier than the number of audio frames
+already sent. Markers exactly at the terminal frame boundary may follow the
+last audio chunk. This lets the consumer apply bounded backpressure without
+allowing playback to overtake timing metadata. A `buffered_pcm` version 5
+helper uses the versions 1 through 4 ordering.
+
+The [validated progressive success-stream fixture](../protocol-fixtures/helper-synthesis-success-v5.jsonl)
 contains one complete sequence. Its frames are independently deserialized and
 validated by a repository test.
 

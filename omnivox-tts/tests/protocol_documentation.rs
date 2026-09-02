@@ -47,7 +47,7 @@ fn documented_timeline_matches_wire_types_and_semantic_validation() {
 #[test]
 fn documented_helper_request_matches_wire_types_and_validation() {
     let request: HelperRequest = serde_json::from_str(include_str!(
-        "../../docs/protocol-fixtures/helper-synthesize-request-v4.json"
+        "../../docs/protocol-fixtures/helper-synthesize-request-v5.json"
     ))
     .expect("documented helper request must deserialize");
 
@@ -58,7 +58,7 @@ fn documented_helper_request_matches_wire_types_and_validation() {
 
 #[test]
 fn documented_helper_success_stream_matches_wire_types_and_validation() {
-    for line in include_str!("../../docs/protocol-fixtures/helper-synthesis-success-v4.jsonl")
+    for line in include_str!("../../docs/protocol-fixtures/helper-synthesis-success-v5.jsonl")
         .lines()
         .filter(|line| !line.is_empty())
     {

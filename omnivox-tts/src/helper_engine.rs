@@ -22,8 +22,8 @@ use crate::engine_registry::validate_descriptor as validate_registry_descriptor;
 use crate::helper_protocol::{
     read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
     HelperRequest, HelperRequestBody, HelperResponse, HelperResponseBody, HelperSynthesisSettings,
-    HELPER_PROTOCOL_V2, HELPER_PROTOCOL_V3, HELPER_PROTOCOL_V4, MAX_HELPER_MARKERS,
-    MAX_HELPER_SYNTHESIS_BYTES, SUPPORTED_HELPER_PROTOCOL_VERSIONS,
+    HELPER_PROTOCOL_V2, HELPER_PROTOCOL_V3, HELPER_PROTOCOL_V4, HELPER_PROTOCOL_V5,
+    MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES, SUPPORTED_HELPER_PROTOCOL_VERSIONS,
 };
 use crate::{
     AnchorResolution, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest,
@@ -72,6 +72,12 @@ pub enum HelperEngineError {
 
     #[error("helper marker at frame {offset} exceeds the {frame_count}-frame result")]
     MarkerOutOfRange { offset: u64, frame_count: u64 },
+
+    #[error("progressive helper marker at frame {offset} arrived after {received} audio frames")]
+    MarkerBehindAudio { offset: u64, received: u64 },
+
+    #[error("progressive helper marker at frame {received} arrived after marker frame {previous}")]
+    MarkerOrderMismatch { previous: u64, received: u64 },
 
     #[error("helper synthesized with voice {received}, expected {expected}")]
     ActualVoiceMismatch { expected: String, received: String },
@@ -182,7 +188,7 @@ pub fn load_helper_descriptor_cache(
         },
     );
     response.validate()?;
-    let descriptor = prepare_helper_descriptor(expected_engine_id, cache.descriptor)?;
+    let descriptor = prepare_helper_descriptor(expected_engine_id, cache.descriptor, None)?;
     info!(
         engine_id = expected_engine_id,
         cache = %path.display(),
@@ -195,16 +201,18 @@ pub fn load_helper_descriptor_cache(
 fn prepare_helper_descriptor(
     expected_engine_id: &str,
     mut descriptor: EngineDescriptor,
+    protocol_version: Option<u16>,
 ) -> Result<EngineDescriptor, HelperEngineError> {
     descriptor.capabilities.post_synthesis_dimensions =
         crate::contracts::buffered_post_synthesis_dimensions();
-    validate_helper_descriptor(expected_engine_id, &descriptor)?;
+    validate_helper_descriptor(expected_engine_id, &descriptor, protocol_version)?;
     Ok(descriptor)
 }
 
 fn validate_helper_descriptor(
     expected_engine_id: &str,
     descriptor: &EngineDescriptor,
+    protocol_version: Option<u16>,
 ) -> Result<(), HelperEngineError> {
     if descriptor.id != expected_engine_id {
         return Err(HelperEngineError::EngineIdMismatch {
@@ -214,10 +222,20 @@ fn validate_helper_descriptor(
     }
     validate_registry_descriptor(descriptor)
         .map_err(|error| HelperEngineError::InvalidDescriptor(error.to_string()))?;
-    if descriptor.capabilities.audio_output != AudioOutputMode::BufferedPcm {
-        return Err(HelperEngineError::InvalidDescriptor(
-            "helper engine must return buffered PCM".to_owned(),
-        ));
+    match descriptor.capabilities.audio_output {
+        AudioOutputMode::BufferedPcm => {}
+        AudioOutputMode::StreamingPcm
+            if protocol_version.is_none_or(|version| version >= HELPER_PROTOCOL_V5) => {}
+        AudioOutputMode::StreamingPcm => {
+            return Err(HelperEngineError::InvalidDescriptor(
+                "streaming helper engine requires protocol version 5".to_owned(),
+            ));
+        }
+        AudioOutputMode::ExternalPlayback => {
+            return Err(HelperEngineError::InvalidDescriptor(
+                "helper engine must return PCM".to_owned(),
+            ));
+        }
     }
     if descriptor.capabilities.concurrency != ConcurrencyModel::Serialized {
         return Err(HelperEngineError::InvalidDescriptor(
@@ -475,6 +493,7 @@ enum SynthesisPhase {
 pub(crate) struct HelperSynthesisCollector {
     request_id: u64,
     protocol_version: u16,
+    progressive: bool,
     expected_voice_id: Option<String>,
     phase: SynthesisPhase,
     format: Option<HelperAudioFormat>,
@@ -482,6 +501,7 @@ pub(crate) struct HelperSynthesisCollector {
     next_sequence: u32,
     samples: Vec<i16>,
     markers: Vec<HelperMarker>,
+    last_marker_offset: Option<u64>,
 }
 
 impl HelperSynthesisCollector {
@@ -493,6 +513,7 @@ impl HelperSynthesisCollector {
         Self {
             request_id,
             protocol_version,
+            progressive: false,
             expected_voice_id,
             phase: SynthesisPhase::AwaitingStart,
             format: None,
@@ -500,6 +521,19 @@ impl HelperSynthesisCollector {
             next_sequence: 0,
             samples: Vec::new(),
             markers: Vec::new(),
+            last_marker_offset: None,
+        }
+    }
+
+    pub(crate) fn new_progressive(
+        protocol_version: u16,
+        request_id: u64,
+        expected_voice_id: Option<String>,
+    ) -> Self {
+        debug_assert!(protocol_version >= HELPER_PROTOCOL_V5);
+        Self {
+            progressive: true,
+            ..Self::new(protocol_version, request_id, expected_voice_id)
         }
     }
 
@@ -588,8 +622,34 @@ impl HelperSynthesisCollector {
                 if self.markers.len().saturating_add(markers.len()) > MAX_HELPER_MARKERS {
                     return Err(crate::helper_protocol::HelperProtocolError::TooManyMarkers.into());
                 }
+                if self.progressive {
+                    let format = self
+                        .format
+                        .expect("streaming synthesis has an audio format");
+                    let received_frames = self.samples.len() as u64 / u64::from(format.channels);
+                    for marker in &markers {
+                        if marker.frame_offset < received_frames {
+                            return Err(HelperEngineError::MarkerBehindAudio {
+                                offset: marker.frame_offset,
+                                received: received_frames,
+                            });
+                        }
+                        if self
+                            .last_marker_offset
+                            .is_some_and(|previous| marker.frame_offset < previous)
+                        {
+                            return Err(HelperEngineError::MarkerOrderMismatch {
+                                previous: self.last_marker_offset.unwrap(),
+                                received: marker.frame_offset,
+                            });
+                        }
+                        self.last_marker_offset = Some(marker.frame_offset);
+                    }
+                }
                 self.markers.extend(markers);
-                self.phase = SynthesisPhase::StreamingMarkers;
+                if !self.progressive {
+                    self.phase = SynthesisPhase::StreamingMarkers;
+                }
                 Ok(None)
             }
             HelperResponseBody::SynthesisCompleted { frame_count }
@@ -775,7 +835,7 @@ impl HelperTtsEngine {
         connector: Arc<dyn HelperConnector>,
         descriptor: EngineDescriptor,
     ) -> Result<Self, HelperEngineError> {
-        let descriptor = prepare_helper_descriptor(&config.engine_id, descriptor)?;
+        let descriptor = prepare_helper_descriptor(&config.engine_id, descriptor, None)?;
         Self::without_connection(config, connector, Some(descriptor))
     }
 
@@ -976,7 +1036,11 @@ impl HelperTtsEngine {
                 ));
             }
         };
-        let descriptor = prepare_helper_descriptor(&self.config.engine_id, descriptor)?;
+        let descriptor = prepare_helper_descriptor(
+            &self.config.engine_id,
+            descriptor,
+            Some(selected_protocol_version),
+        )?;
         Ok((descriptor, selected_protocol_version))
     }
 
@@ -1277,8 +1341,16 @@ impl TtsEngine for HelperTtsEngine {
             cancellations_by_target: &self.cancellations_by_target,
             dispatch: &self.dispatch,
         };
-        let mut collector =
-            HelperSynthesisCollector::new(protocol_version, request_id, requested_voice_id);
+        let mut collector = if descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm
+        {
+            HelperSynthesisCollector::new_progressive(
+                protocol_version,
+                request_id,
+                requested_voice_id,
+            )
+        } else {
+            HelperSynthesisCollector::new(protocol_version, request_id, requested_voice_id)
+        };
         loop {
             let response = match connection.receive(self.config.synthesis_idle_timeout) {
                 Ok(response) => response,
@@ -1879,6 +1951,11 @@ mod tests {
         HelperResponse::for_request(request_id, body)
     }
 
+    fn at_version(mut response: HelperResponse, protocol_version: u16) -> HelperResponse {
+        response.protocol_version = protocol_version;
+        response
+    }
+
     fn started(request_id: u64, channels: u16) -> HelperResponse {
         response(
             request_id,
@@ -1924,7 +2001,7 @@ mod tests {
                 HelperResponseBody::Markers {
                     markers: vec![HelperMarker {
                         kind: HelperMarkerKind::Word,
-                        frame_offset: 1,
+                        frame_offset: 4,
                         text_start: Some(0),
                         text_length: Some(5),
                         value: None,
@@ -1978,15 +2055,47 @@ mod tests {
 
     #[test]
     fn rejects_audio_after_the_marker_stream_begins() {
-        let mut collector = HelperSynthesisCollector::new(HELPER_PROTOCOL_VERSION, 12, None);
-        collector.accept(started(12, 1)).unwrap();
+        let mut collector = HelperSynthesisCollector::new(HELPER_PROTOCOL_V4, 12, None);
+        collector
+            .accept(at_version(started(12, 1), HELPER_PROTOCOL_V4))
+            .unwrap();
+        collector
+            .accept(at_version(
+                response(
+                    12,
+                    HelperResponseBody::Markers {
+                        markers: vec![HelperMarker {
+                            kind: HelperMarkerKind::Word,
+                            frame_offset: 0,
+                            text_start: Some(0),
+                            text_length: Some(1),
+                            value: None,
+                        }],
+                    },
+                ),
+                HELPER_PROTOCOL_V4,
+            ))
+            .unwrap();
+
+        assert!(matches!(
+            collector.accept(at_version(audio(12, 0, &[1]), HELPER_PROTOCOL_V4)),
+            Err(HelperEngineError::UnexpectedResponse(
+                "audio_chunk after marker stream"
+            ))
+        ));
+    }
+
+    #[test]
+    fn protocol_v5_accepts_markers_before_their_audio() {
+        let mut collector = HelperSynthesisCollector::new_progressive(HELPER_PROTOCOL_V5, 14, None);
+        collector.accept(started(14, 1)).unwrap();
         collector
             .accept(response(
-                12,
+                14,
                 HelperResponseBody::Markers {
                     markers: vec![HelperMarker {
                         kind: HelperMarkerKind::Word,
-                        frame_offset: 0,
+                        frame_offset: 1,
                         text_start: Some(0),
                         text_length: Some(1),
                         value: None,
@@ -1994,12 +2103,53 @@ mod tests {
                 },
             ))
             .unwrap();
+        collector.accept(audio(14, 0, &[1, 2])).unwrap();
+        collector
+            .accept(response(
+                14,
+                HelperResponseBody::Markers {
+                    markers: vec![HelperMarker {
+                        kind: HelperMarkerKind::Sentence,
+                        frame_offset: 2,
+                        text_start: Some(0),
+                        text_length: Some(1),
+                        value: None,
+                    }],
+                },
+            ))
+            .unwrap();
+        assert!(collector
+            .accept(response(
+                14,
+                HelperResponseBody::SynthesisCompleted { frame_count: 2 },
+            ))
+            .unwrap()
+            .is_some());
+    }
+
+    #[test]
+    fn protocol_v5_rejects_markers_behind_published_audio() {
+        let mut collector = HelperSynthesisCollector::new_progressive(HELPER_PROTOCOL_V5, 15, None);
+        collector.accept(started(15, 1)).unwrap();
+        collector.accept(audio(15, 0, &[1, 2])).unwrap();
 
         assert!(matches!(
-            collector.accept(audio(12, 0, &[1])),
-            Err(HelperEngineError::UnexpectedResponse(
-                "audio_chunk after marker stream"
-            ))
+            collector.accept(response(
+                15,
+                HelperResponseBody::Markers {
+                    markers: vec![HelperMarker {
+                        kind: HelperMarkerKind::Word,
+                        frame_offset: 1,
+                        text_start: Some(0),
+                        text_length: Some(1),
+                        value: None,
+                    }],
+                },
+            )),
+            Err(HelperEngineError::MarkerBehindAudio {
+                offset: 1,
+                received: 2
+            })
         ));
     }
 
@@ -2211,13 +2361,14 @@ mod tests {
         );
         let sent = connection.sent.lock().unwrap();
         assert_eq!(sent[0].protocol_version, HELPER_PROTOCOL_VERSION);
-        assert_eq!(sent[1].protocol_version, HELPER_PROTOCOL_V3);
-        assert_eq!(sent[2].protocol_version, HELPER_PROTOCOL_V2);
-        assert_eq!(sent[3].protocol_version, HELPER_PROTOCOL_V1);
-        assert_eq!(sent[4].body, HelperRequestBody::Describe);
+        assert_eq!(sent[1].protocol_version, HELPER_PROTOCOL_V4);
+        assert_eq!(sent[2].protocol_version, HELPER_PROTOCOL_V3);
+        assert_eq!(sent[3].protocol_version, HELPER_PROTOCOL_V2);
+        assert_eq!(sent[4].protocol_version, HELPER_PROTOCOL_V1);
+        assert_eq!(sent[5].body, HelperRequestBody::Describe);
         let HelperRequestBody::Synthesize {
             anchors, settings, ..
-        } = &sent[5].body
+        } = &sent[6].body
         else {
             panic!("expected synthesis request");
         };

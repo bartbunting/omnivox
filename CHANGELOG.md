@@ -8,6 +8,9 @@ Versioning for published releases.
 
 ### Added
 
+- Added helper protocol v5 and an accepted bounded-progressive-synthesis
+  architecture contract for incremental PCM, marker ordering, backpressure,
+  cancellation, and safe fallback before first audio.
 - Added an explicit null audio backend for silent, faster-than-real-time server
   and diagnostic runs, plus first-class null-output support in the lifecycle
   benchmark tools and evidence metadata.
