@@ -1223,7 +1223,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libasound2
+          sudo apt-get install --yes libasound2t64
 
       - name: Download draft Flite asset
         shell: bash

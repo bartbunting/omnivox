@@ -6,6 +6,11 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Draft Flite verification now installs Ubuntu 24.04's concrete ALSA runtime
+  package instead of the obsolete virtual `libasound2` package name.
+
 ## [1.6.4] - 2026-09-02
 
 This is the first published 1.6 release. Correction to the prepared v1.6.3
