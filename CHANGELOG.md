@@ -6,6 +6,17 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+Correction: v1.6.3 was not published. Its workflow created a draft containing
+stale Flite and RuTTS archives restored from build caches, so publication was
+canceled before the draft-asset verification jobs completed.
+
+### Fixed
+
+- Release jobs now upload and collect only archives matching the exact
+  workspace version, and new pre-draft, post-upload, and final-publication
+  gates require exactly the 24 documented archives plus `sha256sums.txt`, with
+  no missing, duplicate, or stale assets.
+
 ## [1.6.3] - 2026-09-02
 
 This is the first published 1.6 release. Correction to the prepared v1.6.2

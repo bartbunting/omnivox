@@ -220,6 +220,12 @@ Every current release target performs native synthesis verification. An empty
 engine list remains available for an intentional structural and architecture
 check that does not exercise synthesis.
 
+`verify_release_asset_set.py` independently requires the complete release to
+contain exactly the 24 documented archives and `sha256sums.txt`. Directory mode
+also requires the checksum manifest to name every archive exactly once; names
+mode protects the uploaded draft and the final publication step from missing,
+duplicate, or stale cached assets.
+
 ## Speech-rate audit
 
 `audit_speech_rates.py` measures both the raw synthesized WAV and the canonical

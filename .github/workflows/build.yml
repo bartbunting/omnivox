@@ -300,12 +300,20 @@ jobs:
           python tools/package_flite.py
           python tools/verify_flite_release.py --iterations 25
 
+      - name: Read workspace version
+        id: workspace_version
+        shell: bash
+        run: >-
+          python -c 'import tomllib;
+          print("version=" + tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])'
+          >> "$GITHUB_OUTPUT"
+
       - name: Upload verified companion
         uses: actions/upload-artifact@v4
         with:
           name: omnivox-flite-${{ matrix.name }}
           path: |
-            target/release/omnivox-*-flite-${{ matrix.name }}.*
+            target/release/omnivox-${{ steps.workspace_version.outputs.version }}-flite-${{ matrix.name }}.*
             target/release/flite-sha256sums.txt
           compression-level: 0
           if-no-files-found: error
@@ -388,12 +396,20 @@ jobs:
           python tools/package_rutts.py
           python tools/verify_rutts_release.py --iterations 25
 
+      - name: Read workspace version
+        id: workspace_version
+        shell: bash
+        run: >-
+          python -c 'import tomllib;
+          print("version=" + tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])'
+          >> "$GITHUB_OUTPUT"
+
       - name: Upload verified companion
         uses: actions/upload-artifact@v4
         with:
           name: omnivox-rutts-${{ matrix.name }}
           path: |
-            target/release/omnivox-*-rutts-${{ matrix.name }}.*
+            target/release/omnivox-${{ steps.workspace_version.outputs.version }}-rutts-${{ matrix.name }}.*
             target/release/rutts-sha256sums.txt
           compression-level: 0
           if-no-files-found: error
@@ -489,12 +505,20 @@ jobs:
           python tools/verify_piper_release.py
           --model target/piper-test-model/en_US-kristin-medium.onnx
 
+      - name: Read workspace version
+        id: workspace_version
+        shell: bash
+        run: >-
+          python -c 'import tomllib;
+          print("version=" + tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])'
+          >> "$GITHUB_OUTPUT"
+
       - name: Upload verified companion
         uses: actions/upload-artifact@v4
         with:
           name: omnivox-piper-${{ matrix.name }}
           path: |
-            target/release/omnivox-*-piper-${{ matrix.name }}.*
+            target/release/omnivox-${{ steps.workspace_version.outputs.version }}-piper-${{ matrix.name }}.*
             target/release/piper-sha256sums.txt
           compression-level: 0
           if-no-files-found: error
@@ -529,12 +553,20 @@ jobs:
           python tools/package_piper_source.py
           python tools/verify_piper_source.py
 
+      - name: Read workspace version
+        id: workspace_version
+        shell: bash
+        run: >-
+          python -c 'import tomllib;
+          print("version=" + tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])'
+          >> "$GITHUB_OUTPUT"
+
       - name: Upload verified source artifact
         uses: actions/upload-artifact@v4
         with:
           name: omnivox-piper-source
           path: |
-            target/release/omnivox-*-piper-source.tar.gz
+            target/release/omnivox-${{ steps.workspace_version.outputs.version }}-piper-source.tar.gz
             target/release/piper-source-sha256sums.txt
           compression-level: 0
           if-no-files-found: error
@@ -564,12 +596,20 @@ jobs:
           python tools/package_flite_source.py
           python tools/verify_flite_source.py
 
+      - name: Read workspace version
+        id: workspace_version
+        shell: bash
+        run: >-
+          python -c 'import tomllib;
+          print("version=" + tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])'
+          >> "$GITHUB_OUTPUT"
+
       - name: Upload verified source artifact
         uses: actions/upload-artifact@v4
         with:
           name: omnivox-flite-source
           path: |
-            target/release/omnivox-*-flite-source.tar.gz
+            target/release/omnivox-${{ steps.workspace_version.outputs.version }}-flite-source.tar.gz
             target/release/flite-source-sha256sums.txt
           compression-level: 0
           if-no-files-found: error
@@ -599,12 +639,20 @@ jobs:
           python tools/package_rutts_source.py
           python tools/verify_rutts_source.py
 
+      - name: Read workspace version
+        id: workspace_version
+        shell: bash
+        run: >-
+          python -c 'import tomllib;
+          print("version=" + tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])'
+          >> "$GITHUB_OUTPUT"
+
       - name: Upload verified source artifact
         uses: actions/upload-artifact@v4
         with:
           name: omnivox-rutts-source
           path: |
-            target/release/omnivox-*-rutts-source.tar.gz
+            target/release/omnivox-${{ steps.workspace_version.outputs.version }}-rutts-source.tar.gz
             target/release/rutts-source-sha256sums.txt
           compression-level: 0
           if-no-files-found: error
@@ -618,6 +666,14 @@ jobs:
       version: ${{ steps.release_version.outputs.version }}
 
     steps:
+      - name: Checkout release code
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -659,30 +715,36 @@ jobs:
               cd ..
             fi
           done
-          cp omnivox-piper-linux-x64/omnivox-*-piper-linux-x64.tar.gz .
-          cp omnivox-piper-macos-arm64/omnivox-*-piper-macos-arm64.tar.gz .
-          cp omnivox-piper-macos-x64/omnivox-*-piper-macos-x64.tar.gz .
-          cp omnivox-piper-windows-x64/omnivox-*-piper-windows-x64.zip .
-          cp omnivox-piper-source/omnivox-*-piper-source.tar.gz .
-          cp omnivox-flite-linux-x64/omnivox-*-flite-linux-x64.tar.gz .
-          cp omnivox-flite-linux-arm64/omnivox-*-flite-linux-arm64.tar.gz .
-          cp omnivox-flite-macos-arm64/omnivox-*-flite-macos-arm64.tar.gz .
-          cp omnivox-flite-macos-x64/omnivox-*-flite-macos-x64.tar.gz .
-          cp omnivox-flite-windows-x64/omnivox-*-flite-windows-x64.zip .
-          cp omnivox-flite-windows-arm64/omnivox-*-flite-windows-arm64.zip .
-          cp omnivox-flite-source/omnivox-*-flite-source.tar.gz .
-          cp omnivox-rutts-linux-x64/omnivox-*-rutts-linux-x64.tar.gz .
-          cp omnivox-rutts-linux-arm64/omnivox-*-rutts-linux-arm64.tar.gz .
-          cp omnivox-rutts-macos-arm64/omnivox-*-rutts-macos-arm64.tar.gz .
-          cp omnivox-rutts-macos-x64/omnivox-*-rutts-macos-x64.tar.gz .
-          cp omnivox-rutts-windows-x64/omnivox-*-rutts-windows-x64.zip .
-          cp omnivox-rutts-windows-arm64/omnivox-*-rutts-windows-arm64.zip .
-          cp omnivox-rutts-source/omnivox-*-rutts-source.tar.gz .
+          cp "omnivox-piper-linux-x64/omnivox-${VERSION}-piper-linux-x64.tar.gz" .
+          cp "omnivox-piper-macos-arm64/omnivox-${VERSION}-piper-macos-arm64.tar.gz" .
+          cp "omnivox-piper-macos-x64/omnivox-${VERSION}-piper-macos-x64.tar.gz" .
+          cp "omnivox-piper-windows-x64/omnivox-${VERSION}-piper-windows-x64.zip" .
+          cp "omnivox-piper-source/omnivox-${VERSION}-piper-source.tar.gz" .
+          cp "omnivox-flite-linux-x64/omnivox-${VERSION}-flite-linux-x64.tar.gz" .
+          cp "omnivox-flite-linux-arm64/omnivox-${VERSION}-flite-linux-arm64.tar.gz" .
+          cp "omnivox-flite-macos-arm64/omnivox-${VERSION}-flite-macos-arm64.tar.gz" .
+          cp "omnivox-flite-macos-x64/omnivox-${VERSION}-flite-macos-x64.tar.gz" .
+          cp "omnivox-flite-windows-x64/omnivox-${VERSION}-flite-windows-x64.zip" .
+          cp "omnivox-flite-windows-arm64/omnivox-${VERSION}-flite-windows-arm64.zip" .
+          cp "omnivox-flite-source/omnivox-${VERSION}-flite-source.tar.gz" .
+          cp "omnivox-rutts-linux-x64/omnivox-${VERSION}-rutts-linux-x64.tar.gz" .
+          cp "omnivox-rutts-linux-arm64/omnivox-${VERSION}-rutts-linux-arm64.tar.gz" .
+          cp "omnivox-rutts-macos-arm64/omnivox-${VERSION}-rutts-macos-arm64.tar.gz" .
+          cp "omnivox-rutts-macos-x64/omnivox-${VERSION}-rutts-macos-x64.tar.gz" .
+          cp "omnivox-rutts-windows-x64/omnivox-${VERSION}-rutts-windows-x64.zip" .
+          cp "omnivox-rutts-windows-arm64/omnivox-${VERSION}-rutts-windows-arm64.zip" .
+          cp "omnivox-rutts-source/omnivox-${VERSION}-rutts-source.tar.gz" .
 
       - name: Generate checksums
         run: |
           cd artifacts
           sha256sum omnivox-*.tar.gz omnivox-*.zip > sha256sums.txt
+
+      - name: Verify exact packaged asset set
+        run: >-
+          python tools/verify_release_asset_set.py
+          --directory artifacts
+          --version "${GITHUB_REF_NAME#v}"
 
       - name: Upload packaged release assets
         uses: actions/upload-artifact@v4
@@ -703,6 +765,14 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout release code
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Download packaged release assets
         uses: actions/download-artifact@v4
         with:
@@ -861,6 +931,13 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify exact draft asset set
+        run: |
+          gh release view "$GITHUB_REF_NAME" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' > draft-assets.txt
+          python tools/verify_release_asset_set.py --names-file draft-assets.txt --version "${GITHUB_REF_NAME#v}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   verify_release:
     name: Verify Release ${{ matrix.name }}
@@ -1359,7 +1436,7 @@ jobs:
 
   publish_release:
     name: Publish Verified Release
-    needs: [verify_release, verify_flite_release, verify_flite_source_release, verify_rutts_release, verify_rutts_source_release, verify_piper_release, verify_piper_source_release]
+    needs: [package_release, verify_release, verify_flite_release, verify_flite_source_release, verify_rutts_release, verify_rutts_source_release, verify_piper_release, verify_piper_source_release]
     runs-on: ubuntu-latest
     if: >-
       always() &&
@@ -1380,9 +1457,27 @@ jobs:
     permissions:
       contents: write
     env:
+      RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
       RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
 
     steps:
+      - name: Checkout verification code from release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Verify exact draft asset set before publication
+        run: |
+          gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' > draft-assets.txt
+          python tools/verify_release_asset_set.py --names-file draft-assets.txt --version "$RELEASE_VERSION"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish draft release
         run: gh release edit "$RELEASE_TAG" --repo "${{ github.repository }}" --draft=false --prerelease=false
         env:

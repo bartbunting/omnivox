@@ -122,11 +122,15 @@ all three source jobs. It rejects a tag
 that does not match the compiled Linux binary version, restores Unix executable
 modes after the Actions artifact round-trip, creates five generic archives,
 adds all companion and source archives, and writes one exhaustive SHA-256 file.
+Companion jobs upload only the exact workspace-version archive, and the package
+job rejects anything other than the 24 documented archives plus that checksum
+manifest.
 
 ### `create_draft_release`
 
-Uploads the packaged archives and checksums to a draft GitHub release. The
-release is not public at this stage.
+Uploads the packaged archives and checksums to a draft GitHub release, then
+checks the remote draft for the same exact 25-asset set. The release is not
+public at this stage.
 
 ### `verify_release`
 
@@ -170,7 +174,8 @@ tag.
 ### `publish_release`
 
 Publishes the draft only after every generic, Flite, RuTTS, Piper, and source
-verification passes. Any failure leaves the release as a draft for inspection.
+verification passes and the remote asset set is checked again immediately
+before publication. Any failure leaves the release as a draft for inspection.
 
 The release does not package voice models, external Flite voices, RuLex,
 Eloquence or DECtalk helpers, proprietary DLLs, or proprietary dictionaries.
@@ -222,6 +227,7 @@ native verification, and publishes only if every verifier passes. Generic and
 Piper checks use the verifier code from the dispatched ref, allowing a verifier
 defect to be repaired without replacing immutable release assets; the source
 check remains pinned to the release tag so its Git-tree comparison stays exact.
+The final exact-asset gate also applies to this recovery path.
 
 ## Caching
 

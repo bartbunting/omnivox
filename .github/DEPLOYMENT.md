@@ -94,6 +94,9 @@ The release version and archive prefix come from the tag name with its leading
 - Tag-to-binary version agreement, release checksums, safe extraction, root
   payload layout, executable modes and architectures, and adjacent eSpeak data
   discovery from a relocated directory without path overrides.
+- Exact release asset membership before draft upload, after draft creation,
+  and immediately before publication: 24 documented archives plus one
+  exhaustive checksum manifest, with stale cached versions rejected.
 - Non-empty canonical WAV synthesis through eSpeak on Linux x64; through eSpeak
   and WinRT on Windows x64 and ARM64; and through eSpeak and
   AVSpeechSynthesizer on macOS ARM64 and x64.
