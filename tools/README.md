@@ -189,7 +189,8 @@ supplied, it also confirms that missing and corrupt Piper models fail exact
 Piper diagnostics while ordinary discovery preserves the eSpeak fallback.
 Model-backed archive acceptance passes on all four initial native runners. The
 tag workflow packages and re-verifies the four companions and source artifact.
-Release code remains unsigned, and no Piper archive is published yet.
+Piper archives are published beginning with v1.6.2. Release code remains
+unsigned.
 
 ## Release archive verification
 

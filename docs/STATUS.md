@@ -1,7 +1,7 @@
 # Omnivox Project Status
 
 **Last reviewed:** 2026-09-02
-**Workspace version:** 1.6.1
+**Workspace version:** 1.6.2
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
@@ -104,7 +104,7 @@ in the linked protocol specifications; future work belongs in
   platform-neutral corresponding-source and build-input candidate is
   implemented and passes exhaustive manifest, Git-tree, input, model-exclusion,
   and offline Cargo verification. Piper companion and corresponding-source
-  archives are published beginning with v1.6.1 after the gated tag workflow
+  archives are published beginning with v1.6.2 after the gated tag workflow
   verifies the draft assets on their native platforms.
 - RHVoice uses a user-installed 1.14-or-later compatible 1.x C API runtime.
   Linux x64 and Windows x64 have passed real synthesis, marker, ACSS,

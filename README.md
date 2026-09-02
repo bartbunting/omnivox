@@ -104,7 +104,7 @@ native archives for Linux x64, macOS Apple Silicon and Intel, and Windows x64
 and ARM64. Archives produced by the current workflow contain the executable,
 the matching generated `espeak-ng-data`, project and third-party licensing
 files, the portable RHVoice helper (without its runtime or voices), and the
-upstream Emacspeak adapter. Beginning with v1.6.1, separate Flite and RuTTS
+upstream Emacspeak adapter. Beginning with v1.6.2, separate Flite and RuTTS
 companion archives cover Linux x64/ARM64, macOS Intel/Apple Silicon, and
 Windows x64/ARM64; Piper companion archives cover Linux x64, macOS
 Intel/Apple Silicon, and Windows x64. Each engine also has a corresponding-
@@ -210,7 +210,7 @@ artifacts, and is not presented as a user recommendation.
 locked-build-input candidate; `python3 tools/verify_piper_source.py` checks it
 against the committed Git tree and resolves the included Cargo sources
 offline. The tag workflow builds and re-verifies all four companions and that
-source artifact. Piper companion archives are published beginning with v1.6.1.
+source artifact. Piper companion archives are published beginning with v1.6.2.
 Release binaries are not code-signed or notarized. Native Piper code remains
 confined to the helper executable.
 

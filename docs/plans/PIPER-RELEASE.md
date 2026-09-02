@@ -1,9 +1,9 @@
 # Piper Release Plan
 
-Status: implemented; first published in v1.6.1.
+Status: implemented; first published in v1.6.2.
 
 Piper is represented by an optional out-of-process Omnivox helper and is
-published as a separate companion beginning with v1.6.1. This plan records the
+published as a separate companion beginning with v1.6.2. This plan records the
 work that made it reproducible on Windows, Linux, and macOS without weakening
 the failure containment of the helper architecture or silently taking
 ownership of third-party voice-model licences.
