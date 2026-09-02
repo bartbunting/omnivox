@@ -106,8 +106,9 @@ The release version and archive prefix come from the tag name with its leading
   macOS Intel/Apple Silicon, and Windows x64/ARM64, plus the exact deterministic
   source artifact, RuLex-exclusion check, and offline source preparation.
 - Native Piper companion staging, linkage, relocation, persistent synthesis,
-  cancellation, missing/corrupt-model fallback, and exact draft-asset Piper
-  synthesis on Linux x64, Windows x64, and macOS ARM64/x64.
+  cancellation, exact missing/corrupt-model failure, independent eSpeak
+  fallback usability, and exact draft-asset Piper synthesis on Linux x64,
+  Windows x64, and macOS ARM64/x64.
 - The exact deterministic Piper source/build-input artifact, including its Git
   tree, exhaustive manifest, locked native inputs, CI-model exclusion, and
   offline Cargo graph.

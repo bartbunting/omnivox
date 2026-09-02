@@ -6,6 +6,16 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+Correction: v1.6.2 was not published. Its workflow stopped before draft
+creation because a cross-platform Piper verifier selected each platform's
+default diagnostic engine while requiring an eSpeak voice.
+
+### Fixed
+
+- Piper release verification now selects eSpeak explicitly when confirming
+  that missing or corrupt Piper models leave the fallback engine usable on
+  Linux, macOS, and Windows, with regression coverage for the command route.
+
 ## [1.6.2] - 2026-09-02
 
 This is the first published 1.6 release. Correction to the prepared v1.6.1

@@ -145,9 +145,10 @@ ARM64 and x64 execute eSpeak and AVSpeechSynthesizer.
 Each Piper runner downloads its exact companion, matching generic archive, and
 unified checksum file from the draft. It safely extracts both, verifies native
 layout and checksums, and performs real Piper synthesis plus
-missing/corrupt-model fallback. The source verifier downloads the exact large
-source asset and repeats Git-tree, manifest, input-lock, model-exclusion, and
-offline Cargo checks from a checkout of the release tag.
+exact missing/corrupt-model failure and an independent eSpeak fallback probe.
+The source verifier downloads the exact large source asset and repeats
+Git-tree, manifest, input-lock, model-exclusion, and offline Cargo checks from
+a checkout of the release tag.
 
 ### `verify_flite_release` and `verify_flite_source_release`
 

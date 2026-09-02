@@ -186,7 +186,7 @@ discovery and WAV output. Linux uses ELF/RUNPATH and `ldd` checks, macOS uses
 Mach-O, `@loader_path`, and `otool` checks, and Windows validates the PE import
 chain from the helper through `piper.dll` to ONNX Runtime. When a model is
 supplied, it also confirms that missing and corrupt Piper models fail exact
-Piper diagnostics while ordinary discovery preserves the eSpeak fallback.
+Piper diagnostics while an explicit eSpeak diagnostic remains usable.
 Model-backed archive acceptance passes on all four initial native runners. The
 tag workflow packages and re-verifies the four companions and source artifact.
 Piper archives are published beginning with v1.6.2. Release code remains
