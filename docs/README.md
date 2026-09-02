@@ -29,6 +29,10 @@ historical material so a proposal cannot be mistaken for a shipped feature.
   optional companions.
 - [ADR 0003: Source-built RuTTS Companion](adr/0003-rutts-source-built-companion.md)
   — pinned source, process, text-encoding, platform, and RuLex boundaries.
+- [ADR 0004: Per-engine Speech-rate Calibration](adr/0004-per-engine-speech-rate-calibration.md)
+  — measured normalized-rate policy, saturation, and evidence requirements.
+- [ADR 0005: Experimental TGSpeechBox Companion](adr/0005-experimental-tgspeechbox-companion.md)
+  — pinned beta source, helper, GPL, provisional-rate, and release boundaries.
 
 ## Protocol specifications
 
@@ -51,6 +55,8 @@ historical material so a proposal cannot be mistaken for a shipped feature.
   optional local `.flitevox` voices, verification, licensing, and removal.
 - [RUTTS.md](RUTTS.md) — self-contained Russian companion installation,
   source build, text repertoire, pronunciation, verification, and removal.
+- [TGSPEECHBOX.md](TGSPEECHBOX.md) — experimental formant companion, Windows
+  x64 WSL build, profiles, tuning controls, verification, and licensing.
 - [PIPER.md](PIPER.md) — optional companion build, layout, model setup,
   verification, upgrade, and removal.
 - [Windows capture helpers](../windows-helpers/README.md) — Eloquence and
