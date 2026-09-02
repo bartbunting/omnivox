@@ -7,14 +7,52 @@ use std::time::{Duration, Instant};
 
 use omnivox_tts::contracts::EngineDescriptor;
 use omnivox_tts::{
-    SynthesisCancellationToken, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo,
+    AudioBuffer, ResolvedAnchor, SynthesisCancellationToken, SynthesisMarker, SynthesisRequest,
+    SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink, SynthesisStreamStart,
+    TtsEngine, TtsError, VoiceInfo,
 };
 use tracing::{info, warn};
 
 const CANCELLATION_POLL_INTERVAL: Duration = Duration::from_millis(10);
 const SOFT_SUPERSESSION_GRACE: Duration = Duration::from_millis(75);
 const TRANSIENT_ENGINE_WAIT: Duration = Duration::from_millis(350);
+const ISOLATED_STREAM_EVENT_CAPACITY: usize = 4;
 pub const MAX_ISOLATED_CALLS: usize = 2;
+
+enum IsolatedStreamEvent {
+    Start(SynthesisStreamStart),
+    Audio(AudioBuffer),
+    Markers(Vec<SynthesisMarker>, Vec<ResolvedAnchor>),
+    Finished(Result<SynthesisStreamCompletion, TtsError>),
+}
+
+struct IsolatedStreamRelay {
+    sender: mpsc::SyncSender<IsolatedStreamEvent>,
+}
+
+impl SynthesisStreamSink for IsolatedStreamRelay {
+    fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError> {
+        self.sender
+            .send(IsolatedStreamEvent::Start(start))
+            .map_err(|_| TtsError::SynthesisFailed("stream consumer stopped".to_owned()))
+    }
+
+    fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+        self.sender
+            .send(IsolatedStreamEvent::Audio(audio))
+            .map_err(|_| TtsError::SynthesisFailed("stream consumer stopped".to_owned()))
+    }
+
+    fn markers(
+        &mut self,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<ResolvedAnchor>,
+    ) -> Result<(), TtsError> {
+        self.sender
+            .send(IsolatedStreamEvent::Markers(markers, anchors))
+            .map_err(|_| TtsError::SynthesisFailed("stream consumer stopped".to_owned()))
+    }
+}
 
 /// Process-wide admission control for isolated native calls.
 ///
@@ -303,6 +341,112 @@ impl TtsEngine for IsolatedTtsEngine {
         }
     }
 
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        let engine_id = self.engine.descriptor().id;
+        let generation = self.generation.load(Ordering::Acquire);
+        let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
+        let cancellation = request.cancellation.as_ref();
+        let lease =
+            self.acquire_for_current_generation(&engine_id, generation, stop_epoch, cancellation)?;
+        if self.was_cancelled(generation, stop_epoch, cancellation) {
+            return Err(self.cancellation_error());
+        }
+        let prepare_recovery = self.recover_before_next_call.swap(false, Ordering::AcqRel);
+        let engine = Arc::clone(&self.engine);
+        let owned_request = request.clone();
+        let task_lease = lease.clone();
+        let (event_sender, event_receiver) = mpsc::sync_channel(ISOLATED_STREAM_EVENT_CAPACITY);
+        let task = thread::Builder::new()
+            .name(format!("omnivox-{engine_id}-stream"))
+            .spawn(move || {
+                let mut relay = IsolatedStreamRelay {
+                    sender: event_sender.clone(),
+                };
+                let result = if prepare_recovery {
+                    engine
+                        .prepare_recovery_probe()
+                        .and_then(|()| engine.synthesize_stream(&owned_request, &mut relay))
+                } else {
+                    engine.synthesize_stream(&owned_request, &mut relay)
+                };
+                drop(relay);
+                drop(task_lease);
+                let _ = event_sender.send(IsolatedStreamEvent::Finished(result));
+            });
+        if let Err(error) = task {
+            if prepare_recovery {
+                self.recover_before_next_call.store(true, Ordering::Release);
+            }
+            return Err(TtsError::SynthesisFailed(format!(
+                "could not start isolated {engine_id} streaming synthesis: {error}"
+            )));
+        }
+
+        let mut superseded_at = None;
+        loop {
+            let cancelled = self.was_cancelled(generation, stop_epoch, cancellation);
+            if cancelled {
+                let hard_stop = self.stop_epoch.load(Ordering::Acquire) != stop_epoch;
+                let grace_expired = hard_stop
+                    || superseded_at.get_or_insert_with(Instant::now).elapsed()
+                        >= SOFT_SUPERSESSION_GRACE;
+                if grace_expired {
+                    self.engine.stop();
+                    lease.mark_quarantined();
+                    info!(
+                        engine_id,
+                        generation,
+                        hard_stop,
+                        global_limit = MAX_ISOLATED_CALLS,
+                        "Quarantined superseded progressive native synthesis"
+                    );
+                    return Err(self.cancellation_error());
+                }
+            }
+
+            match event_receiver.recv_timeout(CANCELLATION_POLL_INTERVAL) {
+                Ok(IsolatedStreamEvent::Finished(result)) => {
+                    if self.was_cancelled(generation, stop_epoch, cancellation) {
+                        return Err(self.cancellation_error());
+                    }
+                    return result;
+                }
+                Ok(_) if cancelled => {}
+                Ok(IsolatedStreamEvent::Start(start)) => {
+                    if let Err(error) = sink.start(start) {
+                        self.engine.stop();
+                        lease.mark_quarantined();
+                        return Err(error);
+                    }
+                }
+                Ok(IsolatedStreamEvent::Audio(audio)) => {
+                    if let Err(error) = sink.audio(audio) {
+                        self.engine.stop();
+                        lease.mark_quarantined();
+                        return Err(error);
+                    }
+                }
+                Ok(IsolatedStreamEvent::Markers(markers, anchors)) => {
+                    if let Err(error) = sink.markers(markers, anchors) {
+                        self.engine.stop();
+                        lease.mark_quarantined();
+                        return Err(error);
+                    }
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                    return Err(TtsError::SynthesisFailed(format!(
+                        "isolated {engine_id} streaming task terminated without a result"
+                    )));
+                }
+            }
+        }
+    }
+
     fn stop(&self) {
         self.stop_epoch.fetch_add(1, Ordering::AcqRel);
         self.engine.stop();
@@ -441,6 +585,41 @@ mod tests {
             ))
         }
 
+        fn synthesize_stream(
+            &self,
+            _request: &SynthesisRequest,
+            sink: &mut dyn SynthesisStreamSink,
+        ) -> Result<SynthesisStreamCompletion, TtsError> {
+            let concurrent = self.concurrent.fetch_add(1, Ordering::AcqRel) + 1;
+            self.maximum_concurrent
+                .fetch_max(concurrent, Ordering::AcqRel);
+            {
+                let mut state = self.state.lock().unwrap();
+                state.started += 1;
+                self.changed.notify_all();
+            }
+            let emitted = sink
+                .start(SynthesisStreamStart {
+                    engine_id: self.id.clone(),
+                    actual_voice: None,
+                    degraded_acss: Vec::new(),
+                })
+                .and_then(|()| sink.audio(AudioBuffer::new(vec![0.25, -0.25])));
+            if let Err(error) = emitted {
+                self.concurrent.fetch_sub(1, Ordering::AcqRel);
+                return Err(error);
+            }
+            let mut state = self.state.lock().unwrap();
+            while state.releases == 0 {
+                state = self.changed.wait(state).unwrap();
+            }
+            state.releases -= 1;
+            state.completed += 1;
+            self.changed.notify_all();
+            self.concurrent.fetch_sub(1, Ordering::AcqRel);
+            Ok(SynthesisStreamCompletion { frame_count: 1 })
+        }
+
         fn stop(&self) {
             self.stops.fetch_add(1, Ordering::AcqRel);
         }
@@ -484,6 +663,111 @@ mod tests {
             assert!(Instant::now() < deadline, "isolation slot was not released");
             thread::yield_now();
         }
+    }
+
+    struct SignallingSink {
+        sender: mpsc::Sender<&'static str>,
+    }
+
+    impl SynthesisStreamSink for SignallingSink {
+        fn start(&mut self, _start: SynthesisStreamStart) -> Result<(), TtsError> {
+            self.sender.send("start").unwrap();
+            Ok(())
+        }
+
+        fn audio(&mut self, _audio: AudioBuffer) -> Result<(), TtsError> {
+            self.sender.send("audio").unwrap();
+            Ok(())
+        }
+
+        fn markers(
+            &mut self,
+            _markers: Vec<SynthesisMarker>,
+            _anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            self.sender.send("markers").unwrap();
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn progressive_windows_cross_isolation_before_native_completion() {
+        let generation = Arc::new(AtomicU64::new(1));
+        let budget = Arc::new(IsolationBudget::new());
+        let native = Arc::new(BlockingEngine::new("progressive"));
+        let engine = isolated(Arc::clone(&native), generation, Arc::clone(&budget));
+        let (event_tx, event_rx) = mpsc::channel();
+        let (finished_tx, finished_rx) = mpsc::channel();
+        let caller = Arc::clone(&engine);
+        thread::spawn(move || {
+            let mut sink = SignallingSink { sender: event_tx };
+            let _ = finished_tx.send(caller.synthesize_stream(&request(), &mut sink));
+        });
+
+        native.wait_for_started(1);
+        assert_eq!(
+            event_rx.recv_timeout(Duration::from_millis(250)).unwrap(),
+            "start"
+        );
+        assert_eq!(
+            event_rx.recv_timeout(Duration::from_millis(250)).unwrap(),
+            "audio"
+        );
+        assert!(matches!(
+            finished_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+
+        native.release();
+        assert_eq!(
+            finished_rx
+                .recv_timeout(Duration::from_millis(250))
+                .unwrap()
+                .unwrap()
+                .frame_count,
+            1
+        );
+        wait_for_budget(&budget, 0);
+    }
+
+    #[test]
+    fn cancelling_a_progressive_call_releases_its_bounded_relay() {
+        let generation = Arc::new(AtomicU64::new(1));
+        let budget = Arc::new(IsolationBudget::new());
+        let native = Arc::new(BlockingEngine::new("progressive-cancel"));
+        let engine = isolated(Arc::clone(&native), generation, Arc::clone(&budget));
+        let cancellation = SynthesisCancellationToken::new();
+        let cancellable = request().with_cancellation(cancellation.clone());
+        let (event_tx, event_rx) = mpsc::channel();
+        let (finished_tx, finished_rx) = mpsc::channel();
+        let caller = Arc::clone(&engine);
+        thread::spawn(move || {
+            let mut sink = SignallingSink { sender: event_tx };
+            let _ = finished_tx.send(caller.synthesize_stream(&cancellable, &mut sink));
+        });
+
+        native.wait_for_started(1);
+        assert_eq!(
+            event_rx.recv_timeout(Duration::from_millis(250)).unwrap(),
+            "start"
+        );
+        assert_eq!(
+            event_rx.recv_timeout(Duration::from_millis(250)).unwrap(),
+            "audio"
+        );
+        cancellation.cancel();
+        assert!(matches!(
+            finished_rx
+                .recv_timeout(Duration::from_millis(250))
+                .unwrap(),
+            Err(TtsError::SynthesisFailed(_))
+        ));
+        assert_eq!(native.stops.load(Ordering::Acquire), 1);
+        assert_eq!(budget.quarantined(), 1);
+
+        native.release();
+        native.wait_for_completed(1);
+        wait_for_budget(&budget, 0);
     }
 
     #[test]
