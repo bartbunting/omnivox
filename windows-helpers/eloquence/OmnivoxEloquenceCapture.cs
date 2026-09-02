@@ -173,6 +173,8 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
     private List<OmnivoxHelperMarker> reachedMarkers;
     private Exception callbackError;
     private Func<bool> cancellationRequested;
+    private IOmnivoxCaptureSink progressiveSink;
+    private ulong capturedFrames;
 
     internal OmnivoxEloquenceCapture(string dllPath)
     {
@@ -220,7 +222,8 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
 
     internal OmnivoxCaptureResult Synthesize(string text, string voiceId,
         int rate, int pitch, string voiceParameters, int volume,
-        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested)
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
+        IOmnivoxCaptureSink sink)
     {
         lock (synthesisLock)
         {
@@ -231,7 +234,9 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
             }
             callbackError = null;
             this.cancellationRequested = cancellationRequested;
-            capture = new MemoryStream();
+            progressiveSink = sink;
+            capturedFrames = 0;
+            capture = sink == null ? new MemoryStream() : null;
             pendingMarkers = new Dictionary<int, OmnivoxHelperMarker>();
             reachedMarkers = new List<OmnivoxHelperMarker>();
             try
@@ -263,19 +268,24 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
                 Check(synchronized, "eciSynchronize");
                 OmnivoxHelperLog.Event("native_call_completed",
                     "engine=eloquence call=eciSynchronize frames=" +
-                    (capture.Length / 2).ToString(
+                    capturedFrames.ToString(
                         CultureInfo.InvariantCulture));
                 ThrowCallbackError();
-                return new OmnivoxCaptureResult(capture.ToArray(),
+                return new OmnivoxCaptureResult(
+                    capture == null ? new byte[0] : capture.ToArray(),
                     reachedMarkers.ToArray());
             }
             finally
             {
-                capture.Dispose();
+                if (capture != null)
+                {
+                    capture.Dispose();
+                }
                 capture = null;
                 pendingMarkers = null;
                 reachedMarkers = null;
                 this.cancellationRequested = null;
+                progressiveSink = null;
                 native.ClearInput(handle);
             }
         }
@@ -499,33 +509,50 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
         {
             return CallbackAbort;
         }
-        if (message == IndexReplyMessage)
-        {
-            OmnivoxHelperMarker marker;
-            if (capture != null && pendingMarkers != null &&
-                pendingMarkers.TryGetValue(parameter, out marker))
-            {
-                pendingMarkers.Remove(parameter);
-                marker.FrameOffset = (ulong)(capture.Length / 2);
-                reachedMarkers.Add(marker);
-            }
-            return CallbackDataProcessed;
-        }
-        if (message != WaveformBufferMessage || parameter <= 0)
-        {
-            return CallbackDataProcessed;
-        }
         try
         {
+            if (message == IndexReplyMessage)
+            {
+                OmnivoxHelperMarker marker;
+                if (pendingMarkers != null &&
+                    pendingMarkers.TryGetValue(parameter, out marker))
+                {
+                    pendingMarkers.Remove(parameter);
+                    marker.FrameOffset = capturedFrames;
+                    if (progressiveSink == null)
+                    {
+                        reachedMarkers.Add(marker);
+                    }
+                    else
+                    {
+                        progressiveSink.Markers(
+                            new OmnivoxHelperMarker[] { marker });
+                    }
+                }
+                return CallbackDataProcessed;
+            }
+            if (message != WaveformBufferMessage || parameter <= 0)
+            {
+                return CallbackDataProcessed;
+            }
             int byteCount = checked(parameter * 2);
-            if (capture == null || capture.Length + byteCount > MaximumAudioBytes)
+            if (capturedFrames >
+                (ulong)(MaximumAudioBytes / 2 - byteCount / 2))
             {
                 throw new InvalidOperationException(
                     "Eloquence synthesis exceeded the 128 MiB audio limit");
             }
             byte[] bytes = new byte[byteCount];
             Marshal.Copy(outputBuffer, bytes, 0, byteCount);
-            capture.Write(bytes, 0, bytes.Length);
+            if (progressiveSink == null)
+            {
+                capture.Write(bytes, 0, bytes.Length);
+            }
+            else
+            {
+                progressiveSink.Audio(bytes, 0, bytes.Length);
+            }
+            capturedFrames += (ulong)parameter;
             return CallbackDataProcessed;
         }
         catch (Exception error)

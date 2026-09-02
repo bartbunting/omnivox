@@ -235,6 +235,10 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
     private bool shuttingDown;
     private bool memoryOpen;
     private string runtimeVersion;
+    private IOmnivoxCaptureSink progressiveSink;
+    private ulong capturedFrames;
+    private double outputVolume;
+    private byte[] pendingProgressiveAudio;
 
     internal OmnivoxDectalkCapture(string dllPath)
     {
@@ -304,12 +308,12 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
 
     internal OmnivoxCaptureResult Synthesize(string text, string voiceCode,
         int rate, int pitch, string voiceParameters, double volume,
-        Func<bool> cancellationRequested)
+        Func<bool> cancellationRequested, IOmnivoxCaptureSink sink)
     {
         lock (synthesisLock)
         {
             ThrowIfCancellationRequested(cancellationRequested);
-            BeginCapture();
+            BeginCapture(sink, volume);
             try
             {
                 ThrowIfCancellationRequested(cancellationRequested);
@@ -332,11 +336,16 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                 OmnivoxHelperLog.Event("native_call_completed",
                     "engine=dectalk call=TextToSpeechSync");
                 ThrowCallbackError();
+                FlushProgressiveAudio();
                 lock (stateLock)
                 {
-                    markers.Sort(CompareMarkers);
-                    byte[] audio = capture.ToArray();
-                    ApplyPcmGain(audio, volume);
+                    byte[] audio = capture == null ? new byte[0] :
+                        capture.ToArray();
+                    if (capture != null)
+                    {
+                        markers.Sort(CompareMarkers);
+                        ApplyPcmGain(audio, volume);
+                    }
                     return new OmnivoxCaptureResult(audio, markers.ToArray());
                 }
             }
@@ -352,6 +361,8 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                     }
                     markers = null;
                     pendingTextMarkers = null;
+                    progressiveSink = null;
+                    pendingProgressiveAudio = null;
                 }
             }
         }
@@ -399,7 +410,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         }
     }
 
-    private void BeginCapture()
+    private void BeginCapture(IOmnivoxCaptureSink sink, double volume)
     {
         lock (stateLock)
         {
@@ -414,7 +425,11 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             {
                 capture.Dispose();
             }
-            capture = new MemoryStream();
+            progressiveSink = sink;
+            capturedFrames = 0;
+            outputVolume = volume;
+            pendingProgressiveAudio = null;
+            capture = sink == null ? new MemoryStream() : null;
             markers = new List<OmnivoxHelperMarker>();
             pendingTextMarkers =
                 new Dictionary<uint, OmnivoxHelperMarker>();
@@ -822,24 +837,63 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                     "DECtalk returned invalid buffer metadata");
             }
 
+            byte[] audio = null;
+            byte[] readyAudio = null;
+            OmnivoxHelperMarker[] markerBatch = null;
+            IOmnivoxCaptureSink sink = null;
             lock (stateLock)
             {
                 if (!discardAudio && !shuttingDown)
                 {
+                    int firstMarker = markers.Count;
                     CaptureMarkers(buffer);
+                    sink = progressiveSink;
+                    if (sink != null && markers.Count > firstMarker)
+                    {
+                        List<OmnivoxHelperMarker> batch = markers.GetRange(
+                            firstMarker, markers.Count - firstMarker);
+                        batch.Sort(CompareMarkers);
+                        markerBatch = batch.ToArray();
+                    }
                     if (buffer.BufferLength > 0)
                     {
                         int count = checked((int)buffer.BufferLength);
-                        if (capture == null ||
-                            capture.Length + count > MaximumAudioBytes)
+                        if (capturedFrames >
+                            (ulong)(MaximumAudioBytes / 2 - count / 2))
                         {
                             throw new InvalidOperationException(
                                 "DECtalk synthesis exceeded the 128 MiB audio limit");
                         }
-                        byte[] bytes = new byte[count];
-                        Marshal.Copy(buffer.Data, bytes, 0, count);
-                        capture.Write(bytes, 0, count);
+                        audio = new byte[count];
+                        Marshal.Copy(buffer.Data, audio, 0, count);
+                        if (sink == null)
+                        {
+                            capture.Write(audio, 0, count);
+                            capturedFrames += (ulong)(count / 2);
+                        }
+                        else
+                        {
+                            ApplyPcmGain(audio, outputVolume);
+                            // DECtalk can report a marker a few native samples
+                            // after the audio callback containing that frame.
+                            // Retain exactly one bounded 512-sample block so
+                            // the next callback can publish those markers first.
+                            readyAudio = pendingProgressiveAudio;
+                            pendingProgressiveAudio = audio;
+                            capturedFrames += (ulong)(count / 2);
+                        }
                     }
+                }
+            }
+            if (sink != null)
+            {
+                if (markerBatch != null)
+                {
+                    sink.Markers(markerBatch);
+                }
+                if (readyAudio != null)
+                {
+                    sink.Audio(readyAudio, 0, readyAudio.Length);
                 }
             }
         }
@@ -868,6 +922,22 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             {
                 SetCallbackError(error);
             }
+        }
+    }
+
+    private void FlushProgressiveAudio()
+    {
+        IOmnivoxCaptureSink sink;
+        byte[] audio;
+        lock (stateLock)
+        {
+            sink = progressiveSink;
+            audio = pendingProgressiveAudio;
+            pendingProgressiveAudio = null;
+        }
+        if (sink != null && audio != null)
+        {
+            sink.Audio(audio, 0, audio.Length);
         }
     }
 

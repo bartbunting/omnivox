@@ -55,6 +55,31 @@ class WindowsHelperSourceTests(unittest.TestCase):
         )
         self.assertIn("if (markers.Length > 0)", host)
 
+    def test_windows_helpers_offer_bounded_progressive_pcm_in_v5(self) -> None:
+        host = source("common/OmnivoxHelperHost.cs")
+        self.assertIn("LatestProtocolVersion = 5", host)
+        self.assertIn('"streaming_pcm" : "buffered_pcm"', host)
+        self.assertIn("CanonicalSampleRate = 44100", host)
+        self.assertIn("CanonicalChannels = 2", host)
+        self.assertIn("MaximumAudioChunkBytes", host)
+        for relative in (
+            "eloquence/OmnivoxEloquenceHelper.cs",
+            "dectalk/OmnivoxDectalkHelper.cs",
+        ):
+            with self.subTest(source=relative):
+                self.assertIn(
+                    "SupportsProgressiveSynthesis { get { return true; } }",
+                    source(relative),
+                )
+
+    def test_dectalk_holds_one_native_block_for_late_markers(self) -> None:
+        capture = source("dectalk/OmnivoxDectalkCapture.cs")
+        marker_write = capture.index("sink.Markers(markerBatch)")
+        audio_write = capture.index("sink.Audio(readyAudio")
+        self.assertLess(marker_write, audio_write)
+        self.assertIn("readyAudio = pendingProgressiveAudio", capture)
+        self.assertIn("pendingProgressiveAudio = audio", capture)
+
     def test_native_encoders_never_use_replacement_fallback(self) -> None:
         for relative in (
             "eloquence/OmnivoxEloquenceCapture.cs",

@@ -19,6 +19,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         internal string VoiceParameters;
         internal int Volume;
         internal OmnivoxHelperAnchor[] Anchors;
+        internal IOmnivoxCaptureSink Sink;
         internal Func<bool> CancellationRequested;
         internal volatile bool Cancelled;
         internal OmnivoxCaptureResult Result;
@@ -117,6 +118,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         get { return OmnivoxEloquenceCapture.SpeechSampleRate; }
     }
     public int Channels { get { return 1; } }
+    public bool SupportsProgressiveSynthesis { get { return true; } }
     public OmnivoxHelperVoice[] Voices { get { return EngineVoices; } }
     public OmnivoxHelperCapabilities Capabilities
     {
@@ -126,7 +128,8 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
     public OmnivoxCaptureResult Synthesize(string text, string voiceId,
         double rate, double pitch, double? pitchRange, double? stress,
         double? richness, double volume,
-        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested)
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
+        IOmnivoxCaptureSink sink)
     {
         // Existing Emacsvox Eloquence operation treats 75 as its normal
         // speed. Protocol v4's 2.0 maximum maps to 240, within ECI's native
@@ -147,6 +150,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         job.VoiceParameters = voiceParameters;
         job.Volume = nativeVolume;
         job.Anchors = anchors;
+        job.Sink = sink;
         job.CancellationRequested = cancellationRequested;
         lock (stateLock)
         {
@@ -281,7 +285,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
                             delegate() {
                                 return job.Cancelled ||
                                     job.CancellationRequested();
-                            });
+                            }, job.Sink);
                     }
                     catch (Exception error)
                     {

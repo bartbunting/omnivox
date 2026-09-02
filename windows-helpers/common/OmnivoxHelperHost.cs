@@ -212,6 +212,12 @@ internal sealed class OmnivoxCaptureResult
     }
 }
 
+internal interface IOmnivoxCaptureSink
+{
+    void Audio(byte[] audio, int offset, int count);
+    void Markers(OmnivoxHelperMarker[] markers);
+}
+
 internal interface IOmnivoxCaptureEngine : IDisposable
 {
     string EngineId { get; }
@@ -221,12 +227,13 @@ internal interface IOmnivoxCaptureEngine : IDisposable
     string DefaultVoiceId { get; }
     int SampleRate { get; }
     int Channels { get; }
+    bool SupportsProgressiveSynthesis { get; }
     OmnivoxHelperVoice[] Voices { get; }
     OmnivoxHelperCapabilities Capabilities { get; }
     OmnivoxCaptureResult Synthesize(string text, string voiceId, double rate,
         double pitch, double? pitchRange, double? stress, double? richness,
         double volume, OmnivoxHelperAnchor[] anchors,
-        Func<bool> cancellationRequested);
+        Func<bool> cancellationRequested, IOmnivoxCaptureSink sink);
     void Stop();
 }
 
@@ -297,12 +304,14 @@ internal static class OmnivoxHelperRuntime
 }
 
 /// <summary>
-/// Engine-neutral implementation of Omnivox helper protocol versions 1-4.
-/// Native adapters provide inventory, captured PCM, and interruption only.
+/// Engine-neutral implementation of Omnivox helper protocol versions 1-5.
+/// Native adapters provide inventory, captured or progressive PCM, and
+/// interruption only.
 /// </summary>
 internal sealed class OmnivoxHelperHost
 {
-    private const int LatestProtocolVersion = 4;
+    private const int LatestProtocolVersion = 5;
+    private const int ProgressiveProtocolVersion = 5;
     private const int ExtendedRateProtocolVersion = 4;
     private const int ExtendedAcssProtocolVersion = 3;
     private const int AnchorProtocolVersion = 2;
@@ -314,6 +323,8 @@ internal sealed class OmnivoxHelperHost
     private const int MaximumMarkers = 4096;
     private const int MaximumStringLength = 16 * 1024;
     private const int MaximumAnchorIdBytes = 128;
+    private const int CanonicalSampleRate = 44100;
+    private const int CanonicalChannels = 2;
 
     private sealed class ProtocolException : Exception
     {
@@ -341,8 +352,265 @@ internal sealed class OmnivoxHelperHost
         internal double? Richness;
         internal double Volume;
         internal OmnivoxHelperAnchor[] Anchors;
+        internal bool Progressive;
         internal volatile bool Cancelled;
         internal Thread Worker;
+    }
+
+    private sealed class ProgressiveWireSink : IOmnivoxCaptureSink
+    {
+        private readonly OmnivoxHelperHost host;
+        private readonly ActiveSynthesis synthesis;
+        private readonly int sourceChannels;
+        private readonly int interpolationFactor;
+        private readonly ulong textBytes;
+        private readonly HashSet<string> requestedAnchors;
+        private readonly HashSet<string> resolvedAnchors =
+            new HashSet<string>(StringComparer.Ordinal);
+        private bool hasPreviousFrame;
+        private short previousLeft;
+        private short previousRight;
+        private uint sequence;
+        private ulong frameCount;
+        private int markerCount;
+        private ulong? lastMarkerOffset;
+        private bool completed;
+
+        internal ProgressiveWireSink(OmnivoxHelperHost host,
+            ActiveSynthesis synthesis)
+        {
+            this.host = host;
+            this.synthesis = synthesis;
+            sourceChannels = host.engine.Channels;
+            if ((sourceChannels != 1 && sourceChannels != CanonicalChannels) ||
+                host.engine.SampleRate <= 0 ||
+                CanonicalSampleRate % host.engine.SampleRate != 0)
+            {
+                throw new InvalidOperationException(
+                    "progressive Windows helper PCM cannot be canonicalized exactly");
+            }
+            interpolationFactor = CanonicalSampleRate /
+                host.engine.SampleRate;
+            textBytes = (ulong)Encoding.UTF8.GetByteCount(synthesis.Text);
+            requestedAnchors = new HashSet<string>(StringComparer.Ordinal);
+            foreach (OmnivoxHelperAnchor anchor in synthesis.Anchors)
+            {
+                requestedAnchors.Add(anchor.Id);
+            }
+        }
+
+        internal ulong FrameCount { get { return frameCount; } }
+        internal int MarkerCount { get { return markerCount; } }
+
+        public void Audio(byte[] audio, int offset, int count)
+        {
+            EnsureActive();
+            int sourceFrameBytes = checked(sourceChannels * 2);
+            if (audio == null || offset < 0 || count <= 0 ||
+                offset > audio.Length - count || count % sourceFrameBytes != 0)
+            {
+                throw new InvalidOperationException(
+                    "native engine emitted an invalid progressive PCM window");
+            }
+
+            int sourceFrames = count / sourceFrameBytes;
+            int intervals = !hasPreviousFrame ? sourceFrames - 1 :
+                sourceFrames;
+            int outputBytes = checked(intervals * interpolationFactor *
+                CanonicalChannels * 2);
+            byte[] converted = new byte[outputBytes];
+            int outputOffset = 0;
+            int sourceOffset = offset;
+            if (!hasPreviousFrame)
+            {
+                previousLeft = ReadSample(audio, sourceOffset);
+                previousRight = sourceChannels == 1 ? previousLeft :
+                    ReadSample(audio, sourceOffset + 2);
+                hasPreviousFrame = true;
+                sourceOffset += sourceFrameBytes;
+            }
+            int end = checked(offset + count);
+            while (sourceOffset < end)
+            {
+                short currentLeft = ReadSample(audio, sourceOffset);
+                short currentRight = sourceChannels == 1 ? currentLeft :
+                    ReadSample(audio, sourceOffset + 2);
+                for (int phase = 0; phase < interpolationFactor; ++phase)
+                {
+                    for (int channel = 0; channel < CanonicalChannels;
+                        ++channel)
+                    {
+                        int before = channel == 0 ? previousLeft :
+                            previousRight;
+                        int after = channel == 0 ? currentLeft : currentRight;
+                        int value = before + (int)Math.Round(
+                            (after - before) *
+                            (phase / (double)interpolationFactor),
+                            MidpointRounding.AwayFromZero);
+                        converted[outputOffset++] = (byte)(value & 0xff);
+                        converted[outputOffset++] =
+                            (byte)((value >> 8) & 0xff);
+                    }
+                }
+                previousLeft = currentLeft;
+                previousRight = currentRight;
+                sourceOffset += sourceFrameBytes;
+            }
+            if (converted.Length > 0)
+            {
+                WriteAudio(converted);
+            }
+        }
+
+        public void Markers(OmnivoxHelperMarker[] markers)
+        {
+            EnsureActive();
+            if (markers == null || markers.Length == 0 ||
+                markerCount > MaximumMarkers - markers.Length)
+            {
+                throw new InvalidOperationException(
+                    "native engine emitted an invalid progressive marker batch");
+            }
+
+            OmnivoxHelperMarker[] converted =
+                new OmnivoxHelperMarker[markers.Length];
+            for (int index = 0; index < markers.Length; ++index)
+            {
+                OmnivoxHelperMarker marker = markers[index];
+                ValidateMarker(marker);
+                ulong scaledOffset = checked(marker.FrameOffset *
+                    (ulong)interpolationFactor);
+                if (scaledOffset < frameCount)
+                {
+                    throw new InvalidOperationException(
+                        "progressive native marker at canonical frame " +
+                        scaledOffset.ToString(CultureInfo.InvariantCulture) +
+                        " arrived after " + frameCount.ToString(
+                            CultureInfo.InvariantCulture) + " PCM frames");
+                }
+                if (lastMarkerOffset.HasValue &&
+                    scaledOffset < lastMarkerOffset.Value)
+                {
+                    throw new InvalidOperationException(
+                        "progressive native markers are not monotonic");
+                }
+                lastMarkerOffset = scaledOffset;
+                converted[index] = new OmnivoxHelperMarker(marker.Kind,
+                    scaledOffset, marker.TextStart, marker.TextLength,
+                    marker.Value);
+            }
+            markerCount += markers.Length;
+            host.WriteMarkers(synthesis.RequestId, converted);
+        }
+
+        internal ulong Complete()
+        {
+            EnsureActive();
+            if (hasPreviousFrame)
+            {
+                byte[] tail = new byte[interpolationFactor *
+                    CanonicalChannels * 2];
+                int offset = 0;
+                for (int frame = 0; frame < interpolationFactor; ++frame)
+                {
+                    for (int channel = 0; channel < CanonicalChannels;
+                        ++channel)
+                    {
+                        int value = channel == 0 ? previousLeft :
+                            previousRight;
+                        tail[offset++] = (byte)(value & 0xff);
+                        tail[offset++] = (byte)((value >> 8) & 0xff);
+                    }
+                }
+                WriteAudio(tail);
+                hasPreviousFrame = false;
+            }
+            if (lastMarkerOffset.HasValue &&
+                lastMarkerOffset.Value > frameCount)
+            {
+                throw new InvalidOperationException(
+                    "progressive native marker exceeds the completed PCM");
+            }
+            completed = true;
+            return frameCount;
+        }
+
+        private static short ReadSample(byte[] audio, int offset)
+        {
+            return (short)(audio[offset] | audio[offset + 1] << 8);
+        }
+
+        private void WriteAudio(byte[] audio)
+        {
+            const int canonicalFrameBytes = CanonicalChannels * 2;
+            int maximumChunk = MaximumAudioChunkBytes -
+                MaximumAudioChunkBytes % canonicalFrameBytes;
+            for (int offset = 0; offset < audio.Length;
+                offset += maximumChunk)
+            {
+                EnsureActive();
+                int count = Math.Min(maximumChunk, audio.Length - offset);
+                ulong frames = (ulong)(count / canonicalFrameBytes);
+                if (frameCount >
+                    (ulong)(MaximumAudioBytes / canonicalFrameBytes) - frames)
+                {
+                    throw new InvalidOperationException(
+                        "progressive synthesis exceeded the 128 MiB audio limit");
+                }
+                Dictionary<string, object> response = host.Response(
+                    synthesis.RequestId, "audio_chunk");
+                Dictionary<string, object> chunk =
+                    new Dictionary<string, object>();
+                chunk["sequence"] = sequence++;
+                chunk["data_base64"] = Convert.ToBase64String(audio,
+                    offset, count);
+                response["chunk"] = chunk;
+                host.WriteFrame(response);
+                frameCount += frames;
+            }
+        }
+
+        private void ValidateMarker(OmnivoxHelperMarker marker)
+        {
+            if (marker == null ||
+                (marker.Kind != "word" && marker.Kind != "sentence" &&
+                 marker.Kind != "phoneme" &&
+                 marker.Kind != "native_index" &&
+                 marker.Kind != "requested_anchor") ||
+                marker.TextStart.HasValue != marker.TextLength.HasValue ||
+                (marker.Value != null &&
+                 Encoding.UTF8.GetByteCount(marker.Value) >
+                    MaximumStringLength) ||
+                (marker.TextStart.HasValue &&
+                 (ulong)marker.TextStart.Value + marker.TextLength.Value >
+                    textBytes))
+            {
+                throw new InvalidOperationException(
+                    "native engine emitted an invalid progressive marker");
+            }
+            if (marker.Kind == "requested_anchor" &&
+                (marker.Value == null ||
+                 !requestedAnchors.Contains(marker.Value) ||
+                 !resolvedAnchors.Add(marker.Value)))
+            {
+                throw new InvalidOperationException(
+                    "native engine emitted an unknown or duplicate anchor");
+            }
+        }
+
+        private void EnsureActive()
+        {
+            if (completed)
+            {
+                throw new InvalidOperationException(
+                    "progressive synthesis is already complete");
+            }
+            if (synthesis.Cancelled)
+            {
+                throw new OperationCanceledException(
+                    "progressive synthesis was cancelled");
+            }
+        }
     }
 
     private readonly IOmnivoxCaptureEngine engine;
@@ -710,6 +978,8 @@ internal sealed class OmnivoxHelperHost
         synthesis.Volume = ReadNumber(settings, "volume", 0.0, 1.0);
         synthesis.Anchors = selectedProtocolVersion >= AnchorProtocolVersion ?
             ReadAnchors(request, text) : new OmnivoxHelperAnchor[0];
+        synthesis.Progressive = selectedProtocolVersion >=
+            ProgressiveProtocolVersion && engine.SupportsProgressiveSynthesis;
         synthesis.Worker = new Thread(delegate() { SynthesisWorker(synthesis); });
         synthesis.Worker.Name = "omnivox-" + engineId + "-synthesis";
         synthesis.Worker.IsBackground = true;
@@ -734,8 +1004,10 @@ internal sealed class OmnivoxHelperHost
         Dictionary<string, object> started = Response(requestId,
             "synthesis_started");
         Dictionary<string, object> format = new Dictionary<string, object>();
-        format["sample_rate"] = engine.SampleRate;
-        format["channels"] = engine.Channels;
+        format["sample_rate"] = synthesis.Progressive ?
+            CanonicalSampleRate : engine.SampleRate;
+        format["channels"] = synthesis.Progressive ?
+            CanonicalChannels : engine.Channels;
         format["sample_format"] = "pcm_s16_le";
         started["format"] = format;
         started["actual_voice_id"] = voiceId;
@@ -770,15 +1042,42 @@ internal sealed class OmnivoxHelperHost
                 WriteSimple(synthesis.RequestId, "synthesis_cancelled");
                 return;
             }
+            ProgressiveWireSink progressiveSink = synthesis.Progressive ?
+                new ProgressiveWireSink(this, synthesis) : null;
             OmnivoxCaptureResult result = engine.Synthesize(synthesis.Text,
                 synthesis.VoiceId, synthesis.Rate, synthesis.Pitch,
                 synthesis.PitchRange, synthesis.Stress, synthesis.Richness,
                 synthesis.Volume, synthesis.Anchors,
-                delegate() { return synthesis.Cancelled; });
+                delegate() { return synthesis.Cancelled; }, progressiveSink);
             if (result == null)
             {
                 throw new InvalidOperationException(
                     "native engine returned no synthesis result");
+            }
+            if (progressiveSink != null)
+            {
+                ulong progressiveFrames = progressiveSink.Complete();
+                OmnivoxHelperLog.Event("native_synthesis_completed",
+                    request + " frames=" + progressiveFrames.ToString(
+                        CultureInfo.InvariantCulture) + " markers=" +
+                    progressiveSink.MarkerCount.ToString(
+                        CultureInfo.InvariantCulture) + " elapsed_ms=" +
+                    elapsed.ElapsedMilliseconds.ToString(
+                        CultureInfo.InvariantCulture));
+                if (synthesis.Cancelled)
+                {
+                    WriteSimple(synthesis.RequestId, "synthesis_cancelled");
+                    return;
+                }
+                Dictionary<string, object> progressiveCompleted = Response(
+                    synthesis.RequestId, "synthesis_completed");
+                progressiveCompleted["frame_count"] = progressiveFrames;
+                WriteFrame(progressiveCompleted);
+                OmnivoxHelperLog.Event("request_completed",
+                    request + " elapsed_ms=" +
+                    elapsed.ElapsedMilliseconds.ToString(
+                        CultureInfo.InvariantCulture));
+                return;
             }
             byte[] audio = result.Audio;
             OmnivoxHelperMarker[] markers = result.Markers;
@@ -1080,7 +1379,9 @@ internal sealed class OmnivoxHelperHost
         acss["richness"] = advertised.Richness;
         acss["volume"] = advertised.Volume;
         capabilities["acss"] = acss;
-        capabilities["audio_output"] = "buffered_pcm";
+        capabilities["audio_output"] = selectedProtocolVersion >=
+            ProgressiveProtocolVersion && engine.SupportsProgressiveSynthesis ?
+            "streaming_pcm" : "buffered_pcm";
         capabilities["cancellation"] = "synthesis_and_playback";
         Dictionary<string, object> concurrency =
             new Dictionary<string, object>();
