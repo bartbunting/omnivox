@@ -230,6 +230,13 @@ and Eloquence with build provenance and checksums. It was collected from a
 post-v1.5.1 development build and is not evidence about the published v1.5.1
 artifact or physical acoustic onset.
 
+The [2026-09-03 Windows x64 null-output baseline](benchmarks/2026-09-03-windows-x64-null-f7204ac69b6010f1.md)
+is the frozen pre-optimization comparison for all eight configured engines,
+adding RuTTS and experimental TGSpeechBox. It preserves 1,920 exact-voice
+samples plus the seeded suite plan and order. Null output measures synthesis
+and protocol lifecycle without playing audio; its terminal timing excludes
+waveform duration and is not comparable with device-output terminal timing.
+
 `tools/stress_server.py` verifies interleaved replacement domains, ordered and
 urgent survival, repeated hard-stop recovery, contiguous marker and semantic
 event history, and exactly-once terminal status. Its optional fault mode kills

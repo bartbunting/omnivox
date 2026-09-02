@@ -1,0 +1,4784 @@
+{
+  "configuration": {
+    "audio_output": "null",
+    "cases": [
+      "character",
+      "word",
+      "line",
+      "dense",
+      "multipart",
+      "replacement"
+    ],
+    "engine": "tgspeechbox",
+    "expected_engine_id": "tgspeechbox",
+    "iterations": 20,
+    "mode": "both",
+    "preferred_engine_id": null,
+    "replacement_burst": 5,
+    "server_command": [
+      "/home/bart/src/emacsvox/servers/omnivox",
+      "--audio-output",
+      "null"
+    ],
+    "text_profile": "english",
+    "timeout_seconds": 90.0,
+    "voice_id": "en-us/adam",
+    "warmups": 2
+  },
+  "created_at": "2026-09-02T21:15:05.116230+00:00",
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "measurement": {
+    "acoustic_onset_measured": false,
+    "clock": "time.perf_counter_ns",
+    "real_time_playback": false,
+    "source": "client receipt of first utterance_started null-source marker",
+    "terminal": "client receipt of tracked terminal record"
+  },
+  "provenance": {
+    "build_id": "f7204ac69b6010f1",
+    "build_kind": "local-dirty-worktree",
+    "cargo_lock_sha256": "54ee68191571995b0c5d7e7799501bf83f947990e05aebddf80eaf38ad090040",
+    "dectalk_runtime": "bundled-pinned-archive",
+    "dockerfile_sha256": "33e2df54152f81abd75143954a5aaaab0c20e098970afba68d8b024fb7169efa",
+    "eloquence_runtime": "external-user-supplied-not-bundled",
+    "eloquence_runtime_sha256": "external-not-observed",
+    "emacsvox_commit": "3c47d0a2afa46ad4c9a32a5215bcddc4e7bdb019",
+    "emacsvox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "espeak_data_sha256": "9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "flite_companion": "local-omnivox-build",
+    "flite_companion_tree_sha256": "05e2536d784167d76397172a7715dcde7cba8943578bccfd1025056ce29760ed",
+    "flite_compiled_voice": "cmu_us_slt",
+    "flite_target": "x86_64-pc-windows-gnu",
+    "format": "emacsvox-omnivox-provenance-v1",
+    "mingw_gcc": "x86_64-w64-mingw32-gcc-win32 (GCC) 12-win32",
+    "net40_reference_assemblies_nupkg_sha256": "54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694",
+    "omnivox_commit": "2973d5efc86d40520f146bd635209e40b4154c9e",
+    "omnivox_executable_sha256": "0dda735c3492114600c5b072be18e257f1e215a13799a6bd19be36b7252937e3",
+    "omnivox_features": "none",
+    "omnivox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "piper_companion": "not-included",
+    "piper_companion_archive_sha256": "not-included",
+    "piper_companion_commit": "not-included",
+    "piper_companion_tree_sha256": "not-included",
+    "piper_companion_version": "not-included",
+    "piper_model": "not-included",
+    "piper_model_config_sha256": "not-observed",
+    "piper_model_sha256": "not-observed",
+    "release_image_id": "sha256:3186f03b16a6b9cc62befb0902a40974b6297426483582464e3c421bb9873204",
+    "rhvoice_companion": "local-omnivox-build",
+    "rhvoice_companion_tree_sha256": "b24d61e77b4e933022e03983ad486f0c40f7100d6728cf802191b74d5cc5bfef",
+    "rhvoice_config_tree_sha256": "not-configured",
+    "rhvoice_configuration": "recorded-windows-paths",
+    "rhvoice_data_tree_sha256": "a20abbc6f19bdef73b1f97e57c8fd3cb5c15e7fc3d1c04aafa9cde6f1254c5ce",
+    "rhvoice_library_sha256": "3014e72aa5a989c3082cbbc42977919601a8444f4e6dcdb73e5ae0c664272aed",
+    "rhvoice_runtime": "external-user-supplied-not-bundled",
+    "roslyn_csc": "5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)",
+    "roslyn_csc_sha256": "4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee",
+    "roslyn_nupkg_sha256": "302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "rutts_built_in_voices": "male,female",
+    "rutts_companion": "local-omnivox-build",
+    "rutts_companion_tree_sha256": "1fc6ff28b729c0d4ee86f64ebeb2ccd721f4e67d63687330ceaedd346d80c908",
+    "rutts_rulex": "not-included",
+    "rutts_target": "x86_64-pc-windows-gnu",
+    "rutts_version": "6.3.3",
+    "target": "x86_64-pc-windows-gnu",
+    "tgspeechbox_build_environment": "wsl-host-development-only",
+    "tgspeechbox_companion": "local-omnivox-experimental-build",
+    "tgspeechbox_companion_tree_sha256": "8139d2db714e4b820d7ff1c302a6326e610c3f3e63b544105253395cad2377b7",
+    "tgspeechbox_cxx": "x86_64-w64-mingw32-g++-posix (GCC) 13-posix",
+    "tgspeechbox_cxx_sha256": "43befe0a8b6f3b40f54b5fac3717b4bf1cf56a2373b7b9bbbe21956211c16046",
+    "tgspeechbox_markers": "none",
+    "tgspeechbox_rate_mapping": "provisional",
+    "tgspeechbox_target": "x86_64-pc-windows-gnu",
+    "toolchain_lock_sha256": "197f0a6765d9b509ed884c7c6cae2f557d022658b0c20489c0716760ec926f8e",
+    "unstripped_diagnostics": "retained-local-not-staged",
+    "windows_helpers_license": "GPL-2.0-or-later",
+    "windows_helpers_source": "omnivox",
+    "windows_rustflags": "-C link-arg=-Wl,--no-insert-timestamp",
+    "windows_strip": "SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all"
+  },
+  "report_version": 2,
+  "results": {
+    "cold": {
+      "character": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000000,
+            "dispatch_to_source_ms": 548.716764,
+            "dispatch_to_terminal_ms": 548.757878,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 570.668789,
+            "process_start_to_source_ms": 1120.675736,
+            "sent_at_monotonic_ns": 465859902652522,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465860451369286,
+            "source_to_terminal_ms": 0.041114,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465860451410400
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000001,
+            "dispatch_to_source_ms": 359.332453,
+            "dispatch_to_terminal_ms": 359.393278,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 524.578587,
+            "process_start_to_source_ms": 885.337563,
+            "sent_at_monotonic_ns": 465861041588445,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465861400920898,
+            "source_to_terminal_ms": 0.060825,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465861400981723
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000002,
+            "dispatch_to_source_ms": 370.759918,
+            "dispatch_to_terminal_ms": 370.839918,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 557.301607,
+            "process_start_to_source_ms": 929.562747,
+            "sent_at_monotonic_ns": 465862024096613,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465862394856531,
+            "source_to_terminal_ms": 0.08,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465862394936531
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000003,
+            "dispatch_to_source_ms": 343.055272,
+            "dispatch_to_terminal_ms": 343.149251,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 540.919586,
+            "process_start_to_source_ms": 884.973172,
+            "sent_at_monotonic_ns": 465863001243395,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465863344298667,
+            "source_to_terminal_ms": 0.093979,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465863344392646
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000004,
+            "dispatch_to_source_ms": 211.387076,
+            "dispatch_to_terminal_ms": 211.444861,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 629.207467,
+            "process_start_to_source_ms": 841.704026,
+            "sent_at_monotonic_ns": 465864038874381,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465864250261457,
+            "source_to_terminal_ms": 0.057785,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465864250319242
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000005,
+            "dispatch_to_source_ms": 321.72229,
+            "dispatch_to_terminal_ms": 321.776785,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 501.518277,
+            "process_start_to_source_ms": 824.541725,
+            "sent_at_monotonic_ns": 465864817425435,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465865139147725,
+            "source_to_terminal_ms": 0.054495,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465865139202220
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000006,
+            "dispatch_to_source_ms": 323.217059,
+            "dispatch_to_terminal_ms": 323.283942,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 503.770081,
+            "process_start_to_source_ms": 828.08347,
+            "sent_at_monotonic_ns": 465865708265219,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465866031482278,
+            "source_to_terminal_ms": 0.066883,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465866031549161
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000007,
+            "dispatch_to_source_ms": 289.32378,
+            "dispatch_to_terminal_ms": 289.526986,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 568.603744,
+            "process_start_to_source_ms": 859.00102,
+            "sent_at_monotonic_ns": 465866665335704,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465866954659484,
+            "source_to_terminal_ms": 0.203206,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465866954862690
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000008,
+            "dispatch_to_source_ms": 266.633697,
+            "dispatch_to_terminal_ms": 266.680943,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 553.280278,
+            "process_start_to_source_ms": 821.005456,
+            "sent_at_monotonic_ns": 465867573278248,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465867839911945,
+            "source_to_terminal_ms": 0.047246,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465867839959191
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000009,
+            "dispatch_to_source_ms": 262.540985,
+            "dispatch_to_terminal_ms": 262.807165,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 587.139792,
+            "process_start_to_source_ms": 850.973423,
+            "sent_at_monotonic_ns": 465868492893558,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465868755434543,
+            "source_to_terminal_ms": 0.26618,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465868755700723
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000010,
+            "dispatch_to_source_ms": 232.265466,
+            "dispatch_to_terminal_ms": 232.330598,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 637.068312,
+            "process_start_to_source_ms": 870.60095,
+            "sent_at_monotonic_ns": 465869458259796,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465869690525262,
+            "source_to_terminal_ms": 0.065132,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465869690590394
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000011,
+            "dispatch_to_source_ms": 229.405432,
+            "dispatch_to_terminal_ms": 229.46252,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 600.080943,
+            "process_start_to_source_ms": 830.606305,
+            "sent_at_monotonic_ns": 465870355971188,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465870585376620,
+            "source_to_terminal_ms": 0.057088,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465870585433708
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000012,
+            "dispatch_to_source_ms": 232.312359,
+            "dispatch_to_terminal_ms": 232.385247,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 618.141219,
+            "process_start_to_source_ms": 851.9486,
+            "sent_at_monotonic_ns": 465871269310194,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465871501622553,
+            "source_to_terminal_ms": 0.072888,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465871501695441
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000013,
+            "dispatch_to_source_ms": 286.615088,
+            "dispatch_to_terminal_ms": 286.697924,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 553.20246,
+            "process_start_to_source_ms": 841.306681,
+            "sent_at_monotonic_ns": 465872120691238,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465872407306326,
+            "source_to_terminal_ms": 0.082836,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465872407389162
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000014,
+            "dispatch_to_source_ms": 257.376671,
+            "dispatch_to_terminal_ms": 257.612218,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 564.968443,
+            "process_start_to_source_ms": 823.344266,
+            "sent_at_monotonic_ns": 465873037627642,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465873295004313,
+            "source_to_terminal_ms": 0.235547,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465873295239860
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000015,
+            "dispatch_to_source_ms": 260.449017,
+            "dispatch_to_terminal_ms": 260.508123,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 575.746367,
+            "process_start_to_source_ms": 837.168348,
+            "sent_at_monotonic_ns": 465873936140418,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465874196589435,
+            "source_to_terminal_ms": 0.059106,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465874196648541
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000016,
+            "dispatch_to_source_ms": 271.973974,
+            "dispatch_to_terminal_ms": 272.028205,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 561.020789,
+            "process_start_to_source_ms": 834.23873,
+            "sent_at_monotonic_ns": 465874823335942,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465875095309916,
+            "source_to_terminal_ms": 0.054231,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465875095364147
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000017,
+            "dispatch_to_source_ms": 259.226318,
+            "dispatch_to_terminal_ms": 259.276305,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 582.985801,
+            "process_start_to_source_ms": 843.384431,
+            "sent_at_monotonic_ns": 465875743732225,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465876002958543,
+            "source_to_terminal_ms": 0.049987,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465876003008530
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000018,
+            "dispatch_to_source_ms": 232.956807,
+            "dispatch_to_terminal_ms": 233.011693,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 613.921001,
+            "process_start_to_source_ms": 848.54107,
+            "sent_at_monotonic_ns": 465876683126599,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465876916083406,
+            "source_to_terminal_ms": 0.054886,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465876916138292
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000019,
+            "dispatch_to_source_ms": 219.277365,
+            "dispatch_to_terminal_ms": 219.55606,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 656.470311,
+            "process_start_to_source_ms": 876.786215,
+            "sent_at_monotonic_ns": 465877637900418,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465877857177783,
+            "source_to_terminal_ms": 0.278695,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465877857456478
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 548.716764,
+              "minimum": 211.387076,
+              "p50": 262.540985,
+              "p95": 370.759918,
+              "p99": 548.716764
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 548.757878,
+              "minimum": 211.444861,
+              "p50": 262.807165,
+              "p95": 370.839918,
+              "p99": 548.757878
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 656.470311,
+              "minimum": 501.518277,
+              "p50": 568.603744,
+              "p95": 637.068312,
+              "p99": 656.470311
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 1120.675736,
+              "minimum": 821.005456,
+              "p50": 843.384431,
+              "p95": 929.562747,
+              "p99": 1120.675736
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.278695,
+              "minimum": 0.041114,
+              "p50": 0.060825,
+              "p95": 0.26618,
+              "p99": 0.278695
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "dense": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000060,
+            "dispatch_to_source_ms": 622.749001,
+            "dispatch_to_terminal_ms": 929.423985,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 537.144509,
+            "process_start_to_source_ms": 1161.203935,
+            "sent_at_monotonic_ns": 465921747248056,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465922369997057,
+            "source_to_terminal_ms": 306.674984,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465922676672041
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000061,
+            "dispatch_to_source_ms": 647.577671,
+            "dispatch_to_terminal_ms": 1021.84641,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 611.107427,
+            "process_start_to_source_ms": 1259.968523,
+            "sent_at_monotonic_ns": 465923321027964,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465923968605635,
+            "source_to_terminal_ms": 374.268739,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465924342874374
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000062,
+            "dispatch_to_source_ms": 757.500274,
+            "dispatch_to_terminal_ms": 1111.659706,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 527.704958,
+            "process_start_to_source_ms": 1286.614905,
+            "sent_at_monotonic_ns": 465924936181540,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465925693681814,
+            "source_to_terminal_ms": 354.159432,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465926047841246
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000063,
+            "dispatch_to_source_ms": 641.43089,
+            "dispatch_to_terminal_ms": 996.062354,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 540.961981,
+            "process_start_to_source_ms": 1183.649503,
+            "sent_at_monotonic_ns": 465926654397501,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465927295828391,
+            "source_to_terminal_ms": 354.631464,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465927650459855
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000064,
+            "dispatch_to_source_ms": 618.991665,
+            "dispatch_to_terminal_ms": 964.0504,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 562.29303,
+            "process_start_to_source_ms": 1182.74697,
+            "sent_at_monotonic_ns": 465928278315199,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465928897306864,
+            "source_to_terminal_ms": 345.058735,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465929242365599
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000065,
+            "dispatch_to_source_ms": 548.146651,
+            "dispatch_to_terminal_ms": 899.230886,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 619.057018,
+            "process_start_to_source_ms": 1168.350435,
+            "sent_at_monotonic_ns": 465929926830795,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465930474977446,
+            "source_to_terminal_ms": 351.084235,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465930826061681
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000066,
+            "dispatch_to_source_ms": 625.772072,
+            "dispatch_to_terminal_ms": 979.070783,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 579.89725,
+            "process_start_to_source_ms": 1206.750488,
+            "sent_at_monotonic_ns": 465931471075694,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465932096847766,
+            "source_to_terminal_ms": 353.298711,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465932450146477
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000067,
+            "dispatch_to_source_ms": 620.16936,
+            "dispatch_to_terminal_ms": 982.923668,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 542.063871,
+            "process_start_to_source_ms": 1163.258207,
+            "sent_at_monotonic_ns": 465933057351066,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465933677520426,
+            "source_to_terminal_ms": 362.754308,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465934040274734
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000068,
+            "dispatch_to_source_ms": 695.134202,
+            "dispatch_to_terminal_ms": 1053.033513,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 486.851184,
+            "process_start_to_source_ms": 1183.198108,
+            "sent_at_monotonic_ns": 465934592463268,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465935287597470,
+            "source_to_terminal_ms": 357.899311,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465935645496781
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000069,
+            "dispatch_to_source_ms": 607.275024,
+            "dispatch_to_terminal_ms": 968.300399,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 595.501115,
+            "process_start_to_source_ms": 1204.091112,
+            "sent_at_monotonic_ns": 465936306389813,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465936913664837,
+            "source_to_terminal_ms": 361.025375,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465937274690212
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000070,
+            "dispatch_to_source_ms": 731.498365,
+            "dispatch_to_terminal_ms": 1090.56406,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 488.158595,
+            "process_start_to_source_ms": 1220.820786,
+            "sent_at_monotonic_ns": 465937828447022,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465938559945387,
+            "source_to_terminal_ms": 359.065695,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465938919011082
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000071,
+            "dispatch_to_source_ms": 706.363617,
+            "dispatch_to_terminal_ms": 1056.486575,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 493.463941,
+            "process_start_to_source_ms": 1201.233335,
+            "sent_at_monotonic_ns": 465939477956789,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465940184320406,
+            "source_to_terminal_ms": 350.122958,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465940534443364
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000072,
+            "dispatch_to_source_ms": 631.821683,
+            "dispatch_to_terminal_ms": 1000.482792,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 582.033645,
+            "process_start_to_source_ms": 1214.914419,
+            "sent_at_monotonic_ns": 465941181667213,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465941813488896,
+            "source_to_terminal_ms": 368.661109,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465942182150005
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000073,
+            "dispatch_to_source_ms": 674.636209,
+            "dispatch_to_terminal_ms": 1023.990124,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 494.232429,
+            "process_start_to_source_ms": 1170.000118,
+            "sent_at_monotonic_ns": 465942741681721,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465943416317930,
+            "source_to_terminal_ms": 349.353915,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465943765671845
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000074,
+            "dispatch_to_source_ms": 637.547991,
+            "dispatch_to_terminal_ms": 982.671166,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 545.772451,
+            "process_start_to_source_ms": 1184.68598,
+            "sent_at_monotonic_ns": 465944376934330,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465945014482321,
+            "source_to_terminal_ms": 345.123175,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465945359605496
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000075,
+            "dispatch_to_source_ms": 664.763139,
+            "dispatch_to_terminal_ms": 1069.309571,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 541.25184,
+            "process_start_to_source_ms": 1207.15043,
+            "sent_at_monotonic_ns": 465945966179126,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465946630942265,
+            "source_to_terminal_ms": 404.546432,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465947035488697
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000076,
+            "dispatch_to_source_ms": 606.141559,
+            "dispatch_to_terminal_ms": 954.79399,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 580.476108,
+            "process_start_to_source_ms": 1187.677205,
+            "sent_at_monotonic_ns": 465947681189097,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465948287330656,
+            "source_to_terminal_ms": 348.652431,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465948635983087
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000077,
+            "dispatch_to_source_ms": 680.840802,
+            "dispatch_to_terminal_ms": 1048.686841,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 509.08569,
+            "process_start_to_source_ms": 1191.137857,
+            "sent_at_monotonic_ns": 465949210476359,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465949891317161,
+            "source_to_terminal_ms": 367.846039,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465950259163200
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000078,
+            "dispatch_to_source_ms": 638.066171,
+            "dispatch_to_terminal_ms": 985.237691,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 557.906368,
+            "process_start_to_source_ms": 1197.060856,
+            "sent_at_monotonic_ns": 465950882258543,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465951520324714,
+            "source_to_terminal_ms": 347.17152,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465951867496234
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000079,
+            "dispatch_to_source_ms": 637.288162,
+            "dispatch_to_terminal_ms": 987.700472,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 583.335523,
+            "process_start_to_source_ms": 1222.085521,
+            "sent_at_monotonic_ns": 465952516587216,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465953153875378,
+            "source_to_terminal_ms": 350.41231,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465953504287688
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 757.500274,
+              "minimum": 548.146651,
+              "p50": 637.547991,
+              "p95": 731.498365,
+              "p99": 757.500274
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1111.659706,
+              "minimum": 899.230886,
+              "p50": 987.700472,
+              "p95": 1090.56406,
+              "p99": 1111.659706
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 619.057018,
+              "minimum": 486.851184,
+              "p50": 542.063871,
+              "p95": 611.107427,
+              "p99": 619.057018
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 1286.614905,
+              "minimum": 1161.203935,
+              "p50": 1191.137857,
+              "p95": 1259.968523,
+              "p99": 1286.614905
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 404.546432,
+              "minimum": 306.674984,
+              "p50": 353.298711,
+              "p95": 374.268739,
+              "p99": 404.546432
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "line": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000040,
+            "dispatch_to_source_ms": 564.281887,
+            "dispatch_to_terminal_ms": 565.136605,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 556.366528,
+            "process_start_to_source_ms": 1122.03373,
+            "sent_at_monotonic_ns": 465898460150957,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465899024432844,
+            "source_to_terminal_ms": 0.854718,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465899025287562
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000041,
+            "dispatch_to_source_ms": 514.66014,
+            "dispatch_to_terminal_ms": 515.379109,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 566.693344,
+            "process_start_to_source_ms": 1082.606762,
+            "sent_at_monotonic_ns": 465899657429852,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465900172089992,
+            "source_to_terminal_ms": 0.718969,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465900172808961
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000042,
+            "dispatch_to_source_ms": 553.527064,
+            "dispatch_to_terminal_ms": 554.452314,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 560.352054,
+            "process_start_to_source_ms": 1115.279921,
+            "sent_at_monotonic_ns": 465900798701346,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465901352228410,
+            "source_to_terminal_ms": 0.92525,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465901353153660
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000043,
+            "dispatch_to_source_ms": 369.141717,
+            "dispatch_to_terminal_ms": 369.994599,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 625.096444,
+            "process_start_to_source_ms": 995.420099,
+            "sent_at_monotonic_ns": 465902043636462,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465902412778179,
+            "source_to_terminal_ms": 0.852882,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465902413631061
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000044,
+            "dispatch_to_source_ms": 530.247153,
+            "dispatch_to_terminal_ms": 531.279301,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 630.155984,
+            "process_start_to_source_ms": 1162.124259,
+            "sent_at_monotonic_ns": 465903109792925,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465903640040078,
+            "source_to_terminal_ms": 1.032148,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465903641072226
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000045,
+            "dispatch_to_source_ms": 515.075284,
+            "dispatch_to_terminal_ms": 515.772365,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 601.134802,
+            "process_start_to_source_ms": 1117.356862,
+            "sent_at_monotonic_ns": 465904307526730,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465904822602014,
+            "source_to_terminal_ms": 0.697081,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465904823299095
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000046,
+            "dispatch_to_source_ms": 585.328564,
+            "dispatch_to_terminal_ms": 586.535158,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 536.078427,
+            "process_start_to_source_ms": 1122.688537,
+            "sent_at_monotonic_ns": 465905424836849,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465906010165413,
+            "source_to_terminal_ms": 1.206594,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465906011372007
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000047,
+            "dispatch_to_source_ms": 547.236889,
+            "dispatch_to_terminal_ms": 548.279832,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 565.074843,
+            "process_start_to_source_ms": 1113.501029,
+            "sent_at_monotonic_ns": 465906642026328,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465907189263217,
+            "source_to_terminal_ms": 1.042943,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465907190306160
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000048,
+            "dispatch_to_source_ms": 642.03021,
+            "dispatch_to_terminal_ms": 643.619348,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 503.874162,
+            "process_start_to_source_ms": 1146.93564,
+            "sent_at_monotonic_ns": 465907759299100,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465908401329310,
+            "source_to_terminal_ms": 1.589138,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465908402918448
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000049,
+            "dispatch_to_source_ms": 518.021801,
+            "dispatch_to_terminal_ms": 519.055794,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 657.612125,
+            "process_start_to_source_ms": 1176.818717,
+            "sent_at_monotonic_ns": 465909125931437,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465909643953238,
+            "source_to_terminal_ms": 1.033993,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465909644987231
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000050,
+            "dispatch_to_source_ms": 605.667621,
+            "dispatch_to_terminal_ms": 606.661536,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 526.28435,
+            "process_start_to_source_ms": 1133.02875,
+            "sent_at_monotonic_ns": 465910236307345,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465910841974966,
+            "source_to_terminal_ms": 0.993915,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465910842968881
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000051,
+            "dispatch_to_source_ms": 451.086893,
+            "dispatch_to_terminal_ms": 453.62702,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 648.250483,
+            "process_start_to_source_ms": 1100.581207,
+            "sent_at_monotonic_ns": 465911556565142,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465912007652035,
+            "source_to_terminal_ms": 2.540127,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465912010192162
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000052,
+            "dispatch_to_source_ms": 430.304445,
+            "dispatch_to_terminal_ms": 430.975132,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 627.900001,
+            "process_start_to_source_ms": 1059.690667,
+            "sent_at_monotonic_ns": 465912703888719,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465913134193164,
+            "source_to_terminal_ms": 0.670687,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465913134863851
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000053,
+            "dispatch_to_source_ms": 496.907431,
+            "dispatch_to_terminal_ms": 497.660565,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 543.37668,
+            "process_start_to_source_ms": 1041.308831,
+            "sent_at_monotonic_ns": 465913743349115,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465914240256546,
+            "source_to_terminal_ms": 0.753134,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465914241009680
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000054,
+            "dispatch_to_source_ms": 496.06889,
+            "dispatch_to_terminal_ms": 497.065851,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 504.621925,
+            "process_start_to_source_ms": 1002.004462,
+            "sent_at_monotonic_ns": 465914811201596,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465915307270486,
+            "source_to_terminal_ms": 0.996961,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465915308267447
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000055,
+            "dispatch_to_source_ms": 543.706775,
+            "dispatch_to_terminal_ms": 544.535873,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 562.264669,
+            "process_start_to_source_ms": 1107.5417,
+            "sent_at_monotonic_ns": 465915936177049,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465916479883824,
+            "source_to_terminal_ms": 0.829098,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465916480712922
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000056,
+            "dispatch_to_source_ms": 422.418546,
+            "dispatch_to_terminal_ms": 423.240344,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 642.918866,
+            "process_start_to_source_ms": 1066.811768,
+            "sent_at_monotonic_ns": 465917189334004,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465917611752550,
+            "source_to_terminal_ms": 0.821798,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465917612574348
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000057,
+            "dispatch_to_source_ms": 650.468774,
+            "dispatch_to_terminal_ms": 651.365845,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 499.758825,
+            "process_start_to_source_ms": 1151.325184,
+            "sent_at_monotonic_ns": 465918177641463,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465918828110237,
+            "source_to_terminal_ms": 0.897071,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465918829007308
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000058,
+            "dispatch_to_source_ms": 593.781377,
+            "dispatch_to_terminal_ms": 594.658932,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 535.049152,
+            "process_start_to_source_ms": 1130.045163,
+            "sent_at_monotonic_ns": 465919429515038,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465920023296415,
+            "source_to_terminal_ms": 0.877555,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465920024173970
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000059,
+            "dispatch_to_source_ms": 410.565742,
+            "dispatch_to_terminal_ms": 411.161773,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 643.986413,
+            "process_start_to_source_ms": 1055.581798,
+            "sent_at_monotonic_ns": 465920733300984,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465921143866726,
+            "source_to_terminal_ms": 0.596031,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465921144462757
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 650.468774,
+              "minimum": 369.141717,
+              "p50": 518.021801,
+              "p95": 642.03021,
+              "p99": 650.468774
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 651.365845,
+              "minimum": 369.994599,
+              "p50": 519.055794,
+              "p95": 643.619348,
+              "p99": 651.365845
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 657.612125,
+              "minimum": 499.758825,
+              "p50": 562.264669,
+              "p95": 648.250483,
+              "p99": 657.612125
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 1176.818717,
+              "minimum": 995.420099,
+              "p50": 1113.501029,
+              "p95": 1162.124259,
+              "p99": 1176.818717
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 2.540127,
+              "minimum": 0.596031,
+              "p50": 0.877555,
+              "p95": 1.589138,
+              "p99": 2.540127
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "multipart": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000080,
+            "dispatch_to_source_ms": 580.952716,
+            "dispatch_to_terminal_ms": 582.083526,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 482.877178,
+            "process_start_to_source_ms": 1064.97142,
+            "sent_at_monotonic_ns": 465954052678936,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465954633631652,
+            "source_to_terminal_ms": 1.13081,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465954634762462
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000081,
+            "dispatch_to_source_ms": 580.111542,
+            "dispatch_to_terminal_ms": 581.06484,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 503.956132,
+            "process_start_to_source_ms": 1085.442605,
+            "sent_at_monotonic_ns": 465955204387811,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465955784499353,
+            "source_to_terminal_ms": 0.953298,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465955785452651
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000082,
+            "dispatch_to_source_ms": 479.744187,
+            "dispatch_to_terminal_ms": 480.838904,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 618.495894,
+            "process_start_to_source_ms": 1099.448995,
+            "sent_at_monotonic_ns": 465956469257985,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465956949002172,
+            "source_to_terminal_ms": 1.094717,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465956950096889
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000083,
+            "dispatch_to_source_ms": 545.563941,
+            "dispatch_to_terminal_ms": 547.109953,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 550.801332,
+            "process_start_to_source_ms": 1097.567611,
+            "sent_at_monotonic_ns": 465957566262081,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465958111826022,
+            "source_to_terminal_ms": 1.546012,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465958113372034
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000084,
+            "dispatch_to_source_ms": 519.3836,
+            "dispatch_to_terminal_ms": 520.17843,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 565.836077,
+            "process_start_to_source_ms": 1086.50389,
+            "sent_at_monotonic_ns": 465958744571200,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465959263954800,
+            "source_to_terminal_ms": 0.79483,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465959264749630
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000085,
+            "dispatch_to_source_ms": 481.056667,
+            "dispatch_to_terminal_ms": 482.4071,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 652.619165,
+            "process_start_to_source_ms": 1135.22153,
+            "sent_at_monotonic_ns": 465959982930716,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465960463987383,
+            "source_to_terminal_ms": 1.350433,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465960465337816
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000086,
+            "dispatch_to_source_ms": 705.434733,
+            "dispatch_to_terminal_ms": 706.258714,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 470.203981,
+            "process_start_to_source_ms": 1176.815974,
+            "sent_at_monotonic_ns": 465960968611001,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465961674045734,
+            "source_to_terminal_ms": 0.823981,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465961674869715
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000087,
+            "dispatch_to_source_ms": 454.955599,
+            "dispatch_to_terminal_ms": 455.913128,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 708.703866,
+            "process_start_to_source_ms": 1165.049966,
+            "sent_at_monotonic_ns": 465962416857477,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465962871813076,
+            "source_to_terminal_ms": 0.957529,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465962872770605
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000088,
+            "dispatch_to_source_ms": 491.391139,
+            "dispatch_to_terminal_ms": 492.95284,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 631.452567,
+            "process_start_to_source_ms": 1123.973836,
+            "sent_at_monotonic_ns": 465963569563324,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465964060954463,
+            "source_to_terminal_ms": 1.561701,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465964062516164
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000089,
+            "dispatch_to_source_ms": 482.472355,
+            "dispatch_to_terminal_ms": 483.420253,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 637.70398,
+            "process_start_to_source_ms": 1121.223725,
+            "sent_at_monotonic_ns": 465964765588461,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465965248060816,
+            "source_to_terminal_ms": 0.947898,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465965249008714
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000090,
+            "dispatch_to_source_ms": 478.022788,
+            "dispatch_to_terminal_ms": 478.888288,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 598.418136,
+            "process_start_to_source_ms": 1077.682963,
+            "sent_at_monotonic_ns": 465965880643545,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465966358666333,
+            "source_to_terminal_ms": 0.8655,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465966359531833
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000091,
+            "dispatch_to_source_ms": 508.002211,
+            "dispatch_to_terminal_ms": 508.96454,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 559.921106,
+            "process_start_to_source_ms": 1068.775528,
+            "sent_at_monotonic_ns": 465966984352301,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465967492354512,
+            "source_to_terminal_ms": 0.962329,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465967493316841
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000092,
+            "dispatch_to_source_ms": 723.501805,
+            "dispatch_to_terminal_ms": 724.480483,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 543.884093,
+            "process_start_to_source_ms": 1268.733716,
+            "sent_at_monotonic_ns": 465968102629822,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465968826131627,
+            "source_to_terminal_ms": 0.978678,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465968827110305
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000093,
+            "dispatch_to_source_ms": 605.253564,
+            "dispatch_to_terminal_ms": 606.349348,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 507.110402,
+            "process_start_to_source_ms": 1113.611316,
+            "sent_at_monotonic_ns": 465969399645346,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465970004898910,
+            "source_to_terminal_ms": 1.095784,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465970005994694
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000094,
+            "dispatch_to_source_ms": 578.658461,
+            "dispatch_to_terminal_ms": 579.606671,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 496.139878,
+            "process_start_to_source_ms": 1076.280163,
+            "sent_at_monotonic_ns": 465970567746587,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465971146405048,
+            "source_to_terminal_ms": 0.94821,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465971147353258
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000095,
+            "dispatch_to_source_ms": 640.08998,
+            "dispatch_to_terminal_ms": 641.105772,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 493.274866,
+            "process_start_to_source_ms": 1134.758104,
+            "sent_at_monotonic_ns": 465971706041407,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465972346131387,
+            "source_to_terminal_ms": 1.015792,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465972347147179
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000096,
+            "dispatch_to_source_ms": 600.927223,
+            "dispatch_to_terminal_ms": 602.114535,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 583.277774,
+            "process_start_to_source_ms": 1185.693718,
+            "sent_at_monotonic_ns": 465972996210491,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465973597137714,
+            "source_to_terminal_ms": 1.187312,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465973598325026
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000097,
+            "dispatch_to_source_ms": 556.679241,
+            "dispatch_to_terminal_ms": 557.960729,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 571.329391,
+            "process_start_to_source_ms": 1129.575811,
+            "sent_at_monotonic_ns": 465974235651717,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465974792330958,
+            "source_to_terminal_ms": 1.281488,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465974793612446
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000098,
+            "dispatch_to_source_ms": 578.626474,
+            "dispatch_to_terminal_ms": 579.630261,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 512.65817,
+            "process_start_to_source_ms": 1092.379715,
+            "sent_at_monotonic_ns": 465975371776504,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465975950402978,
+            "source_to_terminal_ms": 1.003787,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465975951406765
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000099,
+            "dispatch_to_source_ms": 509.50865,
+            "dispatch_to_terminal_ms": 510.463225,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 545.577165,
+            "process_start_to_source_ms": 1056.447051,
+            "sent_at_monotonic_ns": 465976562626604,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465977072135254,
+            "source_to_terminal_ms": 0.954575,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465977073089829
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 723.501805,
+              "minimum": 454.955599,
+              "p50": 545.563941,
+              "p95": 705.434733,
+              "p99": 723.501805
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 724.480483,
+              "minimum": 455.913128,
+              "p50": 547.109953,
+              "p95": 706.258714,
+              "p99": 724.480483
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 708.703866,
+              "minimum": 470.203981,
+              "p50": 550.801332,
+              "p95": 652.619165,
+              "p99": 708.703866
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 1268.733716,
+              "minimum": 1056.447051,
+              "p50": 1099.448995,
+              "p95": 1185.693718,
+              "p99": 1268.733716
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.561701,
+              "minimum": 0.79483,
+              "p50": 0.978678,
+              "p95": 1.546012,
+              "p99": 1.561701
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "replacement": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.372554,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000104,
+            "dispatch_to_source_ms": 668.334463,
+            "dispatch_to_terminal_ms": 892.822423,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 588.233271,
+            "process_start_to_source_ms": 1257.785179,
+            "sent_at_monotonic_ns": 465977726981393,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465978395315856,
+            "source_to_terminal_ms": 224.48796,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465978619803816
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.388857,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000109,
+            "dispatch_to_source_ms": 687.635224,
+            "dispatch_to_terminal_ms": 919.9738,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 587.432255,
+            "process_start_to_source_ms": 1276.282285,
+            "sent_at_monotonic_ns": 465979272535114,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465979960170338,
+            "source_to_terminal_ms": 232.338576,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465980192508914
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.405159,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000114,
+            "dispatch_to_source_ms": 747.379895,
+            "dispatch_to_terminal_ms": 965.906966,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 500.005214,
+            "process_start_to_source_ms": 1248.56693,
+            "sent_at_monotonic_ns": 465980757813866,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465981505193761,
+            "source_to_terminal_ms": 218.527071,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465981723720832
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.438612,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000119,
+            "dispatch_to_source_ms": 681.251862,
+            "dispatch_to_terminal_ms": 908.210744,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 569.780943,
+            "process_start_to_source_ms": 1252.376578,
+            "sent_at_monotonic_ns": 465982359064343,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465983040316205,
+            "source_to_terminal_ms": 226.958882,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465983267275087
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.37967,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000124,
+            "dispatch_to_source_ms": 677.088498,
+            "dispatch_to_terminal_ms": 893.062799,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 554.648604,
+            "process_start_to_source_ms": 1232.871358,
+            "sent_at_monotonic_ns": 465983887320802,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465984564409300,
+            "source_to_terminal_ms": 215.974301,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465984780383601
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.361999,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000129,
+            "dispatch_to_source_ms": 763.663581,
+            "dispatch_to_terminal_ms": 998.864453,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 471.623271,
+            "process_start_to_source_ms": 1236.847584,
+            "sent_at_monotonic_ns": 465985317850220,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465986081513801,
+            "source_to_terminal_ms": 235.200872,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465986316714673
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.413114,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000134,
+            "dispatch_to_source_ms": 798.394882,
+            "dispatch_to_terminal_ms": 1005.118332,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 477.724126,
+            "process_start_to_source_ms": 1277.193194,
+            "sent_at_monotonic_ns": 465986859537702,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465987657932584,
+            "source_to_terminal_ms": 206.72345,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465987864656034
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.459767,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000139,
+            "dispatch_to_source_ms": 742.818765,
+            "dispatch_to_terminal_ms": 972.028619,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 502.303275,
+            "process_start_to_source_ms": 1246.309742,
+            "sent_at_monotonic_ns": 465988432044560,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465989174863325,
+            "source_to_terminal_ms": 229.209854,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465989404073179
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.377882,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000144,
+            "dispatch_to_source_ms": 749.333197,
+            "dispatch_to_terminal_ms": 972.191534,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 469.629409,
+            "process_start_to_source_ms": 1220.462358,
+            "sent_at_monotonic_ns": 465989939418723,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465990688751920,
+            "source_to_terminal_ms": 222.858337,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465990911610257
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.422797,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000149,
+            "dispatch_to_source_ms": 742.271168,
+            "dispatch_to_terminal_ms": 971.493345,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 478.054925,
+            "process_start_to_source_ms": 1221.883703,
+            "sent_at_monotonic_ns": 465991455381242,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465992197652410,
+            "source_to_terminal_ms": 229.222177,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465992426874587
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.386791,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000154,
+            "dispatch_to_source_ms": 676.695107,
+            "dispatch_to_terminal_ms": 892.631525,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 590.430143,
+            "process_start_to_source_ms": 1268.191819,
+            "sent_at_monotonic_ns": 465993082372263,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465993759067370,
+            "source_to_terminal_ms": 215.936418,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465993975003788
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.402702,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000159,
+            "dispatch_to_source_ms": 705.290937,
+            "dispatch_to_terminal_ms": 946.805395,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 538.333109,
+            "process_start_to_source_ms": 1244.720251,
+            "sent_at_monotonic_ns": 465994578501003,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465995283791940,
+            "source_to_terminal_ms": 241.514458,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465995525306398
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.341477,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000164,
+            "dispatch_to_source_ms": 677.517694,
+            "dispatch_to_terminal_ms": 893.951532,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 566.040049,
+            "process_start_to_source_ms": 1244.59962,
+            "sent_at_monotonic_ns": 465996156558597,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465996834076291,
+            "source_to_terminal_ms": 216.433838,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465997050510129
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.43018,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000169,
+            "dispatch_to_source_ms": 741.292505,
+            "dispatch_to_terminal_ms": 984.130791,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 489.409833,
+            "process_start_to_source_ms": 1232.251396,
+            "sent_at_monotonic_ns": 465997605605751,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465998346898256,
+            "source_to_terminal_ms": 242.838286,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465998589736542
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.330688,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000174,
+            "dispatch_to_source_ms": 844.793058,
+            "dispatch_to_terminal_ms": 1087.929853,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 503.653573,
+            "process_start_to_source_ms": 1349.529266,
+            "sent_at_monotonic_ns": 465999158723057,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 466000003516115,
+            "source_to_terminal_ms": 243.136795,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466000246652910
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.361607,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000179,
+            "dispatch_to_source_ms": 816.149144,
+            "dispatch_to_terminal_ms": 1053.278198,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 508.893217,
+            "process_start_to_source_ms": 1326.434742,
+            "sent_at_monotonic_ns": 466000821088434,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 466001637237578,
+            "source_to_terminal_ms": 237.129054,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466001874366632
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.504818,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000184,
+            "dispatch_to_source_ms": 725.932593,
+            "dispatch_to_terminal_ms": 960.423007,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 648.475626,
+            "process_start_to_source_ms": 1376.012392,
+            "sent_at_monotonic_ns": 466002588536804,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 466003314469397,
+            "source_to_terminal_ms": 234.490414,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466003548959811
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.430435,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000189,
+            "dispatch_to_source_ms": 731.907123,
+            "dispatch_to_terminal_ms": 971.987931,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 675.108043,
+            "process_start_to_source_ms": 1408.468817,
+            "sent_at_monotonic_ns": 466004289683574,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 466005021590697,
+            "source_to_terminal_ms": 240.080808,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466005261671505
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.36154,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000194,
+            "dispatch_to_source_ms": 810.222399,
+            "dispatch_to_terminal_ms": 1053.661087,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 529.614832,
+            "process_start_to_source_ms": 1341.007691,
+            "sent_at_monotonic_ns": 466005856533556,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 466006666755955,
+            "source_to_terminal_ms": 243.438688,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466006910194643
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.476405,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000199,
+            "dispatch_to_source_ms": 754.21078,
+            "dispatch_to_terminal_ms": 995.048895,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 543.109653,
+            "process_start_to_source_ms": 1298.723275,
+            "sent_at_monotonic_ns": 466007518841229,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 466008273052009,
+            "source_to_terminal_ms": 240.838115,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466008513890124
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "cancel_terminal_ms": {
+              "count": 20,
+              "maximum": 0.504818,
+              "minimum": 0.330688,
+              "p50": 0.388857,
+              "p95": 0.476405,
+              "p99": 0.504818
+            },
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 844.793058,
+              "minimum": 668.334463,
+              "p50": 741.292505,
+              "p95": 816.149144,
+              "p99": 844.793058
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1087.929853,
+              "minimum": 892.631525,
+              "p50": 971.493345,
+              "p95": 1053.661087,
+              "p99": 1087.929853
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 675.108043,
+              "minimum": 469.629409,
+              "p50": 529.614832,
+              "p95": 648.475626,
+              "p99": 675.108043
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 1408.468817,
+              "minimum": 1220.462358,
+              "p50": 1252.376578,
+              "p95": 1376.012392,
+              "p99": 1408.468817
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 243.438688,
+              "minimum": 206.72345,
+              "p50": 229.222177,
+              "p95": 243.136795,
+              "p99": 243.438688
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "word": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000020,
+            "dispatch_to_source_ms": 337.750224,
+            "dispatch_to_terminal_ms": 337.798634,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 546.484208,
+            "process_start_to_source_ms": 885.619756,
+            "sent_at_monotonic_ns": 465878469492590,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465878807242814,
+            "source_to_terminal_ms": 0.04841,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465878807291224
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000021,
+            "dispatch_to_source_ms": 350.916035,
+            "dispatch_to_terminal_ms": 351.118569,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 542.142616,
+            "process_start_to_source_ms": 894.113961,
+            "sent_at_monotonic_ns": 465879414743686,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465879765659721,
+            "source_to_terminal_ms": 0.202534,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465879765862255
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000022,
+            "dispatch_to_source_ms": 374.956952,
+            "dispatch_to_terminal_ms": 375.197892,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 500.766788,
+            "process_start_to_source_ms": 876.775721,
+            "sent_at_monotonic_ns": 465880331751968,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465880706708920,
+            "source_to_terminal_ms": 0.24094,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465880706949860
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000023,
+            "dispatch_to_source_ms": 306.472653,
+            "dispatch_to_terminal_ms": 306.685635,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 567.496198,
+            "process_start_to_source_ms": 874.99591,
+            "sent_at_monotonic_ns": 465881339558491,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465881646031144,
+            "source_to_terminal_ms": 0.212982,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465881646244126
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000024,
+            "dispatch_to_source_ms": 276.03227,
+            "dispatch_to_terminal_ms": 276.086254,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 653.150691,
+            "process_start_to_source_ms": 930.53899,
+            "sent_at_monotonic_ns": 465882364937157,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465882640969427,
+            "source_to_terminal_ms": 0.053984,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465882641023411
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000025,
+            "dispatch_to_source_ms": 356.078408,
+            "dispatch_to_terminal_ms": 356.14383,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 693.998704,
+            "process_start_to_source_ms": 1051.520493,
+            "sent_at_monotonic_ns": 465883400612152,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465883756690560,
+            "source_to_terminal_ms": 0.065422,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465883756755982
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000026,
+            "dispatch_to_source_ms": 343.828445,
+            "dispatch_to_terminal_ms": 343.898437,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 778.122138,
+            "process_start_to_source_ms": 1123.915248,
+            "sent_at_monotonic_ns": 465884601278498,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465884945106943,
+            "source_to_terminal_ms": 0.069992,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465884945176935
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000027,
+            "dispatch_to_source_ms": 391.319046,
+            "dispatch_to_terminal_ms": 391.416584,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 637.345201,
+            "process_start_to_source_ms": 1029.774566,
+            "sent_at_monotonic_ns": 465885648043889,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465886039362935,
+            "source_to_terminal_ms": 0.097538,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465886039460473
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000028,
+            "dispatch_to_source_ms": 341.807219,
+            "dispatch_to_terminal_ms": 342.099552,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 603.636439,
+            "process_start_to_source_ms": 946.887646,
+            "sent_at_monotonic_ns": 465886708769612,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465887050576831,
+            "source_to_terminal_ms": 0.292333,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465887050869164
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000029,
+            "dispatch_to_source_ms": 278.533734,
+            "dispatch_to_terminal_ms": 278.809589,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 667.080893,
+            "process_start_to_source_ms": 947.283578,
+            "sent_at_monotonic_ns": 465887783862921,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465888062396655,
+            "source_to_terminal_ms": 0.275855,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465888062672510
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000030,
+            "dispatch_to_source_ms": 404.791023,
+            "dispatch_to_terminal_ms": 405.235675,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 539.977635,
+            "process_start_to_source_ms": 946.142095,
+            "sent_at_monotonic_ns": 465888668206009,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465889072997032,
+            "source_to_terminal_ms": 0.444652,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465889073441684
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000031,
+            "dispatch_to_source_ms": 302.716407,
+            "dispatch_to_terminal_ms": 303.010271,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 664.107253,
+            "process_start_to_source_ms": 968.008157,
+            "sent_at_monotonic_ns": 465889803075386,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465890105791793,
+            "source_to_terminal_ms": 0.293864,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465890106085657
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000032,
+            "dispatch_to_source_ms": 361.485525,
+            "dispatch_to_terminal_ms": 361.740099,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 583.80097,
+            "process_start_to_source_ms": 946.651153,
+            "sent_at_monotonic_ns": 465890755643262,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465891117128787,
+            "source_to_terminal_ms": 0.254574,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465891117383361
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000033,
+            "dispatch_to_source_ms": 374.73466,
+            "dispatch_to_terminal_ms": 374.950601,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 568.824933,
+            "process_start_to_source_ms": 945.008429,
+            "sent_at_monotonic_ns": 465891751703642,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465892126438302,
+            "source_to_terminal_ms": 0.215941,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465892126654243
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000034,
+            "dispatch_to_source_ms": 285.617379,
+            "dispatch_to_terminal_ms": 285.67215,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 584.611665,
+            "process_start_to_source_ms": 871.371412,
+            "sent_at_monotonic_ns": 465892776553593,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465893062170972,
+            "source_to_terminal_ms": 0.054771,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465893062225743
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000035,
+            "dispatch_to_source_ms": 283.800133,
+            "dispatch_to_terminal_ms": 284.008386,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 585.206276,
+            "process_start_to_source_ms": 870.578215,
+            "sent_at_monotonic_ns": 465893713326612,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465893997126745,
+            "source_to_terminal_ms": 0.208253,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465893997334998
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000036,
+            "dispatch_to_source_ms": 331.354922,
+            "dispatch_to_terminal_ms": 331.595137,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 554.873689,
+            "process_start_to_source_ms": 887.619391,
+            "sent_at_monotonic_ns": 465894617725783,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465894949080705,
+            "source_to_terminal_ms": 0.240215,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465894949320920
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000037,
+            "dispatch_to_source_ms": 313.565753,
+            "dispatch_to_terminal_ms": 313.803049,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 608.668247,
+            "process_start_to_source_ms": 923.530144,
+            "sent_at_monotonic_ns": 465895623551096,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465895937116849,
+            "source_to_terminal_ms": 0.237296,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465895937354145
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000038,
+            "dispatch_to_source_ms": 296.685275,
+            "dispatch_to_terminal_ms": 296.818783,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 620.060305,
+            "process_start_to_source_ms": 918.134471,
+            "sent_at_monotonic_ns": 465896623279801,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465896919965076,
+            "source_to_terminal_ms": 0.133508,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465896920098584
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000039,
+            "dispatch_to_source_ms": 311.234609,
+            "dispatch_to_terminal_ms": 311.491635,
+            "engine_id": "tgspeechbox",
+            "process_start_to_ready_ms": 540.704386,
+            "process_start_to_source_ms": 853.295516,
+            "sent_at_monotonic_ns": 465897526574960,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465897837809569,
+            "source_to_terminal_ms": 0.257026,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465897838066595
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 404.791023,
+              "minimum": 276.03227,
+              "p50": 331.354922,
+              "p95": 391.319046,
+              "p99": 404.791023
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 405.235675,
+              "minimum": 276.086254,
+              "p50": 331.595137,
+              "p95": 391.416584,
+              "p99": 405.235675
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 778.122138,
+              "minimum": 500.766788,
+              "p50": 584.611665,
+              "p95": 693.998704,
+              "p99": 778.122138
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 1123.915248,
+              "minimum": 853.295516,
+              "p50": 923.530144,
+              "p95": 1051.520493,
+              "p99": 1123.915248
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.444652,
+              "minimum": 0.04841,
+              "p50": 0.212982,
+              "p95": 0.293864,
+              "p99": 0.444652
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      }
+    },
+    "warm": {
+      "character": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000202,
+            "dispatch_to_source_ms": 196.998365,
+            "dispatch_to_terminal_ms": 197.058917,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466009614330819,
+            "source_observed_at_monotonic_ns": 466009811329184,
+            "source_to_terminal_ms": 0.060552,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466009811389736
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000203,
+            "dispatch_to_source_ms": 218.114425,
+            "dispatch_to_terminal_ms": 218.187189,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466009811614850,
+            "source_observed_at_monotonic_ns": 466010029729275,
+            "source_to_terminal_ms": 0.072764,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466010029802039
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000204,
+            "dispatch_to_source_ms": 214.582144,
+            "dispatch_to_terminal_ms": 214.653098,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466010030009860,
+            "source_observed_at_monotonic_ns": 466010244592004,
+            "source_to_terminal_ms": 0.070954,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466010244662958
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000205,
+            "dispatch_to_source_ms": 217.223375,
+            "dispatch_to_terminal_ms": 217.475728,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466010244894267,
+            "source_observed_at_monotonic_ns": 466010462117642,
+            "source_to_terminal_ms": 0.252353,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466010462369995
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000206,
+            "dispatch_to_source_ms": 201.924236,
+            "dispatch_to_terminal_ms": 201.971705,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466010462514680,
+            "source_observed_at_monotonic_ns": 466010664438916,
+            "source_to_terminal_ms": 0.047469,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466010664486385
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000207,
+            "dispatch_to_source_ms": 198.901553,
+            "dispatch_to_terminal_ms": 198.99247,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466010664683644,
+            "source_observed_at_monotonic_ns": 466010863585197,
+            "source_to_terminal_ms": 0.090917,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466010863676114
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000208,
+            "dispatch_to_source_ms": 203.731266,
+            "dispatch_to_terminal_ms": 203.792993,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466010863898988,
+            "source_observed_at_monotonic_ns": 466011067630254,
+            "source_to_terminal_ms": 0.061727,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466011067691981
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000209,
+            "dispatch_to_source_ms": 203.181964,
+            "dispatch_to_terminal_ms": 203.23118,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466011067942821,
+            "source_observed_at_monotonic_ns": 466011271124785,
+            "source_to_terminal_ms": 0.049216,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466011271174001
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000210,
+            "dispatch_to_source_ms": 198.493286,
+            "dispatch_to_terminal_ms": 198.534618,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466011271363062,
+            "source_observed_at_monotonic_ns": 466011469856348,
+            "source_to_terminal_ms": 0.041332,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466011469897680
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000211,
+            "dispatch_to_source_ms": 201.2151,
+            "dispatch_to_terminal_ms": 201.274317,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466011470081791,
+            "source_observed_at_monotonic_ns": 466011671296891,
+            "source_to_terminal_ms": 0.059217,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466011671356108
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000212,
+            "dispatch_to_source_ms": 195.320694,
+            "dispatch_to_terminal_ms": 195.391126,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466011671535583,
+            "source_observed_at_monotonic_ns": 466011866856277,
+            "source_to_terminal_ms": 0.070432,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466011866926709
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000213,
+            "dispatch_to_source_ms": 188.839325,
+            "dispatch_to_terminal_ms": 188.931097,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466011867123418,
+            "source_observed_at_monotonic_ns": 466012055962743,
+            "source_to_terminal_ms": 0.091772,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466012056054515
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000214,
+            "dispatch_to_source_ms": 194.78732,
+            "dispatch_to_terminal_ms": 194.882891,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466012056305417,
+            "source_observed_at_monotonic_ns": 466012251092737,
+            "source_to_terminal_ms": 0.095571,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466012251188308
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000215,
+            "dispatch_to_source_ms": 223.818916,
+            "dispatch_to_terminal_ms": 223.878423,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466012251419863,
+            "source_observed_at_monotonic_ns": 466012475238779,
+            "source_to_terminal_ms": 0.059507,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466012475298286
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000216,
+            "dispatch_to_source_ms": 201.747236,
+            "dispatch_to_terminal_ms": 201.791418,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466012475491021,
+            "source_observed_at_monotonic_ns": 466012677238257,
+            "source_to_terminal_ms": 0.044182,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466012677282439
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000217,
+            "dispatch_to_source_ms": 170.792127,
+            "dispatch_to_terminal_ms": 170.843543,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466012677458220,
+            "source_observed_at_monotonic_ns": 466012848250347,
+            "source_to_terminal_ms": 0.051416,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466012848301763
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000218,
+            "dispatch_to_source_ms": 166.307619,
+            "dispatch_to_terminal_ms": 166.370372,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466012848471531,
+            "source_observed_at_monotonic_ns": 466013014779150,
+            "source_to_terminal_ms": 0.062753,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466013014841903
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000219,
+            "dispatch_to_source_ms": 182.462472,
+            "dispatch_to_terminal_ms": 182.525449,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466013015036505,
+            "source_observed_at_monotonic_ns": 466013197498977,
+            "source_to_terminal_ms": 0.062977,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466013197561954
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000220,
+            "dispatch_to_source_ms": 177.378172,
+            "dispatch_to_terminal_ms": 177.437019,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466013197734908,
+            "source_observed_at_monotonic_ns": 466013375113080,
+            "source_to_terminal_ms": 0.058847,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466013375171927
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000221,
+            "dispatch_to_source_ms": 206.789121,
+            "dispatch_to_terminal_ms": 206.833077,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466013375330218,
+            "source_observed_at_monotonic_ns": 466013582119339,
+            "source_to_terminal_ms": 0.043956,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466013582163295
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 223.818916,
+              "minimum": 166.307619,
+              "p50": 198.901553,
+              "p95": 218.114425,
+              "p99": 223.818916
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 223.878423,
+              "minimum": 166.370372,
+              "p50": 198.99247,
+              "p95": 218.187189,
+              "p99": 223.878423
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.252353,
+              "minimum": 0.041332,
+              "p50": 0.060552,
+              "p95": 0.095571,
+              "p99": 0.252353
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "dense": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000268,
+            "dispatch_to_source_ms": 670.118246,
+            "dispatch_to_terminal_ms": 1060.766348,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466031610151794,
+            "source_observed_at_monotonic_ns": 466032280270040,
+            "source_to_terminal_ms": 390.648102,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466032670918142
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000269,
+            "dispatch_to_source_ms": 670.980887,
+            "dispatch_to_terminal_ms": 1090.391422,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466032671064112,
+            "source_observed_at_monotonic_ns": 466033342044999,
+            "source_to_terminal_ms": 419.410535,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466033761455534
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000270,
+            "dispatch_to_source_ms": 685.15827,
+            "dispatch_to_terminal_ms": 1053.740644,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466033761843364,
+            "source_observed_at_monotonic_ns": 466034447001634,
+            "source_to_terminal_ms": 368.582374,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466034815584008
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000271,
+            "dispatch_to_source_ms": 644.792665,
+            "dispatch_to_terminal_ms": 1086.933826,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466034815784742,
+            "source_observed_at_monotonic_ns": 466035460577407,
+            "source_to_terminal_ms": 442.141161,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466035902718568
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000272,
+            "dispatch_to_source_ms": 598.206166,
+            "dispatch_to_terminal_ms": 1088.187325,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466035902923408,
+            "source_observed_at_monotonic_ns": 466036501129574,
+            "source_to_terminal_ms": 489.981159,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466036991110733
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000273,
+            "dispatch_to_source_ms": 771.583986,
+            "dispatch_to_terminal_ms": 1163.482754,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466036991316100,
+            "source_observed_at_monotonic_ns": 466037762900086,
+            "source_to_terminal_ms": 391.898768,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466038154798854
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000274,
+            "dispatch_to_source_ms": 585.935765,
+            "dispatch_to_terminal_ms": 997.793283,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466038154992171,
+            "source_observed_at_monotonic_ns": 466038740927936,
+            "source_to_terminal_ms": 411.857518,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466039152785454
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000275,
+            "dispatch_to_source_ms": 731.112408,
+            "dispatch_to_terminal_ms": 1204.160694,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466039152979184,
+            "source_observed_at_monotonic_ns": 466039884091592,
+            "source_to_terminal_ms": 473.048286,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466040357139878
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000276,
+            "dispatch_to_source_ms": 769.525343,
+            "dispatch_to_terminal_ms": 1219.326853,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466040357313652,
+            "source_observed_at_monotonic_ns": 466041126838995,
+            "source_to_terminal_ms": 449.80151,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466041576640505
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000277,
+            "dispatch_to_source_ms": 699.269285,
+            "dispatch_to_terminal_ms": 1078.743868,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466041576812296,
+            "source_observed_at_monotonic_ns": 466042276081581,
+            "source_to_terminal_ms": 379.474583,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466042655556164
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000278,
+            "dispatch_to_source_ms": 666.722585,
+            "dispatch_to_terminal_ms": 1086.726299,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466042656203929,
+            "source_observed_at_monotonic_ns": 466043322926514,
+            "source_to_terminal_ms": 420.003714,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466043742930228
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000279,
+            "dispatch_to_source_ms": 601.004397,
+            "dispatch_to_terminal_ms": 986.713197,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466043743083854,
+            "source_observed_at_monotonic_ns": 466044344088251,
+            "source_to_terminal_ms": 385.7088,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466044729797051
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000280,
+            "dispatch_to_source_ms": 638.254386,
+            "dispatch_to_terminal_ms": 1022.155225,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466044729989533,
+            "source_observed_at_monotonic_ns": 466045368243919,
+            "source_to_terminal_ms": 383.900839,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466045752144758
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000281,
+            "dispatch_to_source_ms": 585.868319,
+            "dispatch_to_terminal_ms": 964.717527,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466045752304948,
+            "source_observed_at_monotonic_ns": 466046338173267,
+            "source_to_terminal_ms": 378.849208,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466046717022475
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000282,
+            "dispatch_to_source_ms": 562.482488,
+            "dispatch_to_terminal_ms": 939.031938,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466046717209850,
+            "source_observed_at_monotonic_ns": 466047279692338,
+            "source_to_terminal_ms": 376.54945,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466047656241788
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000283,
+            "dispatch_to_source_ms": 586.731986,
+            "dispatch_to_terminal_ms": 919.574281,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466047656393604,
+            "source_observed_at_monotonic_ns": 466048243125590,
+            "source_to_terminal_ms": 332.842295,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466048575967885
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000284,
+            "dispatch_to_source_ms": 539.748337,
+            "dispatch_to_terminal_ms": 859.965004,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466048576178145,
+            "source_observed_at_monotonic_ns": 466049115926482,
+            "source_to_terminal_ms": 320.216667,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466049436143149
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000285,
+            "dispatch_to_source_ms": 596.903282,
+            "dispatch_to_terminal_ms": 1062.791908,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466049436386552,
+            "source_observed_at_monotonic_ns": 466050033289834,
+            "source_to_terminal_ms": 465.888626,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466050499178460
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000286,
+            "dispatch_to_source_ms": 557.899811,
+            "dispatch_to_terminal_ms": 929.175089,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466050499439192,
+            "source_observed_at_monotonic_ns": 466051057339003,
+            "source_to_terminal_ms": 371.275278,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466051428614281
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000287,
+            "dispatch_to_source_ms": 595.83691,
+            "dispatch_to_terminal_ms": 1077.926536,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466051428845452,
+            "source_observed_at_monotonic_ns": 466052024682362,
+            "source_to_terminal_ms": 482.089626,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466052506771988
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 771.583986,
+              "minimum": 539.748337,
+              "p50": 601.004397,
+              "p95": 769.525343,
+              "p99": 771.583986
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1219.326853,
+              "minimum": 859.965004,
+              "p50": 1060.766348,
+              "p95": 1204.160694,
+              "p99": 1219.326853
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 489.981159,
+              "minimum": 320.216667,
+              "p50": 390.648102,
+              "p95": 482.089626,
+              "p99": 489.981159
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "line": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000246,
+            "dispatch_to_source_ms": 502.666784,
+            "dispatch_to_terminal_ms": 503.82426,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466019853901158,
+            "source_observed_at_monotonic_ns": 466020356567942,
+            "source_to_terminal_ms": 1.157476,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466020357725418
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000247,
+            "dispatch_to_source_ms": 477.919105,
+            "dispatch_to_terminal_ms": 478.779005,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466020357834820,
+            "source_observed_at_monotonic_ns": 466020835753925,
+            "source_to_terminal_ms": 0.8599,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466020836613825
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000248,
+            "dispatch_to_source_ms": 404.420401,
+            "dispatch_to_terminal_ms": 405.411736,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466020836791940,
+            "source_observed_at_monotonic_ns": 466021241212341,
+            "source_to_terminal_ms": 0.991335,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466021242203676
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000249,
+            "dispatch_to_source_ms": 564.87465,
+            "dispatch_to_terminal_ms": 565.815712,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466021242316348,
+            "source_observed_at_monotonic_ns": 466021807190998,
+            "source_to_terminal_ms": 0.941062,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466021808132060
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000250,
+            "dispatch_to_source_ms": 496.270718,
+            "dispatch_to_terminal_ms": 497.141476,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466021808308133,
+            "source_observed_at_monotonic_ns": 466022304578851,
+            "source_to_terminal_ms": 0.870758,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466022305449609
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000251,
+            "dispatch_to_source_ms": 441.872603,
+            "dispatch_to_terminal_ms": 442.861116,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466022305576243,
+            "source_observed_at_monotonic_ns": 466022747448846,
+            "source_to_terminal_ms": 0.988513,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466022748437359
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000252,
+            "dispatch_to_source_ms": 416.383375,
+            "dispatch_to_terminal_ms": 417.114907,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466022748562902,
+            "source_observed_at_monotonic_ns": 466023164946277,
+            "source_to_terminal_ms": 0.731532,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466023165677809
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000253,
+            "dispatch_to_source_ms": 441.173208,
+            "dispatch_to_terminal_ms": 441.915209,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466023165846037,
+            "source_observed_at_monotonic_ns": 466023607019245,
+            "source_to_terminal_ms": 0.742001,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466023607761246
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000254,
+            "dispatch_to_source_ms": 447.603618,
+            "dispatch_to_terminal_ms": 448.660548,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466023607925583,
+            "source_observed_at_monotonic_ns": 466024055529201,
+            "source_to_terminal_ms": 1.05693,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466024056586131
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000255,
+            "dispatch_to_source_ms": 474.028288,
+            "dispatch_to_terminal_ms": 474.979015,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466024056783181,
+            "source_observed_at_monotonic_ns": 466024530811469,
+            "source_to_terminal_ms": 0.950727,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466024531762196
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000256,
+            "dispatch_to_source_ms": 525.13721,
+            "dispatch_to_terminal_ms": 525.782334,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466024531907285,
+            "source_observed_at_monotonic_ns": 466025057044495,
+            "source_to_terminal_ms": 0.645124,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466025057689619
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000257,
+            "dispatch_to_source_ms": 527.143959,
+            "dispatch_to_terminal_ms": 528.307034,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466025057828933,
+            "source_observed_at_monotonic_ns": 466025584972892,
+            "source_to_terminal_ms": 1.163075,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466025586135967
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000258,
+            "dispatch_to_source_ms": 486.087885,
+            "dispatch_to_terminal_ms": 486.797615,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466025586262560,
+            "source_observed_at_monotonic_ns": 466026072350445,
+            "source_to_terminal_ms": 0.70973,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466026073060175
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000259,
+            "dispatch_to_source_ms": 555.702583,
+            "dispatch_to_terminal_ms": 556.473145,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466026073175160,
+            "source_observed_at_monotonic_ns": 466026628877743,
+            "source_to_terminal_ms": 0.770562,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466026629648305
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000260,
+            "dispatch_to_source_ms": 475.672501,
+            "dispatch_to_terminal_ms": 476.329393,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466026629762430,
+            "source_observed_at_monotonic_ns": 466027105434931,
+            "source_to_terminal_ms": 0.656892,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466027106091823
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000261,
+            "dispatch_to_source_ms": 406.906179,
+            "dispatch_to_terminal_ms": 407.567515,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466027106217312,
+            "source_observed_at_monotonic_ns": 466027513123491,
+            "source_to_terminal_ms": 0.661336,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466027513784827
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000262,
+            "dispatch_to_source_ms": 598.059226,
+            "dispatch_to_terminal_ms": 599.075725,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466027513913569,
+            "source_observed_at_monotonic_ns": 466028111972795,
+            "source_to_terminal_ms": 1.016499,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466028112989294
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000263,
+            "dispatch_to_source_ms": 550.316149,
+            "dispatch_to_terminal_ms": 551.000345,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466028113180364,
+            "source_observed_at_monotonic_ns": 466028663496513,
+            "source_to_terminal_ms": 0.684196,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466028664180709
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000264,
+            "dispatch_to_source_ms": 505.063431,
+            "dispatch_to_terminal_ms": 505.740332,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466028664324852,
+            "source_observed_at_monotonic_ns": 466029169388283,
+            "source_to_terminal_ms": 0.676901,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466029170065184
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000265,
+            "dispatch_to_source_ms": 419.642017,
+            "dispatch_to_terminal_ms": 420.363231,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466029170186977,
+            "source_observed_at_monotonic_ns": 466029589828994,
+            "source_to_terminal_ms": 0.721214,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466029590550208
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 598.059226,
+              "minimum": 404.420401,
+              "p50": 477.919105,
+              "p95": 564.87465,
+              "p99": 598.059226
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 599.075725,
+              "minimum": 405.411736,
+              "p50": 478.779005,
+              "p95": 565.815712,
+              "p99": 599.075725
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.163075,
+              "minimum": 0.645124,
+              "p50": 0.770562,
+              "p95": 1.157476,
+              "p99": 1.163075
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "multipart": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000290,
+            "dispatch_to_source_ms": 501.786623,
+            "dispatch_to_terminal_ms": 502.627801,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466053663797931,
+            "source_observed_at_monotonic_ns": 466054165584554,
+            "source_to_terminal_ms": 0.841178,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466054166425732
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000291,
+            "dispatch_to_source_ms": 524.757333,
+            "dispatch_to_terminal_ms": 525.738155,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466054166557618,
+            "source_observed_at_monotonic_ns": 466054691314951,
+            "source_to_terminal_ms": 0.980822,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466054692295773
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000292,
+            "dispatch_to_source_ms": 550.633106,
+            "dispatch_to_terminal_ms": 551.684235,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466054692448736,
+            "source_observed_at_monotonic_ns": 466055243081842,
+            "source_to_terminal_ms": 1.051129,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466055244132971
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000293,
+            "dispatch_to_source_ms": 573.640962,
+            "dispatch_to_terminal_ms": 574.628544,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466055244276427,
+            "source_observed_at_monotonic_ns": 466055817917389,
+            "source_to_terminal_ms": 0.987582,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466055818904971
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000294,
+            "dispatch_to_source_ms": 544.67959,
+            "dispatch_to_terminal_ms": 546.083135,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466055819107579,
+            "source_observed_at_monotonic_ns": 466056363787169,
+            "source_to_terminal_ms": 1.403545,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466056365190714
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000295,
+            "dispatch_to_source_ms": 545.82064,
+            "dispatch_to_terminal_ms": 546.888093,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466056365448009,
+            "source_observed_at_monotonic_ns": 466056911268649,
+            "source_to_terminal_ms": 1.067453,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466056912336102
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000296,
+            "dispatch_to_source_ms": 537.274959,
+            "dispatch_to_terminal_ms": 538.236247,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466056912553269,
+            "source_observed_at_monotonic_ns": 466057449828228,
+            "source_to_terminal_ms": 0.961288,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466057450789516
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000297,
+            "dispatch_to_source_ms": 550.582318,
+            "dispatch_to_terminal_ms": 551.960548,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466057450948757,
+            "source_observed_at_monotonic_ns": 466058001531075,
+            "source_to_terminal_ms": 1.37823,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466058002909305
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000298,
+            "dispatch_to_source_ms": 548.430516,
+            "dispatch_to_terminal_ms": 549.349595,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466058003117800,
+            "source_observed_at_monotonic_ns": 466058551548316,
+            "source_to_terminal_ms": 0.919079,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466058552467395
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000299,
+            "dispatch_to_source_ms": 552.916678,
+            "dispatch_to_terminal_ms": 553.738476,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466058552676865,
+            "source_observed_at_monotonic_ns": 466059105593543,
+            "source_to_terminal_ms": 0.821798,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466059106415341
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000300,
+            "dispatch_to_source_ms": 535.652067,
+            "dispatch_to_terminal_ms": 536.550544,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466059106632374,
+            "source_observed_at_monotonic_ns": 466059642284441,
+            "source_to_terminal_ms": 0.898477,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466059643182918
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000301,
+            "dispatch_to_source_ms": 452.826805,
+            "dispatch_to_terminal_ms": 454.046246,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466059643390978,
+            "source_observed_at_monotonic_ns": 466060096217783,
+            "source_to_terminal_ms": 1.219441,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466060097437224
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000302,
+            "dispatch_to_source_ms": 527.393139,
+            "dispatch_to_terminal_ms": 528.255192,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466060097607988,
+            "source_observed_at_monotonic_ns": 466060625001127,
+            "source_to_terminal_ms": 0.862053,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466060625863180
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000303,
+            "dispatch_to_source_ms": 554.540215,
+            "dispatch_to_terminal_ms": 555.664985,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466060626072114,
+            "source_observed_at_monotonic_ns": 466061180612329,
+            "source_to_terminal_ms": 1.12477,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466061181737099
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000304,
+            "dispatch_to_source_ms": 546.549612,
+            "dispatch_to_terminal_ms": 547.775565,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466061182062222,
+            "source_observed_at_monotonic_ns": 466061728611834,
+            "source_to_terminal_ms": 1.225953,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466061729837787
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000305,
+            "dispatch_to_source_ms": 493.363675,
+            "dispatch_to_terminal_ms": 495.053459,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466061730194311,
+            "source_observed_at_monotonic_ns": 466062223557986,
+            "source_to_terminal_ms": 1.689784,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466062225247770
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000306,
+            "dispatch_to_source_ms": 506.181391,
+            "dispatch_to_terminal_ms": 507.419544,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466062225433779,
+            "source_observed_at_monotonic_ns": 466062731615170,
+            "source_to_terminal_ms": 1.238153,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466062732853323
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000307,
+            "dispatch_to_source_ms": 434.042941,
+            "dispatch_to_terminal_ms": 435.777845,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466062733043324,
+            "source_observed_at_monotonic_ns": 466063167086265,
+            "source_to_terminal_ms": 1.734904,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466063168821169
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000308,
+            "dispatch_to_source_ms": 469.734981,
+            "dispatch_to_terminal_ms": 472.103613,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466063168994014,
+            "source_observed_at_monotonic_ns": 466063638728995,
+            "source_to_terminal_ms": 2.368632,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466063641097627
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000309,
+            "dispatch_to_source_ms": 449.38562,
+            "dispatch_to_terminal_ms": 450.186571,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466063641335813,
+            "source_observed_at_monotonic_ns": 466064090721433,
+            "source_to_terminal_ms": 0.800951,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466064091522384
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 573.640962,
+              "minimum": 434.042941,
+              "p50": 535.652067,
+              "p95": 554.540215,
+              "p99": 573.640962
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 574.628544,
+              "minimum": 435.777845,
+              "p50": 536.550544,
+              "p95": 555.664985,
+              "p99": 574.628544
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 2.368632,
+              "minimum": 0.800951,
+              "p50": 1.051129,
+              "p95": 1.734904,
+              "p99": 2.368632
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "replacement": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.253367,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000324,
+            "dispatch_to_source_ms": 650.182558,
+            "dispatch_to_terminal_ms": 871.316141,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466065967077088,
+            "source_observed_at_monotonic_ns": 466066617259646,
+            "source_to_terminal_ms": 221.133583,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466066838393229
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.404151,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000329,
+            "dispatch_to_source_ms": 690.840789,
+            "dispatch_to_terminal_ms": 900.802134,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466066838582084,
+            "source_observed_at_monotonic_ns": 466067529422873,
+            "source_to_terminal_ms": 209.961345,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466067739384218
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.405278,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000334,
+            "dispatch_to_source_ms": 683.740044,
+            "dispatch_to_terminal_ms": 901.532787,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466067739547791,
+            "source_observed_at_monotonic_ns": 466068423287835,
+            "source_to_terminal_ms": 217.792743,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466068641080578
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.401099,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000339,
+            "dispatch_to_source_ms": 667.03655,
+            "dispatch_to_terminal_ms": 883.745969,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466068641260095,
+            "source_observed_at_monotonic_ns": 466069308296645,
+            "source_to_terminal_ms": 216.709419,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466069525006064
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.264877,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000344,
+            "dispatch_to_source_ms": 698.227388,
+            "dispatch_to_terminal_ms": 979.108197,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466069525200568,
+            "source_observed_at_monotonic_ns": 466070223427956,
+            "source_to_terminal_ms": 280.880809,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466070504308765
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.405239,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000349,
+            "dispatch_to_source_ms": 795.457889,
+            "dispatch_to_terminal_ms": 1011.048152,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466070504506134,
+            "source_observed_at_monotonic_ns": 466071299964023,
+            "source_to_terminal_ms": 215.590263,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466071515554286
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.438132,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000354,
+            "dispatch_to_source_ms": 712.371501,
+            "dispatch_to_terminal_ms": 929.34692,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466071515844010,
+            "source_observed_at_monotonic_ns": 466072228215511,
+            "source_to_terminal_ms": 216.975419,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466072445190930
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.290528,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000359,
+            "dispatch_to_source_ms": 870.810045,
+            "dispatch_to_terminal_ms": 1136.464602,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466072445430013,
+            "source_observed_at_monotonic_ns": 466073316240058,
+            "source_to_terminal_ms": 265.654557,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466073581894615
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.494644,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000364,
+            "dispatch_to_source_ms": 822.67754,
+            "dispatch_to_terminal_ms": 1112.34798,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466073582276909,
+            "source_observed_at_monotonic_ns": 466074404954449,
+            "source_to_terminal_ms": 289.67044,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466074694624889
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.383548,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000369,
+            "dispatch_to_source_ms": 782.97207,
+            "dispatch_to_terminal_ms": 1038.268607,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466074694813083,
+            "source_observed_at_monotonic_ns": 466075477785153,
+            "source_to_terminal_ms": 255.296537,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466075733081690
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.935653,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000374,
+            "dispatch_to_source_ms": 972.938761,
+            "dispatch_to_terminal_ms": 1318.326553,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466075733359073,
+            "source_observed_at_monotonic_ns": 466076706297834,
+            "source_to_terminal_ms": 345.387792,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466077051685626
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.463108,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000379,
+            "dispatch_to_source_ms": 796.971924,
+            "dispatch_to_terminal_ms": 1077.368622,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466077051875977,
+            "source_observed_at_monotonic_ns": 466077848847901,
+            "source_to_terminal_ms": 280.396698,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466078129244599
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.446852,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000384,
+            "dispatch_to_source_ms": 827.075823,
+            "dispatch_to_terminal_ms": 1111.328429,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466078129593820,
+            "source_observed_at_monotonic_ns": 466078956669643,
+            "source_to_terminal_ms": 284.252606,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466079240922249
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.369359,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000389,
+            "dispatch_to_source_ms": 888.578976,
+            "dispatch_to_terminal_ms": 1120.141565,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466079241223008,
+            "source_observed_at_monotonic_ns": 466080129801984,
+            "source_to_terminal_ms": 231.562589,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466080361364573
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.279884,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000394,
+            "dispatch_to_source_ms": 935.838908,
+            "dispatch_to_terminal_ms": 1194.511015,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466080361641500,
+            "source_observed_at_monotonic_ns": 466081297480408,
+            "source_to_terminal_ms": 258.672107,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466081556152515
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.479444,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000399,
+            "dispatch_to_source_ms": 847.126726,
+            "dispatch_to_terminal_ms": 1145.905799,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466081556503265,
+            "source_observed_at_monotonic_ns": 466082403629991,
+            "source_to_terminal_ms": 298.779073,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466082702409064
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.397119,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000404,
+            "dispatch_to_source_ms": 822.808396,
+            "dispatch_to_terminal_ms": 1081.306098,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466082702645540,
+            "source_observed_at_monotonic_ns": 466083525453936,
+            "source_to_terminal_ms": 258.497702,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466083783951638
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.283829,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000409,
+            "dispatch_to_source_ms": 718.373465,
+            "dispatch_to_terminal_ms": 996.09306,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466083784208970,
+            "source_observed_at_monotonic_ns": 466084502582435,
+            "source_to_terminal_ms": 277.719595,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466084780302030
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.444626,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000414,
+            "dispatch_to_source_ms": 751.63708,
+            "dispatch_to_terminal_ms": 1006.510367,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466084780550459,
+            "source_observed_at_monotonic_ns": 466085532187539,
+            "source_to_terminal_ms": 254.873287,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466085787060826
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "cancel_terminal_ms": 0.568525,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000419,
+            "dispatch_to_source_ms": 847.359932,
+            "dispatch_to_terminal_ms": 1108.510962,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466085787270945,
+            "source_observed_at_monotonic_ns": 466086634630877,
+            "source_to_terminal_ms": 261.15103,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466086895781907
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "cancel_terminal_ms": {
+              "count": 20,
+              "maximum": 0.935653,
+              "minimum": 0.253367,
+              "p50": 0.404151,
+              "p95": 0.568525,
+              "p99": 0.935653
+            },
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 972.938761,
+              "minimum": 650.182558,
+              "p50": 795.457889,
+              "p95": 935.838908,
+              "p99": 972.938761
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1318.326553,
+              "minimum": 871.316141,
+              "p50": 1038.268607,
+              "p95": 1194.511015,
+              "p99": 1318.326553
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 345.387792,
+              "minimum": 209.961345,
+              "p50": 258.497702,
+              "p95": 298.779073,
+              "p99": 345.387792
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      },
+      "word": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000224,
+            "dispatch_to_source_ms": 313.229961,
+            "dispatch_to_terminal_ms": 313.278184,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466014081321348,
+            "source_observed_at_monotonic_ns": 466014394551309,
+            "source_to_terminal_ms": 0.048223,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466014394599532
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000225,
+            "dispatch_to_source_ms": 253.752308,
+            "dispatch_to_terminal_ms": 253.808545,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466014394754400,
+            "source_observed_at_monotonic_ns": 466014648506708,
+            "source_to_terminal_ms": 0.056237,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466014648562945
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000226,
+            "dispatch_to_source_ms": 214.034541,
+            "dispatch_to_terminal_ms": 214.092018,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466014648748233,
+            "source_observed_at_monotonic_ns": 466014862782774,
+            "source_to_terminal_ms": 0.057477,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466014862840251
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000227,
+            "dispatch_to_source_ms": 214.393999,
+            "dispatch_to_terminal_ms": 214.613856,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466014863015433,
+            "source_observed_at_monotonic_ns": 466015077409432,
+            "source_to_terminal_ms": 0.219857,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466015077629289
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000228,
+            "dispatch_to_source_ms": 275.181411,
+            "dispatch_to_terminal_ms": 275.364188,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466015077735353,
+            "source_observed_at_monotonic_ns": 466015352916764,
+            "source_to_terminal_ms": 0.182777,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466015353099541
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000229,
+            "dispatch_to_source_ms": 282.241841,
+            "dispatch_to_terminal_ms": 282.425,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466015353183589,
+            "source_observed_at_monotonic_ns": 466015635425430,
+            "source_to_terminal_ms": 0.183159,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466015635608589
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000230,
+            "dispatch_to_source_ms": 217.547131,
+            "dispatch_to_terminal_ms": 217.599407,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466015635697410,
+            "source_observed_at_monotonic_ns": 466015853244541,
+            "source_to_terminal_ms": 0.052276,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466015853296817
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000231,
+            "dispatch_to_source_ms": 208.302481,
+            "dispatch_to_terminal_ms": 208.532069,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466015853457177,
+            "source_observed_at_monotonic_ns": 466016061759658,
+            "source_to_terminal_ms": 0.229588,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466016061989246
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000232,
+            "dispatch_to_source_ms": 216.22099,
+            "dispatch_to_terminal_ms": 216.470547,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466016062092036,
+            "source_observed_at_monotonic_ns": 466016278313026,
+            "source_to_terminal_ms": 0.249557,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466016278562583
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000233,
+            "dispatch_to_source_ms": 258.153996,
+            "dispatch_to_terminal_ms": 258.203364,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466016278701739,
+            "source_observed_at_monotonic_ns": 466016536855735,
+            "source_to_terminal_ms": 0.049368,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466016536905103
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000234,
+            "dispatch_to_source_ms": 238.671672,
+            "dispatch_to_terminal_ms": 238.889874,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466016537094041,
+            "source_observed_at_monotonic_ns": 466016775765713,
+            "source_to_terminal_ms": 0.218202,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466016775983915
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000235,
+            "dispatch_to_source_ms": 223.27248,
+            "dispatch_to_terminal_ms": 223.494644,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466016776090731,
+            "source_observed_at_monotonic_ns": 466016999363211,
+            "source_to_terminal_ms": 0.222164,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466016999585375
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000236,
+            "dispatch_to_source_ms": 223.087243,
+            "dispatch_to_terminal_ms": 223.159559,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466016999721199,
+            "source_observed_at_monotonic_ns": 466017222808442,
+            "source_to_terminal_ms": 0.072316,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466017222880758
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000237,
+            "dispatch_to_source_ms": 217.80689,
+            "dispatch_to_terminal_ms": 218.031371,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466017223052458,
+            "source_observed_at_monotonic_ns": 466017440859348,
+            "source_to_terminal_ms": 0.224481,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466017441083829
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000238,
+            "dispatch_to_source_ms": 220.594355,
+            "dispatch_to_terminal_ms": 220.664719,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466017441187570,
+            "source_observed_at_monotonic_ns": 466017661781925,
+            "source_to_terminal_ms": 0.070364,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466017661852289
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000239,
+            "dispatch_to_source_ms": 274.881456,
+            "dispatch_to_terminal_ms": 275.089046,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466017662032188,
+            "source_observed_at_monotonic_ns": 466017936913644,
+            "source_to_terminal_ms": 0.20759,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466017937121234
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000240,
+            "dispatch_to_source_ms": 208.095617,
+            "dispatch_to_terminal_ms": 208.147451,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466017937248364,
+            "source_observed_at_monotonic_ns": 466018145343981,
+            "source_to_terminal_ms": 0.051834,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466018145395815
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000241,
+            "dispatch_to_source_ms": 269.031128,
+            "dispatch_to_terminal_ms": 269.225423,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466018145591441,
+            "source_observed_at_monotonic_ns": 466018414622569,
+            "source_to_terminal_ms": 0.194295,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466018414816864
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000242,
+            "dispatch_to_source_ms": 271.795055,
+            "dispatch_to_terminal_ms": 271.841734,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466018414933322,
+            "source_observed_at_monotonic_ns": 466018686728377,
+            "source_to_terminal_ms": 0.046679,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466018686775056
+          },
+          {
+            "actual_voice": {
+              "engine_id": "tgspeechbox",
+              "voice_id": "en-us/adam"
+            },
+            "dispatch_id": 1000243,
+            "dispatch_to_source_ms": 271.778758,
+            "dispatch_to_terminal_ms": 271.82457,
+            "engine_id": "tgspeechbox",
+            "sent_at_monotonic_ns": 466018686922533,
+            "source_observed_at_monotonic_ns": 466018958701291,
+            "source_to_terminal_ms": 0.045812,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 466018958747103
+          }
+        ],
+        "summary": {
+          "engines": {
+            "tgspeechbox": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 313.229961,
+              "minimum": 208.095617,
+              "p50": 223.27248,
+              "p95": 282.241841,
+              "p99": 313.229961
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 313.278184,
+              "minimum": 208.147451,
+              "p50": 223.494644,
+              "p95": 282.425,
+              "p99": 313.278184
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.249557,
+              "minimum": 0.045812,
+              "p50": 0.072316,
+              "p95": 0.229588,
+              "p99": 0.249557
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "tgspeechbox": {
+              "en-us/adam": 20
+            }
+          }
+        }
+      }
+    }
+  },
+  "server": {
+    "features": [
+      "control_v1",
+      "emacsvox_tx",
+      "engine_inventory",
+      "engine_recovery_probe",
+      "exact_voice_preview",
+      "legacy_commands",
+      "logical_voice_registration",
+      "logical_voice_language_routing",
+      "logical_voice_routing",
+      "playback_marker_events_v1",
+      "playback_marker_events_v2",
+      "presentation_timeline_v1",
+      "presentation_timeline_v2",
+      "presentation_timeline_v3",
+      "presentation_tone_v1",
+      "post_synthesis_effects_v1",
+      "preferred_engine",
+      "process_audio_routing",
+      "relative_rate_v1",
+      "runtime_routing_policy",
+      "stable_voice_ids",
+      "text_repertoire_routing_v1",
+      "tracked_playback_completion"
+    ],
+    "version": "1.6.4",
+    "warm_process_start_to_ready_ms": 606.142538
+  }
+}

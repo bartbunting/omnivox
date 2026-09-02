@@ -1,0 +1,4784 @@
+{
+  "configuration": {
+    "audio_output": "null",
+    "cases": [
+      "character",
+      "word",
+      "line",
+      "dense",
+      "multipart",
+      "replacement"
+    ],
+    "engine": "flite",
+    "expected_engine_id": "flite",
+    "iterations": 20,
+    "mode": "both",
+    "preferred_engine_id": null,
+    "replacement_burst": 5,
+    "server_command": [
+      "/home/bart/src/emacsvox/servers/omnivox",
+      "--audio-output",
+      "null"
+    ],
+    "text_profile": "english",
+    "timeout_seconds": 90.0,
+    "voice_id": "cmu_us_slt",
+    "warmups": 2
+  },
+  "created_at": "2026-09-02T21:07:59.359385+00:00",
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "measurement": {
+    "acoustic_onset_measured": false,
+    "clock": "time.perf_counter_ns",
+    "real_time_playback": false,
+    "source": "client receipt of first utterance_started null-source marker",
+    "terminal": "client receipt of tracked terminal record"
+  },
+  "provenance": {
+    "build_id": "f7204ac69b6010f1",
+    "build_kind": "local-dirty-worktree",
+    "cargo_lock_sha256": "54ee68191571995b0c5d7e7799501bf83f947990e05aebddf80eaf38ad090040",
+    "dectalk_runtime": "bundled-pinned-archive",
+    "dockerfile_sha256": "33e2df54152f81abd75143954a5aaaab0c20e098970afba68d8b024fb7169efa",
+    "eloquence_runtime": "external-user-supplied-not-bundled",
+    "eloquence_runtime_sha256": "external-not-observed",
+    "emacsvox_commit": "3c47d0a2afa46ad4c9a32a5215bcddc4e7bdb019",
+    "emacsvox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "espeak_data_sha256": "9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "flite_companion": "local-omnivox-build",
+    "flite_companion_tree_sha256": "05e2536d784167d76397172a7715dcde7cba8943578bccfd1025056ce29760ed",
+    "flite_compiled_voice": "cmu_us_slt",
+    "flite_target": "x86_64-pc-windows-gnu",
+    "format": "emacsvox-omnivox-provenance-v1",
+    "mingw_gcc": "x86_64-w64-mingw32-gcc-win32 (GCC) 12-win32",
+    "net40_reference_assemblies_nupkg_sha256": "54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694",
+    "omnivox_commit": "2973d5efc86d40520f146bd635209e40b4154c9e",
+    "omnivox_executable_sha256": "0dda735c3492114600c5b072be18e257f1e215a13799a6bd19be36b7252937e3",
+    "omnivox_features": "none",
+    "omnivox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "piper_companion": "not-included",
+    "piper_companion_archive_sha256": "not-included",
+    "piper_companion_commit": "not-included",
+    "piper_companion_tree_sha256": "not-included",
+    "piper_companion_version": "not-included",
+    "piper_model": "not-included",
+    "piper_model_config_sha256": "not-observed",
+    "piper_model_sha256": "not-observed",
+    "release_image_id": "sha256:3186f03b16a6b9cc62befb0902a40974b6297426483582464e3c421bb9873204",
+    "rhvoice_companion": "local-omnivox-build",
+    "rhvoice_companion_tree_sha256": "b24d61e77b4e933022e03983ad486f0c40f7100d6728cf802191b74d5cc5bfef",
+    "rhvoice_config_tree_sha256": "not-configured",
+    "rhvoice_configuration": "recorded-windows-paths",
+    "rhvoice_data_tree_sha256": "a20abbc6f19bdef73b1f97e57c8fd3cb5c15e7fc3d1c04aafa9cde6f1254c5ce",
+    "rhvoice_library_sha256": "3014e72aa5a989c3082cbbc42977919601a8444f4e6dcdb73e5ae0c664272aed",
+    "rhvoice_runtime": "external-user-supplied-not-bundled",
+    "roslyn_csc": "5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)",
+    "roslyn_csc_sha256": "4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee",
+    "roslyn_nupkg_sha256": "302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "rutts_built_in_voices": "male,female",
+    "rutts_companion": "local-omnivox-build",
+    "rutts_companion_tree_sha256": "1fc6ff28b729c0d4ee86f64ebeb2ccd721f4e67d63687330ceaedd346d80c908",
+    "rutts_rulex": "not-included",
+    "rutts_target": "x86_64-pc-windows-gnu",
+    "rutts_version": "6.3.3",
+    "target": "x86_64-pc-windows-gnu",
+    "tgspeechbox_build_environment": "wsl-host-development-only",
+    "tgspeechbox_companion": "local-omnivox-experimental-build",
+    "tgspeechbox_companion_tree_sha256": "8139d2db714e4b820d7ff1c302a6326e610c3f3e63b544105253395cad2377b7",
+    "tgspeechbox_cxx": "x86_64-w64-mingw32-g++-posix (GCC) 13-posix",
+    "tgspeechbox_cxx_sha256": "43befe0a8b6f3b40f54b5fac3717b4bf1cf56a2373b7b9bbbe21956211c16046",
+    "tgspeechbox_markers": "none",
+    "tgspeechbox_rate_mapping": "provisional",
+    "tgspeechbox_target": "x86_64-pc-windows-gnu",
+    "toolchain_lock_sha256": "197f0a6765d9b509ed884c7c6cae2f557d022658b0c20489c0716760ec926f8e",
+    "unstripped_diagnostics": "retained-local-not-staged",
+    "windows_helpers_license": "GPL-2.0-or-later",
+    "windows_helpers_source": "omnivox",
+    "windows_rustflags": "-C link-arg=-Wl,--no-insert-timestamp",
+    "windows_strip": "SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all"
+  },
+  "report_version": 2,
+  "results": {
+    "cold": {
+      "character": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000000,
+            "dispatch_to_source_ms": 18.969762,
+            "dispatch_to_terminal_ms": 19.037898,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 458.726649,
+            "process_start_to_source_ms": 478.813115,
+            "sent_at_monotonic_ns": 465434034667488,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465434053637250,
+            "source_to_terminal_ms": 0.068136,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465434053705386
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000001,
+            "dispatch_to_source_ms": 17.47184,
+            "dispatch_to_terminal_ms": 17.547873,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 477.281628,
+            "process_start_to_source_ms": 495.93815,
+            "sent_at_monotonic_ns": 465434696649948,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465434714121788,
+            "source_to_terminal_ms": 0.076033,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465434714197821
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000002,
+            "dispatch_to_source_ms": 27.864422,
+            "dispatch_to_terminal_ms": 28.117069,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 527.050131,
+            "process_start_to_source_ms": 556.402446,
+            "sent_at_monotonic_ns": 465435407488076,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465435435352498,
+            "source_to_terminal_ms": 0.252647,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465435435605145
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000003,
+            "dispatch_to_source_ms": 20.769838,
+            "dispatch_to_terminal_ms": 20.828936,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 532.849357,
+            "process_start_to_source_ms": 554.970264,
+            "sent_at_monotonic_ns": 465436084312102,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465436105081940,
+            "source_to_terminal_ms": 0.059098,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465436105141038
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000004,
+            "dispatch_to_source_ms": 21.310457,
+            "dispatch_to_terminal_ms": 21.357423,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 548.098488,
+            "process_start_to_source_ms": 570.473765,
+            "sent_at_monotonic_ns": 465436819012121,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465436840322578,
+            "source_to_terminal_ms": 0.046966,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465436840369544
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000005,
+            "dispatch_to_source_ms": 21.51306,
+            "dispatch_to_terminal_ms": 21.583258,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 497.15264,
+            "process_start_to_source_ms": 519.757852,
+            "sent_at_monotonic_ns": 465437402701720,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465437424214780,
+            "source_to_terminal_ms": 0.070198,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465437424284978
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000006,
+            "dispatch_to_source_ms": 21.630444,
+            "dispatch_to_terminal_ms": 21.677126,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 588.755619,
+            "process_start_to_source_ms": 611.342859,
+            "sent_at_monotonic_ns": 465438178429107,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465438200059551,
+            "source_to_terminal_ms": 0.046682,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465438200106233
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000007,
+            "dispatch_to_source_ms": 23.45287,
+            "dispatch_to_terminal_ms": 23.544838,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 546.074821,
+            "process_start_to_source_ms": 570.574333,
+            "sent_at_monotonic_ns": 465438811451174,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465438834904044,
+            "source_to_terminal_ms": 0.091968,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465438834996012
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000008,
+            "dispatch_to_source_ms": 18.911403,
+            "dispatch_to_terminal_ms": 18.970109,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 483.893006,
+            "process_start_to_source_ms": 503.635176,
+            "sent_at_monotonic_ns": 465439434252801,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465439453164204,
+            "source_to_terminal_ms": 0.058706,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465439453222910
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000009,
+            "dispatch_to_source_ms": 23.023217,
+            "dispatch_to_terminal_ms": 23.314505,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 578.782634,
+            "process_start_to_source_ms": 602.65358,
+            "sent_at_monotonic_ns": 465440197343862,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465440220367079,
+            "source_to_terminal_ms": 0.291288,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465440220658367
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000010,
+            "dispatch_to_source_ms": 22.460805,
+            "dispatch_to_terminal_ms": 22.516979,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 518.099252,
+            "process_start_to_source_ms": 541.780233,
+            "sent_at_monotonic_ns": 465440804183785,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465440826644590,
+            "source_to_terminal_ms": 0.056174,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465440826700764
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000011,
+            "dispatch_to_source_ms": 19.733313,
+            "dispatch_to_terminal_ms": 19.783071,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 536.238497,
+            "process_start_to_source_ms": 556.999179,
+            "sent_at_monotonic_ns": 465441478453968,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465441498187281,
+            "source_to_terminal_ms": 0.049758,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465441498237039
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000012,
+            "dispatch_to_source_ms": 20.478622,
+            "dispatch_to_terminal_ms": 20.531744,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 471.797919,
+            "process_start_to_source_ms": 493.324145,
+            "sent_at_monotonic_ns": 465442035396290,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465442055874912,
+            "source_to_terminal_ms": 0.053122,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465442055928034
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000013,
+            "dispatch_to_source_ms": 19.666729,
+            "dispatch_to_terminal_ms": 19.71685,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 554.790292,
+            "process_start_to_source_ms": 575.832852,
+            "sent_at_monotonic_ns": 465442776929870,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465442796596599,
+            "source_to_terminal_ms": 0.050121,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465442796646720
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000014,
+            "dispatch_to_source_ms": 19.174522,
+            "dispatch_to_terminal_ms": 19.232434,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 485.596366,
+            "process_start_to_source_ms": 505.727185,
+            "sent_at_monotonic_ns": 465443347330589,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465443366505111,
+            "source_to_terminal_ms": 0.057912,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465443366563023
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000015,
+            "dispatch_to_source_ms": 21.212407,
+            "dispatch_to_terminal_ms": 21.277249,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 524.462436,
+            "process_start_to_source_ms": 547.028916,
+            "sent_at_monotonic_ns": 465444006691940,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465444027904347,
+            "source_to_terminal_ms": 0.064842,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465444027969189
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000016,
+            "dispatch_to_source_ms": 19.879127,
+            "dispatch_to_terminal_ms": 19.949012,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 517.633528,
+            "process_start_to_source_ms": 538.581264,
+            "sent_at_monotonic_ns": 465444610889989,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465444630769116,
+            "source_to_terminal_ms": 0.069885,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465444630839001
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000017,
+            "dispatch_to_source_ms": 21.830362,
+            "dispatch_to_terminal_ms": 21.891463,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 449.953231,
+            "process_start_to_source_ms": 472.881624,
+            "sent_at_monotonic_ns": 465445145970104,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465445167800466,
+            "source_to_terminal_ms": 0.061101,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465445167861567
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000018,
+            "dispatch_to_source_ms": 20.723771,
+            "dispatch_to_terminal_ms": 20.78468,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 583.045892,
+            "process_start_to_source_ms": 604.697782,
+            "sent_at_monotonic_ns": 465445916458181,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465445937181952,
+            "source_to_terminal_ms": 0.060909,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465445937242861
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000019,
+            "dispatch_to_source_ms": 20.592534,
+            "dispatch_to_terminal_ms": 20.644953,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 465.971516,
+            "process_start_to_source_ms": 487.495465,
+            "sent_at_monotonic_ns": 465446468369885,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465446488962419,
+            "source_to_terminal_ms": 0.052419,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465446489014838
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 27.864422,
+              "minimum": 17.47184,
+              "p50": 20.723771,
+              "p95": 23.45287,
+              "p99": 27.864422
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 28.117069,
+              "minimum": 17.547873,
+              "p50": 20.78468,
+              "p95": 23.544838,
+              "p99": 28.117069
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 588.755619,
+              "minimum": 449.953231,
+              "p50": 518.099252,
+              "p95": 583.045892,
+              "p99": 588.755619
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 611.342859,
+              "minimum": 472.881624,
+              "p50": 541.780233,
+              "p95": 604.697782,
+              "p99": 611.342859
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.291288,
+              "minimum": 0.046682,
+              "p50": 0.059098,
+              "p95": 0.252647,
+              "p99": 0.291288
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "dense": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000060,
+            "dispatch_to_source_ms": 102.077917,
+            "dispatch_to_terminal_ms": 149.895609,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 501.592485,
+            "process_start_to_source_ms": 604.738867,
+            "sent_at_monotonic_ns": 465472292967359,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465472395045276,
+            "source_to_terminal_ms": 47.817692,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465472442862968
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000061,
+            "dispatch_to_source_ms": 94.090532,
+            "dispatch_to_terminal_ms": 142.94423,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 530.213047,
+            "process_start_to_source_ms": 625.336287,
+            "sent_at_monotonic_ns": 465473038118333,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465473132208865,
+            "source_to_terminal_ms": 48.853698,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465473181062563
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000062,
+            "dispatch_to_source_ms": 99.441353,
+            "dispatch_to_terminal_ms": 147.240685,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 501.768644,
+            "process_start_to_source_ms": 602.204876,
+            "sent_at_monotonic_ns": 465473747689409,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465473847130762,
+            "source_to_terminal_ms": 47.799332,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465473894930094
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000063,
+            "dispatch_to_source_ms": 105.549751,
+            "dispatch_to_terminal_ms": 151.135565,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 463.307072,
+            "process_start_to_source_ms": 569.990926,
+            "sent_at_monotonic_ns": 465474423556944,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465474529106695,
+            "source_to_terminal_ms": 45.585814,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465474574692509
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000064,
+            "dispatch_to_source_ms": 106.232707,
+            "dispatch_to_terminal_ms": 154.377699,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 479.964104,
+            "process_start_to_source_ms": 587.758597,
+            "sent_at_monotonic_ns": 465475120329181,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465475226561888,
+            "source_to_terminal_ms": 48.144992,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465475274706880
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000065,
+            "dispatch_to_source_ms": 127.597707,
+            "dispatch_to_terminal_ms": 187.774837,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 591.546617,
+            "process_start_to_source_ms": 720.205714,
+            "sent_at_monotonic_ns": 465475931457924,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465476059055631,
+            "source_to_terminal_ms": 60.17713,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465476119232761
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000066,
+            "dispatch_to_source_ms": 182.715034,
+            "dispatch_to_terminal_ms": 263.515772,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 734.746857,
+            "process_start_to_source_ms": 919.075975,
+            "sent_at_monotonic_ns": 465476919881343,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465477102596377,
+            "source_to_terminal_ms": 80.800738,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465477183397115
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000067,
+            "dispatch_to_source_ms": 136.952906,
+            "dispatch_to_terminal_ms": 203.291562,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 655.922786,
+            "process_start_to_source_ms": 793.959937,
+            "sent_at_monotonic_ns": 465477904551208,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465478041504114,
+            "source_to_terminal_ms": 66.338656,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465478107842770
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000068,
+            "dispatch_to_source_ms": 117.782591,
+            "dispatch_to_terminal_ms": 184.064565,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 486.804746,
+            "process_start_to_source_ms": 605.836212,
+            "sent_at_monotonic_ns": 465478660205261,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465478777987852,
+            "source_to_terminal_ms": 66.281974,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465478844269826
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000069,
+            "dispatch_to_source_ms": 124.935916,
+            "dispatch_to_terminal_ms": 182.109016,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 503.86533,
+            "process_start_to_source_ms": 630.021056,
+            "sent_at_monotonic_ns": 465479413592085,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465479538528001,
+            "source_to_terminal_ms": 57.1731,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465479595701101
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000070,
+            "dispatch_to_source_ms": 115.103212,
+            "dispatch_to_terminal_ms": 169.568984,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 556.93765,
+            "process_start_to_source_ms": 673.037602,
+            "sent_at_monotonic_ns": 465480217692842,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465480332796054,
+            "source_to_terminal_ms": 54.465772,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465480387261826
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000071,
+            "dispatch_to_source_ms": 100.864374,
+            "dispatch_to_terminal_ms": 149.785026,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 584.635342,
+            "process_start_to_source_ms": 686.991524,
+            "sent_at_monotonic_ns": 465481037481231,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465481138345605,
+            "source_to_terminal_ms": 48.920652,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465481187266257
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000072,
+            "dispatch_to_source_ms": 114.445563,
+            "dispatch_to_terminal_ms": 162.939043,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 548.036859,
+            "process_start_to_source_ms": 663.837935,
+            "sent_at_monotonic_ns": 465481800794790,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465481915240353,
+            "source_to_terminal_ms": 48.49348,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465481963733833
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000073,
+            "dispatch_to_source_ms": 110.108128,
+            "dispatch_to_terminal_ms": 162.533016,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 559.560104,
+            "process_start_to_source_ms": 670.871174,
+            "sent_at_monotonic_ns": 465482588488501,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465482698596629,
+            "source_to_terminal_ms": 52.424888,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465482751021517
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000074,
+            "dispatch_to_source_ms": 109.671543,
+            "dispatch_to_terminal_ms": 159.064507,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 572.585898,
+            "process_start_to_source_ms": 683.830003,
+            "sent_at_monotonic_ns": 465483389303639,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465483498975182,
+            "source_to_terminal_ms": 49.392964,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465483548368146
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000075,
+            "dispatch_to_source_ms": 98.069947,
+            "dispatch_to_terminal_ms": 144.027583,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 572.910104,
+            "process_start_to_source_ms": 672.147787,
+            "sent_at_monotonic_ns": 465484186497966,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465484284567913,
+            "source_to_terminal_ms": 45.957636,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465484330525549
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000076,
+            "dispatch_to_source_ms": 108.670698,
+            "dispatch_to_terminal_ms": 155.99383,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 503.112102,
+            "process_start_to_source_ms": 613.015073,
+            "sent_at_monotonic_ns": 465484899114020,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465485007784718,
+            "source_to_terminal_ms": 47.323132,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465485055107850
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000077,
+            "dispatch_to_source_ms": 101.027327,
+            "dispatch_to_terminal_ms": 148.018085,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 559.177933,
+            "process_start_to_source_ms": 661.176533,
+            "sent_at_monotonic_ns": 465485647127063,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465485748154390,
+            "source_to_terminal_ms": 46.990758,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465485795145148
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000078,
+            "dispatch_to_source_ms": 98.759235,
+            "dispatch_to_terminal_ms": 158.242605,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 596.353965,
+            "process_start_to_source_ms": 696.282411,
+            "sent_at_monotonic_ns": 465486456797151,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465486555556386,
+            "source_to_terminal_ms": 59.48337,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465486615039756
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000079,
+            "dispatch_to_source_ms": 97.146814,
+            "dispatch_to_terminal_ms": 143.588808,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 532.153433,
+            "process_start_to_source_ms": 630.634698,
+            "sent_at_monotonic_ns": 465487212706545,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465487309853359,
+            "source_to_terminal_ms": 46.441994,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465487356295353
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 182.715034,
+              "minimum": 94.090532,
+              "p50": 106.232707,
+              "p95": 136.952906,
+              "p99": 182.715034
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 263.515772,
+              "minimum": 142.94423,
+              "p50": 155.99383,
+              "p95": 203.291562,
+              "p99": 263.515772
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 734.746857,
+              "minimum": 463.307072,
+              "p50": 548.036859,
+              "p95": 655.922786,
+              "p99": 734.746857
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 919.075975,
+              "minimum": 569.990926,
+              "p50": 661.176533,
+              "p95": 793.959937,
+              "p99": 919.075975
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 80.800738,
+              "minimum": 45.585814,
+              "p50": 48.853698,
+              "p95": 66.338656,
+              "p99": 80.800738
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "line": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000040,
+            "dispatch_to_source_ms": 67.431317,
+            "dispatch_to_terminal_ms": 68.276434,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 478.815933,
+            "process_start_to_source_ms": 547.570869,
+            "sent_at_monotonic_ns": 465459601053394,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465459668484711,
+            "source_to_terminal_ms": 0.845117,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465459669329828
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000041,
+            "dispatch_to_source_ms": 59.177654,
+            "dispatch_to_terminal_ms": 60.096992,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 503.059303,
+            "process_start_to_source_ms": 563.257218,
+            "sent_at_monotonic_ns": 465460237493139,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465460296670793,
+            "source_to_terminal_ms": 0.919338,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465460297590131
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000042,
+            "dispatch_to_source_ms": 61.621732,
+            "dispatch_to_terminal_ms": 62.4476,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 446.567653,
+            "process_start_to_source_ms": 509.2,
+            "sent_at_monotonic_ns": 465460777242612,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465460838864344,
+            "source_to_terminal_ms": 0.825868,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465460839690212
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000043,
+            "dispatch_to_source_ms": 67.927784,
+            "dispatch_to_terminal_ms": 68.771701,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 485.406541,
+            "process_start_to_source_ms": 554.315108,
+            "sent_at_monotonic_ns": 465461440461555,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465461508389339,
+            "source_to_terminal_ms": 0.843917,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465461509233256
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000044,
+            "dispatch_to_source_ms": 64.26056,
+            "dispatch_to_terminal_ms": 65.039571,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 471.125287,
+            "process_start_to_source_ms": 536.369836,
+            "sent_at_monotonic_ns": 465462045475382,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465462109735942,
+            "source_to_terminal_ms": 0.779011,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465462110514953
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000045,
+            "dispatch_to_source_ms": 61.480008,
+            "dispatch_to_terminal_ms": 62.400079,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 518.408866,
+            "process_start_to_source_ms": 580.764087,
+            "sent_at_monotonic_ns": 465462693830175,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465462755310183,
+            "source_to_terminal_ms": 0.920071,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465462756230254
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000046,
+            "dispatch_to_source_ms": 61.681305,
+            "dispatch_to_terminal_ms": 62.590231,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 509.460577,
+            "process_start_to_source_ms": 572.178104,
+            "sent_at_monotonic_ns": 465463330798545,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465463392479850,
+            "source_to_terminal_ms": 0.908926,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465463393388776
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000047,
+            "dispatch_to_source_ms": 61.772907,
+            "dispatch_to_terminal_ms": 62.675538,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 529.63838,
+            "process_start_to_source_ms": 592.450121,
+            "sent_at_monotonic_ns": 465463988127963,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465464049900870,
+            "source_to_terminal_ms": 0.902631,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465464050803501
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000048,
+            "dispatch_to_source_ms": 72.29235,
+            "dispatch_to_terminal_ms": 73.076487,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 475.139752,
+            "process_start_to_source_ms": 548.504673,
+            "sent_at_monotonic_ns": 465464591160444,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465464663452794,
+            "source_to_terminal_ms": 0.784137,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465464664236931
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000049,
+            "dispatch_to_source_ms": 62.816287,
+            "dispatch_to_terminal_ms": 63.704341,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 488.364107,
+            "process_start_to_source_ms": 552.129464,
+            "sent_at_monotonic_ns": 465465217666408,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465465280482695,
+            "source_to_terminal_ms": 0.888054,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465465281370749
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000050,
+            "dispatch_to_source_ms": 64.618654,
+            "dispatch_to_terminal_ms": 65.2741,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 494.432065,
+            "process_start_to_source_ms": 560.201143,
+            "sent_at_monotonic_ns": 465465840881057,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465465905499711,
+            "source_to_terminal_ms": 0.655446,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465465906155157
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000051,
+            "dispatch_to_source_ms": 64.244154,
+            "dispatch_to_terminal_ms": 65.017652,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 553.640962,
+            "process_start_to_source_ms": 618.800069,
+            "sent_at_monotonic_ns": 465466492733718,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465466556977872,
+            "source_to_terminal_ms": 0.773498,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465466557751370
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000052,
+            "dispatch_to_source_ms": 65.994907,
+            "dispatch_to_terminal_ms": 66.813132,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 444.489881,
+            "process_start_to_source_ms": 511.555633,
+            "sent_at_monotonic_ns": 465467035079613,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465467101074520,
+            "source_to_terminal_ms": 0.818225,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465467101892745
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000053,
+            "dispatch_to_source_ms": 62.252097,
+            "dispatch_to_terminal_ms": 63.064137,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 544.636046,
+            "process_start_to_source_ms": 607.834227,
+            "sent_at_monotonic_ns": 465467761810978,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465467824063075,
+            "source_to_terminal_ms": 0.81204,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465467824875115
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000054,
+            "dispatch_to_source_ms": 69.425011,
+            "dispatch_to_terminal_ms": 70.27034,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 480.76754,
+            "process_start_to_source_ms": 551.328409,
+            "sent_at_monotonic_ns": 465468370748266,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465468440173277,
+            "source_to_terminal_ms": 0.845329,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465468441018606
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000055,
+            "dispatch_to_source_ms": 73.495046,
+            "dispatch_to_terminal_ms": 74.68194,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 475.750095,
+            "process_start_to_source_ms": 550.433927,
+            "sent_at_monotonic_ns": 465468981902580,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465469055397626,
+            "source_to_terminal_ms": 1.186894,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465469056584520
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000056,
+            "dispatch_to_source_ms": 69.304043,
+            "dispatch_to_terminal_ms": 70.259771,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 451.220263,
+            "process_start_to_source_ms": 521.832948,
+            "sent_at_monotonic_ns": 465469623347186,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465469692651229,
+            "source_to_terminal_ms": 0.955728,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465469693606957
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000057,
+            "dispatch_to_source_ms": 67.188188,
+            "dispatch_to_terminal_ms": 68.02693,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 420.527392,
+            "process_start_to_source_ms": 488.722505,
+            "sent_at_monotonic_ns": 465470229233871,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465470296422059,
+            "source_to_terminal_ms": 0.838742,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465470297260801
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000058,
+            "dispatch_to_source_ms": 66.863509,
+            "dispatch_to_terminal_ms": 67.811579,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 526.103913,
+            "process_start_to_source_ms": 593.970944,
+            "sent_at_monotonic_ns": 465470988774007,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465471055637516,
+            "source_to_terminal_ms": 0.94807,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465471056585586
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000059,
+            "dispatch_to_source_ms": 67.700005,
+            "dispatch_to_terminal_ms": 68.560016,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 535.906757,
+            "process_start_to_source_ms": 604.531214,
+            "sent_at_monotonic_ns": 465471657525538,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465471725225543,
+            "source_to_terminal_ms": 0.860011,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465471726085554
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 73.495046,
+              "minimum": 59.177654,
+              "p50": 64.618654,
+              "p95": 72.29235,
+              "p99": 73.495046
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 74.68194,
+              "minimum": 60.096992,
+              "p50": 65.2741,
+              "p95": 73.076487,
+              "p99": 74.68194
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 553.640962,
+              "minimum": 420.527392,
+              "p50": 485.406541,
+              "p95": 544.636046,
+              "p99": 553.640962
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 618.800069,
+              "minimum": 488.722505,
+              "p50": 552.129464,
+              "p95": 607.834227,
+              "p99": 618.800069
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.186894,
+              "minimum": 0.655446,
+              "p50": 0.845117,
+              "p95": 0.955728,
+              "p99": 1.186894
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "multipart": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000080,
+            "dispatch_to_source_ms": 77.362125,
+            "dispatch_to_terminal_ms": 78.801862,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 545.061392,
+            "process_start_to_source_ms": 623.592426,
+            "sent_at_monotonic_ns": 465487966528744,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465488043890869,
+            "source_to_terminal_ms": 1.439737,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465488045330606
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000081,
+            "dispatch_to_source_ms": 76.414098,
+            "dispatch_to_terminal_ms": 77.353162,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 574.131977,
+            "process_start_to_source_ms": 651.518047,
+            "sent_at_monotonic_ns": 465488684643150,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465488761057248,
+            "source_to_terminal_ms": 0.939064,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465488761996312
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000082,
+            "dispatch_to_source_ms": 72.658993,
+            "dispatch_to_terminal_ms": 74.006886,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 554.806304,
+            "process_start_to_source_ms": 628.444959,
+            "sent_at_monotonic_ns": 465489381846874,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465489454505867,
+            "source_to_terminal_ms": 1.347893,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465489455853760
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000083,
+            "dispatch_to_source_ms": 75.586318,
+            "dispatch_to_terminal_ms": 76.711527,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 570.020991,
+            "process_start_to_source_ms": 646.724338,
+            "sent_at_monotonic_ns": 465490058841361,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465490134427679,
+            "source_to_terminal_ms": 1.125209,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465490135552888
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000084,
+            "dispatch_to_source_ms": 84.670484,
+            "dispatch_to_terminal_ms": 85.578896,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 457.130397,
+            "process_start_to_source_ms": 542.940298,
+            "sent_at_monotonic_ns": 465490625708070,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465490710378554,
+            "source_to_terminal_ms": 0.908412,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465490711286966
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000085,
+            "dispatch_to_source_ms": 71.579879,
+            "dispatch_to_terminal_ms": 72.657691,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 618.44346,
+            "process_start_to_source_ms": 691.374544,
+            "sent_at_monotonic_ns": 465491445513027,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465491517092906,
+            "source_to_terminal_ms": 1.077812,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465491518170718
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000086,
+            "dispatch_to_source_ms": 77.773418,
+            "dispatch_to_terminal_ms": 78.888199,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 580.904508,
+            "process_start_to_source_ms": 659.768402,
+            "sent_at_monotonic_ns": 465492164339035,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465492242112453,
+            "source_to_terminal_ms": 1.114781,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465492243227234
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000087,
+            "dispatch_to_source_ms": 72.983169,
+            "dispatch_to_terminal_ms": 73.925094,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 588.255924,
+            "process_start_to_source_ms": 662.262201,
+            "sent_at_monotonic_ns": 465492896551511,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465492969534680,
+            "source_to_terminal_ms": 0.941925,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465492970476605
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000088,
+            "dispatch_to_source_ms": 71.806109,
+            "dispatch_to_terminal_ms": 73.388319,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 512.716475,
+            "process_start_to_source_ms": 585.508337,
+            "sent_at_monotonic_ns": 465493548387868,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465493620193977,
+            "source_to_terminal_ms": 1.58221,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465493621776187
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000089,
+            "dispatch_to_source_ms": 80.713797,
+            "dispatch_to_terminal_ms": 82.121583,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 528.633103,
+            "process_start_to_source_ms": 610.394304,
+            "sent_at_monotonic_ns": 465494183660154,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465494264373951,
+            "source_to_terminal_ms": 1.407786,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465494265781737
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000090,
+            "dispatch_to_source_ms": 76.894537,
+            "dispatch_to_terminal_ms": 78.060058,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 503.865268,
+            "process_start_to_source_ms": 581.75459,
+            "sent_at_monotonic_ns": 465494834707310,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465494911601847,
+            "source_to_terminal_ms": 1.165521,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465494912767368
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000091,
+            "dispatch_to_source_ms": 71.397326,
+            "dispatch_to_terminal_ms": 72.373737,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 568.563851,
+            "process_start_to_source_ms": 641.105286,
+            "sent_at_monotonic_ns": 465495546490767,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465495617888093,
+            "source_to_terminal_ms": 0.976411,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465495618864504
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000092,
+            "dispatch_to_source_ms": 69.657513,
+            "dispatch_to_terminal_ms": 70.67954,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 582.917372,
+            "process_start_to_source_ms": 653.896081,
+            "sent_at_monotonic_ns": 465496267062612,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465496336720125,
+            "source_to_terminal_ms": 1.022027,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465496337742152
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000093,
+            "dispatch_to_source_ms": 74.705017,
+            "dispatch_to_terminal_ms": 75.845681,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 530.485561,
+            "process_start_to_source_ms": 606.238669,
+            "sent_at_monotonic_ns": 465496933253673,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465497007958690,
+            "source_to_terminal_ms": 1.140664,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465497009099354
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000094,
+            "dispatch_to_source_ms": 78.584186,
+            "dispatch_to_terminal_ms": 79.599193,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 526.720959,
+            "process_start_to_source_ms": 606.419717,
+            "sent_at_monotonic_ns": 465497600885078,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465497679469264,
+            "source_to_terminal_ms": 1.015007,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465497680484271
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000095,
+            "dispatch_to_source_ms": 72.642325,
+            "dispatch_to_terminal_ms": 73.978034,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 536.894827,
+            "process_start_to_source_ms": 610.613907,
+            "sent_at_monotonic_ns": 465498282622488,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465498355264813,
+            "source_to_terminal_ms": 1.335709,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465498356600522
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000096,
+            "dispatch_to_source_ms": 75.590324,
+            "dispatch_to_terminal_ms": 76.680756,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 515.457006,
+            "process_start_to_source_ms": 592.062888,
+            "sent_at_monotonic_ns": 465498937120477,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465499012710801,
+            "source_to_terminal_ms": 1.090432,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465499013801233
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000097,
+            "dispatch_to_source_ms": 73.319726,
+            "dispatch_to_terminal_ms": 74.433429,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 584.719999,
+            "process_start_to_source_ms": 659.10667,
+            "sent_at_monotonic_ns": 465499663664931,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465499736984657,
+            "source_to_terminal_ms": 1.113703,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465499738098360
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000098,
+            "dispatch_to_source_ms": 70.380435,
+            "dispatch_to_terminal_ms": 71.803097,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 504.644659,
+            "process_start_to_source_ms": 576.060424,
+            "sent_at_monotonic_ns": 465500307884027,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465500378264462,
+            "source_to_terminal_ms": 1.422662,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465500379687124
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000099,
+            "dispatch_to_source_ms": 90.027389,
+            "dispatch_to_terminal_ms": 91.577965,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 534.436173,
+            "process_start_to_source_ms": 625.566304,
+            "sent_at_monotonic_ns": 465500979246440,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465501069273829,
+            "source_to_terminal_ms": 1.550576,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465501070824405
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 90.027389,
+              "minimum": 69.657513,
+              "p50": 74.705017,
+              "p95": 84.670484,
+              "p99": 90.027389
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 91.577965,
+              "minimum": 70.67954,
+              "p50": 75.845681,
+              "p95": 85.578896,
+              "p99": 91.577965
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 618.44346,
+              "minimum": 457.130397,
+              "p50": 536.894827,
+              "p95": 588.255924,
+              "p99": 618.44346
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 691.374544,
+              "minimum": 542.940298,
+              "p50": 623.592426,
+              "p95": 662.262201,
+              "p99": 691.374544
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.58221,
+              "minimum": 0.908412,
+              "p50": 1.114781,
+              "p95": 1.550576,
+              "p99": 1.58221
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "replacement": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.473838,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000104,
+            "dispatch_to_source_ms": 138.778312,
+            "dispatch_to_terminal_ms": 164.702486,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 479.960549,
+            "process_start_to_source_ms": 620.528175,
+            "sent_at_monotonic_ns": 465501616856891,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465501755635203,
+            "source_to_terminal_ms": 25.924174,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465501781559377
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.357892,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000109,
+            "dispatch_to_source_ms": 144.046385,
+            "dispatch_to_terminal_ms": 173.376145,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 451.467482,
+            "process_start_to_source_ms": 596.57869,
+            "sent_at_monotonic_ns": 465502298121613,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465502442167998,
+            "source_to_terminal_ms": 29.32976,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465502471497758
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.327945,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000114,
+            "dispatch_to_source_ms": 126.010791,
+            "dispatch_to_terminal_ms": 152.122424,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 588.508748,
+            "process_start_to_source_ms": 715.551258,
+            "sent_at_monotonic_ns": 465503125159122,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465503251169913,
+            "source_to_terminal_ms": 26.111633,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465503277281546
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.384002,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000119,
+            "dispatch_to_source_ms": 129.237628,
+            "dispatch_to_terminal_ms": 154.900594,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 501.933835,
+            "process_start_to_source_ms": 632.327608,
+            "sent_at_monotonic_ns": 465503844542791,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465503973780419,
+            "source_to_terminal_ms": 25.662966,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465503999443385
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.312575,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000124,
+            "dispatch_to_source_ms": 141.07198,
+            "dispatch_to_terminal_ms": 167.362433,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 529.913168,
+            "process_start_to_source_ms": 671.98314,
+            "sent_at_monotonic_ns": 465504594527947,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465504735599927,
+            "source_to_terminal_ms": 26.290453,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465504761890380
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.37996,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000129,
+            "dispatch_to_source_ms": 137.973465,
+            "dispatch_to_terminal_ms": 165.582469,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 456.641024,
+            "process_start_to_source_ms": 595.785114,
+            "sent_at_monotonic_ns": 465505251769335,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465505389742800,
+            "source_to_terminal_ms": 27.609004,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465505417351804
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.332156,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000134,
+            "dispatch_to_source_ms": 130.560059,
+            "dispatch_to_terminal_ms": 157.541209,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 475.747341,
+            "process_start_to_source_ms": 607.3733,
+            "sent_at_monotonic_ns": 465505958330508,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465506088890567,
+            "source_to_terminal_ms": 26.98115,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465506115871717
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.434317,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000139,
+            "dispatch_to_source_ms": 135.19503,
+            "dispatch_to_terminal_ms": 162.038697,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 485.258374,
+            "process_start_to_source_ms": 621.866478,
+            "sent_at_monotonic_ns": 465506666984989,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465506802180019,
+            "source_to_terminal_ms": 26.843667,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465506829023686
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.531295,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000144,
+            "dispatch_to_source_ms": 127.55752,
+            "dispatch_to_terminal_ms": 155.567943,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 559.091073,
+            "process_start_to_source_ms": 687.711113,
+            "sent_at_monotonic_ns": 465507421101214,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465507548658734,
+            "source_to_terminal_ms": 28.010423,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465507576669157
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.380213,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000149,
+            "dispatch_to_source_ms": 134.619433,
+            "dispatch_to_terminal_ms": 161.628367,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 474.095256,
+            "process_start_to_source_ms": 609.973204,
+            "sent_at_monotonic_ns": 465508116368072,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465508250987505,
+            "source_to_terminal_ms": 27.008934,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465508277996439
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.297496,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000154,
+            "dispatch_to_source_ms": 126.589215,
+            "dispatch_to_terminal_ms": 153.18234,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 468.150955,
+            "process_start_to_source_ms": 595.853832,
+            "sent_at_monotonic_ns": 465508779128327,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465508905717542,
+            "source_to_terminal_ms": 26.593125,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465508932310667
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.326473,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000159,
+            "dispatch_to_source_ms": 126.863562,
+            "dispatch_to_terminal_ms": 153.146603,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 531.631474,
+            "process_start_to_source_ms": 659.59293,
+            "sent_at_monotonic_ns": 465509497334607,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465509624198169,
+            "source_to_terminal_ms": 26.283041,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465509650481210
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.315365,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000164,
+            "dispatch_to_source_ms": 129.963155,
+            "dispatch_to_terminal_ms": 156.564451,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 521.898201,
+            "process_start_to_source_ms": 652.87315,
+            "sent_at_monotonic_ns": 465510237602231,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465510367565386,
+            "source_to_terminal_ms": 26.601296,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465510394166682
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.319482,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000169,
+            "dispatch_to_source_ms": 128.958679,
+            "dispatch_to_terminal_ms": 155.101448,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 573.589015,
+            "process_start_to_source_ms": 703.596717,
+            "sent_at_monotonic_ns": 465511032861165,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465511161819844,
+            "source_to_terminal_ms": 26.142769,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465511187962613
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.408345,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000174,
+            "dispatch_to_source_ms": 139.968192,
+            "dispatch_to_terminal_ms": 168.715739,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 472.200194,
+            "process_start_to_source_ms": 613.476008,
+            "sent_at_monotonic_ns": 465511725585417,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465511865553609,
+            "source_to_terminal_ms": 28.747547,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465511894301156
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.302352,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000179,
+            "dispatch_to_source_ms": 140.15333,
+            "dispatch_to_terminal_ms": 170.720886,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 492.916219,
+            "process_start_to_source_ms": 634.172917,
+            "sent_at_monotonic_ns": 465512452629158,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465512592782488,
+            "source_to_terminal_ms": 30.567556,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465512623350044
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.402422,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000184,
+            "dispatch_to_source_ms": 131.717333,
+            "dispatch_to_terminal_ms": 160.415142,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 588.209834,
+            "process_start_to_source_ms": 720.991348,
+            "sent_at_monotonic_ns": 465513276844858,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465513408562191,
+            "source_to_terminal_ms": 28.697809,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465513437260000
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.299895,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000189,
+            "dispatch_to_source_ms": 142.200401,
+            "dispatch_to_terminal_ms": 172.199848,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 459.912457,
+            "process_start_to_source_ms": 603.125244,
+            "sent_at_monotonic_ns": 465513962296781,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465514104497182,
+            "source_to_terminal_ms": 29.999447,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465514134496629
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.307112,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000194,
+            "dispatch_to_source_ms": 123.348939,
+            "dispatch_to_terminal_ms": 152.169829,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 559.310864,
+            "process_start_to_source_ms": 683.765291,
+            "sent_at_monotonic_ns": 465514759233049,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465514882581988,
+            "source_to_terminal_ms": 28.82089,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465514911402878
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.575497,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000199,
+            "dispatch_to_source_ms": 129.870719,
+            "dispatch_to_terminal_ms": 159.99975,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 581.724483,
+            "process_start_to_source_ms": 712.933408,
+            "sent_at_monotonic_ns": 465515558527406,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465515688398125,
+            "source_to_terminal_ms": 30.129031,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465515718527156
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "cancel_terminal_ms": {
+              "count": 20,
+              "maximum": 0.575497,
+              "minimum": 0.297496,
+              "p50": 0.332156,
+              "p95": 0.531295,
+              "p99": 0.575497
+            },
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 144.046385,
+              "minimum": 123.348939,
+              "p50": 130.560059,
+              "p95": 142.200401,
+              "p99": 144.046385
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 173.376145,
+              "minimum": 152.122424,
+              "p50": 159.99975,
+              "p95": 172.199848,
+              "p99": 173.376145
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 588.508748,
+              "minimum": 451.467482,
+              "p50": 492.916219,
+              "p95": 588.209834,
+              "p99": 588.508748
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 720.991348,
+              "minimum": 595.785114,
+              "p50": 632.327608,
+              "p95": 715.551258,
+              "p99": 720.991348
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 30.567556,
+              "minimum": 25.662966,
+              "p50": 26.98115,
+              "p95": 30.129031,
+              "p99": 30.567556
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "word": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000020,
+            "dispatch_to_source_ms": 29.289997,
+            "dispatch_to_terminal_ms": 29.594024,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 502.179819,
+            "process_start_to_source_ms": 532.584203,
+            "sent_at_monotonic_ns": 465447106764674,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465447136054671,
+            "source_to_terminal_ms": 0.304027,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465447136358698
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000021,
+            "dispatch_to_source_ms": 30.258744,
+            "dispatch_to_terminal_ms": 30.481819,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 467.6173,
+            "process_start_to_source_ms": 498.95571,
+            "sent_at_monotonic_ns": 465447719222574,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465447749481318,
+            "source_to_terminal_ms": 0.223075,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465447749704393
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000022,
+            "dispatch_to_source_ms": 26.573334,
+            "dispatch_to_terminal_ms": 26.809443,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 520.940914,
+            "process_start_to_source_ms": 548.48956,
+            "sent_at_monotonic_ns": 465448435913983,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465448462487317,
+            "source_to_terminal_ms": 0.236109,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465448462723426
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000023,
+            "dispatch_to_source_ms": 30.400463,
+            "dispatch_to_terminal_ms": 30.530821,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 534.051096,
+            "process_start_to_source_ms": 565.349549,
+            "sent_at_monotonic_ns": 465449061715902,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465449092116365,
+            "source_to_terminal_ms": 0.130358,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465449092246723
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000024,
+            "dispatch_to_source_ms": 29.362405,
+            "dispatch_to_terminal_ms": 29.631394,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 501.729561,
+            "process_start_to_source_ms": 532.001138,
+            "sent_at_monotonic_ns": 465449659047903,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465449688410308,
+            "source_to_terminal_ms": 0.268989,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465449688679297
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000025,
+            "dispatch_to_source_ms": 29.946835,
+            "dispatch_to_terminal_ms": 30.018872,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 541.696745,
+            "process_start_to_source_ms": 572.569877,
+            "sent_at_monotonic_ns": 465450295546777,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465450325493612,
+            "source_to_terminal_ms": 0.072037,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465450325565649
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000026,
+            "dispatch_to_source_ms": 28.50782,
+            "dispatch_to_terminal_ms": 28.56516,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 555.156061,
+            "process_start_to_source_ms": 584.679673,
+            "sent_at_monotonic_ns": 465450913850434,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465450942358254,
+            "source_to_terminal_ms": 0.05734,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465450942415594
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000027,
+            "dispatch_to_source_ms": 28.83313,
+            "dispatch_to_terminal_ms": 29.109152,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 559.329511,
+            "process_start_to_source_ms": 589.037507,
+            "sent_at_monotonic_ns": 465451566822040,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465451595655170,
+            "source_to_terminal_ms": 0.276022,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465451595931192
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000028,
+            "dispatch_to_source_ms": 28.938227,
+            "dispatch_to_terminal_ms": 29.154039,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 485.192693,
+            "process_start_to_source_ms": 515.28652,
+            "sent_at_monotonic_ns": 465452146546728,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465452175484955,
+            "source_to_terminal_ms": 0.215812,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465452175700767
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000029,
+            "dispatch_to_source_ms": 29.013892,
+            "dispatch_to_terminal_ms": 29.367159,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 516.528633,
+            "process_start_to_source_ms": 546.415613,
+            "sent_at_monotonic_ns": 465452807247598,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465452836261490,
+            "source_to_terminal_ms": 0.353267,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465452836614757
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000030,
+            "dispatch_to_source_ms": 29.131561,
+            "dispatch_to_terminal_ms": 29.399373,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 566.993024,
+            "process_start_to_source_ms": 597.105285,
+            "sent_at_monotonic_ns": 465453468729182,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465453497860743,
+            "source_to_terminal_ms": 0.267812,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465453498128555
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000031,
+            "dispatch_to_source_ms": 29.368397,
+            "dispatch_to_terminal_ms": 29.676033,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 519.361275,
+            "process_start_to_source_ms": 549.688557,
+            "sent_at_monotonic_ns": 465454082478262,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465454111846659,
+            "source_to_terminal_ms": 0.307636,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465454112154295
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000032,
+            "dispatch_to_source_ms": 30.973933,
+            "dispatch_to_terminal_ms": 31.171529,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 539.767134,
+            "process_start_to_source_ms": 571.89156,
+            "sent_at_monotonic_ns": 465454717314803,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465454748288736,
+            "source_to_terminal_ms": 0.197596,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465454748486332
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000033,
+            "dispatch_to_source_ms": 36.788757,
+            "dispatch_to_terminal_ms": 36.874812,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 448.247192,
+            "process_start_to_source_ms": 485.958497,
+            "sent_at_monotonic_ns": 465455261561899,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465455298350656,
+            "source_to_terminal_ms": 0.086055,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465455298436711
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000034,
+            "dispatch_to_source_ms": 28.870445,
+            "dispatch_to_terminal_ms": 29.078892,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 464.233867,
+            "process_start_to_source_ms": 494.508361,
+            "sent_at_monotonic_ns": 465455878408901,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465455907279346,
+            "source_to_terminal_ms": 0.208447,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465455907487793
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000035,
+            "dispatch_to_source_ms": 26.488813,
+            "dispatch_to_terminal_ms": 26.772151,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 435.121835,
+            "process_start_to_source_ms": 462.522012,
+            "sent_at_monotonic_ns": 465456508087792,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465456534576605,
+            "source_to_terminal_ms": 0.283338,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465456534859943
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000036,
+            "dispatch_to_source_ms": 27.129631,
+            "dispatch_to_terminal_ms": 27.384236,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 488.980917,
+            "process_start_to_source_ms": 517.270936,
+            "sent_at_monotonic_ns": 465457189369097,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465457216498728,
+            "source_to_terminal_ms": 0.254605,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465457216753333
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000037,
+            "dispatch_to_source_ms": 28.281396,
+            "dispatch_to_terminal_ms": 28.336779,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 452.154297,
+            "process_start_to_source_ms": 481.301975,
+            "sent_at_monotonic_ns": 465457733950385,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465457762231781,
+            "source_to_terminal_ms": 0.055383,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465457762287164
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000038,
+            "dispatch_to_source_ms": 30.692424,
+            "dispatch_to_terminal_ms": 30.844309,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 465.922872,
+            "process_start_to_source_ms": 497.517843,
+            "sent_at_monotonic_ns": 465458343354136,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465458374046560,
+            "source_to_terminal_ms": 0.151885,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465458374198445
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000039,
+            "dispatch_to_source_ms": 29.159517,
+            "dispatch_to_terminal_ms": 29.270722,
+            "engine_id": "flite",
+            "process_start_to_ready_ms": 537.768638,
+            "process_start_to_source_ms": 567.909852,
+            "sent_at_monotonic_ns": 465459027291571,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465459056451088,
+            "source_to_terminal_ms": 0.111205,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465459056562293
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 36.788757,
+              "minimum": 26.488813,
+              "p50": 29.131561,
+              "p95": 30.973933,
+              "p99": 36.788757
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 36.874812,
+              "minimum": 26.772151,
+              "p50": 29.367159,
+              "p95": 31.171529,
+              "p99": 36.874812
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 566.993024,
+              "minimum": 435.121835,
+              "p50": 502.179819,
+              "p95": 559.329511,
+              "p99": 566.993024
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 597.105285,
+              "minimum": 462.522012,
+              "p50": 532.584203,
+              "p95": 589.037507,
+              "p99": 597.105285
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.353267,
+              "minimum": 0.055383,
+              "p50": 0.215812,
+              "p95": 0.307636,
+              "p99": 0.353267
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      }
+    },
+    "warm": {
+      "character": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000202,
+            "dispatch_to_source_ms": 19.948573,
+            "dispatch_to_terminal_ms": 20.033899,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516402068341,
+            "source_observed_at_monotonic_ns": 465516422016914,
+            "source_to_terminal_ms": 0.085326,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516422102240
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000203,
+            "dispatch_to_source_ms": 19.691091,
+            "dispatch_to_terminal_ms": 19.736579,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516422390945,
+            "source_observed_at_monotonic_ns": 465516442082036,
+            "source_to_terminal_ms": 0.045488,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516442127524
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000204,
+            "dispatch_to_source_ms": 18.987531,
+            "dispatch_to_terminal_ms": 19.033578,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516442285853,
+            "source_observed_at_monotonic_ns": 465516461273384,
+            "source_to_terminal_ms": 0.046047,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516461319431
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000205,
+            "dispatch_to_source_ms": 20.061956,
+            "dispatch_to_terminal_ms": 20.111046,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516461486561,
+            "source_observed_at_monotonic_ns": 465516481548517,
+            "source_to_terminal_ms": 0.04909,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516481597607
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000206,
+            "dispatch_to_source_ms": 19.334684,
+            "dispatch_to_terminal_ms": 19.450858,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516481762823,
+            "source_observed_at_monotonic_ns": 465516501097507,
+            "source_to_terminal_ms": 0.116174,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516501213681
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000207,
+            "dispatch_to_source_ms": 22.762802,
+            "dispatch_to_terminal_ms": 22.826795,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516501467588,
+            "source_observed_at_monotonic_ns": 465516524230390,
+            "source_to_terminal_ms": 0.063993,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516524294383
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000208,
+            "dispatch_to_source_ms": 18.985798,
+            "dispatch_to_terminal_ms": 19.023978,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516524471877,
+            "source_observed_at_monotonic_ns": 465516543457675,
+            "source_to_terminal_ms": 0.03818,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516543495855
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000209,
+            "dispatch_to_source_ms": 18.750184,
+            "dispatch_to_terminal_ms": 18.784325,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516543659191,
+            "source_observed_at_monotonic_ns": 465516562409375,
+            "source_to_terminal_ms": 0.034141,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516562443516
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000210,
+            "dispatch_to_source_ms": 19.505119,
+            "dispatch_to_terminal_ms": 19.553538,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516562602686,
+            "source_observed_at_monotonic_ns": 465516582107805,
+            "source_to_terminal_ms": 0.048419,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516582156224
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000211,
+            "dispatch_to_source_ms": 20.623246,
+            "dispatch_to_terminal_ms": 20.846559,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516582381433,
+            "source_observed_at_monotonic_ns": 465516603004679,
+            "source_to_terminal_ms": 0.223313,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516603227992
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000212,
+            "dispatch_to_source_ms": 20.564257,
+            "dispatch_to_terminal_ms": 20.812269,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516603330077,
+            "source_observed_at_monotonic_ns": 465516623894334,
+            "source_to_terminal_ms": 0.248012,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516624142346
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000213,
+            "dispatch_to_source_ms": 21.663916,
+            "dispatch_to_terminal_ms": 21.71667,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516624263997,
+            "source_observed_at_monotonic_ns": 465516645927913,
+            "source_to_terminal_ms": 0.052754,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516645980667
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000214,
+            "dispatch_to_source_ms": 21.640118,
+            "dispatch_to_terminal_ms": 21.694422,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516646195391,
+            "source_observed_at_monotonic_ns": 465516667835509,
+            "source_to_terminal_ms": 0.054304,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516667889813
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000215,
+            "dispatch_to_source_ms": 18.397951,
+            "dispatch_to_terminal_ms": 18.703378,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516668106552,
+            "source_observed_at_monotonic_ns": 465516686504503,
+            "source_to_terminal_ms": 0.305427,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516686809930
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000216,
+            "dispatch_to_source_ms": 20.475035,
+            "dispatch_to_terminal_ms": 20.544866,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516686961732,
+            "source_observed_at_monotonic_ns": 465516707436767,
+            "source_to_terminal_ms": 0.069831,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516707506598
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000217,
+            "dispatch_to_source_ms": 20.69388,
+            "dispatch_to_terminal_ms": 20.749299,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516707755604,
+            "source_observed_at_monotonic_ns": 465516728449484,
+            "source_to_terminal_ms": 0.055419,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516728504903
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000218,
+            "dispatch_to_source_ms": 20.604678,
+            "dispatch_to_terminal_ms": 20.669408,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516728687700,
+            "source_observed_at_monotonic_ns": 465516749292378,
+            "source_to_terminal_ms": 0.06473,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516749357108
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000219,
+            "dispatch_to_source_ms": 19.55235,
+            "dispatch_to_terminal_ms": 19.598564,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516749622243,
+            "source_observed_at_monotonic_ns": 465516769174593,
+            "source_to_terminal_ms": 0.046214,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516769220807
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000220,
+            "dispatch_to_source_ms": 20.160324,
+            "dispatch_to_terminal_ms": 20.2091,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516769534996,
+            "source_observed_at_monotonic_ns": 465516789695320,
+            "source_to_terminal_ms": 0.048776,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516789744096
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000221,
+            "dispatch_to_source_ms": 19.105023,
+            "dispatch_to_terminal_ms": 19.167471,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516789941350,
+            "source_observed_at_monotonic_ns": 465516809046373,
+            "source_to_terminal_ms": 0.062448,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516809108821
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 22.762802,
+              "minimum": 18.397951,
+              "p50": 19.948573,
+              "p95": 21.663916,
+              "p99": 22.762802
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 22.826795,
+              "minimum": 18.703378,
+              "p50": 20.033899,
+              "p95": 21.71667,
+              "p99": 22.826795
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.305427,
+              "minimum": 0.034141,
+              "p50": 0.054304,
+              "p95": 0.248012,
+              "p99": 0.305427
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "dense": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000268,
+            "dispatch_to_source_ms": 92.311826,
+            "dispatch_to_terminal_ms": 137.316824,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465519067279100,
+            "source_observed_at_monotonic_ns": 465519159590926,
+            "source_to_terminal_ms": 45.004998,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465519204595924
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000269,
+            "dispatch_to_source_ms": 95.59561,
+            "dispatch_to_terminal_ms": 153.151958,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465519204725422,
+            "source_observed_at_monotonic_ns": 465519300321032,
+            "source_to_terminal_ms": 57.556348,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465519357877380
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000270,
+            "dispatch_to_source_ms": 103.528054,
+            "dispatch_to_terminal_ms": 149.413344,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465519358019735,
+            "source_observed_at_monotonic_ns": 465519461547789,
+            "source_to_terminal_ms": 45.88529,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465519507433079
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000271,
+            "dispatch_to_source_ms": 96.895191,
+            "dispatch_to_terminal_ms": 144.32254,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465519507577224,
+            "source_observed_at_monotonic_ns": 465519604472415,
+            "source_to_terminal_ms": 47.427349,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465519651899764
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000272,
+            "dispatch_to_source_ms": 116.101612,
+            "dispatch_to_terminal_ms": 162.077649,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465519652106248,
+            "source_observed_at_monotonic_ns": 465519768207860,
+            "source_to_terminal_ms": 45.976037,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465519814183897
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000273,
+            "dispatch_to_source_ms": 97.007054,
+            "dispatch_to_terminal_ms": 146.682481,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465519814331852,
+            "source_observed_at_monotonic_ns": 465519911338906,
+            "source_to_terminal_ms": 49.675427,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465519961014333
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000274,
+            "dispatch_to_source_ms": 116.137217,
+            "dispatch_to_terminal_ms": 180.917537,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465519961149635,
+            "source_observed_at_monotonic_ns": 465520077286852,
+            "source_to_terminal_ms": 64.78032,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465520142067172
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000275,
+            "dispatch_to_source_ms": 113.190261,
+            "dispatch_to_terminal_ms": 171.256082,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465520142286288,
+            "source_observed_at_monotonic_ns": 465520255476549,
+            "source_to_terminal_ms": 58.065821,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465520313542370
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000276,
+            "dispatch_to_source_ms": 119.503327,
+            "dispatch_to_terminal_ms": 188.622849,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465520313782133,
+            "source_observed_at_monotonic_ns": 465520433285460,
+            "source_to_terminal_ms": 69.119522,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465520502404982
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000277,
+            "dispatch_to_source_ms": 115.388605,
+            "dispatch_to_terminal_ms": 159.115457,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465520502595443,
+            "source_observed_at_monotonic_ns": 465520617984048,
+            "source_to_terminal_ms": 43.726852,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465520661710900
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000278,
+            "dispatch_to_source_ms": 97.67032,
+            "dispatch_to_terminal_ms": 141.597477,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465520661857454,
+            "source_observed_at_monotonic_ns": 465520759527774,
+            "source_to_terminal_ms": 43.927157,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465520803454931
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000279,
+            "dispatch_to_source_ms": 89.500552,
+            "dispatch_to_terminal_ms": 139.1024,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465520803599316,
+            "source_observed_at_monotonic_ns": 465520893099868,
+            "source_to_terminal_ms": 49.601848,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465520942701716
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000280,
+            "dispatch_to_source_ms": 100.505089,
+            "dispatch_to_terminal_ms": 150.956388,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465520942831327,
+            "source_observed_at_monotonic_ns": 465521043336416,
+            "source_to_terminal_ms": 50.451299,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465521093787715
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000281,
+            "dispatch_to_source_ms": 94.404391,
+            "dispatch_to_terminal_ms": 139.190522,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465521093937476,
+            "source_observed_at_monotonic_ns": 465521188341867,
+            "source_to_terminal_ms": 44.786131,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465521233127998
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000282,
+            "dispatch_to_source_ms": 86.931936,
+            "dispatch_to_terminal_ms": 133.20122,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465521233262899,
+            "source_observed_at_monotonic_ns": 465521320194835,
+            "source_to_terminal_ms": 46.269284,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465521366464119
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000283,
+            "dispatch_to_source_ms": 95.338008,
+            "dispatch_to_terminal_ms": 140.589437,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465521366616254,
+            "source_observed_at_monotonic_ns": 465521461954262,
+            "source_to_terminal_ms": 45.251429,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465521507205691
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000284,
+            "dispatch_to_source_ms": 106.752133,
+            "dispatch_to_terminal_ms": 164.960217,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465521507321977,
+            "source_observed_at_monotonic_ns": 465521614074110,
+            "source_to_terminal_ms": 58.208084,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465521672282194
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000285,
+            "dispatch_to_source_ms": 106.144833,
+            "dispatch_to_terminal_ms": 155.841659,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465521672423467,
+            "source_observed_at_monotonic_ns": 465521778568300,
+            "source_to_terminal_ms": 49.696826,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465521828265126
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000286,
+            "dispatch_to_source_ms": 125.178464,
+            "dispatch_to_terminal_ms": 174.641696,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465521828408017,
+            "source_observed_at_monotonic_ns": 465521953586481,
+            "source_to_terminal_ms": 49.463232,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522003049713
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000287,
+            "dispatch_to_source_ms": 89.637404,
+            "dispatch_to_terminal_ms": 132.810346,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522003183669,
+            "source_observed_at_monotonic_ns": 465522092821073,
+            "source_to_terminal_ms": 43.172942,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522135994015
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 125.178464,
+              "minimum": 86.931936,
+              "p50": 97.67032,
+              "p95": 119.503327,
+              "p99": 125.178464
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 188.622849,
+              "minimum": 132.810346,
+              "p50": 149.413344,
+              "p95": 180.917537,
+              "p99": 188.622849
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 69.119522,
+              "minimum": 43.172942,
+              "p50": 47.427349,
+              "p95": 64.78032,
+              "p99": 69.119522
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "line": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000246,
+            "dispatch_to_source_ms": 56.746934,
+            "dispatch_to_terminal_ms": 57.562943,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517547584671,
+            "source_observed_at_monotonic_ns": 465517604331605,
+            "source_to_terminal_ms": 0.816009,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517605147614
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000247,
+            "dispatch_to_source_ms": 63.118896,
+            "dispatch_to_terminal_ms": 63.98081,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517605279291,
+            "source_observed_at_monotonic_ns": 465517668398187,
+            "source_to_terminal_ms": 0.861914,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517669260101
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000248,
+            "dispatch_to_source_ms": 59.336262,
+            "dispatch_to_terminal_ms": 60.14754,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517669391003,
+            "source_observed_at_monotonic_ns": 465517728727265,
+            "source_to_terminal_ms": 0.811278,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517729538543
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000249,
+            "dispatch_to_source_ms": 63.998063,
+            "dispatch_to_terminal_ms": 64.802038,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517729684570,
+            "source_observed_at_monotonic_ns": 465517793682633,
+            "source_to_terminal_ms": 0.803975,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517794486608
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000250,
+            "dispatch_to_source_ms": 58.29243,
+            "dispatch_to_terminal_ms": 59.200728,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517794643234,
+            "source_observed_at_monotonic_ns": 465517852935664,
+            "source_to_terminal_ms": 0.908298,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517853843962
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000251,
+            "dispatch_to_source_ms": 63.616324,
+            "dispatch_to_terminal_ms": 64.533606,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517853944461,
+            "source_observed_at_monotonic_ns": 465517917560785,
+            "source_to_terminal_ms": 0.917282,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517918478067
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000252,
+            "dispatch_to_source_ms": 61.959759,
+            "dispatch_to_terminal_ms": 62.850739,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517918575137,
+            "source_observed_at_monotonic_ns": 465517980534896,
+            "source_to_terminal_ms": 0.89098,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517981425876
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000253,
+            "dispatch_to_source_ms": 62.012525,
+            "dispatch_to_terminal_ms": 62.837187,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517981576532,
+            "source_observed_at_monotonic_ns": 465518043589057,
+            "source_to_terminal_ms": 0.824662,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518044413719
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000254,
+            "dispatch_to_source_ms": 59.090921,
+            "dispatch_to_terminal_ms": 59.917716,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518044547114,
+            "source_observed_at_monotonic_ns": 465518103638035,
+            "source_to_terminal_ms": 0.826795,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518104464830
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000255,
+            "dispatch_to_source_ms": 59.626055,
+            "dispatch_to_terminal_ms": 60.694553,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518104572077,
+            "source_observed_at_monotonic_ns": 465518164198132,
+            "source_to_terminal_ms": 1.068498,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518165266630
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000256,
+            "dispatch_to_source_ms": 59.338029,
+            "dispatch_to_terminal_ms": 60.174867,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518165383252,
+            "source_observed_at_monotonic_ns": 465518224721281,
+            "source_to_terminal_ms": 0.836838,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518225558119
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000257,
+            "dispatch_to_source_ms": 63.750314,
+            "dispatch_to_terminal_ms": 64.905787,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518225662906,
+            "source_observed_at_monotonic_ns": 465518289413220,
+            "source_to_terminal_ms": 1.155473,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518290568693
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000258,
+            "dispatch_to_source_ms": 63.628049,
+            "dispatch_to_terminal_ms": 64.516127,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518290731250,
+            "source_observed_at_monotonic_ns": 465518354359299,
+            "source_to_terminal_ms": 0.888078,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518355247377
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000259,
+            "dispatch_to_source_ms": 57.690665,
+            "dispatch_to_terminal_ms": 58.551627,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518355368402,
+            "source_observed_at_monotonic_ns": 465518413059067,
+            "source_to_terminal_ms": 0.860962,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518413920029
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000260,
+            "dispatch_to_source_ms": 58.974878,
+            "dispatch_to_terminal_ms": 59.880006,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518414061646,
+            "source_observed_at_monotonic_ns": 465518473036524,
+            "source_to_terminal_ms": 0.905128,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518473941652
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000261,
+            "dispatch_to_source_ms": 62.85884,
+            "dispatch_to_terminal_ms": 63.660783,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518474143655,
+            "source_observed_at_monotonic_ns": 465518537002495,
+            "source_to_terminal_ms": 0.801943,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518537804438
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000262,
+            "dispatch_to_source_ms": 62.325424,
+            "dispatch_to_terminal_ms": 63.280351,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518537961365,
+            "source_observed_at_monotonic_ns": 465518600286789,
+            "source_to_terminal_ms": 0.954927,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518601241716
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000263,
+            "dispatch_to_source_ms": 67.240915,
+            "dispatch_to_terminal_ms": 68.020717,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518601391819,
+            "source_observed_at_monotonic_ns": 465518668632734,
+            "source_to_terminal_ms": 0.779802,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518669412536
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000264,
+            "dispatch_to_source_ms": 57.707436,
+            "dispatch_to_terminal_ms": 58.60271,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518669654758,
+            "source_observed_at_monotonic_ns": 465518727362194,
+            "source_to_terminal_ms": 0.895274,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518728257468
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000265,
+            "dispatch_to_source_ms": 59.214529,
+            "dispatch_to_terminal_ms": 60.105791,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465518728353518,
+            "source_observed_at_monotonic_ns": 465518787568047,
+            "source_to_terminal_ms": 0.891262,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465518788459309
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 67.240915,
+              "minimum": 56.746934,
+              "p50": 59.626055,
+              "p95": 63.998063,
+              "p99": 67.240915
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 68.020717,
+              "minimum": 57.562943,
+              "p50": 60.694553,
+              "p95": 64.905787,
+              "p99": 68.020717
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.155473,
+              "minimum": 0.779802,
+              "p50": 0.861914,
+              "p95": 1.068498,
+              "p99": 1.155473
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "multipart": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000290,
+            "dispatch_to_source_ms": 89.251841,
+            "dispatch_to_terminal_ms": 91.087311,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522279217368,
+            "source_observed_at_monotonic_ns": 465522368469209,
+            "source_to_terminal_ms": 1.83547,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522370304679
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000291,
+            "dispatch_to_source_ms": 67.511578,
+            "dispatch_to_terminal_ms": 68.791044,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522370438593,
+            "source_observed_at_monotonic_ns": 465522437950171,
+            "source_to_terminal_ms": 1.279466,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522439229637
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000292,
+            "dispatch_to_source_ms": 66.671258,
+            "dispatch_to_terminal_ms": 67.587072,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522439375755,
+            "source_observed_at_monotonic_ns": 465522506047013,
+            "source_to_terminal_ms": 0.915814,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522506962827
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000293,
+            "dispatch_to_source_ms": 78.898801,
+            "dispatch_to_terminal_ms": 80.153925,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522507111726,
+            "source_observed_at_monotonic_ns": 465522586010527,
+            "source_to_terminal_ms": 1.255124,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522587265651
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000294,
+            "dispatch_to_source_ms": 67.345629,
+            "dispatch_to_terminal_ms": 68.739775,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522587395713,
+            "source_observed_at_monotonic_ns": 465522654741342,
+            "source_to_terminal_ms": 1.394146,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522656135488
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000295,
+            "dispatch_to_source_ms": 68.735844,
+            "dispatch_to_terminal_ms": 70.872149,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522656272859,
+            "source_observed_at_monotonic_ns": 465522725008703,
+            "source_to_terminal_ms": 2.136305,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522727145008
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000296,
+            "dispatch_to_source_ms": 65.847734,
+            "dispatch_to_terminal_ms": 67.158789,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522727270167,
+            "source_observed_at_monotonic_ns": 465522793117901,
+            "source_to_terminal_ms": 1.311055,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522794428956
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000297,
+            "dispatch_to_source_ms": 75.40447,
+            "dispatch_to_terminal_ms": 76.563179,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522794588294,
+            "source_observed_at_monotonic_ns": 465522869992764,
+            "source_to_terminal_ms": 1.158709,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522871151473
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000298,
+            "dispatch_to_source_ms": 83.66025,
+            "dispatch_to_terminal_ms": 85.073801,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522871288599,
+            "source_observed_at_monotonic_ns": 465522954948849,
+            "source_to_terminal_ms": 1.413551,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465522956362400
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000299,
+            "dispatch_to_source_ms": 75.40046,
+            "dispatch_to_terminal_ms": 76.56518,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465522956496742,
+            "source_observed_at_monotonic_ns": 465523031897202,
+            "source_to_terminal_ms": 1.16472,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523033061922
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000300,
+            "dispatch_to_source_ms": 73.616791,
+            "dispatch_to_terminal_ms": 75.138393,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523033180476,
+            "source_observed_at_monotonic_ns": 465523106797267,
+            "source_to_terminal_ms": 1.521602,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523108318869
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000301,
+            "dispatch_to_source_ms": 67.705294,
+            "dispatch_to_terminal_ms": 69.837918,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523108495983,
+            "source_observed_at_monotonic_ns": 465523176201277,
+            "source_to_terminal_ms": 2.132624,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523178333901
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000302,
+            "dispatch_to_source_ms": 84.392158,
+            "dispatch_to_terminal_ms": 85.40168,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523178554750,
+            "source_observed_at_monotonic_ns": 465523262946908,
+            "source_to_terminal_ms": 1.009522,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523263956430
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000303,
+            "dispatch_to_source_ms": 81.819143,
+            "dispatch_to_terminal_ms": 82.984687,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523264119856,
+            "source_observed_at_monotonic_ns": 465523345938999,
+            "source_to_terminal_ms": 1.165544,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523347104543
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000304,
+            "dispatch_to_source_ms": 82.584319,
+            "dispatch_to_terminal_ms": 83.887495,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523347228615,
+            "source_observed_at_monotonic_ns": 465523429812934,
+            "source_to_terminal_ms": 1.303176,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523431116110
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000305,
+            "dispatch_to_source_ms": 78.313209,
+            "dispatch_to_terminal_ms": 79.331669,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523431285773,
+            "source_observed_at_monotonic_ns": 465523509598982,
+            "source_to_terminal_ms": 1.01846,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523510617442
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000306,
+            "dispatch_to_source_ms": 79.63656,
+            "dispatch_to_terminal_ms": 80.962815,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523510916594,
+            "source_observed_at_monotonic_ns": 465523590553154,
+            "source_to_terminal_ms": 1.326255,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523591879409
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000307,
+            "dispatch_to_source_ms": 91.214357,
+            "dispatch_to_terminal_ms": 92.238571,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523592067994,
+            "source_observed_at_monotonic_ns": 465523683282351,
+            "source_to_terminal_ms": 1.024214,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523684306565
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000308,
+            "dispatch_to_source_ms": 70.548291,
+            "dispatch_to_terminal_ms": 72.008241,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523684475754,
+            "source_observed_at_monotonic_ns": 465523755024045,
+            "source_to_terminal_ms": 1.45995,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523756483995
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000309,
+            "dispatch_to_source_ms": 75.988597,
+            "dispatch_to_terminal_ms": 77.261237,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465523756662323,
+            "source_observed_at_monotonic_ns": 465523832650920,
+            "source_to_terminal_ms": 1.27264,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465523833923560
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 91.214357,
+              "minimum": 65.847734,
+              "p50": 75.40447,
+              "p95": 89.251841,
+              "p99": 91.214357
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 92.238571,
+              "minimum": 67.158789,
+              "p50": 76.56518,
+              "p95": 91.087311,
+              "p99": 92.238571
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 2.136305,
+              "minimum": 0.915814,
+              "p50": 1.279466,
+              "p95": 2.132624,
+              "p99": 2.136305
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "replacement": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.315447,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000324,
+            "dispatch_to_source_ms": 144.266332,
+            "dispatch_to_terminal_ms": 172.472871,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465524216768417,
+            "source_observed_at_monotonic_ns": 465524361034749,
+            "source_to_terminal_ms": 28.206539,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465524389241288
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.436422,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000329,
+            "dispatch_to_source_ms": 129.875226,
+            "dispatch_to_terminal_ms": 155.845658,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465524389494027,
+            "source_observed_at_monotonic_ns": 465524519369253,
+            "source_to_terminal_ms": 25.970432,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465524545339685
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.450342,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000334,
+            "dispatch_to_source_ms": 141.293336,
+            "dispatch_to_terminal_ms": 166.376687,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465524545564673,
+            "source_observed_at_monotonic_ns": 465524686858009,
+            "source_to_terminal_ms": 25.083351,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465524711941360
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.301447,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000339,
+            "dispatch_to_source_ms": 134.664137,
+            "dispatch_to_terminal_ms": 160.103438,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465524712156808,
+            "source_observed_at_monotonic_ns": 465524846820945,
+            "source_to_terminal_ms": 25.439301,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465524872260246
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.442937,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000344,
+            "dispatch_to_source_ms": 128.276364,
+            "dispatch_to_terminal_ms": 154.130324,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465524872452797,
+            "source_observed_at_monotonic_ns": 465525000729161,
+            "source_to_terminal_ms": 25.85396,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465525026583121
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.266384,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000349,
+            "dispatch_to_source_ms": 131.34415,
+            "dispatch_to_terminal_ms": 156.706369,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465525026798828,
+            "source_observed_at_monotonic_ns": 465525158142978,
+            "source_to_terminal_ms": 25.362219,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465525183505197
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.447539,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000354,
+            "dispatch_to_source_ms": 120.858304,
+            "dispatch_to_terminal_ms": 145.921804,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465525183787259,
+            "source_observed_at_monotonic_ns": 465525304645563,
+            "source_to_terminal_ms": 25.0635,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465525329709063
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.429763,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000359,
+            "dispatch_to_source_ms": 131.365889,
+            "dispatch_to_terminal_ms": 161.399791,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465525329894529,
+            "source_observed_at_monotonic_ns": 465525461260418,
+            "source_to_terminal_ms": 30.033902,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465525491294320
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.292508,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000364,
+            "dispatch_to_source_ms": 129.835052,
+            "dispatch_to_terminal_ms": 153.643871,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465525491514808,
+            "source_observed_at_monotonic_ns": 465525621349860,
+            "source_to_terminal_ms": 23.808819,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465525645158679
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.467485,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000369,
+            "dispatch_to_source_ms": 136.031658,
+            "dispatch_to_terminal_ms": 160.930295,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465525645435509,
+            "source_observed_at_monotonic_ns": 465525781467167,
+            "source_to_terminal_ms": 24.898637,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465525806365804
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.430731,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000374,
+            "dispatch_to_source_ms": 139.209645,
+            "dispatch_to_terminal_ms": 164.602322,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465525806556040,
+            "source_observed_at_monotonic_ns": 465525945765685,
+            "source_to_terminal_ms": 25.392677,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465525971158362
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.289615,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000379,
+            "dispatch_to_source_ms": 123.726971,
+            "dispatch_to_terminal_ms": 157.024817,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465525971362799,
+            "source_observed_at_monotonic_ns": 465526095089770,
+            "source_to_terminal_ms": 33.297846,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465526128387616
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.309995,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000384,
+            "dispatch_to_source_ms": 137.30486,
+            "dispatch_to_terminal_ms": 163.05587,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465526128650054,
+            "source_observed_at_monotonic_ns": 465526265954914,
+            "source_to_terminal_ms": 25.75101,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465526291705924
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.485734,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000389,
+            "dispatch_to_source_ms": 139.14235,
+            "dispatch_to_terminal_ms": 165.877769,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465526292117417,
+            "source_observed_at_monotonic_ns": 465526431259767,
+            "source_to_terminal_ms": 26.735419,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465526457995186
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.345372,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000394,
+            "dispatch_to_source_ms": 158.619313,
+            "dispatch_to_terminal_ms": 184.585899,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465526458192545,
+            "source_observed_at_monotonic_ns": 465526616811858,
+            "source_to_terminal_ms": 25.966586,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465526642778444
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.481101,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000399,
+            "dispatch_to_source_ms": 163.730767,
+            "dispatch_to_terminal_ms": 193.28841,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465526643200409,
+            "source_observed_at_monotonic_ns": 465526806931176,
+            "source_to_terminal_ms": 29.557643,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465526836488819
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.32157,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000404,
+            "dispatch_to_source_ms": 141.074073,
+            "dispatch_to_terminal_ms": 175.167658,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465526836749260,
+            "source_observed_at_monotonic_ns": 465526977823333,
+            "source_to_terminal_ms": 34.093585,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465527011916918
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.490691,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000409,
+            "dispatch_to_source_ms": 123.205979,
+            "dispatch_to_terminal_ms": 147.630845,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465527012455701,
+            "source_observed_at_monotonic_ns": 465527135661680,
+            "source_to_terminal_ms": 24.424866,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465527160086546
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.502292,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000414,
+            "dispatch_to_source_ms": 135.95737,
+            "dispatch_to_terminal_ms": 163.689789,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465527160773382,
+            "source_observed_at_monotonic_ns": 465527296730752,
+            "source_to_terminal_ms": 27.732419,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465527324463171
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "cancel_terminal_ms": 0.529954,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000419,
+            "dispatch_to_source_ms": 131.276925,
+            "dispatch_to_terminal_ms": 158.452603,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465527324686962,
+            "source_observed_at_monotonic_ns": 465527455963887,
+            "source_to_terminal_ms": 27.175678,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465527483139565
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "cancel_terminal_ms": {
+              "count": 20,
+              "maximum": 0.529954,
+              "minimum": 0.266384,
+              "p50": 0.430731,
+              "p95": 0.502292,
+              "p99": 0.529954
+            },
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 163.730767,
+              "minimum": 120.858304,
+              "p50": 134.664137,
+              "p95": 158.619313,
+              "p99": 163.730767
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 193.28841,
+              "minimum": 145.921804,
+              "p50": 160.930295,
+              "p95": 184.585899,
+              "p99": 193.28841
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 34.093585,
+              "minimum": 23.808819,
+              "p50": 25.85396,
+              "p95": 33.297846,
+              "p99": 34.093585
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      },
+      "word": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000224,
+            "dispatch_to_source_ms": 27.732625,
+            "dispatch_to_terminal_ms": 27.922805,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516864382832,
+            "source_observed_at_monotonic_ns": 465516892115457,
+            "source_to_terminal_ms": 0.19018,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516892305637
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000225,
+            "dispatch_to_source_ms": 28.901419,
+            "dispatch_to_terminal_ms": 29.166207,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516892398357,
+            "source_observed_at_monotonic_ns": 465516921299776,
+            "source_to_terminal_ms": 0.264788,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516921564564
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000226,
+            "dispatch_to_source_ms": 28.078099,
+            "dispatch_to_terminal_ms": 28.323438,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516921673262,
+            "source_observed_at_monotonic_ns": 465516949751361,
+            "source_to_terminal_ms": 0.245339,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516949996700
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000227,
+            "dispatch_to_source_ms": 27.843338,
+            "dispatch_to_terminal_ms": 28.098813,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516950131279,
+            "source_observed_at_monotonic_ns": 465516977974617,
+            "source_to_terminal_ms": 0.255475,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465516978230092
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000228,
+            "dispatch_to_source_ms": 29.379097,
+            "dispatch_to_terminal_ms": 29.591999,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465516978328475,
+            "source_observed_at_monotonic_ns": 465517007707572,
+            "source_to_terminal_ms": 0.212902,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517007920474
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000229,
+            "dispatch_to_source_ms": 28.014533,
+            "dispatch_to_terminal_ms": 28.277305,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517008073969,
+            "source_observed_at_monotonic_ns": 465517036088502,
+            "source_to_terminal_ms": 0.262772,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517036351274
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000230,
+            "dispatch_to_source_ms": 29.350074,
+            "dispatch_to_terminal_ms": 29.568656,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517036497867,
+            "source_observed_at_monotonic_ns": 465517065847941,
+            "source_to_terminal_ms": 0.218582,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517066066523
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000231,
+            "dispatch_to_source_ms": 27.603903,
+            "dispatch_to_terminal_ms": 27.811931,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517066183497,
+            "source_observed_at_monotonic_ns": 465517093787400,
+            "source_to_terminal_ms": 0.208028,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517093995428
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000232,
+            "dispatch_to_source_ms": 30.369608,
+            "dispatch_to_terminal_ms": 30.634175,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517094082262,
+            "source_observed_at_monotonic_ns": 465517124451870,
+            "source_to_terminal_ms": 0.264567,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517124716437
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000233,
+            "dispatch_to_source_ms": 26.559999,
+            "dispatch_to_terminal_ms": 26.619347,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517124813778,
+            "source_observed_at_monotonic_ns": 465517151373777,
+            "source_to_terminal_ms": 0.059348,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517151433125
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000234,
+            "dispatch_to_source_ms": 27.641023,
+            "dispatch_to_terminal_ms": 27.719006,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517151684778,
+            "source_observed_at_monotonic_ns": 465517179325801,
+            "source_to_terminal_ms": 0.077983,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517179403784
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000235,
+            "dispatch_to_source_ms": 27.28299,
+            "dispatch_to_terminal_ms": 27.541169,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517179699922,
+            "source_observed_at_monotonic_ns": 465517206982912,
+            "source_to_terminal_ms": 0.258179,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517207241091
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000236,
+            "dispatch_to_source_ms": 27.164941,
+            "dispatch_to_terminal_ms": 27.403826,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517207356554,
+            "source_observed_at_monotonic_ns": 465517234521495,
+            "source_to_terminal_ms": 0.238885,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517234760380
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000237,
+            "dispatch_to_source_ms": 27.377311,
+            "dispatch_to_terminal_ms": 27.596897,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517234867067,
+            "source_observed_at_monotonic_ns": 465517262244378,
+            "source_to_terminal_ms": 0.219586,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517262463964
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000238,
+            "dispatch_to_source_ms": 26.315007,
+            "dispatch_to_terminal_ms": 26.570295,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517262577355,
+            "source_observed_at_monotonic_ns": 465517288892362,
+            "source_to_terminal_ms": 0.255288,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517289147650
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000239,
+            "dispatch_to_source_ms": 27.726301,
+            "dispatch_to_terminal_ms": 27.782994,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517289264377,
+            "source_observed_at_monotonic_ns": 465517316990678,
+            "source_to_terminal_ms": 0.056693,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517317047371
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000240,
+            "dispatch_to_source_ms": 26.814459,
+            "dispatch_to_terminal_ms": 27.007418,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517317242542,
+            "source_observed_at_monotonic_ns": 465517344057001,
+            "source_to_terminal_ms": 0.192959,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517344249960
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000241,
+            "dispatch_to_source_ms": 26.525834,
+            "dispatch_to_terminal_ms": 26.704284,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517344377591,
+            "source_observed_at_monotonic_ns": 465517370903425,
+            "source_to_terminal_ms": 0.17845,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517371081875
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000242,
+            "dispatch_to_source_ms": 29.287653,
+            "dispatch_to_terminal_ms": 29.53629,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517371169926,
+            "source_observed_at_monotonic_ns": 465517400457579,
+            "source_to_terminal_ms": 0.248637,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517400706216
+          },
+          {
+            "actual_voice": {
+              "engine_id": "flite",
+              "voice_id": "cmu_us_slt"
+            },
+            "dispatch_id": 1000243,
+            "dispatch_to_source_ms": 27.149221,
+            "dispatch_to_terminal_ms": 27.299206,
+            "engine_id": "flite",
+            "sent_at_monotonic_ns": 465517400843549,
+            "source_observed_at_monotonic_ns": 465517427992770,
+            "source_to_terminal_ms": 0.149985,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465517428142755
+          }
+        ],
+        "summary": {
+          "engines": {
+            "flite": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 30.369608,
+              "minimum": 26.315007,
+              "p50": 27.641023,
+              "p95": 29.379097,
+              "p99": 30.369608
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 30.634175,
+              "minimum": 26.570295,
+              "p50": 27.782994,
+              "p95": 29.591999,
+              "p99": 30.634175
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.264788,
+              "minimum": 0.056693,
+              "p50": 0.218582,
+              "p95": 0.264567,
+              "p99": 0.264788
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "flite": {
+              "cmu_us_slt": 20
+            }
+          }
+        }
+      }
+    }
+  },
+  "server": {
+    "features": [
+      "control_v1",
+      "emacsvox_tx",
+      "engine_inventory",
+      "engine_recovery_probe",
+      "exact_voice_preview",
+      "legacy_commands",
+      "logical_voice_registration",
+      "logical_voice_language_routing",
+      "logical_voice_routing",
+      "playback_marker_events_v1",
+      "playback_marker_events_v2",
+      "presentation_timeline_v1",
+      "presentation_timeline_v2",
+      "presentation_timeline_v3",
+      "presentation_tone_v1",
+      "post_synthesis_effects_v1",
+      "preferred_engine",
+      "process_audio_routing",
+      "relative_rate_v1",
+      "runtime_routing_policy",
+      "stable_voice_ids",
+      "text_repertoire_routing_v1",
+      "tracked_playback_completion"
+    ],
+    "version": "1.6.4",
+    "warm_process_start_to_ready_ms": 577.582462
+  }
+}

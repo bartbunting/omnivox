@@ -1,0 +1,107 @@
+{
+  "completed_at": "2026-09-02T21:18:52.769899+00:00",
+  "configuration": {
+    "benchmark": {
+      "iterations": 20,
+      "mode": "both",
+      "null_audio": true,
+      "replacement_burst": 5,
+      "timeout_seconds": 90.0,
+      "warmups": 2
+    },
+    "plan_sha256": "9821fabbc5531c8c6ddde962736f9920a29412ac4288dde174fece68ec38de1f",
+    "repeats": 1,
+    "run_ids": [
+      "winrt-david",
+      "espeak-en-us",
+      "rhvoice-slt",
+      "flite-slt",
+      "rutts-male",
+      "dectalk-paul",
+      "eloquence-v1",
+      "tgspeechbox-adam"
+    ],
+    "seed": 20260903
+  },
+  "created_at": "2026-09-02T21:03:41.310670+00:00",
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "report_version": 1,
+  "runs": [
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T21:03:41.362788+00:00",
+      "order": 1,
+      "repeat": 1,
+      "report": "repeat-001-order-001-eloquence-v1.json",
+      "run_id": "eloquence-v1",
+      "sha256": "dc6b48d68e98ace85e13778676f0bf0eef1a6ac03d97c3ebd8b06e3c28e9f35d"
+    },
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T21:05:03.247364+00:00",
+      "order": 2,
+      "repeat": 1,
+      "report": "repeat-001-order-002-winrt-david.json",
+      "run_id": "winrt-david",
+      "sha256": "f3b1811e2ab92bb3d0feabf0233fd8a615418f617289ca14f60d2327dd734f94"
+    },
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T21:06:39.227530+00:00",
+      "order": 3,
+      "repeat": 1,
+      "report": "repeat-001-order-003-rutts-male.json",
+      "run_id": "rutts-male",
+      "sha256": "b831ee43673d7ef060c479885937494123a5144f850c8b08efa2337a9f1b526b"
+    },
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T21:07:59.359385+00:00",
+      "order": 4,
+      "repeat": 1,
+      "report": "repeat-001-order-004-flite-slt.json",
+      "run_id": "flite-slt",
+      "sha256": "5cef2616053ef0ee8fe2bcfafce84a003e8616355275af372d5509963aad95c0"
+    },
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T21:09:33.412876+00:00",
+      "order": 5,
+      "repeat": 1,
+      "report": "repeat-001-order-005-dectalk-paul.json",
+      "run_id": "dectalk-paul",
+      "sha256": "f6954e4ed165ba3063b486e0c562fc63d961a8cf85c55f50632fc81c7b96ad1d"
+    },
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T21:11:18.561651+00:00",
+      "order": 6,
+      "repeat": 1,
+      "report": "repeat-001-order-006-espeak-en-us.json",
+      "run_id": "espeak-en-us",
+      "sha256": "9e3c02c34745e4deac80e15cd87bc58b8712990ec224322ab7524a781eb8979f"
+    },
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T21:13:06.970454+00:00",
+      "order": 7,
+      "repeat": 1,
+      "report": "repeat-001-order-007-rhvoice-slt.json",
+      "run_id": "rhvoice-slt",
+      "sha256": "212fe98d4199441a0301f697fde5916e3fda3c20875588a09c9aaf2f3a74d081"
+    },
+    {
+      "benchmark_report_version": 2,
+      "created_at": "2026-09-02T21:15:05.116230+00:00",
+      "order": 8,
+      "repeat": 1,
+      "report": "repeat-001-order-008-tgspeechbox-adam.json",
+      "run_id": "tgspeechbox-adam",
+      "sha256": "89b46f02fa8bb4e76780f8ffae462d12842ea04347bce52acf7735828f0d2955"
+    }
+  ],
+  "status": "complete"
+}

@@ -1,0 +1,4784 @@
+{
+  "configuration": {
+    "audio_output": "null",
+    "cases": [
+      "character",
+      "word",
+      "line",
+      "dense",
+      "multipart",
+      "replacement"
+    ],
+    "engine": "rhvoice",
+    "expected_engine_id": "rhvoice",
+    "iterations": 20,
+    "mode": "both",
+    "preferred_engine_id": null,
+    "replacement_burst": 5,
+    "server_command": [
+      "/home/bart/src/emacsvox/servers/omnivox",
+      "--audio-output",
+      "null"
+    ],
+    "text_profile": "english",
+    "timeout_seconds": 90.0,
+    "voice_id": "rhvoice:Slt",
+    "warmups": 2
+  },
+  "created_at": "2026-09-02T21:13:06.970454+00:00",
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "measurement": {
+    "acoustic_onset_measured": false,
+    "clock": "time.perf_counter_ns",
+    "real_time_playback": false,
+    "source": "client receipt of first utterance_started null-source marker",
+    "terminal": "client receipt of tracked terminal record"
+  },
+  "provenance": {
+    "build_id": "f7204ac69b6010f1",
+    "build_kind": "local-dirty-worktree",
+    "cargo_lock_sha256": "54ee68191571995b0c5d7e7799501bf83f947990e05aebddf80eaf38ad090040",
+    "dectalk_runtime": "bundled-pinned-archive",
+    "dockerfile_sha256": "33e2df54152f81abd75143954a5aaaab0c20e098970afba68d8b024fb7169efa",
+    "eloquence_runtime": "external-user-supplied-not-bundled",
+    "eloquence_runtime_sha256": "external-not-observed",
+    "emacsvox_commit": "3c47d0a2afa46ad4c9a32a5215bcddc4e7bdb019",
+    "emacsvox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "espeak_data_sha256": "9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "flite_companion": "local-omnivox-build",
+    "flite_companion_tree_sha256": "05e2536d784167d76397172a7715dcde7cba8943578bccfd1025056ce29760ed",
+    "flite_compiled_voice": "cmu_us_slt",
+    "flite_target": "x86_64-pc-windows-gnu",
+    "format": "emacsvox-omnivox-provenance-v1",
+    "mingw_gcc": "x86_64-w64-mingw32-gcc-win32 (GCC) 12-win32",
+    "net40_reference_assemblies_nupkg_sha256": "54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694",
+    "omnivox_commit": "2973d5efc86d40520f146bd635209e40b4154c9e",
+    "omnivox_executable_sha256": "0dda735c3492114600c5b072be18e257f1e215a13799a6bd19be36b7252937e3",
+    "omnivox_features": "none",
+    "omnivox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "piper_companion": "not-included",
+    "piper_companion_archive_sha256": "not-included",
+    "piper_companion_commit": "not-included",
+    "piper_companion_tree_sha256": "not-included",
+    "piper_companion_version": "not-included",
+    "piper_model": "not-included",
+    "piper_model_config_sha256": "not-observed",
+    "piper_model_sha256": "not-observed",
+    "release_image_id": "sha256:3186f03b16a6b9cc62befb0902a40974b6297426483582464e3c421bb9873204",
+    "rhvoice_companion": "local-omnivox-build",
+    "rhvoice_companion_tree_sha256": "b24d61e77b4e933022e03983ad486f0c40f7100d6728cf802191b74d5cc5bfef",
+    "rhvoice_config_tree_sha256": "not-configured",
+    "rhvoice_configuration": "recorded-windows-paths",
+    "rhvoice_data_tree_sha256": "a20abbc6f19bdef73b1f97e57c8fd3cb5c15e7fc3d1c04aafa9cde6f1254c5ce",
+    "rhvoice_library_sha256": "3014e72aa5a989c3082cbbc42977919601a8444f4e6dcdb73e5ae0c664272aed",
+    "rhvoice_runtime": "external-user-supplied-not-bundled",
+    "roslyn_csc": "5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)",
+    "roslyn_csc_sha256": "4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee",
+    "roslyn_nupkg_sha256": "302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "rutts_built_in_voices": "male,female",
+    "rutts_companion": "local-omnivox-build",
+    "rutts_companion_tree_sha256": "1fc6ff28b729c0d4ee86f64ebeb2ccd721f4e67d63687330ceaedd346d80c908",
+    "rutts_rulex": "not-included",
+    "rutts_target": "x86_64-pc-windows-gnu",
+    "rutts_version": "6.3.3",
+    "target": "x86_64-pc-windows-gnu",
+    "tgspeechbox_build_environment": "wsl-host-development-only",
+    "tgspeechbox_companion": "local-omnivox-experimental-build",
+    "tgspeechbox_companion_tree_sha256": "8139d2db714e4b820d7ff1c302a6326e610c3f3e63b544105253395cad2377b7",
+    "tgspeechbox_cxx": "x86_64-w64-mingw32-g++-posix (GCC) 13-posix",
+    "tgspeechbox_cxx_sha256": "43befe0a8b6f3b40f54b5fac3717b4bf1cf56a2373b7b9bbbe21956211c16046",
+    "tgspeechbox_markers": "none",
+    "tgspeechbox_rate_mapping": "provisional",
+    "tgspeechbox_target": "x86_64-pc-windows-gnu",
+    "toolchain_lock_sha256": "197f0a6765d9b509ed884c7c6cae2f557d022658b0c20489c0716760ec926f8e",
+    "unstripped_diagnostics": "retained-local-not-staged",
+    "windows_helpers_license": "GPL-2.0-or-later",
+    "windows_helpers_source": "omnivox",
+    "windows_rustflags": "-C link-arg=-Wl,--no-insert-timestamp",
+    "windows_strip": "SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all"
+  },
+  "report_version": 2,
+  "results": {
+    "cold": {
+      "character": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000000,
+            "dispatch_to_source_ms": 454.887409,
+            "dispatch_to_terminal_ms": 455.190895,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 612.501455,
+            "process_start_to_source_ms": 1068.591497,
+            "sent_at_monotonic_ns": 465741799062930,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465742253950339,
+            "source_to_terminal_ms": 0.303486,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465742254253825
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000001,
+            "dispatch_to_source_ms": 120.258804,
+            "dispatch_to_terminal_ms": 120.382795,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 616.164178,
+            "process_start_to_source_ms": 737.359817,
+            "sent_at_monotonic_ns": 465742935560256,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465743055819060,
+            "source_to_terminal_ms": 0.123991,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465743055943051
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000002,
+            "dispatch_to_source_ms": 122.204699,
+            "dispatch_to_terminal_ms": 122.255935,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 527.087652,
+            "process_start_to_source_ms": 650.627192,
+            "sent_at_monotonic_ns": 465743648808039,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465743771012738,
+            "source_to_terminal_ms": 0.051236,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465743771063974
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000003,
+            "dispatch_to_source_ms": 119.95931,
+            "dispatch_to_terminal_ms": 120.050274,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 483.13921,
+            "process_start_to_source_ms": 604.538273,
+            "sent_at_monotonic_ns": 465744319781962,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465744439741272,
+            "source_to_terminal_ms": 0.090964,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465744439832236
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000004,
+            "dispatch_to_source_ms": 118.460136,
+            "dispatch_to_terminal_ms": 118.539364,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 547.846509,
+            "process_start_to_source_ms": 667.395982,
+            "sent_at_monotonic_ns": 465745052880177,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465745171340313,
+            "source_to_terminal_ms": 0.079228,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465745171419541
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000005,
+            "dispatch_to_source_ms": 125.929337,
+            "dispatch_to_terminal_ms": 125.983664,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 528.950529,
+            "process_start_to_source_ms": 656.056533,
+            "sent_at_monotonic_ns": 465745765937111,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465745891866448,
+            "source_to_terminal_ms": 0.054327,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465745891920775
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000006,
+            "dispatch_to_source_ms": 112.839677,
+            "dispatch_to_terminal_ms": 112.916839,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 554.635252,
+            "process_start_to_source_ms": 668.829029,
+            "sent_at_monotonic_ns": 465746512186788,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465746625026465,
+            "source_to_terminal_ms": 0.077162,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465746625103627
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000007,
+            "dispatch_to_source_ms": 120.583381,
+            "dispatch_to_terminal_ms": 120.622805,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 550.225476,
+            "process_start_to_source_ms": 672.390137,
+            "sent_at_monotonic_ns": 465747208945924,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465747329529305,
+            "source_to_terminal_ms": 0.039424,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465747329568729
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000008,
+            "dispatch_to_source_ms": 125.683762,
+            "dispatch_to_terminal_ms": 126.051899,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 638.447225,
+            "process_start_to_source_ms": 765.674675,
+            "sent_at_monotonic_ns": 465748033760315,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465748159444077,
+            "source_to_terminal_ms": 0.368137,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465748159812214
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000009,
+            "dispatch_to_source_ms": 119.582273,
+            "dispatch_to_terminal_ms": 119.628084,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 498.779414,
+            "process_start_to_source_ms": 619.456647,
+            "sent_at_monotonic_ns": 465748723822811,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465748843405084,
+            "source_to_terminal_ms": 0.045811,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465748843450895
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000010,
+            "dispatch_to_source_ms": 118.460607,
+            "dispatch_to_terminal_ms": 118.51689,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 592.907549,
+            "process_start_to_source_ms": 712.483059,
+            "sent_at_monotonic_ns": 465749501867796,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465749620328403,
+            "source_to_terminal_ms": 0.056283,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465749620384686
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000011,
+            "dispatch_to_source_ms": 123.060856,
+            "dispatch_to_terminal_ms": 123.472989,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 502.455326,
+            "process_start_to_source_ms": 626.559539,
+            "sent_at_monotonic_ns": 465750188180432,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465750311241288,
+            "source_to_terminal_ms": 0.412133,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465750311653421
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000012,
+            "dispatch_to_source_ms": 111.915792,
+            "dispatch_to_terminal_ms": 111.988327,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 649.121565,
+            "process_start_to_source_ms": 762.106919,
+            "sent_at_monotonic_ns": 465751026355497,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465751138271289,
+            "source_to_terminal_ms": 0.072535,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465751138343824
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000013,
+            "dispatch_to_source_ms": 127.79486,
+            "dispatch_to_terminal_ms": 127.856131,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 610.38346,
+            "process_start_to_source_ms": 739.50194,
+            "sent_at_monotonic_ns": 465751814463304,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465751942258164,
+            "source_to_terminal_ms": 0.061271,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465751942319435
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000014,
+            "dispatch_to_source_ms": 120.533168,
+            "dispatch_to_terminal_ms": 120.839789,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 553.098838,
+            "process_start_to_source_ms": 675.089538,
+            "sent_at_monotonic_ns": 465752561123507,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465752681656675,
+            "source_to_terminal_ms": 0.306621,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465752681963296
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000015,
+            "dispatch_to_source_ms": 123.76258,
+            "dispatch_to_terminal_ms": 123.822819,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 557.690422,
+            "process_start_to_source_ms": 682.91951,
+            "sent_at_monotonic_ns": 465753305425240,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465753429187820,
+            "source_to_terminal_ms": 0.060239,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465753429248059
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000016,
+            "dispatch_to_source_ms": 114.38952,
+            "dispatch_to_terminal_ms": 114.444468,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 633.457739,
+            "process_start_to_source_ms": 748.788284,
+            "sent_at_monotonic_ns": 465754127764070,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465754242153590,
+            "source_to_terminal_ms": 0.054948,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465754242208538
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000017,
+            "dispatch_to_source_ms": 111.554911,
+            "dispatch_to_terminal_ms": 111.815356,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 536.561722,
+            "process_start_to_source_ms": 649.218336,
+            "sent_at_monotonic_ns": 465754844106201,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465754955661112,
+            "source_to_terminal_ms": 0.260445,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465754955921557
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000018,
+            "dispatch_to_source_ms": 121.976772,
+            "dispatch_to_terminal_ms": 122.038608,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 649.211004,
+            "process_start_to_source_ms": 772.333254,
+            "sent_at_monotonic_ns": 465755638246871,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465755760223643,
+            "source_to_terminal_ms": 0.061836,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465755760285479
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000019,
+            "dispatch_to_source_ms": 111.880178,
+            "dispatch_to_terminal_ms": 111.981508,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 583.40949,
+            "process_start_to_source_ms": 696.418123,
+            "sent_at_monotonic_ns": 465756408952604,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465756520832782,
+            "source_to_terminal_ms": 0.10133,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465756520934112
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 454.887409,
+              "minimum": 111.554911,
+              "p50": 120.258804,
+              "p95": 127.79486,
+              "p99": 454.887409
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 455.190895,
+              "minimum": 111.815356,
+              "p50": 120.382795,
+              "p95": 127.856131,
+              "p99": 455.190895
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 649.211004,
+              "minimum": 483.13921,
+              "p50": 554.635252,
+              "p95": 649.121565,
+              "p99": 649.211004
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 1068.591497,
+              "minimum": 604.538273,
+              "p50": 675.089538,
+              "p95": 772.333254,
+              "p99": 1068.591497
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.412133,
+              "minimum": 0.039424,
+              "p50": 0.072535,
+              "p95": 0.368137,
+              "p99": 0.412133
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "dense": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000060,
+            "dispatch_to_source_ms": 222.506755,
+            "dispatch_to_terminal_ms": 288.206177,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 631.599428,
+            "process_start_to_source_ms": 855.126924,
+            "sent_at_monotonic_ns": 465788549960614,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465788772467369,
+            "source_to_terminal_ms": 65.699422,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465788838166791
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000061,
+            "dispatch_to_source_ms": 286.086346,
+            "dispatch_to_terminal_ms": 352.11726,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 562.741925,
+            "process_start_to_source_ms": 850.050697,
+            "sent_at_monotonic_ns": 465789466245140,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465789752331486,
+            "source_to_terminal_ms": 66.030914,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465789818362400
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000062,
+            "dispatch_to_source_ms": 235.273437,
+            "dispatch_to_terminal_ms": 299.800912,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 548.434419,
+            "process_start_to_source_ms": 785.111448,
+            "sent_at_monotonic_ns": 465790432446576,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465790667720013,
+            "source_to_terminal_ms": 64.527475,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465790732247488
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000063,
+            "dispatch_to_source_ms": 228.849544,
+            "dispatch_to_terminal_ms": 296.004264,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 613.726827,
+            "process_start_to_source_ms": 843.917552,
+            "sent_at_monotonic_ns": 465791411427099,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465791640276643,
+            "source_to_terminal_ms": 67.15472,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465791707431363
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000064,
+            "dispatch_to_source_ms": 234.371007,
+            "dispatch_to_terminal_ms": 298.726584,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 619.096824,
+            "process_start_to_source_ms": 854.741931,
+            "sent_at_monotonic_ns": 465792392049092,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465792626420099,
+            "source_to_terminal_ms": 64.355577,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465792690775676
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000065,
+            "dispatch_to_source_ms": 232.091058,
+            "dispatch_to_terminal_ms": 294.399219,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 567.05162,
+            "process_start_to_source_ms": 800.261941,
+            "sent_at_monotonic_ns": 465793323068796,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465793555159854,
+            "source_to_terminal_ms": 62.308161,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465793617468015
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000066,
+            "dispatch_to_source_ms": 238.142242,
+            "dispatch_to_terminal_ms": 306.278512,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 583.370967,
+            "process_start_to_source_ms": 822.789392,
+            "sent_at_monotonic_ns": 465794266445283,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465794504587525,
+            "source_to_terminal_ms": 68.13627,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465794572723795
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000067,
+            "dispatch_to_source_ms": 254.404489,
+            "dispatch_to_terminal_ms": 319.811149,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 523.149246,
+            "process_start_to_source_ms": 778.836742,
+            "sent_at_monotonic_ns": 465795161221718,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465795415626207,
+            "source_to_terminal_ms": 65.40666,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465795481032867
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000068,
+            "dispatch_to_source_ms": 252.769924,
+            "dispatch_to_terminal_ms": 317.316054,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 622.687411,
+            "process_start_to_source_ms": 876.829379,
+            "sent_at_monotonic_ns": 465796169140235,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465796421910159,
+            "source_to_terminal_ms": 64.54613,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465796486456289
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000069,
+            "dispatch_to_source_ms": 242.79474,
+            "dispatch_to_terminal_ms": 304.396754,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 615.603405,
+            "process_start_to_source_ms": 859.825725,
+            "sent_at_monotonic_ns": 465797167578615,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465797410373355,
+            "source_to_terminal_ms": 61.602014,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465797471975369
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000070,
+            "dispatch_to_source_ms": 238.247153,
+            "dispatch_to_terminal_ms": 305.74985,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 530.030945,
+            "process_start_to_source_ms": 769.304578,
+            "sent_at_monotonic_ns": 465798034999388,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465798273246541,
+            "source_to_terminal_ms": 67.502697,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465798340749238
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000071,
+            "dispatch_to_source_ms": 227.768041,
+            "dispatch_to_terminal_ms": 292.837815,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 477.967832,
+            "process_start_to_source_ms": 706.774514,
+            "sent_at_monotonic_ns": 465798883734722,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465799111502763,
+            "source_to_terminal_ms": 65.069774,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465799176572537
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000072,
+            "dispatch_to_source_ms": 245.215557,
+            "dispatch_to_terminal_ms": 310.07827,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 596.094582,
+            "process_start_to_source_ms": 842.788809,
+            "sent_at_monotonic_ns": 465799838142066,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465800083357623,
+            "source_to_terminal_ms": 64.862713,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465800148220336
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000073,
+            "dispatch_to_source_ms": 225.222224,
+            "dispatch_to_terminal_ms": 293.362549,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 622.73317,
+            "process_start_to_source_ms": 849.492268,
+            "sent_at_monotonic_ns": 465800836814746,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465801062036970,
+            "source_to_terminal_ms": 68.140325,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465801130177295
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000074,
+            "dispatch_to_source_ms": 227.87546,
+            "dispatch_to_terminal_ms": 293.606594,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 550.082033,
+            "process_start_to_source_ms": 779.063294,
+            "sent_at_monotonic_ns": 465801745388292,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465801973263752,
+            "source_to_terminal_ms": 65.731134,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465802038994886
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000075,
+            "dispatch_to_source_ms": 234.86548,
+            "dispatch_to_terminal_ms": 300.384821,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 498.251063,
+            "process_start_to_source_ms": 734.461569,
+            "sent_at_monotonic_ns": 465802602853467,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465802837718947,
+            "source_to_terminal_ms": 65.519341,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465802903238288
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000076,
+            "dispatch_to_source_ms": 237.446366,
+            "dispatch_to_terminal_ms": 306.326038,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 501.375992,
+            "process_start_to_source_ms": 739.963633,
+            "sent_at_monotonic_ns": 465803470022594,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465803707468960,
+            "source_to_terminal_ms": 68.879672,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465803776348632
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000077,
+            "dispatch_to_source_ms": 229.96088,
+            "dispatch_to_terminal_ms": 295.025182,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 514.627743,
+            "process_start_to_source_ms": 745.792688,
+            "sent_at_monotonic_ns": 465804356225236,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465804586186116,
+            "source_to_terminal_ms": 65.064302,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465804651250418
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000078,
+            "dispatch_to_source_ms": 232.366502,
+            "dispatch_to_terminal_ms": 297.694676,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 608.542374,
+            "process_start_to_source_ms": 842.370465,
+            "sent_at_monotonic_ns": 465805325358666,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465805557725168,
+            "source_to_terminal_ms": 65.328174,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465805623053342
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000079,
+            "dispatch_to_source_ms": 226.098898,
+            "dispatch_to_terminal_ms": 292.603607,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 567.387679,
+            "process_start_to_source_ms": 794.635628,
+            "sent_at_monotonic_ns": 465806255745490,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465806481844388,
+            "source_to_terminal_ms": 66.504709,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465806548349097
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 286.086346,
+              "minimum": 222.506755,
+              "p50": 234.371007,
+              "p95": 254.404489,
+              "p99": 286.086346
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 352.11726,
+              "minimum": 288.206177,
+              "p50": 298.726584,
+              "p95": 319.811149,
+              "p99": 352.11726
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 631.599428,
+              "minimum": 477.967832,
+              "p50": 567.05162,
+              "p95": 622.73317,
+              "p99": 631.599428
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 876.829379,
+              "minimum": 706.774514,
+              "p50": 800.261941,
+              "p95": 859.825725,
+              "p99": 876.829379
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 68.879672,
+              "minimum": 61.602014,
+              "p50": 65.40666,
+              "p95": 68.140325,
+              "p99": 68.879672
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "line": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000040,
+            "dispatch_to_source_ms": 185.541351,
+            "dispatch_to_terminal_ms": 186.477266,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 519.261227,
+            "process_start_to_source_ms": 706.056376,
+            "sent_at_monotonic_ns": 465772188327800,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465772373869151,
+            "source_to_terminal_ms": 0.935915,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465772374805066
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000041,
+            "dispatch_to_source_ms": 184.690229,
+            "dispatch_to_terminal_ms": 185.735837,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 604.752128,
+            "process_start_to_source_ms": 790.509775,
+            "sent_at_monotonic_ns": 465773044759509,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465773229449738,
+            "source_to_terminal_ms": 1.045608,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465773230495346
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000042,
+            "dispatch_to_source_ms": 198.392633,
+            "dispatch_to_terminal_ms": 199.2115,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 568.762328,
+            "process_start_to_source_ms": 768.416722,
+            "sent_at_monotonic_ns": 465773864609620,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465774063002253,
+            "source_to_terminal_ms": 0.818867,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465774063821120
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000043,
+            "dispatch_to_source_ms": 183.942501,
+            "dispatch_to_terminal_ms": 184.941927,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 494.418144,
+            "process_start_to_source_ms": 679.65403,
+            "sent_at_monotonic_ns": 465774623627932,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465774807570433,
+            "source_to_terminal_ms": 0.999426,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465774808569859
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000044,
+            "dispatch_to_source_ms": 202.496859,
+            "dispatch_to_terminal_ms": 203.70261,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 544.935878,
+            "process_start_to_source_ms": 748.87126,
+            "sent_at_monotonic_ns": 465775419086894,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465775621583753,
+            "source_to_terminal_ms": 1.205751,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465775622789504
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000045,
+            "dispatch_to_source_ms": 208.923064,
+            "dispatch_to_terminal_ms": 210.207018,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 511.252842,
+            "process_start_to_source_ms": 721.33148,
+            "sent_at_monotonic_ns": 465776199370637,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465776408293701,
+            "source_to_terminal_ms": 1.283954,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465776409577655
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000046,
+            "dispatch_to_source_ms": 197.515492,
+            "dispatch_to_terminal_ms": 198.364744,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 536.483267,
+            "process_start_to_source_ms": 735.154385,
+            "sent_at_monotonic_ns": 465777011403002,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465777208918494,
+            "source_to_terminal_ms": 0.849252,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465777209767746
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000047,
+            "dispatch_to_source_ms": 182.117435,
+            "dispatch_to_terminal_ms": 183.13559,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 554.704186,
+            "process_start_to_source_ms": 737.928783,
+            "sent_at_monotonic_ns": 465777829713588,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465778011831023,
+            "source_to_terminal_ms": 1.018155,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465778012849178
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000048,
+            "dispatch_to_source_ms": 199.824074,
+            "dispatch_to_terminal_ms": 201.01548,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 496.531781,
+            "process_start_to_source_ms": 697.464829,
+            "sent_at_monotonic_ns": 465778574643475,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465778774467549,
+            "source_to_terminal_ms": 1.191406,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465778775658955
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000049,
+            "dispatch_to_source_ms": 194.624814,
+            "dispatch_to_terminal_ms": 195.811897,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 711.163411,
+            "process_start_to_source_ms": 906.782984,
+            "sent_at_monotonic_ns": 465779551945878,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465779746570692,
+            "source_to_terminal_ms": 1.187083,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465779747757775
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000050,
+            "dispatch_to_source_ms": 213.297578,
+            "dispatch_to_terminal_ms": 214.317652,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 509.278798,
+            "process_start_to_source_ms": 724.053414,
+            "sent_at_monotonic_ns": 465780322679798,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465780535977376,
+            "source_to_terminal_ms": 1.020074,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465780536997450
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000051,
+            "dispatch_to_source_ms": 196.487315,
+            "dispatch_to_terminal_ms": 197.713418,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 617.000718,
+            "process_start_to_source_ms": 814.47589,
+            "sent_at_monotonic_ns": 465781219054687,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465781415542002,
+            "source_to_terminal_ms": 1.226103,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465781416768105
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000052,
+            "dispatch_to_source_ms": 179.747769,
+            "dispatch_to_terminal_ms": 180.569368,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 582.74124,
+            "process_start_to_source_ms": 763.494357,
+            "sent_at_monotonic_ns": 465782064687115,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465782244434884,
+            "source_to_terminal_ms": 0.821599,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465782245256483
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000053,
+            "dispatch_to_source_ms": 183.163886,
+            "dispatch_to_terminal_ms": 184.374475,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 535.389441,
+            "process_start_to_source_ms": 719.589685,
+            "sent_at_monotonic_ns": 465782813574131,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465782996738017,
+            "source_to_terminal_ms": 1.210589,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465782997948606
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000054,
+            "dispatch_to_source_ms": 212.027246,
+            "dispatch_to_terminal_ms": 213.256824,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 538.511445,
+            "process_start_to_source_ms": 751.797308,
+            "sent_at_monotonic_ns": 465783601900438,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465783813927684,
+            "source_to_terminal_ms": 1.229578,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465783815157262
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000055,
+            "dispatch_to_source_ms": 179.1615,
+            "dispatch_to_terminal_ms": 179.976254,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 601.028811,
+            "process_start_to_source_ms": 781.528699,
+            "sent_at_monotonic_ns": 465784482042032,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465784661203532,
+            "source_to_terminal_ms": 0.814754,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465784662018286
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000056,
+            "dispatch_to_source_ms": 180.410865,
+            "dispatch_to_terminal_ms": 181.50421,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 551.478058,
+            "process_start_to_source_ms": 732.990424,
+            "sent_at_monotonic_ns": 465785278734401,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465785459145266,
+            "source_to_terminal_ms": 1.093345,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465785460238611
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000057,
+            "dispatch_to_source_ms": 198.404248,
+            "dispatch_to_terminal_ms": 199.26388,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 482.329644,
+            "process_start_to_source_ms": 681.810555,
+            "sent_at_monotonic_ns": 465786007800711,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465786206204959,
+            "source_to_terminal_ms": 0.859632,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465786207064591
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000058,
+            "dispatch_to_source_ms": 166.970905,
+            "dispatch_to_terminal_ms": 167.980045,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 650.305087,
+            "process_start_to_source_ms": 818.450392,
+            "sent_at_monotonic_ns": 465786922609220,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465787089580125,
+            "source_to_terminal_ms": 1.00914,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465787090589265
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000059,
+            "dispatch_to_source_ms": 188.023031,
+            "dispatch_to_terminal_ms": 188.807335,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 540.597611,
+            "process_start_to_source_ms": 729.80445,
+            "sent_at_monotonic_ns": 465787664249914,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465787852272945,
+            "source_to_terminal_ms": 0.784304,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465787853057249
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 213.297578,
+              "minimum": 166.970905,
+              "p50": 188.023031,
+              "p95": 212.027246,
+              "p99": 213.297578
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 214.317652,
+              "minimum": 167.980045,
+              "p50": 188.807335,
+              "p95": 213.256824,
+              "p99": 214.317652
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 711.163411,
+              "minimum": 482.329644,
+              "p50": 540.597611,
+              "p95": 650.305087,
+              "p99": 711.163411
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 906.782984,
+              "minimum": 679.65403,
+              "p50": 735.154385,
+              "p95": 818.450392,
+              "p99": 906.782984
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.283954,
+              "minimum": 0.784304,
+              "p50": 1.018155,
+              "p95": 1.229578,
+              "p99": 1.283954
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "multipart": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000080,
+            "dispatch_to_source_ms": 198.849115,
+            "dispatch_to_terminal_ms": 200.690615,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 580.619418,
+            "process_start_to_source_ms": 780.643797,
+            "sent_at_monotonic_ns": 465807194493906,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465807393343021,
+            "source_to_terminal_ms": 1.8415,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465807395184521
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000081,
+            "dispatch_to_source_ms": 203.494127,
+            "dispatch_to_terminal_ms": 205.067785,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 501.780303,
+            "process_start_to_source_ms": 706.416669,
+            "sent_at_monotonic_ns": 465807962195878,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465808165690005,
+            "source_to_terminal_ms": 1.573658,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465808167263663
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000082,
+            "dispatch_to_source_ms": 188.30075,
+            "dispatch_to_terminal_ms": 189.341323,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 582.106259,
+            "process_start_to_source_ms": 771.976365,
+            "sent_at_monotonic_ns": 465808815038967,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465809003339717,
+            "source_to_terminal_ms": 1.040573,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465809004380290
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000083,
+            "dispatch_to_source_ms": 191.122932,
+            "dispatch_to_terminal_ms": 192.160079,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 596.838773,
+            "process_start_to_source_ms": 789.393794,
+            "sent_at_monotonic_ns": 465809666787866,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465809857910798,
+            "source_to_terminal_ms": 1.037147,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465809858947945
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000084,
+            "dispatch_to_source_ms": 199.339924,
+            "dispatch_to_terminal_ms": 200.496042,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 537.536197,
+            "process_start_to_source_ms": 738.000879,
+            "sent_at_monotonic_ns": 465810461620714,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465810660960638,
+            "source_to_terminal_ms": 1.156118,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465810662116756
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000085,
+            "dispatch_to_source_ms": 199.89686,
+            "dispatch_to_terminal_ms": 201.195631,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 530.658839,
+            "process_start_to_source_ms": 731.644794,
+            "sent_at_monotonic_ns": 465811258093850,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465811457990710,
+            "source_to_terminal_ms": 1.298771,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465811459289481
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000086,
+            "dispatch_to_source_ms": 210.809582,
+            "dispatch_to_terminal_ms": 212.130652,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 599.230367,
+            "process_start_to_source_ms": 811.310126,
+            "sent_at_monotonic_ns": 465812123784386,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465812334593968,
+            "source_to_terminal_ms": 1.32107,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465812335915038
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000087,
+            "dispatch_to_source_ms": 204.781584,
+            "dispatch_to_terminal_ms": 205.956542,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 603.172119,
+            "process_start_to_source_ms": 809.16405,
+            "sent_at_monotonic_ns": 465813005313187,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465813210094771,
+            "source_to_terminal_ms": 1.174958,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465813211269729
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000088,
+            "dispatch_to_source_ms": 202.651268,
+            "dispatch_to_terminal_ms": 203.942511,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 601.347244,
+            "process_start_to_source_ms": 805.11827,
+            "sent_at_monotonic_ns": 465813878059285,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465814080710553,
+            "source_to_terminal_ms": 1.291243,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465814082001796
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000089,
+            "dispatch_to_source_ms": 199.044493,
+            "dispatch_to_terminal_ms": 200.267022,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 532.483338,
+            "process_start_to_source_ms": 732.662488,
+            "sent_at_monotonic_ns": 465814679716408,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465814878760901,
+            "source_to_terminal_ms": 1.222529,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465814879983430
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000090,
+            "dispatch_to_source_ms": 198.048045,
+            "dispatch_to_terminal_ms": 199.232237,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 599.870411,
+            "process_start_to_source_ms": 799.13519,
+            "sent_at_monotonic_ns": 465815545272918,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465815743320963,
+            "source_to_terminal_ms": 1.184192,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465815744505155
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000091,
+            "dispatch_to_source_ms": 197.57844,
+            "dispatch_to_terminal_ms": 198.782003,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 488.011252,
+            "process_start_to_source_ms": 686.681413,
+            "sent_at_monotonic_ns": 465816297677062,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465816495255502,
+            "source_to_terminal_ms": 1.203563,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465816496459065
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000092,
+            "dispatch_to_source_ms": 196.985451,
+            "dispatch_to_terminal_ms": 198.353499,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 653.044929,
+            "process_start_to_source_ms": 851.353969,
+            "sent_at_monotonic_ns": 465817215005061,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465817411990512,
+            "source_to_terminal_ms": 1.368048,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465817413358560
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000093,
+            "dispatch_to_source_ms": 198.638647,
+            "dispatch_to_terminal_ms": 200.120881,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 549.206182,
+            "process_start_to_source_ms": 749.064745,
+            "sent_at_monotonic_ns": 465818028062493,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465818226701140,
+            "source_to_terminal_ms": 1.482234,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465818228183374
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000094,
+            "dispatch_to_source_ms": 209.795098,
+            "dispatch_to_terminal_ms": 211.10499,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 637.038049,
+            "process_start_to_source_ms": 848.078712,
+            "sent_at_monotonic_ns": 465818930538164,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465819140333262,
+            "source_to_terminal_ms": 1.309892,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465819141643154
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000095,
+            "dispatch_to_source_ms": 219.376397,
+            "dispatch_to_terminal_ms": 220.817138,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 510.26906,
+            "process_start_to_source_ms": 731.094733,
+            "sent_at_monotonic_ns": 465819717644928,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465819937021325,
+            "source_to_terminal_ms": 1.440741,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465819938462066
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000096,
+            "dispatch_to_source_ms": 188.553607,
+            "dispatch_to_terminal_ms": 190.076822,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 594.794319,
+            "process_start_to_source_ms": 784.693158,
+            "sent_at_monotonic_ns": 465820598977294,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465820787530901,
+            "source_to_terminal_ms": 1.523215,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465820789054116
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000097,
+            "dispatch_to_source_ms": 194.501539,
+            "dispatch_to_terminal_ms": 195.803723,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 568.879912,
+            "process_start_to_source_ms": 764.801973,
+            "sent_at_monotonic_ns": 465821423362153,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465821617863692,
+            "source_to_terminal_ms": 1.302184,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465821619165876
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000098,
+            "dispatch_to_source_ms": 218.673617,
+            "dispatch_to_terminal_ms": 220.309168,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 522.722772,
+            "process_start_to_source_ms": 742.581119,
+            "sent_at_monotonic_ns": 465822207233398,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465822425907015,
+            "source_to_terminal_ms": 1.635551,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465822427542566
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000099,
+            "dispatch_to_source_ms": 220.738638,
+            "dispatch_to_terminal_ms": 221.994989,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 536.673612,
+            "process_start_to_source_ms": 758.697955,
+            "sent_at_monotonic_ns": 465823029572782,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465823250311420,
+            "source_to_terminal_ms": 1.256351,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465823251567771
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 220.738638,
+              "minimum": 188.30075,
+              "p50": 199.044493,
+              "p95": 219.376397,
+              "p99": 220.738638
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 221.994989,
+              "minimum": 189.341323,
+              "p50": 200.496042,
+              "p95": 220.817138,
+              "p99": 221.994989
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 653.044929,
+              "minimum": 488.011252,
+              "p50": 568.879912,
+              "p95": 637.038049,
+              "p99": 653.044929
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 851.353969,
+              "minimum": 686.681413,
+              "p50": 764.801973,
+              "p95": 848.078712,
+              "p99": 851.353969
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.8415,
+              "minimum": 1.037147,
+              "p50": 1.298771,
+              "p95": 1.635551,
+              "p99": 1.8415
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "replacement": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.405828,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000104,
+            "dispatch_to_source_ms": 263.74445,
+            "dispatch_to_terminal_ms": 297.342762,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 539.303246,
+            "process_start_to_source_ms": 804.134483,
+            "sent_at_monotonic_ns": 465823856135511,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465824119879961,
+            "source_to_terminal_ms": 33.598312,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465824153478273
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.332242,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000109,
+            "dispatch_to_source_ms": 295.708556,
+            "dispatch_to_terminal_ms": 329.07588,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 532.618213,
+            "process_start_to_source_ms": 829.426681,
+            "sent_at_monotonic_ns": 465824719496614,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465825015205170,
+            "source_to_terminal_ms": 33.367324,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465825048572494
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.330145,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000114,
+            "dispatch_to_source_ms": 306.279897,
+            "dispatch_to_terminal_ms": 341.938249,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 514.624435,
+            "process_start_to_source_ms": 822.117435,
+            "sent_at_monotonic_ns": 465825628568151,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465825934848048,
+            "source_to_terminal_ms": 35.658352,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465825970506400
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.425528,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000119,
+            "dispatch_to_source_ms": 303.413664,
+            "dispatch_to_terminal_ms": 335.931119,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 605.105986,
+            "process_start_to_source_ms": 909.750736,
+            "sent_at_monotonic_ns": 465826641023291,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465826944436955,
+            "source_to_terminal_ms": 32.517455,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465826976954410
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.49488,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000124,
+            "dispatch_to_source_ms": 302.055764,
+            "dispatch_to_terminal_ms": 334.863007,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 580.160164,
+            "process_start_to_source_ms": 883.5958,
+            "sent_at_monotonic_ns": 465827622431321,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465827924487085,
+            "source_to_terminal_ms": 32.807243,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465827957294328
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.358192,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000129,
+            "dispatch_to_source_ms": 280.228515,
+            "dispatch_to_terminal_ms": 314.659218,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 608.126096,
+            "process_start_to_source_ms": 889.792529,
+            "sent_at_monotonic_ns": 465828631461448,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465828911689963,
+            "source_to_terminal_ms": 34.430703,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465828946120666
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.375729,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000134,
+            "dispatch_to_source_ms": 325.306856,
+            "dispatch_to_terminal_ms": 358.254569,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 608.139826,
+            "process_start_to_source_ms": 934.651322,
+            "sent_at_monotonic_ns": 465829619526670,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465829944833526,
+            "source_to_terminal_ms": 32.947713,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465829977781239
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.478285,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000139,
+            "dispatch_to_source_ms": 292.587654,
+            "dispatch_to_terminal_ms": 325.510495,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 625.79712,
+            "process_start_to_source_ms": 919.716705,
+            "sent_at_monotonic_ns": 465830669023553,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465830961611207,
+            "source_to_terminal_ms": 32.922841,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465830994534048
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.356984,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000144,
+            "dispatch_to_source_ms": 293.670638,
+            "dispatch_to_terminal_ms": 330.369602,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 517.471598,
+            "process_start_to_source_ms": 813.222903,
+            "sent_at_monotonic_ns": 465831578420693,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465831872091331,
+            "source_to_terminal_ms": 36.698964,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465831908790295
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.320541,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000149,
+            "dispatch_to_source_ms": 293.658441,
+            "dispatch_to_terminal_ms": 331.322117,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 619.921301,
+            "process_start_to_source_ms": 914.965617,
+            "sent_at_monotonic_ns": 465832594309453,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465832887967894,
+            "source_to_terminal_ms": 37.663676,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465832925631570
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.523685,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000154,
+            "dispatch_to_source_ms": 303.368401,
+            "dispatch_to_terminal_ms": 336.223239,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 531.638708,
+            "process_start_to_source_ms": 836.414177,
+            "sent_at_monotonic_ns": 465833522797579,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465833826165980,
+            "source_to_terminal_ms": 32.854838,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465833859020818
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.417639,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000159,
+            "dispatch_to_source_ms": 274.125716,
+            "dispatch_to_terminal_ms": 310.149528,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 574.049231,
+            "process_start_to_source_ms": 849.54854,
+            "sent_at_monotonic_ns": 465834498548692,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465834772674408,
+            "source_to_terminal_ms": 36.023812,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465834808698220
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.342778,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000164,
+            "dispatch_to_source_ms": 275.943542,
+            "dispatch_to_terminal_ms": 307.138141,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 605.254816,
+            "process_start_to_source_ms": 882.476119,
+            "sent_at_monotonic_ns": 465835479573067,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465835755516609,
+            "source_to_terminal_ms": 31.194599,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465835786711208
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.456,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000169,
+            "dispatch_to_source_ms": 293.162802,
+            "dispatch_to_terminal_ms": 323.771801,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 587.804765,
+            "process_start_to_source_ms": 882.193515,
+            "sent_at_monotonic_ns": 465836439880699,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465836733043501,
+            "source_to_terminal_ms": 30.608999,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465836763652500
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.412855,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000174,
+            "dispatch_to_source_ms": 279.263272,
+            "dispatch_to_terminal_ms": 311.567584,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 576.138019,
+            "process_start_to_source_ms": 856.476566,
+            "sent_at_monotonic_ns": 465837372787253,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465837652050525,
+            "source_to_terminal_ms": 32.304312,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465837684354837
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.478273,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000179,
+            "dispatch_to_source_ms": 300.318674,
+            "dispatch_to_terminal_ms": 334.394927,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 479.060589,
+            "process_start_to_source_ms": 780.737914,
+            "sent_at_monotonic_ns": 465838228732325,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465838529050999,
+            "source_to_terminal_ms": 34.076253,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465838563127252
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.349521,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000184,
+            "dispatch_to_source_ms": 323.635229,
+            "dispatch_to_terminal_ms": 359.940244,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 512.250564,
+            "process_start_to_source_ms": 837.367701,
+            "sent_at_monotonic_ns": 465839140957026,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465839464592255,
+            "source_to_terminal_ms": 36.305015,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465839500897270
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.333867,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000189,
+            "dispatch_to_source_ms": 291.929531,
+            "dispatch_to_terminal_ms": 324.853391,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 594.323131,
+            "process_start_to_source_ms": 887.425381,
+            "sent_at_monotonic_ns": 465840160794279,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465840452723810,
+            "source_to_terminal_ms": 32.92386,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465840485647670
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.376424,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000194,
+            "dispatch_to_source_ms": 290.574011,
+            "dispatch_to_terminal_ms": 325.315794,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 619.216187,
+            "process_start_to_source_ms": 910.954009,
+            "sent_at_monotonic_ns": 465841170176933,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465841460750944,
+            "source_to_terminal_ms": 34.741783,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465841495492727
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.395678,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000199,
+            "dispatch_to_source_ms": 295.082572,
+            "dispatch_to_terminal_ms": 329.108973,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 591.104016,
+            "process_start_to_source_ms": 887.401429,
+            "sent_at_monotonic_ns": 465842151839593,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465842446922165,
+            "source_to_terminal_ms": 34.026401,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465842480948566
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "cancel_terminal_ms": {
+              "count": 20,
+              "maximum": 0.523685,
+              "minimum": 0.320541,
+              "p50": 0.376424,
+              "p95": 0.49488,
+              "p99": 0.523685
+            },
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 325.306856,
+              "minimum": 263.74445,
+              "p50": 293.658441,
+              "p95": 323.635229,
+              "p99": 325.306856
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 359.940244,
+              "minimum": 297.342762,
+              "p50": 329.07588,
+              "p95": 358.254569,
+              "p99": 359.940244
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 625.79712,
+              "minimum": 479.060589,
+              "p50": 580.160164,
+              "p95": 619.921301,
+              "p99": 625.79712
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 934.651322,
+              "minimum": 780.737914,
+              "p50": 882.193515,
+              "p95": 919.716705,
+              "p99": 934.651322
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 37.663676,
+              "minimum": 30.608999,
+              "p50": 33.367324,
+              "p95": 36.698964,
+              "p99": 37.663676
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "word": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000020,
+            "dispatch_to_source_ms": 111.144485,
+            "dispatch_to_terminal_ms": 111.201648,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 499.150089,
+            "process_start_to_source_ms": 612.076356,
+            "sent_at_monotonic_ns": 465757086139617,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465757197284102,
+            "source_to_terminal_ms": 0.057163,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465757197341265
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000021,
+            "dispatch_to_source_ms": 122.369806,
+            "dispatch_to_terminal_ms": 122.646075,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 525.958369,
+            "process_start_to_source_ms": 649.470838,
+            "sent_at_monotonic_ns": 465757788648243,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465757911018049,
+            "source_to_terminal_ms": 0.276269,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465757911294318
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000022,
+            "dispatch_to_source_ms": 116.109981,
+            "dispatch_to_terminal_ms": 116.188871,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 580.081414,
+            "process_start_to_source_ms": 697.45962,
+            "sent_at_monotonic_ns": 465758556656677,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465758672766658,
+            "source_to_terminal_ms": 0.07889,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465758672845548
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000023,
+            "dispatch_to_source_ms": 128.88863,
+            "dispatch_to_terminal_ms": 129.156348,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 609.328951,
+            "process_start_to_source_ms": 739.368987,
+            "sent_at_monotonic_ns": 465759347672580,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465759476561210,
+            "source_to_terminal_ms": 0.267718,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465759476828928
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000024,
+            "dispatch_to_source_ms": 124.740163,
+            "dispatch_to_terminal_ms": 125.041366,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 541.150857,
+            "process_start_to_source_ms": 666.996158,
+            "sent_at_monotonic_ns": 465760083085566,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465760207825729,
+            "source_to_terminal_ms": 0.301203,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465760208126932
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000025,
+            "dispatch_to_source_ms": 123.820912,
+            "dispatch_to_terminal_ms": 123.873043,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 613.769065,
+            "process_start_to_source_ms": 738.659113,
+            "sent_at_monotonic_ns": 465760887191311,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465761011012223,
+            "source_to_terminal_ms": 0.052131,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465761011064354
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000026,
+            "dispatch_to_source_ms": 125.490121,
+            "dispatch_to_terminal_ms": 125.69844,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 520.190475,
+            "process_start_to_source_ms": 646.901465,
+            "sent_at_monotonic_ns": 465761596910447,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465761722400568,
+            "source_to_terminal_ms": 0.208319,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465761722608887
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000027,
+            "dispatch_to_source_ms": 126.362779,
+            "dispatch_to_terminal_ms": 126.712011,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 569.615976,
+            "process_start_to_source_ms": 697.319357,
+            "sent_at_monotonic_ns": 465762357725428,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465762484088207,
+            "source_to_terminal_ms": 0.349232,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465762484437439
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000028,
+            "dispatch_to_source_ms": 132.066062,
+            "dispatch_to_terminal_ms": 132.393379,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 514.309232,
+            "process_start_to_source_ms": 647.91071,
+            "sent_at_monotonic_ns": 465763064486099,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465763196552161,
+            "source_to_terminal_ms": 0.327317,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465763196879478
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000029,
+            "dispatch_to_source_ms": 127.786829,
+            "dispatch_to_terminal_ms": 128.120641,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 542.678027,
+            "process_start_to_source_ms": 671.635368,
+            "sent_at_monotonic_ns": 465763804954189,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465763932741018,
+            "source_to_terminal_ms": 0.333812,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465763933074830
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000030,
+            "dispatch_to_source_ms": 118.937066,
+            "dispatch_to_terminal_ms": 119.160659,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 510.945893,
+            "process_start_to_source_ms": 631.393014,
+            "sent_at_monotonic_ns": 465764509460696,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465764628397762,
+            "source_to_terminal_ms": 0.223593,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465764628621355
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000031,
+            "dispatch_to_source_ms": 123.824106,
+            "dispatch_to_terminal_ms": 124.152366,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 490.281863,
+            "process_start_to_source_ms": 615.065687,
+            "sent_at_monotonic_ns": 465765183795889,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465765307619995,
+            "source_to_terminal_ms": 0.32826,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465765307948255
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000032,
+            "dispatch_to_source_ms": 116.287245,
+            "dispatch_to_terminal_ms": 116.340193,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 605.102999,
+            "process_start_to_source_ms": 722.407433,
+            "sent_at_monotonic_ns": 465765978380548,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465766094667793,
+            "source_to_terminal_ms": 0.052948,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465766094720741
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000033,
+            "dispatch_to_source_ms": 116.581804,
+            "dispatch_to_terminal_ms": 116.84871,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 608.39052,
+            "process_start_to_source_ms": 726.475041,
+            "sent_at_monotonic_ns": 465766768842554,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465766885424358,
+            "source_to_terminal_ms": 0.266906,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465766885691264
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000034,
+            "dispatch_to_source_ms": 118.382424,
+            "dispatch_to_terminal_ms": 118.626424,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 645.224777,
+            "process_start_to_source_ms": 764.616587,
+            "sent_at_monotonic_ns": 465767595981918,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465767714364342,
+            "source_to_terminal_ms": 0.244,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465767714608342
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000035,
+            "dispatch_to_source_ms": 132.029913,
+            "dispatch_to_terminal_ms": 132.092036,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 504.578895,
+            "process_start_to_source_ms": 637.730082,
+            "sent_at_monotonic_ns": 465768284584573,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465768416614486,
+            "source_to_terminal_ms": 0.062123,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465768416676609
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000036,
+            "dispatch_to_source_ms": 105.637662,
+            "dispatch_to_terminal_ms": 105.707768,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 618.35713,
+            "process_start_to_source_ms": 725.128447,
+            "sent_at_monotonic_ns": 465769100358812,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465769205996474,
+            "source_to_terminal_ms": 0.070106,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465769206066580
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000037,
+            "dispatch_to_source_ms": 135.888337,
+            "dispatch_to_terminal_ms": 136.159261,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 606.766236,
+            "process_start_to_source_ms": 743.977318,
+            "sent_at_monotonic_ns": 465769878340826,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465770014229163,
+            "source_to_terminal_ms": 0.270924,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465770014500087
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000038,
+            "dispatch_to_source_ms": 116.344135,
+            "dispatch_to_terminal_ms": 116.407969,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 579.602724,
+            "process_start_to_source_ms": 697.010273,
+            "sent_at_monotonic_ns": 465770659371156,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465770775715291,
+            "source_to_terminal_ms": 0.063834,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465770775779125
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000039,
+            "dispatch_to_source_ms": 122.565907,
+            "dispatch_to_terminal_ms": 122.849529,
+            "engine_id": "rhvoice",
+            "process_start_to_ready_ms": 639.202319,
+            "process_start_to_source_ms": 762.8145,
+            "sent_at_monotonic_ns": 465771480493812,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465771603059719,
+            "source_to_terminal_ms": 0.283622,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465771603343341
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 135.888337,
+              "minimum": 105.637662,
+              "p50": 122.565907,
+              "p95": 132.066062,
+              "p99": 135.888337
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 136.159261,
+              "minimum": 105.707768,
+              "p50": 122.849529,
+              "p95": 132.393379,
+              "p99": 136.159261
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 645.224777,
+              "minimum": 490.281863,
+              "p50": 569.615976,
+              "p95": 639.202319,
+              "p99": 645.224777
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 764.616587,
+              "minimum": 612.076356,
+              "p50": 697.010273,
+              "p95": 762.8145,
+              "p99": 764.616587
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.349232,
+              "minimum": 0.052131,
+              "p50": 0.244,
+              "p95": 0.333812,
+              "p99": 0.349232
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      }
+    },
+    "warm": {
+      "character": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000202,
+            "dispatch_to_source_ms": 21.269883,
+            "dispatch_to_terminal_ms": 21.345206,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843330645841,
+            "source_observed_at_monotonic_ns": 465843351915724,
+            "source_to_terminal_ms": 0.075323,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843351991047
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000203,
+            "dispatch_to_source_ms": 22.18097,
+            "dispatch_to_terminal_ms": 22.242626,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843352298120,
+            "source_observed_at_monotonic_ns": 465843374479090,
+            "source_to_terminal_ms": 0.061656,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843374540746
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000204,
+            "dispatch_to_source_ms": 21.60403,
+            "dispatch_to_terminal_ms": 21.656073,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843374741863,
+            "source_observed_at_monotonic_ns": 465843396345893,
+            "source_to_terminal_ms": 0.052043,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843396397936
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000205,
+            "dispatch_to_source_ms": 22.552125,
+            "dispatch_to_terminal_ms": 22.619311,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843396616446,
+            "source_observed_at_monotonic_ns": 465843419168571,
+            "source_to_terminal_ms": 0.067186,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843419235757
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000206,
+            "dispatch_to_source_ms": 22.730385,
+            "dispatch_to_terminal_ms": 22.785169,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843419529832,
+            "source_observed_at_monotonic_ns": 465843442260217,
+            "source_to_terminal_ms": 0.054784,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843442315001
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000207,
+            "dispatch_to_source_ms": 21.971847,
+            "dispatch_to_terminal_ms": 22.163797,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843442528722,
+            "source_observed_at_monotonic_ns": 465843464500569,
+            "source_to_terminal_ms": 0.19195,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843464692519
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000208,
+            "dispatch_to_source_ms": 25.389793,
+            "dispatch_to_terminal_ms": 25.450015,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843464796637,
+            "source_observed_at_monotonic_ns": 465843490186430,
+            "source_to_terminal_ms": 0.060222,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843490246652
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000209,
+            "dispatch_to_source_ms": 23.708299,
+            "dispatch_to_terminal_ms": 24.041071,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843490456966,
+            "source_observed_at_monotonic_ns": 465843514165265,
+            "source_to_terminal_ms": 0.332772,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843514498037
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000210,
+            "dispatch_to_source_ms": 23.173321,
+            "dispatch_to_terminal_ms": 23.239732,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843514659044,
+            "source_observed_at_monotonic_ns": 465843537832365,
+            "source_to_terminal_ms": 0.066411,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843537898776
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000211,
+            "dispatch_to_source_ms": 25.123785,
+            "dispatch_to_terminal_ms": 25.225626,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843538159264,
+            "source_observed_at_monotonic_ns": 465843563283049,
+            "source_to_terminal_ms": 0.101841,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843563384890
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000212,
+            "dispatch_to_source_ms": 22.522408,
+            "dispatch_to_terminal_ms": 22.6141,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843563595831,
+            "source_observed_at_monotonic_ns": 465843586118239,
+            "source_to_terminal_ms": 0.091692,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843586209931
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000213,
+            "dispatch_to_source_ms": 24.157958,
+            "dispatch_to_terminal_ms": 24.220199,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843586460769,
+            "source_observed_at_monotonic_ns": 465843610618727,
+            "source_to_terminal_ms": 0.062241,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843610680968
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000214,
+            "dispatch_to_source_ms": 21.916301,
+            "dispatch_to_terminal_ms": 21.991161,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843610954090,
+            "source_observed_at_monotonic_ns": 465843632870391,
+            "source_to_terminal_ms": 0.07486,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843632945251
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000215,
+            "dispatch_to_source_ms": 21.757262,
+            "dispatch_to_terminal_ms": 21.808746,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843633197388,
+            "source_observed_at_monotonic_ns": 465843654954650,
+            "source_to_terminal_ms": 0.051484,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843655006134
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000216,
+            "dispatch_to_source_ms": 22.371129,
+            "dispatch_to_terminal_ms": 22.425139,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843655331394,
+            "source_observed_at_monotonic_ns": 465843677702523,
+            "source_to_terminal_ms": 0.05401,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843677756533
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000217,
+            "dispatch_to_source_ms": 23.188682,
+            "dispatch_to_terminal_ms": 23.527893,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843677943895,
+            "source_observed_at_monotonic_ns": 465843701132577,
+            "source_to_terminal_ms": 0.339211,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843701471788
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000218,
+            "dispatch_to_source_ms": 23.217634,
+            "dispatch_to_terminal_ms": 23.405561,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843701629122,
+            "source_observed_at_monotonic_ns": 465843724846756,
+            "source_to_terminal_ms": 0.187927,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843725034683
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000219,
+            "dispatch_to_source_ms": 21.613462,
+            "dispatch_to_terminal_ms": 21.659541,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843725410932,
+            "source_observed_at_monotonic_ns": 465843747024394,
+            "source_to_terminal_ms": 0.046079,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843747070473
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000220,
+            "dispatch_to_source_ms": 20.612324,
+            "dispatch_to_terminal_ms": 20.659371,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843747241281,
+            "source_observed_at_monotonic_ns": 465843767853605,
+            "source_to_terminal_ms": 0.047047,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843767900652
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000221,
+            "dispatch_to_source_ms": 21.282511,
+            "dispatch_to_terminal_ms": 21.336329,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843768115368,
+            "source_observed_at_monotonic_ns": 465843789397879,
+            "source_to_terminal_ms": 0.053818,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843789451697
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 25.389793,
+              "minimum": 20.612324,
+              "p50": 22.371129,
+              "p95": 25.123785,
+              "p99": 25.389793
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 25.450015,
+              "minimum": 20.659371,
+              "p50": 22.425139,
+              "p95": 25.225626,
+              "p99": 25.450015
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.339211,
+              "minimum": 0.046079,
+              "p50": 0.062241,
+              "p95": 0.332772,
+              "p99": 0.339211
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "dense": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000268,
+            "dispatch_to_source_ms": 140.302611,
+            "dispatch_to_terminal_ms": 210.62087,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465846978315926,
+            "source_observed_at_monotonic_ns": 465847118618537,
+            "source_to_terminal_ms": 70.318259,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465847188936796
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000269,
+            "dispatch_to_source_ms": 154.372326,
+            "dispatch_to_terminal_ms": 222.299283,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465847189083809,
+            "source_observed_at_monotonic_ns": 465847343456135,
+            "source_to_terminal_ms": 67.926957,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465847411383092
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000270,
+            "dispatch_to_source_ms": 142.404744,
+            "dispatch_to_terminal_ms": 214.657732,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465847411519851,
+            "source_observed_at_monotonic_ns": 465847553924595,
+            "source_to_terminal_ms": 72.252988,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465847626177583
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000271,
+            "dispatch_to_source_ms": 138.439121,
+            "dispatch_to_terminal_ms": 202.912766,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465847626319841,
+            "source_observed_at_monotonic_ns": 465847764758962,
+            "source_to_terminal_ms": 64.473645,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465847829232607
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000272,
+            "dispatch_to_source_ms": 142.065151,
+            "dispatch_to_terminal_ms": 209.045519,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465847829374728,
+            "source_observed_at_monotonic_ns": 465847971439879,
+            "source_to_terminal_ms": 66.980368,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465848038420247
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000273,
+            "dispatch_to_source_ms": 144.068916,
+            "dispatch_to_terminal_ms": 209.71141,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465848038667617,
+            "source_observed_at_monotonic_ns": 465848182736533,
+            "source_to_terminal_ms": 65.642494,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465848248379027
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000274,
+            "dispatch_to_source_ms": 149.257669,
+            "dispatch_to_terminal_ms": 222.784476,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465848248543513,
+            "source_observed_at_monotonic_ns": 465848397801182,
+            "source_to_terminal_ms": 73.526807,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465848471327989
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000275,
+            "dispatch_to_source_ms": 144.39396,
+            "dispatch_to_terminal_ms": 243.302685,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465848471487432,
+            "source_observed_at_monotonic_ns": 465848615881392,
+            "source_to_terminal_ms": 98.908725,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465848714790117
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000276,
+            "dispatch_to_source_ms": 191.829056,
+            "dispatch_to_terminal_ms": 258.260945,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465848714955779,
+            "source_observed_at_monotonic_ns": 465848906784835,
+            "source_to_terminal_ms": 66.431889,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465848973216724
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000277,
+            "dispatch_to_source_ms": 184.298014,
+            "dispatch_to_terminal_ms": 284.425894,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465848973360494,
+            "source_observed_at_monotonic_ns": 465849157658508,
+            "source_to_terminal_ms": 100.12788,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465849257786388
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000278,
+            "dispatch_to_source_ms": 179.907529,
+            "dispatch_to_terminal_ms": 248.212836,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465849257968847,
+            "source_observed_at_monotonic_ns": 465849437876376,
+            "source_to_terminal_ms": 68.305307,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465849506181683
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000279,
+            "dispatch_to_source_ms": 142.832628,
+            "dispatch_to_terminal_ms": 208.108775,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465849506362750,
+            "source_observed_at_monotonic_ns": 465849649195378,
+            "source_to_terminal_ms": 65.276147,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465849714471525
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000280,
+            "dispatch_to_source_ms": 141.895633,
+            "dispatch_to_terminal_ms": 207.68812,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465849714689012,
+            "source_observed_at_monotonic_ns": 465849856584645,
+            "source_to_terminal_ms": 65.792487,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465849922377132
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000281,
+            "dispatch_to_source_ms": 143.694842,
+            "dispatch_to_terminal_ms": 208.733258,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465849922550875,
+            "source_observed_at_monotonic_ns": 465850066245717,
+            "source_to_terminal_ms": 65.038416,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465850131284133
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000282,
+            "dispatch_to_source_ms": 142.125463,
+            "dispatch_to_terminal_ms": 208.949729,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465850131465725,
+            "source_observed_at_monotonic_ns": 465850273591188,
+            "source_to_terminal_ms": 66.824266,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465850340415454
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000283,
+            "dispatch_to_source_ms": 151.463687,
+            "dispatch_to_terminal_ms": 231.636025,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465850340628797,
+            "source_observed_at_monotonic_ns": 465850492092484,
+            "source_to_terminal_ms": 80.172338,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465850572264822
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000284,
+            "dispatch_to_source_ms": 147.702456,
+            "dispatch_to_terminal_ms": 221.869427,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465850572481473,
+            "source_observed_at_monotonic_ns": 465850720183929,
+            "source_to_terminal_ms": 74.166971,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465850794350900
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000285,
+            "dispatch_to_source_ms": 137.951163,
+            "dispatch_to_terminal_ms": 201.208536,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465850794547186,
+            "source_observed_at_monotonic_ns": 465850932498349,
+            "source_to_terminal_ms": 63.257373,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465850995755722
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000286,
+            "dispatch_to_source_ms": 144.447536,
+            "dispatch_to_terminal_ms": 211.228391,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465850995909361,
+            "source_observed_at_monotonic_ns": 465851140356897,
+            "source_to_terminal_ms": 66.780855,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465851207137752
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000287,
+            "dispatch_to_source_ms": 144.512005,
+            "dispatch_to_terminal_ms": 208.819071,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465851207348258,
+            "source_observed_at_monotonic_ns": 465851351860263,
+            "source_to_terminal_ms": 64.307066,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465851416167329
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 191.829056,
+              "minimum": 137.951163,
+              "p50": 144.068916,
+              "p95": 184.298014,
+              "p99": 191.829056
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 284.425894,
+              "minimum": 201.208536,
+              "p50": 210.62087,
+              "p95": 258.260945,
+              "p99": 284.425894
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 100.12788,
+              "minimum": 63.257373,
+              "p50": 66.824266,
+              "p95": 98.908725,
+              "p99": 100.12788
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "line": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000246,
+            "dispatch_to_source_ms": 107.987738,
+            "dispatch_to_terminal_ms": 108.996906,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844679161472,
+            "source_observed_at_monotonic_ns": 465844787149210,
+            "source_to_terminal_ms": 1.009168,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844788158378
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000247,
+            "dispatch_to_source_ms": 88.62569,
+            "dispatch_to_terminal_ms": 89.733076,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844788304463,
+            "source_observed_at_monotonic_ns": 465844876930153,
+            "source_to_terminal_ms": 1.107386,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844878037539
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000248,
+            "dispatch_to_source_ms": 90.019273,
+            "dispatch_to_terminal_ms": 91.02811,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844878188098,
+            "source_observed_at_monotonic_ns": 465844968207371,
+            "source_to_terminal_ms": 1.008837,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844969216208
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000249,
+            "dispatch_to_source_ms": 91.48401,
+            "dispatch_to_terminal_ms": 92.534167,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844969352552,
+            "source_observed_at_monotonic_ns": 465845060836562,
+            "source_to_terminal_ms": 1.050157,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845061886719
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000250,
+            "dispatch_to_source_ms": 88.056528,
+            "dispatch_to_terminal_ms": 89.032356,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845061982093,
+            "source_observed_at_monotonic_ns": 465845150038621,
+            "source_to_terminal_ms": 0.975828,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845151014449
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000251,
+            "dispatch_to_source_ms": 95.483648,
+            "dispatch_to_terminal_ms": 96.727372,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845151147693,
+            "source_observed_at_monotonic_ns": 465845246631341,
+            "source_to_terminal_ms": 1.243724,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845247875065
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000252,
+            "dispatch_to_source_ms": 89.851725,
+            "dispatch_to_terminal_ms": 90.943124,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845248057654,
+            "source_observed_at_monotonic_ns": 465845337909379,
+            "source_to_terminal_ms": 1.091399,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845339000778
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000253,
+            "dispatch_to_source_ms": 87.292164,
+            "dispatch_to_terminal_ms": 88.373421,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845339127594,
+            "source_observed_at_monotonic_ns": 465845426419758,
+            "source_to_terminal_ms": 1.081257,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845427501015
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000254,
+            "dispatch_to_source_ms": 86.684561,
+            "dispatch_to_terminal_ms": 87.944156,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845427622857,
+            "source_observed_at_monotonic_ns": 465845514307418,
+            "source_to_terminal_ms": 1.259595,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845515567013
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000255,
+            "dispatch_to_source_ms": 89.908562,
+            "dispatch_to_terminal_ms": 90.805532,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845515699854,
+            "source_observed_at_monotonic_ns": 465845605608416,
+            "source_to_terminal_ms": 0.89697,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845606505386
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000256,
+            "dispatch_to_source_ms": 87.323721,
+            "dispatch_to_terminal_ms": 88.352984,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845606623684,
+            "source_observed_at_monotonic_ns": 465845693947405,
+            "source_to_terminal_ms": 1.029263,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845694976668
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000257,
+            "dispatch_to_source_ms": 89.084209,
+            "dispatch_to_terminal_ms": 90.366232,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845695075705,
+            "source_observed_at_monotonic_ns": 465845784159914,
+            "source_to_terminal_ms": 1.282023,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845785441937
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000258,
+            "dispatch_to_source_ms": 92.521168,
+            "dispatch_to_terminal_ms": 93.786935,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845785698569,
+            "source_observed_at_monotonic_ns": 465845878219737,
+            "source_to_terminal_ms": 1.265767,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845879485504
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000259,
+            "dispatch_to_source_ms": 92.17992,
+            "dispatch_to_terminal_ms": 93.250447,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845879645923,
+            "source_observed_at_monotonic_ns": 465845971825843,
+            "source_to_terminal_ms": 1.070527,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465845972896370
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000260,
+            "dispatch_to_source_ms": 90.526252,
+            "dispatch_to_terminal_ms": 91.565672,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465845973046329,
+            "source_observed_at_monotonic_ns": 465846063572581,
+            "source_to_terminal_ms": 1.03942,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465846064612001
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000261,
+            "dispatch_to_source_ms": 91.376754,
+            "dispatch_to_terminal_ms": 92.302551,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465846064715599,
+            "source_observed_at_monotonic_ns": 465846156092353,
+            "source_to_terminal_ms": 0.925797,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465846157018150
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000262,
+            "dispatch_to_source_ms": 92.358882,
+            "dispatch_to_terminal_ms": 93.798677,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465846157126427,
+            "source_observed_at_monotonic_ns": 465846249485309,
+            "source_to_terminal_ms": 1.439795,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465846250925104
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000263,
+            "dispatch_to_source_ms": 92.369134,
+            "dispatch_to_terminal_ms": 93.358941,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465846251028180,
+            "source_observed_at_monotonic_ns": 465846343397314,
+            "source_to_terminal_ms": 0.989807,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465846344387121
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000264,
+            "dispatch_to_source_ms": 109.654694,
+            "dispatch_to_terminal_ms": 110.713486,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465846344491182,
+            "source_observed_at_monotonic_ns": 465846454145876,
+            "source_to_terminal_ms": 1.058792,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465846455204668
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000265,
+            "dispatch_to_source_ms": 100.931622,
+            "dispatch_to_terminal_ms": 102.087128,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465846455320979,
+            "source_observed_at_monotonic_ns": 465846556252601,
+            "source_to_terminal_ms": 1.155506,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465846557408107
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 109.654694,
+              "minimum": 86.684561,
+              "p50": 90.526252,
+              "p95": 107.987738,
+              "p99": 109.654694
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 110.713486,
+              "minimum": 87.944156,
+              "p50": 91.565672,
+              "p95": 108.996906,
+              "p99": 110.713486
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.439795,
+              "minimum": 0.89697,
+              "p50": 1.058792,
+              "p95": 1.282023,
+              "p99": 1.439795
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "multipart": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000290,
+            "dispatch_to_source_ms": 100.854319,
+            "dispatch_to_terminal_ms": 102.081653,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465851625624975,
+            "source_observed_at_monotonic_ns": 465851726479294,
+            "source_to_terminal_ms": 1.227334,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465851727706628
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000291,
+            "dispatch_to_source_ms": 109.039251,
+            "dispatch_to_terminal_ms": 110.067907,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465851727850489,
+            "source_observed_at_monotonic_ns": 465851836889740,
+            "source_to_terminal_ms": 1.028656,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465851837918396
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000292,
+            "dispatch_to_source_ms": 132.958269,
+            "dispatch_to_terminal_ms": 133.995749,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465851838126002,
+            "source_observed_at_monotonic_ns": 465851971084271,
+            "source_to_terminal_ms": 1.03748,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465851972121751
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000293,
+            "dispatch_to_source_ms": 100.758429,
+            "dispatch_to_terminal_ms": 101.800532,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465851972287555,
+            "source_observed_at_monotonic_ns": 465852073045984,
+            "source_to_terminal_ms": 1.042103,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465852074088087
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000294,
+            "dispatch_to_source_ms": 115.755106,
+            "dispatch_to_terminal_ms": 117.2676,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465852074237800,
+            "source_observed_at_monotonic_ns": 465852189992906,
+            "source_to_terminal_ms": 1.512494,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465852191505400
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000295,
+            "dispatch_to_source_ms": 149.53102,
+            "dispatch_to_terminal_ms": 150.926169,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465852191672369,
+            "source_observed_at_monotonic_ns": 465852341203389,
+            "source_to_terminal_ms": 1.395149,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465852342598538
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000296,
+            "dispatch_to_source_ms": 154.57333,
+            "dispatch_to_terminal_ms": 156.062141,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465852342735124,
+            "source_observed_at_monotonic_ns": 465852497308454,
+            "source_to_terminal_ms": 1.488811,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465852498797265
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000297,
+            "dispatch_to_source_ms": 130.552749,
+            "dispatch_to_terminal_ms": 131.859283,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465852498970454,
+            "source_observed_at_monotonic_ns": 465852629523203,
+            "source_to_terminal_ms": 1.306534,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465852630829737
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000298,
+            "dispatch_to_source_ms": 115.110513,
+            "dispatch_to_terminal_ms": 116.180166,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465852630974338,
+            "source_observed_at_monotonic_ns": 465852746084851,
+            "source_to_terminal_ms": 1.069653,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465852747154504
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000299,
+            "dispatch_to_source_ms": 104.926816,
+            "dispatch_to_terminal_ms": 106.155615,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465852747296965,
+            "source_observed_at_monotonic_ns": 465852852223781,
+            "source_to_terminal_ms": 1.228799,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465852853452580
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000300,
+            "dispatch_to_source_ms": 111.800922,
+            "dispatch_to_terminal_ms": 113.026585,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465852853608995,
+            "source_observed_at_monotonic_ns": 465852965409917,
+            "source_to_terminal_ms": 1.225663,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465852966635580
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000301,
+            "dispatch_to_source_ms": 104.29698,
+            "dispatch_to_terminal_ms": 105.55797,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465852966782074,
+            "source_observed_at_monotonic_ns": 465853071079054,
+            "source_to_terminal_ms": 1.26099,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465853072340044
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000302,
+            "dispatch_to_source_ms": 112.604362,
+            "dispatch_to_terminal_ms": 113.78785,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465853072478042,
+            "source_observed_at_monotonic_ns": 465853185082404,
+            "source_to_terminal_ms": 1.183488,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465853186265892
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000303,
+            "dispatch_to_source_ms": 103.647138,
+            "dispatch_to_terminal_ms": 104.867469,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465853186410958,
+            "source_observed_at_monotonic_ns": 465853290058096,
+            "source_to_terminal_ms": 1.220331,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465853291278427
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000304,
+            "dispatch_to_source_ms": 114.495203,
+            "dispatch_to_terminal_ms": 115.923661,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465853291422823,
+            "source_observed_at_monotonic_ns": 465853405918026,
+            "source_to_terminal_ms": 1.428458,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465853407346484
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000305,
+            "dispatch_to_source_ms": 112.804697,
+            "dispatch_to_terminal_ms": 114.797794,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465853407532242,
+            "source_observed_at_monotonic_ns": 465853520336939,
+            "source_to_terminal_ms": 1.993097,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465853522330036
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000306,
+            "dispatch_to_source_ms": 104.219503,
+            "dispatch_to_terminal_ms": 105.77387,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465853522483454,
+            "source_observed_at_monotonic_ns": 465853626702957,
+            "source_to_terminal_ms": 1.554367,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465853628257324
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000307,
+            "dispatch_to_source_ms": 106.795179,
+            "dispatch_to_terminal_ms": 108.04433,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465853628393607,
+            "source_observed_at_monotonic_ns": 465853735188786,
+            "source_to_terminal_ms": 1.249151,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465853736437937
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000308,
+            "dispatch_to_source_ms": 104.26162,
+            "dispatch_to_terminal_ms": 105.514895,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465853736594181,
+            "source_observed_at_monotonic_ns": 465853840855801,
+            "source_to_terminal_ms": 1.253275,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465853842109076
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000309,
+            "dispatch_to_source_ms": 110.573137,
+            "dispatch_to_terminal_ms": 111.7253,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465853842263914,
+            "source_observed_at_monotonic_ns": 465853952837051,
+            "source_to_terminal_ms": 1.152163,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465853953989214
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 154.57333,
+              "minimum": 100.758429,
+              "p50": 110.573137,
+              "p95": 149.53102,
+              "p99": 154.57333
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 156.062141,
+              "minimum": 101.800532,
+              "p50": 111.7253,
+              "p95": 150.926169,
+              "p99": 156.062141
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.993097,
+              "minimum": 1.028656,
+              "p50": 1.228799,
+              "p95": 1.554367,
+              "p99": 1.993097
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "replacement": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.454727,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000324,
+            "dispatch_to_source_ms": 206.500169,
+            "dispatch_to_terminal_ms": 242.964911,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465854465374475,
+            "source_observed_at_monotonic_ns": 465854671874644,
+            "source_to_terminal_ms": 36.464742,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465854708339386
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.294985,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000329,
+            "dispatch_to_source_ms": 224.032576,
+            "dispatch_to_terminal_ms": 261.544146,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465854708568048,
+            "source_observed_at_monotonic_ns": 465854932600624,
+            "source_to_terminal_ms": 37.51157,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465854970112194
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.361105,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000334,
+            "dispatch_to_source_ms": 189.753927,
+            "dispatch_to_terminal_ms": 221.399947,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465854970314014,
+            "source_observed_at_monotonic_ns": 465855160067941,
+            "source_to_terminal_ms": 31.64602,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465855191713961
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.457092,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000339,
+            "dispatch_to_source_ms": 201.448788,
+            "dispatch_to_terminal_ms": 238.378417,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465855191928123,
+            "source_observed_at_monotonic_ns": 465855393376911,
+            "source_to_terminal_ms": 36.929629,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465855430306540
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.502175,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000344,
+            "dispatch_to_source_ms": 188.20128,
+            "dispatch_to_terminal_ms": 231.227863,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465855430513032,
+            "source_observed_at_monotonic_ns": 465855618714312,
+            "source_to_terminal_ms": 43.026583,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465855661740895
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.389017,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000349,
+            "dispatch_to_source_ms": 187.702051,
+            "dispatch_to_terminal_ms": 221.056465,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465855661953173,
+            "source_observed_at_monotonic_ns": 465855849655224,
+            "source_to_terminal_ms": 33.354414,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465855883009638
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.514502,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000354,
+            "dispatch_to_source_ms": 194.902359,
+            "dispatch_to_terminal_ms": 229.892897,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465855883302388,
+            "source_observed_at_monotonic_ns": 465856078204747,
+            "source_to_terminal_ms": 34.990538,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465856113195285
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.450256,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000359,
+            "dispatch_to_source_ms": 199.861696,
+            "dispatch_to_terminal_ms": 235.296418,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465856113432677,
+            "source_observed_at_monotonic_ns": 465856313294373,
+            "source_to_terminal_ms": 35.434722,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465856348729095
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.491455,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000364,
+            "dispatch_to_source_ms": 205.341326,
+            "dispatch_to_terminal_ms": 241.445574,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465856348915393,
+            "source_observed_at_monotonic_ns": 465856554256719,
+            "source_to_terminal_ms": 36.104248,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465856590360967
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.33158,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000369,
+            "dispatch_to_source_ms": 200.607534,
+            "dispatch_to_terminal_ms": 241.758894,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465856590529081,
+            "source_observed_at_monotonic_ns": 465856791136615,
+            "source_to_terminal_ms": 41.15136,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465856832287975
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.441859,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000374,
+            "dispatch_to_source_ms": 206.188516,
+            "dispatch_to_terminal_ms": 238.669516,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465856832498786,
+            "source_observed_at_monotonic_ns": 465857038687302,
+            "source_to_terminal_ms": 32.481,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465857071168302
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.43429,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000379,
+            "dispatch_to_source_ms": 193.988168,
+            "dispatch_to_terminal_ms": 231.906863,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465857071457256,
+            "source_observed_at_monotonic_ns": 465857265445424,
+            "source_to_terminal_ms": 37.918695,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465857303364119
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.403795,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000384,
+            "dispatch_to_source_ms": 219.995431,
+            "dispatch_to_terminal_ms": 264.883146,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465857303587300,
+            "source_observed_at_monotonic_ns": 465857523582731,
+            "source_to_terminal_ms": 44.887715,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465857568470446
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.352968,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000389,
+            "dispatch_to_source_ms": 194.045406,
+            "dispatch_to_terminal_ms": 223.760698,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465857568669134,
+            "source_observed_at_monotonic_ns": 465857762714540,
+            "source_to_terminal_ms": 29.715292,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465857792429832
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.676613,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000394,
+            "dispatch_to_source_ms": 196.08401,
+            "dispatch_to_terminal_ms": 231.754907,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465857792691909,
+            "source_observed_at_monotonic_ns": 465857988775919,
+            "source_to_terminal_ms": 35.670897,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465858024446816
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.270209,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000399,
+            "dispatch_to_source_ms": 200.030457,
+            "dispatch_to_terminal_ms": 235.713487,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465858024663505,
+            "source_observed_at_monotonic_ns": 465858224693962,
+            "source_to_terminal_ms": 35.68303,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465858260376992
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.566031,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000404,
+            "dispatch_to_source_ms": 199.849439,
+            "dispatch_to_terminal_ms": 230.166788,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465858261039106,
+            "source_observed_at_monotonic_ns": 465858460888545,
+            "source_to_terminal_ms": 30.317349,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465858491205894
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.43051,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000409,
+            "dispatch_to_source_ms": 186.383599,
+            "dispatch_to_terminal_ms": 225.537474,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465858491352445,
+            "source_observed_at_monotonic_ns": 465858677736044,
+            "source_to_terminal_ms": 39.153875,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465858716889919
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.571911,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000414,
+            "dispatch_to_source_ms": 200.264025,
+            "dispatch_to_terminal_ms": 234.252682,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465858717107415,
+            "source_observed_at_monotonic_ns": 465858917371440,
+            "source_to_terminal_ms": 33.988657,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465858951360097
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "cancel_terminal_ms": 0.530183,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000419,
+            "dispatch_to_source_ms": 190.945907,
+            "dispatch_to_terminal_ms": 228.671356,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465858951830013,
+            "source_observed_at_monotonic_ns": 465859142775920,
+            "source_to_terminal_ms": 37.725449,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465859180501369
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "cancel_terminal_ms": {
+              "count": 20,
+              "maximum": 0.676613,
+              "minimum": 0.270209,
+              "p50": 0.441859,
+              "p95": 0.571911,
+              "p99": 0.676613
+            },
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 224.032576,
+              "minimum": 186.383599,
+              "p50": 199.849439,
+              "p95": 219.995431,
+              "p99": 224.032576
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 264.883146,
+              "minimum": 221.056465,
+              "p50": 231.906863,
+              "p95": 261.544146,
+              "p99": 264.883146
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 44.887715,
+              "minimum": 29.715292,
+              "p50": 35.68303,
+              "p95": 43.026583,
+              "p99": 44.887715
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      },
+      "word": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000224,
+            "dispatch_to_source_ms": 30.318566,
+            "dispatch_to_terminal_ms": 30.373399,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843852468864,
+            "source_observed_at_monotonic_ns": 465843882787430,
+            "source_to_terminal_ms": 0.054833,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843882842263
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000225,
+            "dispatch_to_source_ms": 31.159985,
+            "dispatch_to_terminal_ms": 31.42068,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843883048934,
+            "source_observed_at_monotonic_ns": 465843914208919,
+            "source_to_terminal_ms": 0.260695,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843914469614
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000226,
+            "dispatch_to_source_ms": 32.947687,
+            "dispatch_to_terminal_ms": 33.373931,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843914576648,
+            "source_observed_at_monotonic_ns": 465843947524335,
+            "source_to_terminal_ms": 0.426244,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843947950579
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000227,
+            "dispatch_to_source_ms": 35.802365,
+            "dispatch_to_terminal_ms": 36.159782,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843948160548,
+            "source_observed_at_monotonic_ns": 465843983962913,
+            "source_to_terminal_ms": 0.357417,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465843984320330
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000228,
+            "dispatch_to_source_ms": 31.23211,
+            "dispatch_to_terminal_ms": 31.312965,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465843984466187,
+            "source_observed_at_monotonic_ns": 465844015698297,
+            "source_to_terminal_ms": 0.080855,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844015779152
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000229,
+            "dispatch_to_source_ms": 33.139058,
+            "dispatch_to_terminal_ms": 33.392539,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844015992694,
+            "source_observed_at_monotonic_ns": 465844049131752,
+            "source_to_terminal_ms": 0.253481,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844049385233
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000230,
+            "dispatch_to_source_ms": 29.760417,
+            "dispatch_to_terminal_ms": 29.983232,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844049485513,
+            "source_observed_at_monotonic_ns": 465844079245930,
+            "source_to_terminal_ms": 0.222815,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844079468745
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000231,
+            "dispatch_to_source_ms": 30.857066,
+            "dispatch_to_terminal_ms": 31.080931,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844079570524,
+            "source_observed_at_monotonic_ns": 465844110427590,
+            "source_to_terminal_ms": 0.223865,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844110651455
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000232,
+            "dispatch_to_source_ms": 31.601018,
+            "dispatch_to_terminal_ms": 31.859528,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844110751773,
+            "source_observed_at_monotonic_ns": 465844142352791,
+            "source_to_terminal_ms": 0.25851,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844142611301
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000233,
+            "dispatch_to_source_ms": 29.851265,
+            "dispatch_to_terminal_ms": 29.943366,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844142742045,
+            "source_observed_at_monotonic_ns": 465844172593310,
+            "source_to_terminal_ms": 0.092101,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844172685411
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000234,
+            "dispatch_to_source_ms": 30.22856,
+            "dispatch_to_terminal_ms": 30.295935,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844172893532,
+            "source_observed_at_monotonic_ns": 465844203122092,
+            "source_to_terminal_ms": 0.067375,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844203189467
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000235,
+            "dispatch_to_source_ms": 32.975855,
+            "dispatch_to_terminal_ms": 33.210932,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844203460845,
+            "source_observed_at_monotonic_ns": 465844236436700,
+            "source_to_terminal_ms": 0.235077,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844236671777
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000236,
+            "dispatch_to_source_ms": 30.997893,
+            "dispatch_to_terminal_ms": 31.250914,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844236795256,
+            "source_observed_at_monotonic_ns": 465844267793149,
+            "source_to_terminal_ms": 0.253021,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844268046170
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000237,
+            "dispatch_to_source_ms": 33.117548,
+            "dispatch_to_terminal_ms": 33.173335,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844268157059,
+            "source_observed_at_monotonic_ns": 465844301274607,
+            "source_to_terminal_ms": 0.055787,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844301330394
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000238,
+            "dispatch_to_source_ms": 39.481393,
+            "dispatch_to_terminal_ms": 39.533775,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844301547491,
+            "source_observed_at_monotonic_ns": 465844341028884,
+            "source_to_terminal_ms": 0.052382,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844341081266
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000239,
+            "dispatch_to_source_ms": 32.426104,
+            "dispatch_to_terminal_ms": 32.481883,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844341304842,
+            "source_observed_at_monotonic_ns": 465844373730946,
+            "source_to_terminal_ms": 0.055779,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844373786725
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000240,
+            "dispatch_to_source_ms": 30.18953,
+            "dispatch_to_terminal_ms": 30.528582,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844374034874,
+            "source_observed_at_monotonic_ns": 465844404224404,
+            "source_to_terminal_ms": 0.339052,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844404563456
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000241,
+            "dispatch_to_source_ms": 33.342688,
+            "dispatch_to_terminal_ms": 33.663797,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844404716136,
+            "source_observed_at_monotonic_ns": 465844438058824,
+            "source_to_terminal_ms": 0.321109,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844438379933
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000242,
+            "dispatch_to_source_ms": 29.838776,
+            "dispatch_to_terminal_ms": 30.043603,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844438523446,
+            "source_observed_at_monotonic_ns": 465844468362222,
+            "source_to_terminal_ms": 0.204827,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844468567049
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rhvoice",
+              "voice_id": "rhvoice:Slt"
+            },
+            "dispatch_id": 1000243,
+            "dispatch_to_source_ms": 29.253077,
+            "dispatch_to_terminal_ms": 29.562872,
+            "engine_id": "rhvoice",
+            "sent_at_monotonic_ns": 465844468665885,
+            "source_observed_at_monotonic_ns": 465844497918962,
+            "source_to_terminal_ms": 0.309795,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465844498228757
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rhvoice": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 39.481393,
+              "minimum": 29.253077,
+              "p50": 31.159985,
+              "p95": 35.802365,
+              "p99": 39.481393
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 39.533775,
+              "minimum": 29.562872,
+              "p50": 31.312965,
+              "p95": 36.159782,
+              "p99": 39.533775
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.426244,
+              "minimum": 0.052382,
+              "p50": 0.223865,
+              "p95": 0.357417,
+              "p99": 0.426244
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rhvoice": {
+              "rhvoice:Slt": 20
+            }
+          }
+        }
+      }
+    }
+  },
+  "server": {
+    "features": [
+      "control_v1",
+      "emacsvox_tx",
+      "engine_inventory",
+      "engine_recovery_probe",
+      "exact_voice_preview",
+      "legacy_commands",
+      "logical_voice_registration",
+      "logical_voice_language_routing",
+      "logical_voice_routing",
+      "playback_marker_events_v1",
+      "playback_marker_events_v2",
+      "presentation_timeline_v1",
+      "presentation_timeline_v2",
+      "presentation_timeline_v3",
+      "presentation_tone_v1",
+      "post_synthesis_effects_v1",
+      "preferred_engine",
+      "process_audio_routing",
+      "relative_rate_v1",
+      "runtime_routing_policy",
+      "stable_voice_ids",
+      "text_repertoire_routing_v1",
+      "tracked_playback_completion"
+    ],
+    "version": "1.6.4",
+    "warm_process_start_to_ready_ms": 642.616727
+  }
+}

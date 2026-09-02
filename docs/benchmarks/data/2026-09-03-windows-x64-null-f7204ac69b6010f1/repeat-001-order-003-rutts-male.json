@@ -1,0 +1,4784 @@
+{
+  "configuration": {
+    "audio_output": "null",
+    "cases": [
+      "character",
+      "word",
+      "line",
+      "dense",
+      "multipart",
+      "replacement"
+    ],
+    "engine": "rutts",
+    "expected_engine_id": "rutts",
+    "iterations": 20,
+    "mode": "both",
+    "preferred_engine_id": null,
+    "replacement_burst": 5,
+    "server_command": [
+      "/home/bart/src/emacsvox/servers/omnivox",
+      "--audio-output",
+      "null"
+    ],
+    "text_profile": "rutts-ru",
+    "timeout_seconds": 90.0,
+    "voice_id": "male",
+    "warmups": 2
+  },
+  "created_at": "2026-09-02T21:06:39.227530+00:00",
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "measurement": {
+    "acoustic_onset_measured": false,
+    "clock": "time.perf_counter_ns",
+    "real_time_playback": false,
+    "source": "client receipt of first utterance_started null-source marker",
+    "terminal": "client receipt of tracked terminal record"
+  },
+  "provenance": {
+    "build_id": "f7204ac69b6010f1",
+    "build_kind": "local-dirty-worktree",
+    "cargo_lock_sha256": "54ee68191571995b0c5d7e7799501bf83f947990e05aebddf80eaf38ad090040",
+    "dectalk_runtime": "bundled-pinned-archive",
+    "dockerfile_sha256": "33e2df54152f81abd75143954a5aaaab0c20e098970afba68d8b024fb7169efa",
+    "eloquence_runtime": "external-user-supplied-not-bundled",
+    "eloquence_runtime_sha256": "external-not-observed",
+    "emacsvox_commit": "3c47d0a2afa46ad4c9a32a5215bcddc4e7bdb019",
+    "emacsvox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "espeak_data_sha256": "9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "flite_companion": "local-omnivox-build",
+    "flite_companion_tree_sha256": "05e2536d784167d76397172a7715dcde7cba8943578bccfd1025056ce29760ed",
+    "flite_compiled_voice": "cmu_us_slt",
+    "flite_target": "x86_64-pc-windows-gnu",
+    "format": "emacsvox-omnivox-provenance-v1",
+    "mingw_gcc": "x86_64-w64-mingw32-gcc-win32 (GCC) 12-win32",
+    "net40_reference_assemblies_nupkg_sha256": "54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694",
+    "omnivox_commit": "2973d5efc86d40520f146bd635209e40b4154c9e",
+    "omnivox_executable_sha256": "0dda735c3492114600c5b072be18e257f1e215a13799a6bd19be36b7252937e3",
+    "omnivox_features": "none",
+    "omnivox_worktree_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "piper_companion": "not-included",
+    "piper_companion_archive_sha256": "not-included",
+    "piper_companion_commit": "not-included",
+    "piper_companion_tree_sha256": "not-included",
+    "piper_companion_version": "not-included",
+    "piper_model": "not-included",
+    "piper_model_config_sha256": "not-observed",
+    "piper_model_sha256": "not-observed",
+    "release_image_id": "sha256:3186f03b16a6b9cc62befb0902a40974b6297426483582464e3c421bb9873204",
+    "rhvoice_companion": "local-omnivox-build",
+    "rhvoice_companion_tree_sha256": "b24d61e77b4e933022e03983ad486f0c40f7100d6728cf802191b74d5cc5bfef",
+    "rhvoice_config_tree_sha256": "not-configured",
+    "rhvoice_configuration": "recorded-windows-paths",
+    "rhvoice_data_tree_sha256": "a20abbc6f19bdef73b1f97e57c8fd3cb5c15e7fc3d1c04aafa9cde6f1254c5ce",
+    "rhvoice_library_sha256": "3014e72aa5a989c3082cbbc42977919601a8444f4e6dcdb73e5ae0c664272aed",
+    "rhvoice_runtime": "external-user-supplied-not-bundled",
+    "roslyn_csc": "5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)",
+    "roslyn_csc_sha256": "4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee",
+    "roslyn_nupkg_sha256": "302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "rutts_built_in_voices": "male,female",
+    "rutts_companion": "local-omnivox-build",
+    "rutts_companion_tree_sha256": "1fc6ff28b729c0d4ee86f64ebeb2ccd721f4e67d63687330ceaedd346d80c908",
+    "rutts_rulex": "not-included",
+    "rutts_target": "x86_64-pc-windows-gnu",
+    "rutts_version": "6.3.3",
+    "target": "x86_64-pc-windows-gnu",
+    "tgspeechbox_build_environment": "wsl-host-development-only",
+    "tgspeechbox_companion": "local-omnivox-experimental-build",
+    "tgspeechbox_companion_tree_sha256": "8139d2db714e4b820d7ff1c302a6326e610c3f3e63b544105253395cad2377b7",
+    "tgspeechbox_cxx": "x86_64-w64-mingw32-g++-posix (GCC) 13-posix",
+    "tgspeechbox_cxx_sha256": "43befe0a8b6f3b40f54b5fac3717b4bf1cf56a2373b7b9bbbe21956211c16046",
+    "tgspeechbox_markers": "none",
+    "tgspeechbox_rate_mapping": "provisional",
+    "tgspeechbox_target": "x86_64-pc-windows-gnu",
+    "toolchain_lock_sha256": "197f0a6765d9b509ed884c7c6cae2f557d022658b0c20489c0716760ec926f8e",
+    "unstripped_diagnostics": "retained-local-not-staged",
+    "windows_helpers_license": "GPL-2.0-or-later",
+    "windows_helpers_source": "omnivox",
+    "windows_rustflags": "-C link-arg=-Wl,--no-insert-timestamp",
+    "windows_strip": "SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all"
+  },
+  "report_version": 2,
+  "results": {
+    "cold": {
+      "character": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000000,
+            "dispatch_to_source_ms": 12.586188,
+            "dispatch_to_terminal_ms": 12.631336,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 545.330601,
+            "process_start_to_source_ms": 559.103361,
+            "sent_at_monotonic_ns": 465353987469437,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465354000055625,
+            "source_to_terminal_ms": 0.045148,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465354000100773
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000001,
+            "dispatch_to_source_ms": 11.784209,
+            "dispatch_to_terminal_ms": 11.819601,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 489.575225,
+            "process_start_to_source_ms": 502.526163,
+            "sent_at_monotonic_ns": 465354522887555,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465354534671764,
+            "source_to_terminal_ms": 0.035392,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465354534707156
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000002,
+            "dispatch_to_source_ms": 13.716512,
+            "dispatch_to_terminal_ms": 13.757111,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 516.386587,
+            "process_start_to_source_ms": 531.150693,
+            "sent_at_monotonic_ns": 465355116209981,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465355129926493,
+            "source_to_terminal_ms": 0.040599,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465355129967092
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000003,
+            "dispatch_to_source_ms": 12.135608,
+            "dispatch_to_terminal_ms": 12.247653,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 462.782584,
+            "process_start_to_source_ms": 476.277573,
+            "sent_at_monotonic_ns": 465355658210364,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465355670345972,
+            "source_to_terminal_ms": 0.112045,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465355670458017
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000004,
+            "dispatch_to_source_ms": 14.034465,
+            "dispatch_to_terminal_ms": 14.075897,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 441.262011,
+            "process_start_to_source_ms": 456.56292,
+            "sent_at_monotonic_ns": 465356227316057,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465356241350522,
+            "source_to_terminal_ms": 0.041432,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465356241391954
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000005,
+            "dispatch_to_source_ms": 13.177646,
+            "dispatch_to_terminal_ms": 13.222512,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 540.994871,
+            "process_start_to_source_ms": 555.237197,
+            "sent_at_monotonic_ns": 465356947748789,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465356960926435,
+            "source_to_terminal_ms": 0.044866,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465356960971301
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000006,
+            "dispatch_to_source_ms": 13.079508,
+            "dispatch_to_terminal_ms": 13.145315,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 486.622237,
+            "process_start_to_source_ms": 500.908049,
+            "sent_at_monotonic_ns": 465357513093964,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465357526173472,
+            "source_to_terminal_ms": 0.065807,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465357526239279
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000007,
+            "dispatch_to_source_ms": 14.135951,
+            "dispatch_to_terminal_ms": 14.205351,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 516.995199,
+            "process_start_to_source_ms": 532.195405,
+            "sent_at_monotonic_ns": 465358208834183,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465358222970134,
+            "source_to_terminal_ms": 0.0694,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465358223039534
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000008,
+            "dispatch_to_source_ms": 15.87353,
+            "dispatch_to_terminal_ms": 15.92326,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 551.504065,
+            "process_start_to_source_ms": 568.463122,
+            "sent_at_monotonic_ns": 465358889983351,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465358905856881,
+            "source_to_terminal_ms": 0.04973,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465358905906611
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000009,
+            "dispatch_to_source_ms": 12.00434,
+            "dispatch_to_terminal_ms": 12.040564,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 571.146385,
+            "process_start_to_source_ms": 584.200571,
+            "sent_at_monotonic_ns": 465359542275642,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465359554279982,
+            "source_to_terminal_ms": 0.036224,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465359554316206
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000010,
+            "dispatch_to_source_ms": 17.250422,
+            "dispatch_to_terminal_ms": 17.30599,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 579.737561,
+            "process_start_to_source_ms": 597.934406,
+            "sent_at_monotonic_ns": 465360199184839,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465360216435261,
+            "source_to_terminal_ms": 0.055568,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465360216490829
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000011,
+            "dispatch_to_source_ms": 13.495286,
+            "dispatch_to_terminal_ms": 13.535086,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 526.210288,
+            "process_start_to_source_ms": 540.598331,
+            "sent_at_monotonic_ns": 465360775544932,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465360789040218,
+            "source_to_terminal_ms": 0.0398,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465360789080018
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000012,
+            "dispatch_to_source_ms": 13.052885,
+            "dispatch_to_terminal_ms": 13.079696,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 484.309353,
+            "process_start_to_source_ms": 498.314451,
+            "sent_at_monotonic_ns": 465361338571697,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465361351624582,
+            "source_to_terminal_ms": 0.026811,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465361351651393
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000013,
+            "dispatch_to_source_ms": 16.382728,
+            "dispatch_to_terminal_ms": 16.445624,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 470.705273,
+            "process_start_to_source_ms": 488.202383,
+            "sent_at_monotonic_ns": 465361887737772,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465361904120500,
+            "source_to_terminal_ms": 0.062896,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465361904183396
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000014,
+            "dispatch_to_source_ms": 14.271427,
+            "dispatch_to_terminal_ms": 14.325426,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 587.68958,
+            "process_start_to_source_ms": 603.021624,
+            "sent_at_monotonic_ns": 465362607411102,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465362621682529,
+            "source_to_terminal_ms": 0.053999,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465362621736528
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000015,
+            "dispatch_to_source_ms": 13.058541,
+            "dispatch_to_terminal_ms": 13.129674,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 465.503426,
+            "process_start_to_source_ms": 479.872466,
+            "sent_at_monotonic_ns": 465363152699430,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465363165757971,
+            "source_to_terminal_ms": 0.071133,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465363165829104
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000016,
+            "dispatch_to_source_ms": 15.730286,
+            "dispatch_to_terminal_ms": 15.809483,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 455.305762,
+            "process_start_to_source_ms": 472.10193,
+            "sent_at_monotonic_ns": 465363786695955,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465363802426241,
+            "source_to_terminal_ms": 0.079197,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465363802505438
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000017,
+            "dispatch_to_source_ms": 18.135599,
+            "dispatch_to_terminal_ms": 18.178914,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 511.09738,
+            "process_start_to_source_ms": 530.489688,
+            "sent_at_monotonic_ns": 465364479405595,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465364497541194,
+            "source_to_terminal_ms": 0.043315,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465364497584509
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000018,
+            "dispatch_to_source_ms": 12.440059,
+            "dispatch_to_terminal_ms": 12.644611,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 572.398674,
+            "process_start_to_source_ms": 586.169524,
+            "sent_at_monotonic_ns": 465365135429966,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465365147870025,
+            "source_to_terminal_ms": 0.204552,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465365148074577
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000019,
+            "dispatch_to_source_ms": 16.575167,
+            "dispatch_to_terminal_ms": 16.627073,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 534.120348,
+            "process_start_to_source_ms": 552.271144,
+            "sent_at_monotonic_ns": 465365715620888,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465365732196055,
+            "source_to_terminal_ms": 0.051906,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465365732247961
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 18.135599,
+              "minimum": 11.784209,
+              "p50": 13.495286,
+              "p95": 17.250422,
+              "p99": 18.135599
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 18.178914,
+              "minimum": 11.819601,
+              "p50": 13.535086,
+              "p95": 17.30599,
+              "p99": 18.178914
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 587.68958,
+              "minimum": 441.262011,
+              "p50": 516.386587,
+              "p95": 579.737561,
+              "p99": 587.68958
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 603.021624,
+              "minimum": 456.56292,
+              "p50": 531.150693,
+              "p95": 597.934406,
+              "p99": 603.021624
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.204552,
+              "minimum": 0.026811,
+              "p50": 0.04973,
+              "p95": 0.112045,
+              "p99": 0.204552
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "dense": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000060,
+            "dispatch_to_source_ms": 44.904104,
+            "dispatch_to_terminal_ms": 46.554895,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 450.942575,
+            "process_start_to_source_ms": 496.77749,
+            "sent_at_monotonic_ns": 465390561858261,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465390606762365,
+            "source_to_terminal_ms": 1.650791,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465390608413156
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000061,
+            "dispatch_to_source_ms": 46.449523,
+            "dispatch_to_terminal_ms": 48.426214,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 490.350507,
+            "process_start_to_source_ms": 537.715437,
+            "sent_at_monotonic_ns": 465391163839176,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465391210288699,
+            "source_to_terminal_ms": 1.976691,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465391212265390
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000062,
+            "dispatch_to_source_ms": 46.745279,
+            "dispatch_to_terminal_ms": 48.234218,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 441.306976,
+            "process_start_to_source_ms": 489.019818,
+            "sent_at_monotonic_ns": 465391686526191,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465391733271470,
+            "source_to_terminal_ms": 1.488939,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465391734760409
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000063,
+            "dispatch_to_source_ms": 44.162698,
+            "dispatch_to_terminal_ms": 45.775682,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 434.776811,
+            "process_start_to_source_ms": 479.945198,
+            "sent_at_monotonic_ns": 465392284812275,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465392328974973,
+            "source_to_terminal_ms": 1.612984,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465392330587957
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000064,
+            "dispatch_to_source_ms": 44.928032,
+            "dispatch_to_terminal_ms": 48.001892,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 480.540349,
+            "process_start_to_source_ms": 526.580418,
+            "sent_at_monotonic_ns": 465392926489984,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465392971418016,
+            "source_to_terminal_ms": 3.07386,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465392974491876
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000065,
+            "dispatch_to_source_ms": 47.135543,
+            "dispatch_to_terminal_ms": 48.66336,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 516.564442,
+            "process_start_to_source_ms": 564.662463,
+            "sent_at_monotonic_ns": 465393556294737,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465393603430280,
+            "source_to_terminal_ms": 1.527817,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465393604958097
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000066,
+            "dispatch_to_source_ms": 44.817286,
+            "dispatch_to_terminal_ms": 46.231565,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 530.457884,
+            "process_start_to_source_ms": 576.340278,
+            "sent_at_monotonic_ns": 465394168436991,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465394213254277,
+            "source_to_terminal_ms": 1.414279,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465394214668556
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000067,
+            "dispatch_to_source_ms": 44.826067,
+            "dispatch_to_terminal_ms": 46.309302,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 468.094425,
+            "process_start_to_source_ms": 513.976384,
+            "sent_at_monotonic_ns": 465394715669015,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465394760495082,
+            "source_to_terminal_ms": 1.483235,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465394761978317
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000068,
+            "dispatch_to_source_ms": 46.173434,
+            "dispatch_to_terminal_ms": 47.628039,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 465.764185,
+            "process_start_to_source_ms": 513.122221,
+            "sent_at_monotonic_ns": 465395292880049,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465395339053483,
+            "source_to_terminal_ms": 1.454605,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465395340508088
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000069,
+            "dispatch_to_source_ms": 46.874707,
+            "dispatch_to_terminal_ms": 48.544332,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 420.146813,
+            "process_start_to_source_ms": 468.220981,
+            "sent_at_monotonic_ns": 465395826027260,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465395872901967,
+            "source_to_terminal_ms": 1.669625,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465395874571592
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000070,
+            "dispatch_to_source_ms": 46.817732,
+            "dispatch_to_terminal_ms": 48.337359,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 424.151005,
+            "process_start_to_source_ms": 471.855,
+            "sent_at_monotonic_ns": 465396413751179,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465396460568911,
+            "source_to_terminal_ms": 1.519627,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465396462088538
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000071,
+            "dispatch_to_source_ms": 47.251004,
+            "dispatch_to_terminal_ms": 49.511703,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 494.478526,
+            "process_start_to_source_ms": 542.621953,
+            "sent_at_monotonic_ns": 465397071790191,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465397119041195,
+            "source_to_terminal_ms": 2.260699,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465397121301894
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000072,
+            "dispatch_to_source_ms": 47.248262,
+            "dispatch_to_terminal_ms": 49.133389,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 467.616501,
+            "process_start_to_source_ms": 516.03751,
+            "sent_at_monotonic_ns": 465397622011170,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465397669259432,
+            "source_to_terminal_ms": 1.885127,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465397671144559
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000073,
+            "dispatch_to_source_ms": 51.074248,
+            "dispatch_to_terminal_ms": 52.725561,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 460.335315,
+            "process_start_to_source_ms": 512.602148,
+            "sent_at_monotonic_ns": 465398196830916,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465398247905164,
+            "source_to_terminal_ms": 1.651313,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465398249556477
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000074,
+            "dispatch_to_source_ms": 44.79882,
+            "dispatch_to_terminal_ms": 46.711239,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 509.688486,
+            "process_start_to_source_ms": 555.455224,
+            "sent_at_monotonic_ns": 465398874334534,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465398919133354,
+            "source_to_terminal_ms": 1.912419,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465398921045773
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000075,
+            "dispatch_to_source_ms": 47.227762,
+            "dispatch_to_terminal_ms": 49.360033,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 520.42786,
+            "process_start_to_source_ms": 568.537803,
+            "sent_at_monotonic_ns": 465399506330970,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465399553558732,
+            "source_to_terminal_ms": 2.132271,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465399555691003
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000076,
+            "dispatch_to_source_ms": 44.799127,
+            "dispatch_to_terminal_ms": 46.39807,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 556.127241,
+            "process_start_to_source_ms": 601.933363,
+            "sent_at_monotonic_ns": 465400144774113,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465400189573240,
+            "source_to_terminal_ms": 1.598943,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465400191172183
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000077,
+            "dispatch_to_source_ms": 47.206343,
+            "dispatch_to_terminal_ms": 48.947339,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 502.567476,
+            "process_start_to_source_ms": 550.706827,
+            "sent_at_monotonic_ns": 465400758702537,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465400805908880,
+            "source_to_terminal_ms": 1.740996,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465400807649876
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000078,
+            "dispatch_to_source_ms": 50.219044,
+            "dispatch_to_terminal_ms": 51.881814,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 528.812564,
+            "process_start_to_source_ms": 579.948645,
+            "sent_at_monotonic_ns": 465401401562050,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465401451781094,
+            "source_to_terminal_ms": 1.66277,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465401453443864
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000079,
+            "dispatch_to_source_ms": 49.282192,
+            "dispatch_to_terminal_ms": 52.103694,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 456.90169,
+            "process_start_to_source_ms": 507.221976,
+            "sent_at_monotonic_ns": 465401943369711,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465401992651903,
+            "source_to_terminal_ms": 2.821502,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465401995473405
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 51.074248,
+              "minimum": 44.162698,
+              "p50": 46.745279,
+              "p95": 50.219044,
+              "p99": 51.074248
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 52.725561,
+              "minimum": 45.775682,
+              "p50": 48.337359,
+              "p95": 52.103694,
+              "p99": 52.725561
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 556.127241,
+              "minimum": 420.146813,
+              "p50": 468.094425,
+              "p95": 530.457884,
+              "p99": 556.127241
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 601.933363,
+              "minimum": 468.220981,
+              "p50": 516.03751,
+              "p95": 579.948645,
+              "p99": 601.933363
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 3.07386,
+              "minimum": 1.414279,
+              "p50": 1.651313,
+              "p95": 2.821502,
+              "p99": 3.07386
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "line": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000040,
+            "dispatch_to_source_ms": 49.869454,
+            "dispatch_to_terminal_ms": 50.811051,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 529.393665,
+            "process_start_to_source_ms": 580.512037,
+            "sent_at_monotonic_ns": 465378500295320,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465378550164774,
+            "source_to_terminal_ms": 0.941597,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465378551106371
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000041,
+            "dispatch_to_source_ms": 32.635464,
+            "dispatch_to_terminal_ms": 33.26058,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 524.359413,
+            "process_start_to_source_ms": 557.917355,
+            "sent_at_monotonic_ns": 465379190569844,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465379223205308,
+            "source_to_terminal_ms": 0.625116,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465379223830424
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000042,
+            "dispatch_to_source_ms": 30.220605,
+            "dispatch_to_terminal_ms": 31.205775,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 548.388115,
+            "process_start_to_source_ms": 579.570402,
+            "sent_at_monotonic_ns": 465379837377776,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465379867598381,
+            "source_to_terminal_ms": 0.98517,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465379868583551
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000043,
+            "dispatch_to_source_ms": 30.447531,
+            "dispatch_to_terminal_ms": 31.322731,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 553.385873,
+            "process_start_to_source_ms": 584.890413,
+            "sent_at_monotonic_ns": 465380454916848,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465380485364379,
+            "source_to_terminal_ms": 0.8752,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465380486239579
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000044,
+            "dispatch_to_source_ms": 30.052527,
+            "dispatch_to_terminal_ms": 31.014028,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 514.956314,
+            "process_start_to_source_ms": 546.063439,
+            "sent_at_monotonic_ns": 465381066453880,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465381096506407,
+            "source_to_terminal_ms": 0.961501,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465381097467908
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000045,
+            "dispatch_to_source_ms": 29.054774,
+            "dispatch_to_terminal_ms": 29.774299,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 437.487468,
+            "process_start_to_source_ms": 467.581197,
+            "sent_at_monotonic_ns": 465381650152781,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465381679207555,
+            "source_to_terminal_ms": 0.719525,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465381679927080
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000046,
+            "dispatch_to_source_ms": 29.057417,
+            "dispatch_to_terminal_ms": 29.87459,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 454.793016,
+            "process_start_to_source_ms": 484.667664,
+            "sent_at_monotonic_ns": 465382249701957,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465382278759374,
+            "source_to_terminal_ms": 0.817173,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465382279576547
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000047,
+            "dispatch_to_source_ms": 33.002784,
+            "dispatch_to_terminal_ms": 33.74796,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 544.618672,
+            "process_start_to_source_ms": 578.678135,
+            "sent_at_monotonic_ns": 465382889292903,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465382922295687,
+            "source_to_terminal_ms": 0.745176,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465382923040863
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000048,
+            "dispatch_to_source_ms": 30.949141,
+            "dispatch_to_terminal_ms": 31.692871,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 476.647318,
+            "process_start_to_source_ms": 508.515203,
+            "sent_at_monotonic_ns": 465383432547776,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465383463496917,
+            "source_to_terminal_ms": 0.74373,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465383464240647
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000049,
+            "dispatch_to_source_ms": 32.517614,
+            "dispatch_to_terminal_ms": 33.583983,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 532.701451,
+            "process_start_to_source_ms": 566.192198,
+            "sent_at_monotonic_ns": 465384112172154,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465384144689768,
+            "source_to_terminal_ms": 1.066369,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465384145756137
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000050,
+            "dispatch_to_source_ms": 28.241608,
+            "dispatch_to_terminal_ms": 29.23218,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 438.504883,
+            "process_start_to_source_ms": 467.736695,
+            "sent_at_monotonic_ns": 465384617119153,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465384645360761,
+            "source_to_terminal_ms": 0.990572,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465384646351333
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000051,
+            "dispatch_to_source_ms": 28.398656,
+            "dispatch_to_terminal_ms": 29.175978,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 462.20175,
+            "process_start_to_source_ms": 491.551313,
+            "sent_at_monotonic_ns": 465385223714430,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465385252113086,
+            "source_to_terminal_ms": 0.777322,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465385252890408
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000052,
+            "dispatch_to_source_ms": 29.348914,
+            "dispatch_to_terminal_ms": 30.039463,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 437.582296,
+            "process_start_to_source_ms": 468.170149,
+            "sent_at_monotonic_ns": 465385806096537,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465385835445451,
+            "source_to_terminal_ms": 0.690549,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465385836136000
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000053,
+            "dispatch_to_source_ms": 29.353665,
+            "dispatch_to_terminal_ms": 30.173409,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 520.440745,
+            "process_start_to_source_ms": 550.594054,
+            "sent_at_monotonic_ns": 465386471755844,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465386501109509,
+            "source_to_terminal_ms": 0.819744,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465386501929253
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000054,
+            "dispatch_to_source_ms": 29.39982,
+            "dispatch_to_terminal_ms": 30.187659,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 531.04588,
+            "process_start_to_source_ms": 561.4225,
+            "sent_at_monotonic_ns": 465387065803523,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465387095203343,
+            "source_to_terminal_ms": 0.787839,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465387095991182
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000055,
+            "dispatch_to_source_ms": 32.856714,
+            "dispatch_to_terminal_ms": 33.603797,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 519.476762,
+            "process_start_to_source_ms": 553.420544,
+            "sent_at_monotonic_ns": 465387680716940,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465387713573654,
+            "source_to_terminal_ms": 0.747083,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465387714320737
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000056,
+            "dispatch_to_source_ms": 29.342514,
+            "dispatch_to_terminal_ms": 30.062152,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 483.448741,
+            "process_start_to_source_ms": 513.829786,
+            "sent_at_monotonic_ns": 465388230761977,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465388260104491,
+            "source_to_terminal_ms": 0.719638,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465388260824129
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000057,
+            "dispatch_to_source_ms": 31.461594,
+            "dispatch_to_terminal_ms": 32.276282,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 504.135156,
+            "process_start_to_source_ms": 536.660203,
+            "sent_at_monotonic_ns": 465388880214155,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465388911675749,
+            "source_to_terminal_ms": 0.814688,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465388912490437
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000058,
+            "dispatch_to_source_ms": 29.104914,
+            "dispatch_to_terminal_ms": 29.964913,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 500.071609,
+            "process_start_to_source_ms": 530.212707,
+            "sent_at_monotonic_ns": 465389477759049,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465389506863963,
+            "source_to_terminal_ms": 0.859999,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465389507723962
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000059,
+            "dispatch_to_source_ms": 29.838805,
+            "dispatch_to_terminal_ms": 30.643524,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 424.182293,
+            "process_start_to_source_ms": 454.953732,
+            "sent_at_monotonic_ns": 465389964927682,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465389994766487,
+            "source_to_terminal_ms": 0.804719,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465389995571206
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 49.869454,
+              "minimum": 28.241608,
+              "p50": 29.838805,
+              "p95": 33.002784,
+              "p99": 49.869454
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 50.811051,
+              "minimum": 29.175978,
+              "p50": 30.643524,
+              "p95": 33.74796,
+              "p99": 50.811051
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 553.385873,
+              "minimum": 424.182293,
+              "p50": 504.135156,
+              "p95": 548.388115,
+              "p99": 553.385873
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 584.890413,
+              "minimum": 454.953732,
+              "p50": 536.660203,
+              "p95": 580.512037,
+              "p99": 584.890413
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.066369,
+              "minimum": 0.625116,
+              "p50": 0.804719,
+              "p95": 0.990572,
+              "p99": 1.066369
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "multipart": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000080,
+            "dispatch_to_source_ms": 27.879144,
+            "dispatch_to_terminal_ms": 28.811382,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 509.620467,
+            "process_start_to_source_ms": 538.65949,
+            "sent_at_monotonic_ns": 465402570546357,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465402598425501,
+            "source_to_terminal_ms": 0.932238,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465402599357739
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000081,
+            "dispatch_to_source_ms": 31.341625,
+            "dispatch_to_terminal_ms": 32.499562,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 492.311444,
+            "process_start_to_source_ms": 525.123485,
+            "sent_at_monotonic_ns": 465403157243760,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465403188585385,
+            "source_to_terminal_ms": 1.157937,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465403189743322
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000082,
+            "dispatch_to_source_ms": 32.282693,
+            "dispatch_to_terminal_ms": 33.03672,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 478.308857,
+            "process_start_to_source_ms": 511.676573,
+            "sent_at_monotonic_ns": 465403783475841,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465403815758534,
+            "source_to_terminal_ms": 0.754027,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465403816512561
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000083,
+            "dispatch_to_source_ms": 43.529824,
+            "dispatch_to_terminal_ms": 44.028058,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 552.297712,
+            "process_start_to_source_ms": 596.92957,
+            "sent_at_monotonic_ns": 465404484286695,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465404527816519,
+            "source_to_terminal_ms": 0.498234,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465404528314753
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000084,
+            "dispatch_to_source_ms": 31.090426,
+            "dispatch_to_terminal_ms": 31.991049,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 438.277915,
+            "process_start_to_source_ms": 470.666187,
+            "sent_at_monotonic_ns": 465405032286159,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465405063376585,
+            "source_to_terminal_ms": 0.900623,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465405064277208
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000085,
+            "dispatch_to_source_ms": 41.753665,
+            "dispatch_to_terminal_ms": 42.412711,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 456.729685,
+            "process_start_to_source_ms": 499.552246,
+            "sent_at_monotonic_ns": 465405686573238,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465405728326903,
+            "source_to_terminal_ms": 0.659046,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465405728985949
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000086,
+            "dispatch_to_source_ms": 28.966492,
+            "dispatch_to_terminal_ms": 29.667159,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 547.194732,
+            "process_start_to_source_ms": 577.192859,
+            "sent_at_monotonic_ns": 465406341156693,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465406370123185,
+            "source_to_terminal_ms": 0.700667,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465406370823852
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000087,
+            "dispatch_to_source_ms": 32.232707,
+            "dispatch_to_terminal_ms": 32.899613,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 513.567874,
+            "process_start_to_source_ms": 547.084569,
+            "sent_at_monotonic_ns": 465406917803275,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465406950035982,
+            "source_to_terminal_ms": 0.666906,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465406950702888
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000088,
+            "dispatch_to_source_ms": 29.053488,
+            "dispatch_to_terminal_ms": 29.764315,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 556.813411,
+            "process_start_to_source_ms": 586.770909,
+            "sent_at_monotonic_ns": 465407540306309,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465407569359797,
+            "source_to_terminal_ms": 0.710827,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465407570070624
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000089,
+            "dispatch_to_source_ms": 32.147441,
+            "dispatch_to_terminal_ms": 32.903017,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 508.637054,
+            "process_start_to_source_ms": 541.680368,
+            "sent_at_monotonic_ns": 465408111403911,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465408143551352,
+            "source_to_terminal_ms": 0.755576,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465408144306928
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000090,
+            "dispatch_to_source_ms": 30.756988,
+            "dispatch_to_terminal_ms": 31.463227,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 497.430414,
+            "process_start_to_source_ms": 529.14421,
+            "sent_at_monotonic_ns": 465408674640351,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465408705397339,
+            "source_to_terminal_ms": 0.706239,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465408706103578
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000091,
+            "dispatch_to_source_ms": 29.354897,
+            "dispatch_to_terminal_ms": 30.202653,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 501.686132,
+            "process_start_to_source_ms": 532.225709,
+            "sent_at_monotonic_ns": 465409323159397,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465409352514294,
+            "source_to_terminal_ms": 0.847756,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465409353362050
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000092,
+            "dispatch_to_source_ms": 28.776429,
+            "dispatch_to_terminal_ms": 29.503142,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 456.787177,
+            "process_start_to_source_ms": 486.587053,
+            "sent_at_monotonic_ns": 465409875175239,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465409903951668,
+            "source_to_terminal_ms": 0.726713,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465409904678381
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000093,
+            "dispatch_to_source_ms": 31.054625,
+            "dispatch_to_terminal_ms": 32.336315,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 417.847316,
+            "process_start_to_source_ms": 449.838,
+            "sent_at_monotonic_ns": 465410437540583,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465410468595208,
+            "source_to_terminal_ms": 1.28169,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465410469876898
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000094,
+            "dispatch_to_source_ms": 28.287666,
+            "dispatch_to_terminal_ms": 28.985645,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 465.1699,
+            "process_start_to_source_ms": 494.610672,
+            "sent_at_monotonic_ns": 465411100536366,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465411128824032,
+            "source_to_terminal_ms": 0.697979,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465411129522011
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000095,
+            "dispatch_to_source_ms": 32.983927,
+            "dispatch_to_terminal_ms": 33.680429,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 553.681402,
+            "process_start_to_source_ms": 587.66303,
+            "sent_at_monotonic_ns": 465411798425927,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465411831409854,
+            "source_to_terminal_ms": 0.696502,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465411832106356
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000096,
+            "dispatch_to_source_ms": 27.627475,
+            "dispatch_to_terminal_ms": 28.416369,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 436.490885,
+            "process_start_to_source_ms": 465.496009,
+            "sent_at_monotonic_ns": 465412301856342,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465412329483817,
+            "source_to_terminal_ms": 0.788894,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465412330272711
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000097,
+            "dispatch_to_source_ms": 32.496124,
+            "dispatch_to_terminal_ms": 33.341852,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 506.135435,
+            "process_start_to_source_ms": 539.602141,
+            "sent_at_monotonic_ns": 465413001635368,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465413034131492,
+            "source_to_terminal_ms": 0.845728,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465413034977220
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000098,
+            "dispatch_to_source_ms": 36.797769,
+            "dispatch_to_terminal_ms": 37.551242,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 550.985904,
+            "process_start_to_source_ms": 588.887362,
+            "sent_at_monotonic_ns": 465413619035572,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465413655833341,
+            "source_to_terminal_ms": 0.753473,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465413656586814
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000099,
+            "dispatch_to_source_ms": 28.296264,
+            "dispatch_to_terminal_ms": 29.326421,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 546.054558,
+            "process_start_to_source_ms": 575.366224,
+            "sent_at_monotonic_ns": 465414267746641,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465414296042905,
+            "source_to_terminal_ms": 1.030157,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465414297073062
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 43.529824,
+              "minimum": 27.627475,
+              "p50": 31.054625,
+              "p95": 41.753665,
+              "p99": 43.529824
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 44.028058,
+              "minimum": 28.416369,
+              "p50": 31.991049,
+              "p95": 42.412711,
+              "p99": 44.028058
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 556.813411,
+              "minimum": 417.847316,
+              "p50": 501.686132,
+              "p95": 553.681402,
+              "p99": 556.813411
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 596.92957,
+              "minimum": 449.838,
+              "p50": 532.225709,
+              "p95": 588.887362,
+              "p99": 596.92957
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.28169,
+              "minimum": 0.498234,
+              "p50": 0.753473,
+              "p95": 1.157937,
+              "p99": 1.28169
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "replacement": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.577959,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000104,
+            "dispatch_to_source_ms": 80.076277,
+            "dispatch_to_terminal_ms": 93.519572,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 437.366004,
+            "process_start_to_source_ms": 518.943437,
+            "sent_at_monotonic_ns": 465414800048402,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465414880124679,
+            "source_to_terminal_ms": 13.443295,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465414893567974
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.342451,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000109,
+            "dispatch_to_source_ms": 82.789479,
+            "dispatch_to_terminal_ms": 95.625027,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 538.243969,
+            "process_start_to_source_ms": 622.15391,
+            "sent_at_monotonic_ns": 465415496981499,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465415579770978,
+            "source_to_terminal_ms": 12.835548,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465415592606526
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.458591,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000114,
+            "dispatch_to_source_ms": 81.776768,
+            "dispatch_to_terminal_ms": 95.910772,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 497.955459,
+            "process_start_to_source_ms": 580.881507,
+            "sent_at_monotonic_ns": 465416155773882,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465416237550650,
+            "source_to_terminal_ms": 14.134004,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465416251684654
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.529674,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000119,
+            "dispatch_to_source_ms": 78.871397,
+            "dispatch_to_terminal_ms": 95.813323,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 587.193683,
+            "process_start_to_source_ms": 667.558821,
+            "sent_at_monotonic_ns": 465416904622084,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465416983493481,
+            "source_to_terminal_ms": 16.941926,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465417000435407
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.33394,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000124,
+            "dispatch_to_source_ms": 88.251335,
+            "dispatch_to_terminal_ms": 101.434495,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 526.16361,
+            "process_start_to_source_ms": 615.632152,
+            "sent_at_monotonic_ns": 465417592084759,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465417680336094,
+            "source_to_terminal_ms": 13.18316,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465417693519254
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.36327,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000129,
+            "dispatch_to_source_ms": 79.105016,
+            "dispatch_to_terminal_ms": 95.911344,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 475.719863,
+            "process_start_to_source_ms": 556.31583,
+            "sent_at_monotonic_ns": 465418202692519,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465418281797535,
+            "source_to_terminal_ms": 16.806328,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465418298603863
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.359627,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000134,
+            "dispatch_to_source_ms": 85.235545,
+            "dispatch_to_terminal_ms": 99.895885,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 435.365258,
+            "process_start_to_source_ms": 521.677937,
+            "sent_at_monotonic_ns": 465418799188852,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465418884424397,
+            "source_to_terminal_ms": 14.66034,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465418899084737
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.309121,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000139,
+            "dispatch_to_source_ms": 77.947347,
+            "dispatch_to_terminal_ms": 92.869658,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 424.498304,
+            "process_start_to_source_ms": 503.493489,
+            "sent_at_monotonic_ns": 465419356750519,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465419434697866,
+            "source_to_terminal_ms": 14.922311,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465419449620177
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.413094,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000144,
+            "dispatch_to_source_ms": 89.217044,
+            "dispatch_to_terminal_ms": 103.333625,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 427.349607,
+            "process_start_to_source_ms": 517.610163,
+            "sent_at_monotonic_ns": 465419992201897,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465420081418941,
+            "source_to_terminal_ms": 14.116581,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465420095535522
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.336372,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000149,
+            "dispatch_to_source_ms": 79.822252,
+            "dispatch_to_terminal_ms": 95.344786,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 430.761889,
+            "process_start_to_source_ms": 511.731719,
+            "sent_at_monotonic_ns": 465420591521418,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465420671343670,
+            "source_to_terminal_ms": 15.522534,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465420686866204
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.463446,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000154,
+            "dispatch_to_source_ms": 85.695792,
+            "dispatch_to_terminal_ms": 99.930308,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 495.032574,
+            "process_start_to_source_ms": 582.042682,
+            "sent_at_monotonic_ns": 465421297547341,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465421383243133,
+            "source_to_terminal_ms": 14.234516,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465421397477649
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.288904,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000159,
+            "dispatch_to_source_ms": 77.116067,
+            "dispatch_to_terminal_ms": 92.315463,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 423.853369,
+            "process_start_to_source_ms": 501.854523,
+            "sent_at_monotonic_ns": 465421886402306,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465421963518373,
+            "source_to_terminal_ms": 15.199396,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465421978717769
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.301043,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000164,
+            "dispatch_to_source_ms": 82.17516,
+            "dispatch_to_terminal_ms": 95.483514,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 535.34582,
+            "process_start_to_source_ms": 618.467896,
+            "sent_at_monotonic_ns": 465422579255667,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465422661430827,
+            "source_to_terminal_ms": 13.308354,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465422674739181
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.328081,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000169,
+            "dispatch_to_source_ms": 77.108119,
+            "dispatch_to_terminal_ms": 91.073667,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 554.968874,
+            "process_start_to_source_ms": 633.088516,
+            "sent_at_monotonic_ns": 465423294846118,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465423371954237,
+            "source_to_terminal_ms": 13.965548,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465423385919785
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.309011,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000174,
+            "dispatch_to_source_ms": 83.576736,
+            "dispatch_to_terminal_ms": 99.381518,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 464.502007,
+            "process_start_to_source_ms": 549.025646,
+            "sent_at_monotonic_ns": 465423883441594,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465423967018330,
+            "source_to_terminal_ms": 15.804782,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465423982823112
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.394292,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000179,
+            "dispatch_to_source_ms": 80.434186,
+            "dispatch_to_terminal_ms": 98.69475,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 496.138441,
+            "process_start_to_source_ms": 577.573444,
+            "sent_at_monotonic_ns": 465424511957350,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465424592391536,
+            "source_to_terminal_ms": 18.260564,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465424610652100
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.41396,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000184,
+            "dispatch_to_source_ms": 90.218028,
+            "dispatch_to_terminal_ms": 104.661001,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 497.453641,
+            "process_start_to_source_ms": 588.898909,
+            "sent_at_monotonic_ns": 465425141415818,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465425231633846,
+            "source_to_terminal_ms": 14.442973,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465425246076819
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.316676,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000189,
+            "dispatch_to_source_ms": 80.25239,
+            "dispatch_to_terminal_ms": 95.156458,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 547.235692,
+            "process_start_to_source_ms": 628.708526,
+            "sent_at_monotonic_ns": 465425826519388,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465425906771778,
+            "source_to_terminal_ms": 14.904068,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465425921675846
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.31998,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000194,
+            "dispatch_to_source_ms": 83.230135,
+            "dispatch_to_terminal_ms": 96.572544,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 439.747886,
+            "process_start_to_source_ms": 523.981189,
+            "sent_at_monotonic_ns": 465426394370101,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465426477600236,
+            "source_to_terminal_ms": 13.342409,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465426490942645
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.335622,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000199,
+            "dispatch_to_source_ms": 77.002838,
+            "dispatch_to_terminal_ms": 92.498497,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 474.897716,
+            "process_start_to_source_ms": 553.086777,
+            "sent_at_monotonic_ns": 465427031173110,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465427108175948,
+            "source_to_terminal_ms": 15.495659,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427123671607
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "cancel_terminal_ms": {
+              "count": 20,
+              "maximum": 0.577959,
+              "minimum": 0.288904,
+              "p50": 0.336372,
+              "p95": 0.529674,
+              "p99": 0.577959
+            },
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 90.218028,
+              "minimum": 77.002838,
+              "p50": 80.434186,
+              "p95": 89.217044,
+              "p99": 90.218028
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 104.661001,
+              "minimum": 91.073667,
+              "p50": 95.813323,
+              "p95": 103.333625,
+              "p99": 104.661001
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 587.193683,
+              "minimum": 423.853369,
+              "p50": 475.719863,
+              "p95": 554.968874,
+              "p99": 587.193683
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 667.558821,
+              "minimum": 501.854523,
+              "p50": 556.31583,
+              "p95": 633.088516,
+              "p99": 667.558821
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 18.260564,
+              "minimum": 12.835548,
+              "p50": 14.442973,
+              "p95": 16.941926,
+              "p99": 18.260564
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "word": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000020,
+            "dispatch_to_source_ms": 16.082382,
+            "dispatch_to_terminal_ms": 16.260865,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 461.310692,
+            "process_start_to_source_ms": 478.266502,
+            "sent_at_monotonic_ns": 465366258800181,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465366274882563,
+            "source_to_terminal_ms": 0.178483,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465366275061046
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000021,
+            "dispatch_to_source_ms": 15.926967,
+            "dispatch_to_terminal_ms": 15.990178,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 508.817,
+            "process_start_to_source_ms": 525.865159,
+            "sent_at_monotonic_ns": 465366899256575,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465366915183542,
+            "source_to_terminal_ms": 0.063211,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465366915246753
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000022,
+            "dispatch_to_source_ms": 14.830043,
+            "dispatch_to_terminal_ms": 15.045839,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 519.238998,
+            "process_start_to_source_ms": 535.203017,
+            "sent_at_monotonic_ns": 465367550417702,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465367565247745,
+            "source_to_terminal_ms": 0.215796,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465367565463541
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000023,
+            "dispatch_to_source_ms": 15.51715,
+            "dispatch_to_terminal_ms": 15.806251,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 544.715412,
+            "process_start_to_source_ms": 561.11983,
+            "sent_at_monotonic_ns": 465368175078639,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465368190595789,
+            "source_to_terminal_ms": 0.289101,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465368190884890
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000024,
+            "dispatch_to_source_ms": 17.701441,
+            "dispatch_to_terminal_ms": 17.891524,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 464.59098,
+            "process_start_to_source_ms": 483.672279,
+            "sent_at_monotonic_ns": 465368721204614,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465368738906055,
+            "source_to_terminal_ms": 0.190083,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465368739096138
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000025,
+            "dispatch_to_source_ms": 19.756829,
+            "dispatch_to_terminal_ms": 19.810352,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 487.536336,
+            "process_start_to_source_ms": 508.500883,
+            "sent_at_monotonic_ns": 465369392369902,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465369412126731,
+            "source_to_terminal_ms": 0.053523,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465369412180254
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000026,
+            "dispatch_to_source_ms": 15.787915,
+            "dispatch_to_terminal_ms": 15.972372,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 492.457945,
+            "process_start_to_source_ms": 509.53107,
+            "sent_at_monotonic_ns": 465370020322826,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465370036110741,
+            "source_to_terminal_ms": 0.184457,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465370036295198
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000027,
+            "dispatch_to_source_ms": 16.395938,
+            "dispatch_to_terminal_ms": 16.588494,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 467.466177,
+            "process_start_to_source_ms": 485.147538,
+            "sent_at_monotonic_ns": 465370619197357,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465370635593295,
+            "source_to_terminal_ms": 0.192556,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465370635785851
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000028,
+            "dispatch_to_source_ms": 18.211999,
+            "dispatch_to_terminal_ms": 18.390855,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 540.608483,
+            "process_start_to_source_ms": 559.727092,
+            "sent_at_monotonic_ns": 465371291718439,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465371309930438,
+            "source_to_terminal_ms": 0.178856,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465371310109294
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000029,
+            "dispatch_to_source_ms": 19.300588,
+            "dispatch_to_terminal_ms": 19.346424,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 499.379849,
+            "process_start_to_source_ms": 520.166945,
+            "sent_at_monotonic_ns": 465371842907082,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465371862207670,
+            "source_to_terminal_ms": 0.045836,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465371862253506
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000030,
+            "dispatch_to_source_ms": 16.918241,
+            "dispatch_to_terminal_ms": 16.964736,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 534.549289,
+            "process_start_to_source_ms": 552.833507,
+            "sent_at_monotonic_ns": 465372562700235,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465372579618476,
+            "source_to_terminal_ms": 0.046495,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465372579664971
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000031,
+            "dispatch_to_source_ms": 15.462101,
+            "dispatch_to_terminal_ms": 15.627837,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 539.273375,
+            "process_start_to_source_ms": 555.643472,
+            "sent_at_monotonic_ns": 465373183960880,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465373199422981,
+            "source_to_terminal_ms": 0.165736,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465373199588717
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000032,
+            "dispatch_to_source_ms": 16.769198,
+            "dispatch_to_terminal_ms": 16.828502,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 441.403462,
+            "process_start_to_source_ms": 459.091464,
+            "sent_at_monotonic_ns": 465373705999619,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465373722768817,
+            "source_to_terminal_ms": 0.059304,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465373722828121
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000033,
+            "dispatch_to_source_ms": 15.184869,
+            "dispatch_to_terminal_ms": 15.40152,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 530.985654,
+            "process_start_to_source_ms": 547.157722,
+            "sent_at_monotonic_ns": 465374369098504,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465374384283373,
+            "source_to_terminal_ms": 0.216651,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465374384500024
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000034,
+            "dispatch_to_source_ms": 15.58605,
+            "dispatch_to_terminal_ms": 15.76966,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 495.295979,
+            "process_start_to_source_ms": 511.831028,
+            "sent_at_monotonic_ns": 465374944841487,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465374960427537,
+            "source_to_terminal_ms": 0.18361,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465374960611147
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000035,
+            "dispatch_to_source_ms": 15.501427,
+            "dispatch_to_terminal_ms": 15.561869,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 541.581332,
+            "process_start_to_source_ms": 557.974383,
+            "sent_at_monotonic_ns": 465375566937403,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465375582438830,
+            "source_to_terminal_ms": 0.060442,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465375582499272
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000036,
+            "dispatch_to_source_ms": 16.163343,
+            "dispatch_to_terminal_ms": 16.282009,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 533.280089,
+            "process_start_to_source_ms": 550.492348,
+            "sent_at_monotonic_ns": 465376148805436,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465376164968779,
+            "source_to_terminal_ms": 0.118666,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465376165087445
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000037,
+            "dispatch_to_source_ms": 15.765489,
+            "dispatch_to_terminal_ms": 15.968957,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 512.921201,
+            "process_start_to_source_ms": 529.513588,
+            "sent_at_monotonic_ns": 465376710774962,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465376726540451,
+            "source_to_terminal_ms": 0.203468,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465376726743919
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000038,
+            "dispatch_to_source_ms": 14.709453,
+            "dispatch_to_terminal_ms": 14.893521,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 518.711797,
+            "process_start_to_source_ms": 534.385503,
+            "sent_at_monotonic_ns": 465377278309171,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465377293018624,
+            "source_to_terminal_ms": 0.184068,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465377293202692
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000039,
+            "dispatch_to_source_ms": 24.872845,
+            "dispatch_to_terminal_ms": 24.927622,
+            "engine_id": "rutts",
+            "process_start_to_ready_ms": 521.731735,
+            "process_start_to_source_ms": 548.227783,
+            "sent_at_monotonic_ns": 465377880619281,
+            "server_version": "1.6.4",
+            "source_observed_at_monotonic_ns": 465377905492126,
+            "source_to_terminal_ms": 0.054777,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465377905546903
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 24.872845,
+              "minimum": 14.709453,
+              "p50": 15.926967,
+              "p95": 19.756829,
+              "p99": 24.872845
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 24.927622,
+              "minimum": 14.893521,
+              "p50": 15.990178,
+              "p95": 19.810352,
+              "p99": 24.927622
+            },
+            "process_start_to_ready_ms": {
+              "count": 20,
+              "maximum": 544.715412,
+              "minimum": 441.403462,
+              "p50": 512.921201,
+              "p95": 541.581332,
+              "p99": 544.715412
+            },
+            "process_start_to_source_ms": {
+              "count": 20,
+              "maximum": 561.11983,
+              "minimum": 459.091464,
+              "p50": 529.513588,
+              "p95": 559.727092,
+              "p99": 561.11983
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.289101,
+              "minimum": 0.045836,
+              "p50": 0.178483,
+              "p95": 0.216651,
+              "p99": 0.289101
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      }
+    },
+    "warm": {
+      "character": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000202,
+            "dispatch_to_source_ms": 14.178006,
+            "dispatch_to_terminal_ms": 14.226062,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427748587831,
+            "source_observed_at_monotonic_ns": 465427762765837,
+            "source_to_terminal_ms": 0.048056,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427762813893
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000203,
+            "dispatch_to_source_ms": 14.209544,
+            "dispatch_to_terminal_ms": 14.249377,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427762998616,
+            "source_observed_at_monotonic_ns": 465427777208160,
+            "source_to_terminal_ms": 0.039833,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427777247993
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000204,
+            "dispatch_to_source_ms": 13.516337,
+            "dispatch_to_terminal_ms": 13.576458,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427777395688,
+            "source_observed_at_monotonic_ns": 465427790912025,
+            "source_to_terminal_ms": 0.060121,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427790972146
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000205,
+            "dispatch_to_source_ms": 13.563196,
+            "dispatch_to_terminal_ms": 13.60811,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427791123669,
+            "source_observed_at_monotonic_ns": 465427804686865,
+            "source_to_terminal_ms": 0.044914,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427804731779
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000206,
+            "dispatch_to_source_ms": 15.698347,
+            "dispatch_to_terminal_ms": 15.771219,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427804917545,
+            "source_observed_at_monotonic_ns": 465427820615892,
+            "source_to_terminal_ms": 0.072872,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427820688764
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000207,
+            "dispatch_to_source_ms": 14.23777,
+            "dispatch_to_terminal_ms": 14.284501,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427820877022,
+            "source_observed_at_monotonic_ns": 465427835114792,
+            "source_to_terminal_ms": 0.046731,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427835161523
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000208,
+            "dispatch_to_source_ms": 14.142747,
+            "dispatch_to_terminal_ms": 14.192206,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427835326807,
+            "source_observed_at_monotonic_ns": 465427849469554,
+            "source_to_terminal_ms": 0.049459,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427849519013
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000209,
+            "dispatch_to_source_ms": 13.460727,
+            "dispatch_to_terminal_ms": 13.499011,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427849686517,
+            "source_observed_at_monotonic_ns": 465427863147244,
+            "source_to_terminal_ms": 0.038284,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427863185528
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000210,
+            "dispatch_to_source_ms": 14.145809,
+            "dispatch_to_terminal_ms": 14.19254,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427863345726,
+            "source_observed_at_monotonic_ns": 465427877491535,
+            "source_to_terminal_ms": 0.046731,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427877538266
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000211,
+            "dispatch_to_source_ms": 13.198442,
+            "dispatch_to_terminal_ms": 13.235233,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427877700688,
+            "source_observed_at_monotonic_ns": 465427890899130,
+            "source_to_terminal_ms": 0.036791,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427890935921
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000212,
+            "dispatch_to_source_ms": 14.101304,
+            "dispatch_to_terminal_ms": 14.146274,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427891086247,
+            "source_observed_at_monotonic_ns": 465427905187551,
+            "source_to_terminal_ms": 0.04497,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427905232521
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000213,
+            "dispatch_to_source_ms": 13.610997,
+            "dispatch_to_terminal_ms": 13.661279,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427905432654,
+            "source_observed_at_monotonic_ns": 465427919043651,
+            "source_to_terminal_ms": 0.050282,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427919093933
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000214,
+            "dispatch_to_source_ms": 15.562494,
+            "dispatch_to_terminal_ms": 15.610309,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427919279598,
+            "source_observed_at_monotonic_ns": 465427934842092,
+            "source_to_terminal_ms": 0.047815,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427934889907
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000215,
+            "dispatch_to_source_ms": 15.217561,
+            "dispatch_to_terminal_ms": 15.263563,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427935057620,
+            "source_observed_at_monotonic_ns": 465427950275181,
+            "source_to_terminal_ms": 0.046002,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427950321183
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000216,
+            "dispatch_to_source_ms": 14.192004,
+            "dispatch_to_terminal_ms": 14.248044,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427950488988,
+            "source_observed_at_monotonic_ns": 465427964680992,
+            "source_to_terminal_ms": 0.05604,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427964737032
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000217,
+            "dispatch_to_source_ms": 14.04993,
+            "dispatch_to_terminal_ms": 14.101734,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427964906328,
+            "source_observed_at_monotonic_ns": 465427978956258,
+            "source_to_terminal_ms": 0.051804,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427979008062
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000218,
+            "dispatch_to_source_ms": 14.401371,
+            "dispatch_to_terminal_ms": 14.430699,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427979176973,
+            "source_observed_at_monotonic_ns": 465427993578344,
+            "source_to_terminal_ms": 0.029328,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465427993607672
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000219,
+            "dispatch_to_source_ms": 13.425125,
+            "dispatch_to_terminal_ms": 13.477954,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465427993758158,
+            "source_observed_at_monotonic_ns": 465428007183283,
+            "source_to_terminal_ms": 0.052829,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428007236112
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000220,
+            "dispatch_to_source_ms": 13.746003,
+            "dispatch_to_terminal_ms": 13.827932,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428007411026,
+            "source_observed_at_monotonic_ns": 465428021157029,
+            "source_to_terminal_ms": 0.081929,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428021238958
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000221,
+            "dispatch_to_source_ms": 14.346594,
+            "dispatch_to_terminal_ms": 14.401901,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428021420083,
+            "source_observed_at_monotonic_ns": 465428035766677,
+            "source_to_terminal_ms": 0.055307,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428035821984
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 15.698347,
+              "minimum": 13.198442,
+              "p50": 14.142747,
+              "p95": 15.562494,
+              "p99": 15.698347
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 15.771219,
+              "minimum": 13.235233,
+              "p50": 14.192206,
+              "p95": 15.610309,
+              "p99": 15.771219
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.081929,
+              "minimum": 0.029328,
+              "p50": 0.047815,
+              "p95": 0.072872,
+              "p99": 0.081929
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "dense": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000268,
+            "dispatch_to_source_ms": 47.91029,
+            "dispatch_to_terminal_ms": 49.348769,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429213871051,
+            "source_observed_at_monotonic_ns": 465429261781341,
+            "source_to_terminal_ms": 1.438479,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429263219820
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000269,
+            "dispatch_to_source_ms": 56.465003,
+            "dispatch_to_terminal_ms": 58.144441,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429263398931,
+            "source_observed_at_monotonic_ns": 465429319863934,
+            "source_to_terminal_ms": 1.679438,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429321543372
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000270,
+            "dispatch_to_source_ms": 50.120722,
+            "dispatch_to_terminal_ms": 52.186394,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429321742538,
+            "source_observed_at_monotonic_ns": 465429371863260,
+            "source_to_terminal_ms": 2.065672,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429373928932
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000271,
+            "dispatch_to_source_ms": 57.610344,
+            "dispatch_to_terminal_ms": 59.358522,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429374083709,
+            "source_observed_at_monotonic_ns": 465429431694053,
+            "source_to_terminal_ms": 1.748178,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429433442231
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000272,
+            "dispatch_to_source_ms": 54.597435,
+            "dispatch_to_terminal_ms": 56.473667,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429433638391,
+            "source_observed_at_monotonic_ns": 465429488235826,
+            "source_to_terminal_ms": 1.876232,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429490112058
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000273,
+            "dispatch_to_source_ms": 43.786738,
+            "dispatch_to_terminal_ms": 45.420117,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429490380322,
+            "source_observed_at_monotonic_ns": 465429534167060,
+            "source_to_terminal_ms": 1.633379,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429535800439
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000274,
+            "dispatch_to_source_ms": 51.017304,
+            "dispatch_to_terminal_ms": 52.547835,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429535971851,
+            "source_observed_at_monotonic_ns": 465429586989155,
+            "source_to_terminal_ms": 1.530531,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429588519686
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000275,
+            "dispatch_to_source_ms": 45.980596,
+            "dispatch_to_terminal_ms": 47.625665,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429588733454,
+            "source_observed_at_monotonic_ns": 465429634714050,
+            "source_to_terminal_ms": 1.645069,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429636359119
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000276,
+            "dispatch_to_source_ms": 48.3139,
+            "dispatch_to_terminal_ms": 49.920131,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429636547137,
+            "source_observed_at_monotonic_ns": 465429684861037,
+            "source_to_terminal_ms": 1.606231,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429686467268
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000277,
+            "dispatch_to_source_ms": 45.144553,
+            "dispatch_to_terminal_ms": 46.844677,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429686611693,
+            "source_observed_at_monotonic_ns": 465429731756246,
+            "source_to_terminal_ms": 1.700124,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429733456370
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000278,
+            "dispatch_to_source_ms": 44.662923,
+            "dispatch_to_terminal_ms": 46.358465,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429733615279,
+            "source_observed_at_monotonic_ns": 465429778278202,
+            "source_to_terminal_ms": 1.695542,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429779973744
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000279,
+            "dispatch_to_source_ms": 47.303138,
+            "dispatch_to_terminal_ms": 48.952017,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429780186949,
+            "source_observed_at_monotonic_ns": 465429827490087,
+            "source_to_terminal_ms": 1.648879,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429829138966
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000280,
+            "dispatch_to_source_ms": 41.590182,
+            "dispatch_to_terminal_ms": 43.255892,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429829292984,
+            "source_observed_at_monotonic_ns": 465429870883166,
+            "source_to_terminal_ms": 1.66571,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429872548876
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000281,
+            "dispatch_to_source_ms": 43.534123,
+            "dispatch_to_terminal_ms": 45.00427,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429872696511,
+            "source_observed_at_monotonic_ns": 465429916230634,
+            "source_to_terminal_ms": 1.470147,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429917700781
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000282,
+            "dispatch_to_source_ms": 46.371074,
+            "dispatch_to_terminal_ms": 48.13015,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429917844475,
+            "source_observed_at_monotonic_ns": 465429964215549,
+            "source_to_terminal_ms": 1.759076,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429965974625
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000283,
+            "dispatch_to_source_ms": 44.335832,
+            "dispatch_to_terminal_ms": 45.883631,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429966168365,
+            "source_observed_at_monotonic_ns": 465430010504197,
+            "source_to_terminal_ms": 1.547799,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430012051996
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000284,
+            "dispatch_to_source_ms": 47.095844,
+            "dispatch_to_terminal_ms": 48.704275,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430012213485,
+            "source_observed_at_monotonic_ns": 465430059309329,
+            "source_to_terminal_ms": 1.608431,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430060917760
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000285,
+            "dispatch_to_source_ms": 47.735286,
+            "dispatch_to_terminal_ms": 49.512279,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430061208009,
+            "source_observed_at_monotonic_ns": 465430108943295,
+            "source_to_terminal_ms": 1.776993,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430110720288
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000286,
+            "dispatch_to_source_ms": 50.604517,
+            "dispatch_to_terminal_ms": 52.452558,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430110946677,
+            "source_observed_at_monotonic_ns": 465430161551194,
+            "source_to_terminal_ms": 1.848041,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430163399235
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000287,
+            "dispatch_to_source_ms": 48.047365,
+            "dispatch_to_terminal_ms": 50.128244,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430163566655,
+            "source_observed_at_monotonic_ns": 465430211614020,
+            "source_to_terminal_ms": 2.080879,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430213694899
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 57.610344,
+              "minimum": 41.590182,
+              "p50": 47.303138,
+              "p95": 56.465003,
+              "p99": 57.610344
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 59.358522,
+              "minimum": 43.255892,
+              "p50": 48.952017,
+              "p95": 58.144441,
+              "p99": 59.358522
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 2.080879,
+              "minimum": 1.438479,
+              "p50": 1.66571,
+              "p95": 2.065672,
+              "p99": 2.080879
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "line": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000246,
+            "dispatch_to_source_ms": 30.772897,
+            "dispatch_to_terminal_ms": 31.508348,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428470461573,
+            "source_observed_at_monotonic_ns": 465428501234470,
+            "source_to_terminal_ms": 0.735451,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428501969921
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000247,
+            "dispatch_to_source_ms": 32.364787,
+            "dispatch_to_terminal_ms": 33.119089,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428502123162,
+            "source_observed_at_monotonic_ns": 465428534487949,
+            "source_to_terminal_ms": 0.754302,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428535242251
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000248,
+            "dispatch_to_source_ms": 31.355253,
+            "dispatch_to_terminal_ms": 32.122481,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428535391896,
+            "source_observed_at_monotonic_ns": 465428566747149,
+            "source_to_terminal_ms": 0.767228,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428567514377
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000249,
+            "dispatch_to_source_ms": 31.869717,
+            "dispatch_to_terminal_ms": 32.826636,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428567631413,
+            "source_observed_at_monotonic_ns": 465428599501130,
+            "source_to_terminal_ms": 0.956919,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428600458049
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000250,
+            "dispatch_to_source_ms": 29.491998,
+            "dispatch_to_terminal_ms": 30.332897,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428600621423,
+            "source_observed_at_monotonic_ns": 465428630113421,
+            "source_to_terminal_ms": 0.840899,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428630954320
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000251,
+            "dispatch_to_source_ms": 29.068549,
+            "dispatch_to_terminal_ms": 29.919395,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428631049642,
+            "source_observed_at_monotonic_ns": 465428660118191,
+            "source_to_terminal_ms": 0.850846,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428660969037
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000252,
+            "dispatch_to_source_ms": 30.824193,
+            "dispatch_to_terminal_ms": 31.638643,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428661087522,
+            "source_observed_at_monotonic_ns": 465428691911715,
+            "source_to_terminal_ms": 0.81445,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428692726165
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000253,
+            "dispatch_to_source_ms": 30.089119,
+            "dispatch_to_terminal_ms": 31.185942,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428692899986,
+            "source_observed_at_monotonic_ns": 465428722989105,
+            "source_to_terminal_ms": 1.096823,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428724085928
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000254,
+            "dispatch_to_source_ms": 30.647786,
+            "dispatch_to_terminal_ms": 31.51591,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428724226748,
+            "source_observed_at_monotonic_ns": 465428754874534,
+            "source_to_terminal_ms": 0.868124,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428755742658
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000255,
+            "dispatch_to_source_ms": 29.508216,
+            "dispatch_to_terminal_ms": 30.329545,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428755854200,
+            "source_observed_at_monotonic_ns": 465428785362416,
+            "source_to_terminal_ms": 0.821329,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428786183745
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000256,
+            "dispatch_to_source_ms": 31.70781,
+            "dispatch_to_terminal_ms": 32.444368,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428786320472,
+            "source_observed_at_monotonic_ns": 465428818028282,
+            "source_to_terminal_ms": 0.736558,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428818764840
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000257,
+            "dispatch_to_source_ms": 30.047412,
+            "dispatch_to_terminal_ms": 30.872109,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428818903796,
+            "source_observed_at_monotonic_ns": 465428848951208,
+            "source_to_terminal_ms": 0.824697,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428849775905
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000258,
+            "dispatch_to_source_ms": 30.063268,
+            "dispatch_to_terminal_ms": 30.92944,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428849901200,
+            "source_observed_at_monotonic_ns": 465428879964468,
+            "source_to_terminal_ms": 0.866172,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428880830640
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000259,
+            "dispatch_to_source_ms": 30.13591,
+            "dispatch_to_terminal_ms": 30.94866,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428880959666,
+            "source_observed_at_monotonic_ns": 465428911095576,
+            "source_to_terminal_ms": 0.81275,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428911908326
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000260,
+            "dispatch_to_source_ms": 30.232483,
+            "dispatch_to_terminal_ms": 31.096183,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428912094002,
+            "source_observed_at_monotonic_ns": 465428942326485,
+            "source_to_terminal_ms": 0.8637,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428943190185
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000261,
+            "dispatch_to_source_ms": 29.722805,
+            "dispatch_to_terminal_ms": 30.542782,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428943299799,
+            "source_observed_at_monotonic_ns": 465428973022604,
+            "source_to_terminal_ms": 0.819977,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428973842581
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000262,
+            "dispatch_to_source_ms": 28.117179,
+            "dispatch_to_terminal_ms": 29.064415,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428973938506,
+            "source_observed_at_monotonic_ns": 465429002055685,
+            "source_to_terminal_ms": 0.947236,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429003002921
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000263,
+            "dispatch_to_source_ms": 30.074467,
+            "dispatch_to_terminal_ms": 30.899726,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429003122745,
+            "source_observed_at_monotonic_ns": 465429033197212,
+            "source_to_terminal_ms": 0.825259,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429034022471
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000264,
+            "dispatch_to_source_ms": 30.859479,
+            "dispatch_to_terminal_ms": 31.887378,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429034139993,
+            "source_observed_at_monotonic_ns": 465429064999472,
+            "source_to_terminal_ms": 1.027899,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429066027371
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000265,
+            "dispatch_to_source_ms": 36.342109,
+            "dispatch_to_terminal_ms": 37.153017,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465429066151572,
+            "source_observed_at_monotonic_ns": 465429102493681,
+            "source_to_terminal_ms": 0.810908,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465429103304589
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 36.342109,
+              "minimum": 28.117179,
+              "p50": 30.13591,
+              "p95": 32.364787,
+              "p99": 36.342109
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 37.153017,
+              "minimum": 29.064415,
+              "p50": 31.096183,
+              "p95": 33.119089,
+              "p99": 37.153017
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.096823,
+              "minimum": 0.735451,
+              "p50": 0.824697,
+              "p95": 1.027899,
+              "p99": 1.096823
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "multipart": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000290,
+            "dispatch_to_source_ms": 30.478168,
+            "dispatch_to_terminal_ms": 31.370718,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430277077172,
+            "source_observed_at_monotonic_ns": 465430307555340,
+            "source_to_terminal_ms": 0.89255,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430308447890
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000291,
+            "dispatch_to_source_ms": 34.383754,
+            "dispatch_to_terminal_ms": 35.32874,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430308631000,
+            "source_observed_at_monotonic_ns": 465430343014754,
+            "source_to_terminal_ms": 0.944986,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430343959740
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000292,
+            "dispatch_to_source_ms": 37.260203,
+            "dispatch_to_terminal_ms": 38.351188,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430344171524,
+            "source_observed_at_monotonic_ns": 465430381431727,
+            "source_to_terminal_ms": 1.090985,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430382522712
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000293,
+            "dispatch_to_source_ms": 40.034154,
+            "dispatch_to_terminal_ms": 40.725782,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430382686258,
+            "source_observed_at_monotonic_ns": 465430422720412,
+            "source_to_terminal_ms": 0.691628,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430423412040
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000294,
+            "dispatch_to_source_ms": 28.882883,
+            "dispatch_to_terminal_ms": 29.633277,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430423577996,
+            "source_observed_at_monotonic_ns": 465430452460879,
+            "source_to_terminal_ms": 0.750394,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430453211273
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000295,
+            "dispatch_to_source_ms": 35.241217,
+            "dispatch_to_terminal_ms": 36.14093,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430453376109,
+            "source_observed_at_monotonic_ns": 465430488617326,
+            "source_to_terminal_ms": 0.899713,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430489517039
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000296,
+            "dispatch_to_source_ms": 32.925943,
+            "dispatch_to_terminal_ms": 33.722694,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430489690109,
+            "source_observed_at_monotonic_ns": 465430522616052,
+            "source_to_terminal_ms": 0.796751,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430523412803
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000297,
+            "dispatch_to_source_ms": 36.265629,
+            "dispatch_to_terminal_ms": 37.199435,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430523568886,
+            "source_observed_at_monotonic_ns": 465430559834515,
+            "source_to_terminal_ms": 0.933806,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430560768321
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000298,
+            "dispatch_to_source_ms": 45.545156,
+            "dispatch_to_terminal_ms": 46.445904,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430560920913,
+            "source_observed_at_monotonic_ns": 465430606466069,
+            "source_to_terminal_ms": 0.900748,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430607366817
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000299,
+            "dispatch_to_source_ms": 46.486022,
+            "dispatch_to_terminal_ms": 47.307258,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430607606754,
+            "source_observed_at_monotonic_ns": 465430654092776,
+            "source_to_terminal_ms": 0.821236,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430654914012
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000300,
+            "dispatch_to_source_ms": 39.781206,
+            "dispatch_to_terminal_ms": 40.383006,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430655109098,
+            "source_observed_at_monotonic_ns": 465430694890304,
+            "source_to_terminal_ms": 0.6018,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430695492104
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000301,
+            "dispatch_to_source_ms": 47.166259,
+            "dispatch_to_terminal_ms": 47.850145,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430695686509,
+            "source_observed_at_monotonic_ns": 465430742852768,
+            "source_to_terminal_ms": 0.683886,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430743536654
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000302,
+            "dispatch_to_source_ms": 31.739386,
+            "dispatch_to_terminal_ms": 33.104735,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430743704834,
+            "source_observed_at_monotonic_ns": 465430775444220,
+            "source_to_terminal_ms": 1.365349,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430776809569
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000303,
+            "dispatch_to_source_ms": 40.545041,
+            "dispatch_to_terminal_ms": 41.4368,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430777022678,
+            "source_observed_at_monotonic_ns": 465430817567719,
+            "source_to_terminal_ms": 0.891759,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430818459478
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000304,
+            "dispatch_to_source_ms": 49.097952,
+            "dispatch_to_terminal_ms": 49.99746,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430818696805,
+            "source_observed_at_monotonic_ns": 465430867794757,
+            "source_to_terminal_ms": 0.899508,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430868694265
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000305,
+            "dispatch_to_source_ms": 31.246551,
+            "dispatch_to_terminal_ms": 32.116437,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430868871699,
+            "source_observed_at_monotonic_ns": 465430900118250,
+            "source_to_terminal_ms": 0.869886,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430900988136
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000306,
+            "dispatch_to_source_ms": 30.95734,
+            "dispatch_to_terminal_ms": 32.089713,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430901137682,
+            "source_observed_at_monotonic_ns": 465430932095022,
+            "source_to_terminal_ms": 1.132373,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430933227395
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000307,
+            "dispatch_to_source_ms": 44.75585,
+            "dispatch_to_terminal_ms": 45.473038,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430933375894,
+            "source_observed_at_monotonic_ns": 465430978131744,
+            "source_to_terminal_ms": 0.717188,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465430978848932
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000308,
+            "dispatch_to_source_ms": 45.463721,
+            "dispatch_to_terminal_ms": 46.268588,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465430979014670,
+            "source_observed_at_monotonic_ns": 465431024478391,
+            "source_to_terminal_ms": 0.804867,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465431025283258
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000309,
+            "dispatch_to_source_ms": 39.298811,
+            "dispatch_to_terminal_ms": 40.162632,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465431025435281,
+            "source_observed_at_monotonic_ns": 465431064734092,
+            "source_to_terminal_ms": 0.863821,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465431065597913
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 49.097952,
+              "minimum": 28.882883,
+              "p50": 37.260203,
+              "p95": 47.166259,
+              "p99": 49.097952
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 49.99746,
+              "minimum": 29.633277,
+              "p50": 38.351188,
+              "p95": 47.850145,
+              "p99": 49.99746
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 1.365349,
+              "minimum": 0.6018,
+              "p50": 0.869886,
+              "p95": 1.132373,
+              "p99": 1.365349
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "replacement": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.401821,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000324,
+            "dispatch_to_source_ms": 105.144217,
+            "dispatch_to_terminal_ms": 118.997231,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465431311025482,
+            "source_observed_at_monotonic_ns": 465431416169699,
+            "source_to_terminal_ms": 13.853014,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465431430022713
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.481741,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000329,
+            "dispatch_to_source_ms": 102.09872,
+            "dispatch_to_terminal_ms": 121.037198,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465431430411032,
+            "source_observed_at_monotonic_ns": 465431532509752,
+            "source_to_terminal_ms": 18.938478,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465431551448230
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.521716,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000334,
+            "dispatch_to_source_ms": 114.726297,
+            "dispatch_to_terminal_ms": 133.545353,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465431551758185,
+            "source_observed_at_monotonic_ns": 465431666484482,
+            "source_to_terminal_ms": 18.819056,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465431685303538
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.475373,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000339,
+            "dispatch_to_source_ms": 95.209961,
+            "dispatch_to_terminal_ms": 112.525509,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465431685646009,
+            "source_observed_at_monotonic_ns": 465431780855970,
+            "source_to_terminal_ms": 17.315548,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465431798171518
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.295301,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000344,
+            "dispatch_to_source_ms": 83.848013,
+            "dispatch_to_terminal_ms": 98.749249,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465431798429471,
+            "source_observed_at_monotonic_ns": 465431882277484,
+            "source_to_terminal_ms": 14.901236,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465431897178720
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.458753,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000349,
+            "dispatch_to_source_ms": 73.905713,
+            "dispatch_to_terminal_ms": 86.242319,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465431897419699,
+            "source_observed_at_monotonic_ns": 465431971325412,
+            "source_to_terminal_ms": 12.336606,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465431983662018
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.4733,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000354,
+            "dispatch_to_source_ms": 85.189829,
+            "dispatch_to_terminal_ms": 103.342127,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465431983912472,
+            "source_observed_at_monotonic_ns": 465432069102301,
+            "source_to_terminal_ms": 18.152298,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465432087254599
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.405148,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000359,
+            "dispatch_to_source_ms": 82.776524,
+            "dispatch_to_terminal_ms": 99.318503,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465432087479938,
+            "source_observed_at_monotonic_ns": 465432170256462,
+            "source_to_terminal_ms": 16.541979,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465432186798441
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.349284,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000364,
+            "dispatch_to_source_ms": 79.303567,
+            "dispatch_to_terminal_ms": 91.885234,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465432187004405,
+            "source_observed_at_monotonic_ns": 465432266307972,
+            "source_to_terminal_ms": 12.581667,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465432278889639
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.48135,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000369,
+            "dispatch_to_source_ms": 79.650688,
+            "dispatch_to_terminal_ms": 93.170873,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465432279143909,
+            "source_observed_at_monotonic_ns": 465432358794597,
+            "source_to_terminal_ms": 13.520185,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465432372314782
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.406731,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000374,
+            "dispatch_to_source_ms": 95.065252,
+            "dispatch_to_terminal_ms": 110.462367,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465432372612471,
+            "source_observed_at_monotonic_ns": 465432467677723,
+            "source_to_terminal_ms": 15.397115,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465432483074838
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.399582,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000379,
+            "dispatch_to_source_ms": 90.294599,
+            "dispatch_to_terminal_ms": 107.21745,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465432483334324,
+            "source_observed_at_monotonic_ns": 465432573628923,
+            "source_to_terminal_ms": 16.922851,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465432590551774
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.46191,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000384,
+            "dispatch_to_source_ms": 104.15207,
+            "dispatch_to_terminal_ms": 121.750842,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465432590793939,
+            "source_observed_at_monotonic_ns": 465432694946009,
+            "source_to_terminal_ms": 17.598772,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465432712544781
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.355486,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000389,
+            "dispatch_to_source_ms": 96.756812,
+            "dispatch_to_terminal_ms": 112.89117,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465432712779325,
+            "source_observed_at_monotonic_ns": 465432809536137,
+            "source_to_terminal_ms": 16.134358,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465432825670495
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.770619,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000394,
+            "dispatch_to_source_ms": 94.691594,
+            "dispatch_to_terminal_ms": 109.217776,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465432826866332,
+            "source_observed_at_monotonic_ns": 465432921557926,
+            "source_to_terminal_ms": 14.526182,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465432936084108
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.277649,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000399,
+            "dispatch_to_source_ms": 78.320607,
+            "dispatch_to_terminal_ms": 90.993488,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465432936319866,
+            "source_observed_at_monotonic_ns": 465433014640473,
+            "source_to_terminal_ms": 12.672881,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465433027313354
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.320905,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000404,
+            "dispatch_to_source_ms": 87.839273,
+            "dispatch_to_terminal_ms": 100.67721,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465433027650441,
+            "source_observed_at_monotonic_ns": 465433115489714,
+            "source_to_terminal_ms": 12.837937,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465433128327651
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.340056,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000409,
+            "dispatch_to_source_ms": 72.362053,
+            "dispatch_to_terminal_ms": 87.07763,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465433128641009,
+            "source_observed_at_monotonic_ns": 465433201003062,
+            "source_to_terminal_ms": 14.715577,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465433215718639
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.486392,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000414,
+            "dispatch_to_source_ms": 93.626821,
+            "dispatch_to_terminal_ms": 109.860941,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465433215950111,
+            "source_observed_at_monotonic_ns": 465433309576932,
+            "source_to_terminal_ms": 16.23412,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465433325811052
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "cancel_terminal_ms": 0.487374,
+            "cancelled_dispatches": 4,
+            "dispatch_id": 1000419,
+            "dispatch_to_source_ms": 84.300237,
+            "dispatch_to_terminal_ms": 100.159546,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465433326496053,
+            "source_observed_at_monotonic_ns": 465433410796290,
+            "source_to_terminal_ms": 15.859309,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465433426655599
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "cancel_terminal_ms": {
+              "count": 20,
+              "maximum": 0.770619,
+              "minimum": 0.277649,
+              "p50": 0.406731,
+              "p95": 0.521716,
+              "p99": 0.770619
+            },
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 114.726297,
+              "minimum": 72.362053,
+              "p50": 87.839273,
+              "p95": 105.144217,
+              "p99": 114.726297
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 133.545353,
+              "minimum": 86.242319,
+              "p50": 103.342127,
+              "p95": 121.750842,
+              "p99": 133.545353
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 18.938478,
+              "minimum": 12.336606,
+              "p50": 15.397115,
+              "p95": 18.819056,
+              "p99": 18.938478
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      },
+      "word": {
+        "samples": [
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000224,
+            "dispatch_to_source_ms": 16.670372,
+            "dispatch_to_terminal_ms": 16.895128,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428070394184,
+            "source_observed_at_monotonic_ns": 465428087064556,
+            "source_to_terminal_ms": 0.224756,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428087289312
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000225,
+            "dispatch_to_source_ms": 15.979776,
+            "dispatch_to_terminal_ms": 16.030578,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428087398465,
+            "source_observed_at_monotonic_ns": 465428103378241,
+            "source_to_terminal_ms": 0.050802,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428103429043
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000226,
+            "dispatch_to_source_ms": 15.44284,
+            "dispatch_to_terminal_ms": 15.485763,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428103584941,
+            "source_observed_at_monotonic_ns": 465428119027781,
+            "source_to_terminal_ms": 0.042923,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428119070704
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000227,
+            "dispatch_to_source_ms": 17.458152,
+            "dispatch_to_terminal_ms": 17.723813,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428119263975,
+            "source_observed_at_monotonic_ns": 465428136722127,
+            "source_to_terminal_ms": 0.265661,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428136987788
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000228,
+            "dispatch_to_source_ms": 17.431745,
+            "dispatch_to_terminal_ms": 17.666275,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428137147235,
+            "source_observed_at_monotonic_ns": 465428154578980,
+            "source_to_terminal_ms": 0.23453,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428154813510
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000229,
+            "dispatch_to_source_ms": 15.405739,
+            "dispatch_to_terminal_ms": 15.607893,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428154920292,
+            "source_observed_at_monotonic_ns": 465428170326031,
+            "source_to_terminal_ms": 0.202154,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428170528185
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000230,
+            "dispatch_to_source_ms": 15.602785,
+            "dispatch_to_terminal_ms": 15.774284,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428170630468,
+            "source_observed_at_monotonic_ns": 465428186233253,
+            "source_to_terminal_ms": 0.171499,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428186404752
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000231,
+            "dispatch_to_source_ms": 15.053833,
+            "dispatch_to_terminal_ms": 15.264853,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428186492698,
+            "source_observed_at_monotonic_ns": 465428201546531,
+            "source_to_terminal_ms": 0.21102,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428201757551
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000232,
+            "dispatch_to_source_ms": 15.934139,
+            "dispatch_to_terminal_ms": 16.012098,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428201891667,
+            "source_observed_at_monotonic_ns": 465428217825806,
+            "source_to_terminal_ms": 0.077959,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428217903765
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000233,
+            "dispatch_to_source_ms": 17.108184,
+            "dispatch_to_terminal_ms": 17.283202,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428218137423,
+            "source_observed_at_monotonic_ns": 465428235245607,
+            "source_to_terminal_ms": 0.175018,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428235420625
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000234,
+            "dispatch_to_source_ms": 15.675687,
+            "dispatch_to_terminal_ms": 15.847246,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428235508948,
+            "source_observed_at_monotonic_ns": 465428251184635,
+            "source_to_terminal_ms": 0.171559,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428251356194
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000235,
+            "dispatch_to_source_ms": 18.141437,
+            "dispatch_to_terminal_ms": 18.187179,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428251446015,
+            "source_observed_at_monotonic_ns": 465428269587452,
+            "source_to_terminal_ms": 0.045742,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428269633194
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000236,
+            "dispatch_to_source_ms": 15.596589,
+            "dispatch_to_terminal_ms": 15.762416,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428269785815,
+            "source_observed_at_monotonic_ns": 465428285382404,
+            "source_to_terminal_ms": 0.165827,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428285548231
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000237,
+            "dispatch_to_source_ms": 14.915039,
+            "dispatch_to_terminal_ms": 15.209123,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428285630163,
+            "source_observed_at_monotonic_ns": 465428300545202,
+            "source_to_terminal_ms": 0.294084,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428300839286
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000238,
+            "dispatch_to_source_ms": 15.378106,
+            "dispatch_to_terminal_ms": 15.600251,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428300933529,
+            "source_observed_at_monotonic_ns": 465428316311635,
+            "source_to_terminal_ms": 0.222145,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428316533780
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000239,
+            "dispatch_to_source_ms": 15.489974,
+            "dispatch_to_terminal_ms": 15.682212,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428316646473,
+            "source_observed_at_monotonic_ns": 465428332136447,
+            "source_to_terminal_ms": 0.192238,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428332328685
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000240,
+            "dispatch_to_source_ms": 17.70804,
+            "dispatch_to_terminal_ms": 17.94559,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428332437104,
+            "source_observed_at_monotonic_ns": 465428350145144,
+            "source_to_terminal_ms": 0.23755,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428350382694
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000241,
+            "dispatch_to_source_ms": 17.47751,
+            "dispatch_to_terminal_ms": 17.788173,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428350495872,
+            "source_observed_at_monotonic_ns": 465428367973382,
+            "source_to_terminal_ms": 0.310663,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428368284045
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000242,
+            "dispatch_to_source_ms": 15.442613,
+            "dispatch_to_terminal_ms": 15.681523,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428368410671,
+            "source_observed_at_monotonic_ns": 465428383853284,
+            "source_to_terminal_ms": 0.23891,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428384092194
+          },
+          {
+            "actual_voice": {
+              "engine_id": "rutts",
+              "voice_id": "male"
+            },
+            "dispatch_id": 1000243,
+            "dispatch_to_source_ms": 17.481785,
+            "dispatch_to_terminal_ms": 17.545988,
+            "engine_id": "rutts",
+            "sent_at_monotonic_ns": 465428384188944,
+            "source_observed_at_monotonic_ns": 465428401670729,
+            "source_to_terminal_ms": 0.064203,
+            "status": "completed",
+            "terminal_observed_at_monotonic_ns": 465428401734932
+          }
+        ],
+        "summary": {
+          "engines": {
+            "rutts": 20
+          },
+          "metrics": {
+            "dispatch_to_source_ms": {
+              "count": 20,
+              "maximum": 18.141437,
+              "minimum": 14.915039,
+              "p50": 15.675687,
+              "p95": 17.70804,
+              "p99": 18.141437
+            },
+            "dispatch_to_terminal_ms": {
+              "count": 20,
+              "maximum": 18.187179,
+              "minimum": 15.209123,
+              "p50": 15.847246,
+              "p95": 17.94559,
+              "p99": 18.187179
+            },
+            "source_to_terminal_ms": {
+              "count": 20,
+              "maximum": 0.310663,
+              "minimum": 0.042923,
+              "p50": 0.192238,
+              "p95": 0.294084,
+              "p99": 0.310663
+            }
+          },
+          "sample_count": 20,
+          "voices": {
+            "rutts": {
+              "male": 20
+            }
+          }
+        }
+      }
+    }
+  },
+  "server": {
+    "features": [
+      "control_v1",
+      "emacsvox_tx",
+      "engine_inventory",
+      "engine_recovery_probe",
+      "exact_voice_preview",
+      "legacy_commands",
+      "logical_voice_registration",
+      "logical_voice_language_routing",
+      "logical_voice_routing",
+      "playback_marker_events_v1",
+      "playback_marker_events_v2",
+      "presentation_timeline_v1",
+      "presentation_timeline_v2",
+      "presentation_timeline_v3",
+      "presentation_tone_v1",
+      "post_synthesis_effects_v1",
+      "preferred_engine",
+      "process_audio_routing",
+      "relative_rate_v1",
+      "runtime_routing_policy",
+      "stable_voice_ids",
+      "text_repertoire_routing_v1",
+      "tracked_playback_completion"
+    ],
+    "version": "1.6.4",
+    "warm_process_start_to_ready_ms": 559.064213
+  }
+}

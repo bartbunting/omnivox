@@ -3,10 +3,14 @@
 This directory keeps reviewable benchmark evidence produced by
 `tools/benchmark_server.py`. Each evidence pack has a dated report and a
 matching directory under `data/` containing the unmodified JSON reports and a
-`SHA256SUMS` manifest.
+`SHA256SUMS` manifest. Cross-engine packs also retain their exact input under
+`plans/`.
 
 Recorded baselines:
 
+- [2026-09-03 Windows x64 null-output pre-optimization baseline](2026-09-03-windows-x64-null-f7204ac69b6010f1.md)
+  covers all eight configured physical engines with exact representative
+  voices, randomized order, and no audible playback.
 - [2026-09-01 Windows x64 development baseline](2026-09-01-windows-x64-c9458361eb57b94a.md)
   covers WinRT, eSpeak NG, RHVoice, Flite, DECtalk, and Eloquence.
 - [2026-09-01 Windows x64 RuTTS development acceptance](2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)
