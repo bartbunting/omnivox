@@ -1,0 +1,10 @@
+{
+  "archive": "tgspeechbox-7515ae0.tar.gz",
+  "archive_root": "TGSpeechBox-7515ae055e45d2d15cae01d7fe081ce951dcd5cd",
+  "commit": "7515ae055e45d2d15cae01d7fe081ce951dcd5cd",
+  "release": "v-310b802",
+  "schema_version": 1,
+  "sha256": "d7248f37a7711d07bee60fff35bee3e4ad3458b4c8cda36ca92891a117cdde17",
+  "source_tree_sha256": "f9e79124cbd0aba2f127ce94ca06ad95f9c2b2ab7ab5d213c7ccf6ec275a36cf",
+  "url": "https://codeload.github.com/tgeczy/TGSpeechBox/tar.gz/7515ae055e45d2d15cae01d7fe081ce951dcd5cd"
+}

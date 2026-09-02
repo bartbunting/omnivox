@@ -1,0 +1,16 @@
+[package]
+name = "omnivox-tgspeechbox-helper"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license = "GPL-3.0-or-later"
+
+[dependencies]
+espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"] }
+omnivox-helper-host = { path = "../omnivox-helper-host" }
+omnivox-tgspeechbox-sys = { path = "../omnivox-tgspeechbox-sys" }
+omnivox-tts = { path = "../omnivox-tts", default-features = false }
+
+[[bin]]
+name = "omnivox-tgspeechbox-helper"
+path = "src/main.rs"

@@ -734,6 +734,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "omnivox-tgspeechbox-helper"
+version = "1.6.4"
+dependencies = [
+ "espeak-rs-sys",
+ "omnivox-helper-host",
+ "omnivox-tgspeechbox-sys",
+ "omnivox-tts",
+]
+
+[[package]]
+name = "omnivox-tgspeechbox-sys"
+version = "1.6.4"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "omnivox-tts"
 version = "1.6.4"
 dependencies = [

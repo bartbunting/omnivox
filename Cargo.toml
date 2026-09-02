@@ -13,6 +13,8 @@ members = [
     "omnivox-rhvoice-helper",
     "omnivox-rutts-helper",
     "omnivox-rutts-sys",
+    "omnivox-tgspeechbox-helper",
+    "omnivox-tgspeechbox-sys",
 ]
 # Normal builds compile the helper protocol library and its tests, but not the
 # Piper executable or native library. `make build-piper` prepares verified
