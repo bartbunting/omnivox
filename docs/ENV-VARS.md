@@ -19,7 +19,7 @@ the selected backend.
 | `--check` | Run the diagnostic self-test; inspect each printed status and confirm that its tone and speech are audible. |
 | `--list-voices` | Print voices for the selected startup engine. |
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
-| `--engine NAME` | Prefer `native`, `espeak`, `piper`, `rhvoice`, `flite`, or `rutts`; Windows also accepts `winrt`, `eloquence`, and `dectalk`, while macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
+| `--engine NAME` | Prefer `native`, `espeak`, `piper`, `rhvoice`, `flite`, `rutts`, or experimental `tgspeechbox`; Windows also accepts `winrt`, `eloquence`, and `dectalk`, while macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
 | `--voice ID` | Set the startup physical voice; copy an exact ID from `--list-voices`. |
 | `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 targets the calibrated normal reference speed. |
 | `--pitch FLOAT` | Set pitch multiplier from 0.5 through 2.0. |
@@ -73,6 +73,8 @@ For `--dump-wav`, a nonempty positional `VOICE` takes precedence over
   voice.
 - `rutts` selects the source-built RuTTS companion and its built-in Russian
   voices.
+- `tgspeechbox` selects the experimental source-built TGSpeechBox formant
+  companion.
 - On Windows, `eloquence` and `dectalk` select their adjacent or explicitly
   configured helper and user-installed runtime; `winrt` explicitly selects the
   native engine.
@@ -83,12 +85,12 @@ In server mode, the selected startup engine controls the initial preference;
 it does not remove other available engines from inventory. Windows registers
 WinRT and eSpeak plus adjacent or explicitly configured Eloquence and DECtalk
 helpers. macOS registers AVSpeechSynthesizer and eSpeak, while Linux registers
-eSpeak. Staged or explicitly configured RHVoice, Flite, and RuTTS companions
-register on every desktop platform. A build with Piper support also registers
-Piper when `OMNIVOX_PIPER_MODEL` or `--piper-model` supplies a model. Single-action
-diagnostics such as `--list-voices` continue to create only the selected
-engine. An explicit diagnostic selection fails when that exact engine is not
-available.
+eSpeak. Staged or explicitly configured RHVoice, Flite, RuTTS, and
+TGSpeechBox companions register on every desktop platform. A build with Piper
+support also registers Piper when `OMNIVOX_PIPER_MODEL` or `--piper-model`
+supplies a model. Single-action diagnostics such as `--list-voices` continue
+to create only the selected engine. An explicit diagnostic selection fails
+when that exact engine is not available.
 
 ### RHVoice helper and runtime
 
@@ -151,6 +153,32 @@ tree; this is a build input, not a server runtime setting.
 See [RUTTS.md](RUTTS.md) for installation, source build, text repertoire,
 pronunciation, verification, and licensing details.
 
+`OMNIVOX_TGSPEECHBOX_HELPER`
+
+- Optional path to `omnivox-tgspeechbox-helper` (with `.exe` on Windows).
+- Otherwise Omnivox checks `tgspeechbox/` beside itself and then the legacy
+  adjacent location.
+
+`OMNIVOX_TGSPEECHBOX_DATA`
+
+- Optional absolute directory containing `packs/phonemes.yaml` and
+  `packs/lang/default.yaml`.
+- The staged helper normally finds these packs beside itself.
+
+`OMNIVOX_TGSPEECHBOX_SAMPLE_RATE`
+
+- Selects TGSpeechBox's native DSP rate: `44100` (the default) or experimental
+  `22050` for controlled latency and audio-quality comparisons.
+- The companion contains a validated inventory for each rate. Changing the
+  value takes effect after restarting the speech server; no rebuild is needed.
+
+The source preparer accepts `OMNIVOX_TGSPEECHBOX_INPUTS_DIR` as a verified
+cache override. Advanced direct Cargo builds use
+`OMNIVOX_TGSPEECHBOX_SOURCE_DIR` to name the verified pinned source tree;
+these are build inputs rather than server settings. See
+[TGSPEECHBOX.md](TGSPEECHBOX.md) for the experimental Windows x64 build,
+profiles, controls, and limitations.
+
 `OMNIVOX_PIPER_MODEL`
 
 - Path to a Piper `.onnx` model. A matching configuration must be adjacent as
@@ -181,7 +209,8 @@ pronunciation, verification, and licensing details.
 - The eSpeak TTS backend checks this value first, then an `espeak-ng-data`
   directory beside the executable, its staged Cargo-profile path, and common
   system data locations. The Piper helper also accepts this parent-directory
-  convention after checking `OMNIVOX_PIPER_ESPEAK_DATA`.
+  convention after checking `OMNIVOX_PIPER_ESPEAK_DATA`. The TGSpeechBox helper
+  uses the same convention after first checking its own companion data.
 - Supported local builds and generic GitHub release archives package matching
   data beside the executable, so this variable is normally unnecessary for
   those layouts. Keep the packaged directory adjacent when relocating the

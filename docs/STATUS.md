@@ -26,16 +26,16 @@ in the linked protocol specifications; future work belongs in
 ### Routing and synthesis
 
 - macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
-- Optional out-of-process Piper, RHVoice, Flite, RuTTS, Eloquence, and DECtalk
-  engines.
+- Optional out-of-process Piper, RHVoice, Flite, RuTTS, Eloquence, DECtalk,
+  and experimental TGSpeechBox engines.
 - Structured engine/voice inventory and deterministic per-span logical routing.
 - Server registration retains WinRT and eSpeak on Windows,
   AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. Configured
   Piper helpers join that registry in Piper-enabled builds. Staged or
-  explicitly configured RHVoice, Flite, and RuTTS helpers are discovered on
-  every desktop platform. Independent helpers initialize concurrently with
-  built-in discovery, then join the complete initial inventory in deterministic
-  order before the command loop opens.
+  explicitly configured RHVoice, Flite, RuTTS, and TGSpeechBox helpers are
+  discovered on every desktop platform. Independent helpers initialize
+  concurrently with built-in discovery, then join the complete initial
+  inventory in deterministic order before the command loop opens.
 - Verified content-addressed eSpeak data can reuse a bounded cached voice
   inventory; unverified, custom, stale, or malformed cache state falls back to
   live discovery without changing the complete first-inventory contract.
@@ -134,6 +134,16 @@ in the linked protocol specifications; future work belongs in
   records the bounded GNU-target results. The helper converts its KOI8-R
   repertoire losslessly and routes unsupported Unicode text to fallback; it
   provides no synchronization markers.
+- TGSpeechBox uses checksum-locked `v-310b802` beta source in a separate helper
+  with pinned eSpeak NG Unicode-to-IPA conversion. The Windows x64 GNU payload
+  builds from WSL and passes exact Omnivox discovery, 154-voice inventory,
+  synthesis, portable rate/pitch/pitch-range/volume capability checks,
+  cancellation, Windows audio playback, and clean shutdown. Linux x64 helper
+  synthesis also passes as a development smoke check. The frontend currently
+  exposes 22 languages across five built-in and two data-defined profiles,
+  advertises no markers, and uses an explicitly provisional rate curve. The
+  companion is excluded from generic and Emacsvox releases pending measured
+  calibration, corresponding-source packaging, and native workflow gates.
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
 - WinRT, eSpeak NG, Piper, RHVoice, Flite, RuTTS, and DECtalk have measured
@@ -148,7 +158,7 @@ in the linked protocol specifications; future work belongs in
 |---|---|---|
 | macOS ARM64 | AVSpeechSynthesizer and eSpeak NG; optional Piper and Flite companions verified | Yes |
 | macOS x64 | AVSpeechSynthesizer and eSpeak NG; optional Piper and Flite companions verified | Yes |
-| Windows x64 | WinRT and eSpeak NG; RHVoice and Flite accepted; optional Piper and proprietary helpers | Yes |
+| Windows x64 | WinRT and eSpeak NG; RHVoice and Flite accepted; optional Piper and proprietary helpers; experimental TGSpeechBox GNU companion accepted locally | Yes (TGSpeechBox not included) |
 | Windows ARM64 | WinRT and eSpeak NG; Flite companion verified | Yes |
 | Linux x64 | eSpeak NG; RHVoice accepted; optional Piper and Flite companions verified | Yes (Ubuntu 24.04 ABI baseline) |
 | Linux ARM64 | Flite companion verified; generic server artifact pending | No current generic workflow artifact |

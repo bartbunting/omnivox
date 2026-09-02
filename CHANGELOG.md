@@ -10,6 +10,12 @@ Versioning for published releases.
 
 - Added bounded, duration-preserving post-synthesis chorus with persistent
   render-window state and explicit per-engine capability reporting.
+- Added an experimental source-built TGSpeechBox formant companion with seven
+  profiles, 22 languages, portable rate/pitch/pitch-range/volume
+  controls, locked source and Windows x64 GNU staging, dual 44.1/22.05 kHz
+  cached inventories for restart-only switching, non-blocking connection
+  pre-warming, and explicit no-marker/provisional-rate capability reporting.
+  It is not included in generic releases.
 
 ### Fixed
 

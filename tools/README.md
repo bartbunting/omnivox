@@ -91,6 +91,23 @@ make verify-rutts
 make verify-rutts-source
 ```
 
+`prepare_tgspeechbox_inputs.py` downloads and verifies the exact TGSpeechBox
+`v-310b802` archive and complete extracted-tree digest. The experimental
+`build_tgspeechbox.py` compiles the isolated C++/eSpeak helper and atomically
+stages its packs, generated eSpeak data, licences, provenance, and exhaustive
+checksums:
+
+```sh
+make prepare-tgspeechbox
+python3 tools/prepare_tgspeechbox_inputs.py --check
+make build-tgspeechbox-windows
+```
+
+The accepted target is Windows x64 GNU from WSL; Linux x64 is available for a
+development smoke test. This is not release packaging and does not create a
+corresponding-source artifact. See the
+[TGSpeechBox companion guide](../docs/TGSPEECHBOX.md).
+
 `build_piper.py` builds the optional helper in relocatable mode, selects the
 native Linux x64, Windows x64, or macOS ARM64/x64 library layout, and
 atomically stages the companion as `piper/` beside the Cargo profile output.

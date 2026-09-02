@@ -24,8 +24,8 @@ There are two supported consumers with deliberately different Lisp adapters:
 | Platform | Default/native engine | Other available engines |
 |---|---|---|
 | macOS | AVSpeechSynthesizer | eSpeak NG; optional Piper, RHVoice, Flite, and RuTTS helpers |
-| Windows | WinRT SpeechSynthesizer | eSpeak NG; optional Eloquence, DECtalk, Piper, RHVoice, Flite, and RuTTS helpers |
-| Linux | eSpeak NG | optional Piper, RHVoice, Flite, and RuTTS helpers |
+| Windows | WinRT SpeechSynthesizer | eSpeak NG; optional Eloquence, DECtalk, Piper, RHVoice, Flite, RuTTS, and experimental TGSpeechBox helpers |
+| Linux | eSpeak NG | optional Piper, RHVoice, Flite, and RuTTS helpers; experimental TGSpeechBox development companion |
 
 The Windows Eloquence and DECtalk engines run in separate 32-bit helper
 processes and require user-supplied proprietary runtimes. Omnivox and Emacsvox
@@ -53,6 +53,12 @@ Piper-enabled server registers Piper when a model is configured. `--engine`
 changes the initial preference without hiding the other registered engines.
 Registration makes an engine available to routing;
 it does not promise that engines synthesize in parallel.
+
+TGSpeechBox is an experimental, opt-in source-built formant companion rather
+than part of the standard build or generic releases. Its accepted Windows x64
+GNU payload exposes seven profiles, 22 languages, and portable rate, pitch,
+pitch-range, and volume controls without markers. See the
+[TGSpeechBox guide](docs/TGSPEECHBOX.md) for the WSL build and current limits.
 
 Speech rate is normalized with measured per-engine curves so an ordinary
 logical-voice change does not also cause a large avoidable speed change.
@@ -189,6 +195,20 @@ make build-rutts
 The [RuTTS companion guide](docs/RUTTS.md) covers release installation,
 Unicode-to-KOI8-R routing, manual stress annotations, the six-target build
 matrix, verification, licensing, and removal.
+
+Build the experimental TGSpeechBox Windows x64 GNU companion from WSL with:
+
+```sh
+make prepare-tgspeechbox
+python3 tools/prepare_tgspeechbox_inputs.py --check
+make build-tgspeechbox-windows
+```
+
+This stages a self-contained development payload below the Windows Cargo
+profile. It is intentionally excluded from `make build`, generic archives,
+and release publication. The [TGSpeechBox companion guide](docs/TGSPEECHBOX.md)
+documents profiles, provisional control mappings, direct Windows validation,
+licensing, and removal.
 
 The Piper native build uses the vendored `v1.7.0` C API from the maintained
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl) project. It

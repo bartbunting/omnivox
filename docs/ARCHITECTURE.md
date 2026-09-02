@@ -27,6 +27,8 @@ omnivox-flite-helper/  isolated Flite engine adapter and voice discovery
 omnivox-flite-sys/     pinned portable C build and narrow native boundary
 omnivox-rutts-helper/  isolated RuTTS adapter and UTF-8/KOI8-R boundary
 omnivox-rutts-sys/     pinned portable C build and narrow native boundary
+omnivox-tgspeechbox-helper/ isolated TGSpeechBox/eSpeak adapter
+omnivox-tgspeechbox-sys/ narrow build-time TGSpeechBox C++ boundary
 windows-helpers/       32-bit Eloquence/DECtalk capture processes and host
 third-party/           separately licensed, provenance-recorded native source
 elisp/                 standalone upstream-Emacspeak compatibility adapter
@@ -155,15 +157,24 @@ terminal, preventing a late completion from removing a newer domain token.
 Server mode eagerly registers available built-in engines. Windows retains
 WinRT and eSpeak NG, then independently discovers optional adjacent Eloquence
 and DECtalk helpers. macOS retains AVSpeechSynthesizer and eSpeak NG; Linux
-retains eSpeak NG. RHVoice, Flite, and RuTTS companion helpers are discovered
-on every desktop build when staged or explicitly configured. A Piper-enabled
-build also registers Piper on every platform when a model is configured.
+retains eSpeak NG. RHVoice, Flite, RuTTS, and TGSpeechBox companion helpers are
+discovered on every desktop build when staged or explicitly configured. A
+Piper-enabled build also registers Piper on every platform when a model is
+configured.
 Configured helpers initialize concurrently with built-in discovery, but the
 server joins them and registers their descriptors in deterministic order before
-opening its command loop. The first inventory therefore remains complete while
-independent helper process-start costs no longer accumulate serially. Startup
-selection chooses the initial preference without removing the other registered
-engines.
+opening its command loop. TGSpeechBox is the exception: its companion includes
+source-identified descriptors for both supported native sample rates, generated
+by the exact packaged helper. The server selects the configured rate's cache;
+after bounded schema and descriptor validation, it registers that inventory
+without blocking on the process. The live descriptor must exactly match the
+selected cache. Once validation completes, a background pre-warm opens and
+retains that helper connection while other initialization continues. A first
+synthesis that overlaps pre-warming joins the same serialized lifecycle;
+it never starts a duplicate process. A missing or invalid cache restores eager
+initialization. The first inventory therefore remains complete while independent
+helper process-start costs no longer accumulate serially. Startup selection
+chooses the initial preference without removing the other registered engines.
 
 When packaging supplies eSpeak data in a SHA-256-named directory with the
 matching `omnivox-espeak-data.sha256` identity file, Omnivox may reuse a
@@ -205,8 +216,8 @@ the process. A cancelled native task cannot return PCM to the pipeline. If its
 engine slot remains occupied after a bounded wait, routing chooses another
 engine rather than queueing behind stale work.
 
-Eloquence, DECtalk, Piper, RHVoice, Flite, and RuTTS use the versioned helper
-protocol.
+Eloquence, DECtalk, Piper, RHVoice, Flite, RuTTS, and TGSpeechBox use the
+versioned helper protocol.
 The main server validates helper inventory, request/response order, PCM totals,
 markers, and exact requested voice realization. A helper keeps reading
 cancellation and health commands while its native synthesis worker runs. Piper
@@ -221,8 +232,11 @@ RHVoice dynamically loads a user-installed 1.x C API runtime and keeps its
 language/voice data outside Omnivox. Flite is source-built and statically linked
 only into its SLT-only companion. RuTTS is likewise source-built only into its
 companion; the adapter converts supported Unicode input to KOI8-R, expands its
-signed 8-bit 10 kHz PCM into canonical samples, and ships without RuLex. All
-three reuse the engine-neutral helper host but never share a native process.
+signed 8-bit 10 kHz PCM into canonical samples, and ships without RuLex.
+Experimental TGSpeechBox keeps its pinned C++ frontend/DSP and eSpeak IPA
+conversion together in a GPLv3 helper, exposes only portable ACSS controls,
+and advertises no markers. These helpers reuse the engine-neutral helper host
+but never share a native process.
 
 The Windows helpers require absolute native-library paths, validate x86 PE
 identity and required exports before engine calls, and load dependencies only
