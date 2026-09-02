@@ -20,7 +20,7 @@ class BenchmarkSuiteTests(unittest.TestCase):
             "server": "../server",
             "seed": 42,
             "repeats": 2,
-            "benchmark": {"iterations": 3, "warmups": 1},
+            "benchmark": {"iterations": 3, "warmups": 1, "null_audio": True},
             "runs": [
                 {
                     "id": "rutts-male",
@@ -87,6 +87,7 @@ class BenchmarkSuiteTests(unittest.TestCase):
         self.assertIn("rutts-ru", command)
         self.assertIn("--iterations", command)
         self.assertIn("3", command)
+        self.assertIn("--null-audio", command)
         self.assertEqual(command[-1], "replacement")
 
     def test_rejects_unsafe_duplicate_and_unroutable_runs(self) -> None:
@@ -119,6 +120,12 @@ class BenchmarkSuiteTests(unittest.TestCase):
                 benchmark={"timeout_seconds": 3601},
             )
             with self.assertRaisesRegex(ValueError, "timeout_seconds"):
+                benchmark_suite.load_plan(path)
+            path = self.write_plan(
+                directory,
+                benchmark={"null_audio": "yes"},
+            )
+            with self.assertRaisesRegex(ValueError, "null_audio"):
                 benchmark_suite.load_plan(path)
 
     def test_runs_repeated_fake_server_reports_and_writes_complete_index(self) -> None:

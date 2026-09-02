@@ -327,6 +327,7 @@ omnivox --list-voices
 omnivox --engine espeak --rate 0.6
 omnivox --voice-volume 1.0 --tone-volume 0.1 --sound-volume 0.5
 omnivox --audio-target left
+omnivox --audio-output null
 omnivox --engine espeak --rate 0.6 \
   --dump-wav VOICE output.wav "Text to synthesize"
 ```
@@ -336,6 +337,10 @@ with the matching JSON configuration beside the model. Diagnostic actions
 select an explicit engine exactly and fail if it is unavailable; `--check` and
 `--dump-wav` honor the voice, rate, pitch, voice-volume, and Piper-model flags.
 Without an action option, Omnivox runs the stdin speech-server protocol.
+`--audio-output null` runs the complete synthesis, processing, marker, and
+tracked-completion path without opening an audio device. It consumes PCM as
+quickly as possible, so it is useful for automation and benchmarks but does
+not validate real-time playback, underruns, or acoustic onset.
 
 See [ENV-VARS.md](docs/ENV-VARS.md) for the complete CLI and environment
 reference.

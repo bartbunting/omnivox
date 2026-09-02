@@ -105,6 +105,9 @@ def validate_benchmark(value: Any) -> dict[str, Any]:
         raise ValueError("benchmark.timeout_seconds must be numeric")
     if not 0 < timeout <= 3600:
         raise ValueError("benchmark.timeout_seconds must be greater than 0 and at most 3600")
+    null_audio = value.get("null_audio", False)
+    if not isinstance(null_audio, bool):
+        raise ValueError("benchmark.null_audio must be true or false")
     return {
         "mode": mode,
         "iterations": require_integer(
@@ -120,6 +123,7 @@ def validate_benchmark(value: Any) -> dict[str, Any]:
             100,
         ),
         "timeout_seconds": float(timeout),
+        "null_audio": null_audio,
     }
 
 
@@ -212,6 +216,8 @@ def benchmark_command(
     ]
     for server_arg in plan.get("server_args", []):
         command.append(f"--server-arg={server_arg}")
+    if benchmark["null_audio"]:
+        command.append("--null-audio")
     for field, option in (
         ("engine", "--engine"),
         ("preferred_engine_id", "--preferred-engine-id"),

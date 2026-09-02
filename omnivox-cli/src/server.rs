@@ -1414,8 +1414,8 @@ fn read_bounded_protocol_line<R: BufRead>(
 
 /// Reader loop: process stdin commands and drive the synthesis worker.
 ///
-/// Does not own `AudioStreams` — the caller keeps it alive so the `OutputStream`
-/// drop guard outlives playback.
+/// Does not own `AudioStreams` — the caller keeps the selected output runtime
+/// alive until reader and worker shutdown complete.
 #[allow(clippy::too_many_arguments)]
 pub fn run_server(
     engine: Arc<dyn TtsEngine>,

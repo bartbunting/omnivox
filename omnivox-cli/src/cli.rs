@@ -1,7 +1,7 @@
 //! CLI argument parsing and non-server commands (--check, --list-voices, etc.).
 
 use anyhow::Result;
-use omnivox_audio::{AudioFileLoader, AudioStreams, StreamType, ToneGenerator};
+use omnivox_audio::{AudioBackend, AudioFileLoader, AudioStreams, StreamType, ToneGenerator};
 use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
 use omnivox_tts::{SynthesisRequest, TtsEngine, TtsSettings};
@@ -28,6 +28,7 @@ pub struct CliArgs {
     pub tone_volume: Option<f32>,
     pub sound_volume: Option<f32>,
     pub audio_target: Option<String>,
+    pub audio_output: Option<String>,
     /// Path to a piper `.onnx` model file (overrides `OMNIVOX_PIPER_MODEL`).
     pub piper_model: Option<String>,
 }
@@ -67,6 +68,7 @@ pub fn parse_args() -> CliArgs {
         tone_volume: None,
         sound_volume: None,
         audio_target: None,
+        audio_output: None,
         piper_model: None,
     };
 
@@ -96,6 +98,9 @@ pub fn parse_args() -> CliArgs {
             "--audio-target" => {
                 cli.audio_target = Some(parse_string_flag("--audio-target", &args, &mut i))
             }
+            "--audio-output" => {
+                cli.audio_output = Some(parse_string_flag("--audio-output", &args, &mut i))
+            }
             "--piper-model" => {
                 cli.piper_model = Some(parse_string_flag("--piper-model", &args, &mut i))
             }
@@ -112,6 +117,25 @@ pub fn parse_args() -> CliArgs {
     }
 
     cli
+}
+
+fn parse_audio_backend(value: &str, source: &str) -> Result<AudioBackend> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "device" => Ok(AudioBackend::Device),
+        "null" => Ok(AudioBackend::Null),
+        _ => anyhow::bail!("Invalid {source} value {value:?}; expected device or null"),
+    }
+}
+
+pub fn selected_audio_backend(cli: &CliArgs) -> Result<AudioBackend> {
+    if let Some(value) = cli.audio_output.as_deref() {
+        return parse_audio_backend(value, "--audio-output");
+    }
+    match std::env::var("OMNIVOX_AUDIO_OUTPUT") {
+        Ok(value) => parse_audio_backend(&value, "OMNIVOX_AUDIO_OUTPUT"),
+        Err(std::env::VarError::NotPresent) => Ok(AudioBackend::Device),
+        Err(error) => anyhow::bail!("Invalid OMNIVOX_AUDIO_OUTPUT value: {error}"),
+    }
 }
 
 pub fn apply_cli_flags(cli: &CliArgs, state: &mut TtsState) {
@@ -177,6 +201,7 @@ pub fn print_help() {
     println!("    --tone-volume F  Tone volume 0.0-1.0");
     println!("    --sound-volume F Sound/icon volume 0.0-1.0");
     println!("    --audio-target T Channel routing (left, right, both)");
+    println!("    --audio-output M Output backend (device or null; default device)");
     println!("    --piper-model P  Piper .onnx model; keep its JSON config beside it");
     println!("    --dump-wav VOICE OUTPUT [TEXT]");
     println!("                     Save canonical OUTPUT plus an _raw.wav intermediate");
@@ -212,6 +237,7 @@ pub fn print_help() {
         println!("    OMNIVOX_DECTALK_HELPER Override path to OmnivoxDectalkHelper32.exe");
     }
     println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (process-wide routing)");
+    println!("    OMNIVOX_AUDIO_OUTPUT   Same as --audio-output (device or null)");
     println!("    ESPEAK_NG_DATA         Parent directory containing espeak-ng-data");
     println!("    OMNIVOX_LOG_SYNTHESIS_TEXT  Opt in to sensitive full-text diagnostics");
     println!();
@@ -362,16 +388,30 @@ pub fn cmd_check(cli: &CliArgs) {
     println!();
 
     println!("[audio output]");
-    match AudioStreams::new(
+    let audio_backend = match selected_audio_backend(cli) {
+        Ok(backend) => backend,
+        Err(error) => {
+            println!("  Configuration: FAILED - {error}");
+            return;
+        }
+    };
+    match AudioStreams::new_with_backend(
         crate::SPEECH_MAX_DEPTH,
         crate::TONE_MAX_DEPTH,
         crate::SOUND_MAX_DEPTH,
+        audio_backend,
     ) {
         Ok(streams) => {
-            println!("  Audio device: OK");
+            match audio_backend {
+                AudioBackend::Device => println!("  Audio device: OK"),
+                AudioBackend::Null => println!("  Null output: OK (no audio device opened)"),
+            }
 
             let tone_buf = ToneGenerator::generate(440.0, 200, 0.5);
             match streams.queue(StreamType::Tone, &tone_buf) {
+                Ok(_) if audio_backend == AudioBackend::Null => {
+                    println!("  Test tone (440Hz): consumed")
+                }
                 Ok(_) => println!("  Test tone (440Hz): playing..."),
                 Err(e) => println!("  Test tone: FAILED - {}", e),
             }
@@ -385,6 +425,9 @@ pub fn cmd_check(cli: &CliArgs) {
                     let mut buf = canonicalize_synthesis_result(result).audio;
                     match build_speech_pipeline(&state, true).process(&mut buf) {
                         Ok(()) => match streams.queue(StreamType::Speech, &buf) {
+                            Ok(_) if audio_backend == AudioBackend::Null => {
+                                println!("  Test speech: consumed")
+                            }
                             Ok(_) => println!("  Test speech: playing..."),
                             Err(e) => println!("  Test speech: FAILED - {}", e),
                         },
@@ -394,7 +437,11 @@ pub fn cmd_check(cli: &CliArgs) {
                 Err(e) => println!("  Test speech: FAILED - {}", e),
             }
 
-            std::thread::sleep(std::time::Duration::from_secs(3));
+            if audio_backend == AudioBackend::Null {
+                streams.drain();
+            } else {
+                std::thread::sleep(std::time::Duration::from_secs(3));
+            }
             println!("  Playback: complete");
         }
         Err(e) => {
@@ -418,7 +465,13 @@ pub fn cmd_check(cli: &CliArgs) {
     }
 
     println!();
-    println!("Diagnostic check complete. If you heard a tone and speech, everything is working.");
+    if audio_backend == AudioBackend::Null {
+        println!("Diagnostic check complete. Null output consumed the generated audio.");
+    } else {
+        println!(
+            "Diagnostic check complete. If you heard a tone and speech, everything is working."
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -605,6 +658,7 @@ mod tests {
             tone_volume: None,
             sound_volume: None,
             audio_target: Some("left".to_owned()),
+            audio_output: None,
             piper_model: None,
         };
         let mut state = TtsState::default();
@@ -628,6 +682,7 @@ mod tests {
             tone_volume: None,
             sound_volume: None,
             audio_target: None,
+            audio_output: None,
             piper_model: None,
         };
 
@@ -653,9 +708,23 @@ mod tests {
             tone_volume: None,
             sound_volume: None,
             audio_target: None,
+            audio_output: None,
             piper_model: None,
         };
 
         assert_eq!(dump_wav_state(&cli, "").current_voice, "flag-voice");
+    }
+
+    #[test]
+    fn audio_backend_values_are_explicit_and_case_insensitive() {
+        assert_eq!(
+            parse_audio_backend("device", "test").unwrap(),
+            AudioBackend::Device
+        );
+        assert_eq!(
+            parse_audio_backend("NULL", "test").unwrap(),
+            AudioBackend::Null
+        );
+        assert!(parse_audio_backend("silent", "test").is_err());
     }
 }

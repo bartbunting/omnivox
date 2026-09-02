@@ -298,7 +298,7 @@ replacement burst:
 ```sh
 python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
   --engine native --expected-engine-id winrt \
-  --mode both --iterations 20 --warmups 2 \
+  --mode warm --iterations 10 --warmups 2 --null-audio \
   --provenance ../emacsvox/servers/omnivox-bin/current/PROVENANCE \
   --json-output /path/to/private/winrt-latency.json
 ```
@@ -308,6 +308,12 @@ sample; warm mode keeps one process alive. The JSON report includes raw samples,
 host and Python identity, server version, command, actual engine and physical
 voice counts, and an optional bounded `KEY=VALUE` provenance file. Marker
 receipt measures mixer-source consumption and may precede audible device output.
+With `--null-audio`, Omnivox opens no device and drains the same queued sources
+as quickly as possible. The report records `configuration.audio_output` as
+`null`; terminal latency then measures synthesis and playback plumbing rather
+than waveform duration. Null runs cannot validate real-time underruns, audible
+quality, device latency, or acoustic onset and must not be directly compared
+with device-output terminal timings.
 
 Eloquence and DECtalk are accepted Windows startup preferences when their
 helpers and user runtimes are installed. To exercise routing-policy replacement,
@@ -348,7 +354,12 @@ every repeat using a recorded seed:
   "provenance": "../../emacsvox/servers/omnivox-bin/current/PROVENANCE",
   "seed": 20260901,
   "repeats": 2,
-  "benchmark": {"mode": "both", "iterations": 20, "warmups": 2},
+  "benchmark": {
+    "mode": "warm",
+    "iterations": 10,
+    "warmups": 2,
+    "null_audio": true
+  },
   "runs": [
     {
       "id": "winrt",

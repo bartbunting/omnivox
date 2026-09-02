@@ -22,8 +22,8 @@ pub use loader::{
     MAX_AUDIO_FILE_BYTES,
 };
 pub use output::{
-    AudioControl, AudioOutput, AudioStreams, PlaybackCue, PlaybackStatus, PlaybackTicket,
-    StreamType,
+    AudioBackend, AudioControl, AudioOutput, AudioStreams, PlaybackCue, PlaybackStatus,
+    PlaybackTicket, StreamType,
 };
 pub use pipeline::{AudioEffect, AudioPipeline};
 pub use post_synthesis::{

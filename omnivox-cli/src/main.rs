@@ -43,7 +43,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use tracing::{error, info, warn};
 
-use cli::{apply_cli_flags, parse_args};
+use cli::{apply_cli_flags, parse_args, selected_audio_backend};
 use engine::{apply_audio_target_env, create_engine, create_engines};
 use health::RuntimeEngineHealth;
 use marker_events::spawn_marker_event_reporter;
@@ -155,6 +155,7 @@ fn main() -> Result<()> {
             "Full synthesis text logging is enabled; diagnostic logs contain spoken content"
         );
     }
+    let audio_backend = selected_audio_backend(&cli)?;
     let gen_counter = Arc::new(AtomicU64::new(0));
 
     let created_engines = {
@@ -178,8 +179,14 @@ fn main() -> Result<()> {
         .sum::<usize>();
     info!("Found {} voices", voice_count);
 
-    let streams = AudioStreams::new(SPEECH_MAX_DEPTH, TONE_MAX_DEPTH, SOUND_MAX_DEPTH)
-        .map_err(|e| anyhow::anyhow!("Audio streams init failed: {}", e))?;
+    info!(?audio_backend, "Initializing audio output");
+    let streams = AudioStreams::new_with_backend(
+        SPEECH_MAX_DEPTH,
+        TONE_MAX_DEPTH,
+        SOUND_MAX_DEPTH,
+        audio_backend,
+    )
+    .map_err(|e| anyhow::anyhow!("Audio streams init failed: {}", e))?;
     let control = streams.control();
 
     let mut state = TtsState::default();

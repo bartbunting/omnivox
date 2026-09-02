@@ -8,6 +8,9 @@ Versioning for published releases.
 
 ### Added
 
+- Added an explicit null audio backend for silent, faster-than-real-time server
+  and diagnostic runs, plus first-class null-output support in the lifecycle
+  benchmark tools and evidence metadata.
 - Added bounded, duration-preserving post-synthesis chorus with persistent
   render-window state and explicit per-engine capability reporting.
 - Added an experimental source-built TGSpeechBox formant companion with seven

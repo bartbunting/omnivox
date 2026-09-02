@@ -22,8 +22,11 @@ a new report, even when it supersedes an earlier result.
 Every report must state the platform, build provenance, harness configuration,
 sample count, clock, instrumentation point, and important limitations. In
 particular, mixer-source consumption must not be described as physical audible
-onset. Preserve the raw samples so reviewers can recompute percentiles and
-inspect outliers instead of relying only on a summary table.
+onset. Reports collected with null output must say so explicitly; their
+terminal timings do not include waveform duration and are not comparable with
+device-output terminal timings. Preserve the raw samples so reviewers can
+recompute percentiles and inspect outliers instead of relying only on a summary
+table.
 
 From a data directory, verify one pack with:
 

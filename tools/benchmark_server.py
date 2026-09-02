@@ -3,8 +3,8 @@
 
 The harness uses the public control, presentation-timeline, marker, and tracked
 completion protocols.  It measures client-observed process readiness, first
-mixer-source consumption, and terminal playback with a monotonic clock.  It
-does not claim to measure physical acoustic onset.
+playback-source consumption, and terminal completion with a monotonic clock.
+It does not claim to measure physical acoustic onset.
 """
 
 from __future__ import annotations
@@ -749,6 +749,11 @@ def parse_args() -> argparse.Namespace:
         help="argument appended to the server command; repeat as needed",
     )
     parser.add_argument(
+        "--null-audio",
+        action="store_true",
+        help="run Omnivox with --audio-output null so samples are not played",
+    )
+    parser.add_argument(
         "--engine",
         help="set OMNIVOX_ENGINE for every benchmark process",
     )
@@ -815,6 +820,8 @@ def main() -> None:
         raise SystemExit("--voice-id requires --expected-engine-id")
 
     command = [args.server, *args.server_arg]
+    if args.null_audio:
+        command.extend(("--audio-output", "null"))
     cases = args.cases or list(DEFAULT_CASES)
     identities = IdentitySequence()
     report: dict[str, Any] = {
@@ -822,9 +829,14 @@ def main() -> None:
         "created_at": datetime.now(timezone.utc).isoformat(),
         "measurement": {
             "clock": "time.perf_counter_ns",
-            "source": "client receipt of first utterance_started mixer-source marker",
+            "source": (
+                "client receipt of first utterance_started null-source marker"
+                if args.null_audio
+                else "client receipt of first utterance_started mixer-source marker"
+            ),
             "terminal": "client receipt of tracked terminal record",
             "acoustic_onset_measured": False,
+            "real_time_playback": False if args.null_audio else None,
         },
         "host": {
             "platform": platform.platform(),
@@ -832,6 +844,7 @@ def main() -> None:
         },
         "configuration": {
             "server_command": command,
+            "audio_output": "null" if args.null_audio else None,
             "engine": args.engine,
             "preferred_engine_id": args.preferred_engine_id,
             "expected_engine_id": args.expected_engine_id,

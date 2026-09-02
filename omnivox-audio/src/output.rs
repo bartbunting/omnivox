@@ -4,23 +4,35 @@
 //! (`AudioOutput`) and concurrent multi-stream playback (`AudioStreams`).
 //!
 //! The key type for multi-threaded use is `AudioControl` -- a `Send + Sync`
-//! handle to the three audio sinks. `AudioStreams` owns the `OutputStream`
-//! drop guard (which is `!Send` on some platforms) and should stay on the
-//! thread where it was created. `AudioControl` can be cloned via
-//! `AudioStreams::control()` and sent to other threads (e.g. a synthesis
-//! worker) to queue or stop audio independently.
+//! handle to the three audio sinks. In device mode, `AudioStreams` owns the
+//! `OutputStream` drop guard (which is `!Send` on some platforms) and should
+//! stay on the thread where it was created. In null mode, it owns the source
+//! consumer workers. `AudioControl` can be cloned via `AudioStreams::control()`
+//! and sent to other threads (e.g. a synthesis worker) to queue or stop audio
+//! independently.
 
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
 use crate::{AudioError, CancellationToken};
 use rodio::{OutputStream, OutputStreamHandle, Sink, Source};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::mpsc::Sender;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex};
+use std::thread::JoinHandle;
 use std::time::Duration;
 use tracing::debug;
 
 const SPEECH_STOP_FADE_MILLISECONDS: usize = 3;
 const SPEECH_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * SPEECH_STOP_FADE_MILLISECONDS / 1000;
+const NULL_AUDIO_POLL_SAMPLES: usize = 1024;
+
+/// Selects whether streams play through the default device or discard samples.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AudioBackend {
+    /// Play through the default system audio device in real time.
+    Device,
+    /// Consume every source as quickly as possible without opening a device.
+    Null,
+}
 
 /// Which audio stream to route to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,6 +158,163 @@ struct ScheduledPlaybackGuard {
     state: Arc<ScheduledPlaybackState>,
 }
 
+#[derive(Default)]
+struct NullPendingState {
+    count: Mutex<usize>,
+    changed: Condvar,
+}
+
+impl NullPendingState {
+    fn begin(&self) {
+        *self.count.lock().unwrap() += 1;
+    }
+
+    fn finish(&self) {
+        let mut count = self.count.lock().unwrap();
+        *count = count.saturating_sub(1);
+        self.changed.notify_all();
+    }
+
+    fn len(&self) -> usize {
+        *self.count.lock().unwrap()
+    }
+
+    fn wait(&self) {
+        let mut count = self.count.lock().unwrap();
+        while *count > 0 {
+            count = self.changed.wait(count).unwrap();
+        }
+    }
+}
+
+struct NullQueuedSource {
+    generation: u64,
+    source: Box<dyn Source<Item = f32> + Send>,
+}
+
+enum NullCommand {
+    Append(NullQueuedSource),
+    Shutdown,
+}
+
+struct NullSink {
+    sender: Sender<NullCommand>,
+    generation: Arc<AtomicU64>,
+    pending: Arc<NullPendingState>,
+}
+
+impl NullSink {
+    fn append<S>(&self, source: S)
+    where
+        S: Source<Item = f32> + Send + 'static,
+    {
+        self.pending.begin();
+        let command = NullCommand::Append(NullQueuedSource {
+            generation: self.generation.load(Ordering::Acquire),
+            source: Box::new(source),
+        });
+        if self.sender.send(command).is_err() {
+            self.pending.finish();
+        }
+    }
+
+    fn clear(&self) {
+        self.generation.fetch_add(1, Ordering::AcqRel);
+        self.pending.wait();
+    }
+
+    fn shutdown(&self) {
+        let _ = self.sender.send(NullCommand::Shutdown);
+    }
+}
+
+#[derive(Clone)]
+enum ManagedSink {
+    Device(Arc<Sink>),
+    Null(Arc<NullSink>),
+}
+
+impl ManagedSink {
+    fn append<S>(&self, source: S)
+    where
+        S: Source<Item = f32> + Send + 'static,
+    {
+        match self {
+            Self::Device(sink) => sink.append(source),
+            Self::Null(sink) => sink.append(source),
+        }
+    }
+
+    fn clear(&self) {
+        match self {
+            Self::Device(sink) => sink.clear(),
+            Self::Null(sink) => sink.clear(),
+        }
+    }
+
+    fn play(&self) {
+        if let Self::Device(sink) = self {
+            sink.play();
+        }
+    }
+
+    fn empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    fn len(&self) -> usize {
+        match self {
+            Self::Device(sink) => sink.len(),
+            Self::Null(sink) => sink.pending.len(),
+        }
+    }
+
+    fn sleep_until_end(&self) {
+        match self {
+            Self::Device(sink) => sink.sleep_until_end(),
+            Self::Null(sink) => sink.pending.wait(),
+        }
+    }
+
+    fn shutdown(&self) {
+        if let Self::Null(sink) = self {
+            sink.shutdown();
+        }
+    }
+}
+
+fn run_null_sink(
+    receiver: Receiver<NullCommand>,
+    generation: Arc<AtomicU64>,
+    pending: Arc<NullPendingState>,
+    shutdown: Arc<AtomicBool>,
+) {
+    while let Ok(command) = receiver.recv() {
+        let NullCommand::Append(mut queued) = command else {
+            break;
+        };
+        loop {
+            if shutdown.load(Ordering::Acquire)
+                || generation.load(Ordering::Acquire) != queued.generation
+            {
+                break;
+            }
+            let consumed = queued.source.by_ref().take(NULL_AUDIO_POLL_SAMPLES).count();
+            if consumed < NULL_AUDIO_POLL_SAMPLES {
+                break;
+            }
+        }
+        drop(queued);
+        pending.finish();
+    }
+
+    while let Ok(command) = receiver.try_recv() {
+        if matches!(command, NullCommand::Append(_)) {
+            pending.finish();
+        }
+    }
+}
+
 impl Drop for ScheduledPlaybackGuard {
     fn drop(&mut self) {
         let mut pending = self.state.pending.lock().unwrap();
@@ -158,12 +327,12 @@ impl Drop for ScheduledPlaybackGuard {
 ///
 /// Both the reader thread (for `stop_all` on `s` command) and the synthesis
 /// worker thread (for queuing synthesized audio) hold an `Arc<AudioControl>`.
-/// `Sink` is `Send + Sync` in rodio, so this type is automatically `Send + Sync`.
+/// Both managed sink implementations are `Send + Sync`, so this type is too.
 #[derive(Clone)]
 pub struct AudioControl {
-    speech_sink: Arc<Sink>,
-    tone_sink: Arc<Sink>,
-    sound_sink: Arc<Sink>,
+    speech_sink: ManagedSink,
+    tone_sink: ManagedSink,
+    sound_sink: ManagedSink,
     speech_max: usize,
     tone_max: usize,
     sound_max: usize,
@@ -174,7 +343,33 @@ pub struct AudioControl {
 }
 
 impl AudioControl {
-    fn sink_and_max(&self, stream: StreamType) -> (&Arc<Sink>, usize) {
+    fn new(
+        speech_sink: ManagedSink,
+        tone_sink: ManagedSink,
+        sound_sink: ManagedSink,
+        speech_max: usize,
+        tone_max: usize,
+        sound_max: usize,
+    ) -> Self {
+        Self {
+            speech_sink,
+            tone_sink,
+            sound_sink,
+            speech_max,
+            tone_max,
+            sound_max,
+            schedule_generations: Arc::new([
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+            ]),
+            stream_gates: Arc::new([Mutex::new(()), Mutex::new(()), Mutex::new(())]),
+            speech_stop_cancellation: Arc::new(Mutex::new(CancellationToken::new())),
+            scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
+        }
+    }
+
+    fn sink_and_max(&self, stream: StreamType) -> (&ManagedSink, usize) {
         match stream {
             StreamType::Speech => (&self.speech_sink, self.speech_max),
             StreamType::Tone => (&self.tone_sink, self.tone_max),
@@ -594,7 +789,7 @@ impl AudioControl {
         Ok(Some(ticket))
     }
 
-    fn prepare_queue(&self, stream: StreamType, buffer: &AudioBuffer) -> Option<&Arc<Sink>> {
+    fn prepare_queue(&self, stream: StreamType, buffer: &AudioBuffer) -> Option<&ManagedSink> {
         if buffer.is_empty() {
             return None;
         }
@@ -667,13 +862,23 @@ impl AudioControl {
 
 /// Concurrent audio streams with per-stream serialization and backlog limits.
 ///
-/// Owns the `OutputStream` drop guard and delegates all audio operations to an
+/// Owns the selected output runtime and delegates all audio operations to an
 /// inner `Arc<AudioControl>`. Call `control()` to get a shareable handle for
 /// use from other threads (e.g. synthesis worker thread).
 pub struct AudioStreams {
-    _stream: OutputStream,
-    _stream_handle: OutputStreamHandle,
+    runtime: AudioStreamRuntime,
     control: Arc<AudioControl>,
+}
+
+enum AudioStreamRuntime {
+    Device {
+        _stream: OutputStream,
+        _stream_handle: OutputStreamHandle,
+    },
+    Null {
+        shutdown: Arc<AtomicBool>,
+        workers: Vec<Option<JoinHandle<()>>>,
+    },
 }
 
 impl AudioStreams {
@@ -687,42 +892,112 @@ impl AudioStreams {
         tone_max_depth: usize,
         sound_max_depth: usize,
     ) -> Result<Self, AudioError> {
+        Self::new_with_backend(
+            speech_max_depth,
+            tone_max_depth,
+            sound_max_depth,
+            AudioBackend::Device,
+        )
+    }
+
+    /// Create three streams using the selected output backend.
+    pub fn new_with_backend(
+        speech_max_depth: usize,
+        tone_max_depth: usize,
+        sound_max_depth: usize,
+        backend: AudioBackend,
+    ) -> Result<Self, AudioError> {
+        match backend {
+            AudioBackend::Device => {
+                Self::new_device(speech_max_depth, tone_max_depth, sound_max_depth)
+            }
+            AudioBackend::Null => Self::new_null(speech_max_depth, tone_max_depth, sound_max_depth),
+        }
+    }
+
+    fn new_device(
+        speech_max_depth: usize,
+        tone_max_depth: usize,
+        sound_max_depth: usize,
+    ) -> Result<Self, AudioError> {
         let (stream, stream_handle) = OutputStream::try_default()
             .map_err(|e| AudioError::DeviceNotFound(format!("default device: {}", e)))?;
 
-        let speech_sink = Arc::new(
+        let speech_sink = ManagedSink::Device(Arc::new(
             Sink::try_new(&stream_handle)
                 .map_err(|e| AudioError::PlaybackError(format!("speech sink: {}", e)))?,
-        );
-        let tone_sink = Arc::new(
+        ));
+        let tone_sink = ManagedSink::Device(Arc::new(
             Sink::try_new(&stream_handle)
                 .map_err(|e| AudioError::PlaybackError(format!("tone sink: {}", e)))?,
-        );
-        let sound_sink = Arc::new(
+        ));
+        let sound_sink = ManagedSink::Device(Arc::new(
             Sink::try_new(&stream_handle)
                 .map_err(|e| AudioError::PlaybackError(format!("sound sink: {}", e)))?,
-        );
+        ));
 
-        let control = Arc::new(AudioControl {
+        let control = Arc::new(AudioControl::new(
             speech_sink,
             tone_sink,
             sound_sink,
-            speech_max: speech_max_depth,
-            tone_max: tone_max_depth,
-            sound_max: sound_max_depth,
-            schedule_generations: Arc::new([
-                AtomicU64::new(0),
-                AtomicU64::new(0),
-                AtomicU64::new(0),
-            ]),
-            stream_gates: Arc::new([Mutex::new(()), Mutex::new(()), Mutex::new(())]),
-            speech_stop_cancellation: Arc::new(Mutex::new(CancellationToken::new())),
-            scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
-        });
+            speech_max_depth,
+            tone_max_depth,
+            sound_max_depth,
+        ));
 
         Ok(Self {
-            _stream: stream,
-            _stream_handle: stream_handle,
+            runtime: AudioStreamRuntime::Device {
+                _stream: stream,
+                _stream_handle: stream_handle,
+            },
+            control,
+        })
+    }
+
+    fn new_null(
+        speech_max_depth: usize,
+        tone_max_depth: usize,
+        sound_max_depth: usize,
+    ) -> Result<Self, AudioError> {
+        let shutdown = Arc::new(AtomicBool::new(false));
+        let mut sinks = Vec::with_capacity(3);
+        let mut workers = Vec::with_capacity(3);
+        for name in ["speech", "tone", "sound"] {
+            let (sender, receiver) = mpsc::channel();
+            let generation = Arc::new(AtomicU64::new(0));
+            let pending = Arc::new(NullPendingState::default());
+            let worker_generation = generation.clone();
+            let worker_pending = pending.clone();
+            let worker_shutdown = shutdown.clone();
+            let worker = std::thread::Builder::new()
+                .name(format!("omnivox-null-{name}"))
+                .spawn(move || {
+                    run_null_sink(receiver, worker_generation, worker_pending, worker_shutdown)
+                })
+                .map_err(|error| {
+                    AudioError::PlaybackError(format!("null {name} worker: {error}"))
+                })?;
+            sinks.push(ManagedSink::Null(Arc::new(NullSink {
+                sender,
+                generation,
+                pending,
+            })));
+            workers.push(Some(worker));
+        }
+        let [speech_sink, tone_sink, sound_sink]: [ManagedSink; 3] = sinks
+            .try_into()
+            .map_err(|_| AudioError::PlaybackError("null sink construction failed".to_owned()))?;
+        let control = Arc::new(AudioControl::new(
+            speech_sink,
+            tone_sink,
+            sound_sink,
+            speech_max_depth,
+            tone_max_depth,
+            sound_max_depth,
+        ));
+
+        Ok(Self {
+            runtime: AudioStreamRuntime::Null { shutdown, workers },
             control,
         })
     }
@@ -730,8 +1005,8 @@ impl AudioStreams {
     /// Get a thread-safe handle to the audio controls.
     ///
     /// The returned `Arc<AudioControl>` is `Send + Sync` and can be cloned and
-    /// sent to the synthesis worker thread. The `AudioStreams` (and its
-    /// `OutputStream` drop guard) must remain alive for audio to work.
+    /// sent to the synthesis worker thread. `AudioStreams` must remain alive so
+    /// its device stream or null-consumer workers can process queued sources.
     pub fn control(&self) -> Arc<AudioControl> {
         self.control.clone()
     }
@@ -764,6 +1039,23 @@ impl AudioStreams {
     /// Block until all streams have finished playing.
     pub fn drain(&self) {
         self.control.drain();
+    }
+}
+
+impl Drop for AudioStreams {
+    fn drop(&mut self) {
+        let AudioStreamRuntime::Null { shutdown, workers } = &mut self.runtime else {
+            return;
+        };
+        shutdown.store(true, Ordering::Release);
+        self.control.speech_sink.shutdown();
+        self.control.tone_sink.shutdown();
+        self.control.sound_sink.shutdown();
+        for worker in workers {
+            if let Some(worker) = worker.take() {
+                let _ = worker.join();
+            }
+        }
     }
 }
 
@@ -1353,23 +1645,15 @@ mod tests {
         let (speech_sink, _speech_output) = Sink::new_idle();
         let (tone_sink, _tone_output) = Sink::new_idle();
         let (sound_sink, _sound_output) = Sink::new_idle();
-        let initial = CancellationToken::new();
-        let control = AudioControl {
-            speech_sink: Arc::new(speech_sink),
-            tone_sink: Arc::new(tone_sink),
-            sound_sink: Arc::new(sound_sink),
-            speech_max: 4,
-            tone_max: 4,
-            sound_max: 4,
-            schedule_generations: Arc::new([
-                AtomicU64::new(0),
-                AtomicU64::new(0),
-                AtomicU64::new(0),
-            ]),
-            stream_gates: Arc::new([Mutex::new(()), Mutex::new(()), Mutex::new(())]),
-            speech_stop_cancellation: Arc::new(Mutex::new(initial.clone())),
-            scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
-        };
+        let control = AudioControl::new(
+            ManagedSink::Device(Arc::new(speech_sink)),
+            ManagedSink::Device(Arc::new(tone_sink)),
+            ManagedSink::Device(Arc::new(sound_sink)),
+            4,
+            4,
+            4,
+        );
+        let initial = control.speech_stop_cancellation.lock().unwrap().clone();
 
         control.stop(StreamType::Speech);
 
@@ -1386,6 +1670,30 @@ mod tests {
             .lock()
             .unwrap()
             .is_cancelled());
+    }
+
+    #[test]
+    fn null_backend_consumes_tracked_audio_and_cues_without_a_device() {
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let (cue_sender, cue_receiver) = mpsc::channel();
+        let buffer = AudioBuffer::new(vec![0.1, -0.1, 0.2, -0.2]);
+
+        let ticket = control
+            .queue_tracked_with_cues(
+                StreamType::Speech,
+                &buffer,
+                vec![cue(0, 10), cue(2, 20)],
+                cue_sender,
+            )
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+        assert_eq!(cue_receiver.recv().unwrap(), cue(0, 10));
+        assert_eq!(cue_receiver.recv().unwrap(), cue(2, 20));
+        control.drain();
+        assert!(!control.is_playing(StreamType::Speech));
     }
 
     #[test]

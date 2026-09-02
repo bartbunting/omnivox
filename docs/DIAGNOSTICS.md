@@ -72,7 +72,7 @@ raw monotonic sample, actual engine ID, and exact physical voice when reported:
 ```sh
 python3 tools/benchmark_server.py ../emacsvox/servers/omnivox \
   --engine flite --expected-engine-id flite \
-  --mode both --iterations 20 --warmups 2 \
+  --mode warm --iterations 10 --warmups 2 --null-audio \
   --provenance ../emacsvox/servers/omnivox-bin/current/PROVENANCE \
   --json-output /path/to/private/flite-latency.json
 ```
@@ -81,8 +81,16 @@ Select individual workloads by repeating `--case`. The `multipart` workload
 deliberately fragments a short presentation, so it measures assembly without
 turning playback duration into a large-text benchmark. The replacement result
 reports the slowest stale-dispatch terminal cancellation in each burst as well
-as the winning dispatch's onset. These remain mixer-source observations, not
-microphone or physical audible-onset measurements.
+as the winning dispatch's onset. These remain playback-source observations,
+not microphone or physical audible-onset measurements.
+
+`--null-audio` starts the server with `--audio-output null`. Generated PCM still
+passes through the normal pipeline and source wrappers, so source-start markers,
+semantic cues, overlays, cancellation, and tracked completion remain exercised,
+but buffers are consumed faster than real time and no audio device is opened.
+Use it for synthesis and transport comparisons and keep its evidence labelled
+as null output. It cannot reveal device latency, playback underruns, audible
+artifacts, or acoustic onset; retain a small device-output smoke run for those.
 
 For rate normalization work, use `tools/audit_speech_rates.py` rather than
 timing playback by hand. It drives exact diagnostic engines through raw WAV

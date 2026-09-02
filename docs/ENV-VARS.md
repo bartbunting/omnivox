@@ -16,7 +16,7 @@ the selected backend.
 |---|---|
 | `--help`, `-h` | Show help. |
 | `--version`, `-V` | Print the workspace version. |
-| `--check` | Run the diagnostic self-test; inspect each printed status and confirm that its tone and speech are audible. |
+| `--check` | Run the diagnostic self-test; inspect each printed status and, with device output, confirm that its tone and speech are audible. |
 | `--list-voices` | Print voices for the selected startup engine. |
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
 | `--engine NAME` | Prefer `native`, `espeak`, `piper`, `rhvoice`, `flite`, `rutts`, or experimental `tgspeechbox`; Windows also accepts `winrt`, `eloquence`, and `dectalk`, while macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
@@ -27,6 +27,7 @@ the selected backend.
 | `--tone-volume FLOAT` | Set tone gain from 0.0 through 1.0. |
 | `--sound-volume FLOAT` | Set sound/icon gain from 0.0 through 1.0. |
 | `--audio-target TARGET` | Route to `left`, `right`, or `both`. |
+| `--audio-output MODE` | Use `device` (the default) or `null`; null consumes audio without opening a device or waiting for real-time playback. |
 | `--piper-model PATH` | Supply a Piper `.onnx` model for the server or diagnostic actions. |
 | `--dump-wav VOICE OUTPUT [TEXT]` | Synthesize a canonical diagnostic WAV and a raw intermediate WAV. |
 | `--play-wav FILE` | Play a WAV through the Omnivox audio path. |
@@ -54,6 +55,8 @@ a complete pass. `--dump-wav` writes `OUTPUT` after canonical conversion and a
 second path formed by replacing `.wav` with `_raw.wav`; use an output filename
 ending in `.wav` to keep those files distinct. Both `--check` and `--dump-wav`
 honor `--voice`, `--rate`, `--pitch`, `--voice-volume`, and `--piper-model`.
+`--check` also honors `--audio-output`; null mode reports generated tone and
+speech as consumed rather than audible.
 For `--dump-wav`, a nonempty positional `VOICE` takes precedence over
 `--voice`; pass an empty positional string to use the flag or engine default.
 
@@ -227,6 +230,20 @@ profiles, controls, and limitations.
 - Equivalent startup option: `--audio-target`.
 - Notification isolation uses a second process with its own value; Omnivox has
   no hidden notification stream inside one process.
+
+### Audio output backend
+
+`OMNIVOX_AUDIO_OUTPUT`
+
+- `device` uses the default operating-system audio device and is the default.
+- `null` opens no audio device and consumes queued speech, tones, sounds,
+  playback cues, and tracked completions as quickly as possible.
+- Equivalent startup option: `--audio-output`; the command-line value takes
+  precedence over the environment.
+- Null output exercises synthesis, the canonical audio pipeline, queueing,
+  marker delivery, and completion plumbing. It does not exercise device
+  buffering, real-time underruns, audible quality, or acoustic onset. Terminal
+  latency from a null run is therefore not comparable with device playback.
 
 ### Diagnostics
 

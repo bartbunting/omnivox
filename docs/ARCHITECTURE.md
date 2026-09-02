@@ -307,6 +307,12 @@ are ordered and bounded. Deferred legacy icons wait for their preceding speech
 barriers but do not delay following speech; their tail still belongs to tracked
 completion.
 
+The default output backend connects those sinks to the operating-system audio
+device. An explicit null backend instead drains the same rodio source wrappers
+as quickly as possible without opening a device. It therefore preserves queue,
+cue, cancellation, overlay-barrier, and tracked-completion behavior while
+deliberately removing real-time device and acoustic timing from the run.
+
 ## Lifecycle invariants
 
 - Parsing or validation failure cannot play a valid prefix of an atomic frame.

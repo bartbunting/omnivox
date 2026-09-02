@@ -89,6 +89,8 @@ in the linked protocol specifications; future work belongs in
 - There is no TCP/network server mode and no authenticated remote protocol.
 - Audio routing selects left, right, or both channels within one output device;
   arbitrary multi-device routing is not implemented.
+- An explicit null output backend consumes normal queued sources without
+  opening an audio device for silent diagnostics and faster lifecycle tests.
 - Immediate `tts_say` and letter commands use the global engine order rather
   than a named logical voice.
 - Native cancellation strength differs by engine. WinRT work may continue in a
