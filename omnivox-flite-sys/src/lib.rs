@@ -19,6 +19,17 @@ pub struct FliteWordMarker {
     pub text_length: c_int,
 }
 
+pub type FliteStreamCallback = unsafe extern "C" fn(
+    samples: *const c_short,
+    sample_count: c_int,
+    sample_rate: c_int,
+    channel_count: c_int,
+    last: c_int,
+    markers: *const FliteWordMarker,
+    marker_count: c_int,
+    user_data: *mut c_void,
+) -> c_int;
+
 unsafe extern "C" {
     pub fn omnivox_flite_initialize() -> c_int;
     pub fn omnivox_flite_register_slt() -> *mut FliteVoice;
@@ -30,6 +41,15 @@ unsafe extern "C" {
         text: *const c_char,
         duration_stretch: c_float,
         f0_shift: c_float,
+    ) -> *mut FliteSynthesis;
+    pub fn omnivox_flite_synthesize_stream(
+        voice: *mut FliteVoice,
+        text: *const c_char,
+        duration_stretch: c_float,
+        f0_shift: c_float,
+        marker_capacity: c_int,
+        callback: FliteStreamCallback,
+        user_data: *mut c_void,
     ) -> *mut FliteSynthesis;
     pub fn omnivox_flite_synthesis_sample_rate(synthesis: *mut FliteSynthesis) -> c_int;
     pub fn omnivox_flite_synthesis_sample_count(synthesis: *mut FliteSynthesis) -> c_int;
@@ -48,9 +68,52 @@ unsafe extern "C" {
 mod tests {
     use super::*;
     use std::ffi::{CStr, CString};
+    use std::sync::Mutex;
+
+    static FLITE_TEST_STATE: Mutex<()> = Mutex::new(());
+
+    #[derive(Default)]
+    struct StreamCapture {
+        chunks: usize,
+        samples: usize,
+        markers: Vec<FliteWordMarker>,
+        saw_last: bool,
+    }
+
+    unsafe extern "C" fn capture_stream(
+        samples: *const c_short,
+        sample_count: c_int,
+        sample_rate: c_int,
+        channel_count: c_int,
+        last: c_int,
+        markers: *const FliteWordMarker,
+        marker_count: c_int,
+        user_data: *mut c_void,
+    ) -> c_int {
+        assert!(!user_data.is_null());
+        assert!(sample_count >= 0);
+        assert_eq!(sample_rate, 16_000);
+        assert_eq!(channel_count, 1);
+        let capture = unsafe { &mut *user_data.cast::<StreamCapture>() };
+        if sample_count > 0 {
+            assert!(!samples.is_null());
+            capture.chunks += 1;
+            capture.samples += sample_count as usize;
+        }
+        assert!(marker_count >= 0);
+        if marker_count > 0 {
+            assert!(!markers.is_null());
+            capture.markers.extend_from_slice(unsafe {
+                std::slice::from_raw_parts(markers, marker_count as usize)
+            });
+        }
+        capture.saw_last |= last != 0;
+        1
+    }
 
     #[test]
     fn bundled_slt_voice_synthesizes_pcm() {
+        let _state = FLITE_TEST_STATE.lock().unwrap();
         unsafe {
             assert_eq!(omnivox_flite_initialize(), 0);
             let voice = omnivox_flite_register_slt();
@@ -98,6 +161,43 @@ mod tests {
                 ),
                 -1
             );
+            omnivox_flite_delete_synthesis(synthesis);
+        }
+    }
+
+    #[test]
+    fn bundled_slt_voice_streams_pcm_and_word_markers() {
+        let _state = FLITE_TEST_STATE.lock().unwrap();
+        unsafe {
+            assert_eq!(omnivox_flite_initialize(), 0);
+            let voice = omnivox_flite_register_slt();
+            assert!(!voice.is_null());
+            let text = CString::new("Flite streams its markers.").unwrap();
+            let mut capture = StreamCapture::default();
+
+            let synthesis = omnivox_flite_synthesize_stream(
+                voice,
+                text.as_ptr(),
+                1.0,
+                1.0,
+                8,
+                capture_stream,
+                std::ptr::from_mut(&mut capture).cast(),
+            );
+
+            assert!(!synthesis.is_null());
+            assert!(capture.chunks > 1);
+            assert!(capture.samples > 1_000);
+            assert_eq!(
+                capture.samples,
+                omnivox_flite_synthesis_sample_count(synthesis) as usize
+            );
+            assert!(capture.saw_last);
+            assert_eq!(capture.markers.len(), 4);
+            assert_eq!(capture.markers[0].text_start, 0);
+            assert_eq!(capture.markers[1].text_start, 6);
+            assert_eq!(capture.markers[2].text_start, 14);
+            assert_eq!(capture.markers[3].text_start, 18);
             omnivox_flite_delete_synthesis(synthesis);
         }
     }

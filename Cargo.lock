@@ -671,6 +671,7 @@ dependencies = [
 name = "omnivox-flite-helper"
 version = "1.6.4"
 dependencies = [
+ "omnivox-audio",
  "omnivox-flite-sys",
  "omnivox-helper-host",
  "omnivox-tts",

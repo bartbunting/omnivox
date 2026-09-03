@@ -20,6 +20,24 @@ typedef struct omnivox_flite_word_marker_struct {
     int text_length;
 } omnivox_flite_word_marker;
 
+typedef int (*omnivox_flite_stream_callback)(
+    const short *samples,
+    int sample_count,
+    int sample_rate,
+    int channel_count,
+    int last,
+    const omnivox_flite_word_marker *markers,
+    int marker_count,
+    void *user_data);
+
+typedef struct omnivox_flite_stream_context_struct {
+    omnivox_flite_stream_callback callback;
+    void *user_data;
+    const char *text;
+    int marker_capacity;
+    int markers_sent;
+} omnivox_flite_stream_context;
+
 int omnivox_flite_initialize(void)
 {
     int result = flite_init();
@@ -68,52 +86,23 @@ cst_utterance *omnivox_flite_synthesize(
     return flite_synth_text(text, voice);
 }
 
-static cst_wave *omnivox_flite_synthesis_wave(cst_utterance *synthesis)
-{
-    return synthesis == NULL ? NULL : utt_wave(synthesis);
-}
-
-int omnivox_flite_synthesis_sample_rate(cst_utterance *synthesis)
-{
-    cst_wave *wave = omnivox_flite_synthesis_wave(synthesis);
-    return wave == NULL ? 0 : wave->sample_rate;
-}
-
-int omnivox_flite_synthesis_sample_count(cst_utterance *synthesis)
-{
-    cst_wave *wave = omnivox_flite_synthesis_wave(synthesis);
-    return wave == NULL ? 0 : wave->num_samples;
-}
-
-int omnivox_flite_synthesis_channel_count(cst_utterance *synthesis)
-{
-    cst_wave *wave = omnivox_flite_synthesis_wave(synthesis);
-    return wave == NULL ? 0 : wave->num_channels;
-}
-
-const short *omnivox_flite_synthesis_samples(cst_utterance *synthesis)
-{
-    cst_wave *wave = omnivox_flite_synthesis_wave(synthesis);
-    return wave == NULL ? NULL : wave->samples;
-}
-
-int omnivox_flite_synthesis_word_markers(
-    cst_utterance *synthesis,
+static int omnivox_flite_collect_word_markers(
+    const cst_utterance *synthesis,
+    const cst_wave *wave,
     const char *text,
     omnivox_flite_word_marker *markers,
     int capacity)
 {
     cst_item *token;
     cst_relation *tokens;
-    cst_wave *wave;
     const char *cursor;
     int count = 0;
 
-    if (synthesis == NULL || text == NULL || markers == NULL || capacity < 0)
+    if (synthesis == NULL || wave == NULL || text == NULL ||
+        markers == NULL || capacity < 0)
         return -1;
-    wave = omnivox_flite_synthesis_wave(synthesis);
     tokens = utt_relation(synthesis, "Token");
-    if (wave == NULL || tokens == NULL)
+    if (tokens == NULL)
         return -1;
 
     cursor = text;
@@ -156,6 +145,133 @@ int omnivox_flite_synthesis_word_markers(
         count++;
     }
     return count;
+}
+
+static int omnivox_flite_stream_audio(
+    const cst_wave *wave,
+    int start,
+    int size,
+    int last,
+    cst_audio_streaming_info *streaming)
+{
+    omnivox_flite_stream_context *context;
+    omnivox_flite_word_marker *markers = NULL;
+    int marker_count = 0;
+    int result;
+
+    if (wave == NULL || streaming == NULL || start < 0 || size < 0 ||
+        start > wave->num_samples || size > wave->num_samples - start)
+        return CST_AUDIO_STREAM_STOP;
+    context = (omnivox_flite_stream_context *)streaming->userdata;
+    if (context == NULL || context->callback == NULL)
+        return CST_AUDIO_STREAM_STOP;
+
+    if (!context->markers_sent)
+    {
+        if (context->marker_capacity > 0)
+            markers = cst_alloc(omnivox_flite_word_marker,
+                                context->marker_capacity);
+        marker_count = omnivox_flite_collect_word_markers(
+            streaming->utt,
+            wave,
+            context->text,
+            markers,
+            context->marker_capacity);
+        context->markers_sent = 1;
+    }
+
+    result = context->callback(
+        size == 0 ? NULL : &wave->samples[start],
+        size,
+        wave->sample_rate,
+        wave->num_channels,
+        last,
+        markers,
+        marker_count,
+        context->user_data);
+    if (markers != NULL)
+        cst_free(markers);
+    return result == 0 ? CST_AUDIO_STREAM_STOP : CST_AUDIO_STREAM_CONT;
+}
+
+cst_utterance *omnivox_flite_synthesize_stream(
+    cst_voice *voice,
+    const char *text,
+    float duration_stretch,
+    float f0_shift,
+    int marker_capacity,
+    omnivox_flite_stream_callback callback,
+    void *user_data)
+{
+    cst_audio_streaming_info *streaming;
+    omnivox_flite_stream_context context;
+    cst_utterance *synthesis;
+
+    if (voice == NULL || text == NULL || callback == NULL ||
+        marker_capacity < 0)
+        return NULL;
+    streaming = new_audio_streaming_info();
+    if (streaming == NULL)
+        return NULL;
+    context.callback = callback;
+    context.user_data = user_data;
+    context.text = text;
+    context.marker_capacity = marker_capacity;
+    context.markers_sent = 0;
+    streaming->asc = omnivox_flite_stream_audio;
+    streaming->userdata = &context;
+
+    flite_feat_set_float(voice->features, "duration_stretch", duration_stretch);
+    flite_feat_set_float(voice->features, "f0_shift", f0_shift);
+    feat_set(voice->features, "streaming_info",
+             audio_streaming_info_val(streaming));
+    synthesis = flite_synth_text(text, voice);
+    feat_remove(voice->features, "streaming_info");
+    return synthesis;
+}
+
+static cst_wave *omnivox_flite_synthesis_wave(cst_utterance *synthesis)
+{
+    return synthesis == NULL ? NULL : utt_wave(synthesis);
+}
+
+int omnivox_flite_synthesis_sample_rate(cst_utterance *synthesis)
+{
+    cst_wave *wave = omnivox_flite_synthesis_wave(synthesis);
+    return wave == NULL ? 0 : wave->sample_rate;
+}
+
+int omnivox_flite_synthesis_sample_count(cst_utterance *synthesis)
+{
+    cst_wave *wave = omnivox_flite_synthesis_wave(synthesis);
+    return wave == NULL ? 0 : wave->num_samples;
+}
+
+int omnivox_flite_synthesis_channel_count(cst_utterance *synthesis)
+{
+    cst_wave *wave = omnivox_flite_synthesis_wave(synthesis);
+    return wave == NULL ? 0 : wave->num_channels;
+}
+
+const short *omnivox_flite_synthesis_samples(cst_utterance *synthesis)
+{
+    cst_wave *wave = omnivox_flite_synthesis_wave(synthesis);
+    return wave == NULL ? NULL : wave->samples;
+}
+
+int omnivox_flite_synthesis_word_markers(
+    cst_utterance *synthesis,
+    const char *text,
+    omnivox_flite_word_marker *markers,
+    int capacity)
+{
+    cst_wave *wave;
+
+    if (synthesis == NULL || text == NULL || markers == NULL || capacity < 0)
+        return -1;
+    wave = omnivox_flite_synthesis_wave(synthesis);
+    return omnivox_flite_collect_word_markers(
+        synthesis, wave, text, markers, capacity);
 }
 
 void omnivox_flite_delete_synthesis(cst_utterance *synthesis)

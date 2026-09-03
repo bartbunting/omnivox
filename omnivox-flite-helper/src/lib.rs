@@ -2,12 +2,14 @@
 
 use std::collections::HashSet;
 use std::env;
-use std::ffi::{CStr, CString};
+use std::ffi::{c_int, c_void, CStr, CString};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
+use omnivox_audio::ProgressivePcmCanonicalizer;
 use omnivox_flite_sys::{FliteSynthesis, FliteVoice, FliteWordMarker};
 use omnivox_tts::contracts::{
     buffered_post_synthesis_dimensions, AcssCapabilities, AnchorSupport, AudioOutputMode,
@@ -17,7 +19,9 @@ use omnivox_tts::contracts::{
 use omnivox_tts::helper_protocol::{MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES};
 use omnivox_tts::rate_calibration::interpolate;
 use omnivox_tts::{
-    AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
+    AnchorAffinity, AnchorResolution, AudioBuffer, RequestedAnchor, ResolvedAnchor,
+    SynthesisCancellationToken, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest,
+    SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink, SynthesisStreamStart,
     TtsEngine, TtsError, VoiceInfo, VoiceQuality, STANDARD_SAMPLE_RATE,
 };
 
@@ -26,6 +30,7 @@ const BUILT_IN_VOICE_ID: &str = "cmu_us_slt";
 const EXTERNAL_VOICES_ENV: &str = "OMNIVOX_FLITE_VOICES";
 const MAX_EXTERNAL_VOICES: usize = 64;
 const MAX_NATIVE_SAMPLES: usize = MAX_HELPER_SYNTHESIS_BYTES / std::mem::size_of::<i16>();
+static FLITE_GLOBAL_STATE: Mutex<()> = Mutex::new(());
 
 struct NativeVoice {
     pointer: *mut FliteVoice,
@@ -44,6 +49,9 @@ struct Runtime {
 
 impl Drop for Runtime {
     fn drop(&mut self) {
+        let _global = FLITE_GLOBAL_STATE
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         for voice in &mut self.voices {
             if voice.owned && !voice.pointer.is_null() {
                 unsafe { omnivox_flite_sys::omnivox_flite_delete_voice(voice.pointer) };
@@ -75,6 +83,7 @@ impl FliteTtsEngine {
     }
 
     fn new(paths: Vec<PathBuf>, warnings: &mut Vec<String>) -> Result<Self, TtsError> {
+        let _global = lock_flite_global()?;
         let initialized = unsafe { omnivox_flite_sys::omnivox_flite_initialize() };
         if initialized != 0 {
             return Err(TtsError::SynthesisFailed(format!(
@@ -166,6 +175,12 @@ impl FliteTtsEngine {
     }
 }
 
+fn lock_flite_global() -> Result<MutexGuard<'static, ()>, TtsError> {
+    FLITE_GLOBAL_STATE.lock().map_err(|error| {
+        TtsError::SynthesisFailed(format!("Flite global state lock is poisoned: {error}"))
+    })
+}
+
 impl TtsEngine for FliteTtsEngine {
     fn descriptor(&self) -> EngineDescriptor {
         self.descriptor.clone()
@@ -173,6 +188,7 @@ impl TtsEngine for FliteTtsEngine {
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         let voice_id = request.voice_id_for_engine(ENGINE_ID)?;
+        let _global = lock_flite_global()?;
         let runtime = self.runtime()?;
         let voice = runtime
             .voices
@@ -268,6 +284,94 @@ impl TtsEngine for FliteTtsEngine {
         Ok(result)
     }
 
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        let voice_id = request.voice_id_for_engine(ENGINE_ID)?;
+        let _global = lock_flite_global()?;
+        let runtime = self.runtime()?;
+        let voice = runtime
+            .voices
+            .iter()
+            .find(|voice| voice.id == voice_id || voice.name == voice_id)
+            .ok_or_else(|| TtsError::VoiceNotFound(voice_id.to_owned()))?;
+        let actual_voice = Some(PhysicalVoiceId::new(ENGINE_ID, voice.id.clone()));
+        let degraded_acss = request
+            .normalized_acss
+            .clone()
+            .degrade_for(&capabilities().acss)
+            .omitted;
+        sink.start(SynthesisStreamStart {
+            engine_id: ENGINE_ID.to_owned(),
+            actual_voice,
+            degraded_acss,
+        })?;
+        if request.text.is_empty() {
+            let anchors = resolve_word_anchors(&request.anchors, &[]);
+            if !anchors.is_empty() {
+                sink.markers(Vec::new(), anchors)?;
+            }
+            return Ok(SynthesisStreamCompletion { frame_count: 0 });
+        }
+
+        let text = CString::new(request.text.as_str()).map_err(|_| {
+            TtsError::InvalidParameter("Flite text contains a null byte".to_owned())
+        })?;
+        self.cancellation.store(false, Ordering::Release);
+        self.speaking.store(true, Ordering::Release);
+        let _speaking = SpeakingGuard(&self.speaking);
+        let mut capture = FliteStreamCapture {
+            sink,
+            text: &request.text,
+            anchors: &request.anchors,
+            cancellation: &self.cancellation,
+            request_cancellation: request.cancellation.as_ref(),
+            volume: request.settings.volume.clamp(0.0, 1.0),
+            canonicalizer: None,
+            sample_rate: None,
+            channels: None,
+            native_samples: 0,
+            timing_emitted: false,
+            saw_last: false,
+            failure: None,
+        };
+        let synthesis = unsafe {
+            omnivox_flite_sys::omnivox_flite_synthesize_stream(
+                voice.pointer,
+                text.as_ptr(),
+                map_rate_to_duration(request.settings.rate),
+                request.settings.pitch.clamp(0.5, 2.0),
+                MAX_HELPER_MARKERS as c_int,
+                consume_flite_stream,
+                std::ptr::from_mut(&mut capture).cast(),
+            )
+        };
+        let synthesis = (!synthesis.is_null()).then(|| SynthesisGuard(synthesis));
+
+        if let Some(failure) = capture.failure.take() {
+            return Err(failure);
+        }
+        if capture.cancelled() {
+            return Err(TtsError::SynthesisFailed(
+                "Flite synthesis was cancelled".to_owned(),
+            ));
+        }
+        if synthesis.is_none() {
+            return Err(TtsError::SynthesisFailed(
+                "Flite did not return a streaming synthesis result".to_owned(),
+            ));
+        }
+        if !capture.timing_emitted || !capture.saw_last || capture.native_samples == 0 {
+            return Err(TtsError::SynthesisFailed(
+                "Flite did not complete its PCM stream".to_owned(),
+            ));
+        }
+        let frame_count = capture.finish()?;
+        Ok(SynthesisStreamCompletion { frame_count })
+    }
+
     fn stop(&self) {
         self.cancellation.store(true, Ordering::Release);
     }
@@ -315,6 +419,227 @@ impl Drop for SynthesisGuard {
     }
 }
 
+struct FliteStreamCapture<'a> {
+    sink: &'a mut dyn SynthesisStreamSink,
+    text: &'a str,
+    anchors: &'a [RequestedAnchor],
+    cancellation: &'a AtomicBool,
+    request_cancellation: Option<&'a SynthesisCancellationToken>,
+    volume: f32,
+    canonicalizer: Option<ProgressivePcmCanonicalizer>,
+    sample_rate: Option<u32>,
+    channels: Option<u16>,
+    native_samples: usize,
+    timing_emitted: bool,
+    saw_last: bool,
+    failure: Option<TtsError>,
+}
+
+struct NativeStreamChunk {
+    samples: *const i16,
+    sample_count: c_int,
+    sample_rate: c_int,
+    channel_count: c_int,
+    last: c_int,
+    markers: *const FliteWordMarker,
+    marker_count: c_int,
+}
+
+impl FliteStreamCapture<'_> {
+    fn cancelled(&self) -> bool {
+        self.cancellation.load(Ordering::Acquire)
+            || self
+                .request_cancellation
+                .is_some_and(SynthesisCancellationToken::is_cancelled)
+    }
+
+    fn consume(&mut self, chunk: NativeStreamChunk) -> Result<c_int, TtsError> {
+        if self.cancelled() {
+            return Ok(0);
+        }
+        let sample_rate = positive_u32(chunk.sample_rate, "stream sample rate")?;
+        let channels = u16::try_from(chunk.channel_count)
+            .ok()
+            .filter(|channels| matches!(channels, 1 | 2))
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed("Flite returned invalid stream channels".to_owned())
+            })?;
+        if self
+            .sample_rate
+            .replace(sample_rate)
+            .is_some_and(|previous| previous != sample_rate)
+            || self
+                .channels
+                .replace(channels)
+                .is_some_and(|previous| previous != channels)
+        {
+            return Err(TtsError::SynthesisFailed(
+                "Flite changed PCM format within one stream".to_owned(),
+            ));
+        }
+        if self.canonicalizer.is_none() {
+            self.canonicalizer = Some(
+                ProgressivePcmCanonicalizer::new(sample_rate, channels).map_err(|error| {
+                    TtsError::SynthesisFailed(format!(
+                        "could not initialize progressive Flite PCM conversion: {error}"
+                    ))
+                })?,
+            );
+        }
+
+        if !self.timing_emitted {
+            let marker_count = usize::try_from(chunk.marker_count).map_err(|_| {
+                TtsError::SynthesisFailed(
+                    "Flite could not produce its streaming word markers".to_owned(),
+                )
+            })?;
+            if marker_count > MAX_HELPER_MARKERS {
+                return Err(TtsError::SynthesisFailed(
+                    "Flite returned too many streaming word markers".to_owned(),
+                ));
+            }
+            if marker_count != 0 && chunk.markers.is_null() {
+                return Err(TtsError::SynthesisFailed(
+                    "Flite returned null streaming word markers".to_owned(),
+                ));
+            }
+            let native_markers = if marker_count == 0 {
+                &[]
+            } else {
+                unsafe { std::slice::from_raw_parts(chunk.markers, marker_count) }
+            };
+            let markers = progressive_word_markers(
+                native_markers,
+                self.text,
+                self.canonicalizer
+                    .as_ref()
+                    .expect("Flite canonicalizer was initialized"),
+            )?;
+            let anchors = resolve_word_anchors(self.anchors, &markers);
+            if !markers.is_empty() || !anchors.is_empty() {
+                self.sink.markers(markers, anchors)?;
+            }
+            self.timing_emitted = true;
+        } else if chunk.marker_count != 0 {
+            return Err(TtsError::SynthesisFailed(
+                "Flite returned its streaming word markers more than once".to_owned(),
+            ));
+        }
+
+        let sample_count = usize::try_from(chunk.sample_count).map_err(|_| {
+            TtsError::SynthesisFailed("Flite returned a negative PCM chunk size".to_owned())
+        })?;
+        if !sample_count.is_multiple_of(usize::from(channels)) {
+            return Err(TtsError::SynthesisFailed(
+                "Flite returned a channel-misaligned PCM chunk".to_owned(),
+            ));
+        }
+        if sample_count > MAX_NATIVE_SAMPLES.saturating_sub(self.native_samples) {
+            return Err(TtsError::SynthesisFailed(
+                "Flite PCM exceeds the helper limit".to_owned(),
+            ));
+        }
+        if sample_count != 0 && chunk.samples.is_null() {
+            return Err(TtsError::SynthesisFailed(
+                "Flite returned null streaming PCM".to_owned(),
+            ));
+        }
+        self.native_samples += sample_count;
+        if sample_count != 0 {
+            let native = unsafe { std::slice::from_raw_parts(chunk.samples, sample_count) };
+            let converted = native
+                .iter()
+                .map(|sample| (f32::from(*sample) * self.volume).round() as i16)
+                .collect::<Vec<_>>();
+            let windows = self
+                .canonicalizer
+                .as_mut()
+                .expect("Flite canonicalizer was initialized")
+                .push_interleaved_i16(&converted)
+                .map_err(|error| {
+                    TtsError::SynthesisFailed(format!(
+                        "could not canonicalize progressive Flite PCM: {error}"
+                    ))
+                })?;
+            self.emit(windows)?;
+        }
+        self.saw_last |= chunk.last != 0;
+        Ok(i32::from(!self.cancelled()))
+    }
+
+    fn finish(&mut self) -> Result<u64, TtsError> {
+        let canonicalizer = self
+            .canonicalizer
+            .as_mut()
+            .ok_or_else(|| TtsError::SynthesisFailed("Flite returned no PCM format".to_owned()))?;
+        let windows = canonicalizer.finish().map_err(|error| {
+            TtsError::SynthesisFailed(format!(
+                "could not finish progressive Flite PCM conversion: {error}"
+            ))
+        })?;
+        self.emit(windows)?;
+        Ok(self
+            .canonicalizer
+            .as_ref()
+            .expect("Flite canonicalizer remains available")
+            .output_frames())
+    }
+
+    fn emit(&mut self, windows: Vec<AudioBuffer>) -> Result<(), TtsError> {
+        for window in windows {
+            if window.is_empty() {
+                continue;
+            }
+            self.sink.audio(window)?;
+            if self.cancelled() {
+                return Err(TtsError::SynthesisFailed(
+                    "Flite synthesis was cancelled".to_owned(),
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+unsafe extern "C" fn consume_flite_stream(
+    samples: *const i16,
+    sample_count: c_int,
+    sample_rate: c_int,
+    channel_count: c_int,
+    last: c_int,
+    markers: *const FliteWordMarker,
+    marker_count: c_int,
+    user_data: *mut c_void,
+) -> c_int {
+    if user_data.is_null() {
+        return 0;
+    }
+    let capture = unsafe { &mut *user_data.cast::<FliteStreamCapture<'_>>() };
+    match catch_unwind(AssertUnwindSafe(|| {
+        capture.consume(NativeStreamChunk {
+            samples,
+            sample_count,
+            sample_rate,
+            channel_count,
+            last,
+            markers,
+            marker_count,
+        })
+    })) {
+        Ok(Ok(status)) => status,
+        Ok(Err(error)) => {
+            capture.failure = Some(error);
+            0
+        }
+        Err(_) => {
+            capture.failure = Some(TtsError::SynthesisFailed(
+                "Flite streaming callback panicked".to_owned(),
+            ));
+            0
+        }
+    }
+}
+
 fn capabilities() -> EngineCapabilities {
     EngineCapabilities {
         acss: AcssCapabilities {
@@ -323,8 +648,8 @@ fn capabilities() -> EngineCapabilities {
             volume: true,
             ..AcssCapabilities::default()
         },
-        audio_output: AudioOutputMode::BufferedPcm,
-        cancellation: CancellationSupport::PlaybackOnly,
+        audio_output: AudioOutputMode::StreamingPcm,
+        cancellation: CancellationSupport::SynthesisAndPlayback,
         concurrency: ConcurrencyModel::Serialized,
         markers: MarkerCapabilities {
             word: true,
@@ -528,6 +853,96 @@ fn native_word_markers(
     Ok(markers)
 }
 
+fn progressive_word_markers(
+    native_markers: &[FliteWordMarker],
+    request_text: &str,
+    canonicalizer: &ProgressivePcmCanonicalizer,
+) -> Result<Vec<SynthesisMarker>, TtsError> {
+    let mut markers = Vec::with_capacity(native_markers.len());
+    for marker in native_markers {
+        let native_frame = u64::try_from(marker.frame_offset).map_err(|_| {
+            TtsError::SynthesisFailed("Flite returned a negative word frame".to_owned())
+        })?;
+        let text_start = u32::try_from(marker.text_start).map_err(|_| {
+            TtsError::SynthesisFailed("Flite returned a negative word offset".to_owned())
+        })?;
+        let text_length = u32::try_from(marker.text_length).map_err(|_| {
+            TtsError::SynthesisFailed("Flite returned a negative word length".to_owned())
+        })?;
+        let start = text_start as usize;
+        let end = start
+            .checked_add(text_length as usize)
+            .filter(|end| *end <= request_text.len())
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(
+                    "Flite returned a word range outside its source text".to_owned(),
+                )
+            })?;
+        if !request_text.is_char_boundary(start) || !request_text.is_char_boundary(end) {
+            return Err(TtsError::SynthesisFailed(
+                "Flite returned a word range outside UTF-8 boundaries".to_owned(),
+            ));
+        }
+        let frame_offset = canonicalizer
+            .canonical_frame_offset(native_frame)
+            .map_err(|error| {
+                TtsError::SynthesisFailed(format!(
+                    "could not map a Flite word marker into canonical PCM: {error}"
+                ))
+            })?;
+        markers.push(SynthesisMarker {
+            kind: SynthesisMarkerKind::Word,
+            frame_offset,
+            text_start: Some(text_start),
+            text_length: Some(text_length),
+            value: None,
+        });
+    }
+    markers.sort_by_key(|marker| marker.frame_offset);
+    Ok(markers)
+}
+
+fn resolve_word_anchors(
+    requested: &[RequestedAnchor],
+    markers: &[SynthesisMarker],
+) -> Vec<ResolvedAnchor> {
+    requested
+        .iter()
+        .map(|requested| {
+            let candidate = match requested.affinity {
+                AnchorAffinity::Before => markers
+                    .iter()
+                    .filter(|marker| marker.kind == SynthesisMarkerKind::Word)
+                    .filter_map(|marker| {
+                        marker.text_start.map(|start| (start, marker.frame_offset))
+                    })
+                    .filter(|(start, _)| *start >= requested.text_offset)
+                    .min_by_key(|(start, _)| *start),
+                AnchorAffinity::After => markers
+                    .iter()
+                    .filter(|marker| marker.kind == SynthesisMarkerKind::Word)
+                    .filter_map(|marker| {
+                        marker.text_start.map(|start| (start, marker.frame_offset))
+                    })
+                    .filter(|(start, _)| *start <= requested.text_offset)
+                    .max_by_key(|(start, _)| *start),
+            };
+            candidate.map_or_else(
+                || ResolvedAnchor {
+                    id: requested.id.clone(),
+                    frame_offset: None,
+                    resolution: AnchorResolution::Omitted,
+                },
+                |(_, frame_offset)| ResolvedAnchor {
+                    id: requested.id.clone(),
+                    frame_offset: Some(frame_offset),
+                    resolution: AnchorResolution::WordBoundary,
+                },
+            )
+        })
+        .collect()
+}
+
 fn scale_frame(frame: u64, source_rate: u32, target_frame_count: u64) -> u64 {
     frame
         .saturating_mul(u64::from(STANDARD_SAMPLE_RATE))
@@ -541,6 +956,101 @@ fn scale_frame(frame: u64, source_rate: u32, target_frame_count: u64) -> u64 {
 mod tests {
     use super::*;
     use omnivox_tts::{AnchorAffinity, AnchorResolution, RequestedAnchor, TtsSettings};
+
+    #[derive(Default)]
+    struct RecordingStreamSink {
+        events: Vec<&'static str>,
+        audio_windows: usize,
+        frames: u64,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<ResolvedAnchor>,
+    }
+
+    impl SynthesisStreamSink for RecordingStreamSink {
+        fn start(&mut self, _start: SynthesisStreamStart) -> Result<(), TtsError> {
+            self.events.push("start");
+            Ok(())
+        }
+
+        fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+            assert!(!audio.is_empty());
+            self.events.push("audio");
+            self.audio_windows += 1;
+            self.frames += audio.frame_count() as u64;
+            Ok(())
+        }
+
+        fn markers(
+            &mut self,
+            markers: Vec<SynthesisMarker>,
+            anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            assert!(!markers.is_empty() || !anchors.is_empty());
+            assert!(markers
+                .iter()
+                .all(|marker| marker.frame_offset >= self.frames));
+            assert!(anchors
+                .iter()
+                .all(|anchor| anchor.frame_offset.is_none_or(|frame| frame >= self.frames)));
+            self.events.push("markers");
+            self.markers.extend(markers);
+            self.anchors.extend(anchors);
+            Ok(())
+        }
+    }
+
+    struct CancellingStreamSink {
+        cancellation: SynthesisCancellationToken,
+        audio_calls: usize,
+    }
+
+    #[derive(Default)]
+    struct RejectingStreamSink {
+        started: bool,
+        audio_calls: usize,
+    }
+
+    impl SynthesisStreamSink for RejectingStreamSink {
+        fn start(&mut self, _start: SynthesisStreamStart) -> Result<(), TtsError> {
+            self.started = true;
+            Ok(())
+        }
+
+        fn audio(&mut self, _audio: AudioBuffer) -> Result<(), TtsError> {
+            self.audio_calls += 1;
+            Err(TtsError::SynthesisFailed(
+                "test stream sink rejected PCM".to_owned(),
+            ))
+        }
+
+        fn markers(
+            &mut self,
+            _markers: Vec<SynthesisMarker>,
+            _anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            Ok(())
+        }
+    }
+
+    impl SynthesisStreamSink for CancellingStreamSink {
+        fn start(&mut self, _start: SynthesisStreamStart) -> Result<(), TtsError> {
+            Ok(())
+        }
+
+        fn audio(&mut self, _audio: AudioBuffer) -> Result<(), TtsError> {
+            self.audio_calls += 1;
+            self.cancellation.cancel();
+            Ok(())
+        }
+
+        fn markers(
+            &mut self,
+            _markers: Vec<SynthesisMarker>,
+            _anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            Ok(())
+        }
+    }
 
     #[test]
     fn rate_mapping_is_calibrated_and_bounds_extremes() {
@@ -619,5 +1129,99 @@ mod tests {
         assert_eq!(result.anchors[0].id, "compact");
         assert_eq!(result.anchors[0].resolution, AnchorResolution::WordBoundary);
         assert_eq!(result.anchors[0].frame_offset, Some(ranges[1].1));
+    }
+
+    #[test]
+    fn bundled_slt_streams_word_markers_and_anchors_before_pcm() {
+        let mut warnings = Vec::new();
+        let engine = FliteTtsEngine::new(Vec::new(), &mut warnings).unwrap();
+        let request = SynthesisRequest::new(
+            "The compact SLT voice is ready.",
+            TtsSettings {
+                voice: BUILT_IN_VOICE_ID.to_owned(),
+                ..TtsSettings::default()
+            },
+        )
+        .with_anchors(vec![
+            RequestedAnchor::new("compact", 4, AnchorAffinity::Before),
+            RequestedAnchor::new("after-compact", 10, AnchorAffinity::After),
+        ])
+        .unwrap();
+        let mut sink = RecordingStreamSink::default();
+
+        let completion = engine.synthesize_stream(&request, &mut sink).unwrap();
+
+        assert_eq!(completion.frame_count, sink.frames);
+        assert!(completion.frame_count > 0);
+        assert!(sink.audio_windows > 1);
+        assert_eq!(sink.events.first(), Some(&"start"));
+        assert_eq!(sink.events.get(1), Some(&"markers"));
+        assert_eq!(sink.markers.len(), 6);
+        assert_eq!(sink.anchors.len(), 2);
+        assert!(sink
+            .anchors
+            .iter()
+            .all(|anchor| anchor.resolution == AnchorResolution::WordBoundary));
+        assert_eq!(
+            sink.anchors[0].frame_offset,
+            sink.markers[1].frame_offset.into()
+        );
+        assert_eq!(
+            sink.anchors[1].frame_offset,
+            sink.markers[1].frame_offset.into()
+        );
+        assert!(sink
+            .markers
+            .iter()
+            .all(|marker| marker.frame_offset <= completion.frame_count));
+        assert!(sink.anchors.iter().all(|anchor| anchor
+            .frame_offset
+            .is_some_and(|frame| frame <= completion.frame_count)));
+    }
+
+    #[test]
+    fn progressive_flite_stops_after_request_cancellation() {
+        let mut warnings = Vec::new();
+        let engine = FliteTtsEngine::new(Vec::new(), &mut warnings).unwrap();
+        let cancellation = SynthesisCancellationToken::new();
+        let request = SynthesisRequest::new(
+            "This deliberately longer sentence gives cancellation a callback window.",
+            TtsSettings {
+                voice: BUILT_IN_VOICE_ID.to_owned(),
+                ..TtsSettings::default()
+            },
+        )
+        .with_cancellation(cancellation.clone());
+        let mut sink = CancellingStreamSink {
+            cancellation,
+            audio_calls: 0,
+        };
+
+        let error = engine.synthesize_stream(&request, &mut sink).unwrap_err();
+
+        assert!(error.to_string().contains("cancelled"));
+        assert_eq!(sink.audio_calls, 1);
+        assert!(!engine.is_speaking());
+    }
+
+    #[test]
+    fn progressive_flite_propagates_sink_backpressure() {
+        let mut warnings = Vec::new();
+        let engine = FliteTtsEngine::new(Vec::new(), &mut warnings).unwrap();
+        let request = SynthesisRequest::new(
+            "Flite must stop when the output queue rejects a window.",
+            TtsSettings {
+                voice: BUILT_IN_VOICE_ID.to_owned(),
+                ..TtsSettings::default()
+            },
+        );
+        let mut sink = RejectingStreamSink::default();
+
+        let error = engine.synthesize_stream(&request, &mut sink).unwrap_err();
+
+        assert!(error.to_string().contains("test stream sink rejected PCM"));
+        assert!(sink.started);
+        assert_eq!(sink.audio_calls, 1);
+        assert!(!engine.is_speaking());
     }
 }
