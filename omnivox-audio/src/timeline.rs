@@ -9,7 +9,8 @@
 use crate::buffer::CHANNELS;
 use crate::{AudioBuffer, AudioError};
 use omnivox_core::timeline::{
-    AudioActionMode, FrameMap, ScheduledTimeline, TimelineActionId, TimelineActionKind,
+    AudioActionMode, FrameMap, ResolvedTimelineAction, ScheduledTimeline, TimelineActionId,
+    TimelineActionKind,
 };
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -142,6 +143,44 @@ impl TimelineAudioRenderer {
         final_window: bool,
     ) -> Result<RenderedTimelineWindow, AudioError> {
         self.render_window_with_resources(primary, timeline, resources, final_window)
+    }
+
+    /// Render one bounded piece of a progressively synthesized timeline.
+    ///
+    /// `actions` retain their absolute primary-source frame offsets. Every
+    /// action must fall within this window, including either boundary. The
+    /// returned frame map and semantic offsets are relative to this rendered
+    /// window; callers add their already-published output frame count when
+    /// producing dispatch-wide events.
+    pub fn render_incremental_shared_window(
+        &mut self,
+        primary: &AudioBuffer,
+        source_start: u64,
+        actions: &[ResolvedTimelineAction],
+        resources: &[SharedPreparedAudioResource],
+        final_window: bool,
+    ) -> Result<RenderedTimelineWindow, AudioError> {
+        let source_end = source_start
+            .checked_add(primary.frame_count() as u64)
+            .ok_or_else(|| AudioError::TimelineError("primary frame range overflowed".into()))?;
+        let relative_actions = actions
+            .iter()
+            .map(|resolved| {
+                if !(source_start..=source_end).contains(&resolved.source_frame) {
+                    return Err(AudioError::TimelineError(format!(
+                        "action {} at source frame {} is outside progressive window {source_start}..={source_end}",
+                        resolved.action.id, resolved.source_frame
+                    )));
+                }
+                Ok(ResolvedTimelineAction {
+                    action: resolved.action.clone(),
+                    source_frame: resolved.source_frame - source_start,
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let timeline = ScheduledTimeline::build(primary.frame_count() as u64, relative_actions)
+            .map_err(|error| AudioError::TimelineError(error.to_string()))?;
+        self.render_shared_window(primary, &timeline, resources, final_window)
     }
 
     fn render_window_with_resources<R: AudioResourceView>(
@@ -611,5 +650,72 @@ mod tests {
 
         assert_eq!(rendered.audio.samples, vec![0.1, 0.1, 0.8, 0.8, 0.1, 0.1]);
         assert_eq!(Arc::strong_count(&shared), 1);
+    }
+
+    #[test]
+    fn incremental_windows_match_one_complete_timeline_at_shared_boundaries() {
+        let primary = AudioBuffer::new(vec![0.1; 8]);
+        let overlay = Arc::new(AudioBuffer::new(vec![0.2; 6]));
+        let inserted = Arc::new(AudioBuffer::new(vec![0.4; 4]));
+        let actions = vec![
+            action("overlay", 2, AudioActionMode::Overlay, &overlay),
+            action("insert", 2, AudioActionMode::Insert, &inserted),
+            semantic("meaning", 3),
+        ];
+        let resources = vec![
+            SharedPreparedAudioResource::new(id("overlay"), Arc::clone(&overlay)),
+            SharedPreparedAudioResource::new(id("insert"), Arc::clone(&inserted)),
+        ];
+        let complete_timeline = ScheduledTimeline::build(4, actions.clone()).unwrap();
+        let complete = TimelineAudioRenderer::new()
+            .render_shared_window(&primary, &complete_timeline, &resources, true)
+            .unwrap();
+
+        let mut incremental_renderer = TimelineAudioRenderer::new();
+        let first = incremental_renderer
+            .render_incremental_shared_window(
+                &AudioBuffer::new(primary.samples[..4].to_vec()),
+                0,
+                &actions[..1],
+                &resources,
+                false,
+            )
+            .unwrap();
+        let second = incremental_renderer
+            .render_incremental_shared_window(
+                &AudioBuffer::new(primary.samples[4..].to_vec()),
+                2,
+                &actions[1..],
+                &resources,
+                true,
+            )
+            .unwrap();
+        let mut incremental_samples = first.audio.samples;
+        incremental_samples.extend(second.audio.samples);
+
+        assert_eq!(incremental_samples, complete.audio.samples);
+        assert_eq!(
+            second.overlay_tail.as_ref().map(|tail| &tail.samples),
+            complete.overlay_tail.as_ref().map(|tail| &tail.samples)
+        );
+        assert_eq!(
+            second.semantic_events,
+            vec![RenderedSemanticEvent {
+                id: id("meaning"),
+                frame_offset: 3,
+            }]
+        );
+    }
+
+    #[test]
+    fn incremental_window_rejects_actions_outside_its_absolute_range() {
+        let primary = AudioBuffer::new(vec![0.1; 4]);
+        let action = semantic("early", 4);
+
+        let error = TimelineAudioRenderer::new()
+            .render_incremental_shared_window(&primary, 5, &[action], &[], false)
+            .unwrap_err();
+
+        assert!(error.to_string().contains("outside progressive window"));
     }
 }
