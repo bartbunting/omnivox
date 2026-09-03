@@ -60,10 +60,18 @@ an unbounded payload or a second transport:
   the exact completed count. The tracked terminal event remains authoritative
   for completion or cancellation.
 - Runtime fallback is allowed only before the first progressive PCM chunk has
-  been accepted. An error after that point terminates the utterance and affects
-  health normally, but does not splice in another engine. Cancellation closes
-  the bounded channels, stops the native engine, and retains the existing helper
-  watchdog as the hard containment boundary.
+  been accepted. Routed start metadata and marker/anchor preambles remain
+  transactional until that commitment, so a failed attempt cannot contaminate
+  a clean fallback. An error after that point terminates the utterance and
+  affects health normally, but does not splice in another engine. Cancellation
+  closes the bounded channels, stops the native engine, and retains the existing
+  helper watchdog as the hard containment boundary.
+- Version 5 `requested_anchor` markers may name their actual `exact`,
+  `word_boundary`, `span_boundary`, or `omitted` resolution; absence retains
+  the older exact meaning. Supported anchors drive bounded incremental timeline
+  rendering. Insertions shift later marker/event frames, overlays carry between
+  windows, and resolution plus semantic events are published on the same
+  progressive playback clock. Unsupported anchor routes stay buffered.
 - Operations that need future knowledge of the complete waveform may collect
   the progressive stream and use the established buffered path. This is a
   per-request safety fallback, not permission for a helper advertising
@@ -92,11 +100,11 @@ frame count, and does not replace the established sinc quality with independent
 or linear per-chunk conversion. Benchmarks must identify the null backend and
 must not describe first-source timing as physical acoustic onset.
 
-The initial progressive path does not require a new dependency, remove the
-buffered API, change companion provenance, or move a native runtime into the
-main process. Effects or presentation operations that cannot yet preserve their
-semantics across windows continue through buffered collection until they gain a
-tested incremental implementation.
+The progressive path does not require a new dependency, remove the buffered
+API, change companion provenance, or move a native runtime into the main
+process. Effects or presentation operations that cannot preserve their
+semantics across windows continue through buffered collection until they gain
+a tested incremental implementation.
 
 ## Alternatives considered
 

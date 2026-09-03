@@ -172,7 +172,10 @@ For protocol-v5 verification, pass `--require-streaming` to
 markers ahead of the associated PCM. DECtalk intentionally retains one
 512-sample native block because its runtime can report an index a few samples
 after the callback containing that frame. The holdback is bounded and is
-flushed at synthesis completion.
+flushed at synthesis completion. The stress tool also requests an anchor:
+Eloquence resolves it exactly, while DECtalk aliases it to an existing native
+word index and reports `word_boundary` without adding another DECtalk index
+command to the spoken text.
 
 Explicit native DLL arguments and environment variables must contain absolute
 paths. Otherwise Eloquence uses the Freedom Scientific 6.1

@@ -255,10 +255,13 @@ uses one continuous high-quality conversion rather than changing the signal at
 native callback boundaries. Eloquence can publish each index before its
 following audio callback. DECtalk can report an index a few samples after the
 callback containing that position, so its adapter holds exactly one 512-sample
-native block and emits the next callback's markers before releasing it.
-Requests with presentation anchors are collected by the main server for
-whole-window timeline rendering even though the helper transport remains
-progressive.
+native block and emits the next callback's markers before releasing it. Exact
+Eloquence anchors and DECtalk anchors aliased to its existing word indexes feed
+the incremental timeline renderer. That renderer carries overlays between
+bounded windows, accounts for inserted audio when remapping later markers, and
+publishes semantic events and actual anchor quality on the playback clock.
+Routes whose streaming engine cannot resolve requested anchors retain the
+whole-result path.
 
 The Windows helpers require absolute native-library paths, validate x86 PE
 identity and required exports before engine calls, and load dependencies only

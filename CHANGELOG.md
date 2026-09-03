@@ -38,11 +38,15 @@ Versioning for published releases.
   pack and selecting the same phonemizer voice twice for every request.
 - Eloquence and DECtalk now forward bounded PCM directly from their native
   callbacks under helper protocol v5. The server progressively trims and
-  processes ordinary anchorless speech, remaps native markers, and reserves
-  their playback events before audio crosses each marker frame. DECtalk keeps
-  one bounded native block in hand to accommodate markers its runtime reports
-  a few samples late. Version 4 peers and requests containing presentation
-  anchors retain the buffered path.
+  processes speech, remaps native markers, and reserves their playback events
+  before audio crosses each marker frame. Native mono PCM now passes through
+  one continuous high-quality sinc converter instead of helper-local linear
+  upsampling. DECtalk keeps one bounded native block in hand to accommodate
+  markers its runtime reports a few samples late.
+- Supported presentation anchors now stay progressive. Exact Eloquence anchors
+  and DECtalk word-boundary aliases drive bounded incremental inserts,
+  overlays, capitalization tones, semantic events, and truthful resolution
+  diagnostics; routes without anchor support retain buffered rendering.
 
 ### Fixed
 

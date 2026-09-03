@@ -77,6 +77,10 @@ in the linked protocol specifications; future work belongs in
   per presentation.
 - Inserted and overlaid timeline audio/tone actions, inserted silence,
   semantic events, stable cue order, and tracked overlay tails.
+- Incremental anchored timeline rendering for protocol-v5 engines: exact and
+  word-boundary resolutions drive bounded insert/overlay windows, later marker
+  offsets include inserted audio, and semantic/resolution events share the
+  progressive playback clock.
 - Persistent post-synthesis gain, filtering, pan, chorus, reverb, and echo
   state. Chorus preserves primary duration and marker positions.
 - Privacy-conscious persistent logs and optional sensitive full-text
@@ -91,12 +95,13 @@ in the linked protocol specifications; future work belongs in
   arbitrary multi-device routing is not implemented.
 - An explicit null output backend consumes normal queued sources without
   opening an audio device for silent diagnostics and faster lifecycle tests.
-- Protocol-v5 engines can feed ordinary anchorless speech and ordered native
-  marker batches through bounded progressive isolation, exact cross-window
-  silence trimming, effects, and a single tracked playback source. Marker
-  events are reserved before the corresponding PCM can reach playback.
-  Requests requiring presentation anchors remain buffered until timeline
-  actions and effects can be rendered incrementally with the same semantics.
+- Protocol-v5 engines can feed ordinary speech, ordered native markers, and
+  supported presentation anchors through bounded progressive isolation,
+  exact cross-window silence trimming, effects, timeline rendering, and a
+  single tracked playback source. Marker and timeline events are reserved
+  before the corresponding PCM can reach playback. A request remains buffered
+  when its selected engine advertises no requested-anchor support or an
+  operation still requires future knowledge of the complete waveform.
 - Immediate `tts_say` and letter commands use the global engine order rather
   than a named logical voice.
 - Native cancellation strength differs by engine. WinRT work may continue in a
@@ -271,6 +276,15 @@ records 480 exact-voice winner samples. Warm ordinary character, word, line,
 and multipart source medians improved by 82.3% to 87.0% for Eloquence and by
 55.7% to 62.3% for DECtalk. Their dense-action controls retained buffered
 whole-window rendering.
+
+The subsequent
+[anchored-streaming follow-up](benchmarks/2026-09-03-windows-x64-null-anchored-streaming-1c6e5690e30b758b.md)
+records 240 warm exact-voice winner samples after native PCM moved to the
+continuous sinc converter and anchored timelines became incremental. Dense
+source p50 fell a further 44.9% for Eloquence and 42.1% for DECtalk, eliminating
+the previous whole-result anchor penalty. The high-quality converter has more
+startup work than the temporary linear path; its latency and the remaining
+audible Eloquence check are recorded explicitly in that report.
 
 `tools/stress_server.py` verifies interleaved replacement domains, ordered and
 urgent survival, repeated hard-stop recovery, contiguous marker and semantic

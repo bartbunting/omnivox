@@ -37,6 +37,10 @@ The structured identity model remains:
    [null-output pre-optimization baseline](../benchmarks/2026-09-03-windows-x64-null-f7204ac69b6010f1.md)
    adds RuTTS and TGSpeechBox with exact representative voices, a seeded order,
    and no audible playback; other platforms and repeat runs remain outstanding.
+   The later anchored-streaming follow-up shows that Eloquence and DECtalk
+   dense timelines no longer add a whole-result wait. Profile and reduce the
+   continuous-sinc startup cost only with matched audible-quality and waveform
+   evidence; do not restore per-chunk linear upsampling.
 3. Maintain `tools/stress_server.py` across real engines and platforms for
    interleaved replacement keys, ordered and urgent traffic, hard stops,
    queued/buffered audio, late completion, and helper restart. Keep verifying

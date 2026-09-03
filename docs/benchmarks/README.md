@@ -20,6 +20,9 @@ Recorded baselines:
 - [2026-09-03 Windows x64 Eloquence and DECtalk streaming comparison](2026-09-03-windows-x64-null-eloquence-dectalk-streaming-09b89b3ff537d12b.md)
   measures both marker-capable Windows helpers after protocol-v5 callback
   streaming, with their dense anchored workloads retained as buffered controls.
+- [2026-09-03 Windows x64 anchored-streaming follow-up](2026-09-03-windows-x64-null-anchored-streaming-1c6e5690e30b758b.md)
+  verifies incremental Eloquence and DECtalk dense timelines after native PCM
+  moved to the continuous sinc converter.
 - [2026-09-01 Windows x64 development baseline](2026-09-01-windows-x64-c9458361eb57b94a.md)
   covers WinRT, eSpeak NG, RHVoice, Flite, DECtalk, and Eloquence.
 - [2026-09-01 Windows x64 RuTTS development acceptance](2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)
