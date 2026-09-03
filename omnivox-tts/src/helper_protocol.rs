@@ -350,6 +350,9 @@ impl HelperResponse {
                     return Err(HelperProtocolError::TooManyMarkers);
                 }
                 for marker in markers {
+                    if self.protocol_version < HELPER_PROTOCOL_V5 && marker.resolution.is_some() {
+                        return Err(HelperProtocolError::InvalidField("marker.resolution"));
+                    }
                     if self.protocol_version == HELPER_PROTOCOL_V1
                         && marker.kind == HelperMarkerKind::RequestedAnchor
                     {
@@ -889,6 +892,18 @@ mod tests {
         marker.validate().unwrap();
         let encoded = serde_json::to_value(&marker).unwrap();
         assert_eq!(encoded["resolution"], "word_boundary");
+        let mut response = HelperResponse::for_request(
+            3,
+            HelperResponseBody::Markers {
+                markers: vec![marker.clone()],
+            },
+        );
+        response.validate().unwrap();
+        response.protocol_version = HELPER_PROTOCOL_V4;
+        assert!(matches!(
+            response.validate(),
+            Err(HelperProtocolError::InvalidField("marker.resolution"))
+        ));
 
         let mut ordinary = marker;
         ordinary.kind = HelperMarkerKind::Word;
