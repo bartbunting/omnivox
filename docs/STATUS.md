@@ -143,9 +143,14 @@ in the linked protocol specifications; future work belongs in
   voices pass persistent 25-synthesis helper sessions, repeated cancellation,
   exact full-server routing, mixed queue and hard-stop stress, Windows resource
   sampling, and dispatch-time helper death with eSpeak fallback and explicit
-  recovery. The release matrix targets Linux x64/ARM64, macOS Intel/Apple
-  Silicon, and Windows x64/ARM64 with MSVC; those release targets are not
-  labelled runtime-accepted until their native workflow gates pass. The
+  recovery. Under protocol v5, successive native 10 kHz callback blocks now
+  cross one bounded stateful sinc converter and reach the server as progressive
+  canonical windows; older peers retain buffered results. Native Linux x64 and
+  Windows x64 GNU helper soaks cover progressive delivery, repeated
+  cancellation, health checks, and clean shutdown. The release matrix targets
+  Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows x64/ARM64 with MSVC;
+  those release targets are not labelled runtime-accepted until their native
+  workflow gates pass. The
   [Windows evidence pack](benchmarks/2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)
   records the bounded GNU-target results. The helper converts its KOI8-R
   repertoire losslessly and routes unsupported Unicode text to fallback; it

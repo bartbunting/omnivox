@@ -32,6 +32,12 @@ installation-directory/
 The main server discovers that layout automatically. An explicit helper path
 can instead be set with `OMNIVOX_RUTTS_HELPER`.
 
+With helper protocol v5, RuTTS converts successive native 10 kHz callback
+blocks through one continuous bounded sinc converter and sends canonical audio
+windows while synthesis remains active. Protocol v4 and older clients continue
+to receive one completed buffered result. RuTTS has no synchronization markers,
+so presentation requests requiring anchors still use the buffered server path.
+
 The companion target matrix is:
 
 | Platform | Architecture | Rust target |
@@ -93,7 +99,7 @@ target/release/omnivox --engine rutts \
 python3 tools/stress_helper.py \
   target/release/rutts/omnivox-rutts-helper \
   --engine-id rutts --voice-id male --iterations 100 \
-  --cancel-every 25 --resource-sample-every 10 \
+  --require-streaming --cancel-every 25 --resource-sample-every 10 \
   --json-output /path/to/private/rutts-male-soak.json \
   --require-acss rate --require-acss average_pitch \
   --require-acss pitch_range --require-acss volume

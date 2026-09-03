@@ -244,7 +244,11 @@ RHVoice dynamically loads a user-installed 1.x C API runtime and keeps its
 language/voice data outside Omnivox. Flite is source-built and statically linked
 only into its SLT-only companion. RuTTS is likewise source-built only into its
 companion; the adapter converts supported Unicode input to KOI8-R, expands its
-signed 8-bit 10 kHz PCM into canonical samples, and ships without RuLex.
+signed 8-bit 10 kHz callback blocks through one bounded stateful sinc converter,
+and emits canonical windows while native synthesis remains active under helper
+protocol v5. Older peers still receive one buffered result. RuTTS ships without
+RuLex and exposes no markers, so marker-dependent timelines retain their
+whole-result path.
 Experimental TGSpeechBox keeps its pinned C++ frontend/DSP and eSpeak IPA
 conversion together in a GPLv3 helper, exposes only portable ACSS controls,
 and advertises no markers. These helpers reuse the engine-neutral helper host

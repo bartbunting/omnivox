@@ -47,6 +47,11 @@ Versioning for published releases.
   and DECtalk word-boundary aliases drive bounded incremental inserts,
   overlays, capitalization tones, semantic events, and truthful resolution
   diagnostics; routes without anchor support retain buffered rendering.
+- RuTTS now converts successive native 10 kHz callback blocks through one
+  bounded stateful sinc converter and emits canonical windows progressively
+  under helper protocol v5. Older protocol peers retain whole-result buffered
+  delivery, and marker-dependent timelines remain buffered because RuTTS does
+  not expose synchronization markers.
 
 ### Fixed
 

@@ -268,9 +268,12 @@ The engine-neutral Rust helper host and shared Windows C# host select
 progressive delivery only when they negotiate version 5 with an engine
 advertising `streaming_pcm`. The same helpers downgrade their advertised mode
 to `buffered_pcm` and call the complete-result path for an older peer. Rust
-adapters supply canonical engine windows directly. The Windows host instead
-encodes native Eloquence and DECtalk callback PCM at 11.025 kHz mono; the Rust
-receiver continuously converts that stream to 44.1 kHz stereo. DECtalk retains
-one 512-sample native block so its occasionally late marker callback can still
-precede the corresponding audio. Both native wire PCM and expanded canonical
-PCM remain subject to the ordinary 128 MiB synthesis limit.
+adapters supply canonical engine windows directly. RuTTS converts successive
+signed 8-bit 10 kHz native callbacks through one bounded stateful sinc converter
+before emitting those windows, so its native callback boundaries do not restart
+resampling. The Windows host instead encodes native Eloquence and DECtalk
+callback PCM at 11.025 kHz mono; the Rust receiver continuously converts that
+stream to 44.1 kHz stereo. DECtalk retains one 512-sample native block so its
+occasionally late marker callback can still precede the corresponding audio.
+Both native wire PCM and expanded canonical PCM remain subject to the ordinary
+128 MiB synthesis limit.

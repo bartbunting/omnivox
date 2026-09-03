@@ -26,10 +26,11 @@ also bound per-call work and make cancellation checks and fallback opportunities
 more frequent.
 
 Chunking does **not** promise that a native engine invokes exactly one internal
-buffer callback. Engine adapters are responsible for collecting and validating
-their native output. The useful contract is that Omnivox makes one structured
-synthesis request per prepared chunk and can queue that result before
-synthesizing later chunks.
+buffer callback. Engine adapters validate their native output and either relay
+bounded progressive windows or collect one complete result according to their
+advertised capability. The useful contract is that Omnivox makes one structured
+synthesis request per prepared chunk and can begin queueing supported output
+before synthesizing later chunks.
 
 Every chunk is independently canonicalized, silence-trimmed, processed, and
 scheduled. Leading/trailing padding is rate-aware to avoid clipping. The final
