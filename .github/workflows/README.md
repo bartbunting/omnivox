@@ -41,6 +41,12 @@ notices. It does not contain the RHVoice runtime or voice data. The build
 wrapper derives eSpeak data from the exact `espeak-rs-sys` output reported by
 Cargo.
 
+Windows artifacts also contain the compiled 32-bit Eloquence and DECtalk
+bridge helpers, their GPL notice, and exact corresponding source. Their
+proprietary runtimes, dictionaries, and voices remain user supplied. Each
+Windows runner verifies IA32 helper startup, missing-runtime reporting,
+protocol responsiveness, and clean shutdown before upload.
+
 The main executable enables optional Piper helper discovery on every target.
 This does not link libpiper into the server or add the companion to a generic
 artifact; the tag-only and manual Piper jobs own that native payload.
@@ -203,7 +209,8 @@ immediately before publication. Any failure leaves the release as a draft for
 inspection.
 
 The release does not package voice models, external Flite voices, RuLex,
-Eloquence or DECtalk helpers, proprietary DLLs, or proprietary dictionaries.
+proprietary DLLs, or proprietary dictionaries. Windows generic archives do
+package the Eloquence and DECtalk bridge helpers, their GPL notice, and source.
 Generic archives contain the RHVoice helper but not an RHVoice runtime or
 voice data.
 

@@ -28,8 +28,10 @@ There are two supported consumers with deliberately different Lisp adapters:
 | Linux | eSpeak NG | optional Piper, RHVoice, Flite, and RuTTS helpers; experimental TGSpeechBox development companion |
 
 The Windows Eloquence and DECtalk engines run in separate 32-bit helper
-processes and require user-supplied proprietary runtimes. Omnivox and Emacsvox
-do not distribute those runtimes. When their helpers and runtimes are present,
+processes and require user-supplied proprietary runtimes. Windows release
+archives beginning with v1.7.1 include the helpers, their GPL notice, and exact
+corresponding source; Omnivox and Emacsvox do not distribute those runtimes.
+When their helpers and runtimes are present,
 they can be selected as the initial server preference or as an exact diagnostic
 engine with `--engine eloquence` or `--engine dectalk`. The
 [helper source and build](windows-helpers/README.md) live in this repository;
@@ -117,7 +119,9 @@ Windows x64/ARM64; Piper companion archives cover Linux x64, macOS
 Intel/Apple Silicon, and Windows x64. Beginning with v1.7.0, the experimental
 TGSpeechBox companion is also published for Windows x64. Each source-built
 engine has a corresponding-source artifact. A `sha256sums.txt` file is
-published alongside release assets.
+published alongside release assets. Beginning with v1.7.1, both Windows
+archives also contain the Eloquence and DECtalk bridge helpers, their GPL
+notice, and corresponding source, but no proprietary runtimes or data.
 Published release `v1.4.1` predates the root `LICENSE` and `LICENSING.md`
 archive entries; those files are included beginning with v1.5.0. Linux ARM64
 generic archives are not currently published or CI-verified.

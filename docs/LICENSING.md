@@ -32,7 +32,9 @@ relicensed by the repository's MIT license.
 The helpers are separate 32-bit executables rather than code linked into the
 MIT-licensed Rust server. A Windows bundle containing either helper must retain
 the applicable GPL notice and license text. Emacsvox stages that text as
-`WINDOWS-HELPERS-COPYING` beside its helper executables.
+`WINDOWS-HELPERS-COPYING` beside its helper executables. Beginning with v1.7.1,
+the generic Omnivox Windows archives do the same and include the exact helper
+source and build script as `windows-helpers-source`.
 
 ## eSpeak NG and release executables
 

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 import subprocess
@@ -12,6 +13,17 @@ import uuid
 
 REPOSITORY = Path(__file__).resolve().parent.parent
 HELPERS = REPOSITORY / "windows-helpers" / "bin"
+
+
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--helpers",
+        type=Path,
+        default=HELPERS,
+        help="directory containing the two built helper executables",
+    )
+    return parser.parse_args()
 
 
 def request(
@@ -99,15 +111,16 @@ def check_helper(
 
 
 def main() -> int:
+    arguments = parse_arguments()
     for protocol_version in (5, 4):
         check_helper(
-            HELPERS / "OmnivoxEloquenceHelper32.exe",
+            arguments.helpers / "OmnivoxEloquenceHelper32.exe",
             "eloquence",
             "ECI.DLL",
             protocol_version,
         )
         check_helper(
-            HELPERS / "OmnivoxDectalkHelper32.exe",
+            arguments.helpers / "OmnivoxDectalkHelper32.exe",
             "dectalk",
             "DECtalk.dll",
             protocol_version,

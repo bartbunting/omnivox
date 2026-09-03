@@ -24,6 +24,7 @@ class VerificationError(RuntimeError):
 
 LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES = {"1.4.1"}
 FIRST_RELEASE_WITH_RHVOICE_HELPER = (1, 5, 1)
+FIRST_RELEASE_WITH_WINDOWS_RUNTIME_HELPERS = (1, 7, 1)
 MAX_ARCHIVE_MEMBERS = 100_000
 MAX_ARCHIVE_UNCOMPRESSED_BYTES = 4 * 1024 * 1024 * 1024
 
@@ -173,6 +174,18 @@ def verify_layout(root: Path, platform: str, version: str) -> Path:
     version_numbers = tuple(int(value) for value in version.split("-", 1)[0].split(".")[:3])
     if version_numbers >= FIRST_RELEASE_WITH_RHVOICE_HELPER:
         expected_root.add("rhvoice")
+    if (
+        platform == "windows"
+        and version_numbers >= FIRST_RELEASE_WITH_WINDOWS_RUNTIME_HELPERS
+    ):
+        expected_root.update(
+            {
+                "OmnivoxDectalkHelper32.exe",
+                "OmnivoxEloquenceHelper32.exe",
+                "WINDOWS-HELPERS-COPYING",
+                "windows-helpers-source",
+            }
+        )
     actual_root = {path.name for path in root.iterdir()}
     allowed_roots = {frozenset(expected_root)}
     if version in LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES:
@@ -251,7 +264,73 @@ def verify_layout(root: Path, platform: str, version: str) -> Path:
         require(helper.stat().st_size > 0, "RHVoice helper is empty")
         if platform != "windows":
             require(helper.stat().st_mode & 0o111 != 0, "RHVoice helper is not executable")
+    if (
+        platform == "windows"
+        and version_numbers >= FIRST_RELEASE_WITH_WINDOWS_RUNTIME_HELPERS
+    ):
+        for name in (
+            "OmnivoxDectalkHelper32.exe",
+            "OmnivoxEloquenceHelper32.exe",
+        ):
+            helper = root / name
+            require(
+                helper.is_file() and helper.stat().st_size > 0,
+                f"{name} is missing or empty",
+            )
+            verify_windows_x86_architecture(helper)
+        copying = root / "WINDOWS-HELPERS-COPYING"
+        require(
+            copying.is_file() and copying.stat().st_size > 10_000,
+            "Windows helper GPL notice is missing or incomplete",
+        )
+        verify_windows_helper_source(root / "windows-helpers-source")
     return binary
+
+
+def verify_windows_helper_source(source: Path) -> None:
+    """Require the exact buildable source shipped for Windows bridge helpers."""
+    expected = {
+        "COPYING",
+        "Makefile",
+        "README.md",
+        "build.ps1",
+        "common/OmnivoxHelperHost.cs",
+        "common/OmnivoxNativeLibrary.cs",
+        "dectalk/OmnivoxDectalkCapture.cs",
+        "dectalk/OmnivoxDectalkHelper.cs",
+        "eloquence/OmnivoxEloquenceCapture.cs",
+        "eloquence/OmnivoxEloquenceHelper.cs",
+    }
+    require(source.is_dir(), "Windows helper corresponding source is missing")
+    actual = {
+        path.relative_to(source).as_posix()
+        for path in source.rglob("*")
+        if path.is_file()
+    }
+    require(
+        actual == expected,
+        f"unexpected Windows helper source entries: {sorted(actual)}",
+    )
+
+
+def verify_windows_x86_architecture(binary: Path) -> None:
+    """Require BINARY to be a 32-bit x86 Windows PE executable."""
+    data = binary.read_bytes()[:4096]
+    require(
+        len(data) >= 64 and data[:2] == b"MZ",
+        f"Windows helper is not PE: {binary}",
+    )
+    pe_offset = struct.unpack_from("<I", data, 0x3C)[0]
+    require(
+        pe_offset + 6 <= len(data)
+        and data[pe_offset : pe_offset + 4] == b"PE\0\0",
+        f"Windows helper PE header is invalid: {binary}",
+    )
+    machine = struct.unpack_from("<H", data, pe_offset + 4)[0]
+    require(
+        machine == 0x14C,
+        f"Windows helper architecture mismatch: found 0x{machine:x}, expected x86",
+    )
 
 
 def verify_architecture(binary: Path, platform: str, arch: str) -> None:
@@ -458,6 +537,24 @@ def verify(arguments: argparse.Namespace) -> None:
                 )
         if engines:
             verify_execution(binary, arguments.version, engines, working, arguments.platform)
+        version_numbers = tuple(
+            int(value)
+            for value in arguments.version.split("-", 1)[0].split(".")[:3]
+        )
+        if (
+            arguments.platform == "windows"
+            and version_numbers >= FIRST_RELEASE_WITH_WINDOWS_RUNTIME_HELPERS
+        ):
+            run(
+                [
+                    sys.executable,
+                    str(Path(__file__).with_name("test_windows_helper_startup.py")),
+                    "--helpers",
+                    str(extracted),
+                ],
+                working,
+                clean_environment(),
+            )
 
     mode = "structural" if not engines else f"structural and engine ({', '.join(engines)})"
     print(f"PASS {archive.name}: {mode} verification")

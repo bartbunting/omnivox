@@ -6,6 +6,12 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Windows release archives now include the compiled 32-bit Eloquence and
+  DECtalk bridge helpers, their GPL notice, and exact corresponding source.
+  Their proprietary runtimes, dictionaries, and voices remain user supplied.
+
 ## [1.7.0] - 2026-09-03
 
 ### Added

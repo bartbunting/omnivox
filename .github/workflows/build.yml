@@ -103,6 +103,15 @@ jobs:
       - name: Build portable RHVoice helper
         run: python tools/build_rhvoice.py --release --target ${{ matrix.target }}
 
+      - name: Build Windows proprietary-runtime bridge helpers
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '& .\windows-helpers\build.ps1'
+
+      - name: Verify Windows bridge startup without proprietary runtimes
+        if: runner.os == 'Windows'
+        run: python tools/test_windows_helper_startup.py
+
       - name: Prepare artifacts (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -115,6 +124,12 @@ jobs:
           Copy-Item -Recurse target\${{ matrix.target }}\release\espeak-ng-data artifacts\espeak-ng-data
           Copy-Item -Recurse target\${{ matrix.target }}\release\third-party-licenses artifacts\third-party-licenses
           Copy-Item -Recurse target\${{ matrix.target }}\release\rhvoice artifacts\rhvoice
+          Copy-Item windows-helpers\bin\OmnivoxEloquenceHelper32.exe artifacts\OmnivoxEloquenceHelper32.exe
+          Copy-Item windows-helpers\bin\OmnivoxDectalkHelper32.exe artifacts\OmnivoxDectalkHelper32.exe
+          Copy-Item windows-helpers\COPYING artifacts\WINDOWS-HELPERS-COPYING
+          New-Item -ItemType Directory -Force artifacts\windows-helpers-source | Out-Null
+          Copy-Item windows-helpers\COPYING, windows-helpers\Makefile, windows-helpers\README.md, windows-helpers\build.ps1 artifacts\windows-helpers-source
+          Copy-Item -Recurse windows-helpers\common, windows-helpers\eloquence, windows-helpers\dectalk artifacts\windows-helpers-source
 
       - name: Prepare artifacts (Unix)
         if: runner.os != 'Windows'
@@ -139,6 +154,10 @@ jobs:
           if (-not (Test-Path artifacts\LICENSING.md -PathType Leaf)) { throw "missing component licensing map" }
           if (-not (Test-Path artifacts\third-party-licenses\eSpeak-NG-GPL-3.0.txt -PathType Leaf)) { throw "missing eSpeak NG license" }
           if (-not (Test-Path artifacts\rhvoice\omnivox-rhvoice-helper.exe -PathType Leaf)) { throw "missing RHVoice helper" }
+          if (-not (Test-Path artifacts\OmnivoxEloquenceHelper32.exe -PathType Leaf)) { throw "missing Eloquence bridge helper" }
+          if (-not (Test-Path artifacts\OmnivoxDectalkHelper32.exe -PathType Leaf)) { throw "missing DECtalk bridge helper" }
+          if (-not (Test-Path artifacts\WINDOWS-HELPERS-COPYING -PathType Leaf)) { throw "missing Windows helper GPL notice" }
+          if (-not (Test-Path artifacts\windows-helpers-source\build.ps1 -PathType Leaf)) { throw "missing Windows helper source" }
           $env:ESPEAK_NG_DATA = (Resolve-Path artifacts).Path
           & artifacts\omnivox.exe --engine espeak --list-voices | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "packaged eSpeak voice discovery failed" }
@@ -830,7 +849,7 @@ jobs:
             archive="omnivox-${VERSION}-${suffix}"
             if [[ "$suffix" == *"windows"* ]]; then
               cd "$dir"
-              zip -r "../${archive}.zip" omnivox.exe LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses rhvoice
+              zip -r "../${archive}.zip" omnivox.exe LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses rhvoice OmnivoxEloquenceHelper32.exe OmnivoxDectalkHelper32.exe WINDOWS-HELPERS-COPYING windows-helpers-source
               cd ..
             else
               cd "$dir"
@@ -981,6 +1000,12 @@ jobs:
             Every generic archive also contains the portable RHVoice helper,
             but not the RHVoice runtime, language data, or voices. Install a
             compatible runtime separately as described in the RHVoice guide.
+
+            Windows archives also contain the 32-bit Eloquence and DECtalk
+            bridge helpers, their GPL notice, and exact source. They do not
+            contain ECI or DECtalk runtimes, dictionaries, or voices. A helper
+            becomes available only when the user supplies a compatible,
+            legitimately installed runtime.
 
             The Linux archive requires Ubuntu 24.04-compatible glibc,
             libstdc++, libgcc, and ALSA runtime libraries.

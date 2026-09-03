@@ -15,7 +15,10 @@ The checked-in GitHub Actions workflow publishes these release archives:
 Each archive contains the main binary, portable RHVoice helper,
 `omnivox-voices.el`, the matching generated `espeak-ng-data`, `LICENSE`,
 `LICENSING.md`, and `third-party-licenses`. It does not contain the RHVoice
-runtime or voice data. A successful current tag workflow also publishes these
+runtime or voice data. Beginning with v1.7.1, both Windows archives additionally
+contain the 32-bit Eloquence and DECtalk bridge helpers, their GPL notice, and
+exact corresponding source, but no proprietary runtime or data. A successful
+current tag workflow also publishes these
 optional Piper assets:
 
 | Platform | Companion archive |
@@ -60,8 +63,8 @@ Beginning with v1.7.0, it publishes the experimental TGSpeechBox companion:
 
 Releases also publish one `sha256sums.txt` covering every generic, companion,
 and source archive. The workflow does **not** publish Linux ARM64 or Windows
-ARM64 Piper companions, voice models, RuLex, proprietary-engine helpers, or
-proprietary runtimes.
+ARM64 Piper companions, voice models, RuLex, proprietary runtimes, or
+proprietary dictionaries and voices.
 
 Published release `v1.4.1` predates the root `LICENSE` and `LICENSING.md`
 archive entries. The verifier accepts that one historical layout; all later
@@ -97,6 +100,9 @@ The release version and archive prefix come from the tag name with its leading
 - Presence of the project licensing files and packaged eSpeak data and notices
   on every artifact, plus packaged eSpeak voice discovery on every native build
   target.
+- Buildable GPL source, IA32 PE architecture, protocol negotiation, clean
+  missing-runtime diagnostics, responsiveness, and shutdown for the packaged
+  Windows Eloquence and DECtalk bridge helpers on x64 and ARM64 runners.
 - Native AVSpeechSynthesizer WAV synthesis during both macOS build jobs.
 - Tag-to-binary version agreement, release checksums, safe extraction, root
   payload layout, executable modes and architectures, and adjacent eSpeak data
@@ -212,9 +218,11 @@ $directories = @(
 )
 New-Item -ItemType Directory -Force $directories | Out-Null
 Copy-Item -Force omnivox.exe, omnivox-voices.el $destination
+Copy-Item -Force OmnivoxEloquenceHelper32.exe, OmnivoxDectalkHelper32.exe, WINDOWS-HELPERS-COPYING $destination
 Copy-Item -Recurse -Force espeak-ng-data\* "$destination\espeak-ng-data"
 Copy-Item -Recurse -Force third-party-licenses\* "$destination\third-party-licenses"
 Copy-Item -Recurse -Force rhvoice\* "$destination\rhvoice"
+Copy-Item -Recurse -Force windows-helpers-source "$destination\windows-helpers-source"
 ```
 
 For a release that lists Piper, verify and extract the matching companion into

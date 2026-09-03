@@ -43,10 +43,12 @@ make windows-helpers-startup-test
 
 ## Runtime requirements and installation
 
-Generic Omnivox release archives do not contain these helper executables or
-either native runtime. Build the helpers as above, then place
-`OmnivoxEloquenceHelper32.exe` and/or `OmnivoxDectalkHelper32.exe` beside the
-Windows `omnivox.exe`. An explicit helper path in the corresponding
+Beginning with v1.7.1, generic Omnivox Windows release archives contain these
+helper executables, their GPL notice, and exact corresponding source. They do
+not contain either native runtime. For an older release or a source build,
+build the helpers as above, then place `OmnivoxEloquenceHelper32.exe` and/or
+`OmnivoxDectalkHelper32.exe` beside the Windows `omnivox.exe`. An explicit
+helper path in the corresponding
 [environment variable](../docs/ENV-VARS.md#optional-windows-helpers) may be
 used instead.
 
