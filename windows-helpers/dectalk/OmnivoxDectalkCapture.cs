@@ -229,6 +229,9 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
     private MemoryStream capture;
     private List<OmnivoxHelperMarker> markers;
     private Dictionary<uint, OmnivoxHelperMarker> pendingTextMarkers;
+    private Dictionary<uint, List<OmnivoxHelperMarker>> pendingAnchorMarkers;
+    private List<OmnivoxHelperMarker> leadingAnchorMarkers;
+    private List<OmnivoxHelperMarker> trailingAnchorMarkers;
     private Exception callbackError;
     private bool discardAudio;
     private bool nativeSynthesisActive;
@@ -308,6 +311,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
 
     internal OmnivoxCaptureResult Synthesize(string text, string voiceCode,
         int rate, int pitch, string voiceParameters, double volume,
+        OmnivoxHelperAnchor[] anchors,
         Func<bool> cancellationRequested, IOmnivoxCaptureSink sink)
     {
         lock (synthesisLock)
@@ -320,10 +324,13 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                 Check(native.TextToSpeechSetRate(handle,
                     (uint)rate), "TextToSpeechSetRate");
                 ThrowIfCancellationRequested(cancellationRequested);
+                string indexedText = BuildTextWithIndexes(text,
+                    sink == null ? new OmnivoxHelperAnchor[0] : anchors);
+                EmitProgressiveAnchorMarkers(leadingAnchorMarkers, 0);
                 Speak("[" + voiceCode + " :dv ap " +
                     pitch.ToString(CultureInfo.InvariantCulture) +
                     voiceParameters + "] " +
-                    BuildTextWithIndexes(text));
+                    indexedText);
                 ThrowIfCancellationRequested(cancellationRequested);
                 lock (stateLock)
                 {
@@ -336,6 +343,8 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                 OmnivoxHelperLog.Event("native_call_completed",
                     "engine=dectalk call=TextToSpeechSync");
                 ThrowCallbackError();
+                EmitProgressiveAnchorMarkers(trailingAnchorMarkers,
+                    capturedFrames);
                 FlushProgressiveAudio();
                 lock (stateLock)
                 {
@@ -361,6 +370,9 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                     }
                     markers = null;
                     pendingTextMarkers = null;
+                    pendingAnchorMarkers = null;
+                    leadingAnchorMarkers = null;
+                    trailingAnchorMarkers = null;
                     progressiveSink = null;
                     pendingProgressiveAudio = null;
                 }
@@ -433,6 +445,10 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             markers = new List<OmnivoxHelperMarker>();
             pendingTextMarkers =
                 new Dictionary<uint, OmnivoxHelperMarker>();
+            pendingAnchorMarkers =
+                new Dictionary<uint, List<OmnivoxHelperMarker>>();
+            leadingAnchorMarkers = new List<OmnivoxHelperMarker>();
+            trailingAnchorMarkers = new List<OmnivoxHelperMarker>();
             discardAudio = false;
         }
     }
@@ -452,7 +468,8 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         }
     }
 
-    private string BuildTextWithIndexes(string text)
+    private string BuildTextWithIndexes(string text,
+        OmnivoxHelperAnchor[] anchors)
     {
         HashSet<uint> reservedIndexes = CollectNativeNumbers(text);
         uint[] utf8Offsets = BuildUtf8Offsets(text);
@@ -574,6 +591,35 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             reservedIndexes.Add(indexValue);
         }
 
+        foreach (OmnivoxHelperAnchor anchor in anchors)
+        {
+            MarkerInsertion selected = SelectWordAnchor(insertions, anchor);
+            if (selected == null)
+            {
+                OmnivoxHelperMarker boundary = new OmnivoxHelperMarker(
+                    "requested_anchor", 0, anchor.TextOffset, 0,
+                    anchor.Id, "span_boundary");
+                if (anchor.Affinity == "before")
+                {
+                    leadingAnchorMarkers.Add(boundary);
+                }
+                else
+                {
+                    trailingAnchorMarkers.Add(boundary);
+                }
+                continue;
+            }
+            List<OmnivoxHelperMarker> aliases;
+            if (!pendingAnchorMarkers.TryGetValue(selected.IndexValue,
+                out aliases))
+            {
+                aliases = new List<OmnivoxHelperMarker>();
+                pendingAnchorMarkers.Add(selected.IndexValue, aliases);
+            }
+            aliases.Add(new OmnivoxHelperMarker("requested_anchor", 0,
+                anchor.TextOffset, 0, anchor.Id, "word_boundary"));
+        }
+
         insertions.Sort(delegate(MarkerInsertion left,
             MarkerInsertion right)
         {
@@ -602,6 +648,69 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         }
         result.Append(text, copiedThrough, text.Length - copiedThrough);
         return result.ToString();
+    }
+
+    private static MarkerInsertion SelectWordAnchor(
+        List<MarkerInsertion> insertions, OmnivoxHelperAnchor anchor)
+    {
+        MarkerInsertion selected = null;
+        foreach (MarkerInsertion insertion in insertions)
+        {
+            if (insertion.Marker.Kind != "word" ||
+                !insertion.Marker.TextStart.HasValue)
+            {
+                continue;
+            }
+            uint textStart = insertion.Marker.TextStart.Value;
+            if (anchor.Affinity == "before")
+            {
+                if (textStart >= anchor.TextOffset &&
+                    (selected == null || textStart <
+                        selected.Marker.TextStart.Value))
+                {
+                    selected = insertion;
+                }
+            }
+            else if (textStart <= anchor.TextOffset &&
+                (selected == null || textStart >
+                    selected.Marker.TextStart.Value))
+            {
+                selected = insertion;
+            }
+        }
+        return selected;
+    }
+
+    private void EmitProgressiveAnchorMarkers(
+        List<OmnivoxHelperMarker> pending, ulong frameOffset)
+    {
+        if (pending == null || pending.Count == 0)
+        {
+            return;
+        }
+        IOmnivoxCaptureSink sink;
+        OmnivoxHelperMarker[] batch;
+        lock (stateLock)
+        {
+            sink = progressiveSink;
+            if (sink == null)
+            {
+                return;
+            }
+            if (markers.Count > MaximumMarkers - pending.Count)
+            {
+                throw new InvalidOperationException(
+                    "DECtalk synthesis exceeded the marker limit while resolving anchors");
+            }
+            batch = pending.ToArray();
+            foreach (OmnivoxHelperMarker marker in batch)
+            {
+                marker.FrameOffset = frameOffset;
+                markers.Add(marker);
+            }
+            pending.Clear();
+        }
+        sink.Markers(batch);
     }
 
     private static HashSet<uint> CollectNativeNumbers(string text)
@@ -977,6 +1086,25 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                 pendingTextMarkers.Remove(marker.Value);
                 textMarker.FrameOffset = marker.SampleNumber;
                 markers.Add(textMarker);
+                List<OmnivoxHelperMarker> anchorMarkers;
+                if (pendingAnchorMarkers != null &&
+                    pendingAnchorMarkers.TryGetValue(marker.Value,
+                        out anchorMarkers))
+                {
+                    if (markers.Count > MaximumMarkers -
+                        anchorMarkers.Count)
+                    {
+                        throw new InvalidOperationException(
+                            "DECtalk synthesis exceeded the marker limit while resolving anchors");
+                    }
+                    pendingAnchorMarkers.Remove(marker.Value);
+                    foreach (OmnivoxHelperMarker anchorMarker in
+                        anchorMarkers)
+                    {
+                        anchorMarker.FrameOffset = marker.SampleNumber;
+                        markers.Add(anchorMarker);
+                    }
+                }
             }
             else
             {

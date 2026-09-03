@@ -137,7 +137,7 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
         nativePitch = Math.Max(50, Math.Min(500, nativePitch));
         string voiceParameters = MapExtendedAcss(pitchRange, stress, richness);
         return capture.Synthesize(text, voiceCode, nativeRate, nativePitch,
-            voiceParameters, volume, cancellationRequested, sink);
+            voiceParameters, volume, anchors, cancellationRequested, sink);
     }
 
     internal static int MapRate(double rate)

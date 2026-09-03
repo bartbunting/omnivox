@@ -81,6 +81,21 @@ class WindowsHelperSourceTests(unittest.TestCase):
         self.assertIn("readyAudio = pendingProgressiveAudio", capture)
         self.assertIn("pendingProgressiveAudio = audio", capture)
 
+    def test_dectalk_reuses_native_word_indexes_for_requested_anchors(self) -> None:
+        adapter = source("dectalk/OmnivoxDectalkHelper.cs")
+        capture = source("dectalk/OmnivoxDectalkCapture.cs")
+        self.assertIn('RequestedAnchors = "word_boundary"', adapter)
+        self.assertIn("voiceParameters, volume, anchors", adapter)
+        self.assertIn('OmnivoxHelperMarker("requested_anchor"', capture)
+        self.assertIn("BuildTextWithIndexes(text,", capture)
+        self.assertIn("sink == null ? new OmnivoxHelperAnchor[0] : anchors", capture)
+        anchor_aliases = capture[
+            capture.index("foreach (OmnivoxHelperAnchor anchor in anchors)") :
+            capture.index("insertions.Sort", capture.index("foreach (OmnivoxHelperAnchor anchor in anchors)"))
+        ]
+        self.assertIn("pendingAnchorMarkers", anchor_aliases)
+        self.assertNotIn("insertions.Add", anchor_aliases)
+
     def test_native_encoders_never_use_replacement_fallback(self) -> None:
         for relative in (
             "eloquence/OmnivoxEloquenceCapture.cs",

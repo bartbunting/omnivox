@@ -262,6 +262,32 @@ def synthesize(
                 raise RuntimeError(
                     f"helper omitted advertised markers {missing_kinds}: {kinds}"
                 )
+            anchor_support = marker_capabilities.get("requested_anchors")
+            if anchor_support != "none":
+                expected_anchor = f"start-{iteration}"
+                resolved = next(
+                    (
+                        marker
+                        for marker in markers
+                        if marker.get("kind") == "requested_anchor"
+                        and marker.get("value") == expected_anchor
+                    ),
+                    None,
+                )
+                if resolved is None:
+                    raise RuntimeError(
+                        f"helper omitted requested anchor {expected_anchor}: {markers}"
+                    )
+                resolution = resolved.get("resolution", "exact")
+                accepted_resolutions = {
+                    "exact": {"exact"},
+                    "word_boundary": {"exact", "word_boundary"},
+                }.get(anchor_support, set())
+                if resolution not in accepted_resolutions:
+                    raise RuntimeError(
+                        "helper returned an invalid requested-anchor resolution "
+                        f"{resolution!r} for {anchor_support!r} support"
+                    )
             return frame_count, len(markers), audio_bytes
         else:
             raise RuntimeError(f"unexpected synthesis response: {response}")
