@@ -493,7 +493,8 @@ jobs:
         run: >-
           python tools/stress_helper.py
           target/release/piper/${{ matrix.helper }}
-          --engine-id piper --iterations 25 --cancel-probe --require-acss rate
+          --engine-id piper --iterations 25 --cancel-probe --require-streaming
+          --require-acss rate
           --helper-arg=--model
           --helper-arg=target/piper-test-model/en_US-kristin-medium.onnx
 
