@@ -469,12 +469,14 @@ fn split_helper_markers(markers: Vec<HelperMarker>) -> (Vec<SynthesisMarker>, Ve
             HelperMarkerKind::Phoneme => SynthesisMarkerKind::Phoneme,
             HelperMarkerKind::NativeIndex => SynthesisMarkerKind::NativeIndex,
             HelperMarkerKind::RequestedAnchor => {
+                let resolution = marker.resolution.unwrap_or(AnchorResolution::Exact);
                 anchors.push(ResolvedAnchor {
                     id: marker
                         .value
                         .expect("validated requested-anchor marker has an ID"),
-                    frame_offset: Some(marker.frame_offset),
-                    resolution: AnchorResolution::Exact,
+                    frame_offset: (resolution != AnchorResolution::Omitted)
+                        .then_some(marker.frame_offset),
+                    resolution,
                 });
                 continue;
             }
@@ -2163,6 +2165,7 @@ mod tests {
                             text_start: Some(0),
                             text_length: Some(5),
                             value: None,
+                            resolution: None,
                         }];
                         if let Some(anchors) = anchors {
                             markers.extend(anchors.iter().map(|anchor| HelperMarker {
@@ -2171,6 +2174,7 @@ mod tests {
                                 text_start: Some(anchor.text_offset),
                                 text_length: Some(0),
                                 value: Some(anchor.id.clone()),
+                                resolution: None,
                             }));
                         }
                         self.push(
@@ -2210,6 +2214,7 @@ mod tests {
                                     text_start: Some(0),
                                     text_length: Some(5),
                                     value: None,
+                                    resolution: None,
                                 }],
                             },
                         ));
@@ -2277,6 +2282,7 @@ mod tests {
                                             text_start: Some(0),
                                             text_length: Some(5),
                                             value: None,
+                                            resolution: None,
                                         }],
                                     },
                                 ));
@@ -2602,6 +2608,7 @@ mod tests {
                         text_start: Some(0),
                         text_length: Some(5),
                         value: None,
+                        resolution: None,
                     }],
                 },
             ))
@@ -2667,6 +2674,7 @@ mod tests {
                             text_start: Some(0),
                             text_length: Some(1),
                             value: None,
+                            resolution: None,
                         }],
                     },
                 ),
@@ -2696,6 +2704,7 @@ mod tests {
                         text_start: Some(0),
                         text_length: Some(1),
                         value: None,
+                        resolution: None,
                     }],
                 },
             ))
@@ -2711,6 +2720,7 @@ mod tests {
                         text_start: Some(0),
                         text_length: Some(1),
                         value: None,
+                        resolution: None,
                     }],
                 },
             ))
@@ -2740,6 +2750,7 @@ mod tests {
                         text_start: Some(0),
                         text_length: Some(1),
                         value: None,
+                        resolution: None,
                     }],
                 },
             )),
@@ -2978,6 +2989,44 @@ mod tests {
             panic!("expected synthesis request");
         };
         assert_eq!(anchors.as_deref(), Some(request.anchors.as_slice()));
+    }
+
+    #[test]
+    fn helper_markers_preserve_progressive_anchor_resolution() {
+        let (_, anchors) = split_helper_markers(vec![
+            HelperMarker {
+                kind: HelperMarkerKind::RequestedAnchor,
+                frame_offset: 7,
+                text_start: None,
+                text_length: None,
+                value: Some("word".to_owned()),
+                resolution: Some(AnchorResolution::WordBoundary),
+            },
+            HelperMarker {
+                kind: HelperMarkerKind::RequestedAnchor,
+                frame_offset: 0,
+                text_start: None,
+                text_length: None,
+                value: Some("missing".to_owned()),
+                resolution: Some(AnchorResolution::Omitted),
+            },
+        ]);
+
+        assert_eq!(
+            anchors,
+            [
+                ResolvedAnchor {
+                    id: "word".to_owned(),
+                    frame_offset: Some(7),
+                    resolution: AnchorResolution::WordBoundary,
+                },
+                ResolvedAnchor {
+                    id: "missing".to_owned(),
+                    frame_offset: None,
+                    resolution: AnchorResolution::Omitted,
+                },
+            ]
+        );
     }
 
     #[test]

@@ -12,7 +12,9 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::contracts::EngineDescriptor;
-use crate::{RequestedAnchor, MAX_SYNTHESIS_ANCHORS, MAX_SYNTHESIS_ANCHOR_ID_BYTES};
+use crate::{
+    AnchorResolution, RequestedAnchor, MAX_SYNTHESIS_ANCHORS, MAX_SYNTHESIS_ANCHOR_ID_BYTES,
+};
 
 pub const HELPER_PROTOCOL_V5: u16 = 5;
 pub const HELPER_PROTOCOL_VERSION: u16 = HELPER_PROTOCOL_V5;
@@ -496,7 +498,8 @@ pub enum HelperMarkerKind {
     Sentence,
     Phoneme,
     NativeIndex,
-    /// Protocol-v2 exact resolution of one requested opaque anchor.
+    /// Resolution of one requested opaque anchor. An absent value preserves
+    /// the protocol-v2 through v4 meaning of exact placement.
     RequestedAnchor,
 }
 
@@ -507,6 +510,8 @@ pub struct HelperMarker {
     pub text_start: Option<u32>,
     pub text_length: Option<u32>,
     pub value: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<AnchorResolution>,
 }
 
 impl HelperMarker {
@@ -525,6 +530,9 @@ impl HelperMarker {
                 .is_none_or(|value| value.is_empty() || value.len() > MAX_SYNTHESIS_ANCHOR_ID_BYTES)
         {
             return Err(HelperProtocolError::InvalidField("marker.value"));
+        }
+        if self.kind != HelperMarkerKind::RequestedAnchor && self.resolution.is_some() {
+            return Err(HelperProtocolError::InvalidField("marker.resolution"));
         }
         Ok(())
     }
@@ -865,6 +873,28 @@ mod tests {
         assert!(matches!(
             empty_markers.validate(),
             Err(HelperProtocolError::InvalidField("markers"))
+        ));
+    }
+
+    #[test]
+    fn requested_anchor_markers_carry_optional_v5_resolution() {
+        let marker = HelperMarker {
+            kind: HelperMarkerKind::RequestedAnchor,
+            frame_offset: 12,
+            text_start: None,
+            text_length: None,
+            value: Some("cue".to_owned()),
+            resolution: Some(AnchorResolution::WordBoundary),
+        };
+        marker.validate().unwrap();
+        let encoded = serde_json::to_value(&marker).unwrap();
+        assert_eq!(encoded["resolution"], "word_boundary");
+
+        let mut ordinary = marker;
+        ordinary.kind = HelperMarkerKind::Word;
+        assert!(matches!(
+            ordinary.validate(),
+            Err(HelperProtocolError::InvalidField("marker.resolution"))
         ));
     }
 

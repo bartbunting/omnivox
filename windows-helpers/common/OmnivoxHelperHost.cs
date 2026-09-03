@@ -92,15 +92,24 @@ internal sealed class OmnivoxHelperMarker
     internal uint? TextStart;
     internal uint? TextLength;
     internal string Value;
+    internal string Resolution;
 
     internal OmnivoxHelperMarker(string kind, ulong frameOffset,
         uint? textStart, uint? textLength, string value)
+        : this(kind, frameOffset, textStart, textLength, value, null)
+    {
+    }
+
+    internal OmnivoxHelperMarker(string kind, ulong frameOffset,
+        uint? textStart, uint? textLength, string value,
+        string resolution)
     {
         Kind = kind;
         FrameOffset = frameOffset;
         TextStart = textStart;
         TextLength = textLength;
         Value = value;
+        Resolution = resolution;
     }
 }
 
@@ -440,7 +449,7 @@ internal sealed class OmnivoxHelperHost
                 lastMarkerOffset = marker.FrameOffset;
                 converted[index] = new OmnivoxHelperMarker(marker.Kind,
                     marker.FrameOffset, marker.TextStart, marker.TextLength,
-                    marker.Value);
+                    marker.Value, marker.Resolution);
             }
             markerCount += markers.Length;
             host.WriteMarkers(synthesis.RequestId, converted);
@@ -501,6 +510,12 @@ internal sealed class OmnivoxHelperHost
                 (marker.Value != null &&
                  Encoding.UTF8.GetByteCount(marker.Value) >
                     MaximumStringLength) ||
+                (marker.Resolution != null &&
+                 (marker.Kind != "requested_anchor" ||
+                  (marker.Resolution != "exact" &&
+                   marker.Resolution != "word_boundary" &&
+                   marker.Resolution != "span_boundary" &&
+                   marker.Resolution != "omitted"))) ||
                 (marker.TextStart.HasValue &&
                  (ulong)marker.TextStart.Value + marker.TextLength.Value >
                     textBytes))
@@ -1103,7 +1118,13 @@ internal sealed class OmnivoxHelperHost
                 marker.TextStart.HasValue != marker.TextLength.HasValue ||
                 (marker.Value != null &&
                  Encoding.UTF8.GetByteCount(marker.Value) >
-                    MaximumStringLength))
+                    MaximumStringLength) ||
+                (marker.Resolution != null &&
+                 (marker.Kind != "requested_anchor" ||
+                  (marker.Resolution != "exact" &&
+                   marker.Resolution != "word_boundary" &&
+                   marker.Resolution != "span_boundary" &&
+                   marker.Resolution != "omitted"))))
             {
                 throw new InvalidOperationException(
                     "native engine returned an invalid marker");
@@ -1145,6 +1166,10 @@ internal sealed class OmnivoxHelperHost
             if (marker.Value != null)
             {
                 value["value"] = marker.Value;
+            }
+            if (marker.Resolution != null)
+            {
+                value["resolution"] = marker.Resolution;
             }
             values[index] = value;
         }

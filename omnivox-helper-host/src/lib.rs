@@ -903,7 +903,7 @@ where
                 "progressive engine emitted markers before starting".to_owned(),
             ));
         }
-        let markers = helper_markers_from_parts(&markers, &anchors)?;
+        let markers = helper_markers_from_parts(&markers, &anchors, true)?;
         if markers.is_empty() {
             return Err(TtsError::SynthesisFailed(
                 "progressive engine emitted an empty marker batch".to_owned(),
@@ -1014,12 +1014,13 @@ fn protocol_error_code(error: &HelperProtocolError) -> HelperErrorCode {
 }
 
 fn helper_markers(result: &SynthesisResult) -> Result<Vec<HelperMarker>, TtsError> {
-    helper_markers_from_parts(&result.markers, &result.anchors)
+    helper_markers_from_parts(&result.markers, &result.anchors, false)
 }
 
 fn helper_markers_from_parts(
     synthesis_markers: &[SynthesisMarker],
     anchors: &[ResolvedAnchor],
+    include_anchor_resolutions: bool,
 ) -> Result<Vec<HelperMarker>, TtsError> {
     let mut markers = synthesis_markers
         .iter()
@@ -1034,18 +1035,23 @@ fn helper_markers_from_parts(
             text_start: marker.text_start,
             text_length: marker.text_length,
             value: marker.value.clone(),
+            resolution: None,
         })
         .collect::<Vec<_>>();
     markers.extend(
         anchors
             .iter()
-            .filter(|anchor| anchor.resolution == omnivox_tts::AnchorResolution::Exact)
+            .filter(|anchor| {
+                include_anchor_resolutions
+                    || anchor.resolution == omnivox_tts::AnchorResolution::Exact
+            })
             .map(|anchor| HelperMarker {
                 kind: HelperMarkerKind::RequestedAnchor,
-                frame_offset: anchor.frame_offset.expect("an exact anchor has a frame"),
+                frame_offset: anchor.frame_offset.unwrap_or(0),
                 text_start: None,
                 text_length: None,
                 value: Some(anchor.id.clone()),
+                resolution: include_anchor_resolutions.then_some(anchor.resolution),
             }),
     );
     if markers.len() > MAX_HELPER_MARKERS {

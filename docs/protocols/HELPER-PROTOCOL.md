@@ -76,6 +76,9 @@ native engine limit where necessary.
 Version 5 allows an engine that advertises `streaming_pcm` to publish bounded
 PCM while its native synthesis call is still active. It also permits marker
 batches to interleave with audio chunks, subject to the ordering rules below.
+For a `requested_anchor` marker, version 5 adds the optional `resolution`
+field: `exact`, `word_boundary`, `span_boundary`, or `omitted`. An absent
+field retains the versions 2 through 4 meaning of `exact`.
 Buffered engines remain valid version 5 peers and retain the version 4 response
 order.
 
@@ -131,12 +134,15 @@ UTF-8; a helper leaves them absent when its native indexes cannot be mapped
 truthfully. One synthesis carries at most 4096 markers across all responses.
 
 In version 2 an exact helper resolution is transported as a private
-`requested_anchor` marker whose value is the opaque request ID. Omnivox removes
-these from the ordinary marker list and returns them as structured resolved
-anchors. Missing exact results can degrade through ordinary word markers; an
-engine with no usable placement explicitly reports the anchor as omitted.
-Resampling and silence trimming transform anchor frames alongside ordinary
-marker frames.
+`requested_anchor` marker whose value is the opaque request ID. Version 5 may
+attach the explicit resolution described above, allowing a progressive engine
+to publish a truthful approximation without waiting for the complete marker
+list. Omnivox removes these private markers from the ordinary marker list and
+returns them as structured resolved anchors. The `frame_offset` of an
+`omitted` result is ignored. Missing exact results from buffered older helpers
+can still degrade through ordinary word markers; an engine with no usable
+placement explicitly reports the anchor as omitted. Resampling and silence
+trimming transform non-omitted anchor frames alongside ordinary marker frames.
 
 All versions permit one active synthesis per helper because the initial native
 engines are serialized. The helper must continue reading commands while its
