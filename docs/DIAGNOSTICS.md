@@ -273,12 +273,14 @@ session is never reused.
 If a helper does not finish a requested cancellation within 250 milliseconds,
 Omnivox terminates it so the synthesis worker cannot remain blocked behind a
 native call. Cancellation belongs to the superseded request and does not by
-itself make the engine unhealthy: the next live request negotiates a fresh
-helper immediately. A genuine runtime failure still uses the circuit breaker;
-after cooldown, one request reconnects the helper and acts as a recovery
-probe. Voice identifiers reported by eSpeak are matched case-insensitively
-against its inventory so backend language-tag normalization cannot prevent
-fallback.
+itself make the engine unhealthy. A cooperative progressive helper drains and
+discards the cancelled response, then remains loaded for the next live request;
+the log records `Draining cancelled progressive TTS helper response`. A helper
+that exceeds the deadline is reaped, and the next request negotiates a fresh
+process. A genuine runtime failure still uses the circuit breaker; after
+cooldown, one request reconnects the helper and acts as a recovery probe. Voice
+identifiers reported by eSpeak are matched case-insensitively against its
+inventory so backend language-tag normalization cannot prevent fallback.
 
 If the Rust synthesis worker itself panics, Omnivox writes a forced backtrace
 and exits with status 70. Emacs retires that failed process and initializes a

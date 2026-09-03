@@ -761,6 +761,8 @@ struct ProgressiveHelperCollector<'a> {
     marker_count: usize,
     last_marker_offset: Option<u64>,
     sink: &'a mut dyn SynthesisStreamSink,
+    consumer_stopped: bool,
+    consumer_error: Option<TtsError>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -796,7 +798,13 @@ impl<'a> ProgressiveHelperCollector<'a> {
             marker_count: 0,
             last_marker_offset: None,
             sink,
+            consumer_stopped: false,
+            consumer_error: None,
         }
+    }
+
+    fn take_consumer_error(&mut self) -> Option<TtsError> {
+        self.consumer_error.take()
     }
 
     fn accept(
@@ -842,19 +850,21 @@ impl<'a> ProgressiveHelperCollector<'a> {
                             ))
                         },
                     )?;
-                self.sink
-                    .start(SynthesisStreamStart {
-                        engine_id: self.engine_id.clone(),
-                        actual_voice: Some(PhysicalVoiceId::new(
-                            self.engine_id.clone(),
-                            actual_voice_id,
-                        )),
-                        degraded_acss: self.degraded_acss.clone(),
-                    })
-                    .map_err(stream_sink_error)?;
+                let start = SynthesisStreamStart {
+                    engine_id: self.engine_id.clone(),
+                    actual_voice: Some(PhysicalVoiceId::new(
+                        self.engine_id.clone(),
+                        actual_voice_id,
+                    )),
+                    degraded_acss: self.degraded_acss.clone(),
+                };
                 self.format = Some(format);
                 self.canonicalizer = Some(canonicalizer);
                 self.phase = SynthesisPhase::StreamingAudio;
+                if let Err(error) = self.sink.start(start) {
+                    self.consumer_stopped = true;
+                    self.consumer_error = Some(error);
+                }
                 Ok(None)
             }
             HelperResponseBody::AudioChunk { chunk }
@@ -935,9 +945,12 @@ impl<'a> ProgressiveHelperCollector<'a> {
                         .map_err(|error| HelperEngineError::Transport(error.to_string()))?;
                 }
                 let (markers, anchors) = split_helper_markers(markers);
-                self.sink
-                    .markers(markers, anchors)
-                    .map_err(stream_sink_error)?;
+                if !self.consumer_stopped {
+                    if let Err(error) = self.sink.markers(markers, anchors) {
+                        self.consumer_stopped = true;
+                        self.consumer_error = Some(error);
+                    }
+                }
                 Ok(None)
             }
             HelperResponseBody::SynthesisCompleted { frame_count }
@@ -1018,14 +1031,15 @@ impl<'a> ProgressiveHelperCollector<'a> {
                 .frame_count
                 .checked_add(window.frame_count() as u64)
                 .ok_or(HelperEngineError::SynthesisTooLarge)?;
-            self.sink.audio(window).map_err(stream_sink_error)?;
+            if !self.consumer_stopped {
+                if let Err(error) = self.sink.audio(window) {
+                    self.consumer_stopped = true;
+                    self.consumer_error = Some(error);
+                }
+            }
         }
         Ok(())
     }
-}
-
-fn stream_sink_error(error: TtsError) -> HelperEngineError {
-    HelperEngineError::Transport(format!("progressive synthesis consumer stopped: {error}"))
 }
 
 const CANCELLATION_ACTIVE: u8 = 0;
@@ -1831,6 +1845,7 @@ impl TtsEngine for HelperTtsEngine {
             degraded_acss,
             sink,
         );
+        let mut draining_cancelled_output = false;
         loop {
             let response = match connection.receive(self.config.synthesis_idle_timeout) {
                 Ok(response) => response,
@@ -1880,8 +1895,29 @@ impl TtsEngine for HelperTtsEngine {
             if target_is_terminal {
                 active.mark_target_terminal();
             }
+            if let Some(error) = collector.take_consumer_error() {
+                if self.stop_epoch.load(Ordering::Acquire) == stop_epoch {
+                    return Err(self.synthesis_error(
+                        &connection,
+                        request_id,
+                        HelperEngineError::Transport(format!(
+                            "progressive synthesis consumer stopped: {error}"
+                        )),
+                    ));
+                }
+                draining_cancelled_output = true;
+                info!(
+                    engine_id = self.config.engine_id,
+                    request_id, "Draining cancelled progressive TTS helper response"
+                );
+            }
             match progress {
                 Some(ProgressiveHelperSynthesisResult::Completed) => {
+                    if draining_cancelled_output {
+                        return Err(TtsError::SynthesisFailed(
+                            "helper synthesis cancelled".to_owned(),
+                        ));
+                    }
                     info!(
                         engine_id = self.config.engine_id,
                         request_id,
@@ -2031,6 +2067,7 @@ mod tests {
         Complete,
         StreamComplete,
         StreamNativeComplete,
+        StreamWaitForCancel,
         CompleteBeforeCancelResponse,
         WaitForCancel,
         DelayAfterCancelAccepted,
@@ -2293,6 +2330,31 @@ mod tests {
                             HelperResponseBody::SynthesisCompleted { frame_count: 1_024 },
                         ));
                     }
+                    MockSynthesisMode::StreamWaitForCancel => {
+                        self.push(
+                            self.response(
+                                request.request_id,
+                                HelperResponseBody::SynthesisStarted {
+                                    format: HelperAudioFormat {
+                                        sample_rate: crate::STANDARD_SAMPLE_RATE,
+                                        channels: STANDARD_CHANNELS,
+                                        sample_format: HelperSampleFormat::PcmS16Le,
+                                    },
+                                    actual_voice_id: settings
+                                        .voice_id
+                                        .clone()
+                                        .unwrap_or_else(|| "reed".to_owned()),
+                                },
+                            ),
+                        );
+                        let bytes = vec![0_u8; 512 * usize::from(STANDARD_CHANNELS) * 2];
+                        self.push(self.response(
+                            request.request_id,
+                            HelperResponseBody::AudioChunk {
+                                chunk: HelperPcmChunk::from_bytes(0, &bytes).unwrap(),
+                            },
+                        ));
+                    }
                     MockSynthesisMode::CompleteBeforeCancelResponse
                     | MockSynthesisMode::WaitForCancel
                     | MockSynthesisMode::IgnoreCancel
@@ -2546,6 +2608,53 @@ mod tests {
         ) -> Result<(), TtsError> {
             self.markers.extend(markers);
             self.anchors.extend(anchors);
+            Ok(())
+        }
+    }
+
+    struct BlockingFailureStreamSink {
+        audio_started: mpsc::SyncSender<()>,
+        release_audio: mpsc::Receiver<()>,
+    }
+
+    impl SynthesisStreamSink for BlockingFailureStreamSink {
+        fn start(&mut self, _start: SynthesisStreamStart) -> Result<(), TtsError> {
+            Ok(())
+        }
+
+        fn audio(&mut self, _audio: AudioBuffer) -> Result<(), TtsError> {
+            self.audio_started.send(()).unwrap();
+            self.release_audio.recv().unwrap();
+            Err(TtsError::SynthesisFailed(
+                "stream consumer stopped".to_owned(),
+            ))
+        }
+
+        fn markers(
+            &mut self,
+            _markers: Vec<SynthesisMarker>,
+            _anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            Ok(())
+        }
+    }
+
+    struct ImmediateFailureStreamSink;
+
+    impl SynthesisStreamSink for ImmediateFailureStreamSink {
+        fn start(&mut self, _start: SynthesisStreamStart) -> Result<(), TtsError> {
+            Ok(())
+        }
+
+        fn audio(&mut self, _audio: AudioBuffer) -> Result<(), TtsError> {
+            Err(TtsError::SynthesisFailed("playback failed".to_owned()))
+        }
+
+        fn markers(
+            &mut self,
+            _markers: Vec<SynthesisMarker>,
+            _anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
             Ok(())
         }
     }
@@ -2813,6 +2922,74 @@ mod tests {
         assert!(sink.audio.len() >= 3);
         assert_eq!(sink.markers.len(), 1);
         assert_eq!(sink.markers[0].frame_offset, 2_048);
+    }
+
+    #[test]
+    fn cancelled_progressive_consumer_keeps_the_helper_for_next_synthesis() {
+        let mut descriptor = helper_descriptor("eloquence", "0.1.0");
+        descriptor.capabilities.audio_output = AudioOutputMode::StreamingPcm;
+        let connection = Arc::new(MockConnection::new(
+            descriptor,
+            MockSynthesisMode::StreamWaitForCancel,
+        ));
+        let engine = Arc::new(mock_engine(vec![Arc::clone(&connection)]).unwrap());
+        let (audio_started_tx, audio_started_rx) = mpsc::sync_channel(0);
+        let (release_audio_tx, release_audio_rx) = mpsc::sync_channel(0);
+        let worker_engine = Arc::clone(&engine);
+        let synthesis = std::thread::spawn(move || {
+            let mut sink = BlockingFailureStreamSink {
+                audio_started: audio_started_tx,
+                release_audio: release_audio_rx,
+            };
+            worker_engine.synthesize_stream(&synthesis_request("stale utterance"), &mut sink)
+        });
+
+        audio_started_rx
+            .recv_timeout(Duration::from_secs(1))
+            .unwrap();
+        engine.stop();
+        release_audio_tx.send(()).unwrap();
+
+        let error = synthesis.join().unwrap().unwrap_err();
+        assert!(matches!(
+            error,
+            TtsError::SynthesisFailed(message) if message.contains("cancelled")
+        ));
+        assert!(!connection.terminated.load(Ordering::Acquire));
+
+        connection.set_mode(MockSynthesisMode::StreamComplete);
+        let mut sink = RecordingStreamSink::default();
+        assert!(engine
+            .synthesize_stream(&synthesis_request("next utterance"), &mut sink)
+            .is_ok());
+        std::thread::sleep(HELPER_CANCEL_GRACE + Duration::from_millis(25));
+        assert!(!connection.terminated.load(Ordering::Acquire));
+        assert_eq!(connection.termination_count.load(Ordering::Acquire), 0);
+    }
+
+    #[test]
+    fn unexpected_progressive_consumer_failure_still_retires_the_helper() {
+        let mut descriptor = helper_descriptor("eloquence", "0.1.0");
+        descriptor.capabilities.audio_output = AudioOutputMode::StreamingPcm;
+        let connection = Arc::new(MockConnection::new(
+            descriptor,
+            MockSynthesisMode::StreamComplete,
+        ));
+        let engine = mock_engine(vec![Arc::clone(&connection)]).unwrap();
+
+        let error = engine
+            .synthesize_stream(
+                &synthesis_request("broken playback"),
+                &mut ImmediateFailureStreamSink,
+            )
+            .unwrap_err();
+
+        assert!(matches!(
+            error,
+            TtsError::SynthesisFailed(message) if message.contains("playback failed")
+        ));
+        assert!(connection.terminated.load(Ordering::Acquire));
+        assert_eq!(connection.termination_count.load(Ordering::Acquire), 1);
     }
 
     #[test]

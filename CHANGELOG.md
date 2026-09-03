@@ -67,6 +67,12 @@ Versioning for published releases.
 
 ### Fixed
 
+- Cancelling a progressive helper utterance after its playback consumer closes
+  now drains and validates the stale protocol response instead of treating the
+  expected closure as a broken transport. Cooperative helpers remain loaded
+  for the next replaceable navigation request, avoiding repeated model or
+  runtime initialization; genuine consumer and protocol failures still retire
+  the helper.
 - Interrupted tones now use a five-millisecond smoothstep fade to zero while
   queued tones are still discarded immediately, preventing rapid blank-line
   navigation from cutting a tone at an arbitrary waveform sample and further

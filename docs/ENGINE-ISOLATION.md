@@ -30,6 +30,14 @@ Counting active calls against the quarantine budget is stricter than counting
 only abandoned work. It closes the race where the global limit could be filled
 after a native call starts but before that call needs quarantine.
 
+When a superseded progressive request has already filled the bounded playback
+relay, closing that relay is an expected cancellation event rather than a
+helper transport failure. The helper client stops forwarding stale PCM but
+continues validating and draining that request through its protocol terminal.
+This releases the serialized helper connection for the next request without
+restarting a cooperative helper. A malformed response, unexpected consumer
+failure, timeout, or missed cancellation deadline still retires the helper.
+
 WinRT remains truthful as `playback_only`: Omnivox does not claim to cancel the
 Windows native operation, only to isolate its stale result. Piper is different.
 The main server launches `omnivox-piper-helper` through the versioned JSON
@@ -39,7 +47,8 @@ thread. The maintained libpiper API returns sentence-level audio chunks, so the
 worker observes a stop between chunks. If the current native inference call has
 not returned within 250 ms, the generic helper watchdog kills and reaps the
 process. The next usable request negotiates a fresh helper and reloads the
-model.
+model. Cooperative cancellation instead preserves the loaded process through
+the drain described above.
 
 By default the server first resolves `piper/omnivox-piper-helper` beside its own
 executable, then accepts the legacy directly adjacent helper.
