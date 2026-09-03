@@ -2069,7 +2069,19 @@ mod tests {
             .samples
             .len()
             .abs_diff(plain.audio.samples.len());
-        assert!(sample_count_delta * 100 < plain.audio.samples.len() * 2);
+        // eSpeak's SSML path can shift a small amount of leading or trailing
+        // padding across native platforms. Bound that drift tightly enough to
+        // prove the generated mark itself was not spoken.
+        let maximum_timing_drift_samples = usize::try_from(crate::STANDARD_SAMPLE_RATE).unwrap()
+            * usize::from(crate::STANDARD_CHANNELS)
+            / 10;
+        assert!(
+            sample_count_delta <= maximum_timing_drift_samples,
+            "plain synthesis had {} samples, marked synthesis had {} (maximum drift {})",
+            plain.audio.samples.len(),
+            marked.audio.samples.len(),
+            maximum_timing_drift_samples
+        );
         assert_eq!(marked.anchors.len(), 1);
         assert!(marked
             .anchors
