@@ -149,8 +149,8 @@ replacement key match; worker-queue replacement uses the same domain test.
 The keyed token follows synthesis requests, rendered windows, deferred
 overlays, playback cue delivery, and tracked completion. Queued or not-yet
 started tagged sources disappear immediately on cancellation. Active speech
-uses a three-millisecond frame-aligned fade to avoid a click. Unreached engine
-markers, semantic events, and carried effect/overlay tails are discarded.
+and tones use a three-millisecond frame-aligned fade to avoid a click. Unreached
+engine markers, semantic events, and carried effect/overlay tails are discarded.
 The cancellation lease remains alive until every tagged playback ticket is
 terminal, preventing a late completion from removing a newer domain token.
 
@@ -335,9 +335,10 @@ windows, or all available windows when a shorter source reaches its terminal.
 Cue-only updates are retained by the producer and travel with the next PCM
 window or terminal message, so they cannot displace this bounded audio reserve.
 Natural completion requires an explicit producer terminal, while cancellation
-closes the channel and preserves the speech de-click fade. Deferred legacy
-icons wait for their preceding speech barriers but do not delay following
-speech; their tail still belongs to tracked completion.
+closes the channel and preserves the speech de-click fade. A stream stop also
+fades an active tone to zero while discarding queued tones without starting
+them. Deferred legacy icons wait for their preceding speech barriers but do not
+delay following speech; their tail still belongs to tracked completion.
 
 The default output backend connects those sinks to the operating-system audio
 device. An explicit null backend instead drains the same rodio source wrappers

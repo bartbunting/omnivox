@@ -71,7 +71,8 @@ in the linked protocol specifications; future work belongs in
 - Canonical stereo 44.1 kHz PCM conversion with bounded sample-rate conversion.
 - Silence trimming with marker/anchor remapping, volume adjustment, and channel
   routing.
-- Independent speech, tone, and sound streams with bounded queues.
+- Independent speech, tone, and sound streams with bounded queues, plus
+  frame-aligned de-click fades when active speech or tones are interrupted.
 - Bounded OGG/WAV resource loading, a 128-entry/64-MiB decoded LRU cache,
   immutable shared timeline PCM, and a 64-MiB retained-PCM preparation budget
   per presentation.
