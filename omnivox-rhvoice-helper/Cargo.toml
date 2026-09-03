@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 libloading = "0.8"
+omnivox-audio = { path = "../omnivox-audio" }
 omnivox-helper-host = { path = "../omnivox-helper-host" }
 omnivox-tts = { path = "../omnivox-tts", default-features = false }
 thiserror.workspace = true

@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use libloading::Library;
+use omnivox_audio::ProgressivePcmCanonicalizer;
 use omnivox_tts::contracts::{
     buffered_post_synthesis_dimensions, AcssCapabilities, AnchorSupport, AudioOutputMode,
     Availability, CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor,
@@ -18,8 +19,9 @@ use omnivox_tts::contracts::{
 use omnivox_tts::helper_protocol::{MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES};
 use omnivox_tts::rate_calibration::interpolate;
 use omnivox_tts::{
-    AudioBuffer, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest, SynthesisResult,
-    TtsEngine, TtsError, VoiceInfo, VoiceQuality, STANDARD_SAMPLE_RATE,
+    AudioBuffer, SynthesisCancellationToken, SynthesisMarker, SynthesisMarkerKind,
+    SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
+    SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, VoiceQuality, STANDARD_SAMPLE_RATE,
 };
 use thiserror::Error;
 
@@ -364,7 +366,10 @@ impl TtsEngine for RhVoiceTtsEngine {
         self.cancellation.store(false, Ordering::Release);
         self.speaking.store(true, Ordering::Release);
         let _speaking = SpeakingGuard(&self.speaking);
-        let mut capture = Box::new(SynthesisCapture::new(Arc::clone(&self.cancellation)));
+        let mut capture = Box::new(SynthesisCapture::buffered(
+            &self.cancellation,
+            request.cancellation.as_ref(),
+        ));
         let message = unsafe {
             (runtime.api.new_message)(
                 runtime.engine,
@@ -372,7 +377,7 @@ impl TtsEngine for RhVoiceTtsEngine {
                 text_length,
                 0,
                 &parameters,
-                (&mut *capture as *mut SynthesisCapture).cast(),
+                std::ptr::from_mut(&mut *capture).cast(),
             )
         };
         if message.is_null() {
@@ -387,19 +392,22 @@ impl TtsEngine for RhVoiceTtsEngine {
         let status = unsafe { (runtime.api.speak)(message.message) };
         drop(message);
 
-        if self.cancellation.load(Ordering::Acquire) {
+        if capture.cancelled() {
             return Err(TtsError::SynthesisFailed(
                 "RHVoice synthesis was cancelled".to_owned(),
             ));
         }
-        if let Some(failure) = capture.failure {
-            return Err(TtsError::SynthesisFailed(failure.message().to_owned()));
+        if let Some(failure) = capture.take_failure() {
+            return Err(failure);
         }
         if status == 0 {
             return Err(TtsError::SynthesisFailed(
                 "RHVoice synthesis did not complete".to_owned(),
             ));
         }
+        let SynthesisCapture::Buffered(capture) = *capture else {
+            unreachable!("buffered RHVoice synthesis used a streaming capture")
+        };
         if capture.samples.is_empty() {
             let mut result = SynthesisResult::audio(ENGINE_ID, actual_voice, AudioBuffer::empty());
             result.degraded_acss = request
@@ -429,6 +437,129 @@ impl TtsEngine for RhVoiceTtsEngine {
             .degrade_for(&capabilities().acss)
             .omitted;
         Ok(result)
+    }
+
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        // RHVoice reports word starts only as synthesis advances. An `After`
+        // anchor can therefore require a later word to resolve an earlier
+        // boundary. Retain the established buffered path for anchored calls.
+        if !request.anchors.is_empty() {
+            let mut result = self.synthesize(request)?;
+            result.resolve_anchors(request, AnchorSupport::WordBoundary);
+            result.validate(request)?;
+            let frame_count = result.audio.frame_count() as u64;
+            sink.start(SynthesisStreamStart {
+                engine_id: result.engine_id,
+                actual_voice: result.actual_voice,
+                degraded_acss: result.degraded_acss,
+            })?;
+            // The progressive contract requires metadata to precede any PCM
+            // that passes its frame. A buffered fallback knows every marker,
+            // so publish the complete batch before its one audio window.
+            if !result.markers.is_empty() || !result.anchors.is_empty() {
+                sink.markers(result.markers, result.anchors)?;
+            }
+            if !result.audio.is_empty() {
+                sink.audio(result.audio)?;
+            }
+            return Ok(SynthesisStreamCompletion { frame_count });
+        }
+
+        let voice_id = request.voice_id_for_engine(ENGINE_ID)?;
+        let runtime = self.runtime()?;
+        let voice = runtime
+            .voices
+            .iter()
+            .find(|voice| voice.id == voice_id || voice.name == voice_id)
+            .cloned()
+            .ok_or_else(|| TtsError::VoiceNotFound(voice_id.to_owned()))?;
+        let actual_voice = Some(PhysicalVoiceId::new(ENGINE_ID, voice.id.clone()));
+        let degraded_acss = request
+            .normalized_acss
+            .clone()
+            .degrade_for(&capabilities().acss)
+            .omitted;
+        sink.start(SynthesisStreamStart {
+            engine_id: ENGINE_ID.to_owned(),
+            actual_voice,
+            degraded_acss,
+        })?;
+        if request.text.is_empty() {
+            return Ok(SynthesisStreamCompletion { frame_count: 0 });
+        }
+
+        let text = CString::new(request.text.as_str()).map_err(|_| {
+            TtsError::InvalidParameter("RHVoice text contains a null byte".to_owned())
+        })?;
+        let text_length = c_uint::try_from(request.text.len())
+            .map_err(|_| TtsError::InvalidParameter("RHVoice text is too large".to_owned()))?;
+        let parameters = NativeSynthParams {
+            voice_profile: voice.profile.as_ptr(),
+            absolute_rate: map_rate(request.settings.rate),
+            absolute_pitch: map_pitch(request.settings.pitch),
+            absolute_volume: map_volume(request.settings.volume),
+            relative_rate: 1.0,
+            relative_pitch: 1.0,
+            relative_volume: 1.0,
+            punctuation_mode: 0,
+            punctuation_list: ptr::null(),
+            capitals_mode: 0,
+            flags: 0,
+        };
+
+        self.cancellation.store(false, Ordering::Release);
+        self.speaking.store(true, Ordering::Release);
+        let _speaking = SpeakingGuard(&self.speaking);
+        let mut capture = Box::new(SynthesisCapture::streaming(
+            sink,
+            &request.text,
+            &self.cancellation,
+            request.cancellation.as_ref(),
+        ));
+        let message = unsafe {
+            (runtime.api.new_message)(
+                runtime.engine,
+                text.as_ptr(),
+                text_length,
+                0,
+                &parameters,
+                std::ptr::from_mut(&mut *capture).cast(),
+            )
+        };
+        if message.is_null() {
+            return Err(TtsError::SynthesisFailed(
+                "RHVoice rejected the text, voice, or synthesis parameters".to_owned(),
+            ));
+        }
+        let message = MessageGuard {
+            api: runtime.api,
+            message,
+        };
+        let status = unsafe { (runtime.api.speak)(message.message) };
+        drop(message);
+
+        if capture.cancelled() {
+            return Err(TtsError::SynthesisFailed(
+                "RHVoice synthesis was cancelled".to_owned(),
+            ));
+        }
+        if let Some(failure) = capture.take_failure() {
+            return Err(failure);
+        }
+        if status == 0 {
+            return Err(TtsError::SynthesisFailed(
+                "RHVoice synthesis did not complete".to_owned(),
+            ));
+        }
+        let SynthesisCapture::Streaming(mut capture) = *capture else {
+            unreachable!("streaming RHVoice synthesis used a buffered capture")
+        };
+        let frame_count = capture.finish()?;
+        Ok(SynthesisStreamCompletion { frame_count })
     }
 
     fn stop(&self) {
@@ -481,68 +612,304 @@ impl Drop for SpeakingGuard<'_> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum CaptureFailure {
-    InvalidSampleRate,
-    ChangedSampleRate,
-    NullAudio,
-    AudioTooLarge,
-    TooManyMarkers,
-    CallbackPanicked,
-}
-
-impl CaptureFailure {
-    fn message(self) -> &'static str {
-        match self {
-            Self::InvalidSampleRate => "RHVoice returned an invalid sample rate",
-            Self::ChangedSampleRate => "RHVoice changed sample rate within one utterance",
-            Self::NullAudio => "RHVoice returned a null audio chunk",
-            Self::AudioTooLarge => "RHVoice PCM exceeded the helper synthesis limit",
-            Self::TooManyMarkers => "RHVoice returned too many synchronization markers",
-            Self::CallbackPanicked => "RHVoice callback processing panicked",
-        }
-    }
-}
-
-struct SynthesisCapture {
+struct BufferedCapture<'a> {
     samples: Vec<i16>,
     sample_rate: Option<u32>,
     markers: Vec<NativeMarker>,
-    cancellation: Arc<AtomicBool>,
-    failure: Option<CaptureFailure>,
+    cancellation: &'a AtomicBool,
+    request_cancellation: Option<&'a SynthesisCancellationToken>,
+    failure: Option<TtsError>,
 }
 
-impl SynthesisCapture {
-    fn new(cancellation: Arc<AtomicBool>) -> Self {
-        Self {
+struct StreamingCapture<'a> {
+    sink: &'a mut dyn SynthesisStreamSink,
+    text: &'a str,
+    cancellation: &'a AtomicBool,
+    request_cancellation: Option<&'a SynthesisCancellationToken>,
+    canonicalizer: Option<Box<ProgressivePcmCanonicalizer>>,
+    sample_rate: Option<u32>,
+    native_samples: usize,
+    marker_count: usize,
+    pending_markers: Vec<NativeMarker>,
+    failure: Option<TtsError>,
+}
+
+enum SynthesisCapture<'a> {
+    Buffered(BufferedCapture<'a>),
+    Streaming(StreamingCapture<'a>),
+}
+
+impl<'a> SynthesisCapture<'a> {
+    fn buffered(
+        cancellation: &'a AtomicBool,
+        request_cancellation: Option<&'a SynthesisCancellationToken>,
+    ) -> Self {
+        Self::Buffered(BufferedCapture {
             samples: Vec::new(),
             sample_rate: None,
             markers: Vec::new(),
             cancellation,
+            request_cancellation,
             failure: None,
+        })
+    }
+
+    fn streaming(
+        sink: &'a mut dyn SynthesisStreamSink,
+        text: &'a str,
+        cancellation: &'a AtomicBool,
+        request_cancellation: Option<&'a SynthesisCancellationToken>,
+    ) -> Self {
+        Self::Streaming(StreamingCapture {
+            sink,
+            text,
+            cancellation,
+            request_cancellation,
+            canonicalizer: None,
+            sample_rate: None,
+            native_samples: 0,
+            marker_count: 0,
+            pending_markers: Vec::new(),
+            failure: None,
+        })
+    }
+
+    fn cancelled(&self) -> bool {
+        let (cancellation, request_cancellation) = match self {
+            Self::Buffered(capture) => (capture.cancellation, capture.request_cancellation),
+            Self::Streaming(capture) => (capture.cancellation, capture.request_cancellation),
+        };
+        cancellation.load(Ordering::Acquire)
+            || request_cancellation.is_some_and(SynthesisCancellationToken::is_cancelled)
+    }
+
+    fn failed(&self) -> bool {
+        match self {
+            Self::Buffered(capture) => capture.failure.is_some(),
+            Self::Streaming(capture) => capture.failure.is_some(),
         }
     }
 
     fn should_continue(&self) -> bool {
-        self.failure.is_none() && !self.cancellation.load(Ordering::Acquire)
+        !self.failed() && !self.cancelled()
     }
 
-    fn record_marker(&mut self, kind: SynthesisMarkerKind, start: c_uint, length: c_uint) -> c_int {
-        if !self.should_continue() {
-            return 0;
+    fn take_failure(&mut self) -> Option<TtsError> {
+        match self {
+            Self::Buffered(capture) => capture.failure.take(),
+            Self::Streaming(capture) => capture.failure.take(),
         }
-        if self.markers.len() >= MAX_HELPER_MARKERS {
-            self.failure = Some(CaptureFailure::TooManyMarkers);
-            return 0;
-        }
-        self.markers.push(NativeMarker {
-            kind,
-            native_frame: self.samples.len() as u64,
-            text_start: start,
-            text_length: length,
-        });
-        1
     }
+
+    fn fail(&mut self, error: TtsError) {
+        match self {
+            Self::Buffered(capture) => capture.failure = Some(error),
+            Self::Streaming(capture) => capture.failure = Some(error),
+        }
+    }
+
+    fn set_sample_rate(&mut self, sample_rate: u32) -> Result<c_int, TtsError> {
+        match self {
+            Self::Buffered(capture) => {
+                if capture
+                    .sample_rate
+                    .replace(sample_rate)
+                    .is_some_and(|previous| previous != sample_rate)
+                {
+                    return Err(synthesis_failure(
+                        "RHVoice changed sample rate within one utterance",
+                    ));
+                }
+            }
+            Self::Streaming(capture) => capture.set_sample_rate(sample_rate)?,
+        }
+        Ok(i32::from(self.should_continue()))
+    }
+
+    fn play_speech(&mut self, samples: &[i16]) -> Result<c_int, TtsError> {
+        match self {
+            Self::Buffered(capture) => {
+                if samples.len() > MAX_NATIVE_SAMPLES.saturating_sub(capture.samples.len()) {
+                    return Err(synthesis_failure(
+                        "RHVoice PCM exceeded the helper synthesis limit",
+                    ));
+                }
+                capture
+                    .samples
+                    .try_reserve(samples.len())
+                    .map_err(|_| synthesis_failure("could not allocate the RHVoice PCM buffer"))?;
+                capture.samples.extend_from_slice(samples);
+            }
+            Self::Streaming(capture) => capture.play_speech(samples)?,
+        }
+        Ok(i32::from(self.should_continue()))
+    }
+
+    fn record_marker(
+        &mut self,
+        kind: SynthesisMarkerKind,
+        start: c_uint,
+        length: c_uint,
+    ) -> Result<c_int, TtsError> {
+        match self {
+            Self::Buffered(capture) => {
+                if capture.markers.len() >= MAX_HELPER_MARKERS {
+                    return Err(synthesis_failure(
+                        "RHVoice returned too many synchronization markers",
+                    ));
+                }
+                capture.markers.push(NativeMarker {
+                    kind,
+                    native_frame: capture.samples.len() as u64,
+                    text_start: start,
+                    text_length: length,
+                });
+            }
+            Self::Streaming(capture) => capture.record_marker(kind, start, length)?,
+        }
+        Ok(i32::from(self.should_continue()))
+    }
+}
+
+impl StreamingCapture<'_> {
+    fn set_sample_rate(&mut self, sample_rate: u32) -> Result<(), TtsError> {
+        if self
+            .sample_rate
+            .replace(sample_rate)
+            .is_some_and(|previous| previous != sample_rate)
+        {
+            return Err(synthesis_failure(
+                "RHVoice changed sample rate within one utterance",
+            ));
+        }
+        if self.canonicalizer.is_none() {
+            self.canonicalizer = Some(Box::new(
+                ProgressivePcmCanonicalizer::new(sample_rate, 1).map_err(|error| {
+                    synthesis_failure(format!(
+                        "could not initialize progressive RHVoice PCM conversion: {error}"
+                    ))
+                })?,
+            ));
+            let pending = std::mem::take(&mut self.pending_markers);
+            self.emit_native_markers(pending)?;
+        }
+        Ok(())
+    }
+
+    fn play_speech(&mut self, samples: &[i16]) -> Result<(), TtsError> {
+        if samples.len() > MAX_NATIVE_SAMPLES.saturating_sub(self.native_samples) {
+            return Err(synthesis_failure(
+                "RHVoice PCM exceeded the helper synthesis limit",
+            ));
+        }
+        self.native_samples += samples.len();
+        let canonicalizer = self
+            .canonicalizer
+            .as_mut()
+            .ok_or_else(|| synthesis_failure("RHVoice returned audio without a sample rate"))?;
+        let windows = canonicalizer
+            .push_interleaved_i16(samples)
+            .map_err(|error| {
+                synthesis_failure(format!(
+                    "could not canonicalize progressive RHVoice PCM: {error}"
+                ))
+            })?;
+        self.emit(windows)
+    }
+
+    fn record_marker(
+        &mut self,
+        kind: SynthesisMarkerKind,
+        text_start: u32,
+        text_length: u32,
+    ) -> Result<(), TtsError> {
+        if self.marker_count >= MAX_HELPER_MARKERS {
+            return Err(synthesis_failure(
+                "RHVoice returned too many synchronization markers",
+            ));
+        }
+        self.marker_count += 1;
+        let marker = NativeMarker {
+            kind,
+            native_frame: self.native_samples as u64,
+            text_start,
+            text_length,
+        };
+        if self.canonicalizer.is_none() {
+            self.pending_markers.push(marker);
+            return Ok(());
+        }
+        self.emit_native_markers(vec![marker])
+    }
+
+    fn emit_native_markers(&mut self, markers: Vec<NativeMarker>) -> Result<(), TtsError> {
+        let canonicalizer = self
+            .canonicalizer
+            .as_ref()
+            .expect("RHVoice marker emission requires a sample rate");
+        let markers = markers
+            .into_iter()
+            .filter_map(|marker| {
+                let start = marker.text_start as usize;
+                let length = marker.text_length as usize;
+                let end = start.checked_add(length)?;
+                if end > self.text.len()
+                    || !self.text.is_char_boundary(start)
+                    || !self.text.is_char_boundary(end)
+                {
+                    return None;
+                }
+                let frame_offset = canonicalizer
+                    .canonical_frame_offset(marker.native_frame)
+                    .ok()?;
+                Some(SynthesisMarker {
+                    kind: marker.kind,
+                    frame_offset,
+                    text_start: Some(marker.text_start),
+                    text_length: Some(marker.text_length),
+                    value: None,
+                })
+            })
+            .collect::<Vec<_>>();
+        if !markers.is_empty() {
+            self.sink.markers(markers, Vec::new())?;
+        }
+        Ok(())
+    }
+
+    fn finish(&mut self) -> Result<u64, TtsError> {
+        if self.native_samples == 0 {
+            return Ok(0);
+        }
+        let canonicalizer = self
+            .canonicalizer
+            .as_mut()
+            .ok_or_else(|| synthesis_failure("RHVoice returned audio without a sample rate"))?;
+        let windows = canonicalizer.finish().map_err(|error| {
+            synthesis_failure(format!(
+                "could not finish progressive RHVoice PCM conversion: {error}"
+            ))
+        })?;
+        self.emit(windows)?;
+        Ok(self
+            .canonicalizer
+            .as_ref()
+            .expect("RHVoice canonicalizer remains available")
+            .output_frames())
+    }
+
+    fn emit(&mut self, windows: Vec<AudioBuffer>) -> Result<(), TtsError> {
+        for window in windows {
+            if !window.is_empty() {
+                self.sink.audio(window)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+fn synthesis_failure(message: impl Into<String>) -> TtsError {
+    TtsError::SynthesisFailed(message.into())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -570,22 +937,12 @@ fn native_callbacks() -> NativeCallbacks {
 unsafe extern "C" fn set_sample_rate_callback(sample_rate: c_int, user_data: *mut c_void) -> c_int {
     with_capture(user_data, |capture| {
         let Ok(sample_rate) = u32::try_from(sample_rate) else {
-            capture.failure = Some(CaptureFailure::InvalidSampleRate);
-            return 0;
+            return Err(synthesis_failure("RHVoice returned an invalid sample rate"));
         };
         if !(8_000..=384_000).contains(&sample_rate) {
-            capture.failure = Some(CaptureFailure::InvalidSampleRate);
-            return 0;
+            return Err(synthesis_failure("RHVoice returned an invalid sample rate"));
         }
-        if capture
-            .sample_rate
-            .replace(sample_rate)
-            .is_some_and(|previous| previous != sample_rate)
-        {
-            capture.failure = Some(CaptureFailure::ChangedSampleRate);
-            return 0;
-        }
-        i32::from(capture.should_continue())
+        capture.set_sample_rate(sample_rate)
     })
 }
 
@@ -596,23 +953,17 @@ unsafe extern "C" fn play_speech_callback(
 ) -> c_int {
     with_capture(user_data, |capture| {
         if !capture.should_continue() {
-            return 0;
+            return Ok(0);
         }
         let count = count as usize;
         if count == 0 {
-            return 1;
+            return Ok(1);
         }
         if samples.is_null() {
-            capture.failure = Some(CaptureFailure::NullAudio);
-            return 0;
-        }
-        if capture.samples.len().saturating_add(count) > MAX_NATIVE_SAMPLES {
-            capture.failure = Some(CaptureFailure::AudioTooLarge);
-            return 0;
+            return Err(synthesis_failure("RHVoice returned a null audio chunk"));
         }
         let samples = unsafe { std::slice::from_raw_parts(samples, count) };
-        capture.samples.extend_from_slice(samples);
-        i32::from(capture.should_continue())
+        capture.play_speech(samples)
     })
 }
 
@@ -640,16 +991,20 @@ unsafe extern "C" fn done_callback(_user_data: *mut c_void) {}
 
 unsafe fn with_capture(
     user_data: *mut c_void,
-    callback: impl FnOnce(&mut SynthesisCapture) -> c_int,
+    callback: impl FnOnce(&mut SynthesisCapture<'_>) -> Result<c_int, TtsError>,
 ) -> c_int {
     if user_data.is_null() {
         return 0;
     }
-    let capture = unsafe { &mut *user_data.cast::<SynthesisCapture>() };
+    let capture = unsafe { &mut *user_data.cast::<SynthesisCapture<'_>>() };
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(capture))) {
-        Ok(result) => result,
+        Ok(Ok(result)) => result,
+        Ok(Err(error)) => {
+            capture.fail(error);
+            0
+        }
         Err(_) => {
-            capture.failure = Some(CaptureFailure::CallbackPanicked);
+            capture.fail(synthesis_failure("RHVoice callback processing panicked"));
             0
         }
     }
@@ -663,7 +1018,7 @@ fn capabilities() -> EngineCapabilities {
             volume: true,
             ..AcssCapabilities::default()
         },
-        audio_output: AudioOutputMode::BufferedPcm,
+        audio_output: AudioOutputMode::StreamingPcm,
         cancellation: CancellationSupport::SynthesisAndPlayback,
         concurrency: ConcurrencyModel::Serialized,
         markers: MarkerCapabilities {
@@ -1071,6 +1426,37 @@ fn library_directories() -> Vec<PathBuf> {
 mod tests {
     use super::*;
 
+    #[derive(Default)]
+    struct RecordingSink {
+        events: Vec<&'static str>,
+        frames: u64,
+        markers: Vec<SynthesisMarker>,
+    }
+
+    impl SynthesisStreamSink for RecordingSink {
+        fn start(&mut self, _start: SynthesisStreamStart) -> Result<(), TtsError> {
+            self.events.push("start");
+            Ok(())
+        }
+
+        fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+            self.events.push("audio");
+            self.frames += audio.frame_count() as u64;
+            Ok(())
+        }
+
+        fn markers(
+            &mut self,
+            markers: Vec<SynthesisMarker>,
+            anchors: Vec<omnivox_tts::ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            assert!(anchors.is_empty());
+            self.events.push("markers");
+            self.markers.extend(markers);
+            Ok(())
+        }
+    }
+
     #[test]
     fn parameter_mappings_preserve_calibrated_rate_and_other_endpoints() {
         assert_eq!(map_rate(0.0), -1.0);
@@ -1135,6 +1521,36 @@ mod tests {
     }
 
     #[test]
+    fn streaming_callbacks_emit_markers_before_progressive_audio() {
+        let cancellation = AtomicBool::new(false);
+        let mut sink = RecordingSink::default();
+        let mut capture =
+            SynthesisCapture::streaming(&mut sink, "hello world", &cancellation, None);
+        let pointer = std::ptr::from_mut(&mut capture).cast();
+
+        assert_eq!(unsafe { set_sample_rate_callback(24_000, pointer) }, 1);
+        assert_eq!(unsafe { word_starts_callback(0, 5, pointer) }, 1);
+        let samples = vec![1_000_i16; 1_024];
+        assert_eq!(
+            unsafe { play_speech_callback(samples.as_ptr(), samples.len() as u32, pointer) },
+            1
+        );
+        let SynthesisCapture::Streaming(mut capture) = capture else {
+            unreachable!()
+        };
+        let frame_count = capture.finish().unwrap();
+        drop(capture);
+
+        assert_eq!(frame_count, sink.frames);
+        assert_eq!(sink.events.first(), Some(&"markers"));
+        assert!(sink.events.contains(&"audio"));
+        assert_eq!(sink.markers.len(), 1);
+        assert_eq!(sink.markers[0].frame_offset, 0);
+        assert_eq!(sink.markers[0].text_start, Some(0));
+        assert_eq!(sink.markers[0].text_length, Some(5));
+    }
+
+    #[test]
     fn missing_runtime_still_has_a_protocol_usable_descriptor() {
         let engine = RhVoiceTtsEngine::unavailable("runtime missing".to_owned());
         let descriptor = engine.descriptor();
@@ -1143,6 +1559,10 @@ mod tests {
         assert!(!descriptor.can_synthesize());
         assert!(descriptor.voices.is_empty());
         assert_eq!(descriptor.default_voice_id, None);
+        assert_eq!(
+            descriptor.capabilities.audio_output,
+            AudioOutputMode::StreamingPcm
+        );
         assert!(descriptor.capabilities.markers.word);
         assert!(descriptor.capabilities.markers.sentence);
     }

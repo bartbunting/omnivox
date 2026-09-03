@@ -712,6 +712,7 @@ name = "omnivox-rhvoice-helper"
 version = "1.6.4"
 dependencies = [
  "libloading",
+ "omnivox-audio",
  "omnivox-helper-host",
  "omnivox-tts",
  "thiserror",
