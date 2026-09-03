@@ -262,7 +262,7 @@ def synthesize(
                 raise RuntimeError(
                     f"helper omitted advertised markers {missing_kinds}: {kinds}"
                 )
-            anchor_support = marker_capabilities.get("requested_anchors")
+            anchor_support = marker_capabilities.get("requested_anchors", "none")
             if anchor_support != "none":
                 expected_anchor = f"start-{iteration}"
                 resolved = next(
