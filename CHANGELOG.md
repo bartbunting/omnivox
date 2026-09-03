@@ -52,6 +52,18 @@ Versioning for published releases.
   under helper protocol v5. Older protocol peers retain whole-result buffered
   delivery, and marker-dependent timelines remain buffered because RuTTS does
   not expose synchronization markers.
+- RHVoice and eSpeak NG now emit ordinary PCM progressively through their
+  native callbacks. Anchored requests use each engine's native SSML mark API,
+  report exact requested-anchor resolution before the corresponding PCM, and
+  preserve caller UTF-8 word/sentence ranges across generated markup. Piper
+  likewise forwards each native synthesis chunk progressively; its
+  marker-dependent timelines remain buffered because libpiper exposes no
+  synchronization markers.
+- Flite now forwards bounded native synthesis callbacks through one continuous
+  sinc converter. It publishes its complete native word-marker table before
+  the first PCM window, keeps word-boundary anchored timelines progressive,
+  and stops native synthesis on cancellation or output backpressure. Flite's
+  process-global state is serialized across engine instances.
 
 ### Fixed
 

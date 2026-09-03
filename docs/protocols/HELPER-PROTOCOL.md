@@ -271,7 +271,15 @@ to `buffered_pcm` and call the complete-result path for an older peer. Rust
 adapters supply canonical engine windows directly. RuTTS converts successive
 signed 8-bit 10 kHz native callbacks through one bounded stateful sinc converter
 before emitting those windows, so its native callback boundaries do not restart
-resampling. The Windows host instead encodes native Eloquence and DECtalk
+resampling. RHVoice and eSpeak also feed their callback PCM through continuous
+conversion and use native SSML marks to keep exact requested anchors
+progressive. Their generated-input source maps retain word and sentence ranges
+in the original UTF-8 request. Flite publishes all native word-start markers
+before its first continuously converted callback window, allowing supported
+word-boundary anchors to remain progressive. Piper forwards native synthesis
+chunks progressively but, like RuTTS, retains buffered marker-dependent
+presentation because its API exposes no synchronization markers. The Windows
+host instead encodes native Eloquence and DECtalk
 callback PCM at 11.025 kHz mono; the Rust receiver continuously converts that
 stream to 44.1 kHz stereo. DECtalk retains one 512-sample native block so its
 occasionally late marker callback can still precede the corresponding audio.

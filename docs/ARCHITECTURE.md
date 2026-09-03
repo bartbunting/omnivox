@@ -234,15 +234,23 @@ PCM window. Runtime retry is permitted before the first progressive PCM window
 but never after it, preventing repeated or cross-engine speech splices. A helper
 keeps reading cancellation and health commands while its native synthesis
 worker runs. Piper uses libpiper's chunked C API and observes stop requests
-between returned chunks. If any helper cannot finish cancellation within the
-grace period, the host can terminate and later recreate the child. The Piper
+between returned chunks; because libpiper exposes no synchronization markers,
+marker-dependent presentation still collects its result. If any helper cannot
+finish cancellation within the grace period, the host can terminate and later
+recreate the child. The Piper
 helper disables Omnivox's separate eSpeak backend so one process does not
 contain two interposing eSpeak runtimes. Proprietary DLLs remain outside the
 repository.
 
 RHVoice dynamically loads a user-installed 1.x C API runtime and keeps its
-language/voice data outside Omnivox. Flite is source-built and statically linked
-only into its SLT-only companion. RuTTS is likewise source-built only into its
+language/voice data outside Omnivox. Its native PCM callbacks stream under
+protocol v5, and generated SSML marks give requested anchors exact timing while
+a source map retains original UTF-8 word and sentence ranges. Flite is
+source-built and statically linked only into its SLT-only companion. Its native
+audio callback crosses one continuous converter after the complete word-marker
+table has been published, so word-boundary anchors and native cancellation stay
+progressive. Flite serializes its process-global runtime across engine
+instances. RuTTS is likewise source-built only into its
 companion; the adapter converts supported Unicode input to KOI8-R, expands its
 signed 8-bit 10 kHz callback blocks through one bounded stateful sinc converter,
 and emits canonical windows while native synthesis remains active under helper
@@ -253,6 +261,12 @@ Experimental TGSpeechBox keeps its pinned C++ frontend/DSP and eSpeak IPA
 conversion together in a GPLv3 helper, exposes only portable ACSS controls,
 and advertises no markers. These helpers reuse the engine-neutral helper host
 but never share a native process.
+
+The in-process eSpeak NG backend likewise streams its native synthesis
+callbacks through one continuous converter. Anchored requests use eSpeak's
+native SSML marks for exact timing, with generated-markup positions mapped back
+to the original UTF-8 source ranges. Plain speech remains on eSpeak's ordinary
+text path.
 
 The shared 32-bit Windows C# host forwards native Eloquence and DECtalk callback
 PCM for protocol v5 without retaining the complete waveform. The Rust receiver

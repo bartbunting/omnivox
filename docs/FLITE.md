@@ -79,8 +79,13 @@ Select Flite initially with `--engine flite` or `OMNIVOX_ENGINE=flite`. The
 physical voice ID is `cmu_us_slt`. It is a compact US English fallback with an
 ASCII input guarantee. Flite provides rate, average-pitch, and volume control
 and native word-start markers derived from its synthesized token and segment
-relations. Requested synchronization anchors can therefore resolve to word
-boundaries. Flite does not provide sentence, phoneme, or exact user-defined
+relations. Under helper protocol v5, the helper publishes the complete native
+word-marker table before the first progressive PCM window. Requested
+synchronization anchors can therefore resolve to word boundaries without
+forcing whole-utterance buffering. One continuous sinc converter spans native
+callback boundaries, and cancellation or output backpressure stops the native
+synthesis callback. Older helper protocol peers retain whole-result buffered
+delivery. Flite does not provide sentence, phoneme, or exact user-defined
 markers. eSpeak NG remains the final Unicode-capable fallback.
 
 For a quick native acceptance check:
@@ -95,9 +100,9 @@ python3 tools/stress_helper.py \
   --require-acss rate --require-acss average_pitch --require-acss volume
 ```
 
-On Windows, use the `.exe` helper path. `--cancel-probe` accepts either native
-completion followed by cancellation or process retirement; Flite v2.2 has no
-cooperative cancellation callback inside one synthesis call.
+On Windows, use the `.exe` helper path. Omnivox attaches its cancellation check
+to Flite v2.2's native audio-stream callback, so `--cancel-probe` can stop an
+active protocol-v5 synthesis without waiting for the complete waveform.
 
 ## Add local `.flitevox` voices
 

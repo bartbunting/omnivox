@@ -82,8 +82,9 @@ The structured identity model remains:
    cold onset, high-rate intelligibility, and multi-hour helper memory evidence.
    Evaluate RuLex later as its own licensing, provenance, database, and
    cross-platform decision rather than silently adding it to the companion.
-7. Keep eSpeak NG as the reliable Unicode-capable final fallback and extend
-   native marker coverage only when mappings remain source-accurate.
+7. Keep eSpeak NG as the reliable Unicode-capable final fallback and retain
+   regression coverage for its exact native anchors and source-accurate UTF-8
+   word/sentence mappings.
 
 ## Priority 3: deployment and user diagnostics
 

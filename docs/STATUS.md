@@ -39,6 +39,9 @@ in the linked protocol specifications; future work belongs in
 - Verified content-addressed eSpeak data can reuse a bounded cached voice
   inventory; unverified, custom, stale, or malformed cache state falls back to
   live discovery without changing the complete first-inventory contract.
+- eSpeak NG emits native callback PCM progressively. Anchored requests use
+  native SSML marks for exact resolution while generated-markup source maps
+  preserve word and sentence ranges in the caller's original UTF-8 text.
 - Ordered fallback for missing voices, unsupported text repertoires, engine
   failure, and transient engine pressure.
 - Persistent health circuits, bounded cooldowns, one recovery probe, and
@@ -122,20 +125,27 @@ in the linked protocol specifications; future work belongs in
   implemented and passes exhaustive manifest, Git-tree, input, model-exclusion,
   and offline Cargo verification. Piper companion and corresponding-source
   archives are published beginning with v1.6.4 after the gated tag workflow
-  verifies the draft assets on their native platforms.
+  verifies the draft assets on their native platforms. Protocol v5 forwards
+  native synthesis chunks progressively. Piper exposes no synchronization
+  markers, so marker-dependent presentation remains buffered.
 - RHVoice uses a user-installed 1.14-or-later compatible 1.x C API runtime.
   Linux x64 and Windows x64 have passed real synthesis, marker, ACSS,
   cancellation, and shutdown acceptance with 1.14.0; Windows uses an explicit
   C API DLL path. Linux ARM64 has helper compile coverage, Windows ARM64 has no
   accepted compatible runtime, and macOS remains compile-only because upstream
-  does not claim macOS support.
+  does not claim macOS support. Protocol v5 forwards RHVoice PCM callbacks
+  progressively. Anchored requests use native SSML `process_mark` callbacks
+  for exact resolution while preserving original UTF-8 word/sentence ranges.
 - Flite uses checksum-locked v2.2 source, has only `cmu_us_slt` compiled in,
   and accepts optional local English Clustergen `.flitevox` files. Native
   release runners on Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows
   x64/ARM64 each verify relocation, ACSS, 25 real SLT syntheses, cancellation,
   and clean shutdown. Flite has an ASCII input guarantee, native word-start
   markers, and word-boundary requested-anchor resolution, but no sentence,
-  phoneme, or exact user-defined markers; eSpeak remains the Unicode fallback.
+  phoneme, or exact user-defined markers. Protocol v5 publishes the complete
+  word-marker table before progressively converted native PCM, so its supported
+  anchored timelines remain progressive and cancellation can stop native
+  synthesis. eSpeak remains the Unicode fallback.
 - RuTTS uses checksum-locked v6.3.3 source and exposes its built-in male and
   female Russian voices without RuLex. Linux x64 local acceptance covers both
   voices, ACSS, bounded PCM, cancellation, relocation, and clean shutdown. The

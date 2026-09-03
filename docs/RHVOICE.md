@@ -22,7 +22,7 @@ release or another major version with a protocol-visible diagnostic.
 
 | Platform | Status |
 |---|---|
-| Linux x64 | Native discovery, synthesis, PCM, word/sentence markers, ACSS, cancellation, and shutdown tested with RHVoice 1.14.0 |
+| Linux x64 | Native discovery, progressive PCM, word/sentence markers, exact requested anchors, ACSS, cancellation, and shutdown tested with RHVoice 1.14.0 |
 | Linux ARM64 | Helper compiles; live native acceptance is pending |
 | Windows x64 | Native discovery, synthesis, PCM, word/sentence markers, ACSS, cancellation, and shutdown tested with an explicit RHVoice 1.14.0 C API runtime and SLT voice |
 | Windows ARM64 | Helper compiles; no compatible upstream runtime has passed acceptance |
@@ -31,6 +31,15 @@ release or another major version with a protocol-visible diagnostic.
 Upstream currently documents GNU/Linux, Windows, and Android. Android is not
 an Omnivox target. Compile coverage is not a claim that an RHVoice runtime is
 available for that platform.
+
+Under helper protocol v5, RHVoice PCM callbacks reach Omnivox progressively.
+For a request containing presentation anchors, the helper sends generated SSML
+to RHVoice and resolves each anchor from RHVoice's native `process_mark`
+callback. Those anchors are reported as exact and remain progressive. A source
+map removes generated tags and XML escaping from RHVoice's word and sentence
+offsets, so their ranges continue to identify the caller's original UTF-8
+text. Plain requests remain plain-text RHVoice messages. Older helper protocol
+peers retain whole-result buffered delivery.
 
 ## Build and layout
 
