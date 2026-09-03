@@ -14,8 +14,8 @@ use omnivox_core::timeline::{
 };
 use omnivox_core::{ChannelMode, QueueItem, TonePlacement, TtsState};
 use omnivox_tts::contracts::{
-    apply_rate_offset, AcssDimension, AudioOutputMode, NormalizedAcss, PhysicalVoiceId,
-    PostSynthesisDimension, PostSynthesisStyle,
+    apply_rate_offset, AcssDimension, AnchorSupport, AudioOutputMode, NormalizedAcss,
+    PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::timeline_protocol::{
@@ -41,7 +41,7 @@ use crate::health::RuntimeEngineHealth;
 use crate::lifecycle::RequestLifecycle;
 use crate::marker_events::{
     MarkerDispatchContext, PlaybackSemanticEvent, PlaybackTimelineResolution,
-    ProgressiveMarkerPublisher,
+    PlaybackTimelineResolutionEvent, ProgressiveMarkerPublisher,
 };
 use crate::routing::{
     legacy_voice_for_engine, LogicalRoute, LogicalVoiceRoutingSnapshot, RuntimeSynthesisOutcome,
@@ -527,6 +527,43 @@ pub fn synthesize_chunk_with_tones(
         text_bytes = chunk.len(),
         "Speech lifecycle started direct synthesis"
     );
+    if descriptor_supports_progressive_anchors(
+        &ctx.engine.descriptor(),
+        &request.anchors,
+        ctx.timeline_renderer.is_some(),
+    ) {
+        let synthesis = synthesize_direct_chunk_progressively(
+            &request,
+            chunk,
+            None,
+            capitalization_tones,
+            &[],
+            PostSynthesisStyle::default(),
+            Vec::new(),
+            state,
+            is_last_speech,
+            final_timeline_window,
+            ctx,
+        );
+        return match synthesis {
+            Ok(_) if ctx.is_stale() => false,
+            Ok(_) => true,
+            Err(error) => {
+                warn!(
+                    lifecycle_stage = "synthesis_failed",
+                    engine_id = %engine_id,
+                    synthesis_elapsed_us = u64::try_from(
+                        synthesis_started_at.elapsed().as_micros()
+                    )
+                    .unwrap_or(u64::MAX),
+                    error = %error,
+                    "Speech lifecycle failed direct progressive synthesis"
+                );
+                ctx.mark_failed();
+                true
+            }
+        };
+    }
     let synthesis = ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(
             &request,
@@ -828,23 +865,60 @@ fn prepare_speech_timeline(
     effects: &PostSynthesisStyle,
     state: &TtsState,
 ) -> Result<(ScheduledTimeline, Vec<SharedPreparedAudioResource>), omnivox_audio::AudioError> {
+    let (actions, resources) =
+        prepare_speech_timeline_actions(tones, timeline_actions, effects, state)?;
+    let actions = actions
+        .into_iter()
+        .map(|action| {
+            let resolved = result
+                .anchors
+                .iter()
+                .find(|anchor| anchor.id == action.id.as_str())
+                .expect("validated synthesis result contains every requested anchor");
+            let frame_offset = resolved.frame_offset.unwrap_or_else(|| {
+                if matches!(
+                    action.position,
+                    PresentationPosition::TextOffset {
+                        affinity: ActionAffinity::After,
+                        ..
+                    } | PresentationPosition::SpanBoundary {
+                        affinity: ActionAffinity::After,
+                        ..
+                    }
+                ) {
+                    result.audio.frame_count() as u64
+                } else {
+                    0
+                }
+            });
+            if resolved.resolution != AnchorResolution::Exact {
+                debug!(
+                    anchor = %action.id,
+                    resolution = ?resolved.resolution,
+                    frame_offset,
+                    "timeline placement degraded"
+                );
+            }
+            ResolvedTimelineAction {
+                action,
+                source_frame: frame_offset,
+            }
+        })
+        .collect::<Vec<_>>();
+    let timeline = ScheduledTimeline::build(result.audio.frame_count() as u64, actions)
+        .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
+    Ok((timeline, resources))
+}
+
+fn prepare_speech_timeline_actions(
+    tones: &[CapitalizationTone],
+    timeline_actions: &[TimelineChunkAction],
+    effects: &PostSynthesisStyle,
+    state: &TtsState,
+) -> Result<(Vec<TimelineAction>, Vec<SharedPreparedAudioResource>), omnivox_audio::AudioError> {
     let mut actions = Vec::with_capacity(tones.len() + timeline_actions.len());
     let mut resources = Vec::with_capacity(tones.len() + timeline_actions.len());
     for tone in tones {
-        let resolved = result
-            .anchors
-            .iter()
-            .find(|anchor| anchor.id == tone.id)
-            .expect("validated synthesis result contains every requested anchor");
-        let frame_offset = resolved.frame_offset.unwrap_or(0);
-        if resolved.resolution != AnchorResolution::Exact {
-            debug!(
-                anchor = %tone.id,
-                resolution = ?resolved.resolution,
-                frame_offset,
-                "capitalization tone placement degraded"
-            );
-        }
         let id = TimelineActionId::new(tone.id.clone())
             .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
         let audio = prepare_tone_audio(tone.frequency_hz, tone.duration_ms, state)?;
@@ -862,33 +936,10 @@ fn prepare_speech_timeline(
                 effect_bus: EffectBus::Dry,
             },
         };
-        actions.push(ResolvedTimelineAction {
-            action,
-            source_frame: frame_offset,
-        });
+        actions.push(action);
         resources.push(SharedPreparedAudioResource::new(id, Arc::new(audio)));
     }
     for action in timeline_actions {
-        let resolved = result
-            .anchors
-            .iter()
-            .find(|anchor| anchor.id == action.id)
-            .expect("validated synthesis result contains every requested anchor");
-        let frame_offset = resolved.frame_offset.unwrap_or_else(|| {
-            if action.affinity == AnchorAffinity::After {
-                result.audio.frame_count() as u64
-            } else {
-                0
-            }
-        });
-        if resolved.resolution != AnchorResolution::Exact {
-            debug!(
-                anchor = %action.id,
-                resolution = ?resolved.resolution,
-                frame_offset,
-                "structured timeline placement degraded"
-            );
-        }
         let id = TimelineActionId::new(action.id.clone())
             .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
         let kind = match &action.kind {
@@ -926,25 +977,20 @@ fn prepare_speech_timeline(
             }
             TimelineChunkActionKind::SemanticEvent => TimelineActionKind::SemanticEvent,
         };
-        actions.push(ResolvedTimelineAction {
-            action: TimelineAction {
-                id,
-                position: PresentationPosition::TextOffset {
-                    span_id: 0,
-                    utf8_offset: action.text_offset,
-                    affinity: match action.affinity {
-                        AnchorAffinity::Before => ActionAffinity::Before,
-                        AnchorAffinity::After => ActionAffinity::After,
-                    },
+        actions.push(TimelineAction {
+            id,
+            position: PresentationPosition::TextOffset {
+                span_id: 0,
+                utf8_offset: action.text_offset,
+                affinity: match action.affinity {
+                    AnchorAffinity::Before => ActionAffinity::Before,
+                    AnchorAffinity::After => ActionAffinity::After,
                 },
-                kind,
             },
-            source_frame: frame_offset,
+            kind,
         });
     }
-    let timeline = ScheduledTimeline::build(result.audio.frame_count() as u64, actions)
-        .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
-    Ok((timeline, resources))
+    Ok((actions, resources))
 }
 
 fn render_primary_window(
@@ -1029,6 +1075,19 @@ struct CompletedProgressiveChunk {
     degraded_acss: Vec<AcssDimension>,
 }
 
+struct ProgressiveRenderedWindow {
+    audio: AudioBuffer,
+    overlay_tail: Option<AudioBuffer>,
+    resolution_events: Vec<PlaybackTimelineResolutionEvent>,
+    semantic_events: Vec<PlaybackSemanticEvent>,
+}
+
+struct ProgressiveTimelineAction {
+    order: usize,
+    source_frame: u64,
+    resolution: AnchorResolution,
+}
+
 struct ProgressiveChunkSink<'a, 'ctx> {
     utterance_text: &'a str,
     logical_voice_id: Option<String>,
@@ -1045,6 +1104,16 @@ struct ProgressiveChunkSink<'a, 'ctx> {
     pending_markers: VecDeque<SynthesisMarker>,
     marker_count: usize,
     last_marker_offset: Option<u64>,
+    timeline_actions: Vec<TimelineAction>,
+    timeline_action_indices: HashMap<String, usize>,
+    reported_timeline_action_ids: HashSet<String>,
+    resolved_timeline_actions: Vec<ProgressiveTimelineAction>,
+    resolved_timeline_action_ids: HashSet<String>,
+    last_timeline_anchor_offset: Option<u64>,
+    timeline_insertions: Vec<(u64, u64)>,
+    timeline_resources: Vec<SharedPreparedAudioResource>,
+    primary_frame_count: u64,
+    output_frame_count: u64,
     ticket: Option<PlaybackTicket>,
 }
 
@@ -1058,9 +1127,27 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
         state: &'a TtsState,
         is_last_speech: bool,
         final_timeline_window: bool,
+        capitalization_tones: &[CapitalizationTone],
+        timeline_actions: &[TimelineChunkAction],
         ctx: &'a SynthCtx<'ctx>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, TtsError> {
+        let reported_timeline_action_ids = timeline_actions
+            .iter()
+            .map(|action| action.id.clone())
+            .collect();
+        let (timeline_actions, timeline_resources) = prepare_speech_timeline_actions(
+            capitalization_tones,
+            timeline_actions,
+            &effects,
+            state,
+        )
+        .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        let timeline_action_indices = timeline_actions
+            .iter()
+            .enumerate()
+            .map(|(index, action)| (action.id.as_str().to_owned(), index))
+            .collect();
+        Ok(Self {
             utterance_text,
             logical_voice_id: logical_voice_id.map(str::to_owned),
             effects,
@@ -1076,8 +1163,18 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             pending_markers: VecDeque::new(),
             marker_count: 0,
             last_marker_offset: None,
+            timeline_actions,
+            timeline_action_indices,
+            reported_timeline_action_ids,
+            resolved_timeline_actions: Vec::new(),
+            resolved_timeline_action_ids: HashSet::new(),
+            last_timeline_anchor_offset: None,
+            timeline_insertions: Vec::new(),
+            timeline_resources,
+            primary_frame_count: 0,
+            output_frame_count: 0,
             ticket: None,
-        }
+        })
     }
 
     fn ensure_playback(&mut self) -> Result<&mut ProgressivePlaybackProducer, TtsError> {
@@ -1159,29 +1256,279 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
         Ok(self.producer.as_mut().unwrap())
     }
 
-    fn publish_markers_through(
+    fn register_timeline_anchors(&mut self, anchors: Vec<ResolvedAnchor>) -> Result<(), TtsError> {
+        for anchor in anchors {
+            let Some(&order) = self.timeline_action_indices.get(&anchor.id) else {
+                return Err(TtsError::SynthesisFailed(format!(
+                    "progressive engine resolved unknown timeline anchor {}",
+                    anchor.id
+                )));
+            };
+            if anchor.resolution == AnchorResolution::Omitted {
+                return Err(TtsError::SynthesisFailed(format!(
+                    "progressive engine omitted timeline anchor {}",
+                    anchor.id
+                )));
+            }
+            let source_frame = anchor.frame_offset.ok_or_else(|| {
+                TtsError::SynthesisFailed(format!(
+                    "progressive engine returned no frame for {:?} timeline anchor {}",
+                    anchor.resolution, anchor.id
+                ))
+            })?;
+            if self
+                .last_timeline_anchor_offset
+                .is_some_and(|previous| source_frame < previous)
+            {
+                return Err(TtsError::SynthesisFailed(
+                    "progressive timeline anchors are out of order".to_owned(),
+                ));
+            }
+            if !self.resolved_timeline_action_ids.insert(anchor.id.clone()) {
+                return Err(TtsError::SynthesisFailed(format!(
+                    "progressive engine resolved timeline anchor {} more than once",
+                    anchor.id
+                )));
+            }
+            self.last_timeline_anchor_offset = Some(source_frame);
+            if let TimelineActionKind::Audio {
+                mode: AudioActionMode::Insert,
+                duration_frames,
+                ..
+            } = &self.timeline_actions[order].kind
+            {
+                self.timeline_insertions
+                    .push((source_frame, *duration_frames));
+            }
+            self.resolved_timeline_actions
+                .push(ProgressiveTimelineAction {
+                    order,
+                    source_frame,
+                    resolution: anchor.resolution,
+                });
+        }
+        Ok(())
+    }
+
+    fn map_primary_frame(
+        &self,
+        source_frame: u64,
+        final_report: Option<&SilenceTrimReport>,
+    ) -> Option<u64> {
+        if let Some(report) = final_report {
+            return Some(report.map_frame_offset(source_frame));
+        }
+        self.trimmer
+            .as_ref()
+            .and_then(ProgressiveSilenceTrimmer::removed_leading_frames)
+            .map(|removed| source_frame.saturating_sub(removed as u64))
+    }
+
+    fn map_output_frame(
+        &self,
+        source_frame: u64,
+        final_report: Option<&SilenceTrimReport>,
+    ) -> Result<Option<u64>, TtsError> {
+        let Some(primary_frame) = self.map_primary_frame(source_frame, final_report) else {
+            return Ok(None);
+        };
+        self.timeline_insertions
+            .iter()
+            .try_fold(
+                primary_frame,
+                |output_frame, (insertion_frame, duration)| {
+                    let insertion_frame = self
+                        .map_primary_frame(*insertion_frame, final_report)
+                        .expect("primary frame mapping availability is shared");
+                    if insertion_frame <= primary_frame {
+                        output_frame.checked_add(*duration).ok_or_else(|| {
+                            TtsError::SynthesisFailed(
+                                "progressive timeline frame mapping overflowed".to_owned(),
+                            )
+                        })
+                    } else {
+                        Ok(output_frame)
+                    }
+                },
+            )
+            .map(Some)
+    }
+
+    fn take_ready_timeline_actions(
+        &mut self,
+        source_end: u64,
+        include_end_actions: bool,
+        final_report: Option<&SilenceTrimReport>,
+    ) -> Result<Vec<(ResolvedTimelineAction, AnchorResolution)>, TtsError> {
+        let source_start = self.primary_frame_count;
+        let mut pending = Vec::new();
+        let mut ready = Vec::new();
+        let resolved = std::mem::take(&mut self.resolved_timeline_actions);
+        for resolved in resolved {
+            let source_frame = self
+                .map_primary_frame(resolved.source_frame, final_report)
+                .expect("trim mapping is known before timeline audio is rendered");
+            if source_frame < source_start {
+                return Err(TtsError::SynthesisFailed(format!(
+                    "progressive timeline action {} at frame {source_frame} arrived after frame {source_start}",
+                    self.timeline_actions[resolved.order].id
+                )));
+            }
+            if source_frame < source_end || (include_end_actions && source_frame == source_end) {
+                ready.push((resolved.order, source_frame, resolved.resolution));
+            } else {
+                pending.push(resolved);
+            }
+        }
+        self.resolved_timeline_actions = pending;
+        ready.sort_by_key(|(order, source_frame, _)| (*source_frame, *order));
+        Ok(ready
+            .into_iter()
+            .map(|(order, source_frame, resolution)| {
+                (
+                    ResolvedTimelineAction {
+                        action: self.timeline_actions[order].clone(),
+                        source_frame,
+                    },
+                    resolution,
+                )
+            })
+            .collect())
+    }
+
+    fn render_timeline_window(
+        &mut self,
+        audio: AudioBuffer,
+        include_end_actions: bool,
+        final_timeline_window: bool,
+        final_report: Option<&SilenceTrimReport>,
+    ) -> Result<ProgressiveRenderedWindow, TtsError> {
+        let source_start = self.primary_frame_count;
+        let source_end = source_start
+            .checked_add(audio.frame_count() as u64)
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(
+                    "progressive primary timeline frame count overflowed".to_owned(),
+                )
+            })?;
+        let resolved =
+            self.take_ready_timeline_actions(source_end, include_end_actions, final_report)?;
+        let actions = resolved
+            .iter()
+            .map(|(action, _)| action.clone())
+            .collect::<Vec<_>>();
+        let (audio, overlay_tail, resolution_events, semantic_events) =
+            if let Some(renderer) = self.ctx.timeline_renderer {
+                let rendered = renderer
+                    .lock()
+                    .unwrap()
+                    .render_incremental_shared_window(
+                        &audio,
+                        source_start,
+                        &actions,
+                        &self.timeline_resources,
+                        final_timeline_window,
+                    )
+                    .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+                let resolution_events = resolved
+                    .into_iter()
+                    .filter_map(|(action, resolution)| {
+                        self.reported_timeline_action_ids
+                            .contains(action.action.id.as_str())
+                            .then(|| {
+                                Ok(PlaybackTimelineResolutionEvent {
+                                    action_id: action.action.id,
+                                    resolution,
+                                    frame_offset: rendered
+                                        .map_primary_frame(action.source_frame - source_start)?,
+                                })
+                            })
+                    })
+                    .collect::<Result<Vec<_>, omnivox_audio::AudioError>>()
+                    .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+                (
+                    rendered.audio,
+                    rendered.overlay_tail,
+                    resolution_events,
+                    rendered.semantic_events,
+                )
+            } else if actions.is_empty() {
+                (audio, None, Vec::new(), Vec::new())
+            } else {
+                return Err(TtsError::SynthesisFailed(
+                    "synthesis context has no progressive timeline renderer".to_owned(),
+                ));
+            };
+        let output_start = self.output_frame_count;
+        self.primary_frame_count = source_end;
+        self.output_frame_count = self
+            .output_frame_count
+            .checked_add(audio.frame_count() as u64)
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(
+                    "progressive output timeline frame count overflowed".to_owned(),
+                )
+            })?;
+        let semantic_events = semantic_events
+            .into_iter()
+            .map(|event| {
+                Ok(PlaybackSemanticEvent {
+                    action_id: event.id,
+                    frame_offset: output_start.checked_add(event.frame_offset).ok_or_else(
+                        || {
+                            TtsError::SynthesisFailed(
+                                "progressive semantic event frame overflowed".to_owned(),
+                            )
+                        },
+                    )?,
+                })
+            })
+            .collect::<Result<Vec<_>, TtsError>>()?;
+        let resolution_events = resolution_events
+            .into_iter()
+            .map(|mut event| {
+                event.frame_offset =
+                    output_start
+                        .checked_add(event.frame_offset)
+                        .ok_or_else(|| {
+                            TtsError::SynthesisFailed(
+                                "progressive timeline resolution frame overflowed".to_owned(),
+                            )
+                        })?;
+                Ok(event)
+            })
+            .collect::<Result<Vec<_>, TtsError>>()?;
+        Ok(ProgressiveRenderedWindow {
+            audio,
+            overlay_tail,
+            resolution_events,
+            semantic_events,
+        })
+    }
+
+    fn publish_events_through(
         &mut self,
         output_frame: u64,
         final_report: Option<&SilenceTrimReport>,
+        mut resolution_events: Vec<PlaybackTimelineResolutionEvent>,
+        mut semantic_events: Vec<PlaybackSemanticEvent>,
     ) -> Result<(), TtsError> {
         let Some(marker_dispatch) = self.ctx.marker_dispatch else {
             self.pending_markers.clear();
             return Ok(());
         };
-        let removed_leading = self
-            .trimmer
-            .as_ref()
-            .and_then(ProgressiveSilenceTrimmer::removed_leading_frames);
-        if removed_leading.is_none() && final_report.is_none() {
+        if !marker_dispatch.supports_timeline_events() {
+            resolution_events.clear();
+            semantic_events.clear();
+        }
+        if self.map_primary_frame(0, final_report).is_none() {
             return Ok(());
         }
-        let removed_leading = removed_leading.unwrap_or(0) as u64;
         let mut ready = Vec::new();
         while let Some(marker) = self.pending_markers.front() {
-            let mapped = final_report.map_or_else(
-                || marker.frame_offset.saturating_sub(removed_leading),
-                |report| report.map_frame_offset(marker.frame_offset),
-            );
+            let mapped = self
+                .map_output_frame(marker.frame_offset, final_report)?
+                .expect("trim mapping availability was checked");
             if mapped > output_frame {
                 break;
             }
@@ -1189,7 +1536,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             marker.frame_offset = mapped;
             ready.push(marker);
         }
-        if ready.is_empty() {
+        if ready.is_empty() && resolution_events.is_empty() && semantic_events.is_empty() {
             return Ok(());
         }
         let producer = self.producer.as_mut().ok_or_else(|| {
@@ -1203,7 +1550,14 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             )
         })?;
         if !publisher
-            .push_markers(marker_dispatch, producer, ready, || !self.ctx.is_stale())
+            .push_timeline_events(
+                marker_dispatch,
+                producer,
+                ready,
+                resolution_events,
+                semantic_events,
+                || !self.ctx.is_stale(),
+            )
             .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?
         {
             return Err(TtsError::SynthesisFailed(
@@ -1233,21 +1587,19 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
         let unexpected_tail = process_effect_window(&mut audio, &self.effects, false, self.ctx)
             .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
         debug_assert!(unexpected_tail.is_none());
+        let rendered = self.render_timeline_window(audio, false, false, None)?;
+        debug_assert!(rendered.overlay_tail.is_none());
         self.ensure_playback()?;
-        let output_frame = self
-            .producer
-            .as_ref()
-            .unwrap()
-            .published_frames()
-            .checked_add(audio.frame_count() as u64)
-            .ok_or_else(|| {
-                TtsError::SynthesisFailed("progressive playback frame count overflowed".to_owned())
-            })?;
-        self.publish_markers_through(output_frame, None)?;
+        self.publish_events_through(
+            self.output_frame_count,
+            None,
+            rendered.resolution_events,
+            rendered.semantic_events,
+        )?;
         self.producer
             .as_mut()
             .unwrap()
-            .push_audio(audio)
+            .push_audio(rendered.audio)
             .map_err(|error| TtsError::SynthesisFailed(error.to_string()))
     }
 
@@ -1279,6 +1631,21 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                 "progressive engine marker exceeds the completed PCM".to_owned(),
             ));
         }
+        if self
+            .last_timeline_anchor_offset
+            .is_some_and(|offset| offset > completion.frame_count)
+        {
+            return Err(TtsError::SynthesisFailed(
+                "progressive timeline anchor exceeds the completed PCM".to_owned(),
+            ));
+        }
+        if self.resolved_timeline_action_ids.len() != self.timeline_actions.len() {
+            return Err(TtsError::SynthesisFailed(format!(
+                "progressive route resolved {} of {} timeline anchors",
+                self.resolved_timeline_action_ids.len(),
+                self.timeline_actions.len()
+            )));
+        }
         build_speech_output_pipeline(self.state)
             .process(&mut tail)
             .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
@@ -1289,9 +1656,27 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             self.ctx,
         )
         .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
-        if report.output_frames > 0 {
+        let rendered =
+            self.render_timeline_window(tail, true, self.final_timeline_window, Some(&report))?;
+        if self.primary_frame_count != report.output_frames as u64 {
+            return Err(TtsError::SynthesisFailed(format!(
+                "progressive timeline rendered {} primary frames but trimming produced {}",
+                self.primary_frame_count, report.output_frames
+            )));
+        }
+        if !self.resolved_timeline_actions.is_empty() {
+            return Err(TtsError::SynthesisFailed(
+                "progressive timeline left actions beyond completed playback".to_owned(),
+            ));
+        }
+        if self.output_frame_count > 0 {
             self.ensure_playback()?;
-            self.publish_markers_through(report.output_frames as u64, Some(&report))?;
+            self.publish_events_through(
+                self.output_frame_count,
+                Some(&report),
+                rendered.resolution_events,
+                rendered.semantic_events,
+            )?;
         } else {
             self.pending_markers.clear();
         }
@@ -1300,11 +1685,11 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                 "progressive engine left markers beyond completed playback".to_owned(),
             ));
         }
-        if !tail.is_empty() {
+        if !rendered.audio.is_empty() {
             self.producer
                 .as_mut()
                 .unwrap()
-                .push_audio(tail)
+                .push_audio(rendered.audio)
                 .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
         }
         if let Some(producer) = self.producer.take() {
@@ -1313,6 +1698,9 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                 .finish()
                 .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
             self.ctx.record_ticket(StreamType::Speech, ticket);
+        }
+        if let Some(tail) = rendered.overlay_tail {
+            self.ctx.queue_overlay(tail);
         }
         if let Some(tail) = effect_tail {
             self.ctx.queue_overlay(tail);
@@ -1329,9 +1717,9 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
 
 impl SynthesisStreamSink for ProgressiveChunkSink<'_, '_> {
     fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError> {
-        if self.producer.is_some() {
+        if self.start.is_some() {
             return Err(TtsError::SynthesisFailed(
-                "progressive engine restarted after publishing audio".to_owned(),
+                "progressive engine emitted stream metadata more than once".to_owned(),
             ));
         }
         self.start = Some(start);
@@ -1359,16 +1747,12 @@ impl SynthesisStreamSink for ProgressiveChunkSink<'_, '_> {
         if markers.is_empty() && anchors.is_empty() {
             return Ok(());
         }
-        if !anchors.is_empty() {
-            return Err(TtsError::SynthesisFailed(
-                "requested-anchor progressive playback is not enabled for this route".to_owned(),
-            ));
-        }
         if self.start.is_none() {
             return Err(TtsError::SynthesisFailed(
                 "progressive engine emitted markers before stream metadata".to_owned(),
             ));
         }
+        self.register_timeline_anchors(anchors)?;
         if self.ctx.marker_dispatch.is_none() {
             return Ok(());
         }
@@ -1397,17 +1781,57 @@ impl SynthesisStreamSink for ProgressiveChunkSink<'_, '_> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+fn synthesize_direct_chunk_progressively(
+    request: &SynthesisRequest,
+    utterance_text: &str,
+    logical_voice_id: Option<&str>,
+    capitalization_tones: &[CapitalizationTone],
+    timeline_actions: &[TimelineChunkAction],
+    effects: PostSynthesisStyle,
+    degraded_effects: Vec<PostSynthesisDimension>,
+    state: &TtsState,
+    is_last_speech: bool,
+    final_timeline_window: bool,
+    ctx: &SynthCtx,
+) -> Result<CompletedProgressiveChunk, TtsError> {
+    let mut sink = ProgressiveChunkSink::new(
+        utterance_text,
+        logical_voice_id,
+        effects,
+        degraded_effects,
+        state,
+        is_last_speech,
+        final_timeline_window,
+        capitalization_tones,
+        timeline_actions,
+        ctx,
+    )?;
+    let completion = ctx.engine.synthesize_stream(request, &mut sink)?;
+    sink.finish(completion)
+}
+
 fn route_supports_initial_progressive_playback(
     route: &LogicalRoute,
     anchors: &[RequestedAnchor],
     ctx: &SynthCtx,
 ) -> bool {
-    let descriptor = route.engine.descriptor();
+    descriptor_supports_progressive_anchors(
+        &route.engine.descriptor(),
+        anchors,
+        ctx.timeline_renderer.is_some(),
+    )
+}
+
+fn descriptor_supports_progressive_anchors(
+    descriptor: &omnivox_tts::contracts::EngineDescriptor,
+    anchors: &[RequestedAnchor],
+    timeline_renderer_available: bool,
+) -> bool {
     descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm
-        && anchors.is_empty()
-        && ctx
-            .timeline_renderer
-            .is_none_or(|renderer| !renderer.lock().unwrap().has_overlay_carry())
+        && (anchors.is_empty()
+            || (timeline_renderer_available
+                && descriptor.capabilities.markers.requested_anchors != AnchorSupport::None))
 }
 
 enum RoutedChunkOutcome {
@@ -1454,6 +1878,8 @@ fn synthesize_routed_chunk(
             state,
             is_last_speech,
             final_timeline_window,
+            capitalization_tones,
+            timeline_actions,
             route,
             routing,
             engine_registry,
@@ -1546,6 +1972,8 @@ fn synthesize_routed_chunk_progressively(
     state: &TtsState,
     is_last_speech: bool,
     final_timeline_window: bool,
+    capitalization_tones: &[CapitalizationTone],
+    timeline_actions: &[TimelineChunkAction],
     route: &mut LogicalRoute,
     routing: &mut LogicalVoiceRoutingSnapshot,
     engine_registry: &EngineRegistry,
@@ -1562,7 +1990,7 @@ fn synthesize_routed_chunk_progressively(
                 .capabilities
                 .post_synthesis_dimensions,
         );
-    let mut sink = ProgressiveChunkSink::new(
+    let mut sink = match ProgressiveChunkSink::new(
         chunk,
         route.reported_logical_voice_id.as_deref(),
         initial_effect_application.style,
@@ -1570,8 +1998,17 @@ fn synthesize_routed_chunk_progressively(
         state,
         is_last_speech,
         final_timeline_window,
+        capitalization_tones,
+        timeline_actions,
         ctx,
-    );
+    ) {
+        Ok(sink) => sink,
+        Err(error) => {
+            ctx.mark_failed();
+            warn!("Progressive timeline preparation failed: {error}");
+            return RoutedChunkOutcome::Failed;
+        }
+    };
     let outcome = crate::routing::synthesize_progressively_with_runtime_fallback_anchored(
         chunk,
         anchors,
@@ -1625,8 +2062,8 @@ fn synthesize_routed_chunk_progressively(
                 *result,
                 chunk,
                 route.reported_logical_voice_id.as_deref(),
-                &[],
-                &[],
+                capitalization_tones,
+                timeline_actions,
                 &effect_application.style,
                 &degraded_effects,
                 state,
@@ -2067,6 +2504,43 @@ fn synthesize_direct_timeline_chunk(
         text_bytes = chunk.text.len(),
         "Speech lifecycle started structured synthesis"
     );
+    if descriptor_supports_progressive_anchors(
+        &descriptor,
+        &request.anchors,
+        ctx.timeline_renderer.is_some(),
+    ) {
+        let synthesis = synthesize_direct_chunk_progressively(
+            &request,
+            &chunk.text,
+            None,
+            &chunk.capitalization_tones,
+            actions,
+            effects.style.clone(),
+            effects.omitted.clone(),
+            state,
+            final_window,
+            final_window,
+            ctx,
+        );
+        return match synthesis {
+            Ok(_) if ctx.is_stale() => false,
+            Ok(_) => true,
+            Err(error) => {
+                warn!(
+                    lifecycle_stage = "synthesis_failed",
+                    engine_id = %descriptor.id,
+                    synthesis_elapsed_us = u64::try_from(
+                        synthesis_started_at.elapsed().as_micros()
+                    )
+                    .unwrap_or(u64::MAX),
+                    error = %error,
+                    "Speech lifecycle failed direct progressive structured synthesis"
+                );
+                ctx.mark_failed();
+                true
+            }
+        };
+    }
     let synthesis = ctx.engine.synthesize(&request).and_then(|mut result| {
         result.resolve_anchors(&request, descriptor.capabilities.markers.requested_anchors);
         result.degraded_acss = acss.omitted.clone();
@@ -2697,7 +3171,34 @@ pub fn process_batch(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use omnivox_audio::{AudioBackend, AudioStreams, PlaybackStatus};
     use omnivox_core::state::CapitalizationPresentation;
+
+    struct PipelineTestEngine;
+
+    impl TtsEngine for PipelineTestEngine {
+        fn descriptor(&self) -> omnivox_tts::contracts::EngineDescriptor {
+            panic!("pipeline sink test does not inspect its context engine")
+        }
+
+        fn synthesize(&self, _request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+            Err(TtsError::NotAvailable)
+        }
+
+        fn stop(&self) {}
+
+        fn is_speaking(&self) -> bool {
+            false
+        }
+
+        fn available_voices(&self) -> Vec<omnivox_tts::VoiceInfo> {
+            Vec::new()
+        }
+
+        fn voice_info(&self, _identifier: &str) -> Option<omnivox_tts::VoiceInfo> {
+            None
+        }
+    }
 
     const CAPITAL_TONE_HZ: f32 = 440.0;
     const CAPITAL_TONE_DURATION_MS: u32 = 20;
@@ -2740,6 +3241,147 @@ mod tests {
         let tts_buf = omnivox_tts::AudioBuffer::empty();
         let audio_buf = canonicalize_synthesis_result(result(tts_buf)).audio;
         assert!(audio_buf.is_empty());
+    }
+
+    #[test]
+    fn progressive_timeline_renders_an_insert_resolved_at_a_window_boundary() {
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let generation = AtomicU64::new(1);
+        let lifecycle = RequestLifecycle::default();
+        let engine = PipelineTestEngine;
+        let state = TtsState::default();
+        let tickets = Mutex::new(Vec::new());
+        let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+        let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+        let ctx = SynthCtx {
+            gen: 1,
+            gen_counter: &generation,
+            cancellation: None,
+            lifecycle: &lifecycle,
+            engine: &engine,
+            control: &control,
+            playback_tickets: Some(&tickets),
+            presentation_clock: None,
+            pending_overlays: None,
+            timeline_renderer: Some(&timeline_renderer),
+            effect_processor: Some(&effect_processor),
+            marker_dispatch: None,
+            batch_failed: None,
+        };
+        let actions = vec![TimelineChunkAction {
+            id: "pause".to_owned(),
+            text_offset: 4,
+            affinity: AnchorAffinity::After,
+            kind: TimelineChunkActionKind::Audio {
+                resource: TimelineAudioResource::Silence { duration_ms: 1 },
+                mode: AudioActionMode::Insert,
+                volume: 1.0,
+                effect_bus: EffectBus::Dry,
+            },
+        }];
+        let mut sink = ProgressiveChunkSink::new(
+            "test",
+            None,
+            PostSynthesisStyle::default(),
+            Vec::new(),
+            &state,
+            false,
+            true,
+            &[],
+            &actions,
+            &ctx,
+        )
+        .unwrap();
+        sink.start(SynthesisStreamStart {
+            engine_id: "exact".to_owned(),
+            actual_voice: None,
+            degraded_acss: Vec::new(),
+        })
+        .unwrap();
+        sink.audio(AudioBuffer::new(vec![0.25; 8])).unwrap();
+        assert_eq!(sink.primary_frame_count, 4);
+        assert_eq!(sink.output_frame_count, 4);
+        sink.markers(
+            Vec::new(),
+            vec![ResolvedAnchor {
+                id: "pause".to_owned(),
+                frame_offset: Some(4),
+                resolution: AnchorResolution::WordBoundary,
+            }],
+        )
+        .unwrap();
+
+        sink.finish(SynthesisStreamCompletion { frame_count: 4 })
+            .unwrap();
+
+        assert_eq!(sink.primary_frame_count, 4);
+        assert_eq!(sink.output_frame_count, 48);
+        assert!(sink.resolved_timeline_actions.is_empty());
+        let ticket = tickets.lock().unwrap()[0].clone();
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+        control.drain();
+    }
+
+    #[test]
+    fn progressive_timeline_rejects_an_omitted_anchor() {
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let generation = AtomicU64::new(1);
+        let lifecycle = RequestLifecycle::default();
+        let engine = PipelineTestEngine;
+        let state = TtsState::default();
+        let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+        let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+        let ctx = SynthCtx {
+            gen: 1,
+            gen_counter: &generation,
+            cancellation: None,
+            lifecycle: &lifecycle,
+            engine: &engine,
+            control: &control,
+            playback_tickets: None,
+            presentation_clock: None,
+            pending_overlays: None,
+            timeline_renderer: Some(&timeline_renderer),
+            effect_processor: Some(&effect_processor),
+            marker_dispatch: None,
+            batch_failed: None,
+        };
+        let tones = vec![CapitalizationTone {
+            id: "capital".to_owned(),
+            text_offset: 0,
+            frequency_hz: CAPITAL_TONE_HZ,
+            duration_ms: CAPITAL_TONE_DURATION_MS,
+        }];
+        let mut sink = ProgressiveChunkSink::new(
+            "A",
+            None,
+            PostSynthesisStyle::default(),
+            Vec::new(),
+            &state,
+            true,
+            true,
+            &tones,
+            &[],
+            &ctx,
+        )
+        .unwrap();
+        sink.start(SynthesisStreamStart {
+            engine_id: "exact".to_owned(),
+            actual_voice: None,
+            degraded_acss: Vec::new(),
+        })
+        .unwrap();
+
+        let error = match sink.finish(SynthesisStreamCompletion { frame_count: 0 }) {
+            Ok(_) => panic!("missing timeline anchor unexpectedly succeeded"),
+            Err(error) => error,
+        };
+
+        assert!(error
+            .to_string()
+            .contains("resolved 0 of 1 timeline anchors"));
     }
 
     #[test]

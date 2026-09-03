@@ -476,16 +476,45 @@ pub enum RuntimeProgressiveSynthesisOutcome {
 struct RoutedAttemptStreamSink<'a> {
     inner: &'a mut dyn SynthesisStreamSink,
     degraded_acss: Vec<omnivox_tts::contracts::AcssDimension>,
+    pending_start: Option<SynthesisStreamStart>,
+    pending_markers: Vec<(Vec<SynthesisMarker>, Vec<ResolvedAnchor>)>,
+    output_committed: bool,
     audio_accepted: bool,
+}
+
+impl RoutedAttemptStreamSink<'_> {
+    fn commit_preamble(&mut self) -> Result<(), TtsError> {
+        if self.output_committed {
+            return Ok(());
+        }
+        let start = self.pending_start.take().ok_or_else(|| {
+            TtsError::SynthesisFailed(
+                "progressive engine emitted output without stream metadata".to_owned(),
+            )
+        })?;
+        self.output_committed = true;
+        self.inner.start(start)?;
+        for (markers, anchors) in self.pending_markers.drain(..) {
+            self.inner.markers(markers, anchors)?;
+        }
+        Ok(())
+    }
 }
 
 impl SynthesisStreamSink for RoutedAttemptStreamSink<'_> {
     fn start(&mut self, mut start: SynthesisStreamStart) -> Result<(), TtsError> {
+        if self.pending_start.is_some() || self.output_committed {
+            return Err(TtsError::SynthesisFailed(
+                "progressive engine emitted stream metadata more than once".to_owned(),
+            ));
+        }
         start.degraded_acss = self.degraded_acss.clone();
-        self.inner.start(start)
+        self.pending_start = Some(start);
+        Ok(())
     }
 
     fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+        self.commit_preamble()?;
         self.inner.audio(audio)?;
         self.audio_accepted = true;
         Ok(())
@@ -496,7 +525,16 @@ impl SynthesisStreamSink for RoutedAttemptStreamSink<'_> {
         markers: Vec<SynthesisMarker>,
         anchors: Vec<ResolvedAnchor>,
     ) -> Result<(), TtsError> {
-        self.inner.markers(markers, anchors)
+        if self.output_committed {
+            self.inner.markers(markers, anchors)
+        } else if self.pending_start.is_none() {
+            Err(TtsError::SynthesisFailed(
+                "progressive engine emitted markers before stream metadata".to_owned(),
+            ))
+        } else {
+            self.pending_markers.push((markers, anchors));
+            Ok(())
+        }
     }
 }
 
@@ -734,6 +772,9 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
 
         if descriptor.capabilities.audio_output
             != omnivox_tts::contracts::AudioOutputMode::StreamingPcm
+            || (!anchors.is_empty()
+                && descriptor.capabilities.markers.requested_anchors
+                    == omnivox_tts::contracts::AnchorSupport::None)
         {
             let synthesis = route.engine.synthesize(&request).and_then(|mut result| {
                 result.resolve_anchors(&request, descriptor.capabilities.markers.requested_anchors);
@@ -783,9 +824,18 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
         let mut attempt_sink = RoutedAttemptStreamSink {
             inner: sink,
             degraded_acss: acss.omitted.clone(),
+            pending_start: None,
+            pending_markers: Vec::new(),
+            output_committed: false,
             audio_accepted: false,
         };
-        let synthesis = route.engine.synthesize_stream(&request, &mut attempt_sink);
+        let synthesis = route
+            .engine
+            .synthesize_stream(&request, &mut attempt_sink)
+            .and_then(|completion| {
+                attempt_sink.commit_preamble()?;
+                Ok(completion)
+            });
         match synthesis {
             Ok(completion) => {
                 runtime_health.record_success(&route.realized.engine_id, permit);
@@ -812,14 +862,15 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                     release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
                     return RuntimeProgressiveSynthesisOutcome::Cancelled;
                 }
+                let output_committed = attempt_sink.output_committed;
                 let audio_accepted = attempt_sink.audio_accepted;
                 record_synthesis_failure(runtime_health, route, &error, permit);
                 warn_synthesis_failure(route, attempt, started_at, &error, audio_accepted);
-                if audio_accepted {
+                if output_committed {
                     warn!(
                         engine_id = route.realized.engine_id,
                         attempt,
-                        "Progressive synthesis failed after PCM; refusing cross-engine splice"
+                        "Progressive synthesis failed after committing output; refusing cross-engine splice"
                     );
                     return RuntimeProgressiveSynthesisOutcome::Failed;
                 }
@@ -1305,6 +1356,7 @@ mod tests {
         SynthesisOnce(AtomicUsize),
         SynthesisAndCancel(SynthesisCancellationToken),
         StreamBeforeAudio,
+        StreamAfterMarkers,
         StreamAfterAudio,
     }
 
@@ -1369,7 +1421,11 @@ mod tests {
                     cancellation.cancel();
                     Err(TtsError::SynthesisFailed("cancelled mock".to_owned()))
                 }
-                Some(MockFailure::StreamBeforeAudio | MockFailure::StreamAfterAudio) => success(),
+                Some(
+                    MockFailure::StreamBeforeAudio
+                    | MockFailure::StreamAfterMarkers
+                    | MockFailure::StreamAfterAudio,
+                ) => success(),
                 Some(MockFailure::NotAvailableOnce(_) | MockFailure::SynthesisOnce(_)) => success(),
                 None => success(),
             }
@@ -1392,6 +1448,23 @@ mod tests {
             if matches!(self.failure.as_ref(), Some(MockFailure::StreamBeforeAudio)) {
                 return Err(TtsError::SynthesisFailed(
                     "stream failed before audio".to_owned(),
+                ));
+            }
+            if matches!(self.failure.as_ref(), Some(MockFailure::StreamAfterMarkers)) {
+                sink.markers(
+                    Vec::new(),
+                    request
+                        .anchors
+                        .iter()
+                        .map(|anchor| ResolvedAnchor {
+                            id: anchor.id.clone(),
+                            frame_offset: Some(0),
+                            resolution: omnivox_tts::AnchorResolution::Exact,
+                        })
+                        .collect(),
+                )?;
+                return Err(TtsError::SynthesisFailed(
+                    "stream failed after markers".to_owned(),
                 ));
             }
             sink.audio(AudioBuffer::new(vec![0.25, -0.25]))?;
@@ -1502,6 +1575,7 @@ mod tests {
     struct RecordingStreamSink {
         starts: Vec<SynthesisStreamStart>,
         audio: Vec<AudioBuffer>,
+        anchors: Vec<ResolvedAnchor>,
     }
 
     impl SynthesisStreamSink for RecordingStreamSink {
@@ -1518,8 +1592,9 @@ mod tests {
         fn markers(
             &mut self,
             _markers: Vec<SynthesisMarker>,
-            _anchors: Vec<ResolvedAnchor>,
+            anchors: Vec<ResolvedAnchor>,
         ) -> Result<(), TtsError> {
+            self.anchors.extend(anchors);
             Ok(())
         }
     }
@@ -1948,10 +2023,117 @@ mod tests {
             RuntimeProgressiveSynthesisOutcome::Buffered(_)
         ));
         assert_eq!(route.realized, PhysicalVoiceId::new("espeak", "en-us"));
-        assert_eq!(sink.starts.len(), 1);
+        assert!(sink.starts.is_empty());
         assert!(sink.audio.is_empty());
         assert_eq!(primary.calls.lock().unwrap().len(), 1);
         assert_eq!(fallback.calls.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn progressive_failure_after_anchors_discards_the_attempt_before_fallback() {
+        let mut primary =
+            streaming_synthesis_engine("eloquence", "reed", Some(MockFailure::StreamAfterMarkers));
+        Arc::get_mut(&mut primary)
+            .unwrap()
+            .descriptor
+            .capabilities
+            .markers
+            .requested_anchors = omnivox_tts::contracts::AnchorSupport::Exact;
+        let fallback = synthesis_engine("espeak", "en-us", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&primary) as Arc<dyn TtsEngine>)
+            .unwrap();
+        engines
+            .register(Arc::clone(&fallback) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("eloquence", "reed"), exact("espeak", "en-us")]),
+            FallbackPolicy::default(),
+        );
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
+        let generation = AtomicU64::new(1);
+        let mut sink = RecordingStreamSink::default();
+        let anchors = [RequestedAnchor::new(
+            "cue",
+            0,
+            omnivox_tts::AnchorAffinity::Before,
+        )];
+
+        let outcome = synthesize_progressively_with_runtime_fallback_anchored(
+            "hello",
+            &anchors,
+            &TtsSettings::default(),
+            None,
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            1,
+            &generation,
+            None,
+            &mut sink,
+        );
+
+        assert!(matches!(
+            outcome,
+            RuntimeProgressiveSynthesisOutcome::Buffered(_)
+        ));
+        assert!(sink.starts.is_empty());
+        assert!(sink.anchors.is_empty());
+        assert_eq!(route.realized, PhysicalVoiceId::new("espeak", "en-us"));
+    }
+
+    #[test]
+    fn progressive_route_buffers_when_requested_anchors_are_not_supported() {
+        let engine = streaming_synthesis_engine("streaming", "voice", None);
+        let mut engines = EngineRegistry::new();
+        engines
+            .register(Arc::clone(&engine) as Arc<dyn TtsEngine>)
+            .unwrap();
+        let mut routes = snapshot(
+            &engines,
+            definition(vec![exact("streaming", "voice")]),
+            FallbackPolicy::default(),
+        );
+        let mut route = routes.initial_route("source-code", &engines).unwrap();
+        let health = RuntimeEngineHealth::new();
+        let generation = AtomicU64::new(1);
+        let mut sink = RecordingStreamSink::default();
+        let anchors = [RequestedAnchor::new(
+            "cue",
+            0,
+            omnivox_tts::AnchorAffinity::Before,
+        )];
+
+        let outcome = synthesize_progressively_with_runtime_fallback_anchored(
+            "hello",
+            &anchors,
+            &TtsSettings::default(),
+            None,
+            &mut route,
+            &mut routes,
+            &engines,
+            &health,
+            1,
+            &generation,
+            None,
+            &mut sink,
+        );
+
+        let RuntimeProgressiveSynthesisOutcome::Buffered(result) = outcome else {
+            panic!("anchorless progressive route did not use buffered synthesis");
+        };
+        assert!(sink.starts.is_empty());
+        assert!(sink.audio.is_empty());
+        assert_eq!(result.anchors.len(), 1);
+        assert_eq!(
+            result.anchors[0].resolution,
+            omnivox_tts::AnchorResolution::Omitted
+        );
+        assert_eq!(engine.calls.lock().unwrap().len(), 1);
     }
 
     #[test]

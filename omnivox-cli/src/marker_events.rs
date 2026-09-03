@@ -589,6 +589,15 @@ pub struct PlaybackTimelineResolution {
     pub resolution: AnchorResolution,
 }
 
+/// One progressively resolved action and the playback frame where its
+/// placement becomes effective.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlaybackTimelineResolutionEvent {
+    pub action_id: TimelineActionId,
+    pub resolution: AnchorResolution,
+    pub frame_offset: u64,
+}
+
 pub struct PreparedMarkerPlayback {
     cues: Vec<PlaybackCue>,
     events: Arc<Vec<Arc<MarkerEventEnvelope>>>,
@@ -612,6 +621,7 @@ pub(crate) struct ProgressiveMarkerPublisher {
 }
 
 impl ProgressiveMarkerPublisher {
+    #[cfg(test)]
     pub(crate) fn push_markers<P>(
         &mut self,
         marker_dispatch: &MarkerDispatchContext,
@@ -622,7 +632,14 @@ impl ProgressiveMarkerPublisher {
     where
         P: Fn() -> bool,
     {
-        self.push_timeline_events(marker_dispatch, producer, markers, Vec::new(), predicate)
+        self.push_timeline_events(
+            marker_dispatch,
+            producer,
+            markers,
+            Vec::new(),
+            Vec::new(),
+            predicate,
+        )
     }
 
     pub(crate) fn push_timeline_events<P>(
@@ -630,13 +647,14 @@ impl ProgressiveMarkerPublisher {
         marker_dispatch: &MarkerDispatchContext,
         producer: &mut ProgressivePlaybackProducer,
         markers: Vec<SynthesisMarker>,
+        resolutions: Vec<PlaybackTimelineResolutionEvent>,
         semantic_events: Vec<PlaybackSemanticEvent>,
         predicate: P,
     ) -> Result<bool, AudioError>
     where
         P: Fn() -> bool,
     {
-        if markers.is_empty() && semantic_events.is_empty() {
+        if markers.is_empty() && resolutions.is_empty() && semantic_events.is_empty() {
             return Err(AudioError::InvalidFormat(
                 "progressive event batch is empty".to_owned(),
             ));
@@ -658,26 +676,40 @@ impl ProgressiveMarkerPublisher {
                 ))
             })?;
 
-        if !semantic_events.is_empty() && self.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION {
+        if (!resolutions.is_empty() || !semantic_events.is_empty())
+            && self.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION
+        {
             return Err(AudioError::InvalidFormat(
                 "progressive semantic events require a timeline dispatch".to_owned(),
             ));
         }
 
-        let marker_order_end = markers.len();
-        let mut pending = markers
+        let resolution_order_end = resolutions.len();
+        let marker_order_end = resolution_order_end + markers.len();
+        let mut pending = resolutions
             .into_iter()
             .enumerate()
-            .map(|(order, marker)| {
+            .map(|(order, resolution)| {
+                (
+                    resolution.frame_offset,
+                    order,
+                    MarkerEvent::TimelineActionResolved {
+                        utterance_id: self.utterance_id,
+                        action_id: resolution.action_id.as_str().to_owned(),
+                        resolution: resolution.resolution,
+                    },
+                )
+            })
+            .chain(markers.into_iter().enumerate().map(|(index, marker)| {
                 (
                     marker.frame_offset,
-                    order,
+                    resolution_order_end + index,
                     MarkerEvent::MarkerReached {
                         utterance_id: self.utterance_id,
                         marker,
                     },
                 )
-            })
+            }))
             .chain(
                 semantic_events
                     .into_iter()
@@ -1216,6 +1248,11 @@ mod tests {
                 &context,
                 &mut producer,
                 vec![marker(1, "hello")],
+                vec![PlaybackTimelineResolutionEvent {
+                    action_id: TimelineActionId::new("meaning").unwrap(),
+                    resolution: AnchorResolution::WordBoundary,
+                    frame_offset: 1,
+                }],
                 vec![PlaybackSemanticEvent {
                     action_id: TimelineActionId::new("meaning").unwrap(),
                     frame_offset: 1,
@@ -1247,10 +1284,17 @@ mod tests {
                 decode_marker_event(payload).unwrap()
             })
             .collect::<Vec<_>>();
-        assert_eq!(events.len(), 3);
-        assert!(matches!(events[1].event, MarkerEvent::MarkerReached { .. }));
+        assert_eq!(events.len(), 4);
         assert!(matches!(
-            events[2].event,
+            events[1].event,
+            MarkerEvent::TimelineActionResolved {
+                resolution: AnchorResolution::WordBoundary,
+                ..
+            }
+        ));
+        assert!(matches!(events[2].event, MarkerEvent::MarkerReached { .. }));
+        assert!(matches!(
+            events[3].event,
             MarkerEvent::SemanticEventReached {
                 ref action_id,
                 utterance_id: 1,
