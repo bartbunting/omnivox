@@ -13,13 +13,14 @@ use crate::rate_calibration::interpolate;
 #[cfg(test)]
 use crate::TtsSettings;
 use crate::{
-    AudioBuffer, SynthesisCancellationToken, SynthesisMarker, SynthesisMarkerKind,
-    SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
-    SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
+    AnchorResolution, AudioBuffer, ResolvedAnchor, SynthesisCancellationToken, SynthesisMarker,
+    SynthesisMarkerKind, SynthesisRequest, SynthesisResult, SynthesisStreamCompletion,
+    SynthesisStreamSink, SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
 };
 use omnivox_audio::ProgressivePcmCanonicalizer;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::ffi::{CStr, CString};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
@@ -68,6 +69,8 @@ struct EspeakSynthesisCapture {
     stream_sender: Option<SyncSender<EspeakStreamEvent>>,
     native_samples: usize,
     marker_count: usize,
+    expected_anchor_count: usize,
+    reported_anchors: HashSet<usize>,
     failure: Option<String>,
 }
 
@@ -85,6 +88,7 @@ enum EspeakStreamEvent {
 enum EspeakNativeMarkerKind {
     Word,
     Sentence,
+    Anchor(usize),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -95,6 +99,151 @@ struct EspeakNativeMarker {
     /// Unicode character count; eSpeak supplies this only for words.
     text_length: usize,
     audio_position_ms: u64,
+}
+
+struct EspeakInput {
+    text: CString,
+    flags: u32,
+    /// For SSML input, map each generated Unicode character boundary back to
+    /// the corresponding UTF-8 byte boundary in the caller's plain text.
+    source_boundaries: Option<Vec<u32>>,
+}
+
+impl EspeakInput {
+    fn for_request(request: &SynthesisRequest) -> Result<Self, TtsError> {
+        if request.anchors.is_empty() {
+            return Ok(Self {
+                text: CString::new(request.text.as_str()).map_err(|_| {
+                    TtsError::SynthesisFailed("Text contains null bytes".to_owned())
+                })?,
+                flags: espeak_rs_sys::espeakENDPAUSE,
+                source_boundaries: None,
+            });
+        }
+
+        let mut generated = String::new();
+        let mut source_boundaries = vec![0_u32];
+        append_generated_text(&mut generated, &mut source_boundaries, "<speak>", 0, 0);
+
+        let mut anchors = request.anchors.iter().enumerate().collect::<Vec<_>>();
+        anchors.sort_by_key(|(index, anchor)| (anchor.text_offset, *index));
+        let mut next_anchor = 0;
+        for (source_start, character) in request.text.char_indices() {
+            while anchors
+                .get(next_anchor)
+                .is_some_and(|(_, anchor)| anchor.text_offset as usize == source_start)
+            {
+                let (index, anchor) = anchors[next_anchor];
+                append_espeak_anchor(
+                    &mut generated,
+                    &mut source_boundaries,
+                    index,
+                    anchor.text_offset,
+                );
+                next_anchor += 1;
+            }
+            let source_end = source_start + character.len_utf8();
+            let escaped = match character {
+                '&' => "&amp;",
+                '<' => "&lt;",
+                '>' => "&gt;",
+                '"' => "&quot;",
+                '\'' => "&apos;",
+                _ => {
+                    generated.push(character);
+                    source_boundaries.push(source_end as u32);
+                    continue;
+                }
+            };
+            append_generated_text(
+                &mut generated,
+                &mut source_boundaries,
+                escaped,
+                source_start as u32,
+                source_end as u32,
+            );
+        }
+        while let Some((index, anchor)) = anchors.get(next_anchor).copied() {
+            append_espeak_anchor(
+                &mut generated,
+                &mut source_boundaries,
+                index,
+                anchor.text_offset,
+            );
+            next_anchor += 1;
+        }
+        let source_end = request.text.len() as u32;
+        append_generated_text(
+            &mut generated,
+            &mut source_boundaries,
+            "</speak>",
+            source_end,
+            source_end,
+        );
+        Ok(Self {
+            text: CString::new(generated).map_err(|_| {
+                TtsError::SynthesisFailed("Generated eSpeak SSML contains a null byte".to_owned())
+            })?,
+            flags: espeak_rs_sys::espeakENDPAUSE | espeak_rs_sys::espeakSSML,
+            source_boundaries: Some(source_boundaries),
+        })
+    }
+
+    fn source_range(
+        &self,
+        plain_text: &str,
+        one_based_start: usize,
+        character_length: usize,
+    ) -> Option<(u32, u32)> {
+        if let Some(boundaries) = &self.source_boundaries {
+            let start_character = one_based_start.checked_sub(1)?;
+            let end_character = start_character.checked_add(character_length)?;
+            let start = *boundaries.get(start_character)?;
+            let end = *boundaries.get(end_character)?;
+            return Some((start, end.saturating_sub(start)));
+        }
+        utf8_range_for_characters(plain_text, one_based_start, character_length)
+    }
+
+    fn character_boundary_count(&self, plain_text: &str) -> usize {
+        self.source_boundaries.as_ref().map_or_else(
+            || plain_text.chars().count() + 1,
+            |boundaries| boundaries.len(),
+        )
+    }
+}
+
+fn append_espeak_anchor(
+    generated: &mut String,
+    source_boundaries: &mut Vec<u32>,
+    index: usize,
+    source_offset: u32,
+) {
+    append_generated_text(
+        generated,
+        source_boundaries,
+        &format!("<mark name=\"ovx{index}\"/>"),
+        source_offset,
+        source_offset,
+    );
+}
+
+fn append_generated_text(
+    generated: &mut String,
+    source_boundaries: &mut Vec<u32>,
+    text: &str,
+    source_start: u32,
+    source_end: u32,
+) {
+    let character_count = text.chars().count();
+    for (index, character) in text.chars().enumerate() {
+        generated.push(character);
+        source_boundaries.push(if index + 1 == character_count {
+            source_end
+        } else {
+            source_start
+        });
+    }
 }
 
 /// espeak-ng TTS engine
@@ -177,6 +326,16 @@ impl EspeakSynthesisCapture {
             return Err("eSpeak returned too many synchronization markers".to_owned());
         }
         self.marker_count += markers.len();
+        for marker in &markers {
+            if let EspeakNativeMarkerKind::Anchor(index) = marker.kind {
+                if index >= self.expected_anchor_count {
+                    return Err("eSpeak returned an unknown requested anchor".to_owned());
+                }
+                if !self.reported_anchors.insert(index) {
+                    return Err("eSpeak returned a requested anchor more than once".to_owned());
+                }
+            }
+        }
 
         let sample_count = usize::try_from(sample_count)
             .map_err(|_| "eSpeak returned a negative PCM sample count".to_owned())?;
@@ -241,6 +400,22 @@ unsafe fn native_markers_from_callback(
             espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_SENTENCE => {
                 EspeakNativeMarkerKind::Sentence
             }
+            espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_MARK => {
+                let name = unsafe { event.id.name };
+                if name.is_null() {
+                    return Err("eSpeak returned a mark without a name".to_owned());
+                }
+                let name = unsafe { CStr::from_ptr(name) }
+                    .to_str()
+                    .map_err(|_| "eSpeak returned a non-UTF-8 mark name".to_owned())?;
+                let Some(index) = name
+                    .strip_prefix("ovx")
+                    .and_then(|value| value.parse::<usize>().ok())
+                else {
+                    return Err("eSpeak returned an unknown mark name".to_owned());
+                };
+                EspeakNativeMarkerKind::Anchor(index)
+            }
             _ => continue,
         };
         if event.text_position <= 0 || event.audio_position < 0 {
@@ -284,7 +459,7 @@ impl EspeakTtsEngine {
             markers: MarkerCapabilities {
                 word: true,
                 sentence: true,
-                requested_anchors: AnchorSupport::WordBoundary,
+                requested_anchors: AnchorSupport::Exact,
                 ..MarkerCapabilities::default()
             },
             language_switching: true,
@@ -503,15 +678,11 @@ impl EspeakTtsEngine {
 
     fn markers_from_native(
         text: &str,
+        input: &EspeakInput,
         native_markers: &[EspeakNativeMarker],
         sample_rate: u32,
         frame_count: u64,
     ) -> Vec<SynthesisMarker> {
-        let character_boundaries = text
-            .char_indices()
-            .map(|(index, _)| index)
-            .chain(std::iter::once(text.len()))
-            .collect::<Vec<_>>();
         let sentence_positions = native_markers
             .iter()
             .filter(|marker| marker.kind == EspeakNativeMarkerKind::Sentence)
@@ -527,14 +698,12 @@ impl EspeakTtsEngine {
                         .copied()
                         .filter(|position| *position > native.text_position)
                         .min()
-                        .unwrap_or(character_boundaries.len())
+                        .unwrap_or(input.character_boundary_count(text))
                         .saturating_sub(native.text_position),
+                    EspeakNativeMarkerKind::Anchor(_) => return None,
                 };
-                let (text_start, text_length) = utf8_range_for_character_boundaries(
-                    &character_boundaries,
-                    native.text_position,
-                    character_length,
-                )?;
+                let (text_start, text_length) =
+                    input.source_range(text, native.text_position, character_length)?;
                 let frame_offset = native
                     .audio_position_ms
                     .saturating_mul(u64::from(sample_rate))
@@ -544,11 +713,39 @@ impl EspeakTtsEngine {
                     kind: match native.kind {
                         EspeakNativeMarkerKind::Word => SynthesisMarkerKind::Word,
                         EspeakNativeMarkerKind::Sentence => SynthesisMarkerKind::Sentence,
+                        EspeakNativeMarkerKind::Anchor(_) => unreachable!(),
                     },
                     frame_offset: frame_offset.min(frame_count),
                     text_start: Some(text_start),
                     text_length: Some(text_length),
                     value: None,
+                })
+            })
+            .collect()
+    }
+
+    fn anchors_from_native(
+        request: &SynthesisRequest,
+        native_markers: &[EspeakNativeMarker],
+        sample_rate: u32,
+        frame_count: u64,
+    ) -> Vec<ResolvedAnchor> {
+        native_markers
+            .iter()
+            .filter_map(|native| {
+                let EspeakNativeMarkerKind::Anchor(index) = native.kind else {
+                    return None;
+                };
+                let requested = request.anchors.get(index)?;
+                let frame_offset = native
+                    .audio_position_ms
+                    .saturating_mul(u64::from(sample_rate))
+                    .saturating_add(500)
+                    / 1_000;
+                Some(ResolvedAnchor {
+                    id: requested.id.clone(),
+                    frame_offset: Some(frame_offset.min(frame_count)),
+                    resolution: AnchorResolution::Exact,
                 })
             })
             .collect()
@@ -858,6 +1055,7 @@ impl EspeakTtsEngine {
     fn produce_stream(
         &self,
         request: &SynthesisRequest,
+        input: &EspeakInput,
         sender: SyncSender<EspeakStreamEvent>,
     ) -> Result<(), TtsError> {
         let voice_id = request.voice_id_for_engine("espeak")?.to_owned();
@@ -927,9 +1125,7 @@ impl EspeakTtsEngine {
                     )
                 })?;
 
-            let text_cstr = CString::new(request.text.as_str())
-                .map_err(|_| TtsError::SynthesisFailed("Text contains null bytes".to_owned()))?;
-            let text_len = text_cstr.as_bytes_with_nul().len();
+            let text_len = input.text.as_bytes_with_nul().len();
             {
                 let mut capture = SYNTH_CAPTURE.lock().map_err(|error| {
                     TtsError::SynthesisFailed(format!("Capture lock poisoned: {error}"))
@@ -937,16 +1133,17 @@ impl EspeakTtsEngine {
                 *capture = Some(EspeakSynthesisCapture {
                     cancellation: request.cancellation.clone(),
                     stream_sender: Some(sender),
+                    expected_anchor_count: request.anchors.len(),
                     ..EspeakSynthesisCapture::default()
                 });
             }
             let result = espeak_rs_sys::espeak_Synth(
-                text_cstr.as_ptr() as *const c_void,
+                input.text.as_ptr() as *const c_void,
                 text_len,
                 0,
                 0,
                 0,
-                0x1000,
+                input.flags,
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
             );
@@ -972,6 +1169,13 @@ impl EspeakTtsEngine {
         if let Some(failure) = capture.failure {
             return Err(TtsError::SynthesisFailed(failure));
         }
+        if capture.reported_anchors.len() != capture.expected_anchor_count {
+            return Err(TtsError::SynthesisFailed(format!(
+                "eSpeak reported {} of {} requested anchors",
+                capture.reported_anchors.len(),
+                capture.expected_anchor_count
+            )));
+        }
         Ok(())
     }
 }
@@ -994,8 +1198,19 @@ impl TtsEngine for EspeakTtsEngine {
             ));
         }
         if text.is_empty() {
-            return Ok(SynthesisResult::audio("espeak", None, AudioBuffer::empty()));
+            let mut result = SynthesisResult::audio("espeak", None, AudioBuffer::empty());
+            result.anchors = request
+                .anchors
+                .iter()
+                .map(|anchor| ResolvedAnchor {
+                    id: anchor.id.clone(),
+                    frame_offset: Some(0),
+                    resolution: AnchorResolution::Exact,
+                })
+                .collect();
+            return Ok(result);
         }
+        let input = EspeakInput::for_request(request)?;
 
         let voice_id = request.voice_id_for_engine("espeak")?.to_owned();
 
@@ -1059,9 +1274,7 @@ impl TtsEngine for EspeakTtsEngine {
                 0,
             );
 
-            let text_cstr = CString::new(text)
-                .map_err(|_| TtsError::SynthesisFailed("Text contains null bytes".to_string()))?;
-            let text_len = text_cstr.as_bytes_with_nul().len();
+            let text_len = input.text.as_bytes_with_nul().len();
 
             // Prepare the synthesis capture before eSpeak starts invoking the callback.
             {
@@ -1070,18 +1283,19 @@ impl TtsEngine for EspeakTtsEngine {
                 })?;
                 *capture = Some(EspeakSynthesisCapture {
                     cancellation: request.cancellation.clone(),
+                    expected_anchor_count: request.anchors.len(),
                     ..EspeakSynthesisCapture::default()
                 });
             }
 
             // Synthesize
             let result = espeak_rs_sys::espeak_Synth(
-                text_cstr.as_ptr() as *const c_void,
+                input.text.as_ptr() as *const c_void,
                 text_len,
-                0,                    // start position
-                0,                    // POS_CHARACTER
-                0,                    // end position (0 = all)
-                0x1000,               // espeakCHARS_UTF8
+                0, // start position
+                0, // POS_CHARACTER
+                0, // end position (0 = all)
+                input.flags,
                 std::ptr::null_mut(), // unique identifier
                 std::ptr::null_mut(), // user data
             );
@@ -1120,6 +1334,13 @@ impl TtsEngine for EspeakTtsEngine {
         if let Some(failure) = capture.failure {
             return Err(TtsError::SynthesisFailed(failure));
         }
+        if capture.reported_anchors.len() != capture.expected_anchor_count {
+            return Err(TtsError::SynthesisFailed(format!(
+                "eSpeak reported {} of {} requested anchors",
+                capture.reported_anchors.len(),
+                capture.expected_anchor_count
+            )));
+        }
 
         if capture.samples.is_empty() {
             debug!("espeak-ng produced no audio");
@@ -1138,6 +1359,13 @@ impl TtsEngine for EspeakTtsEngine {
 
         let markers = Self::markers_from_native(
             text,
+            &input,
+            &capture.markers,
+            sample_rate,
+            capture.samples.len() as u64,
+        );
+        let anchors = Self::anchors_from_native(
+            request,
             &capture.markers,
             sample_rate,
             capture.samples.len() as u64,
@@ -1149,7 +1377,7 @@ impl TtsEngine for EspeakTtsEngine {
             sample_rate,
             1,
             markers,
-            Vec::new(),
+            anchors,
         )?;
         result.degraded_acss = request
             .normalized_acss
@@ -1173,27 +1401,6 @@ impl TtsEngine for EspeakTtsEngine {
                 "espeak synthesis was cancelled".to_owned(),
             ));
         }
-        // Word-boundary `After` anchors need a future word event to finalize
-        // the preceding boundary. Keep those explicit requests on the
-        // established buffered path and publish their metadata before PCM.
-        if !request.anchors.is_empty() {
-            let mut result = self.synthesize(request)?;
-            result.resolve_anchors(request, AnchorSupport::WordBoundary);
-            result.validate(request)?;
-            let frame_count = result.audio.frame_count() as u64;
-            sink.start(SynthesisStreamStart {
-                engine_id: result.engine_id,
-                actual_voice: result.actual_voice,
-                degraded_acss: result.degraded_acss,
-            })?;
-            if !result.markers.is_empty() || !result.anchors.is_empty() {
-                sink.markers(result.markers, result.anchors)?;
-            }
-            if !result.audio.is_empty() {
-                sink.audio(result.audio)?;
-            }
-            return Ok(SynthesisStreamCompletion { frame_count });
-        }
         if request.text.is_empty() {
             sink.start(SynthesisStreamStart {
                 engine_id: "espeak".to_owned(),
@@ -1204,12 +1411,27 @@ impl TtsEngine for EspeakTtsEngine {
                     .degrade_for(&Self::capabilities().acss)
                     .omitted,
             })?;
+            if !request.anchors.is_empty() {
+                sink.markers(
+                    Vec::new(),
+                    request
+                        .anchors
+                        .iter()
+                        .map(|anchor| ResolvedAnchor {
+                            id: anchor.id.clone(),
+                            frame_offset: Some(0),
+                            resolution: AnchorResolution::Exact,
+                        })
+                        .collect(),
+                )?;
+            }
             return Ok(SynthesisStreamCompletion { frame_count: 0 });
         }
+        let input = EspeakInput::for_request(request)?;
 
         std::thread::scope(|scope| {
             let (sender, receiver) = sync_channel(STREAM_CHANNEL_CAPACITY);
-            let producer = scope.spawn(|| self.produce_stream(request, sender));
+            let producer = scope.spawn(|| self.produce_stream(request, &input, sender));
             let mut canonicalizer = None;
             let mut stream_error = None;
             let mut started = false;
@@ -1249,11 +1471,12 @@ impl TtsEngine for EspeakTtsEngine {
                             ));
                             break;
                         }
-                        let markers = progressive_markers_from_native(&request.text, &native);
-                        if markers.is_empty() {
+                        let (markers, anchors) =
+                            progressive_timing_from_native(&request.text, &input, request, &native);
+                        if markers.is_empty() && anchors.is_empty() {
                             Ok(())
                         } else {
-                            sink.markers(markers, Vec::new())
+                            sink.markers(markers, anchors)
                         }
                     }
                     EspeakStreamEvent::Audio(samples) => {
@@ -1370,15 +1593,12 @@ fn take_synthesis_capture() -> Result<EspeakSynthesisCapture, TtsError> {
     })
 }
 
-fn progressive_markers_from_native(
+fn progressive_timing_from_native(
     text: &str,
+    input: &EspeakInput,
+    request: &SynthesisRequest,
     native_markers: &[EspeakNativeMarker],
-) -> Vec<SynthesisMarker> {
-    let character_boundaries = text
-        .char_indices()
-        .map(|(index, _)| index)
-        .chain(std::iter::once(text.len()))
-        .collect::<Vec<_>>();
+) -> (Vec<SynthesisMarker>, Vec<ResolvedAnchor>) {
     let mut markers = native_markers
         .iter()
         .filter_map(|native| {
@@ -1388,12 +1608,10 @@ fn progressive_markers_from_native(
                 // sentence event. A zero-length range truthfully preserves the
                 // known boundary without delaying the marker behind its PCM.
                 EspeakNativeMarkerKind::Sentence => 0,
+                EspeakNativeMarkerKind::Anchor(_) => return None,
             };
-            let (text_start, text_length) = utf8_range_for_character_boundaries(
-                &character_boundaries,
-                native.text_position,
-                character_length,
-            )?;
+            let (text_start, text_length) =
+                input.source_range(text, native.text_position, character_length)?;
             let frame_offset = native
                 .audio_position_ms
                 .saturating_mul(u64::from(crate::STANDARD_SAMPLE_RATE))
@@ -1403,6 +1621,7 @@ fn progressive_markers_from_native(
                 kind: match native.kind {
                     EspeakNativeMarkerKind::Word => SynthesisMarkerKind::Word,
                     EspeakNativeMarkerKind::Sentence => SynthesisMarkerKind::Sentence,
+                    EspeakNativeMarkerKind::Anchor(_) => unreachable!(),
                 },
                 frame_offset,
                 text_start: Some(text_start),
@@ -1412,7 +1631,27 @@ fn progressive_markers_from_native(
         })
         .collect::<Vec<_>>();
     markers.sort_by_key(|marker| marker.frame_offset);
-    markers
+    let mut anchors = native_markers
+        .iter()
+        .filter_map(|native| {
+            let EspeakNativeMarkerKind::Anchor(index) = native.kind else {
+                return None;
+            };
+            let requested = request.anchors.get(index)?;
+            let frame_offset = native
+                .audio_position_ms
+                .saturating_mul(u64::from(crate::STANDARD_SAMPLE_RATE))
+                .saturating_add(500)
+                / 1_000;
+            Some(ResolvedAnchor {
+                id: requested.id.clone(),
+                frame_offset: Some(frame_offset),
+                resolution: AnchorResolution::Exact,
+            })
+        })
+        .collect::<Vec<_>>();
+    anchors.sort_by_key(|anchor| anchor.frame_offset);
+    (markers, anchors)
 }
 
 fn emit_espeak_audio_windows(
@@ -1428,7 +1667,6 @@ fn emit_espeak_audio_windows(
 }
 
 /// Convert eSpeak's one-based Unicode character range to Omnivox's UTF-8 byte range.
-#[cfg(test)]
 fn utf8_range_for_characters(
     text: &str,
     one_based_start: usize,
@@ -1489,10 +1727,13 @@ mod tests {
             anchors: Vec<crate::ResolvedAnchor>,
         ) -> Result<(), TtsError> {
             assert!(self.started);
-            assert!(!markers.is_empty());
+            assert!(!markers.is_empty() || !anchors.is_empty());
             assert!(markers
                 .iter()
                 .all(|marker| marker.frame_offset >= self.frames));
+            assert!(anchors.iter().all(|anchor| anchor
+                .frame_offset
+                .is_some_and(|frame| frame >= self.frames)));
             self.markers.extend(markers);
             self.anchors.extend(anchors);
             Ok(())
@@ -1653,7 +1894,7 @@ mod tests {
         assert!(descriptor.capabilities.markers.sentence);
         assert_eq!(
             descriptor.capabilities.markers.requested_anchors,
-            AnchorSupport::WordBoundary
+            AnchorSupport::Exact
         );
         assert!(descriptor
             .voices
@@ -1777,14 +2018,14 @@ mod tests {
     }
 
     #[test]
-    fn anchored_espeak_stream_publishes_metadata_before_buffered_audio() {
+    fn anchored_espeak_streams_native_marks_before_their_audio() {
         let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
         let request = SynthesisRequest::new("hello world", TtsSettings::default())
-            .with_anchors(vec![crate::RequestedAnchor::new(
-                "middle",
-                6,
-                crate::AnchorAffinity::Before,
-            )])
+            .with_anchors(vec![
+                crate::RequestedAnchor::new("start", 0, crate::AnchorAffinity::Before),
+                crate::RequestedAnchor::new("middle", 6, crate::AnchorAffinity::After),
+                crate::RequestedAnchor::new("end", 11, crate::AnchorAffinity::After),
+            ])
             .unwrap();
         let mut sink = RecordingStreamSink::default();
 
@@ -1793,9 +2034,55 @@ mod tests {
             .expect("Anchored synthesis failed");
 
         assert_eq!(completion.frame_count, sink.frames);
-        assert_eq!(sink.audio_windows, 1);
-        assert_eq!(sink.anchors.len(), 1);
-        assert_eq!(sink.anchors[0].id, "middle");
+        assert!(sink.audio_windows > 1);
+        assert_eq!(sink.anchors.len(), 3);
+        assert_eq!(sink.anchors[0].id, "start");
+        assert_eq!(sink.anchors[1].id, "middle");
+        assert_eq!(sink.anchors[2].id, "end");
+        assert!(sink
+            .anchors
+            .iter()
+            .all(|anchor| anchor.resolution == AnchorResolution::Exact));
+    }
+
+    #[test]
+    fn native_marks_preserve_espeak_audio_and_plain_text_ranges() {
+        let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        let text = "héllo world";
+        let plain = engine
+            .synthesize(&SynthesisRequest::new(text, TtsSettings::default()))
+            .expect("Plain synthesis failed");
+        let request = SynthesisRequest::new(text, TtsSettings::default())
+            .with_anchors(vec![crate::RequestedAnchor::new(
+                "world",
+                7,
+                crate::AnchorAffinity::After,
+            )])
+            .unwrap();
+        let marked = engine
+            .synthesize(&request)
+            .expect("Marked synthesis failed");
+
+        marked.validate(&request).unwrap();
+        let sample_count_delta = marked
+            .audio
+            .samples
+            .len()
+            .abs_diff(plain.audio.samples.len());
+        assert!(sample_count_delta * 100 < plain.audio.samples.len() * 2);
+        assert_eq!(marked.anchors.len(), 1);
+        assert!(marked
+            .anchors
+            .iter()
+            .all(|anchor| anchor.resolution == AnchorResolution::Exact));
+        let word_ranges = marked
+            .markers
+            .iter()
+            .filter(|marker| marker.kind == SynthesisMarkerKind::Word)
+            .map(|marker| (marker.text_start, marker.text_length))
+            .collect::<Vec<_>>();
+        assert!(word_ranges.contains(&(Some(0), Some(6))));
+        assert!(word_ranges.contains(&(Some(7), Some(5))));
     }
 
     #[test]
@@ -1887,7 +2174,9 @@ mod tests {
             },
         ];
 
-        let markers = EspeakTtsEngine::markers_from_native(text, &native, 22_050, 44_100);
+        let request = SynthesisRequest::new(text, TtsSettings::default());
+        let input = EspeakInput::for_request(&request).unwrap();
+        let markers = EspeakTtsEngine::markers_from_native(text, &input, &native, 22_050, 44_100);
 
         assert_eq!(
             (markers[0].text_start, markers[0].text_length),
