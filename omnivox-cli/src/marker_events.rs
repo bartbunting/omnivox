@@ -622,9 +622,23 @@ impl ProgressiveMarkerPublisher {
     where
         P: Fn() -> bool,
     {
-        if markers.is_empty() {
+        self.push_timeline_events(marker_dispatch, producer, markers, Vec::new(), predicate)
+    }
+
+    pub(crate) fn push_timeline_events<P>(
+        &mut self,
+        marker_dispatch: &MarkerDispatchContext,
+        producer: &mut ProgressivePlaybackProducer,
+        markers: Vec<SynthesisMarker>,
+        semantic_events: Vec<PlaybackSemanticEvent>,
+        predicate: P,
+    ) -> Result<bool, AudioError>
+    where
+        P: Fn() -> bool,
+    {
+        if markers.is_empty() && semantic_events.is_empty() {
             return Err(AudioError::InvalidFormat(
-                "progressive marker batch is empty".to_owned(),
+                "progressive event batch is empty".to_owned(),
             ));
         }
         if marker_dispatch.dispatch_id != self.dispatch_id
@@ -644,32 +658,66 @@ impl ProgressiveMarkerPublisher {
                 ))
             })?;
 
-        let mut envelopes = Vec::with_capacity(markers.len());
-        let mut cues = Vec::with_capacity(markers.len());
+        if !semantic_events.is_empty() && self.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION {
+            return Err(AudioError::InvalidFormat(
+                "progressive semantic events require a timeline dispatch".to_owned(),
+            ));
+        }
+
+        let marker_order_end = markers.len();
+        let mut pending = markers
+            .into_iter()
+            .enumerate()
+            .map(|(order, marker)| {
+                (
+                    marker.frame_offset,
+                    order,
+                    MarkerEvent::MarkerReached {
+                        utterance_id: self.utterance_id,
+                        marker,
+                    },
+                )
+            })
+            .chain(
+                semantic_events
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, event)| {
+                        (
+                            event.frame_offset,
+                            marker_order_end + index,
+                            MarkerEvent::SemanticEventReached {
+                                utterance_id: self.utterance_id,
+                                action_id: event.action_id.as_str().to_owned(),
+                            },
+                        )
+                    }),
+            )
+            .collect::<Vec<_>>();
+        pending.sort_by_key(|(frame_offset, order, _)| (*frame_offset, *order));
+        let mut envelopes = Vec::with_capacity(pending.len());
+        let mut cues = Vec::with_capacity(pending.len());
         let first_identifier = self.events.lock().unwrap().len() as u64;
-        for (index, marker) in markers.into_iter().enumerate() {
+        for (index, (frame_offset, _, event)) in pending.into_iter().enumerate() {
             if self
                 .last_frame_offset
-                .is_some_and(|offset| marker.frame_offset < offset)
+                .is_some_and(|offset| frame_offset < offset)
             {
                 return Err(AudioError::InvalidFormat(
-                    "progressive markers are out of playback order".to_owned(),
+                    "progressive events are out of playback order".to_owned(),
                 ));
             }
-            self.last_frame_offset = Some(marker.frame_offset);
+            self.last_frame_offset = Some(frame_offset);
             envelopes.push(Arc::new(MarkerEventEnvelope {
                 protocol_version: self.protocol_version,
                 dispatch_id: self.dispatch_id,
                 sequence: increment(&marker_dispatch.next_sequence),
-                event: MarkerEvent::MarkerReached {
-                    utterance_id: self.utterance_id,
-                    marker,
-                },
+                event,
             }));
             cues.push(PlaybackCue {
-                frame_offset: self.last_frame_offset.unwrap(),
+                frame_offset,
                 identifier: first_identifier.checked_add(index as u64).ok_or_else(|| {
-                    AudioError::InvalidFormat("progressive marker identifier overflowed".to_owned())
+                    AudioError::InvalidFormat("progressive event identifier overflowed".to_owned())
                 })?,
             });
         }
@@ -1134,6 +1182,79 @@ mod tests {
                 ref marker,
                 utterance_id: 1,
             } if marker.frame_offset == 1 && marker.value.as_deref() == Some("hello")
+        ));
+    }
+
+    #[test]
+    fn progressive_timeline_events_share_the_ordered_playback_clock() {
+        let writer = RecordingWriter::default();
+        let written = writer.bytes.clone();
+        let (output, reporter) = spawn_marker_event_reporter_with_writer(writer);
+        let context = MarkerDispatchContext::with_timeline_events(94, output);
+        let prepared = context.prepare_timeline_utterance(
+            "hello",
+            "helper",
+            None,
+            None,
+            44100,
+            0,
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+        );
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let (mut producer, ticket, mut publisher) = prepared
+            .queue_progressive_cancellable_if(&control, CancellationToken::new(), || true)
+            .unwrap()
+            .unwrap();
+
+        assert!(publisher
+            .push_timeline_events(
+                &context,
+                &mut producer,
+                vec![marker(1, "hello")],
+                vec![PlaybackSemanticEvent {
+                    action_id: TimelineActionId::new("meaning").unwrap(),
+                    frame_offset: 1,
+                }],
+                || true,
+            )
+            .unwrap());
+        producer
+            .push_audio(AudioBuffer::new(vec![0.1, -0.1, 0.2, -0.2]))
+            .unwrap();
+        producer.finish().unwrap();
+
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+        control.drain();
+        drop(publisher);
+        drop(context);
+        drop(control);
+        drop(streams);
+        reporter.join().unwrap();
+
+        let records = String::from_utf8(written.lock().unwrap().clone()).unwrap();
+        let events = records
+            .lines()
+            .map(|record| {
+                let payload = record
+                    .strip_prefix(MARKER_EVENT_PREFIX)
+                    .unwrap()
+                    .trim_start();
+                decode_marker_event(payload).unwrap()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(events.len(), 3);
+        assert!(matches!(events[1].event, MarkerEvent::MarkerReached { .. }));
+        assert!(matches!(
+            events[2].event,
+            MarkerEvent::SemanticEventReached {
+                ref action_id,
+                utterance_id: 1,
+            } if action_id == "meaning"
         ));
     }
 
