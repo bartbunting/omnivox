@@ -1,9 +1,11 @@
 //! RuTTS v6.3.3 adapter for the isolated Omnivox companion.
 
 use std::ffi::{c_int, c_void};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
+use omnivox_audio::ProgressivePcmCanonicalizer;
 use omnivox_tts::contracts::{
     buffered_post_synthesis_dimensions, AcssCapabilities, AudioOutputMode, Availability,
     CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor, EngineHealth,
@@ -12,8 +14,9 @@ use omnivox_tts::contracts::{
 use omnivox_tts::helper_protocol::MAX_HELPER_SYNTHESIS_BYTES;
 use omnivox_tts::rate_calibration::interpolate;
 use omnivox_tts::{
-    AudioBuffer, SynthesisCancellationToken, SynthesisRequest, SynthesisResult, TtsEngine,
-    TtsError, VoiceInfo, VoiceQuality,
+    AudioBuffer, SynthesisCancellationToken, SynthesisRequest, SynthesisResult,
+    SynthesisStreamCompletion, SynthesisStreamSink, SynthesisStreamStart, TtsEngine, TtsError,
+    VoiceInfo, VoiceQuality,
 };
 
 const ENGINE_ID: &str = "rutts";
@@ -133,6 +136,88 @@ impl TtsEngine for RuttsTtsEngine {
         Ok(result)
     }
 
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        let voice_id = request.voice_id_for_engine(ENGINE_ID)?;
+        let alternative_voice = match voice_id {
+            MALE_VOICE_ID => false,
+            FEMALE_VOICE_ID => true,
+            _ => return Err(TtsError::VoiceNotFound(voice_id.to_owned())),
+        };
+        let actual_voice = Some(PhysicalVoiceId::new(ENGINE_ID, voice_id));
+        let degraded_acss = request
+            .normalized_acss
+            .clone()
+            .degrade_for(&capabilities().acss)
+            .omitted;
+        sink.start(SynthesisStreamStart {
+            engine_id: ENGINE_ID.to_owned(),
+            actual_voice,
+            degraded_acss,
+        })?;
+        if request.text.is_empty() {
+            return Ok(SynthesisStreamCompletion { frame_count: 0 });
+        }
+
+        let text = encode_koi8_r(&request.text)?;
+        let _runtime = self.runtime()?;
+        self.cancellation.store(false, Ordering::Release);
+        self.speaking.store(true, Ordering::Release);
+        let _speaking = SpeakingGuard(&self.speaking);
+        let canonicalizer =
+            ProgressivePcmCanonicalizer::new(omnivox_rutts_sys::RUTTS_SAMPLE_RATE, 1).map_err(
+                |error| {
+                    TtsError::SynthesisFailed(format!(
+                        "could not initialize progressive RuTTS PCM conversion: {error}"
+                    ))
+                },
+            )?;
+        let mut capture = StreamingCapture {
+            canonicalizer,
+            sink,
+            cancellation: &self.cancellation,
+            request_cancellation: request.cancellation.as_ref(),
+            volume: request.settings.volume.clamp(0.0, 1.0),
+            native_samples: 0,
+            failure: None,
+        };
+        let status = unsafe {
+            omnivox_rutts_sys::omnivox_rutts_synthesize(
+                text.as_ptr().cast(),
+                map_rate(request.settings.rate),
+                map_pitch(request.settings.pitch),
+                map_intonation(request.normalized_acss.pitch_range),
+                i32::from(alternative_voice),
+                consume_streaming_pcm,
+                std::ptr::from_mut(&mut capture).cast(),
+            )
+        };
+        if let Some(failure) = capture.failure.take() {
+            return Err(failure);
+        }
+        if capture.cancelled() || status > 0 {
+            return Err(TtsError::SynthesisFailed(
+                "RuTTS synthesis was cancelled".to_owned(),
+            ));
+        }
+        if status < 0 {
+            return Err(TtsError::SynthesisFailed(format!(
+                "RuTTS rejected the synthesis call with status {status}"
+            )));
+        }
+        if capture.native_samples == 0 {
+            return Err(TtsError::SynthesisFailed(
+                "RuTTS returned no PCM".to_owned(),
+            ));
+        }
+
+        let frame_count = capture.finish()?;
+        Ok(SynthesisStreamCompletion { frame_count })
+    }
+
     fn stop(&self) {
         self.cancellation.store(true, Ordering::Release);
     }
@@ -175,6 +260,95 @@ struct Capture<'a> {
     request_cancellation: Option<&'a SynthesisCancellationToken>,
     volume: f32,
     failure: Option<&'static str>,
+}
+
+struct StreamingCapture<'a> {
+    canonicalizer: ProgressivePcmCanonicalizer,
+    sink: &'a mut dyn SynthesisStreamSink,
+    cancellation: &'a AtomicBool,
+    request_cancellation: Option<&'a SynthesisCancellationToken>,
+    volume: f32,
+    native_samples: usize,
+    failure: Option<TtsError>,
+}
+
+impl StreamingCapture<'_> {
+    fn cancelled(&self) -> bool {
+        self.cancellation.load(Ordering::Acquire)
+            || self
+                .request_cancellation
+                .is_some_and(SynthesisCancellationToken::is_cancelled)
+    }
+
+    fn consume(&mut self, samples: *const i8, count: usize) -> Result<c_int, TtsError> {
+        if self.cancelled() {
+            return Ok(1);
+        }
+        if count == 0 {
+            return Ok(0);
+        }
+        if samples.is_null() {
+            return Err(TtsError::SynthesisFailed(
+                "RuTTS returned a null PCM buffer".to_owned(),
+            ));
+        }
+        if count > MAX_NATIVE_SAMPLES.saturating_sub(self.native_samples) {
+            return Err(TtsError::SynthesisFailed(
+                "RuTTS PCM exceeds the helper limit".to_owned(),
+            ));
+        }
+
+        let mut converted = Vec::new();
+        converted.try_reserve(count).map_err(|_| {
+            TtsError::SynthesisFailed("could not allocate the RuTTS PCM buffer".to_owned())
+        })?;
+        let native = unsafe { std::slice::from_raw_parts(samples, count) };
+        converted.extend(native.iter().map(|sample| {
+            let expanded = i32::from(*sample) * 256;
+            (expanded as f32 * self.volume).round() as i16
+        }));
+        self.native_samples += count;
+        let windows = self
+            .canonicalizer
+            .push_interleaved_i16(&converted)
+            .map_err(|error| {
+                TtsError::SynthesisFailed(format!(
+                    "could not canonicalize progressive RuTTS PCM: {error}"
+                ))
+            })?;
+        self.emit(windows)?;
+        Ok(i32::from(self.cancelled()))
+    }
+
+    fn finish(&mut self) -> Result<u64, TtsError> {
+        if self.cancelled() {
+            return Err(TtsError::SynthesisFailed(
+                "RuTTS synthesis was cancelled".to_owned(),
+            ));
+        }
+        let windows = self.canonicalizer.finish().map_err(|error| {
+            TtsError::SynthesisFailed(format!(
+                "could not finish progressive RuTTS PCM conversion: {error}"
+            ))
+        })?;
+        self.emit(windows)?;
+        Ok(self.canonicalizer.output_frames())
+    }
+
+    fn emit(&mut self, windows: Vec<AudioBuffer>) -> Result<(), TtsError> {
+        for window in windows {
+            if window.is_empty() {
+                continue;
+            }
+            self.sink.audio(window)?;
+            if self.cancelled() {
+                return Err(TtsError::SynthesisFailed(
+                    "RuTTS synthesis was cancelled".to_owned(),
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Capture<'_> {
@@ -222,6 +396,30 @@ unsafe extern "C" fn consume_pcm(
     i32::from(capture.cancelled())
 }
 
+unsafe extern "C" fn consume_streaming_pcm(
+    samples: *const i8,
+    count: usize,
+    user_data: *mut c_void,
+) -> c_int {
+    if user_data.is_null() {
+        return 1;
+    }
+    let capture = unsafe { &mut *user_data.cast::<StreamingCapture<'_>>() };
+    match catch_unwind(AssertUnwindSafe(|| capture.consume(samples, count))) {
+        Ok(Ok(status)) => status,
+        Ok(Err(error)) => {
+            capture.failure = Some(error);
+            1
+        }
+        Err(_) => {
+            capture.failure = Some(TtsError::SynthesisFailed(
+                "RuTTS streaming callback panicked".to_owned(),
+            ));
+            1
+        }
+    }
+}
+
 fn capabilities() -> EngineCapabilities {
     EngineCapabilities {
         acss: AcssCapabilities {
@@ -231,7 +429,7 @@ fn capabilities() -> EngineCapabilities {
             volume: true,
             ..AcssCapabilities::default()
         },
-        audio_output: AudioOutputMode::BufferedPcm,
+        audio_output: AudioOutputMode::StreamingPcm,
         cancellation: CancellationSupport::SynthesisAndPlayback,
         concurrency: ConcurrencyModel::Serialized,
         markers: MarkerCapabilities::default(),
@@ -359,7 +557,91 @@ const KOI8_R_UPPER: [u8; 32] = [
 #[cfg(test)]
 mod tests {
     use super::*;
-    use omnivox_tts::{SynthesisCancellationToken, TtsSettings};
+    use omnivox_tts::{
+        ResolvedAnchor, SynthesisCancellationToken, SynthesisMarker, SynthesisStreamSink,
+        SynthesisStreamStart, TtsSettings,
+    };
+
+    #[derive(Default)]
+    struct RecordingStreamSink {
+        starts: Vec<SynthesisStreamStart>,
+        audio: Vec<AudioBuffer>,
+    }
+
+    impl SynthesisStreamSink for RecordingStreamSink {
+        fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError> {
+            self.starts.push(start);
+            Ok(())
+        }
+
+        fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+            self.audio.push(audio);
+            Ok(())
+        }
+
+        fn markers(
+            &mut self,
+            markers: Vec<SynthesisMarker>,
+            anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            assert!(markers.is_empty());
+            assert!(anchors.is_empty());
+            Ok(())
+        }
+    }
+
+    struct CancellingStreamSink {
+        cancellation: SynthesisCancellationToken,
+        audio_calls: usize,
+    }
+
+    impl SynthesisStreamSink for CancellingStreamSink {
+        fn start(&mut self, _start: SynthesisStreamStart) -> Result<(), TtsError> {
+            Ok(())
+        }
+
+        fn audio(&mut self, _audio: AudioBuffer) -> Result<(), TtsError> {
+            self.audio_calls += 1;
+            self.cancellation.cancel();
+            Ok(())
+        }
+
+        fn markers(
+            &mut self,
+            _markers: Vec<SynthesisMarker>,
+            _anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            Ok(())
+        }
+    }
+
+    #[derive(Default)]
+    struct RejectingStreamSink {
+        started: bool,
+        audio_calls: usize,
+    }
+
+    impl SynthesisStreamSink for RejectingStreamSink {
+        fn start(&mut self, _start: SynthesisStreamStart) -> Result<(), TtsError> {
+            self.started = true;
+            Ok(())
+        }
+
+        fn audio(&mut self, _audio: AudioBuffer) -> Result<(), TtsError> {
+            self.audio_calls += 1;
+            Err(TtsError::SynthesisFailed(
+                "test stream sink rejected PCM".to_owned(),
+            ))
+        }
+
+        fn markers(
+            &mut self,
+            _markers: Vec<SynthesisMarker>,
+            _anchors: Vec<ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            Ok(())
+        }
+    }
 
     fn request(voice: &str) -> SynthesisRequest {
         SynthesisRequest::new(
@@ -413,6 +695,10 @@ mod tests {
         assert_eq!(descriptor.default_voice_id.as_deref(), Some(MALE_VOICE_ID));
         assert_eq!(descriptor.voices.len(), 2);
         assert_eq!(
+            descriptor.capabilities.audio_output,
+            AudioOutputMode::StreamingPcm
+        );
+        assert_eq!(
             descriptor.capabilities.text_repertoire,
             TextRepertoire::Koi8R
         );
@@ -422,6 +708,66 @@ mod tests {
         assert!(!male.audio.is_empty());
         assert!(!female.audio.is_empty());
         assert_ne!(male.audio.samples, female.audio.samples);
+    }
+
+    #[test]
+    fn progressive_synthesis_emits_bounded_audio_and_exact_completion() {
+        let engine = RuttsTtsEngine::new();
+        let mut sink = RecordingStreamSink::default();
+
+        let completion = engine
+            .synthesize_stream(&request(MALE_VOICE_ID), &mut sink)
+            .unwrap();
+
+        assert_eq!(sink.starts.len(), 1);
+        assert_eq!(sink.starts[0].engine_id, ENGINE_ID);
+        assert_eq!(
+            sink.starts[0].actual_voice,
+            Some(PhysicalVoiceId::new(ENGINE_ID, MALE_VOICE_ID))
+        );
+        assert!(sink.audio.len() > 1);
+        assert!(sink.audio.iter().all(|audio| !audio.is_empty()));
+        assert_eq!(
+            sink.audio
+                .iter()
+                .map(AudioBuffer::frame_count)
+                .sum::<usize>() as u64,
+            completion.frame_count
+        );
+        assert!(completion.frame_count > 0);
+        assert!(!engine.is_speaking());
+    }
+
+    #[test]
+    fn progressive_synthesis_stops_after_request_cancellation() {
+        let engine = RuttsTtsEngine::new();
+        let cancellation = SynthesisCancellationToken::new();
+        let request = request(MALE_VOICE_ID).with_cancellation(cancellation.clone());
+        let mut sink = CancellingStreamSink {
+            cancellation,
+            audio_calls: 0,
+        };
+
+        let error = engine.synthesize_stream(&request, &mut sink).unwrap_err();
+
+        assert!(error.to_string().contains("cancelled"));
+        assert_eq!(sink.audio_calls, 1);
+        assert!(!engine.is_speaking());
+    }
+
+    #[test]
+    fn progressive_synthesis_propagates_sink_backpressure() {
+        let engine = RuttsTtsEngine::new();
+        let mut sink = RejectingStreamSink::default();
+
+        let error = engine
+            .synthesize_stream(&request(FEMALE_VOICE_ID), &mut sink)
+            .unwrap_err();
+
+        assert!(error.to_string().contains("test stream sink rejected PCM"));
+        assert!(sink.started);
+        assert_eq!(sink.audio_calls, 1);
+        assert!(!engine.is_speaking());
     }
 
     #[test]
