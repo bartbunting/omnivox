@@ -24,7 +24,7 @@ use tracing::debug;
 
 const SPEECH_STOP_FADE_MILLISECONDS: usize = 3;
 const SPEECH_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * SPEECH_STOP_FADE_MILLISECONDS / 1000;
-const TONE_STOP_FADE_MILLISECONDS: usize = 3;
+const TONE_STOP_FADE_MILLISECONDS: usize = 5;
 const TONE_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * TONE_STOP_FADE_MILLISECONDS / 1000;
 const NULL_AUDIO_POLL_SAMPLES: usize = 1024;
 const PROGRESSIVE_PLAYBACK_CAPACITY: usize = 4;
@@ -1097,9 +1097,9 @@ impl AudioControl {
 
     /// Stop a specific stream, retiring all queued and playing audio.
     ///
-    /// Speech and tones already being consumed fade over three milliseconds to
-    /// avoid waveform discontinuities. Sources which have not started, plus
-    /// sound streams, still stop immediately.
+    /// Speech and tones already being consumed use short smooth fades to avoid
+    /// waveform discontinuities. Sources which have not started, plus sound
+    /// streams, still stop immediately.
     pub fn stop(&self, stream: StreamType) {
         let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
         self.schedule_generations[stream_index(stream)].fetch_add(1, Ordering::AcqRel);
@@ -1306,7 +1306,7 @@ impl AudioStreams {
         self.control.queue(stream, buffer)
     }
 
-    /// Stop a specific stream, smoothing active speech or tones over three milliseconds.
+    /// Stop a specific stream, smoothing active speech or tones over a short fade.
     pub fn stop(&self, stream: StreamType) {
         self.control.stop(stream)
     }
@@ -1494,6 +1494,14 @@ enum CancellationFadeState {
     Finished,
 }
 
+fn smooth_fade_gain(fade_frames: usize, frame: usize) -> f32 {
+    if fade_frames <= 1 {
+        return 0.0;
+    }
+    let remaining = (fade_frames - 1 - frame) as f32 / (fade_frames - 1) as f32;
+    remaining * remaining * (3.0 - 2.0 * remaining)
+}
+
 /// Per-source cancellation state which can de-click an active speech source.
 ///
 /// A source cancelled before its first sample is discarded immediately. Once
@@ -1562,11 +1570,7 @@ impl PlaybackCancellation {
         };
         let frame = *samples_emitted / CHANNELS as usize;
         let fade_frames = self.fade_frames.unwrap_or(0);
-        let gain = if fade_frames <= 1 {
-            0.0
-        } else {
-            (fade_frames - 1 - frame) as f32 / (fade_frames - 1) as f32
-        };
+        let gain = smooth_fade_gain(fade_frames, frame);
         *samples_emitted += 1;
         if *samples_emitted >= fade_frames * CHANNELS as usize {
             self.state = CancellationFadeState::Finished;
@@ -2345,6 +2349,19 @@ mod tests {
             .lock()
             .unwrap()
             .is_cancelled());
+    }
+
+    #[test]
+    fn cancellation_fade_uses_smooth_endpoints() {
+        let fade_frames = 101;
+
+        assert_eq!(smooth_fade_gain(fade_frames, 0), 1.0);
+        assert_eq!(smooth_fade_gain(fade_frames, fade_frames - 1), 0.0);
+        assert!(smooth_fade_gain(fade_frames, 25) > 0.75);
+        assert!(smooth_fade_gain(fade_frames, 75) < 0.25);
+        assert!((0..fade_frames - 1).all(|frame| {
+            smooth_fade_gain(fade_frames, frame) >= smooth_fade_gain(fade_frames, frame + 1)
+        }));
     }
 
     #[test]
