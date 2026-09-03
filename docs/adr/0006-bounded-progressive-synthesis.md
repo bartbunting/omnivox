@@ -41,13 +41,19 @@ an unbounded payload or a second transport:
   buffered capability requirement.
 - Omnivox accepts a progressive helper only after negotiating version 5. It
   validates chunk sequence, frame alignment, cumulative PCM and marker limits,
-  marker ordering, realized voice, and the terminal frame count while forwarding
-  bounded chunks. The existing full-result API collects the same stream for
-  callers that require buffering.
+  marker ordering, realized voice, and the terminal frame count in the PCM
+  format announced by `synthesis_started`. Progressive signed 16-bit PCM may
+  be mono or stereo at a supported native sample rate. One bounded, stateful
+  sinc converter maps its audio, markers, and terminal count into canonical
+  Omnivox frames without restarting the filter at wire-chunk boundaries. The
+  existing full-result API collects the canonical stream for callers that
+  require buffering.
 - The engine abstraction gains an opt-in progressive method with a buffered
-  default. Native adapters emit canonical Omnivox PCM through that method.
-  Cross-thread and playback channels have fixed capacities; backpressure stops
-  the producer rather than growing memory.
+  default. Rust native adapters emit canonical Omnivox PCM through that method;
+  a helper protocol peer may instead describe and emit its native mono/stereo
+  format so the receiver can apply the same maintained converter used by other
+  adapters. Cross-thread and playback channels have fixed capacities;
+  backpressure stops the producer rather than growing memory.
 - Playback can start before the final frame count is known. In the existing
   playback-marker version 2 envelope, `utterance_started.frame_count` is zero
   for such a non-empty progressive source; a positive value continues to mean
@@ -65,9 +71,10 @@ an unbounded payload or a second transport:
 
 TGSpeechBox is the first progressive adapter because its pull API already
 returns bounded 44.1 kHz mono blocks and it has no markers. Eloquence and
-DECtalk follow through the common Windows helper host, retaining their native
-marker and sample-rate semantics. Other callback-based helpers can adopt the
-same contract independently after equivalent tests.
+DECtalk follow through the common Windows helper host, sending their native
+11.025 kHz mono callback blocks and marker clock for continuous conversion by
+the receiver. Other callback-based helpers can adopt the same contract
+independently after equivalent tests.
 
 ## Consequences
 
@@ -79,7 +86,10 @@ process communication, and queue setup.
 Progressive playback introduces explicit backpressure and a partial-output
 failure state. Tests must cover a blocked consumer, cancellation at each phase,
 late or out-of-order markers, truncated streams, terminal count mismatches, and
-old-version interoperability. Benchmarks must identify the null backend and
+old-version interoperability. Stateful conversion must also prove that output
+does not depend on native callback boundaries, completes at the exact scaled
+frame count, and does not replace the established sinc quality with independent
+or linear per-chunk conversion. Benchmarks must identify the null backend and
 must not describe first-source timing as physical acoustic onset.
 
 The initial progressive path does not require a new dependency, remove the

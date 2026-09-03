@@ -105,6 +105,13 @@ last audio chunk. This lets the consumer apply bounded backpressure without
 allowing playback to overtake timing metadata. A `buffered_pcm` version 5
 helper uses the versions 1 through 4 ordering.
 
+The sample rate and channel count in `synthesis_started` define the frame clock
+for every version 5 wire chunk, marker, and terminal count. A progressive
+helper may send signed 16-bit mono or stereo PCM in that announced native
+format. Omnivox feeds non-canonical progressive PCM through one continuous,
+bounded sinc converter and rescales markers into the resulting 44.1 kHz stereo
+playback clock. It never restarts conversion at an `audio_chunk` boundary.
+
 The [validated progressive success-stream fixture](../protocol-fixtures/helper-synthesis-success-v5.jsonl)
 contains one complete sequence. Its frames are independently deserialized and
 validated by a repository test.
@@ -255,8 +262,9 @@ The engine-neutral Rust helper host and shared Windows C# host select
 progressive delivery only when they negotiate version 5 with an engine
 advertising `streaming_pcm`. The same helpers downgrade their advertised mode
 to `buffered_pcm` and call the complete-result path for an older peer. Rust
-adapters supply canonical engine windows directly. The Windows host
-continuously converts native Eloquence and DECtalk callback PCM to 44.1 kHz
-stereo before encoding it. DECtalk retains one 512-sample native block so its
-occasionally late marker callback can still precede the corresponding audio.
-Cumulative bytes remain subject to the ordinary 128 MiB synthesis limit.
+adapters supply canonical engine windows directly. The Windows host instead
+encodes native Eloquence and DECtalk callback PCM at 11.025 kHz mono; the Rust
+receiver continuously converts that stream to 44.1 kHz stereo. DECtalk retains
+one 512-sample native block so its occasionally late marker callback can still
+precede the corresponding audio. Both native wire PCM and expanded canonical
+PCM remain subject to the ordinary 128 MiB synthesis limit.

@@ -323,8 +323,6 @@ internal sealed class OmnivoxHelperHost
     private const int MaximumMarkers = 4096;
     private const int MaximumStringLength = 16 * 1024;
     private const int MaximumAnchorIdBytes = 128;
-    private const int CanonicalSampleRate = 44100;
-    private const int CanonicalChannels = 2;
 
     private sealed class ProtocolException : Exception
     {
@@ -362,14 +360,10 @@ internal sealed class OmnivoxHelperHost
         private readonly OmnivoxHelperHost host;
         private readonly ActiveSynthesis synthesis;
         private readonly int sourceChannels;
-        private readonly int interpolationFactor;
         private readonly ulong textBytes;
         private readonly HashSet<string> requestedAnchors;
         private readonly HashSet<string> resolvedAnchors =
             new HashSet<string>(StringComparer.Ordinal);
-        private bool hasPreviousFrame;
-        private short previousLeft;
-        private short previousRight;
         private uint sequence;
         private ulong frameCount;
         private int markerCount;
@@ -382,15 +376,12 @@ internal sealed class OmnivoxHelperHost
             this.host = host;
             this.synthesis = synthesis;
             sourceChannels = host.engine.Channels;
-            if ((sourceChannels != 1 && sourceChannels != CanonicalChannels) ||
-                host.engine.SampleRate <= 0 ||
-                CanonicalSampleRate % host.engine.SampleRate != 0)
+            if ((sourceChannels != 1 && sourceChannels != 2) ||
+                host.engine.SampleRate <= 0)
             {
                 throw new InvalidOperationException(
-                    "progressive Windows helper PCM cannot be canonicalized exactly");
+                    "progressive Windows helper PCM has an invalid native format");
             }
-            interpolationFactor = CanonicalSampleRate /
-                host.engine.SampleRate;
             textBytes = (ulong)Encoding.UTF8.GetByteCount(synthesis.Text);
             requestedAnchors = new HashSet<string>(StringComparer.Ordinal);
             foreach (OmnivoxHelperAnchor anchor in synthesis.Anchors)
@@ -413,53 +404,7 @@ internal sealed class OmnivoxHelperHost
                     "native engine emitted an invalid progressive PCM window");
             }
 
-            int sourceFrames = count / sourceFrameBytes;
-            int intervals = !hasPreviousFrame ? sourceFrames - 1 :
-                sourceFrames;
-            int outputBytes = checked(intervals * interpolationFactor *
-                CanonicalChannels * 2);
-            byte[] converted = new byte[outputBytes];
-            int outputOffset = 0;
-            int sourceOffset = offset;
-            if (!hasPreviousFrame)
-            {
-                previousLeft = ReadSample(audio, sourceOffset);
-                previousRight = sourceChannels == 1 ? previousLeft :
-                    ReadSample(audio, sourceOffset + 2);
-                hasPreviousFrame = true;
-                sourceOffset += sourceFrameBytes;
-            }
-            int end = checked(offset + count);
-            while (sourceOffset < end)
-            {
-                short currentLeft = ReadSample(audio, sourceOffset);
-                short currentRight = sourceChannels == 1 ? currentLeft :
-                    ReadSample(audio, sourceOffset + 2);
-                for (int phase = 0; phase < interpolationFactor; ++phase)
-                {
-                    for (int channel = 0; channel < CanonicalChannels;
-                        ++channel)
-                    {
-                        int before = channel == 0 ? previousLeft :
-                            previousRight;
-                        int after = channel == 0 ? currentLeft : currentRight;
-                        int value = before + (int)Math.Round(
-                            (after - before) *
-                            (phase / (double)interpolationFactor),
-                            MidpointRounding.AwayFromZero);
-                        converted[outputOffset++] = (byte)(value & 0xff);
-                        converted[outputOffset++] =
-                            (byte)((value >> 8) & 0xff);
-                    }
-                }
-                previousLeft = currentLeft;
-                previousRight = currentRight;
-                sourceOffset += sourceFrameBytes;
-            }
-            if (converted.Length > 0)
-            {
-                WriteAudio(converted);
-            }
+            WriteAudio(audio, offset, count);
         }
 
         public void Markers(OmnivoxHelperMarker[] markers)
@@ -478,25 +423,23 @@ internal sealed class OmnivoxHelperHost
             {
                 OmnivoxHelperMarker marker = markers[index];
                 ValidateMarker(marker);
-                ulong scaledOffset = checked(marker.FrameOffset *
-                    (ulong)interpolationFactor);
-                if (scaledOffset < frameCount)
+                if (marker.FrameOffset < frameCount)
                 {
                     throw new InvalidOperationException(
-                        "progressive native marker at canonical frame " +
-                        scaledOffset.ToString(CultureInfo.InvariantCulture) +
+                        "progressive native marker at frame " +
+                        marker.FrameOffset.ToString(CultureInfo.InvariantCulture) +
                         " arrived after " + frameCount.ToString(
                             CultureInfo.InvariantCulture) + " PCM frames");
                 }
                 if (lastMarkerOffset.HasValue &&
-                    scaledOffset < lastMarkerOffset.Value)
+                    marker.FrameOffset < lastMarkerOffset.Value)
                 {
                     throw new InvalidOperationException(
                         "progressive native markers are not monotonic");
                 }
-                lastMarkerOffset = scaledOffset;
+                lastMarkerOffset = marker.FrameOffset;
                 converted[index] = new OmnivoxHelperMarker(marker.Kind,
-                    scaledOffset, marker.TextStart, marker.TextLength,
+                    marker.FrameOffset, marker.TextStart, marker.TextLength,
                     marker.Value);
             }
             markerCount += markers.Length;
@@ -506,25 +449,6 @@ internal sealed class OmnivoxHelperHost
         internal ulong Complete()
         {
             EnsureActive();
-            if (hasPreviousFrame)
-            {
-                byte[] tail = new byte[interpolationFactor *
-                    CanonicalChannels * 2];
-                int offset = 0;
-                for (int frame = 0; frame < interpolationFactor; ++frame)
-                {
-                    for (int channel = 0; channel < CanonicalChannels;
-                        ++channel)
-                    {
-                        int value = channel == 0 ? previousLeft :
-                            previousRight;
-                        tail[offset++] = (byte)(value & 0xff);
-                        tail[offset++] = (byte)((value >> 8) & 0xff);
-                    }
-                }
-                WriteAudio(tail);
-                hasPreviousFrame = false;
-            }
             if (lastMarkerOffset.HasValue &&
                 lastMarkerOffset.Value > frameCount)
             {
@@ -535,24 +459,20 @@ internal sealed class OmnivoxHelperHost
             return frameCount;
         }
 
-        private static short ReadSample(byte[] audio, int offset)
+        private void WriteAudio(byte[] audio, int audioOffset, int audioCount)
         {
-            return (short)(audio[offset] | audio[offset + 1] << 8);
-        }
-
-        private void WriteAudio(byte[] audio)
-        {
-            const int canonicalFrameBytes = CanonicalChannels * 2;
+            int sourceFrameBytes = checked(sourceChannels * 2);
             int maximumChunk = MaximumAudioChunkBytes -
-                MaximumAudioChunkBytes % canonicalFrameBytes;
-            for (int offset = 0; offset < audio.Length;
+                MaximumAudioChunkBytes % sourceFrameBytes;
+            int end = checked(audioOffset + audioCount);
+            for (int offset = audioOffset; offset < end;
                 offset += maximumChunk)
             {
                 EnsureActive();
-                int count = Math.Min(maximumChunk, audio.Length - offset);
-                ulong frames = (ulong)(count / canonicalFrameBytes);
+                int count = Math.Min(maximumChunk, end - offset);
+                ulong frames = (ulong)(count / sourceFrameBytes);
                 if (frameCount >
-                    (ulong)(MaximumAudioBytes / canonicalFrameBytes) - frames)
+                    (ulong)(MaximumAudioBytes / sourceFrameBytes) - frames)
                 {
                     throw new InvalidOperationException(
                         "progressive synthesis exceeded the 128 MiB audio limit");
@@ -1004,10 +924,8 @@ internal sealed class OmnivoxHelperHost
         Dictionary<string, object> started = Response(requestId,
             "synthesis_started");
         Dictionary<string, object> format = new Dictionary<string, object>();
-        format["sample_rate"] = synthesis.Progressive ?
-            CanonicalSampleRate : engine.SampleRate;
-        format["channels"] = synthesis.Progressive ?
-            CanonicalChannels : engine.Channels;
+        format["sample_rate"] = engine.SampleRate;
+        format["channels"] = engine.Channels;
         format["sample_format"] = "pcm_s16_le";
         started["format"] = format;
         started["actual_voice_id"] = voiceId;

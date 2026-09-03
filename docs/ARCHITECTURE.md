@@ -223,18 +223,21 @@ versioned helper protocol.
 The main server validates helper inventory, request/response order, PCM totals,
 markers, and exact requested voice realization. Protocol v5 can relay
 interleaved marker and PCM frames through fixed-capacity isolation and playback
-channels; older protocol peers and engines needing whole-result operations stay
-on the buffered path. The marker reporter reserves each progressive event
-before its cue is added to playback, and silence-trimmed offsets are published
-before the corresponding PCM window. Runtime retry is permitted before the
-first progressive PCM window but never after it, preventing repeated or
-cross-engine speech splices. A helper keeps reading cancellation and health
-commands while its native synthesis worker runs. Piper uses libpiper's chunked
-C API and observes stop requests between returned chunks. If any helper cannot
-finish cancellation within the grace period, the host can terminate and later
-recreate the child. The Piper helper disables Omnivox's separate eSpeak backend
-so one process does not contain two interposing eSpeak runtimes. Proprietary
-DLLs remain outside the repository.
+channels. Native mono/stereo helper PCM passes through one stateful sinc
+converter, which retains less than one fixed input window between wire chunks
+and maps native marker frames into the canonical playback clock. Older protocol
+peers and engines needing whole-result operations stay on the buffered path.
+The marker reporter reserves each progressive event before its cue is added to
+playback, and silence-trimmed offsets are published before the corresponding
+PCM window. Runtime retry is permitted before the first progressive PCM window
+but never after it, preventing repeated or cross-engine speech splices. A helper
+keeps reading cancellation and health commands while its native synthesis
+worker runs. Piper uses libpiper's chunked C API and observes stop requests
+between returned chunks. If any helper cannot finish cancellation within the
+grace period, the host can terminate and later recreate the child. The Piper
+helper disables Omnivox's separate eSpeak backend so one process does not
+contain two interposing eSpeak runtimes. Proprietary DLLs remain outside the
+repository.
 
 RHVoice dynamically loads a user-installed 1.x C API runtime and keeps its
 language/voice data outside Omnivox. Flite is source-built and statically linked
@@ -246,14 +249,16 @@ conversion together in a GPLv3 helper, exposes only portable ACSS controls,
 and advertises no markers. These helpers reuse the engine-neutral helper host
 but never share a native process.
 
-The shared 32-bit Windows C# host continuously canonicalizes Eloquence and
-DECtalk callback PCM for protocol v5 without retaining the complete waveform.
-Eloquence can publish each index before its following audio callback. DECtalk
-can report an index a few samples after the callback containing that position,
-so its adapter holds exactly one 512-sample native block and emits the next
-callback's markers before releasing it. Requests with presentation anchors are
-collected by the main server for whole-window timeline rendering even though
-the helper transport remains progressive.
+The shared 32-bit Windows C# host forwards native Eloquence and DECtalk callback
+PCM for protocol v5 without retaining the complete waveform. The Rust receiver
+uses one continuous high-quality conversion rather than changing the signal at
+native callback boundaries. Eloquence can publish each index before its
+following audio callback. DECtalk can report an index a few samples after the
+callback containing that position, so its adapter holds exactly one 512-sample
+native block and emits the next callback's markers before releasing it.
+Requests with presentation anchors are collected by the main server for
+whole-window timeline rendering even though the helper transport remains
+progressive.
 
 The Windows helpers require absolute native-library paths, validate x86 PE
 identity and required exports before engine calls, and load dependencies only

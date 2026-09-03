@@ -15,6 +15,8 @@ use serde::Deserialize;
 use thiserror::Error;
 use tracing::{info, warn};
 
+use omnivox_audio::ProgressivePcmCanonicalizer;
+
 use crate::contracts::{
     AudioOutputMode, CancellationSupport, ConcurrencyModel, EngineDescriptor, PhysicalVoiceId,
 };
@@ -28,7 +30,7 @@ use crate::helper_protocol::{
 use crate::{
     AnchorResolution, AudioBuffer, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind,
     SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
-    SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, STANDARD_CHANNELS, STANDARD_SAMPLE_RATE,
+    SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, STANDARD_CHANNELS,
 };
 
 const HELPER_CANCEL_GRACE: Duration = Duration::from_millis(250);
@@ -748,8 +750,12 @@ struct ProgressiveHelperCollector<'a> {
     degraded_acss: Vec<crate::contracts::AcssDimension>,
     phase: SynthesisPhase,
     next_sequence: u32,
+    format: Option<HelperAudioFormat>,
+    canonicalizer: Option<ProgressivePcmCanonicalizer>,
+    source_frame_count: u64,
     frame_count: u64,
     pcm_bytes: usize,
+    canonical_pcm_bytes: usize,
     marker_count: usize,
     last_marker_offset: Option<u64>,
     sink: &'a mut dyn SynthesisStreamSink,
@@ -779,8 +785,12 @@ impl<'a> ProgressiveHelperCollector<'a> {
             degraded_acss,
             phase: SynthesisPhase::AwaitingStart,
             next_sequence: 0,
+            format: None,
+            canonicalizer: None,
+            source_frame_count: 0,
             frame_count: 0,
             pcm_bytes: 0,
+            canonical_pcm_bytes: 0,
             marker_count: 0,
             last_marker_offset: None,
             sink,
@@ -814,13 +824,6 @@ impl<'a> ProgressiveHelperCollector<'a> {
                 format,
                 actual_voice_id,
             } if self.phase == SynthesisPhase::AwaitingStart => {
-                if format.sample_rate != STANDARD_SAMPLE_RATE
-                    || format.channels != STANDARD_CHANNELS
-                {
-                    return Err(HelperEngineError::UnexpectedResponse(
-                        "progressive helper PCM is not in canonical format",
-                    ));
-                }
                 if let Some(expected_voice_id) = &self.expected_voice_id {
                     if actual_voice_id != *expected_voice_id {
                         return Err(HelperEngineError::ActualVoiceMismatch {
@@ -829,6 +832,14 @@ impl<'a> ProgressiveHelperCollector<'a> {
                         });
                     }
                 }
+                let canonicalizer =
+                    ProgressivePcmCanonicalizer::new(format.sample_rate, format.channels).map_err(
+                        |error| {
+                            HelperEngineError::Transport(format!(
+                                "progressive helper PCM cannot be canonicalized: {error}"
+                            ))
+                        },
+                    )?;
                 self.sink
                     .start(SynthesisStreamStart {
                         engine_id: self.engine_id.clone(),
@@ -839,6 +850,8 @@ impl<'a> ProgressiveHelperCollector<'a> {
                         degraded_acss: self.degraded_acss.clone(),
                     })
                     .map_err(stream_sink_error)?;
+                self.format = Some(format);
+                self.canonicalizer = Some(canonicalizer);
                 self.phase = SynthesisPhase::StreamingAudio;
                 Ok(None)
             }
@@ -852,7 +865,10 @@ impl<'a> ProgressiveHelperCollector<'a> {
                     });
                 }
                 let bytes = chunk.decode_bytes()?;
-                let frame_bytes = usize::from(STANDARD_CHANNELS) * std::mem::size_of::<i16>();
+                let format = self
+                    .format
+                    .expect("progressive synthesis has an audio format");
+                let frame_bytes = usize::from(format.channels) * std::mem::size_of::<i16>();
                 if !bytes.len().is_multiple_of(frame_bytes) {
                     return Err(HelperEngineError::AudioFrameAlignment);
                 }
@@ -865,23 +881,23 @@ impl<'a> ProgressiveHelperCollector<'a> {
                     .chunks_exact(std::mem::size_of::<i16>())
                     .map(|sample| i16::from_le_bytes([sample[0], sample[1]]))
                     .collect::<Vec<_>>();
-                self.sink
-                    .audio(
-                        AudioBuffer::try_from_interleaved_i16(
-                            &samples,
-                            STANDARD_SAMPLE_RATE,
-                            STANDARD_CHANNELS,
-                        )
-                        .map_err(|error| HelperEngineError::Transport(error.to_string()))?,
-                    )
-                    .map_err(stream_sink_error)?;
-                self.frame_count += (bytes.len() / frame_bytes) as u64;
+                self.source_frame_count = self
+                    .source_frame_count
+                    .checked_add((bytes.len() / frame_bytes) as u64)
+                    .ok_or(HelperEngineError::SynthesisTooLarge)?;
+                let windows = self
+                    .canonicalizer
+                    .as_mut()
+                    .expect("progressive synthesis has a PCM canonicalizer")
+                    .push_interleaved_i16(&samples)
+                    .map_err(|error| HelperEngineError::Transport(error.to_string()))?;
+                self.forward_audio(windows)?;
                 self.next_sequence = self.next_sequence.checked_add(1).ok_or_else(|| {
                     HelperEngineError::Transport("helper PCM sequence overflowed".to_owned())
                 })?;
                 Ok(None)
             }
-            HelperResponseBody::Markers { markers }
+            HelperResponseBody::Markers { mut markers }
                 if self.phase == SynthesisPhase::StreamingAudio =>
             {
                 self.marker_count = self
@@ -890,10 +906,10 @@ impl<'a> ProgressiveHelperCollector<'a> {
                     .filter(|count| *count <= MAX_HELPER_MARKERS)
                     .ok_or(crate::helper_protocol::HelperProtocolError::TooManyMarkers)?;
                 for marker in &markers {
-                    if marker.frame_offset < self.frame_count {
+                    if marker.frame_offset < self.source_frame_count {
                         return Err(HelperEngineError::MarkerBehindAudio {
                             offset: marker.frame_offset,
-                            received: self.frame_count,
+                            received: self.source_frame_count,
                         });
                     }
                     if self
@@ -907,6 +923,15 @@ impl<'a> ProgressiveHelperCollector<'a> {
                     }
                     self.last_marker_offset = Some(marker.frame_offset);
                 }
+                let canonicalizer = self
+                    .canonicalizer
+                    .as_ref()
+                    .expect("progressive synthesis has a PCM canonicalizer");
+                for marker in &mut markers {
+                    marker.frame_offset = canonicalizer
+                        .canonical_frame_offset(marker.frame_offset)
+                        .map_err(|error| HelperEngineError::Transport(error.to_string()))?;
+                }
                 let (markers, anchors) = split_helper_markers(markers);
                 self.sink
                     .markers(markers, anchors)
@@ -916,10 +941,10 @@ impl<'a> ProgressiveHelperCollector<'a> {
             HelperResponseBody::SynthesisCompleted { frame_count }
                 if self.phase == SynthesisPhase::StreamingAudio =>
             {
-                if frame_count != self.frame_count {
+                if frame_count != self.source_frame_count {
                     return Err(HelperEngineError::FrameCountMismatch {
                         reported: frame_count,
-                        received: self.frame_count,
+                        received: self.source_frame_count,
                     });
                 }
                 if let Some(offset) = self
@@ -931,6 +956,13 @@ impl<'a> ProgressiveHelperCollector<'a> {
                         frame_count,
                     });
                 }
+                let windows = self
+                    .canonicalizer
+                    .as_mut()
+                    .expect("progressive synthesis has a PCM canonicalizer")
+                    .finish()
+                    .map_err(|error| HelperEngineError::Transport(error.to_string()))?;
+                self.forward_audio(windows)?;
                 self.phase = SynthesisPhase::Terminal;
                 Ok(Some(ProgressiveHelperSynthesisResult::Completed))
             }
@@ -966,6 +998,27 @@ impl<'a> ProgressiveHelperCollector<'a> {
                 "non-synthesis response in synthesis stream",
             )),
         }
+    }
+
+    fn forward_audio(&mut self, windows: Vec<AudioBuffer>) -> Result<(), HelperEngineError> {
+        for window in windows {
+            let bytes = window
+                .frame_count()
+                .checked_mul(usize::from(STANDARD_CHANNELS))
+                .and_then(|samples| samples.checked_mul(std::mem::size_of::<i16>()))
+                .ok_or(HelperEngineError::SynthesisTooLarge)?;
+            self.canonical_pcm_bytes = self
+                .canonical_pcm_bytes
+                .checked_add(bytes)
+                .filter(|bytes| *bytes <= MAX_HELPER_SYNTHESIS_BYTES)
+                .ok_or(HelperEngineError::SynthesisTooLarge)?;
+            self.frame_count = self
+                .frame_count
+                .checked_add(window.frame_count() as u64)
+                .ok_or(HelperEngineError::SynthesisTooLarge)?;
+            self.sink.audio(window).map_err(stream_sink_error)?;
+        }
+        Ok(())
     }
 }
 
@@ -1975,6 +2028,7 @@ mod tests {
     enum MockSynthesisMode {
         Complete,
         StreamComplete,
+        StreamNativeComplete,
         CompleteBeforeCancelResponse,
         WaitForCancel,
         DelayAfterCancelAccepted,
@@ -2136,7 +2190,7 @@ mod tests {
                                 request.request_id,
                                 HelperResponseBody::SynthesisStarted {
                                     format: HelperAudioFormat {
-                                        sample_rate: STANDARD_SAMPLE_RATE,
+                                        sample_rate: crate::STANDARD_SAMPLE_RATE,
                                         channels: STANDARD_CHANNELS,
                                         sample_format: HelperSampleFormat::PcmS16Le,
                                     },
@@ -2183,6 +2237,54 @@ mod tests {
                         self.push(self.response(
                             request.request_id,
                             HelperResponseBody::SynthesisCompleted { frame_count: 4 },
+                        ));
+                    }
+                    MockSynthesisMode::StreamNativeComplete => {
+                        self.push(
+                            self.response(
+                                request.request_id,
+                                HelperResponseBody::SynthesisStarted {
+                                    format: HelperAudioFormat {
+                                        sample_rate: 11_025,
+                                        channels: 1,
+                                        sample_format: HelperSampleFormat::PcmS16Le,
+                                    },
+                                    actual_voice_id: settings
+                                        .voice_id
+                                        .clone()
+                                        .unwrap_or_else(|| "reed".to_owned()),
+                                },
+                            ),
+                        );
+                        for sequence in 0..2 {
+                            let bytes = (0..512)
+                                .map(|sample| ((sample + sequence * 512) as i16).wrapping_mul(31))
+                                .flat_map(i16::to_le_bytes)
+                                .collect::<Vec<_>>();
+                            self.push(self.response(
+                                request.request_id,
+                                HelperResponseBody::AudioChunk {
+                                    chunk: HelperPcmChunk::from_bytes(sequence, &bytes).unwrap(),
+                                },
+                            ));
+                            if sequence == 0 {
+                                self.push(self.response(
+                                    request.request_id,
+                                    HelperResponseBody::Markers {
+                                        markers: vec![HelperMarker {
+                                            kind: HelperMarkerKind::Word,
+                                            frame_offset: 512,
+                                            text_start: Some(0),
+                                            text_length: Some(5),
+                                            value: None,
+                                        }],
+                                    },
+                                ));
+                            }
+                        }
+                        self.push(self.response(
+                            request.request_id,
+                            HelperResponseBody::SynthesisCompleted { frame_count: 1_024 },
                         ));
                     }
                     MockSynthesisMode::CompleteBeforeCancelResponse
@@ -2672,6 +2774,34 @@ mod tests {
         assert_eq!(sink.markers.len(), 1);
         assert_eq!(sink.markers[0].frame_offset, 2);
         assert!(sink.anchors.is_empty());
+    }
+
+    #[test]
+    fn canonicalizes_native_progressive_windows_and_marker_frames() {
+        let mut descriptor = helper_descriptor("eloquence", "0.1.0");
+        descriptor.capabilities.audio_output = AudioOutputMode::StreamingPcm;
+        let connection = Arc::new(MockConnection::new(
+            descriptor,
+            MockSynthesisMode::StreamNativeComplete,
+        ));
+        let engine = mock_engine(vec![connection]).unwrap();
+        let mut sink = RecordingStreamSink::default();
+
+        let completed = engine
+            .synthesize_stream(&synthesis_request("hello"), &mut sink)
+            .unwrap();
+
+        assert_eq!(completed.frame_count, 4_096);
+        assert_eq!(
+            sink.audio
+                .iter()
+                .map(AudioBuffer::frame_count)
+                .sum::<usize>(),
+            4_096
+        );
+        assert!(sink.audio.len() >= 3);
+        assert_eq!(sink.markers.len(), 1);
+        assert_eq!(sink.markers[0].frame_offset, 2_048);
     }
 
     #[test]

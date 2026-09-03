@@ -55,13 +55,14 @@ class WindowsHelperSourceTests(unittest.TestCase):
         )
         self.assertIn("if (markers.Length > 0)", host)
 
-    def test_windows_helpers_offer_bounded_progressive_pcm_in_v5(self) -> None:
+    def test_windows_helpers_offer_bounded_native_progressive_pcm_in_v5(self) -> None:
         host = source("common/OmnivoxHelperHost.cs")
         self.assertIn("LatestProtocolVersion = 5", host)
         self.assertIn('"streaming_pcm" : "buffered_pcm"', host)
-        self.assertIn("CanonicalSampleRate = 44100", host)
-        self.assertIn("CanonicalChannels = 2", host)
+        self.assertIn('format["sample_rate"] = engine.SampleRate', host)
+        self.assertIn('format["channels"] = engine.Channels', host)
         self.assertIn("MaximumAudioChunkBytes", host)
+        self.assertNotIn("interpolationFactor", host)
         for relative in (
             "eloquence/OmnivoxEloquenceHelper.cs",
             "dectalk/OmnivoxDectalkHelper.cs",
