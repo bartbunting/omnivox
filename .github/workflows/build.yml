@@ -1079,10 +1079,12 @@ jobs:
             `omnivox-${{ needs.package_release.outputs.version }}-tgspeechbox-windows-x64.zip`
 
             Its seven profiles and 22 languages are built from the exact
-            checksum-locked `v-310@f5ec247` upstream snapshot. The rate curve
-            remains provisional and the helper advertises no markers, so this
-            companion remains experimental. Its complete Omnivox, TGSpeechBox,
-            eSpeak NG, and Cargo source is in
+            checksum-locked `v-310@f5ec247` upstream snapshot. Its measured
+            Adam `en-us` rate curve follows Eloquence until the native ceiling,
+            and exact requested anchors support progressive presentation
+            actions. The upstream beta and limited runtime-accepted platform
+            coverage keep the companion experimental. Its complete Omnivox,
+            TGSpeechBox, eSpeak NG, and Cargo source is in
             `omnivox-${{ needs.package_release.outputs.version }}-tgspeechbox-source.tar.gz`.
 
             These binaries are not code-signed or notarized, so Gatekeeper or

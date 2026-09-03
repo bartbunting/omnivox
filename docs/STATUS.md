@@ -1,7 +1,7 @@
 # Omnivox Project Status
 
 **Last reviewed:** 2026-09-03
-**Workspace version:** 1.7.0
+**Workspace version:** 1.7.1
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
@@ -173,13 +173,15 @@ in the linked protocol specifications; future work belongs in
   cancellation, Windows audio playback, and clean shutdown. Linux x64 helper
   synthesis also passes as a development smoke check. The frontend currently
   exposes 22 languages across five built-in and two data-defined profiles,
-  advertises no markers, and uses an explicitly provisional rate curve. At the
-  default 44.1 kHz rate its v5 native pulls reach the main server's bounded
-  progressive playback path; the optional 22.05 kHz sinc path remains
+  uses a measured Adam `en-us` rate curve, and resolves exact requested anchors
+  through the upstream index-aware DSP pull. At the default 44.1 kHz rate its
+  v5 native pulls and requested anchors reach the main server's bounded
+  progressive playback path; it still advertises no word, sentence, phoneme,
+  or unrequested native-index markers. The optional 22.05 kHz sinc path remains
   whole-utterance buffered. Beginning with v1.7.0, the Windows x64 GNU payload
   is a separate experimental release asset with native and exact-routing gates
   plus deterministic corresponding source. It remains excluded from generic
-  and Emacsvox archives; measured calibration and markers are still pending.
+  and Emacsvox archives.
 - Eloquence and DECtalk use the shared 32-bit Windows C# host. Protocol v5
   forwards their callback PCM as canonical 44.1 kHz stereo windows while
   preserving Eloquence word/sentence and exact requested-anchor markers, and

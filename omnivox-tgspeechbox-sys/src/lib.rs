@@ -34,11 +34,14 @@ unsafe extern "C" {
         base_pitch_hz: c_double,
         inflection: c_double,
         volume: c_double,
+        user_index: c_int,
+        final_segment: c_int,
     ) -> c_int;
     pub fn omnivox_tgspeechbox_next(
         handle: *mut c_void,
         samples: *mut c_short,
         capacity: usize,
+        index_reached: *mut c_int,
     ) -> c_int;
     pub fn omnivox_tgspeechbox_reset(handle: *mut c_void) -> c_int;
 }

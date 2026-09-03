@@ -149,6 +149,7 @@ def validate_marker(marker, frame_count, text_size):
 
 def synthesize(
     session,
+    engine_id,
     request_id,
     text,
     voice_id,
@@ -170,19 +171,37 @@ def synthesize(
     ):
         if acss_capabilities.get(dimension):
             settings[dimension] = values[iteration % len(values)]
+    anchor_support = marker_capabilities.get("requested_anchors", "none")
+    anchors = [
+        {
+            "id": f"start-{iteration}",
+            "text_offset": 0,
+            "affinity": "before",
+        }
+    ]
+    if anchor_support == "exact":
+        middle_character = len(text) // 2
+        anchors.extend(
+            [
+                {
+                    "id": f"middle-{iteration}",
+                    "text_offset": len(text[:middle_character].encode("utf-8")),
+                    "affinity": "after",
+                },
+                {
+                    "id": f"end-{iteration}",
+                    "text_offset": len(text.encode("utf-8")),
+                    "affinity": "after",
+                },
+            ]
+        )
     session.send(
         request(
             request_id,
             "synthesize",
             text=text,
             settings=settings,
-            anchors=[
-                {
-                    "id": f"start-{iteration}",
-                    "text_offset": 0,
-                    "affinity": "before",
-                }
-            ],
+            anchors=anchors,
         )
     )
 
@@ -262,32 +281,48 @@ def synthesize(
                 raise RuntimeError(
                     f"helper omitted advertised markers {missing_kinds}: {kinds}"
                 )
-            anchor_support = marker_capabilities.get("requested_anchors", "none")
             if anchor_support != "none":
-                expected_anchor = f"start-{iteration}"
-                resolved = next(
-                    (
-                        marker
-                        for marker in markers
-                        if marker.get("kind") == "requested_anchor"
-                        and marker.get("value") == expected_anchor
-                    ),
-                    None,
-                )
-                if resolved is None:
-                    raise RuntimeError(
-                        f"helper omitted requested anchor {expected_anchor}: {markers}"
-                    )
-                resolution = resolved.get("resolution", "exact")
                 accepted_resolutions = {
                     "exact": {"exact"},
                     "word_boundary": {"exact", "word_boundary"},
                 }.get(anchor_support, set())
-                if resolution not in accepted_resolutions:
-                    raise RuntimeError(
-                        "helper returned an invalid requested-anchor resolution "
-                        f"{resolution!r} for {anchor_support!r} support"
+                resolved_anchors = {}
+                for requested_anchor in anchors:
+                    expected_anchor = requested_anchor["id"]
+                    resolved = next(
+                        (
+                            marker
+                            for marker in markers
+                            if marker.get("kind") == "requested_anchor"
+                            and marker.get("value") == expected_anchor
+                        ),
+                        None,
                     )
+                    if resolved is None:
+                        raise RuntimeError(
+                            f"helper omitted requested anchor {expected_anchor}: {markers}"
+                        )
+                    resolution = resolved.get("resolution", "exact")
+                    if resolution not in accepted_resolutions:
+                        raise RuntimeError(
+                            "helper returned an invalid requested-anchor resolution "
+                            f"{resolution!r} for {anchor_support!r} support"
+                        )
+                    resolved_anchors[expected_anchor] = resolved
+                if anchor_support == "exact" and engine_id == "tgspeechbox":
+                    start_frame = resolved_anchors[f"start-{iteration}"]["frame_offset"]
+                    middle_frame = resolved_anchors[f"middle-{iteration}"]["frame_offset"]
+                    end_frame = resolved_anchors[f"end-{iteration}"]["frame_offset"]
+                    if start_frame != 0 or end_frame != frame_count:
+                        raise RuntimeError(
+                            "exact start/end anchors do not bound the complete PCM: "
+                            f"{resolved_anchors}"
+                        )
+                    if not 0 < middle_frame < frame_count:
+                        raise RuntimeError(
+                            "exact middle anchor does not divide the PCM: "
+                            f"{resolved_anchors}"
+                        )
             return frame_count, len(markers), audio_bytes
         else:
             raise RuntimeError(f"unexpected synthesis response: {response}")
@@ -506,6 +541,7 @@ def main():
             )
             frames, markers, byte_count = synthesize(
                 session,
+                args.engine_id,
                 next_request_id,
                 text,
                 voice_id,

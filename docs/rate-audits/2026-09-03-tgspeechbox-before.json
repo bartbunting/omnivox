@@ -1,0 +1,239 @@
+{
+  "corpus": {
+    "sha256": "581a4ee71236358c7f3065a48c304c3072a81b50a76b46f129a69c8126ce3718",
+    "utf8_bytes": 173,
+    "word_count": 22
+  },
+  "generated_at": "2026-09-03T09:29:33.600602+00:00",
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "program": {
+    "name": "omnivox",
+    "sha256": "46ea9c8e7dcae8d710686253d2f25b359bf032f3f7eb0ce4e3ceceda64905820",
+    "version": "omnivox 1.7.0"
+  },
+  "repetitions": 1,
+  "results": [
+    {
+      "engine": "tgspeechbox",
+      "samples": [
+        {
+          "pipeline_duration_seconds": 13.175918,
+          "rate": 0.0,
+          "raw_duration_seconds": 13.18254,
+          "repetition": 1,
+          "words_per_minute": 100.183
+        },
+        {
+          "pipeline_duration_seconds": 11.536463,
+          "rate": 0.1,
+          "raw_duration_seconds": 11.543084,
+          "repetition": 1,
+          "words_per_minute": 114.42
+        },
+        {
+          "pipeline_duration_seconds": 10.102132,
+          "rate": 0.2,
+          "raw_duration_seconds": 10.108753,
+          "repetition": 1,
+          "words_per_minute": 130.665
+        },
+        {
+          "pipeline_duration_seconds": 8.860771,
+          "rate": 0.3,
+          "raw_duration_seconds": 8.867392,
+          "repetition": 1,
+          "words_per_minute": 148.971
+        },
+        {
+          "pipeline_duration_seconds": 7.777302,
+          "rate": 0.4,
+          "raw_duration_seconds": 7.783923,
+          "repetition": 1,
+          "words_per_minute": 169.725
+        },
+        {
+          "pipeline_duration_seconds": 6.837302,
+          "rate": 0.5,
+          "raw_duration_seconds": 6.843923,
+          "repetition": 1,
+          "words_per_minute": 193.059
+        },
+        {
+          "pipeline_duration_seconds": 6.02059,
+          "rate": 0.6,
+          "raw_duration_seconds": 6.027211,
+          "repetition": 1,
+          "words_per_minute": 219.248
+        },
+        {
+          "pipeline_duration_seconds": 5.325624,
+          "rate": 0.7,
+          "raw_duration_seconds": 5.332245,
+          "repetition": 1,
+          "words_per_minute": 247.858
+        },
+        {
+          "pipeline_duration_seconds": 4.741633,
+          "rate": 0.8,
+          "raw_duration_seconds": 4.748254,
+          "repetition": 1,
+          "words_per_minute": 278.385
+        },
+        {
+          "pipeline_duration_seconds": 4.24873,
+          "rate": 0.9,
+          "raw_duration_seconds": 4.25619,
+          "repetition": 1,
+          "words_per_minute": 310.681
+        },
+        {
+          "pipeline_duration_seconds": 3.823583,
+          "rate": 1.0,
+          "raw_duration_seconds": 3.830317,
+          "repetition": 1,
+          "words_per_minute": 345.226
+        },
+        {
+          "pipeline_duration_seconds": 3.328277,
+          "rate": 1.2,
+          "raw_duration_seconds": 3.335011,
+          "repetition": 1,
+          "words_per_minute": 396.602
+        },
+        {
+          "pipeline_duration_seconds": 2.700862,
+          "rate": 1.5,
+          "raw_duration_seconds": 2.709615,
+          "repetition": 1,
+          "words_per_minute": 488.733
+        },
+        {
+          "pipeline_duration_seconds": 1.910431,
+          "rate": 2.0,
+          "raw_duration_seconds": 1.917166,
+          "repetition": 1,
+          "words_per_minute": 690.944
+        }
+      ],
+      "summary": [
+        {
+          "maximum_pipeline_duration_seconds": 13.175918,
+          "median_pipeline_duration_seconds": 13.175918,
+          "median_raw_duration_seconds": 13.18254,
+          "median_words_per_minute": 100.183,
+          "minimum_pipeline_duration_seconds": 13.175918,
+          "rate": 0.0
+        },
+        {
+          "maximum_pipeline_duration_seconds": 11.536463,
+          "median_pipeline_duration_seconds": 11.536463,
+          "median_raw_duration_seconds": 11.543084,
+          "median_words_per_minute": 114.42,
+          "minimum_pipeline_duration_seconds": 11.536463,
+          "rate": 0.1
+        },
+        {
+          "maximum_pipeline_duration_seconds": 10.102132,
+          "median_pipeline_duration_seconds": 10.102132,
+          "median_raw_duration_seconds": 10.108753,
+          "median_words_per_minute": 130.665,
+          "minimum_pipeline_duration_seconds": 10.102132,
+          "rate": 0.2
+        },
+        {
+          "maximum_pipeline_duration_seconds": 8.860771,
+          "median_pipeline_duration_seconds": 8.860771,
+          "median_raw_duration_seconds": 8.867392,
+          "median_words_per_minute": 148.971,
+          "minimum_pipeline_duration_seconds": 8.860771,
+          "rate": 0.3
+        },
+        {
+          "maximum_pipeline_duration_seconds": 7.777302,
+          "median_pipeline_duration_seconds": 7.777302,
+          "median_raw_duration_seconds": 7.783923,
+          "median_words_per_minute": 169.725,
+          "minimum_pipeline_duration_seconds": 7.777302,
+          "rate": 0.4
+        },
+        {
+          "maximum_pipeline_duration_seconds": 6.837302,
+          "median_pipeline_duration_seconds": 6.837302,
+          "median_raw_duration_seconds": 6.843923,
+          "median_words_per_minute": 193.059,
+          "minimum_pipeline_duration_seconds": 6.837302,
+          "rate": 0.5
+        },
+        {
+          "maximum_pipeline_duration_seconds": 6.02059,
+          "median_pipeline_duration_seconds": 6.02059,
+          "median_raw_duration_seconds": 6.027211,
+          "median_words_per_minute": 219.248,
+          "minimum_pipeline_duration_seconds": 6.02059,
+          "rate": 0.6
+        },
+        {
+          "maximum_pipeline_duration_seconds": 5.325624,
+          "median_pipeline_duration_seconds": 5.325624,
+          "median_raw_duration_seconds": 5.332245,
+          "median_words_per_minute": 247.858,
+          "minimum_pipeline_duration_seconds": 5.325624,
+          "rate": 0.7
+        },
+        {
+          "maximum_pipeline_duration_seconds": 4.741633,
+          "median_pipeline_duration_seconds": 4.741633,
+          "median_raw_duration_seconds": 4.748254,
+          "median_words_per_minute": 278.385,
+          "minimum_pipeline_duration_seconds": 4.741633,
+          "rate": 0.8
+        },
+        {
+          "maximum_pipeline_duration_seconds": 4.24873,
+          "median_pipeline_duration_seconds": 4.24873,
+          "median_raw_duration_seconds": 4.25619,
+          "median_words_per_minute": 310.681,
+          "minimum_pipeline_duration_seconds": 4.24873,
+          "rate": 0.9
+        },
+        {
+          "maximum_pipeline_duration_seconds": 3.823583,
+          "median_pipeline_duration_seconds": 3.823583,
+          "median_raw_duration_seconds": 3.830317,
+          "median_words_per_minute": 345.226,
+          "minimum_pipeline_duration_seconds": 3.823583,
+          "rate": 1.0
+        },
+        {
+          "maximum_pipeline_duration_seconds": 3.328277,
+          "median_pipeline_duration_seconds": 3.328277,
+          "median_raw_duration_seconds": 3.335011,
+          "median_words_per_minute": 396.602,
+          "minimum_pipeline_duration_seconds": 3.328277,
+          "rate": 1.2
+        },
+        {
+          "maximum_pipeline_duration_seconds": 2.700862,
+          "median_pipeline_duration_seconds": 2.700862,
+          "median_raw_duration_seconds": 2.709615,
+          "median_words_per_minute": 488.733,
+          "minimum_pipeline_duration_seconds": 2.700862,
+          "rate": 1.5
+        },
+        {
+          "maximum_pipeline_duration_seconds": 1.910431,
+          "median_pipeline_duration_seconds": 1.910431,
+          "median_raw_duration_seconds": 1.917166,
+          "median_words_per_minute": 690.944,
+          "minimum_pipeline_duration_seconds": 1.910431,
+          "rate": 2.0
+        }
+      ],
+      "voice": "en-us/adam"
+    }
+  ],
+  "schema_version": 1
+}

@@ -6,11 +6,26 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-09-03
+
 ### Added
 
 - Windows release archives now include the compiled 32-bit Eloquence and
   DECtalk bridge helpers, their GPL notice, and exact corresponding source.
   Their proprietary runtimes, dictionaries, and voices remain user supplied.
+
+- TGSpeechBox now resolves caller-requested UTF-8 anchors exactly through its
+  upstream index-aware DSP pull. Protocol-v5 helpers interleave those anchors
+  with progressive PCM for capitalization tones and timed presentation
+  actions; word, sentence, phoneme, and unrequested native-index markers remain
+  unadvertised because the frontend does not provide truthful source ranges.
+
+### Changed
+
+- Replaced TGSpeechBox's provisional exponential rate mapping with a measured
+  Adam `en-us` piecewise calibration against the Eloquence `v1` reference
+  curve. Its native `4x` ceiling is exposed honestly from host rate `1.2`
+  upward.
 
 ## [1.7.0] - 2026-09-03
 
@@ -412,7 +427,8 @@ superseded by `v1.4.1` and its assets should not be used.
 - Added recovery for a draft release whose native verification needs to be
   rerun without rebuilding or replacing its uploaded assets.
 
-[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/bartbunting/omnivox/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/bartbunting/omnivox/compare/v1.6.4...v1.7.0
 [1.6.4]: https://github.com/bartbunting/omnivox/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/bartbunting/omnivox/compare/v1.6.2...v1.6.3

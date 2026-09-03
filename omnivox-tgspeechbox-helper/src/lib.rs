@@ -1,6 +1,6 @@
 //! TGSpeechBox adapter for the isolated, source-built Omnivox companion.
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::ffi::{c_void, CStr, CString};
 use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
@@ -8,15 +8,17 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard};
 
 use omnivox_tts::contracts::{
-    buffered_post_synthesis_dimensions, AcssCapabilities, AudioOutputMode, Availability,
-    CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor, EngineHealth,
-    MarkerCapabilities, PhysicalVoiceId, TextRepertoire, VoiceDescriptor, VoiceGender,
+    buffered_post_synthesis_dimensions, AcssCapabilities, AnchorSupport, AudioOutputMode,
+    Availability, CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor,
+    EngineHealth, MarkerCapabilities, PhysicalVoiceId, TextRepertoire, VoiceDescriptor,
+    VoiceGender,
 };
 use omnivox_tts::helper_protocol::MAX_HELPER_SYNTHESIS_BYTES;
+use omnivox_tts::rate_calibration::interpolate;
 use omnivox_tts::{
-    AudioBuffer, SynthesisCancellationToken, SynthesisRequest, SynthesisResult,
-    SynthesisStreamCompletion, SynthesisStreamSink, SynthesisStreamStart, TtsEngine, TtsError,
-    VoiceInfo, VoiceQuality,
+    AnchorResolution, AudioBuffer, RequestedAnchor, ResolvedAnchor, SynthesisCancellationToken,
+    SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
+    SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, VoiceQuality, STANDARD_SAMPLE_RATE,
 };
 
 const ENGINE_ID: &str = "tgspeechbox";
@@ -41,10 +43,25 @@ struct VoiceSelection {
     profile: ProfileDefinition,
 }
 
+struct PreparedSegment {
+    text: CString,
+    ipa: CString,
+    anchor_indices: Vec<usize>,
+}
+
+#[derive(Default)]
+struct QueuedSynthesis {
+    initial_anchor_indices: Vec<usize>,
+    native_index_base: usize,
+    native_anchor_batches: Vec<Vec<usize>>,
+    trailing_anchor_indices: Vec<usize>,
+}
+
 struct NativeRuntime {
     handle: NonNull<c_void>,
     espeak_initialized: bool,
     espeak_language: Option<String>,
+    next_user_index: i32,
 }
 
 // SAFETY: the pointer is owned by this value and all access is serialized by
@@ -200,6 +217,7 @@ impl TgSpeechBoxTtsEngine {
                 handle,
                 espeak_initialized: true,
                 espeak_language: None,
+                next_user_index: 0,
             }),
             cancellation: AtomicBool::new(false),
             speaking: AtomicBool::new(false),
@@ -230,11 +248,13 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
         let selection = self.selection(voice_id)?.clone();
         let actual_voice = Some(PhysicalVoiceId::new(ENGINE_ID, selection.id.clone()));
         if request.text.is_empty() {
-            return Ok(SynthesisResult::audio(
-                ENGINE_ID,
-                actual_voice,
-                AudioBuffer::empty(),
-            ));
+            let mut result = SynthesisResult::audio(ENGINE_ID, actual_voice, AudioBuffer::empty());
+            result.anchors = exact_anchors(
+                &request.anchors,
+                &(0..request.anchors.len()).collect::<Vec<_>>(),
+                0,
+            );
+            return Ok(result);
         }
 
         let mut runtime = self.runtime()?;
@@ -244,39 +264,13 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
         ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
 
         configure(&mut runtime, &selection)?;
-        let source_text = CString::new(request.text.as_str()).map_err(|_| {
-            TtsError::InvalidParameter("TGSpeechBox text contains a null byte".to_owned())
-        })?;
-        let prepared = prepare_text(&mut runtime, &source_text)?;
-        let ipa = phonemize(&prepared)?;
-        if ipa.as_bytes().is_empty() {
-            return Ok(SynthesisResult::audio(
-                ENGINE_ID,
-                actual_voice,
-                AudioBuffer::empty(),
-            ));
-        }
-
-        let queued = unsafe {
-            omnivox_tgspeechbox_sys::omnivox_tgspeechbox_begin(
-                runtime.handle.as_ptr(),
-                prepared.as_ptr(),
-                ipa.as_ptr(),
-                map_rate(request.settings.rate),
-                map_pitch(request.settings.pitch),
-                request.normalized_acss.pitch_range.unwrap_or(0.5) as f64,
-                request.settings.volume.clamp(0.0, 1.0) as f64,
-            )
-        };
-        if queued == 0 {
-            return Err(last_native_error(
-                &runtime,
-                "TGSpeechBox rejected synthesis",
-            ));
-        }
+        let queued = queue_synthesis(&mut runtime, request)?;
+        let mut anchor_frames = vec![None; request.anchors.len()];
+        set_anchor_frames(&mut anchor_frames, &queued.initial_anchor_indices, 0);
 
         let mut samples = Vec::new();
         let mut chunk = [0i16; PCM_CHUNK_SAMPLES];
+        let mut next_native_anchor = 0usize;
         loop {
             if is_cancelled(&self.cancellation, request.cancellation.as_ref()) {
                 reset(&mut runtime);
@@ -284,37 +278,34 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
                     "TGSpeechBox synthesis was cancelled".to_owned(),
                 ));
             }
-            let count = unsafe {
-                omnivox_tgspeechbox_sys::omnivox_tgspeechbox_next(
-                    runtime.handle.as_ptr(),
-                    chunk.as_mut_ptr(),
-                    chunk.len(),
-                )
-            };
-            if count < 0 {
-                reset(&mut runtime);
-                return Err(last_native_error(
-                    &runtime,
-                    "TGSpeechBox failed while producing PCM",
-                ));
-            }
-            let count = count as usize;
-            if count == 0 {
+            let (count, native_index) = next_native_chunk(&mut runtime, &mut chunk)?;
+            if count == 0 && native_index.is_none() {
                 break;
             }
-            if count > chunk.len() || count > MAX_NATIVE_SAMPLES.saturating_sub(samples.len()) {
+            if count > MAX_NATIVE_SAMPLES.saturating_sub(samples.len()) {
                 reset(&mut runtime);
                 return Err(TtsError::SynthesisFailed(
                     "TGSpeechBox PCM exceeds the helper limit".to_owned(),
                 ));
             }
             samples.extend_from_slice(&chunk[..count]);
-            if count < chunk.len() {
-                break;
+            if let Some(native_index) = native_index {
+                let resolved = resolve_native_anchors(
+                    &queued.native_anchor_batches,
+                    queued.native_index_base,
+                    &mut next_native_anchor,
+                    native_index,
+                )?;
+                set_anchor_frames(&mut anchor_frames, &resolved, samples.len() as u64);
             }
         }
 
         ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
+        set_anchor_frames(
+            &mut anchor_frames,
+            &remaining_anchor_indices(&queued, next_native_anchor),
+            samples.len() as u64,
+        );
         let audio = AudioBuffer::try_from_interleaved_i16(&samples, self.sample_rate, 1).map_err(
             |error| {
                 TtsError::SynthesisFailed(format!(
@@ -323,6 +314,29 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
             },
         )?;
         let mut result = SynthesisResult::audio(ENGINE_ID, actual_voice, audio);
+        let canonical_frames = result.audio.frame_count() as u64;
+        result.anchors = request
+            .anchors
+            .iter()
+            .enumerate()
+            .map(|(index, anchor)| {
+                let native_frame = anchor_frames[index].ok_or_else(|| {
+                    TtsError::SynthesisFailed(format!(
+                        "TGSpeechBox did not resolve requested anchor {}",
+                        anchor.id
+                    ))
+                })?;
+                Ok(ResolvedAnchor {
+                    id: anchor.id.clone(),
+                    frame_offset: Some(scale_frame(
+                        native_frame,
+                        self.sample_rate,
+                        canonical_frames,
+                    )),
+                    resolution: AnchorResolution::Exact,
+                })
+            })
+            .collect::<Result<Vec<_>, TtsError>>()?;
         result.degraded_acss = request
             .normalized_acss
             .clone()
@@ -369,6 +383,14 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
             degraded_acss,
         })?;
         if request.text.is_empty() {
+            let anchors = exact_anchors(
+                &request.anchors,
+                &(0..request.anchors.len()).collect::<Vec<_>>(),
+                0,
+            );
+            if !anchors.is_empty() {
+                sink.markers(Vec::new(), anchors)?;
+            }
             return Ok(SynthesisStreamCompletion { frame_count: 0 });
         }
 
@@ -379,35 +401,15 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
         ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
 
         configure(&mut runtime, &selection)?;
-        let source_text = CString::new(request.text.as_str()).map_err(|_| {
-            TtsError::InvalidParameter("TGSpeechBox text contains a null byte".to_owned())
-        })?;
-        let prepared = prepare_text(&mut runtime, &source_text)?;
-        let ipa = phonemize(&prepared)?;
-        if ipa.as_bytes().is_empty() {
-            return Ok(SynthesisStreamCompletion { frame_count: 0 });
-        }
-
-        let queued = unsafe {
-            omnivox_tgspeechbox_sys::omnivox_tgspeechbox_begin(
-                runtime.handle.as_ptr(),
-                prepared.as_ptr(),
-                ipa.as_ptr(),
-                map_rate(request.settings.rate),
-                map_pitch(request.settings.pitch),
-                request.normalized_acss.pitch_range.unwrap_or(0.5) as f64,
-                request.settings.volume.clamp(0.0, 1.0) as f64,
-            )
-        };
-        if queued == 0 {
-            return Err(last_native_error(
-                &runtime,
-                "TGSpeechBox rejected synthesis",
-            ));
+        let queued = queue_synthesis(&mut runtime, request)?;
+        let initial_anchors = exact_anchors(&request.anchors, &queued.initial_anchor_indices, 0);
+        if !initial_anchors.is_empty() {
+            sink.markers(Vec::new(), initial_anchors)?;
         }
 
         let mut emitted_samples = 0usize;
         let mut chunk = [0i16; PCM_CHUNK_SAMPLES];
+        let mut next_native_anchor = 0usize;
         loop {
             if is_cancelled(&self.cancellation, request.cancellation.as_ref()) {
                 reset(&mut runtime);
@@ -415,44 +417,50 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
                     "TGSpeechBox synthesis was cancelled".to_owned(),
                 ));
             }
-            let count = unsafe {
-                omnivox_tgspeechbox_sys::omnivox_tgspeechbox_next(
-                    runtime.handle.as_ptr(),
-                    chunk.as_mut_ptr(),
-                    chunk.len(),
-                )
-            };
-            if count < 0 {
-                reset(&mut runtime);
-                return Err(last_native_error(
-                    &runtime,
-                    "TGSpeechBox failed while producing PCM",
-                ));
-            }
-            let count = count as usize;
-            if count == 0 {
+            let (count, native_index) = next_native_chunk(&mut runtime, &mut chunk)?;
+            if count == 0 && native_index.is_none() {
                 break;
             }
-            if count > chunk.len() || count > MAX_NATIVE_SAMPLES.saturating_sub(emitted_samples) {
+            if count > MAX_NATIVE_SAMPLES.saturating_sub(emitted_samples) {
                 reset(&mut runtime);
                 return Err(TtsError::SynthesisFailed(
                     "TGSpeechBox PCM exceeds the helper limit".to_owned(),
                 ));
             }
-            let audio = AudioBuffer::try_from_interleaved_i16(&chunk[..count], self.sample_rate, 1)
-                .map_err(|error| {
-                    TtsError::SynthesisFailed(format!(
-                        "could not canonicalize TGSpeechBox PCM: {error}"
-                    ))
-                })?;
-            sink.audio(audio)?;
-            emitted_samples += count;
-            if count < chunk.len() {
-                break;
+            if count > 0 {
+                let audio =
+                    AudioBuffer::try_from_interleaved_i16(&chunk[..count], self.sample_rate, 1)
+                        .map_err(|error| {
+                            TtsError::SynthesisFailed(format!(
+                                "could not canonicalize TGSpeechBox PCM: {error}"
+                            ))
+                        })?;
+                sink.audio(audio)?;
+                emitted_samples += count;
+            }
+            if let Some(native_index) = native_index {
+                let resolved = resolve_native_anchors(
+                    &queued.native_anchor_batches,
+                    queued.native_index_base,
+                    &mut next_native_anchor,
+                    native_index,
+                )?;
+                let anchors = exact_anchors(&request.anchors, &resolved, emitted_samples as u64);
+                if !anchors.is_empty() {
+                    sink.markers(Vec::new(), anchors)?;
+                }
             }
         }
 
         ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
+        let trailing = exact_anchors(
+            &request.anchors,
+            &remaining_anchor_indices(&queued, next_native_anchor),
+            emitted_samples as u64,
+        );
+        if !trailing.is_empty() {
+            sink.markers(Vec::new(), trailing)?;
+        }
         Ok(SynthesisStreamCompletion {
             frame_count: emitted_samples as u64,
         })
@@ -510,7 +518,10 @@ fn capabilities(sample_rate: u32) -> EngineCapabilities {
         },
         cancellation: CancellationSupport::SynthesisAndPlayback,
         concurrency: ConcurrencyModel::Serialized,
-        markers: MarkerCapabilities::default(),
+        markers: MarkerCapabilities {
+            requested_anchors: AnchorSupport::Exact,
+            ..MarkerCapabilities::default()
+        },
         language_switching: true,
         text_repertoire: TextRepertoire::Unicode,
         post_synthesis_dimensions: buffered_post_synthesis_dimensions(),
@@ -779,17 +790,233 @@ fn phonemize(text: &CString) -> Result<CString, TtsError> {
     })
 }
 
-fn map_rate(rate: f32) -> f64 {
-    let rate = if rate.is_nan() {
-        0.5
-    } else {
-        rate.clamp(0.0, 2.0)
-    } as f64;
-    if rate <= 1.0 {
-        2.0f64.powf(rate * 2.0 - 1.0)
-    } else {
-        2.0f64.powf(rate)
+fn queue_synthesis(
+    runtime: &mut NativeRuntime,
+    request: &SynthesisRequest,
+) -> Result<QueuedSynthesis, TtsError> {
+    let mut anchors_by_offset = BTreeMap::<usize, Vec<usize>>::new();
+    for (index, anchor) in request.anchors.iter().enumerate() {
+        let offset = anchor.text_offset as usize;
+        if offset > request.text.len() || !request.text.is_char_boundary(offset) {
+            return Err(TtsError::InvalidParameter(format!(
+                "requested anchor {} is not a UTF-8 boundary in the synthesis text",
+                anchor.id
+            )));
+        }
+        anchors_by_offset.entry(offset).or_default().push(index);
     }
+
+    let initial_anchor_indices = anchors_by_offset.remove(&0).unwrap_or_default();
+    let mut stops = anchors_by_offset.keys().copied().collect::<Vec<_>>();
+    if stops.last().copied() != Some(request.text.len()) {
+        stops.push(request.text.len());
+    }
+
+    let mut prepared_segments = Vec::new();
+    let mut pending_anchor_indices = Vec::new();
+    let mut start = 0usize;
+    for end in stops {
+        if end > start {
+            let source = CString::new(&request.text.as_bytes()[start..end]).map_err(|_| {
+                TtsError::InvalidParameter("TGSpeechBox text contains a null byte".to_owned())
+            })?;
+            let text = prepare_text(runtime, &source)?;
+            let ipa = phonemize(&text)?;
+            if !ipa.as_bytes().is_empty() {
+                prepared_segments.push(PreparedSegment {
+                    text,
+                    ipa,
+                    anchor_indices: std::mem::take(&mut pending_anchor_indices),
+                });
+            }
+        }
+        if let Some(mut indices) = anchors_by_offset.remove(&end) {
+            pending_anchor_indices.append(&mut indices);
+        }
+        start = end;
+    }
+
+    let batch_count = prepared_segments
+        .iter()
+        .filter(|segment| !segment.anchor_indices.is_empty())
+        .count();
+    let (native_index_base, reset_player) =
+        reserve_user_indexes(&mut runtime.next_user_index, batch_count)?;
+    if reset_player {
+        reset(runtime);
+    }
+
+    let mut native_anchor_batches = Vec::new();
+    let segment_count = prepared_segments.len();
+    for (segment_index, segment) in prepared_segments.into_iter().enumerate() {
+        let user_index = if segment.anchor_indices.is_empty() {
+            -1
+        } else {
+            let local_index = i32::try_from(native_anchor_batches.len()).map_err(|_| {
+                TtsError::SynthesisFailed("too many TGSpeechBox anchor batches".to_owned())
+            })?;
+            native_anchor_batches.push(segment.anchor_indices);
+            native_index_base + local_index
+        };
+        let queued = unsafe {
+            omnivox_tgspeechbox_sys::omnivox_tgspeechbox_begin(
+                runtime.handle.as_ptr(),
+                segment.text.as_ptr(),
+                segment.ipa.as_ptr(),
+                map_rate(request.settings.rate),
+                map_pitch(request.settings.pitch),
+                request.normalized_acss.pitch_range.unwrap_or(0.5) as f64,
+                request.settings.volume.clamp(0.0, 1.0) as f64,
+                user_index,
+                i32::from(segment_index + 1 == segment_count),
+            )
+        };
+        if queued == 0 {
+            let error = last_native_error(runtime, "TGSpeechBox rejected synthesis");
+            reset(runtime);
+            return Err(error);
+        }
+    }
+
+    Ok(QueuedSynthesis {
+        initial_anchor_indices,
+        native_index_base: native_index_base as usize,
+        native_anchor_batches,
+        trailing_anchor_indices: pending_anchor_indices,
+    })
+}
+
+fn reserve_user_indexes(next_index: &mut i32, count: usize) -> Result<(i32, bool), TtsError> {
+    let count = i32::try_from(count)
+        .map_err(|_| TtsError::SynthesisFailed("too many TGSpeechBox anchor batches".to_owned()))?;
+    let reset_player = next_index.checked_add(count).is_none();
+    if reset_player {
+        *next_index = 0;
+    }
+    let base = *next_index;
+    *next_index += count;
+    Ok((base, reset_player))
+}
+
+fn next_native_chunk(
+    runtime: &mut NativeRuntime,
+    chunk: &mut [i16],
+) -> Result<(usize, Option<usize>), TtsError> {
+    let mut index_reached = -1i32;
+    let count = unsafe {
+        omnivox_tgspeechbox_sys::omnivox_tgspeechbox_next(
+            runtime.handle.as_ptr(),
+            chunk.as_mut_ptr(),
+            chunk.len(),
+            &mut index_reached,
+        )
+    };
+    if count < 0 {
+        let error = last_native_error(runtime, "TGSpeechBox failed while producing PCM");
+        reset(runtime);
+        return Err(error);
+    }
+    let count = count as usize;
+    if count > chunk.len() || index_reached < -1 {
+        reset(runtime);
+        return Err(TtsError::SynthesisFailed(
+            "TGSpeechBox returned an invalid indexed PCM chunk".to_owned(),
+        ));
+    }
+    Ok((
+        count,
+        (index_reached >= 0).then_some(index_reached as usize),
+    ))
+}
+
+fn resolve_native_anchors(
+    batches: &[Vec<usize>],
+    native_index_base: usize,
+    next_batch: &mut usize,
+    native_index: usize,
+) -> Result<Vec<usize>, TtsError> {
+    let local_index = native_index.checked_sub(native_index_base).ok_or_else(|| {
+        TtsError::SynthesisFailed(format!(
+            "TGSpeechBox returned stale anchor index {native_index}"
+        ))
+    })?;
+    if local_index >= batches.len() {
+        return Err(TtsError::SynthesisFailed(format!(
+            "TGSpeechBox returned unknown anchor index {native_index}"
+        )));
+    }
+    if local_index < *next_batch {
+        return Ok(Vec::new());
+    }
+    let resolved = batches[*next_batch..=local_index]
+        .iter()
+        .flatten()
+        .copied()
+        .collect();
+    *next_batch = local_index + 1;
+    Ok(resolved)
+}
+
+fn remaining_anchor_indices(queued: &QueuedSynthesis, next_batch: usize) -> Vec<usize> {
+    queued.native_anchor_batches[next_batch..]
+        .iter()
+        .flatten()
+        .chain(queued.trailing_anchor_indices.iter())
+        .copied()
+        .collect()
+}
+
+fn set_anchor_frames(frames: &mut [Option<u64>], indices: &[usize], frame_offset: u64) {
+    for index in indices {
+        if let Some(frame) = frames.get_mut(*index) {
+            *frame = Some(frame_offset);
+        }
+    }
+}
+
+fn exact_anchors(
+    requested: &[RequestedAnchor],
+    indices: &[usize],
+    frame_offset: u64,
+) -> Vec<ResolvedAnchor> {
+    indices
+        .iter()
+        .filter_map(|index| requested.get(*index))
+        .map(|anchor| ResolvedAnchor {
+            id: anchor.id.clone(),
+            frame_offset: Some(frame_offset),
+            resolution: AnchorResolution::Exact,
+        })
+        .collect()
+}
+
+fn scale_frame(frame: u64, source_rate: u32, target_frame_count: u64) -> u64 {
+    frame
+        .saturating_mul(u64::from(STANDARD_SAMPLE_RATE))
+        .saturating_add(u64::from(source_rate) / 2)
+        .checked_div(u64::from(source_rate))
+        .unwrap_or_default()
+        .min(target_frame_count)
+}
+
+fn map_rate(rate: f32) -> f64 {
+    // Measured Adam/en-us reference and saturation policy:
+    // docs/RATE-CALIBRATION.md.
+    const CALIBRATION: &[(f32, f32)] = &[
+        (0.0, 0.312_017),
+        (0.1, 0.383_451),
+        (0.2, 0.491_595),
+        (0.3, 0.604_626),
+        (0.4, 0.773_133),
+        (0.5, 0.963_270),
+        (0.6, 1.243_134),
+        (0.7, 1.573_451),
+        (0.8, 2.137_347),
+        (0.9, 2.539_736),
+        (1.0, 3.275_296),
+        (1.2, 4.0),
+    ];
+    f64::from(interpolate(rate, CALIBRATION))
 }
 
 fn map_pitch(pitch: f32) -> f64 {
@@ -956,10 +1183,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn provisional_rate_mapping_is_monotonic_and_has_expected_landmarks() {
-        assert_eq!(map_rate(0.0), 0.5);
-        assert_eq!(map_rate(0.5), 1.0);
-        assert_eq!(map_rate(1.0), 2.0);
+    fn calibrated_rate_mapping_is_monotonic_and_has_expected_landmarks() {
+        assert!((map_rate(0.0) - 0.312_017).abs() < 0.000_001);
+        assert!((map_rate(0.5) - 0.963_270).abs() < 0.000_001);
+        assert!((map_rate(1.0) - 3.275_296).abs() < 0.000_001);
+        assert_eq!(map_rate(f32::NAN), map_rate(0.5));
         assert_eq!(map_rate(2.0), 4.0);
         let mapped = (0..=20)
             .map(|point| map_rate(point as f32 / 10.0))
@@ -995,6 +1223,72 @@ mod tests {
         assert_eq!(
             capabilities(LOWER_SAMPLE_RATE).audio_output,
             AudioOutputMode::BufferedPcm
+        );
+        assert_eq!(
+            capabilities(DEFAULT_SAMPLE_RATE).markers.requested_anchors,
+            AnchorSupport::Exact
+        );
+    }
+
+    #[test]
+    fn native_indexes_resolve_every_crossed_anchor_batch() {
+        let queued = QueuedSynthesis {
+            initial_anchor_indices: vec![3],
+            native_index_base: 41,
+            native_anchor_batches: vec![vec![1, 4], vec![0]],
+            trailing_anchor_indices: vec![2],
+        };
+        let mut next_batch = 0;
+
+        assert_eq!(
+            resolve_native_anchors(
+                &queued.native_anchor_batches,
+                queued.native_index_base,
+                &mut next_batch,
+                42,
+            )
+            .unwrap(),
+            vec![1, 4, 0]
+        );
+        assert_eq!(next_batch, 2);
+        assert_eq!(remaining_anchor_indices(&queued, next_batch), vec![2]);
+    }
+
+    #[test]
+    fn native_indexes_are_unique_across_requests_and_reset_before_overflow() {
+        let mut next_index = 7;
+        assert_eq!(
+            reserve_user_indexes(&mut next_index, 2).unwrap(),
+            (7, false)
+        );
+        assert_eq!(next_index, 9);
+
+        next_index = i32::MAX;
+        assert_eq!(reserve_user_indexes(&mut next_index, 1).unwrap(), (0, true));
+        assert_eq!(next_index, 1);
+    }
+
+    #[test]
+    fn exact_anchor_results_keep_opaque_ids() {
+        let requested = vec![
+            RequestedAnchor::new("later", 4, omnivox_tts::AnchorAffinity::After),
+            RequestedAnchor::new("earlier", 0, omnivox_tts::AnchorAffinity::Before),
+        ];
+
+        assert_eq!(
+            exact_anchors(&requested, &[1, 0], 17),
+            vec![
+                ResolvedAnchor {
+                    id: "earlier".to_owned(),
+                    frame_offset: Some(17),
+                    resolution: AnchorResolution::Exact,
+                },
+                ResolvedAnchor {
+                    id: "later".to_owned(),
+                    frame_offset: Some(17),
+                    resolution: AnchorResolution::Exact,
+                },
+            ]
         );
     }
 

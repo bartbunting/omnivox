@@ -10,8 +10,10 @@ release tag.
 
 Beginning with Omnivox v1.7.0, Windows x64 GNU is published as a separate
 experimental companion. It is not embedded in generic archives or the
-Emacsvox bundle. Linux x64 remains a development smoke target. The rate curve
-is provisional and the helper exposes no synchronization markers.
+Emacsvox bundle. Linux x64 remains a development smoke target. The helper has
+a measured rate curve and exact caller-requested synchronization anchors; its
+upstream beta status and limited runtime-accepted platform coverage still make
+the companion experimental.
 
 ## What is exposed
 
@@ -31,20 +33,31 @@ language selection. Omnivox advertises only profiles the frontend enumerates
 and accepts.
 
 The helper accepts Omnivox's portable rate, average-pitch, pitch-range, and
-volume dimensions. Its rate mapping is monotonic but not yet calibrated:
+volume dimensions. Its Adam `en-us` calibration follows the Eloquence `v1`
+reference curve through host rate `1.0`, then reaches TGSpeechBox's native
+ceiling:
 
 | Omnivox rate | TGSpeechBox speed |
 |---|---:|
-| `0.0` | `0.5x` |
-| `0.5` | `1x` |
-| `1.0` | `2x` |
-| `2.0` | `4x` |
+| `0.0` | `0.312017x` |
+| `0.5` | `0.963270x` |
+| `0.8` | `2.137347x` |
+| `1.0` | `3.275296x` |
+| `1.2`–`2.0` | `4x` (native ceiling) |
 
 Average pitch maps to a 110 Hz native baseline, pitch range maps to native
 inflection, and volume maps to output gain. TGSpeechBox-specific frame fields
-are not added to the public protocol in this first integration. The helper
-advertises no markers, so marker-dependent actions use Omnivox's existing
-degradation behavior.
+are not added to the public protocol.
+
+The selected upstream revision exposes an index-aware DSP pull. For an
+anchored request, Omnivox divides the original UTF-8 text only at the explicitly
+requested offsets, gives the following frontend segment an opaque native index,
+and reports that index as an exact requested anchor at the corresponding PCM
+boundary. Anchors at the beginning or end resolve to frame zero or the final
+frame. Internal non-punctuated segments use continuation intonation rather than
+an artificial sentence ending. Omnivox does not claim general word, sentence,
+phoneme, or native-index markers: the TGSpeechBox frontend does not map those
+generated frames back to truthful source-text ranges.
 
 ## Build Windows x64 from WSL
 
@@ -144,11 +157,11 @@ the same physical voice.
 At the default 44.1 kHz native rate, helper protocol v5 forwards each bounded
 DSP pull while synthesis is still active. This removes whole-utterance capture
 from the time-to-first-audio path without changing sample rate or adding a
-resampling boundary. Omnivox relays ordinary markerless speech through bounded
-isolation and a single tracked playback source while applying the same silence
-trimming, effects, volume, and channel routing across windows. Requests with
-capitalization/timeline anchors currently collect through the compatible
-buffered path. Older Omnivox clients also negotiate the buffered path.
+resampling boundary. Omnivox relays ordinary speech and exact requested anchors
+through bounded isolation and a single tracked playback source while applying
+the same silence trimming, effects, volume, and channel routing across windows.
+Capitalization tones and timed presentation actions therefore remain
+progressive. Older Omnivox clients negotiate the buffered path.
 
 TGSpeechBox normally runs its native DSP at 44.1 kHz. For controlled A/B tests,
 `OMNIVOX_TGSPEECHBOX_SAMPLE_RATE=22050` selects its supported 22.05 kHz path;
@@ -167,7 +180,8 @@ NG for Unicode-to-IPA conversion, so the combined helper is distributed under
 GPLv3 and its complete notices must remain with it. The separately published
 corresponding-source artifact contains the complete inputs needed for the
 combined helper. See [LICENSING.md](LICENSING.md) and
-[ADR 0005](adr/0005-experimental-tgspeechbox-companion.md).
+[ADR 0005](adr/0005-experimental-tgspeechbox-companion.md) together with its
+[calibration and marker refinement](adr/0007-tgspeechbox-calibration-and-anchors.md).
 
 Remove the `tgspeechbox/` directory and unset
 `OMNIVOX_TGSPEECHBOX_HELPER` to remove the engine. Omnivox continues with its

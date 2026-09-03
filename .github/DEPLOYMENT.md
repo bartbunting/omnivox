@@ -237,8 +237,9 @@ companion's `rutts/` directory beside the generic executable; its built-in
 male and female voices require no additional runtime. See the
 [RuTTS companion guide](../docs/RUTTS.md). For TGSpeechBox on Windows x64,
 extract the companion's `tgspeechbox/` directory beside the generic executable. Its
-packs and eSpeak NG phonemizer data are included; its rate remains provisional
-and it exposes no markers. See the
+packs and eSpeak NG phonemizer data are included. Its rate is calibrated against
+Eloquence and it exposes exact requested anchors, but not general word or
+sentence markers. See the
 [TGSpeechBox companion guide](../docs/TGSPEECHBOX.md). The generic `rhvoice/`
 helper still requires a separately installed compatible runtime and voice; see the
 [RHVoice guide](../docs/RHVOICE.md). The

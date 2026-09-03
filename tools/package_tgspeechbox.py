@@ -189,8 +189,15 @@ def validate_stage(directory: Path, repository: Path, target: str) -> None:
         "wrong TGSpeechBox artifact provenance",
     )
     require(provenance.get("target") == target, "wrong TGSpeechBox target provenance")
-    require(provenance.get("markers_advertised") is False, "marker exclusion is not recorded")
-    require(provenance.get("rate_mapping") == "provisional", "rate status is not recorded")
+    require(provenance.get("markers_advertised") is True, "marker support is not recorded")
+    require(
+        provenance.get("marker_support") == "exact_requested_anchors",
+        "requested-anchor support is not recorded",
+    )
+    require(
+        provenance.get("rate_mapping") == "calibrated_eloquence_v1",
+        "rate status is not recorded",
+    )
     tgspeechbox = provenance.get("tgspeechbox")
     require(isinstance(tgspeechbox, dict), "TGSpeechBox source provenance is missing")
     require(tgspeechbox.get("release") == RELEASE, "wrong TGSpeechBox source revision")

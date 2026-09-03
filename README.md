@@ -60,7 +60,9 @@ TGSpeechBox is an experimental, opt-in source-built formant companion rather
 than part of the standard build or generic archives. Beginning with v1.7.0,
 its accepted Windows x64 GNU payload is published separately with seven
 profiles, 22 languages, and portable rate, pitch, pitch-range, and volume
-controls without markers. See the
+controls. Its measured rate curve follows the Eloquence reference until the
+native ceiling, and exact requested anchors support progressive capitalization
+tones and timed actions. See the
 [TGSpeechBox guide](docs/TGSPEECHBOX.md) for the WSL build and current limits.
 
 Speech rate is normalized with measured per-engine curves so an ordinary
@@ -217,8 +219,8 @@ This stages the self-contained Windows payload below the target Cargo profile,
 then creates and verifies its release and corresponding-source archives. It is
 excluded from `make build` and generic archives but published separately from
 v1.7.0. The [TGSpeechBox companion guide](docs/TGSPEECHBOX.md) documents
-installation, profiles, provisional control mappings, validation, licensing,
-and removal.
+installation, profiles, calibrated controls, requested anchors, validation,
+licensing, and removal.
 
 The Piper native build uses the vendored `v1.7.0` C API from the maintained
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl) project. It

@@ -19,6 +19,7 @@ The English calibration used the standard corpus in
 | RHVoice | SLT |
 | Flite | built-in `cmu_us_slt` |
 | Piper | locked CI-only `en_US-kristin-medium` model |
+| TGSpeechBox | Adam, `en-us` |
 
 RuTTS was measured with both built-in voices and a 17-word Russian corpus.
 Calibrated eSpeak Russian is its same-language anchor through host rate `0.8`.
@@ -36,10 +37,19 @@ unchanged target row:
 | RHVoice SLT | 120.0 | 151.7 | 186.4 | 234.6 | 257.9 | 258.0 |
 | Flite SLT | 119.3 | 151.4 | 185.7 | 233.1 | 284.2 | 364.0 |
 | Piper Kristin | 121.3 | 155.9 | 187.5 | 230.6 | 288.4 | 297.4 |
+| TGSpeechBox Adam | 120.2 | 151.8 | 186.5 | 235.2 | 287.2 | 369.0 |
 
 The portable eSpeak and Flite results reproduced across the Linux and Windows
 payloads. Piper was measured natively on Linux with the locked CI model. Its
 voice model, eSpeak, and RHVoice show the documented high-rate saturation.
+The 2026-09-03 TGSpeechBox calibration used its default 44.1 kHz Linux x64
+payload and three repetitions. Adam follows the Eloquence reference through
+host rate `1.0`, then reaches its `4x` native ceiling at rate `1.2`: 690.9 WPM
+versus the reference 846.9 WPM. The retained
+[provisional baseline](rate-audits/2026-09-03-tgspeechbox-before.json),
+[Eloquence reference](rate-audits/2026-09-03-eloquence-v1-reference.json), and
+[calibrated result](rate-audits/2026-09-03-tgspeechbox-after.json) record the
+complete curve and executable/corpus hashes.
 
 The equivalent Russian acceptance illustrates the shared-language anchor:
 
@@ -86,8 +96,9 @@ speed.
 
 Native limits also remain real. A table saturates when an engine cannot reach
 the reference speed. In particular, eSpeak, RHVoice, and Piper exhaust their
-measured headroom earlier than Eloquence. Rate remains monotonic at and above
-that point, but further host increases cannot make that engine faster.
+measured headroom earlier than Eloquence; TGSpeechBox saturates from host rate
+`1.2`. Rate remains monotonic at and above that point, but further host
+increases cannot make that engine faster.
 
 See [ADR 0004](adr/0004-per-engine-speech-rate-calibration.md) for the policy
 and rationale.

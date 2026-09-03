@@ -197,7 +197,8 @@ verify-rutts-source: package-rutts-source
 install-rutts: install
 
 # Build and stage the experimental TGSpeechBox source companion. It remains
-# opt-in while its rate mapping is provisional and markers are unavailable.
+# opt-in while upstream integration matures; rate calibration and exact
+# requested anchors are supported by the isolated helper.
 prepare-tgspeechbox:
 	$(PYTHON) tools/prepare_tgspeechbox_inputs.py
 

@@ -259,8 +259,11 @@ RuLex and exposes no markers, so marker-dependent timelines retain their
 whole-result path.
 Experimental TGSpeechBox keeps its pinned C++ frontend/DSP and eSpeak IPA
 conversion together in a GPLv3 helper, exposes only portable ACSS controls,
-and advertises no markers. These helpers reuse the engine-neutral helper host
-but never share a native process.
+and maps exact caller-requested source boundaries to the frontend's user-index
+frames. Its index-aware DSP pull publishes each resolved anchor between bounded
+PCM windows. It does not advertise word, sentence, phoneme, or arbitrary native
+indexes because the frontend supplies no truthful source ranges for them. These
+helpers reuse the engine-neutral helper host but never share a native process.
 
 The in-process eSpeak NG backend likewise streams its native synthesis
 callbacks through one continuous converter. Anchored requests use eSpeak's

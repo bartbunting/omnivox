@@ -376,8 +376,10 @@ the pinned Omnivox eSpeak-ng phonemizer/data.
 
 Place this top-level `tgspeechbox/` directory beside `omnivox` or
 `omnivox.exe`. The helper exposes TGSpeechBox profiles through the existing
-Omnivox helper protocol. Its rate mapping is provisional and it advertises no
-markers until retained calibration and source-offset evidence are available.
+Omnivox helper protocol. Its measured Adam `en-us` rate curve follows the
+Eloquence `v1` reference until TGSpeechBox reaches its native ceiling. Exact
+caller-requested anchors support progressive capitalization tones and timed
+presentation actions; general word and sentence markers remain unavailable.
 Rate-matched voice inventories for native 44.1 and 22.05 kHz operation permit
 switching with `OMNIVOX_TGSPEECHBOX_SAMPLE_RATE` and a server restart.
 
@@ -450,8 +452,9 @@ def stage(
             "schema_version": 1,
             "artifact": f"omnivox-tgspeechbox-companion-{suffix}",
             "target": target,
-            "markers_advertised": False,
-            "rate_mapping": "provisional",
+            "markers_advertised": True,
+            "marker_support": "exact_requested_anchors",
+            "rate_mapping": "calibrated_eloquence_v1",
             "default_native_sample_rate_hz": DEFAULT_SAMPLE_RATE,
             "native_sample_rates_hz": list(SUPPORTED_SAMPLE_RATES),
             "tgspeechbox": {

@@ -32,7 +32,11 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 - [ADR 0004: Per-engine Speech-rate Calibration](adr/0004-per-engine-speech-rate-calibration.md)
   — measured normalized-rate policy, saturation, and evidence requirements.
 - [ADR 0005: Experimental TGSpeechBox Companion](adr/0005-experimental-tgspeechbox-companion.md)
-  — pinned beta source, helper, GPL, provisional-rate, and release boundaries.
+  — pinned beta source, helper, GPL, initial-rate, and release boundaries.
+- [ADR 0006: Bounded Progressive Synthesis](adr/0006-bounded-progressive-synthesis.md)
+  — protocol-v5 PCM/marker interleaving, backpressure, conversion, and fallback.
+- [ADR 0007: TGSpeechBox Calibration and Requested Anchors](adr/0007-tgspeechbox-calibration-and-anchors.md)
+  — measured rate mapping and truthful index-backed presentation anchors.
 
 ## Protocol specifications
 

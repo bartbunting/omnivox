@@ -179,8 +179,15 @@ def verify_layout(extracted: Path, target: str) -> Path:
         "wrong artifact provenance",
     )
     require(provenance.get("target") == target, "wrong target provenance")
-    require(provenance.get("markers_advertised") is False, "marker exclusion is missing")
-    require(provenance.get("rate_mapping") == "provisional", "rate status is missing")
+    require(provenance.get("markers_advertised") is True, "marker support is missing")
+    require(
+        provenance.get("marker_support") == "exact_requested_anchors",
+        "requested-anchor support is missing",
+    )
+    require(
+        provenance.get("rate_mapping") == "calibrated_eloquence_v1",
+        "calibrated rate status is missing",
+    )
     tgspeechbox = provenance.get("tgspeechbox")
     require(isinstance(tgspeechbox, dict), "TGSpeechBox provenance is missing")
     require(tgspeechbox.get("release") == RELEASE, "wrong source revision")

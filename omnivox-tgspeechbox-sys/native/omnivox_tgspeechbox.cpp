@@ -208,12 +208,12 @@ bool initialize_player(engine &state) {
 }
 
 char clause_type(const char *text) {
-  if (!text) return '.';
+  if (!text) return '\0';
   const std::string value(text);
   const auto position = value.find_last_not_of(" \t\r\n");
-  if (position == std::string::npos) return '.';
+  if (position == std::string::npos) return '\0';
   const char last = value[position];
-  return last == '?' || last == '!' || last == ',' ? last : '.';
+  return last == '?' || last == '!' || last == ',' || last == '.' ? last : '\0';
 }
 
 } // namespace
@@ -335,7 +335,8 @@ char *omnivox_tgspeechbox_prepare_text(void *handle, const char *text) {
 
 int omnivox_tgspeechbox_begin(void *handle, const char *text, const char *ipa,
                               double speed, double base_pitch_hz,
-                              double inflection, double volume) {
+                              double inflection, double volume, int user_index,
+                              int final_segment) {
   auto *state = static_cast<engine *>(handle);
   if (!state || !text || !ipa || !*ipa) return 0;
   try {
@@ -348,11 +349,16 @@ int omnivox_tgspeechbox_begin(void *handle, const char *text, const char *ipa,
       synthesis_speed = 2.0;
     }
     speechPlayer_setTimeStretch(state->player, time_stretch);
-    const char clause[] = {clause_type(text), '\0'};
+    const char segment_clause = clause_type(text);
+    const char clause[] = {segment_clause != '\0'
+                               ? segment_clause
+                               : (final_segment ? '.' : ','),
+                           '\0'};
     const int queued = nvspFrontend_queueIPA_ExWithText(
         state->frontend, text, ipa, synthesis_speed,
         std::clamp(base_pitch_hz, 25.0, 300.0),
-        std::clamp(inflection, 0.0, 1.0), clause, 0, frame_callback, state);
+        std::clamp(inflection, 0.0, 1.0), clause, user_index, frame_callback,
+        state);
     if (!queued) {
       const char *error = nvspFrontend_getLastError(state->frontend);
       state->last_error = error && *error ? error : "TGSpeechBox rejected the IPA input";
@@ -367,13 +373,18 @@ int omnivox_tgspeechbox_begin(void *handle, const char *text, const char *ipa,
   return 0;
 }
 
-int omnivox_tgspeechbox_next(void *handle, int16_t *samples, size_t capacity) {
+int omnivox_tgspeechbox_next(void *handle, int16_t *samples, size_t capacity,
+                             int *index_reached) {
   auto *state = static_cast<engine *>(handle);
-  if (!state || !samples || capacity == 0 || capacity > UINT32_MAX) return -1;
+  if (!state || !samples || !index_reached || capacity == 0 ||
+      capacity > UINT32_MAX)
+    return -1;
   try {
     static_assert(sizeof(sample) == sizeof(int16_t), "TGSpeechBox sample layout differs");
-    return speechPlayer_synthesize(state->player, static_cast<unsigned int>(capacity),
-                                   reinterpret_cast<sample *>(samples));
+    return speechPlayer_synthesize2(state->player,
+                                    static_cast<unsigned int>(capacity),
+                                    reinterpret_cast<sample *>(samples),
+                                    index_reached);
   } catch (const std::exception &error) {
     state->last_error = error.what();
   } catch (...) {
