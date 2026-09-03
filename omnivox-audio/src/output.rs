@@ -24,6 +24,8 @@ use tracing::debug;
 
 const SPEECH_STOP_FADE_MILLISECONDS: usize = 3;
 const SPEECH_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * SPEECH_STOP_FADE_MILLISECONDS / 1000;
+const TONE_STOP_FADE_MILLISECONDS: usize = 3;
+const TONE_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * TONE_STOP_FADE_MILLISECONDS / 1000;
 const NULL_AUDIO_POLL_SAMPLES: usize = 1024;
 const PROGRESSIVE_PLAYBACK_CAPACITY: usize = 4;
 const PROGRESSIVE_PLAYBACK_PREBUFFER_WINDOWS: usize = 3;
@@ -544,6 +546,7 @@ pub struct AudioControl {
     schedule_generations: Arc<[AtomicU64; 3]>,
     stream_gates: Arc<[Mutex<()>; 3]>,
     speech_stop_cancellation: Arc<Mutex<CancellationToken>>,
+    tone_stop_cancellation: Arc<Mutex<CancellationToken>>,
     scheduled_playback: Arc<ScheduledPlaybackState>,
 }
 
@@ -570,6 +573,7 @@ impl AudioControl {
             ]),
             stream_gates: Arc::new([Mutex::new(()), Mutex::new(()), Mutex::new(())]),
             speech_stop_cancellation: Arc::new(Mutex::new(CancellationToken::new())),
+            tone_stop_cancellation: Arc::new(Mutex::new(CancellationToken::new())),
             scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
         }
     }
@@ -582,9 +586,20 @@ impl AudioControl {
         }
     }
 
-    fn speech_stop_cancellation(&self, stream: StreamType) -> Option<CancellationToken> {
-        (stream == StreamType::Speech)
-            .then(|| self.speech_stop_cancellation.lock().unwrap().clone())
+    fn smooth_stop_cancellation(&self, stream: StreamType) -> Option<CancellationToken> {
+        match stream {
+            StreamType::Speech => Some(self.speech_stop_cancellation.lock().unwrap().clone()),
+            StreamType::Tone => Some(self.tone_stop_cancellation.lock().unwrap().clone()),
+            StreamType::Sound => None,
+        }
+    }
+
+    fn smooth_stop_fade_frames(stream: StreamType) -> Option<usize> {
+        match stream {
+            StreamType::Speech => Some(SPEECH_STOP_FADE_FRAMES),
+            StreamType::Tone => Some(TONE_STOP_FADE_FRAMES),
+            StreamType::Sound => None,
+        }
     }
 
     /// Queue an audio buffer on the given stream.
@@ -618,8 +633,13 @@ impl AudioControl {
         };
 
         let samples = buffer.samples.clone();
-        if let Some(cancellation) = self.speech_stop_cancellation(stream) {
-            sink.append(SpeechBufferSource::new(samples, cancellation));
+        if let Some(cancellation) = self.smooth_stop_cancellation(stream) {
+            sink.append(SmoothStopBufferSource::new(
+                samples,
+                cancellation,
+                Self::smooth_stop_fade_frames(stream)
+                    .expect("a smooth-stop stream has a fade duration"),
+            ));
         } else {
             sink.append(BufferSource::new(samples));
         }
@@ -693,8 +713,8 @@ impl AudioControl {
         let (source, ticket) = TrackedBufferSource::new_with_options(
             samples,
             cancellation,
-            self.speech_stop_cancellation(stream),
-            (stream == StreamType::Speech).then_some(SPEECH_STOP_FADE_FRAMES),
+            self.smooth_stop_cancellation(stream),
+            Self::smooth_stop_fade_frames(stream),
         );
         sink.append(source);
         sink.play();
@@ -887,8 +907,8 @@ impl AudioControl {
             Some(cue_sender),
             None,
             None,
-            self.speech_stop_cancellation(stream),
-            (stream == StreamType::Speech).then_some(SPEECH_STOP_FADE_FRAMES),
+            self.smooth_stop_cancellation(stream),
+            Self::smooth_stop_fade_frames(stream),
         );
         sink.append(source);
         sink.play();
@@ -998,7 +1018,7 @@ impl AudioControl {
         }
 
         let stream_cancellation = self
-            .speech_stop_cancellation(stream)
+            .smooth_stop_cancellation(stream)
             .expect("speech has a stream cancellation token");
         let (mut producer, source, ticket) = ProgressivePlaybackSource::new(
             Box::new(on_cue),
@@ -1048,8 +1068,8 @@ impl AudioControl {
             None,
             Some(Box::new(on_cue)),
             cancellation,
-            self.speech_stop_cancellation(stream),
-            (stream == StreamType::Speech).then_some(SPEECH_STOP_FADE_FRAMES),
+            self.smooth_stop_cancellation(stream),
+            Self::smooth_stop_fade_frames(stream),
         );
         sink.append(source);
         sink.play();
@@ -1077,18 +1097,21 @@ impl AudioControl {
 
     /// Stop a specific stream, retiring all queued and playing audio.
     ///
-    /// Speech already being consumed fades over three milliseconds to avoid a
-    /// waveform discontinuity. Speech which has not started, plus tone and
-    /// sound streams, still stops immediately.
+    /// Speech and tones already being consumed fade over three milliseconds to
+    /// avoid waveform discontinuities. Sources which have not started, plus
+    /// sound streams, still stop immediately.
     pub fn stop(&self, stream: StreamType) {
         let _gate = self.stream_gates[stream_index(stream)].lock().unwrap();
         self.schedule_generations[stream_index(stream)].fetch_add(1, Ordering::AcqRel);
         let (sink, _) = self.sink_and_max(stream);
-        if stream == StreamType::Speech {
-            let previous = std::mem::replace(
-                &mut *self.speech_stop_cancellation.lock().unwrap(),
-                CancellationToken::new(),
-            );
+        let smooth_stop = match stream {
+            StreamType::Speech => Some(&self.speech_stop_cancellation),
+            StreamType::Tone => Some(&self.tone_stop_cancellation),
+            StreamType::Sound => None,
+        };
+        if let Some(cancellation) = smooth_stop {
+            let previous =
+                std::mem::replace(&mut *cancellation.lock().unwrap(), CancellationToken::new());
             previous.cancel();
         } else {
             sink.clear();
@@ -1096,7 +1119,7 @@ impl AudioControl {
         sink.play();
     }
 
-    /// Stop every stream, using the short de-click fade for active speech.
+    /// Stop every stream, using a short de-click fade for active speech and tones.
     pub fn stop_all(&self) {
         self.stop(StreamType::Speech);
         self.stop(StreamType::Tone);
@@ -1283,12 +1306,12 @@ impl AudioStreams {
         self.control.queue(stream, buffer)
     }
 
-    /// Stop a specific stream, smoothing active speech over three milliseconds.
+    /// Stop a specific stream, smoothing active speech or tones over three milliseconds.
     pub fn stop(&self, stream: StreamType) {
         self.control.stop(stream)
     }
 
-    /// Stop every stream, using the short de-click fade for active speech.
+    /// Stop every stream, using the short de-click fade for active speech and tones.
     pub fn stop_all(&self) {
         self.control.stop_all()
     }
@@ -1319,6 +1342,7 @@ impl Drop for AudioStreams {
             .lock()
             .unwrap()
             .cancel();
+        self.control.tone_stop_cancellation.lock().unwrap().cancel();
         shutdown.store(true, Ordering::Release);
         self.control.speech_sink.shutdown();
         self.control.tone_sink.shutdown();
@@ -1576,26 +1600,22 @@ impl PlaybackCancellation {
     }
 }
 
-/// Untracked speech audio which participates in stream-wide smooth stopping.
-struct SpeechBufferSource {
+/// Untracked audio which participates in stream-wide smooth stopping.
+struct SmoothStopBufferSource {
     inner: BufferSource,
     cancellation: PlaybackCancellation,
 }
 
-impl SpeechBufferSource {
-    fn new(samples: Vec<f32>, cancellation: CancellationToken) -> Self {
+impl SmoothStopBufferSource {
+    fn new(samples: Vec<f32>, cancellation: CancellationToken, fade_frames: usize) -> Self {
         Self {
             inner: BufferSource::new(samples),
-            cancellation: PlaybackCancellation::new(
-                None,
-                Some(cancellation),
-                Some(SPEECH_STOP_FADE_FRAMES),
-            ),
+            cancellation: PlaybackCancellation::new(None, Some(cancellation), Some(fade_frames)),
         }
     }
 }
 
-impl Iterator for SpeechBufferSource {
+impl Iterator for SmoothStopBufferSource {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -1610,7 +1630,7 @@ impl Iterator for SpeechBufferSource {
     }
 }
 
-impl Source for SpeechBufferSource {
+impl Source for SmoothStopBufferSource {
     fn current_frame_len(&self) -> Option<usize> {
         self.inner.current_frame_len().map(|remaining| {
             remaining.min(self.cancellation.remaining_samples(self.inner.position))
@@ -2296,6 +2316,66 @@ mod tests {
     }
 
     #[test]
+    fn tone_stop_rotates_the_stream_cancellation_generation() {
+        let (speech_sink, _speech_output) = Sink::new_idle();
+        let (tone_sink, _tone_output) = Sink::new_idle();
+        let (sound_sink, _sound_output) = Sink::new_idle();
+        let control = AudioControl::new(
+            ManagedSink::Device(Arc::new(speech_sink)),
+            ManagedSink::Device(Arc::new(tone_sink)),
+            ManagedSink::Device(Arc::new(sound_sink)),
+            4,
+            4,
+            4,
+        );
+        let initial = control.tone_stop_cancellation.lock().unwrap().clone();
+
+        control.stop(StreamType::Tone);
+
+        let replacement = control.tone_stop_cancellation.lock().unwrap().clone();
+        assert!(initial.is_cancelled());
+        assert!(!initial.same_token(&replacement));
+        assert!(!replacement.is_cancelled());
+
+        control.stop(StreamType::Tone);
+
+        assert!(replacement.is_cancelled());
+        assert!(!control
+            .tone_stop_cancellation
+            .lock()
+            .unwrap()
+            .is_cancelled());
+    }
+
+    #[test]
+    fn tone_stop_fades_the_active_sink_source_to_zero() {
+        let channels = CHANNELS as usize;
+        let fade_samples = TONE_STOP_FADE_FRAMES * channels;
+        let (speech_sink, _speech_output) = Sink::new_idle();
+        let (tone_sink, mut tone_output) = Sink::new_idle();
+        let (sound_sink, _sound_output) = Sink::new_idle();
+        let control = AudioControl::new(
+            ManagedSink::Device(Arc::new(speech_sink)),
+            ManagedSink::Device(Arc::new(tone_sink)),
+            ManagedSink::Device(Arc::new(sound_sink)),
+            4,
+            4,
+            4,
+        );
+        let tone = AudioBuffer::new(vec![1.0; fade_samples + 2 * channels]);
+        assert!(control.queue(StreamType::Tone, &tone).unwrap());
+        assert_eq!(tone_output.next(), Some(1.0));
+        assert_eq!(tone_output.next(), Some(1.0));
+
+        control.stop(StreamType::Tone);
+
+        let tail = tone_output.by_ref().take(fade_samples).collect::<Vec<_>>();
+        assert_eq!(tail.len(), fade_samples);
+        assert_eq!(tail.first(), Some(&1.0));
+        assert_eq!(tail.last(), Some(&0.0));
+    }
+
+    #[test]
     fn null_backend_consumes_tracked_audio_and_cues_without_a_device() {
         let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
         let control = streams.control();
@@ -2425,13 +2505,20 @@ mod tests {
     }
 
     #[test]
-    fn stream_stop_fades_active_untracked_speech_but_discards_queued_speech() {
+    fn stream_stop_fades_active_untracked_audio_but_discards_queued_audio() {
         let channels = CHANNELS as usize;
-        let fade_samples = SPEECH_STOP_FADE_FRAMES * channels;
+        let fade_samples = TONE_STOP_FADE_FRAMES * channels;
         let cancellation = CancellationToken::new();
-        let mut active =
-            SpeechBufferSource::new(vec![1.0; fade_samples + 2 * channels], cancellation.clone());
-        let mut queued = SpeechBufferSource::new(vec![1.0; 2 * channels], cancellation.clone());
+        let mut active = SmoothStopBufferSource::new(
+            vec![1.0; fade_samples + 2 * channels],
+            cancellation.clone(),
+            TONE_STOP_FADE_FRAMES,
+        );
+        let mut queued = SmoothStopBufferSource::new(
+            vec![1.0; 2 * channels],
+            cancellation.clone(),
+            TONE_STOP_FADE_FRAMES,
+        );
 
         assert_eq!(active.next(), Some(1.0));
         assert_eq!(active.next(), Some(1.0));
