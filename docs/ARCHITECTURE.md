@@ -329,17 +329,22 @@ or ended.
 
 Speech, tone, and sound sinks can play concurrently. Within each sink sources
 are ordered and bounded. Progressive speech remains one tracked source while a
-fixed-capacity producer supplies PCM windows and frame cues; natural completion
-requires an explicit producer terminal, while cancellation closes the channel
-and preserves the speech de-click fade. Deferred legacy icons wait for their
-preceding speech barriers but do not delay following speech; their tail still
-belongs to tracked completion.
+fixed-capacity producer supplies PCM windows and frame cues. Before attaching a
+progressive source to a real device, the producer primes three non-empty PCM
+windows, or all available windows when a shorter source reaches its terminal.
+Cue-only updates are retained by the producer and travel with the next PCM
+window or terminal message, so they cannot displace this bounded audio reserve.
+Natural completion requires an explicit producer terminal, while cancellation
+closes the channel and preserves the speech de-click fade. Deferred legacy
+icons wait for their preceding speech barriers but do not delay following
+speech; their tail still belongs to tracked completion.
 
 The default output backend connects those sinks to the operating-system audio
 device. An explicit null backend instead drains the same rodio source wrappers
 as quickly as possible without opening a device. It therefore preserves queue,
 cue, cancellation, overlay-barrier, and tracked-completion behavior while
-deliberately removing real-time device and acoustic timing from the run.
+attaching progressive sources immediately and deliberately removing real-time
+device and acoustic timing from the run.
 
 ## Lifecycle invariants
 

@@ -99,7 +99,9 @@ in the linked protocol specifications; future work belongs in
   supported presentation anchors through bounded progressive isolation,
   exact cross-window silence trimming, effects, timeline rendering, and a
   single tracked playback source. Marker and timeline events are reserved
-  before the corresponding PCM can reach playback. A request remains buffered
+  before the corresponding PCM can reach playback. Real-device playback primes
+  three non-empty windows without allowing cue-only traffic to consume that
+  reserve; the null backend attaches immediately. A request remains buffered
   when its selected engine advertises no requested-anchor support or an
   operation still requires future knowledge of the complete waveform.
 - Immediate `tts_say` and letter commands use the global engine order rather

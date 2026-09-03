@@ -59,6 +59,11 @@ an unbounded payload or a second transport:
   for such a non-empty progressive source; a positive value continues to mean
   the exact completed count. The tracked terminal event remains authoritative
   for completion or cancellation.
+- A real-device playback source is attached after three non-empty PCM windows
+  have filled its fixed-capacity channel, or after the terminal message for a
+  shorter source. Cue-only updates are coalesced into the next PCM or terminal
+  message so they cannot consume this bounded audio reserve. The null backend
+  attaches immediately because it has no device clock or underrun risk.
 - Runtime fallback is allowed only before the first progressive PCM chunk has
   been accepted. Routed start metadata and marker/anchor preambles remain
   transactional until that commitment, so a failed attempt cannot contaminate

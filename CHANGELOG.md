@@ -50,6 +50,11 @@ Versioning for published releases.
 
 ### Fixed
 
+- Progressive playback now primes a real audio device with three non-empty PCM
+  windows before attaching the source. Marker/event-only updates travel with
+  the next audio window or terminal message instead of consuming that bounded
+  reserve, reducing device starvation noise for low-rate streaming engines
+  such as Eloquence and DECtalk. Null output remains immediate.
 - TGSpeechBox's staged voice-inventory generator now negotiates protocol v5,
   preventing its cached streaming capability from disagreeing with the live
   helper descriptor.
