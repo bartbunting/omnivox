@@ -25,9 +25,12 @@ use crate::contracts::{
     EngineCapabilities, EngineDescriptor, EngineHealth, MarkerCapabilities, PhysicalVoiceId,
     VoiceDescriptor,
 };
+use crate::helper_protocol::MAX_HELPER_SYNTHESIS_BYTES;
 use crate::{
-    AudioBuffer, SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
+    AudioBuffer, SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
+    SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
 };
+use omnivox_audio::ProgressivePcmCanonicalizer;
 use std::ffi::{CStr, CString};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -37,6 +40,9 @@ use tracing::{debug, info, warn};
 /// espeak-ng data path discovered at build time by omnivox-piper-sys/build.rs.
 /// Exposed as a pub const in the sys crate so we can reference it here.
 use omnivox_piper_sys::PIPER_ESPEAK_DATA_DIR;
+
+const MAX_NATIVE_SAMPLES: usize = MAX_HELPER_SYNTHESIS_BYTES / std::mem::size_of::<f32>();
+const STREAMING_INPUT_FRAMES: usize = 512;
 
 /// Piper neural TTS engine.
 ///
@@ -75,7 +81,7 @@ impl PiperTtsEngine {
                 rate: true,
                 ..AcssCapabilities::default()
             },
-            audio_output: AudioOutputMode::BufferedPcm,
+            audio_output: AudioOutputMode::StreamingPcm,
             cancellation: CancellationSupport::PlaybackOnly,
             concurrency: ConcurrencyModel::Serialized,
             markers: MarkerCapabilities::default(),
@@ -295,6 +301,14 @@ impl TtsEngine for PiperTtsEngine {
                 }
                 let chunk_samples =
                     unsafe { std::slice::from_raw_parts(chunk.samples, chunk.num_samples) };
+                if chunk_samples.len() > MAX_NATIVE_SAMPLES.saturating_sub(samples.len()) {
+                    return Err(TtsError::SynthesisFailed(
+                        "Piper PCM exceeded the helper synthesis limit".to_owned(),
+                    ));
+                }
+                samples.try_reserve(chunk_samples.len()).map_err(|_| {
+                    TtsError::SynthesisFailed("could not allocate the Piper PCM buffer".to_owned())
+                })?;
                 samples.extend_from_slice(chunk_samples);
             }
             if status == omnivox_piper_sys::PIPER_DONE as i32 || chunk.is_last {
@@ -325,7 +339,147 @@ impl TtsEngine for PiperTtsEngine {
         .map_err(|error| {
             TtsError::SynthesisFailed(format!("could not canonicalize Piper PCM: {error}"))
         })?;
-        Ok(SynthesisResult::audio("piper", actual_voice, buffer))
+        let mut result = SynthesisResult::audio("piper", actual_voice, buffer);
+        result.degraded_acss = request
+            .normalized_acss
+            .clone()
+            .degrade_for(&Self::capabilities().acss)
+            .omitted;
+        Ok(result)
+    }
+
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        let text = request.text.as_str();
+        request.voice_id_for_engine("piper")?;
+        let actual_voice = Some(PhysicalVoiceId::new(
+            "piper",
+            format!("piper:{}", self.voice_name),
+        ));
+        let degraded_acss = request
+            .normalized_acss
+            .clone()
+            .degrade_for(&Self::capabilities().acss)
+            .omitted;
+        sink.start(SynthesisStreamStart {
+            engine_id: "piper".to_owned(),
+            actual_voice,
+            degraded_acss,
+        })?;
+        if text.is_empty() {
+            return Ok(SynthesisStreamCompletion { frame_count: 0 });
+        }
+
+        let ptr = self.state.lock().map_err(|error| {
+            TtsError::SynthesisFailed(format!("piper state lock poisoned: {error}"))
+        })?;
+        self.cancel_requested.store(false, Ordering::Release);
+        self.speaking.store(true, Ordering::Release);
+        let _speaking = SpeakingGuard(&self.speaking);
+        let text_cstr = CString::new(text)
+            .map_err(|_| TtsError::SynthesisFailed("Text contains null bytes".to_owned()))?;
+        let mut options = unsafe { omnivox_piper_sys::piper_default_synthesize_options(*ptr) };
+        options.length_scale = Self::map_rate_to_length_scale(request.settings.rate);
+        let start = unsafe {
+            omnivox_piper_sys::piper_synthesize_start(*ptr, text_cstr.as_ptr(), &options)
+        };
+        if start != omnivox_piper_sys::PIPER_OK as i32 {
+            return Err(TtsError::SynthesisFailed(format!(
+                "libpiper could not start synthesis (status {start})"
+            )));
+        }
+
+        let mut sample_rate = None;
+        let mut native_samples = 0_usize;
+        let mut canonicalizer = None;
+        loop {
+            if synthesis_cancelled(self, request) {
+                return Err(TtsError::SynthesisFailed(
+                    "Piper synthesis was cancelled".to_owned(),
+                ));
+            }
+            let mut chunk: omnivox_piper_sys::piper_audio_chunk = unsafe { std::mem::zeroed() };
+            let status = unsafe { omnivox_piper_sys::piper_synthesize_next(*ptr, &mut chunk) };
+            if status != omnivox_piper_sys::PIPER_OK as i32
+                && status != omnivox_piper_sys::PIPER_DONE as i32
+            {
+                return Err(TtsError::SynthesisFailed(format!(
+                    "libpiper synthesis failed (status {status})"
+                )));
+            }
+            if chunk.sample_rate <= 0 {
+                return Err(TtsError::SynthesisFailed(
+                    "libpiper returned an invalid sample rate".to_owned(),
+                ));
+            }
+            let chunk_rate = chunk.sample_rate as u32;
+            if sample_rate
+                .replace(chunk_rate)
+                .is_some_and(|rate| rate != chunk_rate)
+            {
+                return Err(TtsError::SynthesisFailed(
+                    "libpiper changed sample rate within one utterance".to_owned(),
+                ));
+            }
+            if chunk.num_samples > 0 {
+                if chunk.samples.is_null() {
+                    return Err(TtsError::SynthesisFailed(
+                        "libpiper returned a null audio chunk".to_owned(),
+                    ));
+                }
+                if chunk.num_samples > MAX_NATIVE_SAMPLES.saturating_sub(native_samples) {
+                    return Err(TtsError::SynthesisFailed(
+                        "Piper PCM exceeded the helper synthesis limit".to_owned(),
+                    ));
+                }
+                native_samples += chunk.num_samples;
+                let converter = if let Some(converter) = canonicalizer.as_mut() {
+                    converter
+                } else {
+                    canonicalizer.insert(ProgressivePcmCanonicalizer::new(chunk_rate, 1).map_err(
+                        |error| {
+                            TtsError::SynthesisFailed(format!(
+                                "could not initialize progressive Piper PCM conversion: {error}"
+                            ))
+                        },
+                    )?)
+                };
+                let chunk_samples =
+                    unsafe { std::slice::from_raw_parts(chunk.samples, chunk.num_samples) };
+                for input in chunk_samples.chunks(STREAMING_INPUT_FRAMES) {
+                    let windows = converter.push_interleaved_f32(input).map_err(|error| {
+                        TtsError::SynthesisFailed(format!(
+                            "could not canonicalize progressive Piper PCM: {error}"
+                        ))
+                    })?;
+                    emit_audio_windows(sink, windows)?;
+                    if synthesis_cancelled(self, request) {
+                        return Err(TtsError::SynthesisFailed(
+                            "Piper synthesis was cancelled".to_owned(),
+                        ));
+                    }
+                }
+            }
+            if status == omnivox_piper_sys::PIPER_DONE as i32 || chunk.is_last {
+                break;
+            }
+        }
+
+        let Some(mut canonicalizer) = canonicalizer else {
+            return Ok(SynthesisStreamCompletion { frame_count: 0 });
+        };
+        let windows = canonicalizer.finish().map_err(|error| {
+            TtsError::SynthesisFailed(format!(
+                "could not finish progressive Piper PCM conversion: {error}"
+            ))
+        })?;
+        emit_audio_windows(sink, windows)?;
+        Ok(SynthesisStreamCompletion {
+            frame_count: canonicalizer.output_frames(),
+        })
     }
 
     fn stop(&self) {
@@ -354,6 +508,26 @@ impl TtsEngine for PiperTtsEngine {
             .into_iter()
             .find(|v| v.identifier == identifier || v.name == identifier)
     }
+}
+
+fn synthesis_cancelled(engine: &PiperTtsEngine, request: &SynthesisRequest) -> bool {
+    engine.cancel_requested.load(Ordering::Acquire)
+        || request
+            .cancellation
+            .as_ref()
+            .is_some_and(crate::SynthesisCancellationToken::is_cancelled)
+}
+
+fn emit_audio_windows(
+    sink: &mut dyn SynthesisStreamSink,
+    windows: Vec<AudioBuffer>,
+) -> Result<(), TtsError> {
+    for window in windows {
+        if !window.is_empty() {
+            sink.audio(window)?;
+        }
+    }
+    Ok(())
 }
 
 /// Locate the companion .json config for a piper .onnx model file.
@@ -513,6 +687,14 @@ mod tests {
             .map(|point| PiperTtsEngine::map_rate_to_length_scale(point as f32 / 10.0))
             .collect();
         assert!(mapped.windows(2).all(|pair| pair[0] >= pair[1]));
+    }
+
+    #[test]
+    fn piper_advertises_progressive_pcm() {
+        assert_eq!(
+            PiperTtsEngine::capabilities().audio_output,
+            AudioOutputMode::StreamingPcm
+        );
     }
 
     #[test]
