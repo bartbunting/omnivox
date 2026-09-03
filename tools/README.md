@@ -92,7 +92,8 @@ make verify-rutts-source
 ```
 
 `prepare_tgspeechbox_inputs.py` downloads and verifies the exact TGSpeechBox
-`v-310b802` archive and complete extracted-tree digest. The experimental
+`v-310@f5ec247` snapshot archive and complete extracted-tree digest. The
+experimental
 `build_tgspeechbox.py` compiles the isolated C++/eSpeak helper and atomically
 stages its packs, generated eSpeak data, licences, provenance, and exhaustive
 checksums:
@@ -101,11 +102,16 @@ checksums:
 make prepare-tgspeechbox
 python3 tools/prepare_tgspeechbox_inputs.py --check
 make build-tgspeechbox-windows
+make verify-tgspeechbox
+make verify-tgspeechbox-source
 ```
 
 The accepted target is Windows x64 GNU from WSL; Linux x64 is available for a
-development smoke test. This is not release packaging and does not create a
-corresponding-source artifact. See the
+development smoke test. `package_tgspeechbox.py` and
+`verify_tgspeechbox_release.py` create and exercise the deterministic Windows
+archive. The matching source tools include the exact Omnivox tree, vendored
+Cargo/eSpeak NG source, locked TGSpeechBox archive, and exhaustive manifest.
+See the
 [TGSpeechBox companion guide](../docs/TGSPEECHBOX.md).
 
 `build_piper.py` builds the optional helper in relocatable mode, selects the
@@ -238,7 +244,7 @@ engine list remains available for an intentional structural and architecture
 check that does not exercise synthesis.
 
 `verify_release_asset_set.py` independently requires the complete release to
-contain exactly the 24 documented archives and `sha256sums.txt`. Directory mode
+contain exactly the 26 documented archives and `sha256sums.txt`. Directory mode
 also requires the checksum manifest to name every archive exactly once; names
 mode protects the uploaded draft and the final publication step from missing,
 duplicate, or stale cached assets.

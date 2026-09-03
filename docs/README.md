@@ -56,7 +56,7 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 - [RUTTS.md](RUTTS.md) — self-contained Russian companion installation,
   source build, text repertoire, pronunciation, verification, and removal.
 - [TGSPEECHBOX.md](TGSPEECHBOX.md) — experimental formant companion, Windows
-  x64 WSL build, profiles, tuning controls, verification, and licensing.
+  x64 release installation/build, profiles, controls, verification, and licensing.
 - [PIPER.md](PIPER.md) — optional companion build, layout, model setup,
   verification, upgrade, and removal.
 - [Windows capture helpers](../windows-helpers/README.md) — Eloquence and

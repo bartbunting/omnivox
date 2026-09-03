@@ -11,8 +11,8 @@ profiles and direct speed, base-pitch, inflection, and output-gain controls.
 Unlike eSpeak NG, it does not provide its own general text-to-phoneme path for
 all of the language packs we want to expose.
 
-The upstream `v-310b802` release is a beta. Its repository tests are not all
-green at the selected revision, and the release has neither the retained rate
+The upstream `v-310` line is a beta. Its repository tests are not all green at
+the selected revision, and the line has neither the retained rate
 measurements required by ADR 0004 nor source-offset evidence for truthful
 Omnivox markers. Linking its C++ implementation directly into the main server
 would also contradict ADR 0001's rule that a new external native engine begins
@@ -28,12 +28,13 @@ MIT-licensed native boundary source.
 Omnivox adds TGSpeechBox as an experimental, opt-in companion with these
 boundaries:
 
-- The source input is pinned to release `v-310b802`, commit
-  `7515ae055e45d2d15cae01d7fe081ce951dcd5cd`, with an archive digest and a
-  complete extracted-tree digest. The supported preparer verifies both before
-  compilation.
+- The source input is pinned to the exact upstream `v-310` branch snapshot
+  `v-310@f5ec247`, commit `f5ec247bca50507ab1e2ed661136395538dc3e97`,
+  with an archive digest and a complete extracted-tree digest. This is six
+  commits after `v-310b802`; Omnivox does not represent it as a new upstream
+  release tag. The supported preparer verifies both digests before compilation.
 - TGSpeechBox and eSpeak NG run only inside `omnivox-tgspeechbox-helper`. The
-  main process uses the existing helper protocol v4 and receives only bounded
+  main process uses helper protocol v5 and receives only bounded
   PCM and truthful capability metadata. No helper-protocol or public synthesis
   schema is extended for the experiment.
 - The helper uses the pinned Omnivox `espeak-rs-sys` dependency synchronously
@@ -70,11 +71,17 @@ boundaries:
   payload checksums. Cross-compiling from WSL may use host-generated eSpeak data
   from the same locked dependency because that generated data is
   architecture-independent; the executable itself remains target-built.
-- Windows x64 GNU is the first runtime-accepted target. Linux x64 synthesis is
-  a development smoke check. This companion is excluded from generic builds,
-  release archives, and the Emacsvox release bundle until repeatable rate,
-  corresponding-source, native workflow, and release-verification gates are
-  added.
+- Windows x64 GNU is the first runtime-accepted target and, beginning with
+  Omnivox v1.7.0, is published as a separate experimental companion archive.
+  Linux x64 synthesis remains a development smoke check. TGSpeechBox stays
+  outside generic archives and the Emacsvox release bundle.
+- The tag workflow rebuilds the Windows x64 GNU helper from the verified source
+  input, regenerates both voice inventories, lints the native crates, exercises
+  repeated synthesis, streaming, cancellation, and every advertised ACSS
+  dimension, then verifies exact TGSpeechBox routing with the relocated generic
+  Windows archive. Publication also requires a deterministic source artifact
+  containing the exact Omnivox Git tree, vendored Cargo and eSpeak NG source,
+  the TGSpeechBox input archive, and exhaustive checksums and provenance.
 - The helper package declares `GPL-3.0-or-later` for the combined binary. The
   Omnivox-authored narrow C++/Rust boundary remains MIT, and TGSpeechBox retains
   its upstream MIT licence. Redistribution must satisfy the combined helper's
@@ -98,7 +105,8 @@ from the server command-loop critical path. Background connection pre-warming
 usually completes before the first TGSpeechBox utterance; speech arriving sooner
 waits only for the remaining initialization work.
 
-The staged binary is suitable for local evaluation, not yet a release asset.
-Adding it to a published bundle requires corresponding-source packaging,
-native target gates, licence review of the exact payload, and retained runtime
-evidence rather than relying on this development acceptance.
+The published Windows x64 binary remains explicitly experimental despite
+passing its release gates: the rate is provisional, markers are unavailable,
+and no other native target is claimed. Adding another target still requires a
+matching native gate and retained runtime evidence rather than inference from
+the Windows result.

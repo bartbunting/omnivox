@@ -524,6 +524,128 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
+  build_tgspeechbox_release:
+    name: Build TGSpeechBox Release Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 45
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: tgspeechbox-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: tgspeechbox-${{ runner.os }}-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: tgspeechbox-${{ runner.os }}-build-${{ hashFiles('Cargo.lock') }}
+          restore-keys: tgspeechbox-${{ runner.os }}-build-
+
+      - name: Build and stage companion
+        run: python tools/build_tgspeechbox.py --release --target x86_64-pc-windows-gnu
+
+      - name: Recheck prepared source without network
+        run: python tools/prepare_tgspeechbox_inputs.py --check
+
+      - name: Lint native TGSpeechBox crates
+        run: >-
+          cargo clippy --locked --target x86_64-pc-windows-gnu
+          --package omnivox-tgspeechbox-helper --package omnivox-tgspeechbox-sys
+          --all-targets -- -D warnings
+
+      - name: Package and verify companion
+        run: |
+          python tools/package_tgspeechbox.py
+          python tools/verify_tgspeechbox_release.py --iterations 25
+
+      - name: Read workspace version
+        id: workspace_version
+        shell: bash
+        run: >-
+          python -c 'import tomllib;
+          print("version=" + tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])'
+          >> "$GITHUB_OUTPUT"
+
+      - name: Upload verified companion
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnivox-tgspeechbox-windows-x64
+          path: |
+            target/x86_64-pc-windows-gnu/release/omnivox-${{ steps.workspace_version.outputs.version }}-tgspeechbox-windows-x64.zip
+            target/x86_64-pc-windows-gnu/release/tgspeechbox-sha256sums.txt
+          compression-level: 0
+          if-no-files-found: error
+
+  package_tgspeechbox_source:
+    name: Package TGSpeechBox Source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: tgspeechbox-source-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: tgspeechbox-source-${{ runner.os }}-
+
+      - name: Prepare and verify locked TGSpeechBox source
+        run: |
+          python tools/prepare_tgspeechbox_inputs.py
+          python tools/prepare_tgspeechbox_inputs.py --check
+
+      - name: Package and verify source artifact
+        run: |
+          python tools/package_tgspeechbox_source.py
+          python tools/verify_tgspeechbox_source.py
+
+      - name: Read workspace version
+        id: workspace_version
+        shell: bash
+        run: >-
+          python -c 'import tomllib;
+          print("version=" + tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])'
+          >> "$GITHUB_OUTPUT"
+
+      - name: Upload verified source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnivox-tgspeechbox-source
+          path: |
+            target/release/omnivox-${{ steps.workspace_version.outputs.version }}-tgspeechbox-source.tar.gz
+            target/release/tgspeechbox-source-sha256sums.txt
+          compression-level: 0
+          if-no-files-found: error
+
   package_piper_source_release:
     name: Package Piper Source
     runs-on: ubuntu-24.04
@@ -660,7 +782,7 @@ jobs:
 
   package_release:
     name: Package Release
-    needs: [format, build, test, build_flite, build_rutts, build_piper_release, package_flite_source, package_rutts_source, package_piper_source_release]
+    needs: [format, build, test, build_flite, build_rutts, build_piper_release, build_tgspeechbox_release, package_flite_source, package_rutts_source, package_piper_source_release, package_tgspeechbox_source]
     runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     outputs:
@@ -721,6 +843,8 @@ jobs:
           cp "omnivox-piper-macos-x64/omnivox-${VERSION}-piper-macos-x64.tar.gz" .
           cp "omnivox-piper-windows-x64/omnivox-${VERSION}-piper-windows-x64.zip" .
           cp "omnivox-piper-source/omnivox-${VERSION}-piper-source.tar.gz" .
+          cp "omnivox-tgspeechbox-windows-x64/omnivox-${VERSION}-tgspeechbox-windows-x64.zip" .
+          cp "omnivox-tgspeechbox-source/omnivox-${VERSION}-tgspeechbox-source.tar.gz" .
           cp "omnivox-flite-linux-x64/omnivox-${VERSION}-flite-linux-x64.tar.gz" .
           cp "omnivox-flite-linux-arm64/omnivox-${VERSION}-flite-linux-arm64.tar.gz" .
           cp "omnivox-flite-macos-arm64/omnivox-${VERSION}-flite-macos-arm64.tar.gz" .
@@ -920,6 +1044,21 @@ jobs:
             This companion is built without RuLex. The exact upstream RuTTS
             source and Omnivox build integration are in
             `omnivox-${{ needs.package_release.outputs.version }}-rutts-source.tar.gz`.
+
+            ### Experimental TGSpeechBox companion
+
+            TGSpeechBox is an opt-in formant engine published for Windows x64.
+            Extract the archive's top-level `tgspeechbox/` directory beside
+            the Windows x64 generic executable:
+
+            `omnivox-${{ needs.package_release.outputs.version }}-tgspeechbox-windows-x64.zip`
+
+            Its seven profiles and 22 languages are built from the exact
+            checksum-locked `v-310@f5ec247` upstream snapshot. The rate curve
+            remains provisional and the helper advertises no markers, so this
+            companion remains experimental. Its complete Omnivox, TGSpeechBox,
+            eSpeak NG, and Cargo source is in
+            `omnivox-${{ needs.package_release.outputs.version }}-tgspeechbox-source.tar.gz`.
 
             These binaries are not code-signed or notarized, so Gatekeeper or
             SmartScreen may warn. Verify `sha256sums.txt`; do not disable
@@ -1435,9 +1574,121 @@ jobs:
           --checksums downloaded/sha256sums.txt
           --version "$RELEASE_VERSION"
 
+  verify_tgspeechbox_release:
+    name: Verify TGSpeechBox Release Windows x64
+    needs: [package_release, create_draft_release]
+    runs-on: windows-latest
+    if: >-
+      always() &&
+      (
+        (
+          startsWith(github.ref, 'refs/tags/v') &&
+          needs.package_release.result == 'success' &&
+          needs.create_draft_release.result == 'success'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.draft_version != ''
+        )
+      )
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
+      RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
+
+    steps:
+      - name: Checkout verification code from release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download TGSpeechBox and generic Windows assets
+        shell: bash
+        run: >-
+          gh release download "$RELEASE_TAG"
+          --repo "${{ github.repository }}"
+          --pattern "omnivox-$RELEASE_VERSION-tgspeechbox-windows-x64.zip"
+          --pattern "omnivox-$RELEASE_VERSION-windows-x64.zip"
+          --pattern sha256sums.txt
+          --dir downloaded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify exact downloaded TGSpeechBox archive
+        shell: bash
+        run: >-
+          python tools/verify_tgspeechbox_release.py
+          --archive "downloaded/omnivox-$RELEASE_VERSION-tgspeechbox-windows-x64.zip"
+          --omnivox-archive "downloaded/omnivox-$RELEASE_VERSION-windows-x64.zip"
+          --checksums downloaded/sha256sums.txt
+          --version "$RELEASE_VERSION"
+          --iterations 25
+
+  verify_tgspeechbox_source_release:
+    name: Verify TGSpeechBox Source Release
+    needs: [package_release, create_draft_release]
+    runs-on: ubuntu-24.04
+    if: >-
+      always() &&
+      (
+        (
+          startsWith(github.ref, 'refs/tags/v') &&
+          needs.package_release.result == 'success' &&
+          needs.create_draft_release.result == 'success'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.draft_version != ''
+        )
+      )
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
+      RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
+
+    steps:
+      - name: Checkout verification code from release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download draft TGSpeechBox source asset
+        shell: bash
+        run: >-
+          gh release download "$RELEASE_TAG"
+          --repo "${{ github.repository }}"
+          --pattern "omnivox-$RELEASE_VERSION-tgspeechbox-source.tar.gz"
+          --pattern sha256sums.txt
+          --dir downloaded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify exact downloaded TGSpeechBox source artifact
+        shell: bash
+        run: >-
+          python tools/verify_tgspeechbox_source.py
+          --archive "downloaded/omnivox-$RELEASE_VERSION-tgspeechbox-source.tar.gz"
+          --checksums downloaded/sha256sums.txt
+          --version "$RELEASE_VERSION"
+
   publish_release:
     name: Publish Verified Release
-    needs: [package_release, verify_release, verify_flite_release, verify_flite_source_release, verify_rutts_release, verify_rutts_source_release, verify_piper_release, verify_piper_source_release]
+    needs: [package_release, verify_release, verify_flite_release, verify_flite_source_release, verify_rutts_release, verify_rutts_source_release, verify_piper_release, verify_piper_source_release, verify_tgspeechbox_release, verify_tgspeechbox_source_release]
     runs-on: ubuntu-latest
     if: >-
       always() &&
@@ -1448,6 +1699,8 @@ jobs:
       needs.verify_rutts_source_release.result == 'success' &&
       needs.verify_piper_release.result == 'success' &&
       needs.verify_piper_source_release.result == 'success' &&
+      needs.verify_tgspeechbox_release.result == 'success' &&
+      needs.verify_tgspeechbox_source_release.result == 'success' &&
       (
         startsWith(github.ref, 'refs/tags/v') ||
         (

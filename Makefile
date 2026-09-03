@@ -1,4 +1,4 @@
-.PHONY: all build test elisp-test rate-audit-test latency-benchmark-test latency-benchmark-suite-test server-stress-test helper-soak-test diagnostics-redaction-test archive-safety-test piper-release-test release-asset-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite package-flite verify-flite package-flite-source verify-flite-source install-flite prepare-rutts stage-rutts stage-rutts-dev build-rutts package-rutts verify-rutts package-rutts-source verify-rutts-source install-rutts prepare-tgspeechbox stage-tgspeechbox stage-tgspeechbox-dev build-tgspeechbox build-tgspeechbox-windows prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
+.PHONY: all build test elisp-test rate-audit-test latency-benchmark-test latency-benchmark-suite-test server-stress-test helper-soak-test diagnostics-redaction-test archive-safety-test piper-release-test release-asset-test windows-helpers windows-helpers-test windows-helpers-startup-test clean-windows-helpers clean run dev check lint fmt fmt-check docs-check doc stage-rhvoice stage-rhvoice-dev build-rhvoice install-rhvoice prepare-flite stage-flite stage-flite-dev build-flite package-flite verify-flite package-flite-source verify-flite-source install-flite prepare-rutts stage-rutts stage-rutts-dev build-rutts package-rutts verify-rutts package-rutts-source verify-rutts-source install-rutts prepare-tgspeechbox stage-tgspeechbox stage-tgspeechbox-dev build-tgspeechbox build-tgspeechbox-windows package-tgspeechbox verify-tgspeechbox package-tgspeechbox-source verify-tgspeechbox-source prepare-piper prepare-piper-test-model stage-piper build-piper package-piper verify-piper package-piper-source verify-piper-source install-piper
 
 ELISP_EMACS ?= emacs
 PYTHON ?= python3
@@ -193,8 +193,7 @@ verify-rutts-source: package-rutts-source
 install-rutts: install
 
 # Build and stage the experimental TGSpeechBox source companion. It remains
-# opt-in until its provisional rate mapping, markers, and release matrix pass
-# the companion acceptance gates.
+# opt-in while its rate mapping is provisional and markers are unavailable.
 prepare-tgspeechbox:
 	$(PYTHON) tools/prepare_tgspeechbox_inputs.py
 
@@ -208,6 +207,18 @@ build-tgspeechbox: stage-tgspeechbox build
 
 build-tgspeechbox-windows:
 	$(PYTHON) tools/build_tgspeechbox.py --release --target x86_64-pc-windows-gnu
+
+package-tgspeechbox: build-tgspeechbox-windows
+	$(PYTHON) tools/package_tgspeechbox.py
+
+verify-tgspeechbox: package-tgspeechbox
+	$(PYTHON) tools/verify_tgspeechbox_release.py --iterations 25
+
+package-tgspeechbox-source: prepare-tgspeechbox
+	$(PYTHON) tools/package_tgspeechbox_source.py
+
+verify-tgspeechbox-source: package-tgspeechbox-source
+	$(PYTHON) tools/verify_tgspeechbox_source.py
 
 # Build and stage the isolated Piper companion. Its preparation step downloads
 # checksum-locked native inputs on first use; repeated builds can run offline.

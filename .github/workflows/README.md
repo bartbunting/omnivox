@@ -1,7 +1,7 @@
 # GitHub Actions Workflow
 
-[`build.yml`](build.yml) is the authoritative generic, Flite, RuTTS, and Piper
-release matrix.
+[`build.yml`](build.yml) is the authoritative generic, Flite, RuTTS, Piper, and
+TGSpeechBox release matrix.
 [`piper-native.yml`](piper-native.yml) is a manual, non-publishing validation
 workflow for the optional Piper companion. User-facing artifact and
 installation details are in [../DEPLOYMENT.md](../DEPLOYMENT.md).
@@ -72,6 +72,14 @@ macOS x64. Each job performs the same locked-input, native Clippy, relocation,
 25-synthesis, cancellation, real-synthesis, and fallback checks as the manual
 workflow. The CI model remains outside every uploaded artifact.
 
+### `build_tgspeechbox_release`
+
+Tag builds add one Windows x64 GNU job for the experimental TGSpeechBox
+companion. It prepares the checksum-locked upstream snapshot, regenerates the
+22.05 and 44.1 kHz inventories, lints the target crates, packages the relocated
+payload, and exercises 25 syntheses plus streaming, cancellation, health, and
+all four advertised ACSS dimensions.
+
 ### `build_flite`
 
 Every push, pull request, and release build compiles, tests, lints, stages,
@@ -114,22 +122,30 @@ The tag-only source job creates and verifies the platform-neutral
 versioned Cargo sources, and seven unique locked native source/build-input
 archives used by the four companions.
 
+### `package_tgspeechbox_source`
+
+The tag-only source job creates and verifies
+`omnivox-VERSION-tgspeechbox-source.tar.gz`. It contains the exact tagged
+Omnivox tree, vendored Cargo and eSpeak NG sources, and the checksum-locked
+TGSpeechBox snapshot. Verification repeats the exhaustive-manifest, offline
+input-preparation, and offline-Cargo checks.
+
 ### `package_release`
 
 Runs only for refs beginning `refs/tags/v` and depends on successful format,
 generic build/test, six Flite builds, six RuTTS builds, four Piper builds, and
-all three source jobs. It rejects a tag
+the TGSpeechBox Windows x64 build and all four source jobs. It rejects a tag
 that does not match the compiled Linux binary version, restores Unix executable
 modes after the Actions artifact round-trip, creates five generic archives,
 adds all companion and source archives, and writes one exhaustive SHA-256 file.
 Companion jobs upload only the exact workspace-version archive, and the package
-job rejects anything other than the 24 documented archives plus that checksum
+job rejects anything other than the 26 documented archives plus that checksum
 manifest.
 
 ### `create_draft_release`
 
 Uploads the packaged archives and checksums to a draft GitHub release, then
-checks the remote draft for the same exact 25-asset set. The release is not
+checks the remote draft for the same exact 27-asset set. The release is not
 public at this stage.
 
 ### `verify_release`
@@ -171,11 +187,20 @@ downloads the exact source artifact and repeats its manifest, Git-tree,
 source-lock, RuLex-exclusion, and offline-preparation checks from the release
 tag.
 
+### `verify_tgspeechbox_release` and `verify_tgspeechbox_source_release`
+
+The Windows x64 runner downloads the TGSpeechBox companion and matching generic
+archive, repeats the helper checks, then verifies exact engine routing, the
+154-voice inventory, and raw and canonical WAV synthesis. The source verifier
+downloads the exact source artifact and repeats its Git-tree, manifest,
+source-lock, offline-preparation, and offline-Cargo checks from the release tag.
+
 ### `publish_release`
 
-Publishes the draft only after every generic, Flite, RuTTS, Piper, and source
-verification passes and the remote asset set is checked again immediately
-before publication. Any failure leaves the release as a draft for inspection.
+Publishes the draft only after every generic, Flite, RuTTS, Piper, TGSpeechBox,
+and source verification passes and the remote asset set is checked again
+immediately before publication. Any failure leaves the release as a draft for
+inspection.
 
 The release does not package voice models, external Flite voices, RuLex,
 Eloquence or DECtalk helpers, proprietary DLLs, or proprietary dictionaries.

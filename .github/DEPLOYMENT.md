@@ -51,6 +51,13 @@ female Russian voices:
 | Windows ARM64 | `omnivox-VERSION-rutts-windows-arm64.zip` |
 | All six | `omnivox-VERSION-rutts-source.tar.gz` |
 
+Beginning with v1.7.0, it publishes the experimental TGSpeechBox companion:
+
+| Platform | Companion archive |
+|---|---|
+| Windows x64 GNU | `omnivox-VERSION-tgspeechbox-windows-x64.zip` |
+| Source and build inputs | `omnivox-VERSION-tgspeechbox-source.tar.gz` |
+
 Releases also publish one `sha256sums.txt` covering every generic, companion,
 and source archive. The workflow does **not** publish Linux ARM64 or Windows
 ARM64 Piper companions, voice models, RuLex, proprietary-engine helpers, or
@@ -95,7 +102,7 @@ The release version and archive prefix come from the tag name with its leading
   payload layout, executable modes and architectures, and adjacent eSpeak data
   discovery from a relocated directory without path overrides.
 - Exact release asset membership before draft upload, after draft creation,
-  and immediately before publication: 24 documented archives plus one
+  and immediately before publication: 26 documented archives plus one
   exhaustive checksum manifest, with stale cached versions rejected.
 - Non-empty canonical WAV synthesis through eSpeak on Linux x64; through eSpeak
   and WinRT on Windows x64 and ARM64; and through eSpeak and
@@ -115,6 +122,12 @@ The release version and archive prefix come from the tag name with its leading
 - The exact deterministic Piper source/build-input artifact, including its Git
   tree, exhaustive manifest, locked native inputs, CI-model exclusion, and
   offline Cargo graph.
+- Native Windows x64 GNU TGSpeechBox staging, inventory regeneration,
+  relocation, repeated synthesis, streaming, cancellation, and ACSS checks,
+  plus exact routing and WAV synthesis through the matching generic archive.
+- The deterministic TGSpeechBox source artifact, including its exact Omnivox
+  Git tree, vendored Cargo/eSpeak NG source, checksum-locked upstream snapshot,
+  exhaustive manifest, offline input preparation, and offline Cargo graph.
 - Locked dependency resolution with Rust 1.97.1, matching
   `rust-toolchain.toml`.
 
@@ -122,8 +135,8 @@ The publishing workflow does not exercise real Eloquence or DECtalk runtimes,
 physical audible onset or audio-device playback, or Emacsvox's content-addressed
 Windows staging contract. The separate manual Piper workflow remains available
 for non-publishing engineering validation. Any failed generic, Flite, RuTTS,
-Piper, source, or draft-asset verification gate leaves the GitHub release
-unpublished.
+Piper, TGSpeechBox, source, or draft-asset verification gate leaves the GitHub
+release unpublished.
 
 ## Installing an archive
 
@@ -214,8 +227,12 @@ built-in SLT voice requires no additional runtime. See the
 [Flite companion guide](../docs/FLITE.md). For RuTTS, extract the matching
 companion's `rutts/` directory beside the generic executable; its built-in
 male and female voices require no additional runtime. See the
-[RuTTS companion guide](../docs/RUTTS.md). The generic `rhvoice/` helper still
-requires a separately installed compatible runtime and voice; see the
+[RuTTS companion guide](../docs/RUTTS.md). For TGSpeechBox on Windows x64,
+extract the companion's `tgspeechbox/` directory beside the generic executable. Its
+packs and eSpeak NG phonemizer data are included; its rate remains provisional
+and it exposes no markers. See the
+[TGSpeechBox companion guide](../docs/TGSPEECHBOX.md). The generic `rhvoice/`
+helper still requires a separately installed compatible runtime and voice; see the
 [RHVoice guide](../docs/RHVOICE.md). The
 [Windows helper guide](../windows-helpers/README.md#runtime-requirements-and-installation)
 documents the complete Eloquence and DECtalk requirements, the durable DECtalk

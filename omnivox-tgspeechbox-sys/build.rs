@@ -61,7 +61,7 @@ fn main() {
     let repository = manifest.parent().unwrap();
     let source = env::var_os("OMNIVOX_TGSPEECHBOX_SOURCE_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|| repository.join("target/tgspeechbox-inputs/v-310b802/source"));
+        .unwrap_or_else(|| repository.join("target/tgspeechbox-inputs/v-310@f5ec247/source"));
     let wrapper = manifest.join("native/omnivox_tgspeechbox.cpp");
 
     require_file(&source.join("LICENSE"));

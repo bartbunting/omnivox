@@ -6,6 +6,8 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-09-03
+
 ### Added
 
 - Added helper protocol v5 and an accepted bounded-progressive-synthesis
@@ -23,9 +25,17 @@ Versioning for published releases.
   controls, locked source and Windows x64 GNU staging, dual 44.1/22.05 kHz
   cached inventories for restart-only switching, non-blocking connection
   pre-warming, and explicit no-marker/provisional-rate capability reporting.
-  It is not included in generic releases.
+  Beginning with v1.7.0, it is published as a separate Windows x64 companion
+  with deterministic packaging, native synthesis and routing verification, and
+  a complete corresponding-source artifact. It remains outside generic
+  archives and the Emacsvox bundle.
 
 ### Changed
+
+- Updated the checksum-locked TGSpeechBox input from upstream `v-310b802` to
+  the exact `v-310` branch snapshot at commit `f5ec247`, incorporating its six
+  subsequent fixes and voice-data refinements without claiming an unpublished
+  upstream release tag.
 
 - TGSpeechBox now progressively emits bounded native DSP pulls at its default
   44.1 kHz rate under helper protocol v5. The main server relays those pulls
@@ -396,7 +406,8 @@ superseded by `v1.4.1` and its assets should not be used.
 - Added recovery for a draft release whose native verification needs to be
   rerun without rebuilding or replacing its uploaded assets.
 
-[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.6.4...HEAD
+[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/bartbunting/omnivox/compare/v1.6.4...v1.7.0
 [1.6.4]: https://github.com/bartbunting/omnivox/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/bartbunting/omnivox/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/bartbunting/omnivox/compare/v1.6.1...v1.6.2

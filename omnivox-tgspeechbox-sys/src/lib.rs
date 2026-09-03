@@ -2,8 +2,8 @@
 
 use std::ffi::{c_char, c_double, c_int, c_short, c_void};
 
-pub const TGSPEECHBOX_RELEASE: &str = "v-310b802";
-pub const TGSPEECHBOX_COMMIT: &str = "7515ae055e45d2d15cae01d7fe081ce951dcd5cd";
+pub const TGSPEECHBOX_RELEASE: &str = "v-310@f5ec247";
+pub const TGSPEECHBOX_COMMIT: &str = "f5ec247bca50507ab1e2ed661136395538dc3e97";
 pub const TGSPEECHBOX_DSP_VERSION: u32 = 8;
 pub const TGSPEECHBOX_FRONTEND_ABI_VERSION: i32 = 5;
 

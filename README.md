@@ -55,9 +55,10 @@ Registration makes an engine available to routing;
 it does not promise that engines synthesize in parallel.
 
 TGSpeechBox is an experimental, opt-in source-built formant companion rather
-than part of the standard build or generic releases. Its accepted Windows x64
-GNU payload exposes seven profiles, 22 languages, and portable rate, pitch,
-pitch-range, and volume controls without markers. See the
+than part of the standard build or generic archives. Beginning with v1.7.0,
+its accepted Windows x64 GNU payload is published separately with seven
+profiles, 22 languages, and portable rate, pitch, pitch-range, and volume
+controls without markers. See the
 [TGSpeechBox guide](docs/TGSPEECHBOX.md) for the WSL build and current limits.
 
 Speech rate is normalized with measured per-engine curves so an ordinary
@@ -113,8 +114,10 @@ files, the portable RHVoice helper (without its runtime or voices), and the
 upstream Emacspeak adapter. Beginning with v1.6.4, separate Flite and RuTTS
 companion archives cover Linux x64/ARM64, macOS Intel/Apple Silicon, and
 Windows x64/ARM64; Piper companion archives cover Linux x64, macOS
-Intel/Apple Silicon, and Windows x64. Each engine also has a corresponding-
-source artifact. A `sha256sums.txt` file is published alongside release assets.
+Intel/Apple Silicon, and Windows x64. Beginning with v1.7.0, the experimental
+TGSpeechBox companion is also published for Windows x64. Each source-built
+engine has a corresponding-source artifact. A `sha256sums.txt` file is
+published alongside release assets.
 Published release `v1.4.1` predates the root `LICENSE` and `LICENSING.md`
 archive entries; those files are included beginning with v1.5.0. Linux ARM64
 generic archives are not currently published or CI-verified.
@@ -202,13 +205,16 @@ Build the experimental TGSpeechBox Windows x64 GNU companion from WSL with:
 make prepare-tgspeechbox
 python3 tools/prepare_tgspeechbox_inputs.py --check
 make build-tgspeechbox-windows
+make verify-tgspeechbox
+make verify-tgspeechbox-source
 ```
 
-This stages a self-contained development payload below the Windows Cargo
-profile. It is intentionally excluded from `make build`, generic archives,
-and release publication. The [TGSpeechBox companion guide](docs/TGSPEECHBOX.md)
-documents profiles, provisional control mappings, direct Windows validation,
-licensing, and removal.
+This stages the self-contained Windows payload below the target Cargo profile,
+then creates and verifies its release and corresponding-source archives. It is
+excluded from `make build` and generic archives but published separately from
+v1.7.0. The [TGSpeechBox companion guide](docs/TGSPEECHBOX.md) documents
+installation, profiles, provisional control mappings, validation, licensing,
+and removal.
 
 The Piper native build uses the vendored `v1.7.0` C API from the maintained
 [`OHF-Voice/piper1-gpl`](https://github.com/OHF-Voice/piper1-gpl) project. It

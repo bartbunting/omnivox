@@ -137,18 +137,19 @@ and exact Omnivox integration used to build the helper. See the
 
 The generic binary releases do not contain TGSpeechBox. The experimental
 companion statically incorporates the checksum-locked upstream TGSpeechBox
-`v-310b802` C++ source and the pinned eSpeak NG dependency used for Unicode-to-
-IPA conversion. TGSpeechBox's upstream source is MIT-licensed, but eSpeak NG is
-GPL-3.0-or-later; the combined `omnivox-tgspeechbox-helper` package therefore
-declares `GPL-3.0-or-later`.
+`v-310@f5ec247` C++ source snapshot and the pinned eSpeak NG dependency used for
+Unicode-to-IPA conversion. TGSpeechBox's upstream source is MIT-licensed, but
+eSpeak NG is GPL-3.0-or-later; the combined `omnivox-tgspeechbox-helper` package
+therefore declares `GPL-3.0-or-later`.
 
-The staged development payload preserves the TGSpeechBox MIT text, eSpeak GPL
+The staged payload preserves the TGSpeechBox MIT text, eSpeak GPL
 text, Unicode data notice, exact source lock, Cargo lock, provenance, and
 payload checksums. The Omnivox-authored narrow boundary remains MIT; that does
-not relicense the combined helper. A deterministic corresponding-source
-artifact and native release gates have not yet been implemented, so this
-development companion is not a release asset and must not be treated as one.
-See the [TGSpeechBox companion guide](TGSPEECHBOX.md) and
+not relicense the combined helper. Beginning with Omnivox v1.7.0, the Windows
+x64 GNU companion is a separate experimental release asset. Its deterministic
+corresponding-source artifact contains the exact Omnivox tree, vendored Cargo
+and eSpeak NG sources, and the locked TGSpeechBox archive. See the
+[TGSpeechBox companion guide](TGSPEECHBOX.md) and
 [ADR 0005](adr/0005-experimental-tgspeechbox-companion.md).
 
 ## Proprietary engines and other dependencies

@@ -1,7 +1,7 @@
 # Omnivox Project Status
 
 **Last reviewed:** 2026-09-03
-**Workspace version:** 1.6.4
+**Workspace version:** 1.7.0
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
@@ -165,8 +165,9 @@ in the linked protocol specifications; future work belongs in
   records the bounded GNU-target results. The helper converts its KOI8-R
   repertoire losslessly and routes unsupported Unicode text to fallback; it
   provides no synchronization markers.
-- TGSpeechBox uses checksum-locked `v-310b802` beta source in a separate helper
-  with pinned eSpeak NG Unicode-to-IPA conversion. The Windows x64 GNU payload
+- TGSpeechBox uses the checksum-locked `v-310@f5ec247` upstream branch snapshot
+  in a separate helper with pinned eSpeak NG Unicode-to-IPA conversion. The
+  Windows x64 GNU payload
   builds from WSL and passes exact Omnivox discovery, 154-voice inventory,
   synthesis, portable rate/pitch/pitch-range/volume capability checks,
   cancellation, Windows audio playback, and clean shutdown. Linux x64 helper
@@ -175,9 +176,10 @@ in the linked protocol specifications; future work belongs in
   advertises no markers, and uses an explicitly provisional rate curve. At the
   default 44.1 kHz rate its v5 native pulls reach the main server's bounded
   progressive playback path; the optional 22.05 kHz sinc path remains
-  whole-utterance buffered. The
-  companion is excluded from generic and Emacsvox releases pending measured
-  calibration, corresponding-source packaging, and native workflow gates.
+  whole-utterance buffered. Beginning with v1.7.0, the Windows x64 GNU payload
+  is a separate experimental release asset with native and exact-routing gates
+  plus deterministic corresponding source. It remains excluded from generic
+  and Emacsvox archives; measured calibration and markers are still pending.
 - Eloquence and DECtalk use the shared 32-bit Windows C# host. Protocol v5
   forwards their callback PCM as canonical 44.1 kHz stereo windows while
   preserving Eloquence word/sentence and exact requested-anchor markers, and
@@ -199,7 +201,7 @@ in the linked protocol specifications; future work belongs in
 |---|---|---|
 | macOS ARM64 | AVSpeechSynthesizer and eSpeak NG; optional Piper and Flite companions verified | Yes |
 | macOS x64 | AVSpeechSynthesizer and eSpeak NG; optional Piper and Flite companions verified | Yes |
-| Windows x64 | WinRT and eSpeak NG; RHVoice and Flite accepted; optional Piper and proprietary helpers; experimental TGSpeechBox GNU companion accepted locally | Yes (TGSpeechBox not included) |
+| Windows x64 | WinRT and eSpeak NG; RHVoice and Flite accepted; optional Piper and proprietary helpers; experimental TGSpeechBox GNU companion | Yes |
 | Windows ARM64 | WinRT and eSpeak NG; Flite companion verified | Yes |
 | Linux x64 | eSpeak NG; RHVoice accepted; optional Piper and Flite companions verified | Yes (Ubuntu 24.04 ABI baseline) |
 | Linux ARM64 | Flite companion verified; generic server artifact pending | No current generic workflow artifact |
@@ -235,6 +237,13 @@ targets as Flite and require real synthesis with both built-in voices,
 cancellation, relocation, provenance, and offline source preparation before a
 tag can publish the assets. Those new non-Linux-x64 gates remain pending until
 their hosted workflows pass.
+
+TGSpeechBox has a Windows x64 GNU release gate beginning with v1.7.0. It builds
+from the checksum-locked `v-310@f5ec247` snapshot, regenerates both inventories,
+lints the native crates, and verifies repeated streaming synthesis,
+cancellation, ACSS, relocation, and exact full-server routing. Publication also
+requires its deterministic source artifact to pass exact Git-tree, upstream
+input, exhaustive-manifest, offline-preparation, and offline-Cargo checks.
 
 ## Validation
 

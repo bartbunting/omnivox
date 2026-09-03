@@ -22,7 +22,7 @@ from prepare_piper_inputs import (
 )
 
 
-RELEASE = "v-310b802"
+RELEASE = "v-310@f5ec247"
 REQUIRED_PATHS = (
     "LICENSE",
     "packs/phonemes.yaml",
@@ -37,7 +37,7 @@ REQUIRED_PATHS = (
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Prepare the checksum-locked TGSpeechBox v3.10 Beta 8.02 source tree."
+        description="Prepare the checksum-locked TGSpeechBox v-310@f5ec247 source tree."
     )
     parser.add_argument(
         "--output",

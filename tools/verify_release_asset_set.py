@@ -47,6 +47,8 @@ def expected_asset_names(version: str) -> set[str]:
         for target, extension in PIPER_TARGETS.items()
     )
     names.add(f"omnivox-{version}-piper-source.tar.gz")
+    names.add(f"omnivox-{version}-tgspeechbox-windows-x64.zip")
+    names.add(f"omnivox-{version}-tgspeechbox-source.tar.gz")
     names.add("sha256sums.txt")
     return names
 

@@ -2,15 +2,16 @@
 
 TGSpeechBox is an optional formant-synthesis engine with a compact,
 DECtalk-like sound and direct rate, pitch, inflection, volume, and profile
-controls. Omnivox pins upstream release `v-310b802` at commit
-`7515ae055e45d2d15cae01d7fe081ce951dcd5cd` and keeps its C++ frontend and DSP
-inside a separate helper process.
+controls. Omnivox pins the exact upstream `v-310` branch snapshot
+`v-310@f5ec247` at commit `f5ec247bca50507ab1e2ed661136395538dc3e97`
+and keeps its C++ frontend and DSP inside a separate helper process. This
+snapshot is six commits after `v-310b802`; it is not presented as an upstream
+release tag.
 
-This is a development companion, not a generic Omnivox release asset. Windows
-x64 GNU is runtime-accepted for local evaluation from WSL; Linux x64 has a
-development smoke test. The rate curve remains provisional, the helper exposes
-no synchronization markers, and corresponding-source/release gates have not
-yet been added.
+Beginning with Omnivox v1.7.0, Windows x64 GNU is published as a separate
+experimental companion. It is not embedded in generic archives or the
+Emacsvox bundle. Linux x64 remains a development smoke target. The rate curve
+is provisional and the helper exposes no synchronization markers.
 
 ## What is exposed
 
@@ -54,6 +55,8 @@ builds reuse the verified cache and can check it without downloading again.
 make prepare-tgspeechbox
 python3 tools/prepare_tgspeechbox_inputs.py --check
 make build-tgspeechbox-windows
+make verify-tgspeechbox
+make verify-tgspeechbox-source
 ```
 
 The complete companion is staged at:
@@ -67,6 +70,15 @@ It contains `omnivox-tgspeechbox-helper.exe`, TGSpeechBox packs, generated
 default-compatible `VOICE-INVENTORY.json`, licence notices, exact source
 provenance, and `SHA256SUMS`. The MinGW C++ runtime is linked statically, so the
 helper does not require a separately staged `libstdc++-6.dll`.
+
+`make verify-tgspeechbox` creates and exercises
+`omnivox-VERSION-tgspeechbox-windows-x64.zip`. The tag workflow repeats that
+check on Windows and combines the relocated companion with the exact generic
+Windows archive for full-server voice discovery and WAV synthesis.
+`make verify-tgspeechbox-source` creates and verifies the platform-neutral
+`omnivox-VERSION-tgspeechbox-source.tar.gz`, including the exact Omnivox tree,
+vendored Cargo/eSpeak NG source, locked TGSpeechBox archive, and exhaustive
+manifest.
 
 To test discovery through a Windows Omnivox executable built from the active
 checkout:
@@ -152,9 +164,9 @@ by lower-quality independent resampling at every native pull boundary.
 
 TGSpeechBox is MIT-licensed. The helper statically incorporates GPLv3 eSpeak
 NG for Unicode-to-IPA conversion, so the combined helper is distributed under
-GPLv3 and its complete notices must remain with it. This development payload
-does not yet provide the corresponding-source artifact required before an
-Omnivox release. See [LICENSING.md](LICENSING.md) and
+GPLv3 and its complete notices must remain with it. The separately published
+corresponding-source artifact contains the complete inputs needed for the
+combined helper. See [LICENSING.md](LICENSING.md) and
 [ADR 0005](adr/0005-experimental-tgspeechbox-companion.md).
 
 Remove the `tgspeechbox/` directory and unset
