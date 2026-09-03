@@ -8,21 +8,26 @@ use crate::contracts::{
     Availability, CancellationSupport, ConcurrencyModel, EngineCapabilities, EngineDescriptor,
     EngineHealth, MarkerCapabilities, PhysicalVoiceId, VoiceDescriptor,
 };
+use crate::helper_protocol::{MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES};
 use crate::rate_calibration::interpolate;
 #[cfg(test)]
 use crate::TtsSettings;
 use crate::{
     AudioBuffer, SynthesisCancellationToken, SynthesisMarker, SynthesisMarkerKind,
-    SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
+    SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
+    SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
 };
+use omnivox_audio::ProgressivePcmCanonicalizer;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::ffi::{CStr, CString};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::os::raw::{c_int, c_short, c_void};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::mpsc::{sync_channel, SyncSender};
 use std::sync::Mutex;
 use tracing::{debug, info, warn};
 
@@ -49,6 +54,8 @@ struct EspeakState {
 
 /// Defensive limit for the native callback's zero-terminated event array.
 const MAX_CALLBACK_EVENTS: usize = 65_536;
+const MAX_NATIVE_SAMPLES: usize = MAX_HELPER_SYNTHESIS_BYTES / std::mem::size_of::<i16>();
+const STREAM_CHANNEL_CAPACITY: usize = 4;
 
 /// Audio and synchronization events collected for the one serialized synthesis.
 static SYNTH_CAPTURE: Mutex<Option<EspeakSynthesisCapture>> = Mutex::new(None);
@@ -58,6 +65,20 @@ struct EspeakSynthesisCapture {
     samples: Vec<i16>,
     markers: Vec<EspeakNativeMarker>,
     cancellation: Option<SynthesisCancellationToken>,
+    stream_sender: Option<SyncSender<EspeakStreamEvent>>,
+    native_samples: usize,
+    marker_count: usize,
+    failure: Option<String>,
+}
+
+enum EspeakStreamEvent {
+    Started {
+        actual_voice: Option<PhysicalVoiceId>,
+        sample_rate: u32,
+        degraded_acss: Vec<crate::contracts::AcssDimension>,
+    },
+    Markers(Vec<EspeakNativeMarker>),
+    Audio(Vec<i16>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -115,51 +136,134 @@ unsafe extern "C" fn synth_callback(
     sample_count: c_int,
     events: *mut espeak_rs_sys::espeak_EVENT,
 ) -> c_int {
-    if let Ok(mut slot) = SYNTH_CAPTURE.lock() {
-        if let Some(capture) = slot.as_mut() {
-            if capture
-                .cancellation
-                .as_ref()
-                .is_some_and(SynthesisCancellationToken::is_cancelled)
-            {
-                return 1;
-            }
-            if !wav.is_null() && sample_count > 0 {
-                let samples = std::slice::from_raw_parts(wav as *const i16, sample_count as usize);
-                capture.samples.extend_from_slice(samples);
-            }
-
-            if !events.is_null() {
-                for index in 0..MAX_CALLBACK_EVENTS {
-                    let event = &*events.add(index);
-                    if event.type_ == espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_LIST_TERMINATED {
-                        break;
-                    }
-                    let kind = match event.type_ {
-                        espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_WORD => {
-                            EspeakNativeMarkerKind::Word
-                        }
-                        espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_SENTENCE => {
-                            EspeakNativeMarkerKind::Sentence
-                        }
-                        _ => continue,
-                    };
-                    if event.text_position <= 0 || event.audio_position < 0 {
-                        continue;
-                    }
-                    capture.markers.push(EspeakNativeMarker {
-                        kind,
-                        text_position: event.text_position as usize,
-                        text_length: event.length.max(0) as usize,
-                        audio_position_ms: event.audio_position as u64,
-                    });
-                }
-            }
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        let mut slot = SYNTH_CAPTURE
+            .lock()
+            .map_err(|error| format!("eSpeak capture lock is poisoned: {error}"))?;
+        let capture = slot
+            .as_mut()
+            .ok_or_else(|| "eSpeak invoked its callback without an active capture".to_owned())?;
+        capture.consume(wav, sample_count, events)
+    }));
+    match result {
+        Ok(Ok(status)) => status,
+        Ok(Err(error)) => {
+            record_callback_failure(error);
+            1
+        }
+        Err(_) => {
+            record_callback_failure("eSpeak callback processing panicked".to_owned());
+            1
         }
     }
+}
 
-    // Return 0 to continue synthesis, 1 to abort
-    0
+impl EspeakSynthesisCapture {
+    unsafe fn consume(
+        &mut self,
+        wav: *mut c_short,
+        sample_count: c_int,
+        events: *mut espeak_rs_sys::espeak_EVENT,
+    ) -> Result<c_int, String> {
+        if self
+            .cancellation
+            .as_ref()
+            .is_some_and(SynthesisCancellationToken::is_cancelled)
+        {
+            return Ok(1);
+        }
+        let markers = unsafe { native_markers_from_callback(events)? };
+        if markers.len() > MAX_HELPER_MARKERS.saturating_sub(self.marker_count) {
+            return Err("eSpeak returned too many synchronization markers".to_owned());
+        }
+        self.marker_count += markers.len();
+
+        let sample_count = usize::try_from(sample_count)
+            .map_err(|_| "eSpeak returned a negative PCM sample count".to_owned())?;
+        if sample_count > 0 && wav.is_null() {
+            return Err("eSpeak returned a null PCM buffer".to_owned());
+        }
+        if sample_count > MAX_NATIVE_SAMPLES.saturating_sub(self.native_samples) {
+            return Err("eSpeak PCM exceeded the synthesis limit".to_owned());
+        }
+        self.native_samples += sample_count;
+
+        if let Some(sender) = &self.stream_sender {
+            // eSpeak events describe the accompanying PCM block. Publish them
+            // first so no marker can arrive behind already-visible audio.
+            if !markers.is_empty() {
+                sender
+                    .send(EspeakStreamEvent::Markers(markers))
+                    .map_err(|_| "eSpeak streaming marker consumer disconnected".to_owned())?;
+            }
+            if sample_count > 0 {
+                let samples = unsafe { std::slice::from_raw_parts(wav, sample_count) };
+                let mut owned = Vec::new();
+                owned
+                    .try_reserve(sample_count)
+                    .map_err(|_| "could not allocate the eSpeak PCM window".to_owned())?;
+                owned.extend_from_slice(samples);
+                sender
+                    .send(EspeakStreamEvent::Audio(owned))
+                    .map_err(|_| "eSpeak streaming audio consumer disconnected".to_owned())?;
+            }
+        } else {
+            self.markers
+                .try_reserve(markers.len())
+                .map_err(|_| "could not allocate the eSpeak synchronization markers".to_owned())?;
+            self.markers.extend(markers);
+            if sample_count > 0 {
+                self.samples
+                    .try_reserve(sample_count)
+                    .map_err(|_| "could not allocate the eSpeak PCM buffer".to_owned())?;
+                let samples = unsafe { std::slice::from_raw_parts(wav, sample_count) };
+                self.samples.extend_from_slice(samples);
+            }
+        }
+        Ok(0)
+    }
+}
+
+unsafe fn native_markers_from_callback(
+    events: *mut espeak_rs_sys::espeak_EVENT,
+) -> Result<Vec<EspeakNativeMarker>, String> {
+    if events.is_null() {
+        return Ok(Vec::new());
+    }
+    let mut markers = Vec::new();
+    for index in 0..MAX_CALLBACK_EVENTS {
+        let event = unsafe { &*events.add(index) };
+        if event.type_ == espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_LIST_TERMINATED {
+            return Ok(markers);
+        }
+        let kind = match event.type_ {
+            espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_WORD => EspeakNativeMarkerKind::Word,
+            espeak_rs_sys::espeak_EVENT_TYPE_espeakEVENT_SENTENCE => {
+                EspeakNativeMarkerKind::Sentence
+            }
+            _ => continue,
+        };
+        if event.text_position <= 0 || event.audio_position < 0 {
+            continue;
+        }
+        markers.push(EspeakNativeMarker {
+            kind,
+            text_position: event.text_position as usize,
+            text_length: event.length.max(0) as usize,
+            audio_position_ms: event.audio_position as u64,
+        });
+    }
+    Err(format!(
+        "eSpeak callback event list exceeded {MAX_CALLBACK_EVENTS} entries"
+    ))
+}
+
+fn record_callback_failure(error: String) {
+    if let Ok(mut slot) = SYNTH_CAPTURE.lock() {
+        if let Some(capture) = slot.as_mut() {
+            capture.failure = Some(error);
+        }
+    }
 }
 
 /// Data path discovered at build time by build.rs
@@ -174,7 +278,7 @@ impl EspeakTtsEngine {
                 volume: true,
                 ..AcssCapabilities::default()
             },
-            audio_output: AudioOutputMode::BufferedPcm,
+            audio_output: AudioOutputMode::StreamingPcm,
             cancellation: CancellationSupport::SynthesisAndPlayback,
             concurrency: ConcurrencyModel::Serialized,
             markers: MarkerCapabilities {
@@ -750,6 +854,126 @@ impl EspeakTtsEngine {
         debug!("espeak-ng found {} voices", voices.len());
         voices
     }
+
+    fn produce_stream(
+        &self,
+        request: &SynthesisRequest,
+        sender: SyncSender<EspeakStreamEvent>,
+    ) -> Result<(), TtsError> {
+        let voice_id = request.voice_id_for_engine("espeak")?.to_owned();
+        let state = ESPEAK_LOCK.get().ok_or(TtsError::NotAvailable)?;
+        let state_guard = state.lock().map_err(|error| {
+            TtsError::SynthesisFailed(format!("espeak-ng lock poisoned: {error}"))
+        })?;
+        let sample_rate = state_guard.sample_rate;
+
+        unsafe {
+            let voice_name = Self::backend_voice_name(&voice_id);
+            let voice_cstr = CString::new(voice_name)
+                .map_err(|_| TtsError::InvalidParameter("Invalid voice name".to_owned()))?;
+            let voice_result = espeak_rs_sys::espeak_SetVoiceByName(voice_cstr.as_ptr());
+            if voice_result != espeak_rs_sys::espeak_ERROR_EE_OK {
+                return Err(TtsError::VoiceNotFound(voice_id));
+            }
+            let current_voice = espeak_rs_sys::espeak_GetCurrentVoice();
+            let actual_voice = if current_voice.is_null() {
+                None
+            } else {
+                let current_voice = &*current_voice;
+                let identifier = if current_voice.identifier.is_null() {
+                    current_voice.name
+                } else {
+                    current_voice.identifier
+                };
+                (!identifier.is_null()).then(|| {
+                    PhysicalVoiceId::new(
+                        "espeak",
+                        Self::reported_voice_id(
+                            &voice_id,
+                            &CStr::from_ptr(identifier).to_string_lossy(),
+                        ),
+                    )
+                })
+            };
+            espeak_rs_sys::espeak_SetParameter(
+                espeak_rs_sys::espeak_PARAMETER_espeakRATE,
+                Self::map_rate(request.settings.rate),
+                0,
+            );
+            espeak_rs_sys::espeak_SetParameter(
+                espeak_rs_sys::espeak_PARAMETER_espeakPITCH,
+                Self::map_pitch(request.settings.pitch),
+                0,
+            );
+            espeak_rs_sys::espeak_SetParameter(
+                espeak_rs_sys::espeak_PARAMETER_espeakVOLUME,
+                Self::map_volume(request.settings.volume),
+                0,
+            );
+
+            sender
+                .send(EspeakStreamEvent::Started {
+                    actual_voice,
+                    sample_rate,
+                    degraded_acss: request
+                        .normalized_acss
+                        .clone()
+                        .degrade_for(&Self::capabilities().acss)
+                        .omitted,
+                })
+                .map_err(|_| {
+                    TtsError::SynthesisFailed(
+                        "eSpeak streaming consumer disconnected before synthesis".to_owned(),
+                    )
+                })?;
+
+            let text_cstr = CString::new(request.text.as_str())
+                .map_err(|_| TtsError::SynthesisFailed("Text contains null bytes".to_owned()))?;
+            let text_len = text_cstr.as_bytes_with_nul().len();
+            {
+                let mut capture = SYNTH_CAPTURE.lock().map_err(|error| {
+                    TtsError::SynthesisFailed(format!("Capture lock poisoned: {error}"))
+                })?;
+                *capture = Some(EspeakSynthesisCapture {
+                    cancellation: request.cancellation.clone(),
+                    stream_sender: Some(sender),
+                    ..EspeakSynthesisCapture::default()
+                });
+            }
+            let result = espeak_rs_sys::espeak_Synth(
+                text_cstr.as_ptr() as *const c_void,
+                text_len,
+                0,
+                0,
+                0,
+                0x1000,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            );
+            if result != espeak_rs_sys::espeak_ERROR_EE_OK {
+                clear_synthesis_capture();
+                return Err(TtsError::SynthesisFailed(format!(
+                    "espeak_Synth failed with error: {result}"
+                )));
+            }
+            espeak_rs_sys::espeak_Synchronize();
+        }
+
+        let capture = take_synthesis_capture()?;
+        if capture
+            .cancellation
+            .as_ref()
+            .is_some_and(SynthesisCancellationToken::is_cancelled)
+        {
+            return Err(TtsError::SynthesisFailed(
+                "espeak synthesis was cancelled".to_owned(),
+            ));
+        }
+        if let Some(failure) = capture.failure {
+            return Err(TtsError::SynthesisFailed(failure));
+        }
+        Ok(())
+    }
 }
 
 impl TtsEngine for EspeakTtsEngine {
@@ -893,6 +1117,9 @@ impl TtsEngine for EspeakTtsEngine {
                 "espeak synthesis was cancelled".to_owned(),
             ));
         }
+        if let Some(failure) = capture.failure {
+            return Err(TtsError::SynthesisFailed(failure));
+        }
 
         if capture.samples.is_empty() {
             debug!("espeak-ng produced no audio");
@@ -915,7 +1142,7 @@ impl TtsEngine for EspeakTtsEngine {
             sample_rate,
             capture.samples.len() as u64,
         );
-        SynthesisResult::from_native_i16(
+        let mut result = SynthesisResult::from_native_i16(
             "espeak",
             actual_voice,
             &capture.samples,
@@ -923,7 +1150,164 @@ impl TtsEngine for EspeakTtsEngine {
             1,
             markers,
             Vec::new(),
-        )
+        )?;
+        result.degraded_acss = request
+            .normalized_acss
+            .clone()
+            .degrade_for(&Self::capabilities().acss)
+            .omitted;
+        Ok(result)
+    }
+
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        if request
+            .cancellation
+            .as_ref()
+            .is_some_and(SynthesisCancellationToken::is_cancelled)
+        {
+            return Err(TtsError::SynthesisFailed(
+                "espeak synthesis was cancelled".to_owned(),
+            ));
+        }
+        // Word-boundary `After` anchors need a future word event to finalize
+        // the preceding boundary. Keep those explicit requests on the
+        // established buffered path and publish their metadata before PCM.
+        if !request.anchors.is_empty() {
+            let mut result = self.synthesize(request)?;
+            result.resolve_anchors(request, AnchorSupport::WordBoundary);
+            result.validate(request)?;
+            let frame_count = result.audio.frame_count() as u64;
+            sink.start(SynthesisStreamStart {
+                engine_id: result.engine_id,
+                actual_voice: result.actual_voice,
+                degraded_acss: result.degraded_acss,
+            })?;
+            if !result.markers.is_empty() || !result.anchors.is_empty() {
+                sink.markers(result.markers, result.anchors)?;
+            }
+            if !result.audio.is_empty() {
+                sink.audio(result.audio)?;
+            }
+            return Ok(SynthesisStreamCompletion { frame_count });
+        }
+        if request.text.is_empty() {
+            sink.start(SynthesisStreamStart {
+                engine_id: "espeak".to_owned(),
+                actual_voice: None,
+                degraded_acss: request
+                    .normalized_acss
+                    .clone()
+                    .degrade_for(&Self::capabilities().acss)
+                    .omitted,
+            })?;
+            return Ok(SynthesisStreamCompletion { frame_count: 0 });
+        }
+
+        std::thread::scope(|scope| {
+            let (sender, receiver) = sync_channel(STREAM_CHANNEL_CAPACITY);
+            let producer = scope.spawn(|| self.produce_stream(request, sender));
+            let mut canonicalizer = None;
+            let mut stream_error = None;
+            let mut started = false;
+
+            while let Ok(event) = receiver.recv() {
+                let result = match event {
+                    EspeakStreamEvent::Started {
+                        actual_voice,
+                        sample_rate,
+                        degraded_acss,
+                    } => {
+                        if started {
+                            Err(TtsError::SynthesisFailed(
+                                "eSpeak started one synthesis twice".to_owned(),
+                            ))
+                        } else {
+                            started = true;
+                            match ProgressivePcmCanonicalizer::new(sample_rate, 1) {
+                                Ok(converter) => {
+                                    canonicalizer = Some(converter);
+                                    sink.start(SynthesisStreamStart {
+                                        engine_id: "espeak".to_owned(),
+                                        actual_voice,
+                                        degraded_acss,
+                                    })
+                                }
+                                Err(error) => Err(TtsError::SynthesisFailed(format!(
+                                    "could not initialize progressive eSpeak PCM conversion: {error}"
+                                ))),
+                            }
+                        }
+                    }
+                    EspeakStreamEvent::Markers(native) => {
+                        if canonicalizer.is_none() {
+                            stream_error = Some(TtsError::SynthesisFailed(
+                                "eSpeak emitted markers before stream metadata".to_owned(),
+                            ));
+                            break;
+                        }
+                        let markers = progressive_markers_from_native(&request.text, &native);
+                        if markers.is_empty() {
+                            Ok(())
+                        } else {
+                            sink.markers(markers, Vec::new())
+                        }
+                    }
+                    EspeakStreamEvent::Audio(samples) => {
+                        let Some(converter) = canonicalizer.as_mut() else {
+                            stream_error = Some(TtsError::SynthesisFailed(
+                                "eSpeak emitted audio before stream metadata".to_owned(),
+                            ));
+                            break;
+                        };
+                        converter
+                            .push_interleaved_i16(&samples)
+                            .map_err(|error| {
+                                TtsError::SynthesisFailed(format!(
+                                    "could not canonicalize progressive eSpeak PCM: {error}"
+                                ))
+                            })
+                            .and_then(|windows| emit_espeak_audio_windows(sink, windows))
+                    }
+                };
+                if let Err(error) = result {
+                    stream_error = Some(error);
+                    break;
+                }
+            }
+
+            drop(receiver);
+            if stream_error.is_some() {
+                self.stop();
+            }
+            let producer_result = producer.join().map_err(|_| {
+                TtsError::SynthesisFailed("eSpeak streaming worker panicked".to_owned())
+            })?;
+            if let Some(error) = stream_error {
+                return Err(error);
+            }
+            producer_result?;
+            if !started {
+                return Err(TtsError::SynthesisFailed(
+                    "eSpeak ended before stream metadata".to_owned(),
+                ));
+            }
+            let converter = canonicalizer
+                .as_mut()
+                .expect("started eSpeak stream has a PCM converter");
+            let windows = converter.finish().map_err(|error| {
+                TtsError::SynthesisFailed(format!(
+                    "could not finish progressive eSpeak PCM conversion: {error}"
+                ))
+            })?;
+            emit_espeak_audio_windows(sink, windows)?;
+            Ok(SynthesisStreamCompletion {
+                frame_count: converter.output_frames(),
+            })
+        })
     }
 
     fn stop(&self) {
@@ -971,6 +1355,78 @@ impl TtsEngine for EspeakTtsEngine {
     }
 }
 
+fn clear_synthesis_capture() {
+    if let Ok(mut capture) = SYNTH_CAPTURE.lock() {
+        capture.take();
+    }
+}
+
+fn take_synthesis_capture() -> Result<EspeakSynthesisCapture, TtsError> {
+    let mut capture = SYNTH_CAPTURE
+        .lock()
+        .map_err(|error| TtsError::SynthesisFailed(format!("Capture lock poisoned: {error}")))?;
+    capture.take().ok_or_else(|| {
+        TtsError::SynthesisFailed("eSpeak ended without an active synthesis capture".to_owned())
+    })
+}
+
+fn progressive_markers_from_native(
+    text: &str,
+    native_markers: &[EspeakNativeMarker],
+) -> Vec<SynthesisMarker> {
+    let character_boundaries = text
+        .char_indices()
+        .map(|(index, _)| index)
+        .chain(std::iter::once(text.len()))
+        .collect::<Vec<_>>();
+    let mut markers = native_markers
+        .iter()
+        .filter_map(|native| {
+            let character_length = match native.kind {
+                EspeakNativeMarkerKind::Word => native.text_length,
+                // eSpeak does not provide the sentence length until a future
+                // sentence event. A zero-length range truthfully preserves the
+                // known boundary without delaying the marker behind its PCM.
+                EspeakNativeMarkerKind::Sentence => 0,
+            };
+            let (text_start, text_length) = utf8_range_for_character_boundaries(
+                &character_boundaries,
+                native.text_position,
+                character_length,
+            )?;
+            let frame_offset = native
+                .audio_position_ms
+                .saturating_mul(u64::from(crate::STANDARD_SAMPLE_RATE))
+                .saturating_add(500)
+                / 1_000;
+            Some(SynthesisMarker {
+                kind: match native.kind {
+                    EspeakNativeMarkerKind::Word => SynthesisMarkerKind::Word,
+                    EspeakNativeMarkerKind::Sentence => SynthesisMarkerKind::Sentence,
+                },
+                frame_offset,
+                text_start: Some(text_start),
+                text_length: Some(text_length),
+                value: None,
+            })
+        })
+        .collect::<Vec<_>>();
+    markers.sort_by_key(|marker| marker.frame_offset);
+    markers
+}
+
+fn emit_espeak_audio_windows(
+    sink: &mut dyn SynthesisStreamSink,
+    windows: Vec<AudioBuffer>,
+) -> Result<(), TtsError> {
+    for window in windows {
+        if !window.is_empty() {
+            sink.audio(window)?;
+        }
+    }
+    Ok(())
+}
+
 /// Convert eSpeak's one-based Unicode character range to Omnivox's UTF-8 byte range.
 #[cfg(test)]
 fn utf8_range_for_characters(
@@ -1001,6 +1457,47 @@ fn utf8_range_for_character_boundaries(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[derive(Default)]
+    struct RecordingStreamSink {
+        started: bool,
+        audio_windows: usize,
+        frames: u64,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<crate::ResolvedAnchor>,
+    }
+
+    impl SynthesisStreamSink for RecordingStreamSink {
+        fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError> {
+            assert!(!self.started);
+            assert_eq!(start.engine_id, "espeak");
+            self.started = true;
+            Ok(())
+        }
+
+        fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+            assert!(self.started);
+            assert!(!audio.is_empty());
+            self.audio_windows += 1;
+            self.frames += audio.frame_count() as u64;
+            Ok(())
+        }
+
+        fn markers(
+            &mut self,
+            markers: Vec<SynthesisMarker>,
+            anchors: Vec<crate::ResolvedAnchor>,
+        ) -> Result<(), TtsError> {
+            assert!(self.started);
+            assert!(!markers.is_empty());
+            assert!(markers
+                .iter()
+                .all(|marker| marker.frame_offset >= self.frames));
+            self.markers.extend(markers);
+            self.anchors.extend(anchors);
+            Ok(())
+        }
+    }
 
     struct CacheTestDirectory(PathBuf);
 
@@ -1148,6 +1645,10 @@ mod tests {
         assert!(descriptor.can_synthesize());
         assert!(descriptor.capabilities.acss.rate);
         assert!(descriptor.capabilities.acss.average_pitch);
+        assert_eq!(
+            descriptor.capabilities.audio_output,
+            AudioOutputMode::StreamingPcm
+        );
         assert!(descriptor.capabilities.markers.word);
         assert!(descriptor.capabilities.markers.sentence);
         assert_eq!(
@@ -1246,6 +1747,55 @@ mod tests {
             .markers
             .iter()
             .any(|marker| marker.kind == SynthesisMarkerKind::Sentence));
+    }
+
+    #[test]
+    fn espeak_streams_ordered_markers_and_audio_windows() {
+        let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        let request = SynthesisRequest::new(
+            "First sentence has words. A second sentence follows.",
+            TtsSettings::default(),
+        );
+        let mut sink = RecordingStreamSink::default();
+
+        let completion = engine
+            .synthesize_stream(&request, &mut sink)
+            .expect("Streaming synthesis failed");
+
+        assert!(sink.started);
+        assert!(sink.audio_windows > 1);
+        assert!(sink.anchors.is_empty());
+        assert_eq!(completion.frame_count, sink.frames);
+        assert!(sink
+            .markers
+            .iter()
+            .any(|marker| marker.kind == SynthesisMarkerKind::Word));
+        assert!(sink
+            .markers
+            .iter()
+            .any(|marker| marker.kind == SynthesisMarkerKind::Sentence));
+    }
+
+    #[test]
+    fn anchored_espeak_stream_publishes_metadata_before_buffered_audio() {
+        let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        let request = SynthesisRequest::new("hello world", TtsSettings::default())
+            .with_anchors(vec![crate::RequestedAnchor::new(
+                "middle",
+                6,
+                crate::AnchorAffinity::Before,
+            )])
+            .unwrap();
+        let mut sink = RecordingStreamSink::default();
+
+        let completion = engine
+            .synthesize_stream(&request, &mut sink)
+            .expect("Anchored synthesis failed");
+
+        assert_eq!(completion.frame_count, sink.frames);
+        assert_eq!(sink.audio_windows, 1);
+        assert_eq!(sink.anchors.len(), 1);
+        assert_eq!(sink.anchors[0].id, "middle");
     }
 
     #[test]
