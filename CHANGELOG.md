@@ -50,9 +50,10 @@ Versioning for published releases.
 
 ### Fixed
 
-- Interrupted tones now fade to zero over three milliseconds while queued
-  tones are still discarded immediately, preventing rapid blank-line
-  navigation from cutting a tone at an arbitrary waveform sample and cracking.
+- Interrupted tones now use a five-millisecond smoothstep fade to zero while
+  queued tones are still discarded immediately, preventing rapid blank-line
+  navigation from cutting a tone at an arbitrary waveform sample and further
+  suppressing residual edge noise.
 - Progressive playback now primes a real audio device with three non-empty PCM
   windows before attaching the source. Marker/event-only updates travel with
   the next audio window or terminal message instead of consuming that bounded

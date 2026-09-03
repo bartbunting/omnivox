@@ -149,7 +149,8 @@ replacement key match; worker-queue replacement uses the same domain test.
 The keyed token follows synthesis requests, rendered windows, deferred
 overlays, playback cue delivery, and tracked completion. Queued or not-yet
 started tagged sources disappear immediately on cancellation. Active speech
-and tones use a three-millisecond frame-aligned fade to avoid a click. Unreached
+uses a three-millisecond frame-aligned fade, while active tones use a
+five-millisecond smoothstep fade to further suppress cut-off clicks. Unreached
 engine markers, semantic events, and carried effect/overlay tails are discarded.
 The cancellation lease remains alive until every tagged playback ticket is
 terminal, preventing a late completion from removing a newer domain token.
