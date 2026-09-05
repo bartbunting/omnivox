@@ -1,6 +1,6 @@
 //! CLI argument parsing and non-server commands (--check, --list-voices, etc.).
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use omnivox_audio::{AudioBackend, AudioFileLoader, AudioStreams, StreamType, ToneGenerator};
 use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
@@ -190,7 +190,7 @@ pub fn print_help() {
     println!("OPTIONS:");
     println!("    --help           Show this help message");
     println!("    --version        Show version number");
-    println!("    --check          Run diagnostic self-test (inspect printed statuses)");
+    println!("    --check          Run diagnostic self-test (nonzero exit on failure)");
     println!("    --list-voices    List available TTS voices");
     println!("    --list-voices-alist  List voices as Emacs-readable alist");
     println!("    --engine NAME    Prefer in server mode; select exactly for diagnostics");
@@ -314,7 +314,8 @@ pub fn cmd_list_voices_alist(engine: &dyn TtsEngine) {
     println!("{}", format_voices_alist(&voices));
 }
 
-pub fn cmd_check(cli: &CliArgs) {
+pub fn cmd_check(cli: &CliArgs) -> Result<()> {
+    let mut failed = false;
     println!("Omnivox v{} diagnostic check", crate::VERSION);
     println!("=============================\n");
 
@@ -342,7 +343,7 @@ pub fn cmd_check(cli: &CliArgs) {
         Err(e) => {
             println!("  Status: FAILED - {}", e);
             println!("\nDiagnostic check failed: no TTS engine available.");
-            std::process::exit(1);
+            return Err(e.context("Diagnostic check failed: no TTS engine available"));
         }
     };
 
@@ -382,7 +383,10 @@ pub fn cmd_check(cli: &CliArgs) {
                 );
             }
         }
-        Err(e) => println!("  Status: FAILED - {}", e),
+        Err(e) => {
+            failed = true;
+            println!("  Status: FAILED - {}", e);
+        }
     }
     println!();
 
@@ -391,7 +395,7 @@ pub fn cmd_check(cli: &CliArgs) {
         Ok(backend) => backend,
         Err(error) => {
             println!("  Configuration: FAILED - {error}");
-            return;
+            return Err(error);
         }
     };
     match AudioStreams::new_with_backend(
@@ -407,12 +411,15 @@ pub fn cmd_check(cli: &CliArgs) {
             }
 
             let tone_buf = ToneGenerator::generate(440.0, 200, 0.5);
-            match streams.queue(StreamType::Tone, &tone_buf) {
+            match queue_diagnostic_audio(&streams, StreamType::Tone, &tone_buf) {
                 Ok(_) if audio_backend == AudioBackend::Null => {
                     println!("  Test tone (440Hz): consumed")
                 }
                 Ok(_) => println!("  Test tone (440Hz): playing..."),
-                Err(e) => println!("  Test tone: FAILED - {}", e),
+                Err(e) => {
+                    failed = true;
+                    println!("  Test tone: FAILED - {}", e);
+                }
             }
 
             let ready_request = SynthesisRequest::new("Omnivox is ready.", settings.clone());
@@ -423,17 +430,28 @@ pub fn cmd_check(cli: &CliArgs) {
                 Ok(result) => {
                     let mut buf = canonicalize_synthesis_result(result).audio;
                     match build_speech_pipeline(&state, true).process(&mut buf) {
-                        Ok(()) => match streams.queue(StreamType::Speech, &buf) {
-                            Ok(_) if audio_backend == AudioBackend::Null => {
-                                println!("  Test speech: consumed")
+                        Ok(()) => {
+                            match queue_diagnostic_audio(&streams, StreamType::Speech, &buf) {
+                                Ok(_) if audio_backend == AudioBackend::Null => {
+                                    println!("  Test speech: consumed")
+                                }
+                                Ok(_) => println!("  Test speech: playing..."),
+                                Err(e) => {
+                                    failed = true;
+                                    println!("  Test speech: FAILED - {}", e);
+                                }
                             }
-                            Ok(_) => println!("  Test speech: playing..."),
-                            Err(e) => println!("  Test speech: FAILED - {}", e),
-                        },
-                        Err(e) => println!("  Test speech pipeline: FAILED - {}", e),
+                        }
+                        Err(e) => {
+                            failed = true;
+                            println!("  Test speech pipeline: FAILED - {}", e);
+                        }
                     }
                 }
-                Err(e) => println!("  Test speech: FAILED - {}", e),
+                Err(e) => {
+                    failed = true;
+                    println!("  Test speech: FAILED - {}", e);
+                }
             }
 
             if audio_backend == AudioBackend::Null {
@@ -444,6 +462,7 @@ pub fn cmd_check(cli: &CliArgs) {
             println!("  Playback: complete");
         }
         Err(e) => {
+            failed = true;
             println!("  Audio device: FAILED - {}", e);
             println!("  No audio output available. Check your sound device.");
         }
@@ -458,12 +477,19 @@ pub fn cmd_check(cli: &CliArgs) {
         if full.exists() {
             match loader.load(full) {
                 Ok(buf) => println!("  {}: OK ({} samples)", path, buf.samples.len()),
-                Err(e) => println!("  {}: FAILED - {}", path, e),
+                Err(e) => {
+                    failed = true;
+                    println!("  {}: FAILED - {}", path, e);
+                }
             }
         }
     }
 
     println!();
+    anyhow::ensure!(
+        !failed,
+        "Diagnostic check failed; inspect the FAILED statuses above"
+    );
     if audio_backend == AudioBackend::Null {
         println!("Diagnostic check complete. Null output consumed the generated audio.");
     } else {
@@ -471,6 +497,19 @@ pub fn cmd_check(cli: &CliArgs) {
             "Diagnostic check complete. If you heard a tone and speech, everything is working."
         );
     }
+    Ok(())
+}
+
+fn queue_diagnostic_audio(
+    streams: &AudioStreams,
+    stream: StreamType,
+    buffer: &omnivox_audio::AudioBuffer,
+) -> Result<()> {
+    anyhow::ensure!(
+        streams.queue(stream, buffer)?,
+        "Audio queue rejected the buffer"
+    );
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -536,63 +575,57 @@ fn dump_wav_state(cli: &CliArgs, positional_voice: &str, default_voice: Option<&
     state
 }
 
-pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) {
-    use crate::pipeline::canonicalize_synthesis_result;
-    use omnivox_audio::AudioBuffer;
+fn raw_wav_path(output: &str) -> Result<String> {
+    let path = std::path::Path::new(output);
+    let mut name = path
+        .file_stem()
+        .context("WAV output needs a filename")?
+        .to_os_string();
+    name.push("_raw.wav");
+    path.with_file_name(name)
+        .into_os_string()
+        .into_string()
+        .map_err(|_| anyhow::anyhow!("Invalid WAV output filename"))
+}
 
-    let engine = match create_engine(&cli.engine, cli.piper_model.as_deref()) {
-        Ok(e) => e,
-        Err(e) => {
-            eprintln!("Failed to create engine: {}", e);
-            std::process::exit(1);
-        }
-    };
-
+pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) -> Result<()> {
+    let engine = create_engine(&cli.engine, cli.piper_model.as_deref())
+        .context("Failed to create engine")?;
     let state = dump_wav_state(cli, voice, engine.descriptor().default_voice_id.as_deref());
-    let settings = settings_from_state(&state);
+    let request = SynthesisRequest::new(text, settings_from_state(&state));
+    let result = engine.synthesize(&request).context("Synthesis failed")?;
+    result
+        .validate(&request)
+        .context("Invalid synthesis result")?;
 
-    let request = SynthesisRequest::new(text, settings);
-    match engine.synthesize(&request).and_then(|result| {
-        result.validate(&request)?;
-        Ok(result)
-    }) {
-        Ok(result) => {
-            let raw_path = output.replace(".wav", "_raw.wav");
-            match write_wav(
-                &raw_path,
-                &result.audio.samples,
-                result.audio.sample_rate(),
-                result.audio.channels(),
-            ) {
-                Ok(_) => println!(
-                    "Raw: {} ({} samples, {}Hz, {}ch)",
-                    raw_path,
-                    result.audio.samples.len(),
-                    result.audio.sample_rate(),
-                    result.audio.channels()
-                ),
-                Err(e) => eprintln!("Failed to write {}: {}", raw_path, e),
-            }
+    let raw_path = raw_wav_path(output)?;
+    write_wav(
+        &raw_path,
+        &result.audio.samples,
+        result.audio.sample_rate(),
+        result.audio.channels(),
+    )
+    .with_context(|| format!("Failed to write {raw_path}"))?;
+    println!(
+        "Raw: {} ({} samples, {}Hz, {}ch)",
+        raw_path,
+        result.audio.samples.len(),
+        result.audio.sample_rate(),
+        result.audio.channels()
+    );
 
-            let mut buf: AudioBuffer = canonicalize_synthesis_result(result).audio;
-            let pipeline = build_speech_pipeline(&state, true);
-            if let Err(e) = pipeline.process(&mut buf) {
-                eprintln!("Pipeline error: {}", e);
-            }
-            match write_wav(output, &buf.samples, 44100, 2) {
-                Ok(_) => println!(
-                    "Pipeline: {} ({} samples, 44100Hz, 2ch)",
-                    output,
-                    buf.samples.len()
-                ),
-                Err(e) => eprintln!("Failed to write {}: {}", output, e),
-            }
-        }
-        Err(e) => {
-            eprintln!("Synthesis failed: {}", e);
-            std::process::exit(1);
-        }
-    }
+    let mut buf = canonicalize_synthesis_result(result).audio;
+    build_speech_pipeline(&state, true)
+        .process(&mut buf)
+        .context("Pipeline error")?;
+    write_wav(output, &buf.samples, 44100, 2)
+        .with_context(|| format!("Failed to write {output}"))?;
+    println!(
+        "Pipeline: {} ({} samples, 44100Hz, 2ch)",
+        output,
+        buf.samples.len()
+    );
+    Ok(())
 }
 
 pub fn cmd_play_wav(path: &str) {
@@ -629,6 +662,21 @@ pub fn cmd_play_wav(path: &str) {
 mod tests {
     use super::*;
     use omnivox_tts::{VoiceInfo, VoiceQuality};
+
+    #[test]
+    fn raw_wav_name_is_distinct_and_does_not_rewrite_parent_directories() {
+        for (output, expected) in [
+            ("speech.wav", "speech_raw.wav"),
+            ("speech", "speech_raw.wav"),
+            ("speech.WAV", "speech_raw.wav"),
+            ("directory.wav/speech.wav", "directory.wav/speech_raw.wav"),
+        ] {
+            assert_eq!(
+                std::path::Path::new(&raw_wav_path(output).unwrap()),
+                std::path::Path::new(expected)
+            );
+        }
+    }
 
     #[test]
     fn test_format_voices_alist_preserves_backend_identifier() {

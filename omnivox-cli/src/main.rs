@@ -76,7 +76,7 @@ fn main() -> Result<()> {
                 run_macos_cli_action(move || cli::cmd_check(&diagnostic_cli))?;
             }
             #[cfg(not(target_os = "macos"))]
-            cli::cmd_check(&cli);
+            cli::cmd_check(&cli)?;
             return Ok(());
         }
         "list-voices" => {
@@ -134,7 +134,7 @@ fn main() -> Result<()> {
                 })?;
             }
             #[cfg(not(target_os = "macos"))]
-            cli::cmd_dump_wav(&cli, voice, output, &text);
+            cli::cmd_dump_wav(&cli, voice, output, &text)?;
             return Ok(());
         }
         _ => {}
@@ -283,7 +283,7 @@ fn main() -> Result<()> {
 }
 
 #[cfg(target_os = "macos")]
-fn run_macos_cli_action(action: impl FnOnce() + Send + 'static) -> Result<()> {
+fn run_macos_cli_action(action: impl FnOnce() -> Result<()> + Send + 'static) -> Result<()> {
     let action_thread = std::thread::Builder::new()
         .name("omnivox-cli-action".to_owned())
         .spawn(move || {
@@ -294,7 +294,7 @@ fn run_macos_cli_action(action: impl FnOnce() + Send + 'static) -> Result<()> {
 
     omnivox_tts::macos::run_main_runloop();
     match action_thread.join() {
-        Ok(Ok(())) => Ok(()),
+        Ok(Ok(result)) => result,
         Ok(Err(payload)) | Err(payload) => panic::resume_unwind(payload),
     }
 }

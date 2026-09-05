@@ -15,6 +15,9 @@ Versioning for published releases.
 
 ### Fixed
 
+- Diagnostic checks and WAV exports now exit nonzero on synthesis, processing,
+  output, or file-write failures. Raw WAV filenames remain distinct from the
+  final output even when its name lacks a lowercase `.wav` extension.
 - Diagnostics use the selected engine's advertised default voice when no voice
   is supplied, including DECtalk, Flite, and RuTTS. Explicit voice selections
   retain exact validation.

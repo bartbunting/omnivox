@@ -48,12 +48,12 @@ registered engine order. Single-action diagnostics select an explicit engine
 exactly: unknown or unavailable engines fail rather than silently reporting
 measurements from a fallback.
 
-`--check` exits nonzero when it cannot create an engine. Synthesis and audio
-device failures discovered later in the check are printed as `FAILED` but do
-not currently change its exit status, so successful process exit alone is not
-a complete pass. `--dump-wav` writes `OUTPUT` after canonical conversion and a
-second path formed by replacing `.wav` with `_raw.wav`; use an output filename
-ending in `.wav` to keep those files distinct. Both `--check` and `--dump-wav`
+`--check` exits nonzero if engine creation, synthesis, audio initialization,
+processing, queueing, or an attempted sound-file check fails. Missing optional
+test sound files remain harmless. Device output still needs an audible check.
+`--dump-wav` also exits nonzero on synthesis, processing, or file-write failure.
+It writes canonical audio to `OUTPUT` and a raw intermediate beside it, with
+`_raw.wav` appended to the output filename stem. Both `--check` and `--dump-wav`
 honor `--voice`, `--rate`, `--pitch`, `--voice-volume`, and `--piper-model`.
 `--check` also honors `--audio-output`; null mode reports generated tone and
 speech as consumed rather than audible.
