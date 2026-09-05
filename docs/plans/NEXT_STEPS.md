@@ -46,6 +46,11 @@ The structured identity model remains:
    queued/buffered audio, late completion, and helper restart. Keep verifying
    that stale markers, semantic callbacks, and duplicate or late terminal
    history cannot escape; add physical-output observation where available.
+   Investigate the Linux null-output Flite dispatch-fault timeout reproduced
+   on both the published v1.7.1 payload and the current development build with
+   `--iterations 10 --stop-every 4 --fault-mode dispatch --fault-count 2`.
+   Idle-helper fault, fallback, and recovery pass after correcting the stress
+   tool's handling of zombie processes; the dispatch-fault case remains open.
 4. Measure long-session memory, decoded-resource cache behavior, helper working
    sets, and quarantined native-call capacity on real platforms. The helper
    soak tool now records working-set/private-byte, handle, thread, and CPU
