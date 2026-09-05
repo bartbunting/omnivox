@@ -13,6 +13,12 @@ Versioning for published releases.
   and matching dictionary. This stable installation location survives Omnivox
   upgrades; explicit overrides and existing portable locations retain priority.
 
+### Fixed
+
+- Archive extraction rejects Windows drive-relative paths and alternate data
+  streams on every host, and prevents existing links from redirecting writes
+  outside the extraction directory.
+
 ## [1.7.1] - 2026-09-03
 
 ### Added

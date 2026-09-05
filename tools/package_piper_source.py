@@ -19,6 +19,7 @@ import tomllib
 import urllib.parse
 
 sys.dont_write_bytecode = True
+import archive_paths
 from build_piper import ONNXRUNTIME_VERSION, PIPER_COMMIT, PIPER_VERSION
 from prepare_piper_inputs import PreparationError, download
 
@@ -229,12 +230,7 @@ def ensure_downloads(
 
 
 def safe_parts(name: str) -> tuple[str, ...]:
-    require("\\" not in name, f"git archive member uses a backslash: {name!r}")
-    path = PurePosixPath(name)
-    require(not path.is_absolute(), f"git archive member is absolute: {name!r}")
-    parts = tuple(part for part in path.parts if part not in ("", "."))
-    require(parts and ".." not in parts, f"unsafe git archive member: {name!r}")
-    return parts
+    return archive_paths.safe_parts(name, SourcePackagingError)
 
 
 def extract_git_source(repository: Path, commit: str, destination: Path) -> Path:
@@ -252,7 +248,9 @@ def extract_git_source(repository: Path, commit: str, destination: Path) -> Path
             relative = PurePosixPath(*safe_parts(member.name))
             require(relative not in seen, f"duplicate git archive member: {member.name}")
             seen.add(relative)
-            target = destination.joinpath(*relative.parts)
+            target = archive_paths.extraction_target(
+                destination, relative.parts, SourcePackagingError
+            )
             if member.isdir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue

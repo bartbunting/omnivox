@@ -17,6 +17,8 @@ import tarfile
 import tempfile
 import zipfile
 
+import archive_paths
+
 
 class VerificationError(RuntimeError):
     """A release artifact violated the published contract."""
@@ -73,12 +75,7 @@ def verify_checksum(archive: Path, checksums: Path) -> None:
 
 
 def safe_parts(name: str) -> tuple[str, ...]:
-    require("\\" not in name, f"archive member uses a backslash: {name!r}")
-    path = PurePosixPath(name)
-    require(not path.is_absolute(), f"archive member is absolute: {name!r}")
-    parts = tuple(part for part in path.parts if part not in ("", "."))
-    require(parts and ".." not in parts, f"unsafe archive member: {name!r}")
-    return parts
+    return archive_paths.safe_parts(name, VerificationError)
 
 
 def extract_tar(archive: Path, destination: Path) -> None:
@@ -93,7 +90,9 @@ def extract_tar(archive: Path, destination: Path) -> None:
             member_path = PurePosixPath(*safe_parts(member.name))
             require(member_path not in seen, f"duplicate tar member: {member.name!r}")
             seen.add(member_path)
-            target = destination.joinpath(*member_path.parts)
+            target = archive_paths.extraction_target(
+                destination, member_path.parts, VerificationError
+            )
             if member.isdir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue
@@ -133,7 +132,9 @@ def extract_zip(archive: Path, destination: Path) -> None:
                 f"duplicate zip member: {member.filename!r}",
             )
             seen.add(member_path)
-            target = destination.joinpath(*member_path.parts)
+            target = archive_paths.extraction_target(
+                destination, member_path.parts, VerificationError
+            )
             if member.is_dir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue

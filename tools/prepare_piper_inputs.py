@@ -17,6 +17,8 @@ import tempfile
 import urllib.request
 import zipfile
 
+import archive_paths
+
 
 class PreparationError(RuntimeError):
     """A native input did not satisfy the checked-in lock."""
@@ -98,12 +100,7 @@ def tree_digest(root: Path) -> str:
 
 
 def safe_parts(name: str) -> tuple[str, ...]:
-    require("\\" not in name, f"archive member uses a backslash: {name!r}")
-    path = PurePosixPath(name)
-    require(not path.is_absolute(), f"archive member is absolute: {name!r}")
-    parts = tuple(part for part in path.parts if part not in ("", "."))
-    require(parts and ".." not in parts, f"unsafe archive member: {name!r}")
-    return parts
+    return archive_paths.safe_parts(name, PreparationError)
 
 
 def symlink_target(member: tarfile.TarInfo, archive_root: str) -> PurePosixPath:
@@ -168,7 +165,9 @@ def extract_tar_archive(
             )
 
         for member in members:
-            target = destination.joinpath(*safe_parts(member.name))
+            target = archive_paths.extraction_target(
+                destination, safe_parts(member.name), PreparationError
+            )
             if member.isdir():
                 target.mkdir(parents=True, exist_ok=True)
             elif member.isfile():
@@ -187,11 +186,15 @@ def extract_tar_archive(
         for member in members:
             if not member.issym():
                 continue
-            target = destination.joinpath(*safe_parts(member.name))
+            target = archive_paths.extraction_target(
+                destination, safe_parts(member.name), PreparationError
+            )
             target.parent.mkdir(parents=True, exist_ok=True)
             if materialize_symlinks:
                 member_path = PurePosixPath(*safe_parts(member.name))
-                source = destination.joinpath(*link_targets[member_path].parts)
+                source = archive_paths.extraction_target(
+                    destination, link_targets[member_path].parts, PreparationError
+                )
                 require(source.is_file(), f"cannot materialize archive link: {member.name}")
                 shutil.copy2(source, target)
             else:
@@ -237,7 +240,9 @@ def extract_zip_archive(archive: Path, destination: Path, archive_root: str) -> 
             )
 
         for member in members:
-            target = destination.joinpath(*safe_parts(member.filename))
+            target = archive_paths.extraction_target(
+                destination, safe_parts(member.filename), PreparationError
+            )
             if member.is_dir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue

@@ -18,6 +18,7 @@ import tempfile
 import tomllib
 
 sys.dont_write_bytecode = True
+import archive_paths
 from build_flite import FLITE_COMMIT, FLITE_VERSION
 from prepare_piper_inputs import safe_parts
 
@@ -94,7 +95,9 @@ def extract_git_source(repository: Path, commit: str, destination: Path) -> None
             relative = PurePosixPath(*safe_parts(member.name))
             require(relative not in seen, f"duplicate Git archive member: {member.name}")
             seen.add(relative)
-            target = destination.joinpath(*relative.parts)
+            target = archive_paths.extraction_target(
+                destination, relative.parts, SourcePackagingError
+            )
             if member.isdir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue
