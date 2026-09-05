@@ -38,6 +38,7 @@ class Peer:
     def __init__(self, port: int):
         self.socket = socket.create_connection(("127.0.0.1", port), timeout=5)
         self.pending = b""
+        self.received = []
 
     def close(self):
         self.socket.close()
@@ -54,7 +55,9 @@ class Peer:
                 raise EOFError("remote connection closed")
             self.pending += data
         line, self.pending = self.pending.split(b"\n", 1)
-        return line.decode().rstrip("\r")
+        line = line.decode().rstrip("\r")
+        self.received.append(line)
+        return line
 
     def until(self, prefix: str, timeout=15):
         deadline = time.monotonic() + timeout
@@ -175,12 +178,17 @@ class RemoteServiceTests(unittest.TestCase):
         peer.send('a "omnivox-icon:complete.ogg"\nq Remote café.\nemacsvox_marker_dispatch 31\n')
         terminal = peer.until("__EMACSVOX_TRACKED__ 31 ")
         self.assertTrue(terminal.endswith(" completed"), terminal)
-        peer.send("sh 5000\nemacsvox_marker_dispatch 32\n")
-        time.sleep(0.15)
+        markers = [json.loads(base64.b64decode(line.split(" ", 1)[1]))
+                   for line in peer.received if line.startswith("__EMACSVOX_MARKER__ ")]
+        self.assertTrue(any(event["type"] == "utterance_started" for event in markers))
+        long_text = "This obsolete paragraph should be interrupted. " * 1000
         started = time.monotonic()
-        peer.send("s\nq Next.\nemacsvox_marker_dispatch 33\n")
+        peer.send(f"q {long_text}\nemacsvox_marker_dispatch 32\ns\nq Next.\nemacsvox_marker_dispatch 33\n")
         self.assertTrue(peer.until("__EMACSVOX_TRACKED__ 33 ").endswith(" completed"))
         self.assertLess(time.monotonic() - started, 4)
+        cancelled = "__EMACSVOX_TRACKED__ 32 cancelled"
+        if cancelled not in peer.received:
+            self.assertEqual(peer.until("__EMACSVOX_TRACKED__ 32 "), cancelled)
 
     def test_disconnect_discards_partial_input_and_old_backlog(self):
         peer = self.connect()

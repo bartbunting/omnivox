@@ -94,12 +94,20 @@ mean those changes are in the published v1.7.1 archive.
   state. Chorus preserves primary duration and marker positions.
 - Privacy-conscious persistent logs and optional sensitive full-text
   diagnostics.
+- An opt-in authenticated loopback workstation service forwards the existing
+  protocol over SSH reverse tunnels to separate speaker and notification
+  workers. It bounds framing and connection queues, expires heartbeat leases,
+  and retires disconnected worker trees. Remote resources are restricted to
+  bundled icon identifiers. See [remote setup](REMOTE.md).
 
 ## Current limitations
 
 - Linux has no Speech Dispatcher backend; eSpeak NG is the current built-in
   Linux engine. [SPEECHD-PLAN.md](plans/SPEECHD-PLAN.md) is a proposal only.
-- There is no TCP/network server mode and no authenticated remote protocol.
+- Remote speech currently admits one Emacs session. SSH provides encryption;
+  native TLS, shared multi-user audio, custom sound uploads, and automatic
+  tunnel management are not implemented. Omnivox 1.7.1 releases predate this
+  development feature.
 - Audio routing selects left, right, or both channels within one output device;
   arbitrary multi-device routing is not implemented.
 - An explicit null output backend consumes normal queued sources without

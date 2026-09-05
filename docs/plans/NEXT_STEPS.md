@@ -126,7 +126,9 @@ These are not current features and require design or scope approval:
   registry. External playback cannot claim buffered mixing/effects parity.
 - **Multi-device audio:** define device ownership, fallback, restart, and
   notification separation before extending channel routing.
-- **TCP/network mode:** require authentication, safe binding defaults, protocol
+- **Remote workstation follow-up:** the loopback, authenticated single-session
+  service is implemented in development; finish native-device and real SSH-host
+  acceptance before release. Broader network access still requires protocol
   exposure review, and explicit privacy documentation before implementation.
 - **Additional effects:** new duration-changing or repeating effects must
   preserve marker semantics and truthful tracked completion.

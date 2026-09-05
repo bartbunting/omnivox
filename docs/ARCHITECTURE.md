@@ -16,6 +16,17 @@ of stop or newer commands.
 
 ## Workspace structure
 
+An optional `--serve` broker authenticates loopback network connections before
+spawning stdio workers. Each foreground/notification lane owns a worker and
+its engine helpers; synthesis and PCM stay on the workstation. The broker
+uses bounded records and handoffs, heartbeat leases, and tree retirement.
+Unix workers have private process groups. Windows workers belong to private
+jobs with kill-on-close semantics and cannot initialize engines before job
+assignment completes. Remote workers use a restricted icon loader and cancel
+on EOF; ordinary stdio workers retain their drain-on-EOF behavior. See
+[ADR 0008](adr/0008-remote-workstation-service.md) and the
+[remote protocol](protocols/REMOTE-PROTOCOL.md).
+
 ```text
 omnivox-core/          legacy commands, queue/state types, pure timeline model
 omnivox-audio/         canonical buffer, effects, resources, renderer, playback

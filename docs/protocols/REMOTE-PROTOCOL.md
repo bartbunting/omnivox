@@ -41,8 +41,8 @@ Partial bytes do not extend that deadline.
 Each record is at most 512 KiB, including LF. Unterminated, oversized, invalid
 UTF-8, and NUL-containing input is never forwarded. A bounded four-record
 handoff prevents an unresponsive worker consuming unlimited memory. Socket
-writes time out after two seconds; a full handoff or transport error retires
-the lane. Disconnect cancels speech by terminating its owned worker tree;
+writes time out after two seconds; a handoff that stays full for two seconds
+or a transport error retires the lane. Disconnect cancels speech by terminating its owned worker tree;
 queued speech and incomplete records are discarded. Reconnection creates new
 workers and repeats configuration; it does not restore pending utterances.
 
