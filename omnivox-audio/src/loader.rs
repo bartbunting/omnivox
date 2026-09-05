@@ -10,7 +10,7 @@ use rodio::Source;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 /// Maximum encoded resource size accepted by the common loader (16 MiB).
@@ -87,6 +87,8 @@ impl AudioCache {
 pub struct AudioFileLoader {
     cache: Mutex<AudioCache>,
     cache_enabled: bool,
+    // Some(None) disables file playback; Some(Some(root)) admits icon IDs only.
+    remote_root: Option<Option<PathBuf>>,
 }
 
 impl AudioFileLoader {
@@ -95,6 +97,7 @@ impl AudioFileLoader {
         Self {
             cache: Mutex::new(AudioCache::default()),
             cache_enabled: false,
+            remote_root: None,
         }
     }
 
@@ -103,7 +106,56 @@ impl AudioFileLoader {
         Self {
             cache: Mutex::new(AudioCache::default()),
             cache_enabled: true,
+            remote_root: None,
         }
+    }
+
+    /// Cache workstation icons while rejecting client-supplied filesystem paths.
+    /// A missing root disables all file playback for this loader.
+    pub fn with_remote_icons(root: Option<&Path>) -> Result<Self, AudioError> {
+        let root = root
+            .map(|path| {
+                std::fs::canonicalize(path)
+                    .map_err(|error| AudioError::FileNotFound(error.to_string()))
+            })
+            .transpose()?;
+        Ok(Self {
+            remote_root: Some(root),
+            ..Self::with_cache()
+        })
+    }
+
+    fn resource_path(&self, path: &Path) -> Result<PathBuf, AudioError> {
+        let Some(root) = &self.remote_root else {
+            return Ok(path.to_path_buf());
+        };
+        let reject = || {
+            AudioError::DecodeError(
+                "remote audio requires a bundled omnivox-icon: identifier".into(),
+            )
+        };
+        let root = root.as_ref().ok_or_else(reject)?;
+        let id = path
+            .to_str()
+            .and_then(|s| s.strip_prefix("omnivox-icon:"))
+            .ok_or_else(reject)?;
+        if id.len() > 1024
+            || !id.split('/').all(|part| {
+                !part.is_empty()
+                    && part != "."
+                    && part != ".."
+                    && part
+                        .bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
+            })
+        {
+            return Err(reject());
+        }
+        let resolved = std::fs::canonicalize(root.join(id)).map_err(|_| reject())?;
+        if !resolved.starts_with(root) || !resolved.is_file() {
+            return Err(reject());
+        }
+        Ok(resolved)
     }
 
     /// Load an audio file and return it as a stereo f32 44100Hz AudioBuffer.
@@ -114,7 +166,7 @@ impl AudioFileLoader {
     /// - Integer to f32 conversion
     pub fn load(&self, path: &Path) -> Result<AudioBuffer, AudioError> {
         if !self.cache_enabled {
-            return self.load_uncached(path);
+            return self.load_uncached(&self.resource_path(path)?);
         }
         self.load_shared(path).map(|buffer| (*buffer).clone())
     }
@@ -125,6 +177,8 @@ impl AudioFileLoader {
     /// Callers that need to mutate the result can use [`Arc::make_mut`] and pay
     /// for a copy only when the cached allocation is actually shared.
     pub fn load_shared(&self, path: &Path) -> Result<Arc<AudioBuffer>, AudioError> {
+        let path = self.resource_path(path)?;
+        let path = path.as_path();
         let path_key = std::fs::canonicalize(path)
             .unwrap_or_else(|_| path.to_path_buf())
             .to_string_lossy()
@@ -365,6 +419,47 @@ mod tests {
         assert_eq!(loader.cache_size(), 0);
         loader.clear_cache();
         assert_eq!(loader.cache_size(), 0);
+    }
+
+    #[test]
+    fn remote_loader_requires_icons_and_preserves_cached_pcm() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../test-sounds");
+        let loader = AudioFileLoader::with_remote_icons(Some(&root)).unwrap();
+        let id = Path::new("omnivox-icon:complete.ogg");
+        let first = loader.load_shared(id).unwrap();
+        assert!(!first.samples.is_empty());
+        assert!(Arc::ptr_eq(&first, &loader.load_shared(id).unwrap()));
+        for invalid in [
+            "complete.ogg",
+            "omnivox-icon:../test-sounds/complete.ogg",
+            "omnivox-icon:/complete.ogg",
+            "omnivox-icon:./complete.ogg",
+            "omnivox-icon:C:/complete.ogg",
+            "omnivox-icon:sub\\complete.ogg",
+            "omnivox-icon:sub//complete.ogg",
+            "omnivox-icon:",
+        ] {
+            assert!(loader.load(Path::new(invalid)).is_err(), "{invalid}");
+        }
+        assert!(loader.load(&root.join("complete.ogg")).is_err());
+        assert!(AudioFileLoader::with_remote_icons(None)
+            .unwrap()
+            .load(id)
+            .is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn remote_loader_rejects_symlinks_outside_the_sound_root() {
+        let root = std::env::temp_dir().join(format!("omnivox-icon-link-{}", std::process::id()));
+        std::fs::create_dir(&root).unwrap();
+        let outside = Path::new(env!("CARGO_MANIFEST_DIR")).join("../test-sounds/complete.ogg");
+        std::os::unix::fs::symlink(outside, root.join("escape.ogg")).unwrap();
+        let loader = AudioFileLoader::with_remote_icons(Some(&root)).unwrap();
+        let result = loader.load(Path::new("omnivox-icon:escape.ogg"));
+        std::fs::remove_file(root.join("escape.ogg")).unwrap();
+        std::fs::remove_dir(root).unwrap();
+        assert!(result.is_err());
     }
 
     #[test]
