@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Opt-in authenticated loopback workstation service for remote Emacs over SSH
+  reverse forwarding. Speaker and notification connections own separate
+  workers, expire without heartbeats, and discard speech on disconnect.
+  Remote audio uses bundled icon identifiers under an explicit sound root.
 - Configured helpers that fail at startup remain visible in engine inventory
   with their failure reason. The existing recovery command can rescan their
   runtime asynchronously after installation, without restarting speech or

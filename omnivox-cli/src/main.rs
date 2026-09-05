@@ -26,6 +26,9 @@ mod health;
 mod lifecycle;
 mod marker_events;
 mod pipeline;
+mod remote;
+#[cfg(windows)]
+mod remote_windows;
 mod routing;
 mod server;
 mod text;
@@ -58,6 +61,11 @@ pub(crate) const TONE_MAX_DEPTH: usize = 10;
 pub(crate) const SOUND_MAX_DEPTH: usize = 10;
 
 fn main() -> Result<()> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.iter().any(|arg| arg == "--serve") {
+        return remote::run(&args);
+    }
+    remote::await_worker_start()?;
     let cli = parse_args();
 
     match cli.action.as_str() {
@@ -205,7 +213,12 @@ fn main() -> Result<()> {
         let worker_runtime_health = runtime_health.clone();
         let worker_control = control.clone();
         let worker_gen = gen_counter.clone();
-        let loader = AudioFileLoader::with_cache();
+        let loader = if std::env::var_os("OMNIVOX_REMOTE_WORKER").is_some() {
+            let root = std::env::var_os("OMNIVOX_REMOTE_SOUND_ROOT");
+            AudioFileLoader::with_remote_icons(root.as_deref().map(std::path::Path::new))?
+        } else {
+            AudioFileLoader::with_cache()
+        };
         std::thread::Builder::new()
             .name("omnivox-synth".to_string())
             .spawn(move || {

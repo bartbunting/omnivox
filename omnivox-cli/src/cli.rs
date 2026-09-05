@@ -202,6 +202,10 @@ pub fn print_help() {
     println!("    --sound-volume F Sound/icon volume 0.0-1.0");
     println!("    --audio-target T Channel routing (left, right, both)");
     println!("    --audio-output M Output backend (device or null; default device)");
+    println!("    --serve --token-file PATH [--listen 127.0.0.1:6417] [--sound-root DIR]");
+    println!(
+        "                    Authenticated workstation service (SSH tunnel required remotely)"
+    );
     println!("    --piper-model P  Piper .onnx model; keep its JSON config beside it");
     println!("    --dump-wav VOICE OUTPUT [TEXT]");
     println!("                     Save canonical OUTPUT plus an _raw.wav intermediate");

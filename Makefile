@@ -43,6 +43,12 @@ diagnostics-redaction-test:
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_redact_diagnostics.py
 
+# Requires a runnable staged payload; opt-in because it starts real workers.
+.PHONY: remote-test
+remote-test:
+	PYTHONDONTWRITEBYTECODE=1 \
+		$(PYTHON) -W error::ResourceWarning tools/test_remote_service.py
+
 archive-safety-test:
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_archive_safety.py

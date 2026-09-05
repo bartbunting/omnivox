@@ -1808,6 +1808,20 @@ pub fn run_server(
     }
     let _ = input_handle.join();
 
+    // A broker disappearing must not turn a lost remote connection into a
+    // request to play its backlog. Ordinary stdio EOF still drains as before.
+    if std::env::var_os("OMNIVOX_REMOTE_WORKER").is_some() {
+        interrupt(
+            &mut current_gen,
+            &gen_counter,
+            &control,
+            &engine_registry,
+            false,
+            true,
+        );
+        cancel_queued_synthesis_before(&tx, current_gen);
+        pending.clear();
+    }
     info!("Stdin closed; waiting for synthesis worker to finish");
     drop(tx);
     let _ = worker_handle.join();
