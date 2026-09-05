@@ -23,6 +23,12 @@ Use a staged development payload (`make dev` on Linux/macOS, or Emacsvox's
        -R 127.0.0.1:6417:127.0.0.1:6417 user@emacs-host
    ```
 
+   For Windows Omnivox, run this SSH connection using Windows OpenSSH
+   (`ssh.exe` from WSL, or `ssh` in PowerShell). WSL under NAT has a separate
+   loopback, so a WSL-native SSH forward would target the wrong host. Windows
+   OpenSSH uses your Windows SSH keys and host-trust configuration. See
+   [Microsoft's WSL networking guide](https://learn.microsoft.com/en-us/windows/wsl/networking).
+
 4. Before loading Emacsvox on that host, configure:
 
    ```elisp
@@ -61,6 +67,21 @@ For live Emacsvox acceptance also set `OMNIVOX_REMOTE_TEST_EMACS` to the pinned
 Emacs executable and `OMNIVOX_REMOTE_TEST_EMACSVOX` to that checkout. Tests use
 temporary tokens, ephemeral listeners, and isolated workers. Native device,
 real SSH-host, and macOS acceptance remain separate from null-output tests.
+
+For WSL-to-Windows acceptance, set `OMNIVOX_REMOTE_TEST_WINDOWS=1` and
+`OMNIVOX_REMOTE_TEST_PROGRAM` to the Emacsvox launcher. The harness uses the
+installed Windows .NET Framework C# compiler for a temporary test-only stdio
+relay across WSL NAT; production setup uses Windows OpenSSH. The test relay,
+tokens, listeners, and workers are removed at shutdown. Set `OMNIVOX_ENGINE`
+and `OMNIVOX_REMOTE_TEST_EXPECT_ENGINE` to `dectalk` to verify the realized
+engine, and opt into `OMNIVOX_REMOTE_TEST_AUDIO_OUTPUT=device` for an audible
+device check. The normal test default is null output.
+
+Development acceptance on 2026-09-05 passed Linux service tests, Linux Emacs
+against Windows DECtalk (both lanes, Unicode, icons, markers, cancellation,
+heartbeat expiry, and fresh reconnection), and one real-device DECtalk
+completion check. The Windows development runtime is `98084bb159c06059`.
+A separate SSH host and native macOS have not yet been exercised.
 
 The [wire contract](protocols/REMOTE-PROTOCOL.md) specifies framing, limits,
 authentication, resource rules, and lifecycle behavior.

@@ -76,13 +76,9 @@ class Peer:
 
 class RemoteServiceTests(unittest.TestCase):
     def setUp(self):
-        directory = None
-        # WSL's translated Windows TEMP is used without depending on a username.
-        if WINDOWS:
-            win_temp = subprocess.check_output(
-                ["cmd.exe", "/c", "echo", "%TEMP%"], text=True).strip()
-            directory = subprocess.check_output(["wslpath", "-u", win_temp], text=True).strip()
-        self.temp = tempfile.TemporaryDirectory(prefix="omnivox-remote-test-", dir=directory)
+        # A WSL-private token remains private to Emacs while Windows accesses
+        # the same file through its translated UNC path.
+        self.temp = tempfile.TemporaryDirectory(prefix="omnivox-remote-test-")
         self.addCleanup(self.temp.cleanup)
         token_path = Path(self.temp.name) / "token"
         self.token_path = token_path
@@ -94,7 +90,8 @@ class RemoteServiceTests(unittest.TestCase):
         self.log = []
         self.process = subprocess.Popen(
             [PROGRAM, "--serve", "--listen", "127.0.0.1:0", "--token-file", native_path(token_path),
-             "--sound-root", native_path(ROOT / "test-sounds"), "--audio-output", "null"],
+             "--sound-root", native_path(ROOT / "test-sounds"), "--audio-output",
+             os.environ.get("OMNIVOX_REMOTE_TEST_AUDIO_OUTPUT", "null")],
             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
             text=True, encoding="utf-8", errors="replace")
         self.addCleanup(self.stop)
@@ -113,6 +110,11 @@ class RemoteServiceTests(unittest.TestCase):
             if match:
                 self.port = int(match[1])
                 break
+        self.bridge = None
+        if WINDOWS:
+            from remote_test_bridge import WindowsLoopbackBridge
+            self.bridge = WindowsLoopbackBridge(self.port)
+            self.port = self.bridge.port
 
     def stop(self):
         for peer in self.peers:
@@ -129,6 +131,8 @@ class RemoteServiceTests(unittest.TestCase):
         self.process.stdin.close()
         self.reader.join(timeout=10)
         self.process.stderr.close()
+        if getattr(self, "bridge", None):
+            self.bridge.close()
         self.assertNotIn(self.token, "".join(self.log))
 
     def connect(self, lane="speaker", session=None, token=None, expected="ready"):
@@ -189,6 +193,21 @@ class RemoteServiceTests(unittest.TestCase):
         cancelled = "__EMACSVOX_TRACKED__ 32 cancelled"
         if cancelled not in peer.received:
             self.assertEqual(peer.until("__EMACSVOX_TRACKED__ 32 "), cancelled)
+
+    @unittest.skipUnless(os.environ.get("OMNIVOX_REMOTE_TEST_EXPECT_ENGINE"), "optional real engine acceptance")
+    def test_requested_workstation_engine_produces_speech(self):
+        expected = os.environ["OMNIVOX_REMOTE_TEST_EXPECT_ENGINE"]
+        peer = self.connect()
+        peer.control("capabilities")
+        inventory = peer.control("inventory", 2)
+        engine = next(engine for engine in inventory["engines"] if engine["id"] == expected)
+        self.assertTrue(engine["voices"])
+        peer.send("q Remote workstation speech is ready.\nemacsvox_marker_dispatch 71\n")
+        self.assertTrue(peer.until("__EMACSVOX_TRACKED__ 71 ").endswith(" completed"))
+        markers = [json.loads(base64.b64decode(line.split(" ", 1)[1]))
+                   for line in peer.received if line.startswith("__EMACSVOX_MARKER__ ")]
+        started = next(event for event in markers if event["type"] == "utterance_started")
+        self.assertEqual(started["engine_id"], expected)
 
     def test_disconnect_discards_partial_input_and_old_backlog(self):
         peer = self.connect()
