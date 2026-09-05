@@ -484,17 +484,21 @@ def windows_process_snapshot(powershell: str) -> dict[int, dict[str, Any]]:
     }
 
 
-def proc_process_snapshot() -> dict[int, dict[str, Any]]:
+def proc_process_snapshot(proc_root: Path = Path("/proc")) -> dict[int, dict[str, Any]]:
     snapshot = {}
-    for status_path in Path("/proc").glob("[0-9]*/status"):
+    for status_path in proc_root.glob("[0-9]*/status"):
         try:
             values = {}
             for line in status_path.read_text(encoding="utf-8").splitlines():
                 key, separator, value = line.partition(":")
-                if separator and key in ("Name", "PPid"):
+                if separator and key in ("Name", "PPid", "State"):
                     values[key] = value.strip()
+            # A killed helper can remain unreaped until the next host request.
+            # It has already exited and cannot execute native code.
+            if values.get("State", "").startswith(("Z", "X")):
+                continue
             pid = int(status_path.parent.name)
-            executable = Path(f"/proc/{pid}/exe").resolve().name
+            executable = (status_path.parent / "exe").resolve().name
             snapshot[pid] = {
                 "parent": int(values["PPid"]),
                 "name": executable or values["Name"],

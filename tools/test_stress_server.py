@@ -6,6 +6,8 @@ from __future__ import annotations
 import base64
 import json
 import queue
+from pathlib import Path
+import tempfile
 from types import SimpleNamespace
 import time
 import unittest
@@ -117,6 +119,21 @@ class FakeInjector:
 
 
 class StressServerTests(unittest.TestCase):
+    def test_proc_snapshot_excludes_killed_but_unreaped_helpers(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for pid, state in (
+                (100, "S (sleeping)"), (101, "Z (zombie)"), (102, "X (dead)")
+            ):
+                directory = root / str(pid)
+                directory.mkdir()
+                (directory / "status").write_text(
+                    f"Name:\thelper\nState:\t{state}\nPPid:\t50\n", encoding="utf-8"
+                )
+            snapshot = stress_server.proc_process_snapshot(root)
+            self.assertEqual(set(snapshot), {100})
+            self.assertEqual(snapshot[100]["parent"], 50)
+
     def test_collects_ordered_markers_and_one_terminal(self) -> None:
         session = FakeSession(
             [
