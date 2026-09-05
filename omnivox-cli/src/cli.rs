@@ -454,11 +454,7 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
                 }
             }
 
-            if audio_backend == AudioBackend::Null {
-                streams.drain();
-            } else {
-                std::thread::sleep(std::time::Duration::from_secs(3));
-            }
+            streams.drain();
             println!("  Playback: complete");
         }
         Err(e) => {
@@ -628,34 +624,22 @@ pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) -> Res
     Ok(())
 }
 
-pub fn cmd_play_wav(path: &str) {
-    let streams = match AudioStreams::new(
+pub fn cmd_play_wav(cli: &CliArgs, path: &str) -> Result<()> {
+    let streams = AudioStreams::new_with_backend(
         crate::SPEECH_MAX_DEPTH,
         crate::TONE_MAX_DEPTH,
         crate::SOUND_MAX_DEPTH,
-    ) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("Audio init failed: {}", e);
-            std::process::exit(1);
-        }
-    };
-
+        selected_audio_backend(cli)?,
+    )
+    .context("Audio init failed")?;
     let loader = AudioFileLoader::with_cache();
-    match loader.load(std::path::Path::new(path)) {
-        Ok(buf) => {
-            println!("Playing {} ({} samples)...", path, buf.samples.len());
-            match streams.queue(StreamType::Speech, &buf) {
-                Ok(_) => {}
-                Err(e) => eprintln!("Queue failed: {}", e),
-            }
-            std::thread::sleep(std::time::Duration::from_secs(10));
-        }
-        Err(e) => {
-            eprintln!("Failed to load {}: {}", path, e);
-            std::process::exit(1);
-        }
-    }
+    let buf = loader
+        .load(std::path::Path::new(path))
+        .with_context(|| format!("Failed to load {path}"))?;
+    println!("Playing {} ({} samples)...", path, buf.samples.len());
+    queue_diagnostic_audio(&streams, StreamType::Speech, &buf).context("Queue failed")?;
+    streams.drain();
+    Ok(())
 }
 
 #[cfg(test)]

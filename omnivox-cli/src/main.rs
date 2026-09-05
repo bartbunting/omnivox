@@ -99,7 +99,7 @@ fn main() -> Result<()> {
                 eprintln!("Usage: omnivox --play-wav <file.wav>");
                 std::process::exit(1);
             }
-            cli::cmd_play_wav(&remaining[idx + 1]);
+            cli::cmd_play_wav(&cli, &remaining[idx + 1])?;
             return Ok(());
         }
         "dump-wav" => {

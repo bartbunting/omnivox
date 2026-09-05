@@ -15,6 +15,9 @@ Versioning for published releases.
 
 ### Fixed
 
+- WAV playback and diagnostic audio wait for queued audio to finish instead of
+  sleeping for a fixed duration. `--play-wav` honors the selected audio backend
+  and reports load or queue failures through its exit status.
 - Diagnostic checks and WAV exports now exit nonzero on synthesis, processing,
   output, or file-write failures. Raw WAV filenames remain distinct from the
   final output even when its name lacks a lowercase `.wav` extension.

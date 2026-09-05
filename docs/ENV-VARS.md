@@ -57,6 +57,9 @@ It writes canonical audio to `OUTPUT` and a raw intermediate beside it, with
 honor `--voice`, `--rate`, `--pitch`, `--voice-volume`, and `--piper-model`.
 `--check` also honors `--audio-output`; null mode reports generated tone and
 speech as consumed rather than audible.
+`--play-wav` also honors `--audio-output` and waits for the file to finish;
+`--check` waits for its queued tone and speech. Neither uses a fixed playback
+timeout. Null output consumes the audio without waiting for its duration.
 For `--dump-wav`, a nonempty positional `VOICE` takes precedence over
 `--voice`; pass an empty positional string to use the flag or engine default.
 
