@@ -358,8 +358,7 @@ pub fn cmd_check(cli: &CliArgs) {
     println!();
 
     println!("[synthesis]");
-    let mut state = TtsState::default();
-    apply_cli_flags(cli, &mut state);
+    let state = diagnostic_state(cli, engine.descriptor().default_voice_id.as_deref());
     let settings = settings_from_state(&state);
     let test_request = SynthesisRequest::new("test", settings.clone());
     match engine.synthesize(&test_request).and_then(|result| {
@@ -520,9 +519,17 @@ fn settings_from_state(state: &TtsState) -> TtsSettings {
     }
 }
 
-fn dump_wav_state(cli: &CliArgs, positional_voice: &str) -> TtsState {
-    let mut state = TtsState::default();
+fn diagnostic_state(cli: &CliArgs, default_voice: Option<&str>) -> TtsState {
+    let mut state = TtsState {
+        current_voice: default_voice.unwrap_or_default().to_owned(),
+        ..TtsState::default()
+    };
     apply_cli_flags(cli, &mut state);
+    state
+}
+
+fn dump_wav_state(cli: &CliArgs, positional_voice: &str, default_voice: Option<&str>) -> TtsState {
+    let mut state = diagnostic_state(cli, default_voice);
     if !positional_voice.is_empty() {
         state.current_voice = positional_voice.to_owned();
     }
@@ -541,7 +548,7 @@ pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) {
         }
     };
 
-    let state = dump_wav_state(cli, voice);
+    let state = dump_wav_state(cli, voice, engine.descriptor().default_voice_id.as_deref());
     let settings = settings_from_state(&state);
 
     let request = SynthesisRequest::new(text, settings);
@@ -686,7 +693,7 @@ mod tests {
             piper_model: None,
         };
 
-        let state = dump_wav_state(&cli, "positional-voice");
+        let state = dump_wav_state(&cli, "positional-voice", Some("slt"));
         let settings = settings_from_state(&state);
 
         assert_eq!(settings.voice, "positional-voice");
@@ -712,7 +719,43 @@ mod tests {
             piper_model: None,
         };
 
-        assert_eq!(dump_wav_state(&cli, "").current_voice, "flag-voice");
+        assert_eq!(
+            dump_wav_state(&cli, "", Some("paul")).current_voice,
+            "flag-voice"
+        );
+    }
+
+    #[test]
+    fn diagnostics_use_engine_default_only_when_voice_is_omitted() {
+        let mut cli = CliArgs {
+            engine: String::new(),
+            action: "check".to_owned(),
+            voice: None,
+            rate: None,
+            pitch: None,
+            voice_volume: None,
+            tone_volume: None,
+            sound_volume: None,
+            audio_target: None,
+            audio_output: None,
+            piper_model: None,
+        };
+        for default_voice in [Some("paul"), Some("slt"), Some("male"), None] {
+            let expected = default_voice.unwrap_or_default();
+            assert_eq!(
+                diagnostic_state(&cli, default_voice).current_voice,
+                expected
+            );
+            assert_eq!(
+                dump_wav_state(&cli, "", default_voice).current_voice,
+                expected
+            );
+        }
+        cli.voice = Some("invalid-explicit-voice".to_owned());
+        assert_eq!(
+            diagnostic_state(&cli, Some("paul")).current_voice,
+            "invalid-explicit-voice"
+        );
     }
 
     #[test]

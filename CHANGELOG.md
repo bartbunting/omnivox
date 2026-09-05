@@ -15,6 +15,9 @@ Versioning for published releases.
 
 ### Fixed
 
+- Diagnostics use the selected engine's advertised default voice when no voice
+  is supplied, including DECtalk, Flite, and RuTTS. Explicit voice selections
+  retain exact validation.
 - Archive extraction rejects Windows drive-relative paths and alternate data
   streams on every host, and prevents existing links from redirecting writes
   outside the extraction directory.
