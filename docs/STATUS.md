@@ -1,11 +1,14 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-03
+**Last reviewed:** 2026-09-05
 **Workspace version:** 1.7.1
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
 [NEXT_STEPS.md](plans/NEXT_STEPS.md).
+Post-tag development changes are recorded under
+[Unreleased](../CHANGELOG.md#unreleased); the workspace version alone does not
+mean those changes are in the published v1.7.1 archive.
 
 ## Implemented
 
@@ -46,6 +49,8 @@ in the linked protocol specifications; future work belongs in
   failure, and transient engine pressure.
 - Persistent health circuits, bounded cooldowns, one recovery probe, and
   generation-stamped inventory updates.
+- Failed configured helpers remain visible with their startup error and can
+  be rescanned asynchronously through the recovery command after installation.
 - Immediate speech and letter commands follow the current global engine policy;
   they do not select a named logical voice.
 - Requested synthesis anchors and engine markers, with truthful exact,
@@ -158,9 +163,10 @@ in the linked protocol specifications; future work belongs in
   canonical windows; older peers retain buffered results. Native Linux x64 and
   Windows x64 GNU helper soaks cover progressive delivery, repeated
   cancellation, health checks, and clean shutdown. The release matrix targets
-  Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows x64/ARM64 with MSVC;
-  those release targets are not labelled runtime-accepted until their native
-  workflow gates pass. The
+  Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows x64/ARM64 with MSVC.
+  All six native build and relocated-release verification jobs passed for
+  [v1.7.1](https://github.com/bartbunting/omnivox/actions/runs/33750119999),
+  whose published assets include each companion and corresponding source. The
   [Windows evidence pack](benchmarks/2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)
   records the bounded GNU-target results. The helper converts its KOI8-R
   repertoire losslessly and routes unsupported Unicode text to fallback; it
@@ -233,12 +239,15 @@ SLT syntheses, exercises cancellation and shutdown, and uploads no external
 voice file. Publication also requires the exact Flite source artifact to pass
 its manifest, Git-tree, source-lock, and offline-preparation checks.
 
-RuTTS has deterministic binary and corresponding-source packaging with local
-Linux x64 verification. Its checked-in native gates use the same six companion
-targets as Flite and require real synthesis with both built-in voices,
-cancellation, relocation, provenance, and offline source preparation before a
-tag can publish the assets. Those new non-Linux-x64 gates remain pending until
-their hosted workflows pass.
+RuTTS has deterministic binary and corresponding-source packaging. Its native
+gates use the same six companion targets as Flite and require real synthesis
+with both built-in voices, cancellation, relocation, provenance, and offline
+source preparation before publication. The
+[v1.7.1 workflow](https://github.com/bartbunting/omnivox/actions/runs/33750119999)
+passed all six build and release-verification jobs plus source verification;
+the [published release](https://github.com/bartbunting/omnivox/releases/tag/v1.7.1)
+contains all six companions. These bounded native-runner checks do not replace
+long-session or intelligibility measurements on users' machines.
 
 TGSpeechBox has a Windows x64 GNU release gate beginning with v1.7.0. It builds
 from the checksum-locked `v-310@f5ec247` snapshot, regenerates both inventories,

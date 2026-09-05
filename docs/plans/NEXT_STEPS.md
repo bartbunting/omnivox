@@ -60,12 +60,11 @@ The structured identity model remains:
 
 1. Expand real Windows repetition, cancellation, crash, and recovery testing
    for WinRT, Eloquence, and DECtalk, including helper working-set measurement.
-2. Resolve the licensing, corresponding-source, and publishing-integration
-   gates in the [Piper release plan](PIPER-RELEASE.md). Native dependency,
-   packaging, relocation, and real-synthesis acceptance now pass on Linux x64,
-   Windows x64, and macOS ARM64/x64. Keep this a reproducible optional-helper
-   release problem, separate from engine-registry policy; it is not yet a
-   published component.
+2. Maintain Piper's published companion gates and audit dependency updates
+   against the [Piper release plan](PIPER-RELEASE.md). Publication began with
+   v1.6.4 on Linux x64, Windows x64, and macOS ARM64/x64. Keep checking
+   corresponding source, relocation, model-free packaging, and real synthesis
+   on every release; wider platform support remains separate work.
 3. Improve macOS marker and cancellation coverage without overstating what
    AVSpeechSynthesizer exposes.
 4. Extend RHVoice live-runtime acceptance beyond Linux x64 and Windows x64,
@@ -75,11 +74,12 @@ The structured identity model remains:
    acceptance.
 5. Verify logical-language and text-repertoire routing against live
    multilingual voices on every supported engine.
-6. Complete RuTTS native acceptance on Linux ARM64, macOS Intel/Apple Silicon,
-   and Windows x64/ARM64 MSVC. Windows x64 GNU development acceptance now
+6. Extend RuTTS evidence beyond the native release gates that passed on all six
+   companion targets for v1.7.1. Windows x64 GNU development acceptance also
    covers both voices, exact routing, cancellation latency, helper resources,
-   hard stops, repeated helper death, fallback, and recovery. Continue with
-   cold onset, high-rate intelligibility, and multi-hour helper memory evidence.
+   hard stops, repeated helper death, fallback, and recovery. Prioritize cold
+   onset, high-rate intelligibility, and multi-hour helper memory evidence on
+   real user machines.
    Evaluate RuLex later as its own licensing, provenance, database, and
    cross-platform decision rather than silently adding it to the companion.
 7. Keep eSpeak NG as the reliable Unicode-capable final fallback and retain

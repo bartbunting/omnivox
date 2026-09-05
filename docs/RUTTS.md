@@ -59,8 +59,12 @@ male/female synthesis, ACSS, cancellation, exact server routing, mixed queues,
 hard stops, resource sampling, repeated helper death, fallback, recovery, and
 shutdown acceptance. The bounded
 [Windows evidence pack](benchmarks/2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)
-contains the raw reports. The two MSVC release targets remain subject to their
-native workflow gates.
+contains the raw reports. All six native build and relocated-release gates,
+including both MSVC targets, passed in the
+[v1.7.1 workflow](https://github.com/bartbunting/omnivox/actions/runs/33750119999).
+The [release](https://github.com/bartbunting/omnivox/releases/tag/v1.7.1)
+publishes the complete matrix and corresponding source. Long-session memory
+and high-rate intelligibility testing remain ongoing work.
 
 ## Build locally
 
