@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Configured helpers that fail at startup remain visible in engine inventory
+  with their failure reason. The existing recovery command can rescan their
+  runtime asynchronously after installation, without restarting speech or
+  blocking fallback engines.
 - Windows DECtalk discovery now also checks
   `%LOCALAPPDATA%\Omnivox\runtimes\dectalk\x86` for the user-installed DLL
   and matching dictionary. This stable installation location survives Omnivox

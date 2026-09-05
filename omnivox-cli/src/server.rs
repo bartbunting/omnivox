@@ -975,8 +975,7 @@ pub fn synthesis_worker(
                 lifecycle: _,
                 gen,
             } => {
-                let runtime_inventory = runtime_health
-                    .snapshot(engine_registry.generation(), engine_registry.inventory());
+                let runtime_inventory = runtime_health.registry_snapshot(&engine_registry);
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
                 let batch_engine =
                     logical_voice_routing.preferred_legacy_engine(&engine_registry, &engine);
@@ -1040,8 +1039,7 @@ pub fn synthesis_worker(
                 lifecycle: _,
                 gen,
             } => {
-                let runtime_inventory = runtime_health
-                    .snapshot(engine_registry.generation(), engine_registry.inventory());
+                let runtime_inventory = runtime_health.registry_snapshot(&engine_registry);
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
                 let batch_engine =
                     logical_voice_routing.preferred_legacy_engine(&engine_registry, &engine);
@@ -1102,8 +1100,7 @@ pub fn synthesis_worker(
                 lifecycle: _,
                 gen,
             } => {
-                let runtime_inventory = runtime_health
-                    .snapshot(engine_registry.generation(), engine_registry.inventory());
+                let runtime_inventory = runtime_health.registry_snapshot(&engine_registry);
                 logical_voice_routing.replace_inventory(runtime_inventory.engines);
                 let tickets = Mutex::new(Vec::new());
                 let presentation_clock = Mutex::new(Vec::new());
@@ -1161,8 +1158,7 @@ pub fn synthesis_worker(
                 lifecycle: _,
                 gen,
             } => {
-                let runtime_inventory = runtime_health
-                    .snapshot(engine_registry.generation(), engine_registry.inventory());
+                let runtime_inventory = runtime_health.registry_snapshot(&engine_registry);
                 preferred_routing.replace_inventory(runtime_inventory.engines);
                 let preferred_engine =
                     preferred_routing.preferred_legacy_engine(&engine_registry, &engine);
@@ -1206,8 +1202,7 @@ pub fn synthesis_worker(
                 lifecycle: _,
                 gen,
             } => {
-                let runtime_inventory = runtime_health
-                    .snapshot(engine_registry.generation(), engine_registry.inventory());
+                let runtime_inventory = runtime_health.registry_snapshot(&engine_registry);
                 preferred_routing.replace_inventory(runtime_inventory.engines);
                 let preferred_engine =
                     preferred_routing.preferred_legacy_engine(&engine_registry, &engine);
@@ -2646,8 +2641,7 @@ fn handle_command(
         }
 
         CommandId::OmnivoxControl => {
-            let inventory =
-                runtime_health.snapshot(engine_registry.generation(), engine_registry.inventory());
+            let inventory = runtime_health.registry_snapshot(engine_registry);
             let payload = command.args.as_deref().unwrap_or("");
             let live_request = decode_request(payload).ok().and_then(|request| {
                 if request.protocol_version != CONTROL_PROTOCOL_VERSION {
@@ -2706,15 +2700,15 @@ fn handle_command(
                             ),
                         }
                     } else {
-                        match runtime_health.request_probe(&engine_id) {
+                        let recovery = if engine_registry.engine(&engine_id).is_none() {
+                            engine_registry.request_rescan(&engine_id)
+                        } else {
+                            runtime_health.request_probe(&engine_id)
+                        };
+                        match recovery {
                             Ok(()) => ControlResponse::EngineRecoveryProbeRequested {
                                 inventory_generation: routing_policy.inventory_generation(
-                                    runtime_health
-                                        .snapshot(
-                                            engine_registry.generation(),
-                                            engine_registry.inventory(),
-                                        )
-                                        .generation,
+                                    runtime_health.registry_snapshot(engine_registry).generation,
                                 ),
                                 engine_id,
                             },

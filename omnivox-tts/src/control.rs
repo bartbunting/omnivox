@@ -266,6 +266,7 @@ pub fn process_control_request(
                         "emacsvox_tx".to_owned(),
                         "engine_inventory".to_owned(),
                         "engine_recovery_probe".to_owned(),
+                        "startup_engine_rescan".to_owned(),
                         "exact_voice_preview".to_owned(),
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
@@ -590,6 +591,7 @@ mod tests {
                 && features.iter().any(|feature| feature == "runtime_routing_policy")
                 && features.iter().any(|feature| feature == "process_audio_routing")
                 && features.iter().any(|feature| feature == "engine_recovery_probe")
+                && features.iter().any(|feature| feature == "startup_engine_rescan")
                 && features
                     .iter()
                     .any(|feature| feature == "playback_marker_events_v1")

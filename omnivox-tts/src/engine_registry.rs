@@ -1,11 +1,11 @@
 //! Runtime ownership and deterministic inventory for multiple TTS engines.
 
 use std::collections::{BTreeMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use thiserror::Error;
 
-use crate::contracts::EngineDescriptor;
+use crate::contracts::{Availability, EngineDescriptor, EngineHealth};
 use crate::TtsEngine;
 
 /// Registry mutations that leave the previous inventory untouched.
@@ -36,20 +36,35 @@ pub enum EngineRegistryError {
     ChangedEngineId { expected: String, received: String },
 }
 
+type EngineFactory = Arc<dyn Fn() -> Result<Arc<dyn TtsEngine>, String> + Send + Sync>;
+
 struct RegisteredEngine {
-    engine: Arc<dyn TtsEngine>,
+    engine: Option<Arc<dyn TtsEngine>>,
     descriptor: EngineDescriptor,
+    retry: Option<EngineFactory>,
+    rescanning: bool,
+}
+
+#[derive(Default)]
+struct RegistryState {
+    generation: u64,
+    entries: BTreeMap<String, RegisteredEngine>,
+}
+
+impl RegistryState {
+    fn advance_generation(&mut self) {
+        self.generation = self.generation.saturating_add(1);
+    }
 }
 
 /// Engines owned by one Omnivox server session.
 ///
-/// Entries are keyed by stable engine ID, so inventory and lookup remain
-/// deterministic regardless of backend discovery order. Descriptors are
-/// snapshotted explicitly and never queried while serving inventory.
+/// Inventory reads use cached descriptors and never call an engine. A failed
+/// startup can be retried off the command thread; its validated descriptor and
+/// handle become visible together under the inventory lock.
 #[derive(Default)]
 pub struct EngineRegistry {
-    generation: u64,
-    entries: BTreeMap<String, RegisteredEngine>,
+    inner: Arc<RwLock<RegistryState>>,
 }
 
 impl EngineRegistry {
@@ -58,57 +73,184 @@ impl EngineRegistry {
     }
 
     pub fn generation(&self) -> u64 {
-        self.generation
+        self.inner.read().unwrap().generation
     }
 
     pub fn len(&self) -> usize {
-        self.entries.len()
+        self.inner.read().unwrap().entries.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
+        self.len() == 0
     }
 
     /// Add one engine after validating its complete descriptor.
     pub fn register(&mut self, engine: Arc<dyn TtsEngine>) -> Result<(), EngineRegistryError> {
         let descriptor = engine.descriptor();
-        validate_descriptor(&descriptor)?;
-        if self.entries.contains_key(&descriptor.id) {
+        self.insert(RegisteredEngine {
+            engine: Some(engine),
+            descriptor,
+            retry: None,
+            rescanning: false,
+        })
+    }
+
+    /// Retain a failed configured engine without inventing voices or opening it
+    /// during inventory reads. The factory must bound its own startup work.
+    pub fn register_unavailable(
+        &mut self,
+        descriptor: EngineDescriptor,
+        retry: impl Fn() -> Result<Arc<dyn TtsEngine>, String> + Send + Sync + 'static,
+    ) -> Result<(), EngineRegistryError> {
+        self.insert(RegisteredEngine {
+            engine: None,
+            descriptor,
+            retry: Some(Arc::new(retry)),
+            rescanning: false,
+        })
+    }
+
+    fn insert(&mut self, entry: RegisteredEngine) -> Result<(), EngineRegistryError> {
+        validate_descriptor(&entry.descriptor)?;
+        let mut inner = self.inner.write().unwrap();
+        if inner.entries.contains_key(&entry.descriptor.id) {
             return Err(EngineRegistryError::DuplicateEngine {
-                engine_id: descriptor.id,
+                engine_id: entry.descriptor.id,
             });
         }
-
-        let engine_id = descriptor.id.clone();
-        self.entries
-            .insert(engine_id, RegisteredEngine { engine, descriptor });
-        self.advance_generation();
+        inner.entries.insert(entry.descriptor.id.clone(), entry);
+        inner.advance_generation();
         Ok(())
     }
 
-    /// Return a shared engine handle by stable ID.
+    /// Return a shared engine handle, or None for an unavailable startup entry.
     pub fn engine(&self, engine_id: &str) -> Option<Arc<dyn TtsEngine>> {
-        self.entries
+        self.inner
+            .read()
+            .unwrap()
+            .entries
             .get(engine_id)
-            .map(|entry| Arc::clone(&entry.engine))
+            .and_then(|entry| entry.engine.clone())
     }
 
-    pub fn descriptor(&self, engine_id: &str) -> Option<&EngineDescriptor> {
-        self.entries.get(engine_id).map(|entry| &entry.descriptor)
-    }
-
-    /// Return a stable-ID-sorted snapshot for resolution and control responses.
-    pub fn inventory(&self) -> Vec<EngineDescriptor> {
-        self.entries
-            .values()
+    pub fn descriptor(&self, engine_id: &str) -> Option<EngineDescriptor> {
+        self.inner
+            .read()
+            .unwrap()
+            .entries
+            .get(engine_id)
             .map(|entry| entry.descriptor.clone())
-            .collect()
     }
 
-    /// Request cancellation from every registered engine.
+    /// Return a generation and stable-ID-sorted inventory from the same read.
+    pub fn snapshot(&self) -> (u64, Vec<EngineDescriptor>) {
+        let inner = self.inner.read().unwrap();
+        (
+            inner.generation,
+            inner
+                .entries
+                .values()
+                .map(|entry| entry.descriptor.clone())
+                .collect(),
+        )
+    }
+
+    pub fn inventory(&self) -> Vec<EngineDescriptor> {
+        self.snapshot().1
+    }
+
+    /// Retry one startup failure asynchronously, with at most one retry per
+    /// engine in flight. Success enables it for subsequent routing snapshots.
+    pub fn request_rescan(&self, engine_id: &str) -> Result<(), String> {
+        let retry = {
+            let mut inner = self.inner.write().unwrap();
+            let entry = inner
+                .entries
+                .get_mut(engine_id)
+                .ok_or_else(|| format!("unknown engine {engine_id}"))?;
+            if entry.rescanning {
+                return Err(format!("engine {engine_id} rescan is already in progress"));
+            }
+            let retry = entry
+                .retry
+                .clone()
+                .ok_or_else(|| format!("engine {engine_id} has no startup failure to rescan"))?;
+            entry.rescanning = true;
+            entry.descriptor.availability = Availability::Unavailable {
+                reason: "Runtime rescan in progress".to_owned(),
+            };
+            inner.advance_generation();
+            retry
+        };
+        let inner = Arc::clone(&self.inner);
+        let id = engine_id.to_owned();
+        let spawn = std::thread::Builder::new()
+            .name(format!("omnivox-{engine_id}-rescan"))
+            .spawn(move || {
+                // A constructor panic must not poison the registry or leave the
+                // entry permanently marked as rescanning.
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    let engine = retry()?;
+                    let descriptor = engine.descriptor();
+                    validate_descriptor(&descriptor).map_err(|error| error.to_string())?;
+                    if descriptor.id != id || !descriptor.can_synthesize() {
+                        return Err(
+                            "Rescanned engine returned an unavailable or mismatched descriptor"
+                                .to_owned(),
+                        );
+                    }
+                    Ok((engine, descriptor))
+                }))
+                .unwrap_or_else(|_| Err("Engine rescan panicked".to_owned()));
+                Self::finish_rescan(&inner, &id, result);
+            });
+        if let Err(error) = spawn {
+            let reason = format!("Could not start engine rescan: {error}");
+            Self::finish_rescan(&self.inner, engine_id, Err(reason.clone()));
+            return Err(reason);
+        }
+        Ok(())
+    }
+
+    fn finish_rescan(
+        inner: &RwLock<RegistryState>,
+        engine_id: &str,
+        result: Result<(Arc<dyn TtsEngine>, EngineDescriptor), String>,
+    ) {
+        let mut inner = inner.write().unwrap();
+        let entry = inner
+            .entries
+            .get_mut(engine_id)
+            .expect("rescan entry remains registered");
+        entry.rescanning = false;
+        match result {
+            Ok((engine, descriptor)) => {
+                entry.engine = Some(engine);
+                entry.descriptor = descriptor;
+                entry.retry = None;
+            }
+            Err(reason) => {
+                entry.descriptor.availability = Availability::Unavailable {
+                    reason: reason.clone(),
+                };
+                entry.descriptor.health = EngineHealth::Failed { reason };
+            }
+        }
+        inner.advance_generation();
+    }
+
+    /// Request cancellation without holding an inventory lock across engines.
     pub fn stop_all(&self) {
-        for entry in self.entries.values() {
-            entry.engine.stop();
+        let engines: Vec<_> = self
+            .inner
+            .read()
+            .unwrap()
+            .entries
+            .values()
+            .filter_map(|entry| entry.engine.clone())
+            .collect();
+        for engine in engines {
+            engine.stop();
         }
     }
 
@@ -116,9 +258,7 @@ impl EngineRegistry {
     /// The inventory generation advances only when the descriptor changed.
     pub fn refresh_descriptor(&mut self, engine_id: &str) -> Result<bool, EngineRegistryError> {
         let engine = self
-            .entries
-            .get(engine_id)
-            .map(|entry| Arc::clone(&entry.engine))
+            .engine(engine_id)
             .ok_or_else(|| EngineRegistryError::UnknownEngine {
                 engine_id: engine_id.to_owned(),
             })?;
@@ -130,18 +270,14 @@ impl EngineRegistry {
             });
         }
         validate_descriptor(&descriptor)?;
-
-        let entry = self.entries.get_mut(engine_id).expect("entry was checked");
+        let mut inner = self.inner.write().unwrap();
+        let entry = inner.entries.get_mut(engine_id).expect("entry was checked");
         if entry.descriptor == descriptor {
             return Ok(false);
         }
         entry.descriptor = descriptor;
-        self.advance_generation();
+        inner.advance_generation();
         Ok(true)
-    }
-
-    fn advance_generation(&mut self) {
-        self.generation = self.generation.saturating_add(1);
     }
 }
 
@@ -372,5 +508,111 @@ mod tests {
             registry.descriptor("winrt").unwrap().health,
             EngineHealth::Degraded { .. }
         ));
+    }
+
+    fn wait_for_rescan(registry: &EngineRegistry, generation: u64) {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        while registry.generation() < generation {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "rescan did not complete"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+    }
+
+    #[test]
+    fn startup_rescan_keeps_inventory_and_fallback_responsive() {
+        let mut registry = EngineRegistry::new();
+        let fallback = Arc::new(MockEngine::new("espeak"));
+        registry.register(fallback.clone()).unwrap();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let worker_calls = Arc::clone(&calls);
+        let (release, wait) = std::sync::mpsc::channel();
+        let wait = Mutex::new(wait);
+        registry
+            .register_unavailable(
+                EngineDescriptor::unavailable("dectalk", "dictionary missing"),
+                move || {
+                    worker_calls.fetch_add(1, Ordering::SeqCst);
+                    wait.lock()
+                        .unwrap()
+                        .recv_timeout(std::time::Duration::from_secs(2))
+                        .unwrap();
+                    Ok(Arc::new(MockEngine::new("dectalk")))
+                },
+            )
+            .unwrap();
+        let (generation, before) = registry.snapshot();
+        assert_eq!(generation, 2);
+        assert!(before[0].voices.is_empty());
+        assert!(!before[0].can_synthesize());
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        assert!(registry.engine("dectalk").is_none());
+
+        registry.request_rescan("dectalk").unwrap();
+        assert!(registry
+            .request_rescan("dectalk")
+            .unwrap_err()
+            .contains("in progress"));
+        let (generation, during) = registry.snapshot();
+        assert_eq!(generation, 3);
+        assert!(!during[0].can_synthesize());
+        assert!(registry
+            .engine("espeak")
+            .unwrap()
+            .synthesize(&SynthesisRequest::new(
+                "fallback still works",
+                Default::default()
+            ))
+            .is_ok());
+        registry.stop_all();
+        assert_eq!(fallback.stop_count.load(Ordering::Relaxed), 1);
+        release.send(()).unwrap();
+        wait_for_rescan(&registry, 4);
+        let (generation, after) = registry.snapshot();
+        assert_eq!(generation, 4);
+        assert!(after[0].can_synthesize());
+        assert!(!after[0].voices.is_empty());
+        assert!(registry.engine("dectalk").is_some());
+        assert!(registry.request_rescan("dectalk").is_err());
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        assert!(
+            !before[0].can_synthesize(),
+            "prior snapshots must stay unchanged"
+        );
+    }
+
+    #[test]
+    fn failed_panicking_and_mismatched_rescans_remain_retryable() {
+        let mut registry = EngineRegistry::new();
+        let attempts = AtomicUsize::new(0);
+        registry
+            .register_unavailable(
+                EngineDescriptor::unavailable("dectalk", "missing DLL"),
+                move || match attempts.fetch_add(1, Ordering::SeqCst) {
+                    0 => Err("dictionary still missing".to_owned()),
+                    1 => panic!("broken constructor"),
+                    2 => Ok(Arc::new(MockEngine::new("wrong-engine"))),
+                    _ => Ok(Arc::new(MockEngine::new("dectalk"))),
+                },
+            )
+            .unwrap();
+        assert!(registry.request_rescan("unknown").is_err());
+        for (index, reason) in ["dictionary still missing", "panicked", "mismatched"]
+            .iter()
+            .enumerate()
+        {
+            registry.request_rescan("dectalk").unwrap();
+            wait_for_rescan(&registry, 3 + index as u64 * 2);
+            assert!(registry.engine("dectalk").is_none());
+            assert!(
+                matches!(registry.descriptor("dectalk").unwrap().availability,
+                Availability::Unavailable { reason: actual } if actual.contains(reason))
+            );
+        }
+        registry.request_rescan("dectalk").unwrap();
+        wait_for_rescan(&registry, 9);
+        assert!(registry.engine("dectalk").is_some());
     }
 }

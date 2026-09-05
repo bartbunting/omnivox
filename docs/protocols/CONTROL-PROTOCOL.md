@@ -206,6 +206,7 @@ A successful capability response decodes to this shape:
     "relative_rate_v1",
     "runtime_routing_policy",
     "stable_voice_ids",
+    "startup_engine_rescan",
     "text_repertoire_routing_v1",
     "tracked_playback_completion"
   ],
@@ -313,6 +314,25 @@ recovery preparation and synthesis probe:
 The request is rejected for an unknown, policy-disabled, healthy, or already
 probing engine. Probe success closes the circuit; failure returns it to bounded
 cooldown and uses the same chunk's configured fallback.
+
+When `startup_engine_rescan` is also advertised, configured helpers that failed
+to initialize remain in inventory with `unavailable` status, their failure
+reason, and no invented voices. The same `request_engine_recovery_probe`
+request starts an asynchronous runtime rescan for such an engine. After
+installing the missing DLL, dictionary, or configured helper executable, retry
+that engine without restarting the speech server. Existing discovery paths and
+explicit overrides retain their priority; this does not search new directories
+or discover unconfigured companions.
+
+The acknowledgement means the rescan was accepted. During it, availability
+remains `unavailable` with reason `Runtime rescan in progress`; repeat recovery
+requests for that engine are rejected. Inventory reads and fallback speech
+continue normally. Poll `inventory` for completion: successful discovery adds
+the validated voices and makes the engine available for later dispatches;
+failure updates its reason and permits another explicit retry. Each transition
+advances inventory generation. Startup rescans require no test utterance;
+recovery of an engine that failed during speech still uses the synthesis probe
+described above. Policy-disabled engines cannot be rescanned.
 
 A successful registration response reports the inventory generation used and
 one resolved or unresolved binding for every definition:

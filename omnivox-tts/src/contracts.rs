@@ -560,6 +560,35 @@ pub struct EngineDescriptor {
 }
 
 impl EngineDescriptor {
+    /// Describe a configured engine whose runtime could not be initialized.
+    /// Voices and optional capabilities remain unadvertised until discovery succeeds.
+    pub fn unavailable(id: impl Into<String>, reason: impl Into<String>) -> Self {
+        let id = id.into();
+        let reason = reason.into();
+        Self {
+            display_name: id.clone(),
+            id,
+            version: None,
+            availability: Availability::Unavailable {
+                reason: reason.clone(),
+            },
+            health: EngineHealth::Failed { reason },
+            capabilities: EngineCapabilities {
+                acss: AcssCapabilities::default(),
+                audio_output: AudioOutputMode::BufferedPcm,
+                cancellation: CancellationSupport::None,
+                concurrency: ConcurrencyModel::Serialized,
+                markers: MarkerCapabilities::default(),
+                language_switching: false,
+                text_repertoire: TextRepertoire::Unknown,
+                post_synthesis_dimensions: Vec::new(),
+                native_extensions: Vec::new(),
+            },
+            voices: Vec::new(),
+            default_voice_id: None,
+        }
+    }
+
     pub fn can_synthesize(&self) -> bool {
         self.availability.is_available() && self.health.can_synthesize()
     }

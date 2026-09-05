@@ -3,6 +3,7 @@
 use anyhow::Result;
 use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
+use omnivox_tts::contracts::EngineDescriptor;
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::espeak::EspeakTtsEngine;
 use omnivox_tts::helper_engine::{
@@ -245,7 +246,8 @@ fn resolve_adjacent_helper(executable: &Path, candidates: &[PathBuf]) -> Option<
 struct PendingHelperInitialization<T> {
     engine_id: String,
     helper_path: PathBuf,
-    handle: JoinHandle<(T, Duration)>,
+    config: HelperEngineConfig,
+    handle: std::io::Result<JoinHandle<(T, Duration)>>,
 }
 
 type HelperConstructionResult =
@@ -323,30 +325,22 @@ where
     let initialize = Arc::new(initialize);
     configs
         .into_iter()
-        .filter_map(|config| {
+        .map(|config| {
             let engine_id = config.engine_id.clone();
             let helper_path = config.program.clone();
             let thread_name = format!("omnivox-{engine_id}-init");
             let initialize = Arc::clone(&initialize);
-            match thread::Builder::new().name(thread_name).spawn(move || {
+            let thread_config = config.clone();
+            let handle = thread::Builder::new().name(thread_name).spawn(move || {
                 let started_at = Instant::now();
-                let result = initialize(config);
+                let result = initialize(thread_config);
                 (result, started_at.elapsed())
-            }) {
-                Ok(handle) => Some(PendingHelperInitialization {
-                    engine_id,
-                    helper_path,
-                    handle,
-                }),
-                Err(error) => {
-                    warn!(
-                        engine_id,
-                        helper = %helper_path.display(),
-                        %error,
-                        "Could not start helper initialization thread"
-                    );
-                    None
-                }
+            });
+            PendingHelperInitialization {
+                engine_id,
+                helper_path,
+                config,
+                handle,
             }
         })
         .collect()
@@ -362,39 +356,51 @@ fn register_initialized_helpers(
         let PendingHelperInitialization {
             engine_id,
             helper_path,
+            config,
             handle,
         } = initialization;
-        match handle.join() {
-            Ok((Ok(engine), elapsed)) => {
+        let result = handle
+            .map_err(|error| format!("Could not start helper initialization: {error}"))
+            .and_then(|handle| {
+                handle
+                    .join()
+                    .map_err(|_| "Helper initialization thread panicked".to_owned())
+            })
+            .and_then(|(result, elapsed)| {
+                result
+                    .map(|engine| (engine, elapsed))
+                    .map_err(|error| error.to_string())
+            });
+        match result {
+            Ok((engine, elapsed)) => {
                 let elapsed_ms = u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX);
-                let registered_engine: Arc<dyn TtsEngine> = engine.clone();
+                let registered_engine: Arc<dyn TtsEngine> = engine;
                 registry.register(Arc::new(IsolatedTtsEngine::new(
                     registered_engine,
                     Arc::clone(&generation),
                     Arc::clone(&isolation_budget),
                 )))?;
-                info!(
-                    engine_id,
-                    helper = %helper_path.display(),
-                    elapsed_ms,
-                    "Registered helper engine"
-                );
+                info!(engine_id, helper = %helper_path.display(), elapsed_ms, "Registered helper engine");
             }
-            Ok((Err(error), elapsed)) => {
-                let elapsed_ms = u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX);
-                warn!(
-                    engine_id,
-                    helper = %helper_path.display(),
-                    elapsed_ms,
-                    %error,
-                    "Helper is not available"
-                );
+            Err(reason) => {
+                warn!(engine_id, helper = %helper_path.display(), %reason, "Helper is not available");
+                let generation = Arc::clone(&generation);
+                let isolation_budget = Arc::clone(&isolation_budget);
+                registry.register_unavailable(
+                    EngineDescriptor::unavailable(&engine_id, reason),
+                    move || {
+                        // A rescan must perform live discovery, including for
+                        // helpers that normally permit a deferred cached inventory.
+                        let engine = HelperTtsEngine::new(config.clone())
+                            .map_err(|error| error.to_string())?;
+                        Ok(Arc::new(IsolatedTtsEngine::new(
+                            Arc::new(engine),
+                            Arc::clone(&generation),
+                            Arc::clone(&isolation_budget),
+                        )) as Arc<dyn TtsEngine>)
+                    },
+                )?;
             }
-            Err(_) => warn!(
-                engine_id,
-                helper = %helper_path.display(),
-                "Helper initialization thread panicked"
-            ),
         }
     }
     Ok(())
@@ -803,6 +809,34 @@ mod tests {
     use std::time::Duration;
 
     #[test]
+    fn failed_helper_startup_retains_an_unavailable_inventory_entry() {
+        let pending = start_helper_initializations_with(
+            vec![HelperEngineConfig::new("dectalk", "unused-helper")],
+            |_| -> super::HelperInitializationResult {
+                Err(omnivox_tts::helper_engine::HelperEngineError::Transport(
+                    "test runtime is missing".to_owned(),
+                ))
+            },
+        );
+        let mut registry = omnivox_tts::engine_registry::EngineRegistry::new();
+        super::register_initialized_helpers(
+            &mut registry,
+            pending,
+            Arc::new(std::sync::atomic::AtomicU64::new(0)),
+            Arc::new(crate::engine_execution::IsolationBudget::new()),
+        )
+        .unwrap();
+        let inventory = registry.inventory();
+        assert_eq!(inventory.len(), 1);
+        assert_eq!(inventory[0].id, "dectalk");
+        assert!(inventory[0].voices.is_empty());
+        assert!(matches!(&inventory[0].availability,
+            omnivox_tts::contracts::Availability::Unavailable { reason }
+                if reason.contains("test runtime is missing")));
+        assert!(registry.engine("dectalk").is_none());
+    }
+
+    #[test]
     fn helper_initialization_starts_concurrently_and_retains_order() {
         let configs = ["first", "second"]
             .into_iter()
@@ -840,7 +874,7 @@ mod tests {
         release.1.notify_all();
         let completed = pending
             .into_iter()
-            .map(|initialization| initialization.handle.join().unwrap().0)
+            .map(|initialization| initialization.handle.unwrap().join().unwrap().0)
             .collect::<Vec<_>>();
         assert_eq!(completed, ["first", "second"]);
     }

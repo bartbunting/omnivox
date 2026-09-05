@@ -62,6 +62,14 @@ impl RuntimeEngineHealth {
         Self::default()
     }
 
+    pub fn registry_snapshot(
+        &self,
+        registry: &omnivox_tts::engine_registry::EngineRegistry,
+    ) -> RuntimeInventorySnapshot {
+        let (generation, inventory) = registry.snapshot();
+        self.snapshot(generation, inventory)
+    }
+
     pub fn snapshot(
         &self,
         base_generation: u64,

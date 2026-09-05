@@ -179,6 +179,16 @@ initialization. The first inventory therefore remains complete while independent
 helper process-start costs no longer accumulate serially. Startup selection
 chooses the initial preference without removing the other registered engines.
 
+A configured helper that fails startup retains an unavailable registry entry
+with its error and no voices. The existing control recovery request can rescan
+that entry on a background thread after its runtime is installed. Each helper
+permits one rescan at a time and retains its bounded startup timeouts. Registry
+reads use a cached, atomic descriptor/generation snapshot; they never initialize
+an engine. Successful discovery publishes the validated descriptor and isolated
+engine handle together, making the engine eligible for subsequent routing.
+Failure leaves it unavailable with the latest reason. Healthy engines keep
+their existing synthesis and circuit-recovery paths.
+
 When packaging supplies eSpeak data in a SHA-256-named directory with the
 matching `omnivox-espeak-data.sha256` identity file, Omnivox may reuse a
 bounded, schema- and eSpeak-version-checked voice inventory stored beside that
