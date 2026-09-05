@@ -6,6 +6,13 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Windows DECtalk discovery now also checks
+  `%LOCALAPPDATA%\Omnivox\runtimes\dectalk\x86` for the user-installed DLL
+  and matching dictionary. This stable installation location survives Omnivox
+  upgrades; explicit overrides and existing portable locations retain priority.
+
 ## [1.7.1] - 2026-09-03
 
 ### Added

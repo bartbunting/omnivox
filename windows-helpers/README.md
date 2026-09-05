@@ -72,8 +72,26 @@ set `OMNIVOX_ECI_DLL` to the absolute Windows path of its 32-bit `ECI.DLL`.
 ### DECtalk
 
 DECtalk requires a matched IA32 `DECtalk.dll` and `dtalk_us.dic` from the same
-build. Keep both files together beside `OmnivoxDectalkHelper32.exe`, or set
-`OMNIVOX_DECTALK_DLL` to the absolute Windows path of `DECtalk.dll`. The
+build. Install both files in this per-user Windows directory:
+
+```text
+%LOCALAPPDATA%\Omnivox\runtimes\dectalk\x86\
+    DECtalk.dll
+    dtalk_us.dic
+```
+
+This location is independent of the Omnivox release directory, so the runtime
+remains available across upgrades and works with Emacsvox or other clients.
+Open the directory through Windows Explorer's address bar; create it if needed.
+The `x86` runtime is required even when Omnivox itself is x64 or ARM64.
+
+An explicit DLL argument, `OMNIVOX_DECTALK_DLL`, or the legacy
+`EMACSVOX_DECTALK_DLL` takes precedence, in that order. Without an override,
+the helper checks beside itself, then in its sibling `runtime` directory,
+then in the standard directory above. Existing portable installations keep
+their priority. A selected DLL that fails validation is reported as unavailable
+without trying a different runtime. To use another installation, set
+`OMNIVOX_DECTALK_DLL` to the absolute Windows path of its `DECtalk.dll`. The
 Visual Studio 2022 build also requires the x86 Microsoft Visual C++ runtime
 that supplies `VCRUNTIME140.dll`.
 
@@ -181,8 +199,9 @@ command to the spoken text.
 
 Explicit native DLL arguments and environment variables must contain absolute
 paths. Otherwise Eloquence uses the Freedom Scientific 6.1
-installation path; DECtalk checks only beside the helper and the sibling
-`runtime` directory. Before any engine call, a helper validates that its DLL is
+installation path; DECtalk checks beside the helper, the sibling `runtime`
+directory, and `%LOCALAPPDATA%\Omnivox\runtimes\dectalk\x86`. Before any
+engine call, a helper validates that its DLL is
 an x86 PE image with every required export, then uses restricted Windows loading
 that resolves native dependencies only beside the selected DLL or from
 System32. Missing, malformed, wrong-architecture, or incomplete runtimes are

@@ -218,7 +218,7 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
 
 internal static class OmnivoxDectalkHelper
 {
-    internal static int Main(string[] args)
+    private static string ResolveDllPath(string[] args)
     {
         string dllPath = args.Length > 0 ? args[0] :
             Environment.GetEnvironmentVariable("OMNIVOX_DECTALK_DLL");
@@ -227,20 +227,54 @@ internal static class OmnivoxDectalkHelper
             dllPath = Environment.GetEnvironmentVariable(
                 "EMACSVOX_DECTALK_DLL");
         }
-        if (String.IsNullOrEmpty(dllPath))
+        if (!String.IsNullOrEmpty(dllPath))
         {
-            string adjacent = Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "DECtalk.dll");
-            dllPath = File.Exists(adjacent) ? adjacent :
-                Path.GetFullPath(Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory, "..", "runtime",
-                    "DECtalk.dll"));
+            return dllPath;
         }
 
+        string adjacent = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory, "DECtalk.dll");
+        if (File.Exists(adjacent))
+        {
+            return adjacent;
+        }
+        string sibling = Path.GetFullPath(Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory, "..", "runtime",
+            "DECtalk.dll"));
+        if (File.Exists(sibling))
+        {
+            return sibling;
+        }
+
+        string localData = Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData);
+        if (String.IsNullOrEmpty(localData) || !Path.IsPathRooted(localData))
+        {
+            throw new OmnivoxRuntimeUnavailableException(
+                "The Windows local application data directory is unavailable; " +
+                "set OMNIVOX_DECTALK_DLL to an absolute DECtalk.dll path " +
+                "with its matching dtalk_us.dic in the same directory.");
+        }
+        string standardDirectory = Path.Combine(
+            localData, "Omnivox", "runtimes", "dectalk", "x86");
+        dllPath = Path.Combine(standardDirectory, "DECtalk.dll");
+        if (!File.Exists(dllPath))
+        {
+            throw new OmnivoxRuntimeUnavailableException(
+                "DECtalk.dll was not found beside the helper, in its sibling " +
+                "runtime directory, or at \"" + dllPath + "\". Install " +
+                "matching IA32 DECtalk.dll and dtalk_us.dic files in \"" +
+                standardDirectory + "\", or set OMNIVOX_DECTALK_DLL.");
+        }
+        return dllPath;
+    }
+
+    internal static int Main(string[] args)
+    {
         return OmnivoxHelperRuntime.Run("dectalk", "DECtalk Software",
             "Omnivox DECtalk x86 helper", delegate()
             {
-                return new OmnivoxDectalkAdapter(dllPath);
+                return new OmnivoxDectalkAdapter(ResolveDllPath(args));
             });
     }
 }

@@ -320,8 +320,13 @@ guidance.
 - Optional absolute path inherited and read by the DECtalk helper for a
   user-supplied 32-bit `DECtalk.dll`.
 - A matching `dtalk_us.dic` from the same build must be in the same directory.
-- Without an override, the helper checks beside itself and in the sibling
-  `runtime` directory.
+- Without an override, the helper checks beside itself, in the sibling
+  `runtime` directory, and then in
+  `%LOCALAPPDATA%\Omnivox\runtimes\dectalk\x86`.
+- The standard per-user directory is the recommended installation location
+  for the DLL and dictionary; it survives Omnivox upgrades.
+- An explicit helper DLL argument takes priority over this variable; the
+  legacy `EMACSVOX_DECTALK_DLL` is used when neither is supplied.
 
 A missing helper or runtime removes only that engine from usable inventory;
 normal fallback remains available. Proprietary runtimes are not distributed
