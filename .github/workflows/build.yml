@@ -34,6 +34,9 @@ jobs:
       - name: Check documentation links
         run: python3 tools/check_markdown_links.py
 
+      - name: Check Debian release guards and asset contract
+        run: make deb-package-test release-asset-test
+
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -799,9 +802,71 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
+  build_deb:
+    name: Build and Test Debian Package
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'workflow_dispatch' || inputs.draft_version == ''
+
+    steps:
+      - name: Checkout code and release tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install native and Debian build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libasound2-dev pkg-config cmake clang libclang-dev dpkg-dev binutils
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: deb-registry-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: deb-registry-${{ runner.os }}-
+
+      - name: Build Debian package
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            make package-deb-release
+          else
+            make package-deb
+          fi
+
+      - name: Verify installation on supported Ubuntu releases
+        run: |
+          packages=(target/debian/*.deb)
+          [[ ${#packages[@]} -eq 1 && -f "${packages[0]}" ]]
+          expected=()
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            expected=(--version "${GITHUB_REF_NAME#v}" --commit "$(git rev-parse HEAD)")
+          fi
+          for image in ubuntu:24.04 ubuntu:26.04; do
+            python tools/test_deb_install.py "${packages[0]}" --image "$image" "${expected[@]}"
+          done
+
+      - name: Upload verified Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnivox-deb-amd64
+          path: |
+            target/debian/*.deb
+            target/debian/*.deb.sha256
+          if-no-files-found: error
+
   package_release:
     name: Package Release
-    needs: [format, build, test, build_flite, build_rutts, build_piper_release, build_tgspeechbox_release, package_flite_source, package_rutts_source, package_piper_source_release, package_tgspeechbox_source]
+    needs: [format, build, test, build_deb, build_flite, build_rutts, build_piper_release, build_tgspeechbox_release, package_flite_source, package_rutts_source, package_piper_source_release, package_tgspeechbox_source]
     runs-on: ubuntu-24.04
     if: startsWith(github.ref, 'refs/tags/v')
     outputs:
@@ -878,11 +943,12 @@ jobs:
           cp "omnivox-rutts-windows-x64/omnivox-${VERSION}-rutts-windows-x64.zip" .
           cp "omnivox-rutts-windows-arm64/omnivox-${VERSION}-rutts-windows-arm64.zip" .
           cp "omnivox-rutts-source/omnivox-${VERSION}-rutts-source.tar.gz" .
+          cp "omnivox-deb-amd64/omnivox_${VERSION}-1_amd64.deb" .
 
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum omnivox-*.tar.gz omnivox-*.zip > sha256sums.txt
+          sha256sum omnivox-*.tar.gz omnivox-*.zip omnivox_*.deb > sha256sums.txt
 
       - name: Verify exact packaged asset set
         run: >-
@@ -897,6 +963,7 @@ jobs:
           path: |
             artifacts/*.tar.gz
             artifacts/*.zip
+            artifacts/*.deb
             artifacts/sha256sums.txt
           if-no-files-found: error
 
@@ -938,6 +1005,20 @@ jobs:
             for the changes in this release.
 
             ### Installation
+
+            Ubuntu 24.04 and 26.04 amd64 users can download
+            `omnivox_${{ needs.package_release.outputs.version }}-1_amd64.deb`
+            and `sha256sums.txt`, verify the checksum, then install with:
+
+            ```sh
+            sudo apt install ./omnivox_${{ needs.package_release.outputs.version }}-1_amd64.deb
+            ```
+
+            The package contains the core server, matching eSpeak data, and the
+            RHVoice integration helper. Optional engines and user-supplied voices
+            remain separate. The matching `omnivox-${{ needs.package_release.outputs.version }}-piper-source.tar.gz`
+            includes the complete Omnivox tree, vendored Cargo dependencies, and
+            eSpeak NG/Sonic sources used by the core package as well as Piper.
 
             Download one archive and `sha256sums.txt`. Verify the archive before
             extraction; full Linux, macOS, and Windows commands are in the
@@ -1093,6 +1174,7 @@ jobs:
           files: |
             release-assets/*.tar.gz
             release-assets/*.zip
+            release-assets/*.deb
             release-assets/sha256sums.txt
           draft: true
           prerelease: false
@@ -1713,13 +1795,68 @@ jobs:
           --checksums downloaded/sha256sums.txt
           --version "$RELEASE_VERSION"
 
+  verify_deb_release:
+    name: Verify Release Debian Package on Ubuntu ${{ matrix.ubuntu }}
+    needs: [package_release, create_draft_release]
+    runs-on: ubuntu-24.04
+    if: >-
+      always() &&
+      (
+        (
+          startsWith(github.ref, 'refs/tags/v') &&
+          needs.package_release.result == 'success' &&
+          needs.create_draft_release.result == 'success'
+        ) ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.draft_version != ''
+        )
+      )
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
+      RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu: ['24.04', '26.04']
+
+    steps:
+      - name: Checkout verification code from release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download draft Debian package
+        run: >-
+          gh release download "$RELEASE_TAG" --repo "${{ github.repository }}"
+          --pattern "omnivox_${RELEASE_VERSION}-1_amd64.deb"
+          --pattern sha256sums.txt --dir downloaded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify exact downloaded package and installation
+        run: >-
+          python tools/test_deb_install.py
+          "downloaded/omnivox_${RELEASE_VERSION}-1_amd64.deb"
+          --checksums downloaded/sha256sums.txt
+          --version "$RELEASE_VERSION" --commit "$(git rev-parse HEAD)"
+          --image "ubuntu:${{ matrix.ubuntu }}"
+
   publish_release:
     name: Publish Verified Release
-    needs: [package_release, verify_release, verify_flite_release, verify_flite_source_release, verify_rutts_release, verify_rutts_source_release, verify_piper_release, verify_piper_source_release, verify_tgspeechbox_release, verify_tgspeechbox_source_release]
+    needs: [package_release, verify_release, verify_deb_release, verify_flite_release, verify_flite_source_release, verify_rutts_release, verify_rutts_source_release, verify_piper_release, verify_piper_source_release, verify_tgspeechbox_release, verify_tgspeechbox_source_release]
     runs-on: ubuntu-latest
     if: >-
       always() &&
       needs.verify_release.result == 'success' &&
+      needs.verify_deb_release.result == 'success' &&
       needs.verify_flite_release.result == 'success' &&
       needs.verify_flite_source_release.result == 'success' &&
       needs.verify_rutts_release.result == 'success' &&

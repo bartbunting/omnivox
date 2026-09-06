@@ -1,7 +1,7 @@
 # GitHub Actions Workflow
 
 [`build.yml`](build.yml) is the authoritative generic, Flite, RuTTS, Piper, and
-TGSpeechBox release matrix.
+TGSpeechBox release matrix, plus the core Debian package.
 [`piper-native.yml`](piper-native.yml) is a manual, non-publishing validation
 workflow for the optional Piper companion. User-facing artifact and
 installation details are in [../DEPLOYMENT.md](../DEPLOYMENT.md).
@@ -15,6 +15,7 @@ Runs on `ubuntu-latest`, installs Rust/rustfmt 1.97.1, and executes:
 ```sh
 cargo fmt --all -- --check
 python3 tools/check_markdown_links.py
+make deb-package-test release-asset-test
 ```
 
 The documentation check resolves repository-local links in every tracked
@@ -136,22 +137,35 @@ Omnivox tree, vendored Cargo and eSpeak NG sources, and the checksum-locked
 TGSpeechBox snapshot. Verification repeats the exhaustive-manifest, offline
 input-preparation, and offline-Cargo checks.
 
+### `build_deb`
+
+Builds the core amd64 Debian package on Ubuntu 24.04 using the pinned Rust
+toolchain and locked normal build. Tag builds require a clean matching source
+tag and produce `omnivox_VERSION-1_amd64.deb`; ordinary branch and pull-request
+builds use development versions. Both paths test the package in disposable
+Ubuntu 24.04 and 26.04 containers, including unprivileged non-silent synthesis,
+installed checksums, reinstall, a synthetic revision upgrade, purge, and user
+configuration preservation. Only the candidate package and its checksum are
+uploaded. Optional engine runtimes and models remain outside the package.
+
 ### `package_release`
 
 Runs only for refs beginning `refs/tags/v` and depends on successful format,
 generic build/test, six Flite builds, six RuTTS builds, four Piper builds, and
-the TGSpeechBox Windows x64 build and all four source jobs. It rejects a tag
+the TGSpeechBox Windows x64 build, the Debian build, and all four source jobs.
+It rejects a tag
 that does not match the compiled Linux binary version, restores Unix executable
 modes after the Actions artifact round-trip, creates five generic archives,
-adds all companion and source archives, and writes one exhaustive SHA-256 file.
+adds all companion and source archives and the Debian package, and writes one
+exhaustive SHA-256 file.
 Companion jobs upload only the exact workspace-version archive, and the package
-job rejects anything other than the 26 documented archives plus that checksum
-manifest.
+job rejects anything other than the 26 documented archives, one amd64 `.deb`,
+and that checksum manifest.
 
 ### `create_draft_release`
 
 Uploads the packaged archives and checksums to a draft GitHub release, then
-checks the remote draft for the same exact 27-asset set. The release is not
+checks the remote draft for the same exact 28-asset set. The release is not
 public at this stage.
 
 ### `verify_release`
@@ -201,9 +215,19 @@ archive, repeats the helper checks, then verifies exact engine routing, the
 downloads the exact source artifact and repeats its Git-tree, manifest,
 source-lock, offline-preparation, and offline-Cargo checks from the release tag.
 
+### `verify_deb_release`
+
+Downloads the exact `.deb` and unified checksum manifest from the draft release
+and repeats installation tests on Ubuntu 24.04 and 26.04. Verification code is
+checked out from the release tag; both jobs require the package and binary
+versions and recorded source commit to match that tag. The package identifies
+the already-gated Piper source archive, which also contains the complete core
+server, Cargo dependencies, and eSpeak NG/Sonic sources. Manual draft recovery
+uses the same Debian checks as ordinary tag-triggered releases.
+
 ### `publish_release`
 
-Publishes the draft only after every generic, Flite, RuTTS, Piper, TGSpeechBox,
+Publishes the draft only after every generic, Debian, Flite, RuTTS, Piper, TGSpeechBox,
 and source verification passes and the remote asset set is checked again
 immediately before publication. Any failure leaves the release as a draft for
 inspection.

@@ -2,6 +2,12 @@
 
 ## Published artifacts
 
+The updated release workflow also produces `omnivox_VERSION-1_amd64.deb` for
+Ubuntu 24.04 and 26.04. This core package is built on Ubuntu 24.04, covered by
+the unified checksum manifest, and tested again after download from the draft
+release. See the [Debian guide](../docs/DEBIAN.md) for installation and its
+matching corresponding-source archive. Earlier releases do not gain this asset.
+
 The checked-in GitHub Actions workflow publishes these release archives:
 
 | Platform | Target | Archive |
@@ -108,7 +114,7 @@ The release version and archive prefix come from the tag name with its leading
   payload layout, executable modes and architectures, and adjacent eSpeak data
   discovery from a relocated directory without path overrides.
 - Exact release asset membership before draft upload, after draft creation,
-  and immediately before publication: 26 documented archives plus one
+  and immediately before publication: 26 documented archives, one amd64 `.deb`, plus one
   exhaustive checksum manifest, with stale cached versions rejected.
 - Non-empty canonical WAV synthesis through eSpeak on Linux x64; through eSpeak
   and WinRT on Windows x64 and ARM64; and through eSpeak and

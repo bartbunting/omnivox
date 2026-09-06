@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Require the exact archive and checksum set for an Omnivox release."""
+"""Require the exact archive, Debian package, and checksum set for a release."""
 
 from __future__ import annotations
 
@@ -49,6 +49,7 @@ def expected_asset_names(version: str) -> set[str]:
     names.add(f"omnivox-{version}-piper-source.tar.gz")
     names.add(f"omnivox-{version}-tgspeechbox-windows-x64.zip")
     names.add(f"omnivox-{version}-tgspeechbox-source.tar.gz")
+    names.add(f"omnivox_{version}-1_amd64.deb")
     names.add("sha256sums.txt")
     return names
 

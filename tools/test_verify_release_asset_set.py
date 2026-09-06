@@ -11,9 +11,10 @@ import verify_release_asset_set as assets
 
 
 class ReleaseAssetSetTests(unittest.TestCase):
-    def test_expected_set_has_26_archives_and_one_manifest(self) -> None:
+    def test_expected_set_has_26_archives_one_deb_and_one_manifest(self) -> None:
         names = assets.expected_asset_names("1.7.0")
-        self.assertEqual(len(names), 27)
+        self.assertEqual(len(names), 28)
+        self.assertIn("omnivox_1.7.0-1_amd64.deb", names)
         self.assertIn("sha256sums.txt", names)
         self.assertIn("omnivox-1.7.0-windows-arm64.zip", names)
         self.assertIn("omnivox-1.7.0-flite-linux-arm64.tar.gz", names)
@@ -37,6 +38,15 @@ class ReleaseAssetSetTests(unittest.TestCase):
         names.append(names[0])
         with self.assertRaisesRegex(assets.AssetSetError, "duplicate assets"):
             assets.require_exact_names(names, "1.7.0")
+
+    def test_names_gate_rejects_missing_or_development_deb(self) -> None:
+        names = sorted(assets.expected_asset_names("1.8.0"))
+        names.remove("omnivox_1.8.0-1_amd64.deb")
+        with self.assertRaisesRegex(assets.AssetSetError, "missing assets.*amd64.deb"):
+            assets.require_exact_names(names, "1.8.0")
+        names.append("omnivox_1.8.0+git20260906.abcdef0-0local1_amd64.deb")
+        with self.assertRaisesRegex(assets.AssetSetError, "unexpected assets"):
+            assets.require_exact_names(names, "1.8.0")
 
     def test_directory_gate_requires_exact_checksums(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

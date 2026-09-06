@@ -11,6 +11,9 @@ Versioning for published releases.
 - Native amd64 development Debian packaging via `make package-deb`, with
   computed system-library dependencies, matching eSpeak data, the RHVoice
   integration helper, source identity, and a package checksum.
+- Release CI builds an amd64 `.deb` from the matching clean tag, includes it
+  in the draft release and checksum manifest, and requires Ubuntu 24.04 and
+  26.04 installation, synthesis, upgrade, and removal checks before publication.
 - Opt-in authenticated loopback workstation service for remote Emacs over SSH
   reverse forwarding. Speaker and notification connections own separate
   workers, expire without heartbeats, and discard speech on disconnect.
