@@ -6,6 +6,12 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Changed
+
+- Updated GitHub Actions to Node 24 releases and selected the Visual Studio
+  2026 Windows ARM64 runner explicitly. Compiled-cache keys now distinguish
+  runner images so native builds are rechecked with the selected compiler.
+
 ## [1.8.0] - 2026-09-06
 
 ### Added

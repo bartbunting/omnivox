@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install pinned rustfmt
         uses: dtolnay/rust-toolchain@1.97.1
@@ -60,13 +60,13 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             name: windows-x64
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             target: aarch64-pc-windows-msvc
             name: windows-arm64
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
@@ -74,7 +74,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -85,18 +85,18 @@ jobs:
           sudo apt-get install --yes libasound2-dev pkg-config cmake clang libclang-dev
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-${{ matrix.target }}-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-${{ matrix.target }}-registry-
 
       - name: Cache cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
-          key: ${{ runner.os }}-${{ matrix.target }}-build-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.target }}-build-
+          key: ${{ matrix.os }}-${{ matrix.target }}-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ matrix.os }}-${{ matrix.target }}-build-
 
       - name: Build release binary
         run: >-
@@ -186,7 +186,7 @@ jobs:
           test "$(wc -c < native-smoke.wav)" -gt 44
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-${{ matrix.name }}
           path: artifacts/
@@ -208,12 +208,12 @@ jobs:
             name: macos-x64
           - os: windows-latest
             name: windows-x64
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             name: windows-arm64
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
@@ -225,18 +225,18 @@ jobs:
           sudo apt-get install --yes libasound2-dev pkg-config cmake clang libclang-dev
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-${{ matrix.name }}-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-${{ matrix.name }}-registry-
 
       - name: Cache cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
-          key: ${{ runner.os }}-${{ matrix.name }}-test-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.name }}-test-
+          key: ${{ matrix.os }}-${{ matrix.name }}-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ matrix.os }}-${{ matrix.name }}-test-
 
       - name: Run tests
         run: cargo test --locked
@@ -269,12 +269,12 @@ jobs:
             os: windows-latest
             target: x86_64-pc-windows-msvc
           - name: windows-arm64
-            os: windows-11-arm
+            os: windows-11-vs2026-arm
             target: aarch64-pc-windows-msvc
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
@@ -282,7 +282,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -293,18 +293,18 @@ jobs:
           sudo apt-get install --yes libasound2-dev pkg-config
 
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: flite-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: flite-${{ runner.os }}-${{ matrix.target }}-
 
       - name: Cache Cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
-          key: flite-${{ runner.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
-          restore-keys: flite-${{ runner.os }}-${{ matrix.target }}-build-
+          key: flite-${{ matrix.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
+          restore-keys: flite-${{ matrix.os }}-${{ matrix.target }}-build-
 
       - name: Build and stage companion
         run: python tools/build_flite.py --release
@@ -331,7 +331,7 @@ jobs:
           >> "$GITHUB_OUTPUT"
 
       - name: Upload verified companion
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-flite-${{ matrix.name }}
           path: |
@@ -365,12 +365,12 @@ jobs:
             os: windows-latest
             target: x86_64-pc-windows-msvc
           - name: windows-arm64
-            os: windows-11-arm
+            os: windows-11-vs2026-arm
             target: aarch64-pc-windows-msvc
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
@@ -378,7 +378,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -389,18 +389,18 @@ jobs:
           sudo apt-get install --yes libasound2-dev pkg-config
 
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: rutts-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: rutts-${{ runner.os }}-${{ matrix.target }}-
 
       - name: Cache Cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
-          key: rutts-${{ runner.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
-          restore-keys: rutts-${{ runner.os }}-${{ matrix.target }}-build-
+          key: rutts-${{ matrix.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
+          restore-keys: rutts-${{ matrix.os }}-${{ matrix.target }}-build-
 
       - name: Build and stage companion
         run: python tools/build_rutts.py --release
@@ -427,7 +427,7 @@ jobs:
           >> "$GITHUB_OUTPUT"
 
       - name: Upload verified companion
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-rutts-${{ matrix.name }}
           path: |
@@ -464,7 +464,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
@@ -472,7 +472,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -483,7 +483,7 @@ jobs:
           sudo apt-get install --yes cmake clang libclang-dev libasound2-dev pkg-config
 
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: piper-release-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
@@ -537,7 +537,7 @@ jobs:
           >> "$GITHUB_OUTPUT"
 
       - name: Upload verified companion
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-piper-${{ matrix.name }}
           path: |
@@ -554,7 +554,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
@@ -562,19 +562,19 @@ jobs:
           targets: x86_64-pc-windows-gnu
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: tgspeechbox-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: tgspeechbox-${{ runner.os }}-
 
       - name: Cache Cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: target
           key: tgspeechbox-${{ runner.os }}-build-${{ hashFiles('Cargo.lock') }}
@@ -606,7 +606,7 @@ jobs:
           >> "$GITHUB_OUTPUT"
 
       - name: Upload verified companion
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-tgspeechbox-windows-x64
           path: |
@@ -623,18 +623,18 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: tgspeechbox-source-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
@@ -659,7 +659,7 @@ jobs:
           >> "$GITHUB_OUTPUT"
 
       - name: Upload verified source artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-tgspeechbox-source
           path: |
@@ -676,18 +676,18 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: piper-source-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
@@ -707,7 +707,7 @@ jobs:
           >> "$GITHUB_OUTPUT"
 
       - name: Upload verified source artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-piper-source
           path: |
@@ -724,10 +724,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -750,7 +750,7 @@ jobs:
           >> "$GITHUB_OUTPUT"
 
       - name: Upload verified source artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-flite-source
           path: |
@@ -767,10 +767,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -793,7 +793,7 @@ jobs:
           >> "$GITHUB_OUTPUT"
 
       - name: Upload verified source artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-rutts-source
           path: |
@@ -809,7 +809,7 @@ jobs:
 
     steps:
       - name: Checkout code and release tags
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -819,7 +819,7 @@ jobs:
           targets: x86_64-unknown-linux-gnu
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -829,7 +829,7 @@ jobs:
           sudo apt-get install --yes libasound2-dev pkg-config cmake clang libclang-dev dpkg-dev binutils
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
           key: deb-registry-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
@@ -856,7 +856,7 @@ jobs:
           done
 
       - name: Upload verified Debian package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-deb-amd64
           path: |
@@ -874,15 +874,15 @@ jobs:
 
     steps:
       - name: Checkout release code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -957,7 +957,7 @@ jobs:
           --version "${GITHUB_REF_NAME#v}"
 
       - name: Upload packaged release assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: omnivox-release-assets
           path: |
@@ -977,21 +977,21 @@ jobs:
 
     steps:
       - name: Checkout release code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
       - name: Download packaged release assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: omnivox-release-assets
           path: release-assets
 
       - name: Create draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Omnivox ${{ github.ref_name }}
           body: |
@@ -1243,7 +1243,7 @@ jobs:
             platform: windows
             arch: x86_64
             engines: espeak,native
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             name: windows-arm64
             suffix: windows-arm64
             extension: zip
@@ -1253,10 +1253,10 @@ jobs:
 
     steps:
       - name: Checkout verification code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1315,10 +1315,10 @@ jobs:
 
     steps:
       - name: Checkout verification code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1374,7 +1374,7 @@ jobs:
 
     steps:
       - name: Checkout verification code from release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
 
@@ -1382,7 +1382,7 @@ jobs:
         uses: dtolnay/rust-toolchain@1.97.1
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1451,20 +1451,20 @@ jobs:
             name: windows-x64
             suffix: windows-x64
             extension: zip
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             name: windows-arm64
             suffix: windows-arm64
             extension: zip
 
     steps:
       - name: Checkout verification code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1519,12 +1519,12 @@ jobs:
 
     steps:
       - name: Checkout verification code from release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1593,20 +1593,20 @@ jobs:
             name: windows-x64
             suffix: windows-x64
             extension: zip
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             name: windows-arm64
             suffix: windows-arm64
             extension: zip
 
     steps:
       - name: Checkout verification code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1655,12 +1655,12 @@ jobs:
 
     steps:
       - name: Checkout verification code from release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1708,12 +1708,12 @@ jobs:
 
     steps:
       - name: Checkout verification code from release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1764,7 +1764,7 @@ jobs:
 
     steps:
       - name: Checkout verification code from release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
 
@@ -1772,7 +1772,7 @@ jobs:
         uses: dtolnay/rust-toolchain@1.97.1
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1824,12 +1824,12 @@ jobs:
 
     steps:
       - name: Checkout verification code from release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
@@ -1880,12 +1880,12 @@ jobs:
 
     steps:
       - name: Checkout verification code from release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
 
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 

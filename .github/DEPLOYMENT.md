@@ -99,6 +99,10 @@ The release version and archive prefix come from the tag name with its leading
 
 ## What CI validates
 
+Windows ARM64 jobs explicitly use the `windows-11-vs2026-arm` runner image
+for the main server, tests, Flite/RuTTS companions, and release verification.
+Compiled caches are separated by runner image for those builds.
+
 - Formatting on an Ubuntu runner.
 - Release builds for Linux x64 and both listed macOS and Windows architectures.
 - Tests and Clippy on Linux x64, macOS ARM64, macOS x64, Windows x64, and

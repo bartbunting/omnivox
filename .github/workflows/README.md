@@ -6,6 +6,11 @@ TGSpeechBox release matrix, plus the core Debian package.
 workflow for the optional Piper companion. User-facing artifact and
 installation details are in [../DEPLOYMENT.md](../DEPLOYMENT.md).
 
+Both workflows use Node 24 action releases: checkout v7, setup-python v7,
+cache v6, and upload-artifact v7. The release workflow also uses
+download-artifact v8 and action-gh-release v3. Artifact uploads retain the
+default archived layout; downloads fail if the service digest does not match.
+
 ## Jobs
 
 ### `format`
@@ -31,7 +36,11 @@ Builds locked release binaries for five targets:
 | `macos-arm64` | `macos-15` | `aarch64-apple-darwin` |
 | `macos-x64` | `macos-15-intel` | `x86_64-apple-darwin` |
 | `windows-x64` | `windows-latest` | `x86_64-pc-windows-msvc` |
-| `windows-arm64` | `windows-11-arm` | `aarch64-pc-windows-msvc` |
+| `windows-arm64` | `windows-11-vs2026-arm` | `aarch64-pc-windows-msvc` |
+
+Windows ARM64 build, test, Flite/RuTTS companion, and release-verification
+jobs explicitly select the Visual Studio 2026 image. This makes the compiler
+transition intentional before the generic `windows-11-arm` label migrates.
 
 The Linux x64 artifact establishes Ubuntu 24.04 as its glibc and C++ runtime
 build baseline. macOS and Windows use a native runner for each architecture.
@@ -288,8 +297,11 @@ The final exact-asset gate also applies to this recovery path.
 ## Caching
 
 Build and test jobs cache the Cargo registry and target directory using keys
-that include the target/matrix name and `Cargo.lock` hash. The workflow does
-not cache a separate Cargo Git directory.
+that include the target/matrix name and `Cargo.lock` hash. Generic, test,
+Flite, and RuTTS compiled-cache keys and restore prefixes also include the
+runner image label, so Windows ARM64 cannot reuse pre-VS2026 native binaries.
+Registry downloads remain reusable across that compiler transition. The
+workflow does not cache a separate Cargo Git directory.
 
 ## Maintenance rules
 
