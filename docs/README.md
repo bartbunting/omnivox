@@ -61,6 +61,9 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 ## Operations and releases
 
+- [Debian packages](DEBIAN.md) — amd64 installation, development and release
+  packaging, corresponding source, and Ubuntu verification.
+
 - [RHVOICE.md](RHVOICE.md) — user-installed runtime requirements, platform
   status, explicit paths, verification, licensing, and removal.
 - [FLITE.md](FLITE.md) — SLT-only companion installation, source build,

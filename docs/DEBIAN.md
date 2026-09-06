@@ -1,5 +1,12 @@
 # Debian packages
 
+## Availability
+
+Debian packaging is implemented in the current source tree. Published Omnivox
+1.7.1 predates this work and has no `.deb` asset. Use a development package
+until a subsequent release includes the package and its checksum. Remote
+workstation speech remains preview, including when installed from a package.
+
 ## Release packages
 
 The release workflow builds `omnivox_VERSION-1_amd64.deb` on Ubuntu 24.04 and

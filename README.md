@@ -264,6 +264,13 @@ same profile directory as the executable, together with `LICENSE` and
 `LICENSING.md`. Direct `cargo build` remains useful for compiler diagnostics
 but does not create that complete runtime payload.
 
+## Debian packages
+
+Native amd64 packaging is available in the current source tree through
+`make package-deb`. See the [Debian guide](docs/DEBIAN.md) for installation,
+Ubuntu compatibility, payload boundaries, and verification. Published 1.7.1
+releases do not contain a Debian package.
+
 ## Remote Emacs (preview)
 
 Development builds provide the preview `omnivox --serve` service on the workstation, with remote
