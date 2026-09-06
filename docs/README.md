@@ -20,6 +20,9 @@ historical material so a proposal cannot be mistaken for a shipped feature.
   licensing. The root [LICENSE](../LICENSE) contains the MIT text for
   Omnivox-authored source.
 
+- [Remote workstation speech](REMOTE.md) — preview setup, SSH forwarding,
+  authentication, and Linux/Windows acceptance limits.
+
 ## Architecture decision records
 
 - [ADR 0001: Speech Engine Process Boundaries](adr/0001-speech-engine-process-boundaries.md)
@@ -38,6 +41,9 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 - [ADR 0007: TGSpeechBox Calibration and Requested Anchors](adr/0007-tgspeechbox-calibration-and-anchors.md)
   — measured rate mapping and truthful index-backed presentation anchors.
 
+- [ADR 0008: Remote Workstation Service](adr/0008-remote-workstation-service.md)
+  — loopback authentication, separate workers, and remote resource boundaries.
+
 ## Protocol specifications
 
 - [Legacy line protocol](protocols/LEGACY-PROTOCOL.md) — baseline Emacspeak
@@ -48,6 +54,8 @@ historical material so a proposal cannot be mistaken for a shipped feature.
   structured Aural timelines, multipart transport, actions, and degradation.
 - [Engine helper protocol](protocols/HELPER-PROTOCOL.md) — isolated synthesis
   engine process contract.
+- [Remote protocol](protocols/REMOTE-PROTOCOL.md) — preview handshake, framing,
+  authentication, session ownership, and reconnect behavior.
 - [Validated fixtures](protocol-fixtures/) — JSON and JSONL examples checked
   against the public Rust wire types by `omnivox-tts` tests.
 

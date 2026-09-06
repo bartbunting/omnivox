@@ -1,5 +1,8 @@
 # Remote workstation protocol, version 1
 
+This protocol serves the remote-access preview. Its version identifies the
+wire contract, not a claim of stable feature support.
+
 The workstation runs `omnivox --serve --listen 127.0.0.1:6417 --token-file PATH`
 with optional `--sound-root DIRECTORY` and `--audio-output null`. The default
 listen address is `127.0.0.1:6417`. Only loopback is permitted. Without a sound

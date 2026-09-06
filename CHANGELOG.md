@@ -14,7 +14,7 @@ Versioning for published releases.
 - Release CI builds an amd64 `.deb` from the matching clean tag, includes it
   in the draft release and checksum manifest, and requires Ubuntu 24.04 and
   26.04 installation, synthesis, upgrade, and removal checks before publication.
-- Opt-in authenticated loopback workstation service for remote Emacs over SSH
+- Preview: opt-in authenticated loopback workstation service for remote Emacs over SSH
   reverse forwarding. Speaker and notification connections own separate
   workers, expire without heartbeats, and discard speech on disconnect.
   Remote audio uses bundled icon identifiers under an explicit sound root.

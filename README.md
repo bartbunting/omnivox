@@ -264,9 +264,9 @@ same profile directory as the executable, together with `LICENSE` and
 `LICENSING.md`. Direct `cargo build` remains useful for compiler diagnostics
 but does not create that complete runtime payload.
 
-## Remote Emacs
+## Remote Emacs (preview)
 
-Development builds support `omnivox --serve` on the workstation, with remote
+Development builds provide the preview `omnivox --serve` service on the workstation, with remote
 Emacsvox connecting through an authenticated SSH reverse forward. Engines and
 audio stay local; foreground and notification speech have separate workers.
 See the [remote setup guide](docs/REMOTE.md). Released 1.7.1 binaries do not

@@ -1,6 +1,6 @@
-# Remote workstation speech
+# Remote workstation speech (preview)
 
-This development feature lets remote Emacs use speech engines and speakers on
+This preview feature lets remote Emacs use speech engines and speakers on
 your workstation. Published Omnivox 1.7.1 binaries do not have `--serve`.
 Use a staged development payload (`make dev` on Linux/macOS, or Emacsvox's
 `make windows-omnivox-dev` for Windows) and the matching Emacsvox remote client.
