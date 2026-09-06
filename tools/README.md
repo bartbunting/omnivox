@@ -1,5 +1,16 @@
 # Developer Tools
 
+## Debian packaging
+
+`make package-deb` builds a native amd64 development package and checksum under
+`target/debian/`. See the [Debian package guide](../docs/DEBIAN.md) for installation,
+payload boundaries, prerequisites, and compatibility limits.
+`make package-deb-release` requires a clean matching release tag and produces
+`omnivox_VERSION-1_amd64.deb`. `make deb-package-test` exercises release guards.
+`test_deb_install.py --checksums sha256sums.txt --version VERSION --commit COMMIT`
+accepts the unified release checksum manifest and validates downloaded package
+identity before the normal container installation tests can pass.
+
 ## Documentation links
 
 `check_markdown_links.py` resolves repository-local links in every tracked

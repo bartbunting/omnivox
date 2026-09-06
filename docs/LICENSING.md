@@ -62,6 +62,14 @@ meeting any corresponding-source and other obligations that apply to its own
 method of distribution; a source link or notice directory should not be
 assumed to satisfy every distribution scenario by itself.
 
+The Debian release package identifies the matching
+`omnivox-VERSION-piper-source.tar.gz` as its corresponding-source asset. That
+archive includes the complete tagged Omnivox tree, every locked Cargo registry
+source, and the matching eSpeak NG and Sonic sources, in addition to Piper's
+inputs. The existing source verification gate remains mandatory for releases
+containing the Debian package. The package preserves the component notices and
+the separately licensed Emacspeak adapter source under `/usr/share`.
+
 ## Optional Piper integration
 
 The generic binary releases do not contain the Piper helper, Piper native

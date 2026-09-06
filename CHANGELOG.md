@@ -8,6 +8,9 @@ Versioning for published releases.
 
 ### Added
 
+- Native amd64 development Debian packaging via `make package-deb`, with
+  computed system-library dependencies, matching eSpeak data, the RHVoice
+  integration helper, source identity, and a package checksum.
 - Opt-in authenticated loopback workstation service for remote Emacs over SSH
   reverse forwarding. Speaker and notification connections own separate
   workers, expire without heartbeats, and discard speech on disconnect.

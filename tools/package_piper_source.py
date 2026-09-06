@@ -293,7 +293,8 @@ def link_or_copy(source: Path, destination: Path) -> None:
 def source_readme(version: str, commit: str) -> str:
     return f"""# Omnivox {version} Piper source and build inputs
 
-This archive accompanies the optional Piper binaries. It records Omnivox
+This archive accompanies the optional Piper binaries and the core Debian
+package. It records Omnivox
 commit `{commit}` and contains:
 
 - `omnivox/`: the exact committed Omnivox source, including vendored libpiper;

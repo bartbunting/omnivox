@@ -7,6 +7,17 @@ OMNIVOX_INSTALL_BIN ?= $(HOME)/.cargo/bin
 # Default target
 all: build
 
+# Native local development package; no publication or system installation.
+.PHONY: package-deb package-deb-release deb-package-test
+package-deb:
+	$(PYTHON) tools/package_deb.py
+
+package-deb-release:
+	$(PYTHON) tools/package_deb.py --release
+
+deb-package-test:
+	$(PYTHON) tools/test_package_deb.py
+
 # Build release binary
 build: stage-rhvoice stage-flite stage-rutts
 	$(PYTHON) tools/build.py --release --package omnivox-cli --features piper
