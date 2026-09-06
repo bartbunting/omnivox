@@ -1,9 +1,9 @@
 # Remote workstation speech (preview)
 
-This preview feature lets remote Emacs use speech engines and speakers on
-your workstation. Published Omnivox 1.7.1 binaries do not have `--serve`.
-Use a staged development payload (`make dev` on Linux/macOS, or Emacsvox's
-`make windows-omnivox-dev` for Windows) and the matching Emacsvox remote client.
+This preview feature, introduced in Omnivox 1.8.0, lets remote Emacs use
+speech engines and speakers on your workstation. Use an Omnivox 1.8.0 or newer
+release payload and the matching Emacsvox remote client. For development, use
+`make dev` on Linux/macOS or Emacsvox's `make windows-omnivox-dev` for Windows.
 
 1. Create a token with `python3 tools/create_remote_token.py PATH`. The tool
    uses 32 cryptographically random bytes, creates a private file, and refuses

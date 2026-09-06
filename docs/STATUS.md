@@ -1,14 +1,15 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-05
-**Workspace version:** 1.7.1
+**Last reviewed:** 2026-09-06
+**Workspace version:** 1.8.0
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
 [NEXT_STEPS.md](plans/NEXT_STEPS.md).
-Post-tag development changes are recorded under
-[Unreleased](../CHANGELOG.md#unreleased); the workspace version alone does not
-mean those changes are in the published v1.7.1 archive.
+Changes prepared for 1.8.0 are recorded in the
+[changelog](../CHANGELOG.md#180---2026-09-06). Later development changes belong
+under [Unreleased](../CHANGELOG.md#unreleased); publication is established by
+the matching verified GitHub release.
 
 ## Implemented
 
@@ -106,8 +107,8 @@ mean those changes are in the published v1.7.1 archive.
   Linux engine. [SPEECHD-PLAN.md](plans/SPEECHD-PLAN.md) is a proposal only.
 - Remote speech currently admits one Emacs session. SSH provides encryption;
   native TLS, shared multi-user audio, custom sound uploads, and automatic
-  tunnel management are not implemented. Omnivox 1.7.1 releases predate this
-  preview feature.
+  tunnel management are not implemented. This feature remains preview in
+  Omnivox 1.8.0.
 - Audio routing selects left, right, or both channels within one output device;
   arbitrary multi-device routing is not implemented.
 - An explicit null output backend consumes normal queued sources without

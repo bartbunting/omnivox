@@ -266,18 +266,17 @@ but does not create that complete runtime payload.
 
 ## Debian packages
 
-Native amd64 packaging is available in the current source tree through
-`make package-deb`. See the [Debian guide](docs/DEBIAN.md) for installation,
-Ubuntu compatibility, payload boundaries, and verification. Published 1.7.1
-releases do not contain a Debian package.
+Beginning with 1.8.0, releases include an amd64 Debian package for Ubuntu 24.04
+and 26.04. Build a local development package with `make package-deb`. See the
+[Debian guide](docs/DEBIAN.md) for installation, Ubuntu compatibility, payload
+boundaries, and verification.
 
 ## Remote Emacs (preview)
 
-Development builds provide the preview `omnivox --serve` service on the workstation, with remote
-Emacsvox connecting through an authenticated SSH reverse forward. Engines and
-audio stay local; foreground and notification speech have separate workers.
-See the [remote setup guide](docs/REMOTE.md). Released 1.7.1 binaries do not
-include this feature.
+Omnivox 1.8.0 introduces the preview `omnivox --serve` service on the
+workstation, with remote Emacsvox connecting through an authenticated SSH
+reverse forward. Engines and audio stay local; foreground and notification
+speech have separate workers. See the [remote setup guide](docs/REMOTE.md).
 
 ## Emacsvox on Windows under WSL
 

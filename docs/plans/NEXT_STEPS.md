@@ -127,9 +127,10 @@ These are not current features and require design or scope approval:
 - **Multi-device audio:** define device ownership, fallback, restart, and
   notification separation before extending channel routing.
 - **Remote workstation follow-up:** the loopback, authenticated single-session
-  service is implemented in development; finish native-device and real SSH-host
-  acceptance before release. Broader network access still requires protocol
-  exposure review, and explicit privacy documentation before implementation.
+  service is available as a preview in 1.8.0; finish native-device and real
+  SSH-host acceptance before removing preview status. Broader network access
+  still requires protocol exposure review, and explicit privacy documentation
+  before implementation.
 - **Additional effects:** new duration-changing or repeating effects must
   preserve marker semantics and truthful tracked completion.
 - **Configurable chunking:** add a public control only if benchmarks show a

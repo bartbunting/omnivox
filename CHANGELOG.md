@@ -6,6 +6,8 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-09-06
+
 ### Added
 
 - Native amd64 development Debian packaging via `make package-deb`, with
@@ -463,7 +465,8 @@ superseded by `v1.4.1` and its assets should not be used.
 - Added recovery for a draft release whose native verification needs to be
   rerun without rebuilding or replacing its uploaded assets.
 
-[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.7.1...HEAD
+[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/bartbunting/omnivox/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/bartbunting/omnivox/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/bartbunting/omnivox/compare/v1.6.4...v1.7.0
 [1.6.4]: https://github.com/bartbunting/omnivox/compare/v1.6.3...v1.6.4
