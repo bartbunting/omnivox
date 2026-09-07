@@ -14,6 +14,8 @@ Versioning for published releases.
 
 ### Fixed
 
+- Progressive output failures retain speech-engine health instead of
+  disabling working voices or retrying through the same failed output.
 - Rapid speech interruption could deadlock eSpeak's native cancellation and
   leave later speech queued indefinitely, reproduced during Dired navigation
   in the Linux WSLg trial. Cancellation now uses the synthesis callback and

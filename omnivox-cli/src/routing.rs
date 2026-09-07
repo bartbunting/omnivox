@@ -480,6 +480,7 @@ struct RoutedAttemptStreamSink<'a> {
     pending_markers: Vec<(Vec<SynthesisMarker>, Vec<ResolvedAnchor>)>,
     output_committed: bool,
     audio_accepted: bool,
+    output_failed: bool,
 }
 
 impl RoutedAttemptStreamSink<'_> {
@@ -493,9 +494,13 @@ impl RoutedAttemptStreamSink<'_> {
             )
         })?;
         self.output_committed = true;
-        self.inner.start(start)?;
+        self.inner
+            .start(start)
+            .inspect_err(|_| self.output_failed = true)?;
         for (markers, anchors) in self.pending_markers.drain(..) {
-            self.inner.markers(markers, anchors)?;
+            self.inner
+                .markers(markers, anchors)
+                .inspect_err(|_| self.output_failed = true)?;
         }
         Ok(())
     }
@@ -515,7 +520,9 @@ impl SynthesisStreamSink for RoutedAttemptStreamSink<'_> {
 
     fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
         self.commit_preamble()?;
-        self.inner.audio(audio)?;
+        self.inner
+            .audio(audio)
+            .inspect_err(|_| self.output_failed = true)?;
         self.audio_accepted = true;
         Ok(())
     }
@@ -526,7 +533,9 @@ impl SynthesisStreamSink for RoutedAttemptStreamSink<'_> {
         anchors: Vec<ResolvedAnchor>,
     ) -> Result<(), TtsError> {
         if self.output_committed {
-            self.inner.markers(markers, anchors)
+            self.inner
+                .markers(markers, anchors)
+                .inspect_err(|_| self.output_failed = true)
         } else if self.pending_start.is_none() {
             Err(TtsError::SynthesisFailed(
                 "progressive engine emitted markers before stream metadata".to_owned(),
@@ -828,6 +837,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
             pending_markers: Vec::new(),
             output_committed: false,
             audio_accepted: false,
+            output_failed: false,
         };
         let synthesis = route
             .engine
@@ -861,6 +871,19 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                 if stale(generation, generation_counter, cancellation) {
                     release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
                     return RuntimeProgressiveSynthesisOutcome::Cancelled;
+                }
+                if attempt_sink.output_failed {
+                    // The consumer shares one output device across voices.
+                    // Its failure must neither quarantine a healthy engine nor
+                    // retry the same broken playback path through another one.
+                    release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+                    warn!(
+                        lifecycle_stage = "playback_failed",
+                        engine_id = route.realized.engine_id,
+                        error = %error,
+                        "Progressive output failed; retaining speech engine health"
+                    );
+                    return RuntimeProgressiveSynthesisOutcome::Failed;
                 }
                 let output_committed = attempt_sink.output_committed;
                 let audio_accepted = attempt_sink.audio_accepted;
@@ -1358,6 +1381,7 @@ mod tests {
         StreamBeforeAudio,
         StreamAfterMarkers,
         StreamAfterAudio,
+        StreamWithMarkers,
     }
 
     struct MockEngine {
@@ -1424,7 +1448,8 @@ mod tests {
                 Some(
                     MockFailure::StreamBeforeAudio
                     | MockFailure::StreamAfterMarkers
-                    | MockFailure::StreamAfterAudio,
+                    | MockFailure::StreamAfterAudio
+                    | MockFailure::StreamWithMarkers,
                 ) => success(),
                 Some(MockFailure::NotAvailableOnce(_) | MockFailure::SynthesisOnce(_)) => success(),
                 None => success(),
@@ -1468,6 +1493,9 @@ mod tests {
                 ));
             }
             sink.audio(AudioBuffer::new(vec![0.25, -0.25]))?;
+            if matches!(self.failure.as_ref(), Some(MockFailure::StreamWithMarkers)) {
+                sink.markers(Vec::new(), Vec::new())?;
+            }
             if matches!(self.failure.as_ref(), Some(MockFailure::StreamAfterAudio)) {
                 return Err(TtsError::SynthesisFailed(
                     "stream failed after audio".to_owned(),
@@ -2134,6 +2162,106 @@ mod tests {
             omnivox_tts::AnchorResolution::Omitted
         );
         assert_eq!(engine.calls.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn progressive_consumer_failure_preserves_engine_health_and_next_request() {
+        struct FailingSink(&'static str);
+        impl SynthesisStreamSink for FailingSink {
+            fn start(&mut self, _: SynthesisStreamStart) -> Result<(), TtsError> {
+                self.result("start")
+            }
+            fn audio(&mut self, _: AudioBuffer) -> Result<(), TtsError> {
+                self.result("audio")
+            }
+            fn markers(
+                &mut self,
+                _: Vec<SynthesisMarker>,
+                _: Vec<ResolvedAnchor>,
+            ) -> Result<(), TtsError> {
+                self.result("markers")
+            }
+        }
+        impl FailingSink {
+            fn result(&self, phase: &str) -> Result<(), TtsError> {
+                if self.0 == phase {
+                    Err(TtsError::SynthesisFailed(
+                        "injected playback failure".into(),
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
+        }
+        for phase in ["start", "audio", "markers"] {
+            let primary =
+                streaming_synthesis_engine("dectalk", "paul", Some(MockFailure::StreamWithMarkers));
+            let fallback = synthesis_engine("espeak", "en-us", None);
+            let mut engines = EngineRegistry::new();
+            engines
+                .register(primary.clone() as Arc<dyn TtsEngine>)
+                .unwrap();
+            engines
+                .register(fallback.clone() as Arc<dyn TtsEngine>)
+                .unwrap();
+            let mut routes = snapshot(
+                &engines,
+                definition(vec![exact("dectalk", "paul"), exact("espeak", "en-us")]),
+                FallbackPolicy::default(),
+            );
+            let mut route = routes.initial_route("source-code", &engines).unwrap();
+            let health = RuntimeEngineHealth::new();
+            let generation = AtomicU64::new(1);
+            let outcome = synthesize_progressively_with_runtime_fallback_anchored(
+                "hello",
+                &[],
+                &TtsSettings::default(),
+                None,
+                &mut route,
+                &mut routes,
+                &engines,
+                &health,
+                1,
+                &generation,
+                None,
+                &mut FailingSink(phase),
+            );
+            assert!(
+                matches!(outcome, RuntimeProgressiveSynthesisOutcome::Failed),
+                "{phase}"
+            );
+            assert!(fallback.calls.lock().unwrap().is_empty());
+            assert!(
+                health
+                    .snapshot(engines.generation(), engines.inventory())
+                    .engines
+                    .iter()
+                    .all(|engine| matches!(engine.health, EngineHealth::Healthy)),
+                "{phase}"
+            );
+            let mut sink = RecordingStreamSink::default();
+            let outcome = synthesize_progressively_with_runtime_fallback_anchored(
+                "fresh speech",
+                &[],
+                &TtsSettings::default(),
+                None,
+                &mut route,
+                &mut routes,
+                &engines,
+                &health,
+                1,
+                &generation,
+                None,
+                &mut sink,
+            );
+            assert!(
+                matches!(outcome, RuntimeProgressiveSynthesisOutcome::Streamed(_)),
+                "{phase}"
+            );
+            assert_eq!(route.realized.engine_id, "dectalk");
+            assert_eq!(sink.audio.len(), 1);
+            assert!(fallback.calls.lock().unwrap().is_empty());
+        }
     }
 
     #[test]
