@@ -40,7 +40,7 @@ dev: linux-helpers-dev
 endif
 
 # Run tests
-test: windows-helpers-test rate-audit-test latency-benchmark-test latency-benchmark-suite-test wsl-audio-test server-stress-test helper-soak-test diagnostics-redaction-test archive-safety-test release-archive-test piper-release-test release-asset-test
+test: windows-helpers-test rate-audit-test latency-benchmark-test latency-benchmark-suite-test wsl-audio-test server-stress-test helper-soak-test diagnostics-redaction-test remote-ssh-harness-test archive-safety-test release-archive-test piper-release-test release-asset-test
 	cargo test --locked
 
 rate-audit-test:
@@ -77,6 +77,12 @@ diagnostics-redaction-test:
 remote-test:
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_remote_service.py
+
+# Local supervisor failure checks; no SSH host or speech runtime required.
+.PHONY: remote-ssh-harness-test
+remote-ssh-harness-test:
+	PYTHONDONTWRITEBYTECODE=1 \
+		$(PYTHON) -W error::ResourceWarning tools/test_check_remote_ssh.py
 
 archive-safety-test:
 	PYTHONDONTWRITEBYTECODE=1 \
