@@ -76,11 +76,15 @@ now adds direct Linux output and a full-profile comparison launcher, with a
 20 ms native default (40 ms in the WSL trial after short-tone tests), bounded
 writes, idle corking, stream-wide flushing and recovery of failed native lanes
 when fresh audio arrives. Output failures no longer quarantine healthy voices.
-Next,
-collect matched-build listening and physical-output evidence, including idle
-outliers and stop-to-silence, before selecting a new default. If WSLg's RDP
-transport remains dominant, evaluate an optional Windows WASAPI PCM-output
-helper while keeping synthesis on Linux. That bridge is not implemented.
+A subsequent live recurrence identified a shared WSLg stall: Weston's audio
+packet semaphore was exhausted, PulseAudio's output thread blocked sending to
+it, and independent control queries timed out. Reconnecting Omnivox cannot
+repair that shared server. Next, recover and investigate the idle/resume
+acknowledgement path, then collect matched-build listening and physical-output
+evidence, including long idle transitions and stop-to-silence. Keep the native
+backend opt-in. Evaluate an optional Windows WASAPI PCM-output helper while
+keeping synthesis on Linux if the shared RDP path remains unreliable. That
+bridge is not implemented.
 
 Separately, start voice management with Piper model discovery/selection, Flite
 voice import, and platform-native installation guidance. Emacsvox owns the

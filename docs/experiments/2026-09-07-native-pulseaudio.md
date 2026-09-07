@@ -218,11 +218,73 @@ The earlier ALSA symptoms and the trigger for the user's original stall remain
 unconfirmed; this fixes the observed permanent failure and its engine-health
 cascade, without claiming that WSLg cannot pause again.
 
+## Shared WSLg bridge stall after the recovery fix
+
+The user's subsequent recurrence at 07:10:47 UTC ran the staged recovery build,
+not the earlier executable. Both foreground and notification processes started
+at 06:46:59 UTC. Their running executable hashes matched the staged payload:
+`332ab8dcde66e3640ad54deb9711e335576a7af1ba02460aefd3a210c27522c3`.
+Their three lanes timed out, then fresh requests attempted to reopen connections
+and hit the three-second setup deadline. Engine health circuits stayed closed.
+Independent `pactl info` queries also timed out repeatedly at five seconds.
+
+Read-only kernel stacks, socket queues and brief debugger backtraces identified
+the blockage in the WSLg system instance attached to `Ubuntu-26.04`:
+
+| Component | Observed wait |
+| --- | --- |
+| PulseAudio main thread | `pa_asyncmsgq_send`, inside sink resume from `module-suspend-on-idle`, while handling a playback cork command |
+| PulseAudio `rdp-sink` thread | Blocking `send` to Weston's `PulseAudioRDPSink` socket; 150,528 bytes in its send queue |
+| Weston audio sink thread | Blocking `read` of its audio packet semaphore; the semaphore count was zero |
+| FreeRDP sound thread | Waiting in `WaitForMultipleObjectsEx` |
+| Weston main thread | Normal Wayland event loop |
+
+The installed
+[PulseAudio RDP sink source](https://github.com/microsoft/PulseAudio-mirror/blob/c33051f2296af748ac5cd13e51abfac4d129e4c7/src/modules/rdp/module-rdp-sink.c)
+uses blocking socket I/O. The matching
+[Weston audio source](https://github.com/microsoft/weston-mirror/blob/04d436c7d9a0cd55fa64b6612c7fa678d6fcd077/compositor/rdpaudio.c)
+starts with 256 packet permits, consumes a permit before submitting samples,
+and replenishes it when playback is acknowledged or no packet was submitted.
+The observed zero-permit wait prevents further socket consumption, which in
+turn blocks PulseAudio's output thread and its synchronous sink-resume request.
+This establishes a shared output stall beyond Omnivox's connection recovery.
+It does **not** establish why acknowledgement progress stopped, whether permits
+were lost over time, or whether window focus caused it.
+
+Both Linux backends traverse this bridge. That makes the older ALSA symptoms
+plausibly related, but their original cause remains unconfirmed. The earlier
+four-second proxy test withheld replies only from an owned client while the
+real server kept working; it did not test a persistently blocked shared server.
+Microsoft's tracker contains similar reports involving
+[Emacspeak after lock/idle](https://github.com/microsoft/wslg/issues/1026),
+[pause/resume](https://github.com/microsoft/wslg/issues/1392), and
+[unrecoverable shared playback](https://github.com/microsoft/wslg/issues/1468).
+These are related symptoms, not proof of an identical upstream defect.
+
+Local evidence is retained in `target/wslg-server-stall-20260907/`: speech logs,
+WSLg logs, control-query results, matching system-instance stacks, socket and
+semaphore state, native backtraces and the examined upstream source revisions.
+Debuggers detached after reading stacks. No audio capture was made. An initial
+`wsl.exe --system` query selected the default, stopped `Ubuntu-22.04` system
+instance and briefly started its WSLg services. Its fresh socket and idle stacks
+were excluded; subsequent commands explicitly selected `Ubuntu-26.04` and
+matched the shared socket's device/inode before drawing conclusions.
+
+The diagnostic tool now checks server responsiveness with a bounded `pactl`
+query, discards identifying server output, and distinguishes reachable,
+unavailable, timed-out and unverified states. It does not claim that a successful
+control query proves playback. A targeted Windows RDP-client reconnect was
+prepared for review, but not executed because it interrupts shared Linux GUI
+connections. Existing user Emacs, PulseAudio and Weston processes remain alive.
+Neither restarting Omnivox nor increasing its buffer is established as a fix.
+
 ## Next decision
 
 Compare the three launchers by listening, especially first speech after idle,
 short letters, rapid navigation and overlapping notifications. Keep the native
 backend opt-in while collecting physical-output evidence and load behaviour.
-If WSLg RDP remains the dominant delay, the next experiment is an optional
-Windows WASAPI PCM-output helper with synthesis still on Linux. That bridge
-is not part of this change.
+First recover and investigate WSLg's idle/resume acknowledgement stall, then
+repeat the live workload over longer idle and focus transitions. An optional
+Windows WASAPI PCM-output helper with synthesis still on Linux would bypass
+this shared RDP audio path. That remains a separate architecture experiment;
+it is not implemented or claimed to fix every source of latency.

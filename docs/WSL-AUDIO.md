@@ -59,6 +59,29 @@ fresh speech reopens the affected stream on its output worker. It does not
 replay the failed backlog or repeatedly reconnect while idle. This recovery
 does not change the existing ALSA backend's device lifecycle.
 
+Reopening a stream requires a responsive server. In the next live trial,
+WSLg's shared PulseAudio/RDP bridge stalled and even an independent control
+query timed out. Both Linux output choices use that bridge. Check it without
+starting speech:
+
+```sh
+python3 tools/wsl_audio.py health
+```
+
+The query has a three-second deadline and returns nonzero for a timeout,
+connection failure, or unavailable `pactl`. The JSON report also includes this
+check as `linux_server`; the local full-profile launchers include it in
+`--diagnose`. A reachable control connection does not prove audible playback.
+A socket's presence alone does not establish server health.
+
+If this independent query times out, changing engines or restarting Omnivox
+cannot repair the shared server. Preserve the speech and WSLg logs first.
+Resetting the shared WSLg RDP connection may recover it, but disrupts Linux GUI
+connections and has not yet been tested for this incident. Do not automatically
+restart Weston, PulseAudio or WSL from a speech launcher. The
+[recurrence investigation](experiments/2026-09-07-native-pulseaudio.md#shared-wslg-bridge-stall-after-the-recovery-fix)
+records the blocked server threads and the remaining uncertainty.
+
 For an isolated generated trial below, prefix its Linux launcher with
 `OMNIVOX_WSL_AUDIO_OUTPUT=pulse` to select the same native backend.
 
