@@ -11,12 +11,17 @@ Versioning for published releases.
 - Opt-in native PulseAudio output on Linux (`--audio-output pulse`) with
   persistent independent streams, bounded writes, adjustable latency requests,
   idle corking, stream-wide stop flushing, and timing/underflow diagnostics.
+  WSLg can compare it with the existing ALSA path using a separate launcher.
 - Linux development builds stage separate Eloquence/Outloud and DECtalk
   interfaces for user-installed native libraries. The helpers provide bounded
   progressive PCM and cancellation, report missing runtimes, and expose their
   English voices and six portable ACSS controls. Native ECI indexes provide
   exact anchors and word/sentence markers; DECtalk provides word-boundary
   anchors and word/sentence/phoneme markers.
+- Opt-in WSLg trial tooling prepares separate Windows and Linux Emacsvox
+  launchers, reports executable and configuration identities, and repeats
+  process-scoped Linux buffer/shutdown probes. Measurements distinguish
+  PulseAudio introspection from acoustic latency.
 
 ### Changed
 

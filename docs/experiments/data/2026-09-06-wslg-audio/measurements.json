@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "experiment_date": "2026-09-06",
+  "kind": "PulseAudio introspection snapshots; no acoustic measurements",
+  "source_artifact": "buffer-probes-1.8.0.json",
+  "source_artifact_sha256": "5282975fd216e355b6301189bfed535e68e932f21cccca5b825c9ca769e36959",
+  "extraction": "Measurement values and process exit results are unchanged. PulseAudio client IDs, process IDs, host/user names, machine IDs, and unrelated properties are omitted. Original retained locally.",
+  "omnivox": {
+    "version": "omnivox 1.8.0",
+    "sha256": "0c0fcd2d5a1c419c5bbe08a5cca09a563ad3ce2ad3842f5cb7fe4e20ea8e35f1",
+    "source_commit": "942b51861a3dc2b92e34506cad4fb00fd4ea794b"
+  },
+  "environment": {
+    "platform": "Linux x86_64 under WSL2",
+    "kernel": "6.18.33.2-microsoft-standard-WSL2",
+    "wslg": "1.0.73.2",
+    "pulse_server_version": "17.0-25-gc3305",
+    "pulse_server": "unix:/mnt/wslg/PulseServer",
+    "pulse_sink": "RDPSink",
+    "rodio": "0.19.0",
+    "cpal": "0.15.3",
+    "rust_toolchain": "1.97.1",
+    "alsa_plugin_package": "libasound2-plugins 1.2.12-2build1 amd64",
+    "alsa_plugin_package_sha256": "93a23ae295da019a859076c74b91d0c050a523068dc144b9cbb33d9649fc25b5",
+    "emacs": "31.0.90",
+    "emacsvox_commit_recorded_after_checks": "96b8e634b25accc99057c9da48c4929991e2a5b4",
+    "emacsvox_source_note": "Unrelated concurrent work occurred during the experiment; this is the post-check commit, not a frozen test checkout.",
+    "windows_reference_version": "1.7.1",
+    "windows_reference_note": "Existing staged executable selection/version checked; Windows audio performance not measured."
+  },
+  "method": {
+    "stream": "Persistent device output with no speech queued during buffer probes",
+    "sample_selection": "pactl JSON sink-input entry matching the owned Omnivox process ID",
+    "requested_sample_interval_seconds": 0.5,
+    "samples_per_setting": 4,
+    "setting_order_ms": [
+      null,
+      50,
+      20
+    ],
+    "null_requested_ms_meaning": "PULSE_LATENCY_MSEC unset",
+    "shutdown": "Close stdin, wait at most 3 seconds, terminate only the test process on timeout",
+    "clock": "Microseconds reported by PulseAudio; no independently recorded output or acoustic clock"
+  },
+  "runs": [
+    {
+      "requested_ms": null,
+      "exit": 0,
+      "shutdown_timed_out": false,
+      "samples": [
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 99977.0,
+          "sink_latency_usec": 81421.0,
+          "resample_method": "copy"
+        },
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 75034.0,
+          "sink_latency_usec": 85040.0,
+          "resample_method": "copy"
+        },
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 99977.0,
+          "sink_latency_usec": 115121.0,
+          "resample_method": "copy"
+        },
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 75034.0,
+          "sink_latency_usec": 111323.0,
+          "resample_method": "copy"
+        }
+      ]
+    },
+    {
+      "requested_ms": 50,
+      "exit": 0,
+      "shutdown_timed_out": false,
+      "samples": [
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 50000.0,
+          "sink_latency_usec": 110317.0,
+          "resample_method": "copy"
+        },
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 25056.0,
+          "sink_latency_usec": 106203.0,
+          "resample_method": "copy"
+        },
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 25056.0,
+          "sink_latency_usec": 98326.0,
+          "resample_method": "copy"
+        },
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 50000.0,
+          "sink_latency_usec": 98613.0,
+          "resample_method": "copy"
+        }
+      ]
+    },
+    {
+      "requested_ms": 20,
+      "exit": -15,
+      "shutdown_timed_out": true,
+      "samples": [
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 0.0,
+          "sink_latency_usec": 67555.0,
+          "resample_method": "copy"
+        },
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 0.0,
+          "sink_latency_usec": 72591.0,
+          "resample_method": "copy"
+        },
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 0.0,
+          "sink_latency_usec": 68912.0,
+          "resample_method": "copy"
+        },
+        {
+          "sample_specification": "float32le 2ch 44100Hz",
+          "buffer_latency_usec": 0.0,
+          "sink_latency_usec": 80082.0,
+          "resample_method": "copy"
+        }
+      ]
+    }
+  ]
+}

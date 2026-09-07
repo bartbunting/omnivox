@@ -302,6 +302,36 @@ duration and WPM. See the
 [speech-rate calibration guide](../docs/RATE-CALIBRATION.md) for the current
 reference procedure.
 
+## Linux legacy-engine interfaces
+
+`build_linux_helpers.py` builds and stages separate Eloquence/Outloud and
+DECtalk helpers using Cargo's exact executable outputs. It copies their GPL
+notice and guide, preserving other files beside them, and never copies native
+runtimes or voice data. Native Linux `make build`/`make dev` include this step;
+use `make linux-helpers` for release helpers alone. An optional `--target`
+selects a Linux target when its Rust and native build prerequisites exist.
+See the [Linux helper guide](../linux-helpers/README.md) for library discovery,
+architecture requirements, and exact runtime checks.
+
+## WSLg audio comparison
+
+`wsl_audio.py` prepares separate Windows and Linux Emacsvox trial launchers,
+reports actual executable identities and configured audio paths, and repeats
+Linux PulseAudio buffer/shutdown probes. It uses a new private trial directory
+and the existing Emacsvox launcher. See the
+[WSLg comparison guide](../docs/WSL-AUDIO.md) for prerequisites, launch commands,
+and measurement limits. Prefix the Linux trial with
+`OMNIVOX_WSL_AUDIO_OUTPUT=pulse` for the optional native backend; it skips ALSA
+plugin validation and clears the inherited ALSA latency request. The WSL
+native preset uses 40 ms; `OMNIVOX_PULSE_LATENCY_MS` overrides it. The idle
+buffer probe remains specific to `device`, since native PulseAudio corks idle
+streams. Run its isolated launcher and process-cleanup tests
+without WSLg or an audio device:
+
+```sh
+make wsl-audio-test
+```
+
 ## Server lifecycle benchmarks
 
 `benchmark_server.py` measures cold and warm lifecycle latency through the
@@ -333,7 +363,7 @@ than waveform duration. Null runs cannot validate real-time underruns, audible
 quality, device latency, or acoustic onset and must not be directly compared
 with device-output terminal timings.
 
-Eloquence and DECtalk are accepted Windows startup preferences when their
+Eloquence and DECtalk are accepted Windows and Linux startup preferences when their
 helpers and user runtimes are installed. To exercise routing-policy replacement,
 start the ordinary native server and apply one strict session preference:
 

@@ -40,7 +40,7 @@ dev: linux-helpers-dev
 endif
 
 # Run tests
-test: windows-helpers-test rate-audit-test latency-benchmark-test latency-benchmark-suite-test server-stress-test helper-soak-test diagnostics-redaction-test archive-safety-test release-archive-test piper-release-test release-asset-test
+test: windows-helpers-test rate-audit-test latency-benchmark-test latency-benchmark-suite-test wsl-audio-test server-stress-test helper-soak-test diagnostics-redaction-test archive-safety-test release-archive-test piper-release-test release-asset-test
 	cargo test --locked
 
 rate-audit-test:
@@ -54,6 +54,11 @@ latency-benchmark-test:
 latency-benchmark-suite-test:
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_benchmark_suite.py
+
+.PHONY: wsl-audio-test
+wsl-audio-test:
+	PYTHONDONTWRITEBYTECODE=1 \
+		$(PYTHON) -W error::ResourceWarning tools/test_wsl_audio.py
 
 server-stress-test:
 	PYTHONDONTWRITEBYTECODE=1 \

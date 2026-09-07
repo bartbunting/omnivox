@@ -37,6 +37,9 @@ jobs:
       - name: Check Debian release guards and asset contract
         run: make deb-package-test release-asset-test
 
+      - name: Check WSL audio trial tools without an audio device
+        run: make wsl-audio-test
+
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
