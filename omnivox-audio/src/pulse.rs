@@ -16,6 +16,7 @@ const WRITE_FRAMES: usize = SAMPLE_RATE as usize * 5 / 1000;
 const BYTES_PER_FRAME: usize = CHANNELS as usize * std::mem::size_of::<f32>();
 const POLL: Duration = Duration::from_millis(1);
 const STALL_TIMEOUT: Duration = Duration::from_secs(3);
+const RECONNECT_DELAY: Duration = Duration::from_millis(250);
 
 trait PlaybackDevice {
     fn writable_frames(&mut self) -> Result<usize, String>;
@@ -52,6 +53,9 @@ struct Queue {
     pending: usize,
     idle: bool,
     failure: Option<String>,
+    retry_at: Option<Instant>,
+    connection_closed: CancellationToken,
+    connected: bool,
 }
 
 struct State {
@@ -84,9 +88,15 @@ impl State {
     }
 
     fn retire(&self, failure: Option<String>) {
-        self.closed.cancel();
         let sources = {
             let mut queue = self.queue.lock().unwrap();
+            // Retire the old connection's producers before admitting another
+            // generation. Shutdown has a separate, permanent lifetime.
+            queue.connection_closed.cancel();
+            queue.connection_closed = CancellationToken::new();
+            queue.connected = false;
+            self.generation.fetch_add(1, Ordering::AcqRel);
+            queue.retry_at = failure.as_ref().map(|_| Instant::now() + RECONNECT_DELAY);
             queue.failure = failure;
             queue.pending = 0;
             queue.idle = true;
@@ -140,7 +150,7 @@ impl PulseSink {
 
     fn start<D: PlaybackDevice + 'static>(
         name: &'static str,
-        open: impl FnOnce(CancellationToken) -> Result<D, String> + Send + 'static,
+        mut open: impl FnMut(CancellationToken) -> Result<D, String> + Send + 'static,
     ) -> Result<Arc<Self>, AudioError> {
         let state = State::new();
         let worker_state = state.clone();
@@ -148,26 +158,72 @@ impl PulseSink {
         let worker = std::thread::Builder::new()
             .name(format!("omnivox-pulse-{name}"))
             .spawn(move || {
-                let result =
-                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        match open(worker_state.closed.clone()) {
-                            Ok(mut device) => {
-                                let _ = ready_tx.send(Ok(()));
-                                run(&worker_state, &mut device)
-                            }
-                            Err(error) => {
-                                let _ = ready_tx.send(Err(error.clone()));
-                                Err(error)
-                            }
+                let mut initial = true;
+                let mut startup = Some(ready_tx);
+                loop {
+                    let (connection_closed, generation) = {
+                        let mut queue = worker_state.queue.lock().unwrap();
+                        // Reconnect only for newly admitted audio. Never replay
+                        // the failed backlog or spin while the server is down.
+                        while !initial
+                            && queue.sources.is_empty()
+                            && !worker_state.closed.is_cancelled()
+                        {
+                            queue = worker_state.changed.wait(queue).unwrap();
                         }
-                    }))
-                    .unwrap_or_else(|_| Err("PulseAudio output worker panicked".into()));
-                if let Err(error) = &result {
-                    if !worker_state.shutdown.load(Ordering::Acquire) {
-                        tracing::error!(stream = name, %error, "Native PulseAudio output stopped");
+                        if worker_state.closed.is_cancelled() {
+                            break;
+                        }
+                        (
+                            queue.connection_closed.clone(),
+                            worker_state.generation.load(Ordering::Acquire),
+                        )
+                    };
+                    if !initial {
+                        tracing::info!(
+                            stream = name,
+                            "Reopening native PulseAudio output for fresh audio"
+                        );
                     }
+                    let result =
+                        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            match open(connection_closed.clone()) {
+                                Ok(mut device) => {
+                                    worker_state.queue.lock().unwrap().connected = true;
+                                    if let Some(ready) = startup.take() {
+                                        let _ = ready.send(Ok(()));
+                                    }
+                                    run(&worker_state, &mut device, &connection_closed, generation)
+                                }
+                                Err(error) => {
+                                    if let Some(ready) = startup.take() {
+                                        let _ = ready.send(Err(error.clone()));
+                                    }
+                                    Err(error)
+                                }
+                            }
+                        }))
+                        .unwrap_or_else(|_| Err("PulseAudio output worker panicked".into()));
+                    if let Some(ready) = startup.take() {
+                        // Also unblock construction if native setup panicked.
+                        let _ = ready
+                            .send(Err(result.clone().err().unwrap_or_else(|| {
+                                "PulseAudio output closed during startup".into()
+                            })));
+                    }
+                    if let Err(error) = &result {
+                        if !worker_state.shutdown.load(Ordering::Acquire) {
+                            tracing::error!(
+                                stream = name,
+                                %error,
+                                "Native PulseAudio output interrupted; fresh audio may reconnect"
+                            );
+                        }
+                    }
+                    worker_state.retire(result.err());
+                    initial = false;
                 }
-                worker_state.retire(result.err());
+                worker_state.retire(None);
             })
             .map_err(|error| AudioError::PlaybackError(format!("PulseAudio worker: {error}")))?;
         let sink = Arc::new(Self {
@@ -187,7 +243,7 @@ impl PulseSink {
         SourceLifetime {
             generation: self.state.generation.clone(),
             expected: self.state.generation.load(Ordering::Acquire),
-            closed: self.state.closed.clone(),
+            closed: self.state.queue.lock().unwrap().connection_closed.clone(),
         }
     }
 
@@ -209,6 +265,19 @@ impl PulseSink {
                     .unwrap_or_else(|| "PulseAudio output is closed".into()),
             ));
         }
+        if queue
+            .retry_at
+            .is_some_and(|retry_at| Instant::now() < retry_at)
+        {
+            return Err(AudioError::PlaybackError(
+                queue
+                    .failure
+                    .clone()
+                    .unwrap_or_else(|| "PulseAudio reconnect pending".into()),
+            ));
+        }
+        queue.retry_at = None;
+        queue.failure = None;
         queue.pending += 1;
         queue.idle = false;
         queue.sources.push_back(Queued {
@@ -228,12 +297,12 @@ impl PulseSink {
             // A retired worker cannot acknowledge another flush. In
             // particular, stop followed by drain after device failure must
             // not mark the already-closed output busy again.
-            if self.state.closed.is_cancelled() {
+            if self.state.closed.is_cancelled() || queue.failure.is_some() {
                 return;
             }
             let sources = std::mem::take(&mut queue.sources);
             queue.pending -= sources.len();
-            queue.idle = false;
+            queue.idle = !queue.connected;
             sources
         };
         drop(sources);
@@ -254,6 +323,7 @@ impl PulseSink {
     pub(crate) fn shutdown(&self) {
         self.state.shutdown.store(true, Ordering::Release);
         self.state.closed.cancel();
+        self.state.queue.lock().unwrap().connection_closed.cancel();
         self.state.changed.notify_all();
         if let Some(worker) = self.worker.lock().unwrap().take() {
             let _ = worker.join();
@@ -267,8 +337,12 @@ impl Drop for PulseSink {
     }
 }
 
-fn run(state: &State, device: &mut impl PlaybackDevice) -> Result<(), String> {
-    let mut generation = 0;
+fn run(
+    state: &State,
+    device: &mut impl PlaybackDevice,
+    connection_closed: &CancellationToken,
+    mut generation: u64,
+) -> Result<(), String> {
     let mut corked = true;
     let mut primed_frames = 0;
     let mut current: Option<Queued> = None;
@@ -277,7 +351,7 @@ fn run(state: &State, device: &mut impl PlaybackDevice) -> Result<(), String> {
     let mut reported = Instant::now();
     let mut samples = Vec::with_capacity(WRITE_FRAMES * CHANNELS as usize);
     loop {
-        if state.closed.is_cancelled() {
+        if state.closed.is_cancelled() || connection_closed.is_cancelled() {
             return if state.shutdown.load(Ordering::Acquire) {
                 Ok(())
             } else {
@@ -380,7 +454,9 @@ fn run(state: &State, device: &mut impl PlaybackDevice) -> Result<(), String> {
         samples.clear();
         let source = current.as_mut().unwrap();
         for _ in 0..frames * CHANNELS as usize {
-            if state.closed.is_cancelled() || state.generation.load(Ordering::Acquire) != generation
+            if state.closed.is_cancelled()
+                || connection_closed.is_cancelled()
+                || state.generation.load(Ordering::Acquire) != generation
             {
                 break;
             }
@@ -389,7 +465,10 @@ fn run(state: &State, device: &mut impl PlaybackDevice) -> Result<(), String> {
                 None => break,
             }
         }
-        if state.closed.is_cancelled() || state.generation.load(Ordering::Acquire) != generation {
+        if state.closed.is_cancelled()
+            || connection_closed.is_cancelled()
+            || state.generation.load(Ordering::Acquire) != generation
+        {
             continue;
         }
         if !samples.len().is_multiple_of(CHANNELS as usize) {
@@ -516,7 +595,7 @@ pub(crate) mod tests {
         (
             PulseSink::start("test", move |closed| {
                 *device.closed.lock().unwrap() = Some(closed);
-                Ok(Device(device))
+                Ok(Device(device.clone()))
             })
             .unwrap(),
             fake,
@@ -603,12 +682,12 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn device_failure_retires_backlog_and_rejects_future_audio() {
+    fn device_failure_retires_backlog_and_reconnects_only_for_fresh_audio() {
         let (sink, fake) = fake_sink();
         sink.append(source(0.25, 999)).unwrap();
         sink.append(source(0.5, 999)).unwrap();
         fake.failed.store(true, Ordering::Release);
-        until(|| sink.state.closed.is_cancelled());
+        until(|| sink.state.queue.lock().unwrap().failure.is_some());
         sink.drain();
         sink.clear();
         assert!(sink.state.queue.lock().unwrap().idle);
@@ -619,6 +698,13 @@ pub(crate) mod tests {
             .contains("injected device failure"));
         assert_eq!(sink.len(), 0);
         assert!(fake.samples().is_empty());
+        fake.failed.store(false, Ordering::Release);
+        fake.writable.store(true, Ordering::Release);
+        std::thread::sleep(RECONNECT_DELAY);
+        assert!(fake.samples().is_empty());
+        sink.append(source(0.75, 1)).unwrap();
+        sink.drain();
+        assert_eq!(fake.samples(), vec![0.75; 2]);
     }
 
     #[test]
@@ -633,5 +719,79 @@ pub(crate) mod tests {
         assert_eq!(speech.len(), 1);
         speech.clear();
         speech.drain();
+    }
+
+    #[test]
+    fn stop_during_reconnect_keeps_only_the_replacement_and_shutdown_stays_final() {
+        let (template, fake) = fake_sink();
+        template.shutdown();
+        let device = fake.clone();
+        let (opening_tx, opening_rx) = mpsc::channel();
+        let (resume_tx, resume_rx) = mpsc::channel();
+        let mut opens = 0;
+        let sink = PulseSink::start("reconnect", move |closed| {
+            opens += 1;
+            if opens > 1 {
+                opening_tx.send(()).unwrap();
+                resume_rx.recv().unwrap();
+            }
+            *device.closed.lock().unwrap() = Some(closed);
+            Ok(Device(device.clone()))
+        })
+        .unwrap();
+        let old_lifetime = sink.lifetime();
+        fake.disconnect();
+        until(|| sink.state.queue.lock().unwrap().failure.is_some());
+        assert!(old_lifetime.is_cancelled());
+        // Elapse the admission cooldown without slowing a deterministic test.
+        sink.state.queue.lock().unwrap().retry_at = None;
+        sink.append(source(0.25, 999)).unwrap();
+        opening_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        sink.clear();
+        sink.drain(); // Opening a connection cannot hold up stop or drain.
+        sink.append(source(0.75, 2)).unwrap();
+        fake.writable.store(true, Ordering::Release);
+        resume_tx.send(()).unwrap();
+        sink.drain();
+        assert_eq!(fake.samples(), vec![0.75; 4]);
+        assert!(old_lifetime.is_cancelled());
+        assert!(!sink.lifetime().is_cancelled());
+        sink.shutdown();
+        assert!(sink.append(source(1.0, 2)).is_err());
+        sink.clear();
+        sink.drain();
+    }
+
+    #[test]
+    fn failed_reconnect_does_not_retry_without_fresh_audio() {
+        let (template, fake) = fake_sink();
+        template.shutdown();
+        let device = fake.clone();
+        let opens = Arc::new(AtomicU64::new(0));
+        let attempts = opens.clone();
+        let sink = PulseSink::start("reconnect", move |closed| {
+            if attempts.fetch_add(1, Ordering::AcqRel) > 0 {
+                return Err("injected reconnect failure".into());
+            }
+            *device.closed.lock().unwrap() = Some(closed);
+            Ok(Device(device.clone()))
+        })
+        .unwrap();
+        fake.disconnect();
+        until(|| sink.state.queue.lock().unwrap().failure.is_some());
+        assert_eq!(opens.load(Ordering::Acquire), 1);
+        sink.state.queue.lock().unwrap().retry_at = None;
+        sink.append(source(0.25, 10)).unwrap();
+        until(|| {
+            sink.state.queue.lock().unwrap().failure.as_deref()
+                == Some("injected reconnect failure")
+        });
+        sink.clear();
+        sink.drain();
+        assert!(sink.append(source(0.5, 10)).is_err());
+        assert_eq!(opens.load(Ordering::Acquire), 2);
+        assert!(fake.samples().is_empty());
+        sink.shutdown();
+        sink.drain();
     }
 }

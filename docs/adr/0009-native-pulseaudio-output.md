@@ -51,11 +51,19 @@ cancellation retains the shared source's fade and never flushes unrelated
 requests. PCM already consumed by WSLg/RDP cannot be recalled. Markers and
 completion continue to describe source consumption, not physical sound.
 
-Connection failure retires current and queued sources and rejects future
-appends on that lane. Connection setup, stream operations, writable-buffer
-stalls, and drains have deadlines. Backend shutdown also interrupts a stalled
-progressive source. Automatic reconnection remains separate device-recovery
-work; a failed trial is restarted explicitly.
+Connection failure retires current and queued sources on that lane. Connection
+setup, stream operations, writable-buffer stalls, and drains have deadlines.
+After a 250 ms admission cooldown, fresh audio may reopen only the affected
+connection on its existing source worker. Disconnected speech is never replayed;
+no reconnect runs without a new request. Failed attempts retire their new
+backlog and repeat the cooldown. Stop and drain remain independent of native
+connection setup, and shutdown permanently closes admission and interrupts
+stalled progressive sources. Initial connection failure still fails startup.
+
+This recovery refines the initial experiment after a live WSLg trial lost all
+foreground streams to operation timeouts while notification speech continued.
+Output-consumer errors must not count as synthesis-engine failures or cause
+cross-engine retries through the same unavailable output.
 
 ## Consequences
 

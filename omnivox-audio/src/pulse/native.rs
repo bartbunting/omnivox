@@ -312,6 +312,11 @@ impl Client {
     }
 
     fn operation(&self, cork: Option<bool>) -> Result<(), String> {
+        let action = match cork {
+            Some(true) => "cork",
+            Some(false) => "uncork",
+            None => "flush",
+        };
         let mut result = None;
         let operation = {
             let _lock = self.lock();
@@ -327,7 +332,7 @@ impl Client {
             }
         };
         if operation.is_null() {
-            return Err(self.error("stream operation"));
+            return Err(self.error(action));
         }
         let deadline = Instant::now() + TIMEOUT;
         loop {
@@ -343,7 +348,10 @@ impl Client {
                     return if state == 1 && result == Some(true) {
                         Ok(())
                     } else {
-                        Err(self.error("stream operation failed or timed out"))
+                        Err(self.error(&format!(
+                            "{action} failed (operation_state={state}, result={result:?}, timed_out={})",
+                            Instant::now() >= deadline,
+                        )))
                     };
                 }
             }

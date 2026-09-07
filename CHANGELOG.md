@@ -26,7 +26,9 @@ Versioning for published releases.
 
 ### Fixed
 
-- Progressive output failures retain speech-engine health instead of
+- Native PulseAudio operation timeouts no longer permanently remove an audio
+  lane: fresh speech can reopen its connection without replaying stale audio.
+  Progressive output failures also retain speech-engine health instead of
   disabling working voices or retrying through the same failed output.
 - Linux Eloquence and DECtalk announcements requiring capitalization cues or
   other timed actions can remain progressive instead of waiting for complete
