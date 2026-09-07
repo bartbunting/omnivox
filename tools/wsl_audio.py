@@ -104,6 +104,43 @@ def validate_pulse_server(server: str) -> None:
         raise ValueError(f"WSLg PulseAudio socket is unavailable: {path}")
 
 
+def pulse_health(env: dict[str, str], timeout: float = 3) -> dict[str, Any]:
+    """Check the control connection without playing audio or listing other clients."""
+    server = env.get("PULSE_SERVER", "unix:/mnt/wslg/PulseServer")
+    result: dict[str, Any] = {
+        "server": server, "status": "unverified", "playback_verified": False,
+    }
+    pactl = shutil.which("pactl", path=env.get("PATH"))
+    if pactl is None:
+        result["detail"] = "pactl is unavailable; socket presence alone does not establish server health."
+        return result
+    started = time.monotonic()
+    try:
+        probe = subprocess.run(
+            [pactl, f"--server={server}", "info"], env=env,
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, timeout=timeout, check=False,
+        )
+        result["status"] = "reachable" if probe.returncode == 0 else "unavailable"
+        result["detail"] = (
+            "PulseAudio answered a control query; audible playback has not been tested."
+            if probe.returncode == 0 else
+            "PulseAudio rejected or could not complete the connection; check the server and access settings."
+        )
+        result["exit_code"] = probe.returncode
+    except subprocess.TimeoutExpired:
+        result["status"] = "timeout"
+        result["detail"] = (
+            f"PulseAudio did not answer within {timeout:g} seconds. "
+            "Check the shared WSLg audio server/bridge before restarting speech; "
+            "both Linux backends depend on it."
+        )
+    except OSError as error:
+        result["detail"] = f"Could not run pactl: {error}"
+    result["elapsed_ms"] = round((time.monotonic() - started) * 1000, 2)
+    return result
+
+
 def environment(
     config: dict[str, Any], directory: Path, target: str,
     inherited: dict[str, str] | None = None, request: str | None = None,
@@ -226,6 +263,7 @@ def report(config: dict[str, Any], directory: Path) -> dict[str, Any]:
             for kind in ("pcm", "ctl")
         } if uses_alsa else None,
         "runtimes": identities,
+        "linux_server": pulse_health(environment(config, directory, "linux")[0]),
         "versions_match": identities["linux"]["version"] == identities["windows"]["version"],
         "acoustic_onset_measured": False,
         "stop_to_silence_measured": False,
@@ -445,6 +483,8 @@ def main() -> int:
     run.add_argument("arguments", nargs=argparse.REMAINDER)
     inspect = commands.add_parser("report", help="report both runtime identities without audio")
     inspect.add_argument("directory", type=Path)
+    health = commands.add_parser("health", help="check the Linux audio server with a three-second deadline")
+    health.add_argument("--pulse-server", default=os.environ.get("PULSE_SERVER", "unix:/mnt/wslg/PulseServer"))
     buffers = commands.add_parser("probe", help="sample Linux default and trial buffers")
     buffers.add_argument("directory", type=Path)
     buffers.add_argument("output", type=Path)
@@ -457,6 +497,10 @@ def main() -> int:
             launch(args.directory.resolve(), args.target, args.arguments)
         elif args.command == "report":
             print(json.dumps(report(read_config(args.directory), args.directory.resolve()), indent=2))
+        elif args.command == "health":
+            result = pulse_health({**os.environ, "PULSE_SERVER": args.pulse_server})
+            print(json.dumps(result, indent=2))
+            return 0 if result["status"] == "reachable" else 1
         elif not probe(read_config(args.directory), args.directory.resolve(),
                        args.output.expanduser().resolve(), args.samples):
             return 1

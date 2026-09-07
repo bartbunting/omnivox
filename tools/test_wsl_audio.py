@@ -266,6 +266,53 @@ class WslAudioTests(unittest.TestCase):
             process.stdin.close()
 
 
+class PulseHealthTests(unittest.TestCase):
+    def test_reachable_checks_selected_server_without_retaining_private_output(self) -> None:
+        env = {"PULSE_SERVER": "unix:/selected/server", "PATH": "/tools"}
+        with patch.object(wsl_audio.shutil, "which", return_value="/tools/pactl"), \
+             patch.object(wsl_audio.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as run:
+            result = wsl_audio.pulse_health(env)
+        self.assertEqual(result["status"], "reachable")
+        self.assertFalse(result["playback_verified"])
+        self.assertEqual(run.call_args.args[0], ["/tools/pactl", "--server=unix:/selected/server", "info"])
+        self.assertEqual(run.call_args.kwargs["env"], env)
+        self.assertEqual(run.call_args.kwargs["timeout"], 3)
+        self.assertEqual(run.call_args.kwargs["stdout"], subprocess.DEVNULL)
+        self.assertEqual(run.call_args.kwargs["stderr"], subprocess.DEVNULL)
+
+    def test_connection_failure_is_distinct_from_a_timeout(self) -> None:
+        with patch.object(wsl_audio.shutil, "which", return_value="/tools/pactl"), \
+             patch.object(wsl_audio.subprocess, "run", return_value=subprocess.CompletedProcess([], 1)):
+            result = wsl_audio.pulse_health({})
+        self.assertEqual(result["status"], "unavailable")
+        self.assertEqual(result["exit_code"], 1)
+
+    def test_missing_pactl_does_not_claim_a_healthy_server(self) -> None:
+        with patch.object(wsl_audio.shutil, "which", return_value=None), \
+             patch.object(wsl_audio.subprocess, "run") as run:
+            result = wsl_audio.pulse_health({})
+        self.assertEqual(result["status"], "unverified")
+        run.assert_not_called()
+
+    @unittest.skipUnless(os.name == "posix", "fake executable requires POSIX")
+    def test_hung_probe_times_out_and_reaps_only_its_child(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pid_file = root / "probe.pid"
+            pactl = root / "pactl"
+            pactl.write_text(
+                f"#!{sys.executable}\nimport os, pathlib, time\n"
+                f"pathlib.Path({str(pid_file)!r}).write_text(str(os.getpid()))\n"
+                "time.sleep(60)\n"
+            )
+            pactl.chmod(0o700)
+            result = wsl_audio.pulse_health({"PATH": directory}, timeout=0.5)
+            self.assertEqual(result["status"], "timeout")
+            self.assertLess(result["elapsed_ms"], 2000)
+            with self.assertRaises(ProcessLookupError):
+                os.kill(int(pid_file.read_text()), 0)
+
+
 class LatencyTests(unittest.TestCase):
     def test_rejects_stalling_and_unbounded_requests(self) -> None:
         for value in ("0", "20", "49", "-50", "1001", "nan", "1e2", "9" * 100, ""):

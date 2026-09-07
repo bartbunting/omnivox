@@ -315,6 +315,13 @@ architecture requirements, and exact runtime checks.
 
 ## WSLg audio comparison
 
+`python3 tools/wsl_audio.py health` checks the configured PulseAudio server
+without playing audio, with a three-second deadline. It reports control-query
+reachability separately from playback, and fails if the query times out,
+the connection fails, or `pactl` is unavailable. Reports include this check as
+`linux_server`; no server process is restarted and private `pactl info` output
+is discarded.
+
 `wsl_audio.py` prepares separate Windows and Linux Emacsvox trial launchers,
 reports actual executable identities and configured audio paths, and repeats
 Linux PulseAudio buffer/shutdown probes. It uses a new private trial directory
