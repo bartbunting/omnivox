@@ -1,0 +1,20 @@
+[package]
+name = "omnivox-linux-helpers"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license = "GPL-2.0-or-later"
+
+[dependencies]
+libloading = "0.8"
+omnivox-audio = { path = "../omnivox-audio" }
+omnivox-helper-host = { path = "../omnivox-helper-host" }
+omnivox-tts = { path = "../omnivox-tts", default-features = false }
+
+[[bin]]
+name = "omnivox-eloquence-helper"
+path = "src/bin/eloquence.rs"
+
+[[bin]]
+name = "omnivox-dectalk-helper"
+path = "src/bin/dectalk.rs"

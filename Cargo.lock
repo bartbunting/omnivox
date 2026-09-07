@@ -693,6 +693,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "omnivox-linux-helpers"
+version = "1.8.0"
+dependencies = [
+ "libloading",
+ "omnivox-audio",
+ "omnivox-helper-host",
+ "omnivox-tts",
+]
+
+[[package]]
 name = "omnivox-piper-helper"
 version = "1.8.0"
 dependencies = [

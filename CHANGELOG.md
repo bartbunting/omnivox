@@ -6,6 +6,15 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Linux development builds stage separate Eloquence/Outloud and DECtalk
+  interfaces for user-installed native libraries. The helpers provide bounded
+  progressive PCM and cancellation, report missing runtimes, and expose their
+  English voices and six portable ACSS controls. Native ECI indexes provide
+  exact anchors and word/sentence markers; DECtalk provides word-boundary
+  anchors and word/sentence/phoneme markers.
+
 ### Changed
 
 - Updated GitHub Actions to Node 24 releases and selected the Visual Studio
@@ -16,6 +25,10 @@ Versioning for published releases.
 
 - Progressive output failures retain speech-engine health instead of
   disabling working voices or retrying through the same failed output.
+- Linux Eloquence and DECtalk announcements requiring capitalization cues or
+  other timed actions can remain progressive instead of waiting for complete
+  synthesis. Native timing precedes the corresponding PCM, including DECtalk's
+  delayed index records.
 - Rapid speech interruption could deadlock eSpeak's native cancellation and
   leave later speech queued indefinitely, reproduced during Dired navigation
   in the Linux WSLg trial. Cancellation now uses the synthesis callback and

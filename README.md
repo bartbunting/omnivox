@@ -25,7 +25,7 @@ There are two supported consumers with deliberately different Lisp adapters:
 |---|---|---|
 | macOS | AVSpeechSynthesizer | eSpeak NG; optional Piper, RHVoice, Flite, and RuTTS helpers |
 | Windows | WinRT SpeechSynthesizer | eSpeak NG; optional Eloquence, DECtalk, Piper, RHVoice, Flite, RuTTS, and experimental TGSpeechBox helpers |
-| Linux | eSpeak NG | optional Piper, RHVoice, Flite, and RuTTS helpers; experimental TGSpeechBox development companion |
+| Linux | eSpeak NG | optional Piper, RHVoice, Flite, and RuTTS helpers; development Eloquence/Outloud, DECtalk, and TGSpeechBox companions |
 
 The Windows Eloquence and DECtalk engines run in separate 32-bit helper
 processes and require user-supplied proprietary runtimes. Windows release
@@ -40,6 +40,13 @@ Flite, and RuTTS are source-built companions; RHVoice loads a user-installed
 runtime. Their native code never enters the main server process. The
 [RHVoice guide](docs/RHVOICE.md) covers runtime installation and verification.
 Speech Dispatcher remains a design proposal, not an implemented backend.
+
+Linux development builds also stage separate
+[Eloquence/Outloud and DECtalk helpers](linux-helpers/README.md), which load
+user-installed libraries and voice data. DECtalk and Eloquence through Voxin
+3.4 have passed local WSLg synthesis, cancellation, and Dired checks. Voxin's
+standard user installation is discovered automatically; its licensed runtime
+and voice data remain outside Omnivox builds.
 
 Current supported `make build` and `make dev` stage the portable RHVoice helper
 and the source-built Flite SLT and RuTTS companions, and enable discovery of
@@ -159,6 +166,7 @@ make dev         # locked debug build plus adjacent eSpeak runtime data
 make fmt-check   # non-mutating format check
 make test        # locked default-member tests
 make lint        # locked default-member/all-target Clippy with warnings denied
+make linux-helpers  # Linux interfaces only; runtimes remain user supplied
 make windows-helpers-test  # source-contract checks for Windows helpers
 make windows-helpers-startup-test  # missing-runtime test on Windows/WSL
 ```

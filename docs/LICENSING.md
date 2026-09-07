@@ -8,8 +8,8 @@ not a substitute for reading the included license texts.
 
 Except where a file or component carries another notice, Omnivox-authored
 source and documentation in this repository are available under the
-[MIT License](../LICENSE). The Rust workspace manifests use the SPDX identifier
-`MIT`.
+[MIT License](../LICENSE). The Rust workspace default is `MIT`; components
+with another license declare it in their own manifest and source notices.
 
 The MIT grant applies to the Omnivox-authored source. It does not replace or
 weaken the terms of code, data, models, voices, or runtimes supplied by another
@@ -35,6 +35,18 @@ the applicable GPL notice and license text. Emacsvox stages that text as
 `WINDOWS-HELPERS-COPYING` beside its helper executables. Beginning with v1.7.1,
 the generic Omnivox Windows archives do the same and include the exact helper
 source and build script as `windows-helpers-source`.
+
+## Linux Eloquence/Outloud and DECtalk helpers
+
+The Rust adapters under [`linux-helpers`](../linux-helpers/README.md) carry
+`GPL-2.0-or-later` notices and adapt native capture concepts and voice/rate
+mappings from the Windows helpers. Their license text is
+[`linux-helpers/COPYING`](../linux-helpers/COPYING). Each engine runs as a
+separate executable and dynamically loads the user's installed runtime.
+Local builds stage `OMNIVOX-HELPER-COPYING` and the helper guide beside each
+executable. They do not copy native libraries, dictionaries, or voice data.
+These development helpers are not added to published generic archives or
+Debian packages by this change.
 
 ## eSpeak NG and release executables
 

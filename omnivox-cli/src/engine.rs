@@ -578,6 +578,15 @@ fn configured_helper_configs(requested: &str, model: Option<&str>) -> Vec<Helper
         configs.push(piper);
     }
     configs.extend(companion_helper_configs());
+    #[cfg(target_os = "linux")]
+    for (id, variable) in [
+        ("eloquence", "OMNIVOX_ELOQUENCE_HELPER"),
+        ("dectalk", "OMNIVOX_DECTALK_HELPER"),
+    ] {
+        if let Some(config) = companion_helper_config(id, variable) {
+            configs.push(config);
+        }
+    }
     configs
 }
 
@@ -586,8 +595,9 @@ fn configured_helper_configs(requested: &str, model: Option<&str>) -> Vec<Helper
 /// `engine_name` may be empty (use `OMNIVOX_ENGINE` env var or platform default),
 /// `"native"`, `"espeak"`, `"piper"`, `"rhvoice"`, `"flite"`, `"rutts"`, or
 /// `"tgspeechbox"`.
-/// Windows also accepts `"winrt"`, `"eloquence"`, and `"dectalk"`; macOS
-/// accepts `"macos"`. An explicitly requested unavailable engine is an error,
+/// Linux and Windows also accept `"eloquence"` and `"dectalk"`; Windows accepts
+/// `"winrt"` and macOS accepts `"macos"`. An explicitly requested unavailable
+/// engine is an error,
 /// so diagnostic results cannot silently describe a fallback engine.
 /// `piper_model` is the path to a `.onnx` model file; if `None`,
 /// `OMNIVOX_PIPER_MODEL` is consulted.
@@ -653,8 +663,23 @@ pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Ar
             info!("Using {forced} TTS helper");
             return Ok(Arc::new(engine));
         }
-        #[cfg(not(target_os = "windows"))]
-        anyhow::bail!("{forced} is available only on Windows");
+        #[cfg(target_os = "linux")]
+        {
+            let variable = if forced == "eloquence" {
+                "OMNIVOX_ELOQUENCE_HELPER"
+            } else {
+                "OMNIVOX_DECTALK_HELPER"
+            };
+            let config = companion_helper_config(&forced, variable).ok_or_else(|| {
+                anyhow::anyhow!("the Linux {forced} helper was not found; run make linux-helpers")
+            })?;
+            let engine = HelperTtsEngine::new(config).map_err(|error| {
+                anyhow::anyhow!("{forced} TTS helper is not available: {error}")
+            })?;
+            return Ok(Arc::new(engine));
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        anyhow::bail!("{forced} is available only on Windows and Linux");
     }
 
     #[cfg(target_os = "macos")]
@@ -727,7 +752,7 @@ fn isolate_server_engine(
 ) -> Arc<dyn TtsEngine> {
     if !matches!(
         engine.descriptor().id.as_str(),
-        "piper" | "rhvoice" | "flite" | "rutts" | "tgspeechbox"
+        "piper" | "rhvoice" | "flite" | "rutts" | "tgspeechbox" | "eloquence" | "dectalk"
     ) {
         return engine;
     }
@@ -777,7 +802,7 @@ pub fn native_engine_name() -> &'static str {
     }
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
-        "none (espeak-ng is the only backend)"
+        "none (default: espeak-ng; optional engines use helpers)"
     }
 }
 

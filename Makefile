@@ -26,6 +26,19 @@ build: stage-rhvoice stage-flite stage-rutts
 dev: stage-rhvoice-dev stage-flite-dev stage-rutts-dev
 	$(PYTHON) tools/build.py --package omnivox-cli --features piper
 
+# Optional user-installed Linux runtimes stay behind their own helpers.
+.PHONY: linux-helpers linux-helpers-dev
+linux-helpers:
+	$(PYTHON) tools/build_linux_helpers.py --release
+
+linux-helpers-dev:
+	$(PYTHON) tools/build_linux_helpers.py
+
+ifeq ($(shell uname -s),Linux)
+build: linux-helpers
+dev: linux-helpers-dev
+endif
+
 # Run tests
 test: windows-helpers-test rate-audit-test latency-benchmark-test latency-benchmark-suite-test server-stress-test helper-soak-test diagnostics-redaction-test archive-safety-test release-archive-test piper-release-test release-asset-test
 	cargo test --locked
