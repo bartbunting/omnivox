@@ -107,7 +107,11 @@ the matching verified GitHub release.
   protocol over SSH reverse tunnels to separate speaker and notification
   workers. It bounds framing and connection queues, expires heartbeat leases,
   and retires disconnected worker trees. Remote resources are restricted to
-  bundled icon identifiers. See [remote setup](REMOTE.md).
+  bundled icon identifiers. Real SSH-host checks now pass against Windows
+  DECtalk device/null output and Linux eSpeak null output, including automatic
+  recovery of both lanes after a tunnel interruption. See
+  [remote setup](REMOTE.md) and the
+  [development acceptance report](experiments/2026-09-07-remote-ssh.md).
 
 ## Current limitations
 

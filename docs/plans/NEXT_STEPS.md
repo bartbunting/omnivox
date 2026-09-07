@@ -43,7 +43,7 @@ not change the accepted architecture, helper boundaries, or release policy.
 | 2 | Voice selection and installation assistance | Browse, preview, install/import, test, and select additional voices through Emacsvox's Voice Workbench, with engine-specific installation support. |
 | 3 | Audio-device selection and recovery | Named devices, a deliberate follow-default policy, disconnect/reconnect recovery, and separate foreground/notification destinations. |
 | 4 | Speech and audio doctor | Explain the selected executable, backend, device, engine, voice, fallback reason, buffer settings, and recovery action. |
-| 5 | Reliable remote workstation setup | Complete real SSH-host and native-device acceptance, improve setup diagnostics and reconnection, and graduate the existing preview when evidence supports it. |
+| 5 | Reliable remote workstation setup | Real SSH-host acceptance now passes with Windows device/null output and Linux null output. Extend outage, interactive, matched-release, and macOS coverage before graduating the preview. |
 | 6 | Portable speech and output profiles | Switch voice/rate/routing preferences and Windows-versus-Linux launch choices without carrying incompatible runtime paths between platforms. |
 | 7 | Omnivox pronunciation dictionaries | Per-language and per-application corrections that preserve original-text offsets for markers and navigation. |
 | 8 | Pause and resume for long reading | Resume a bounded reading session with defined behavior for intervening navigation, cancellation, and engines without precise markers. |
@@ -93,6 +93,21 @@ voice import, and platform-native installation guidance. Emacsvox owns the
 accessible UI and guided installation workflow; Omnivox owns engine/voice
 inventory, capability reporting, test synthesis, and useful failure details.
 This milestone does not promise a particular release date or version.
+
+### Remote workstation delivery slice
+
+The [2026-09-07 real SSH experiment](../experiments/2026-09-07-remote-ssh.md)
+passed with remote Emacs 31.1, Windows DECtalk device/null output, and Linux
+eSpeak null output. Both speech lanes survive an idle heartbeat interval and
+recover automatically after the test's SSH tunnel is interrupted during
+pending speech. The repeatable check owns temporary service/client instances,
+tokens, and ports; it preserves installed configurations and working sessions.
+Setup and recovery troubleshooting is now documented in
+[the remote guide](../REMOTE.md#setup-and-recovery-troubleshooting).
+
+Next, collect listening confirmation, longer outage and sleep/resume evidence,
+interactive editing checks, matched-release payload acceptance, and native
+macOS coverage. Keep the feature in preview while that work remains.
 
 ### Voice installation scope
 
@@ -244,8 +259,9 @@ These are not current features and require design or scope approval:
   explicit-device versus follow-default behavior, fallback, restart, and
   notification separation before extending channel routing.
 - **Remote workstation follow-up:** the loopback, authenticated single-session
-  service is available as a preview in 1.8.0; finish native-device and real
-  SSH-host acceptance before removing preview status. Broader network access
+  service is available as a preview in 1.8.0. Real SSH-host acceptance now
+  passes with Windows device output; complete the remaining acceptance in
+  the feature 5 delivery slice before removing preview status. Broader network access
   still requires protocol exposure review, and explicit privacy documentation
   before implementation.
 - **Additional effects:** new duration-changing or repeating effects must

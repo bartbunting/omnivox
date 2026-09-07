@@ -81,7 +81,78 @@ Development acceptance on 2026-09-05 passed Linux service tests, Linux Emacs
 against Windows DECtalk (both lanes, Unicode, icons, markers, cancellation,
 heartbeat expiry, and fresh reconnection), and one real-device DECtalk
 completion check. The Windows development runtime is `98084bb159c06059`.
-A separate SSH host and native macOS have not yet been exercised.
+On 2026-09-07, Emacs 31.1 on a separate Linux SSH host passed the real-forward
+check below against Windows DECtalk (null and device output) and Linux eSpeak
+(null output). Both channels recovered automatically after the owned SSH
+tunnel was interrupted during pending speech. See the
+[acceptance report](experiments/2026-09-07-remote-ssh.md) for exact development
+payloads, timings, and remaining limits. Native macOS is still untested.
+
+## Repeatable real SSH check
+
+From Linux or WSL, use an existing trusted SSH alias with working key-based
+authentication. The remote Linux host needs Python 3, `tar`, `ss`, and an
+installed Emacs version supported by the Emacsvox checkout. No package
+installation is performed. The check snapshots **committed Emacsvox HEAD**;
+uncommitted edits and the remote host's installed Emacsvox are not exercised.
+
+```sh
+python3 tools/check_remote_ssh.py \
+  --host emacs-host \
+  --program "$PWD/target/release/omnivox" \
+  --emacsvox ../emacsvox \
+  --remote-emacs /absolute/path/to/emacs \
+  --engine espeak \
+  --report-dir target/remote-ssh-linux
+```
+
+Build the staged payload with `make build` first if necessary. For a Windows
+workstation service launched from WSL, replace the program and engine options
+and add Windows OpenSSH:
+
+```sh
+python3 tools/check_remote_ssh.py \
+  --host emacs-host \
+  --ssh /mnt/c/Windows/System32/OpenSSH/ssh.exe \
+  --windows --program ../emacsvox/servers/omnivox \
+  --emacsvox ../emacsvox \
+  --remote-emacs /absolute/path/to/emacs \
+  --engine dectalk \
+  --audio-output device \
+  --report-dir target/remote-ssh-windows-device
+```
+
+The default output is silent (`null`). Explicit `device` output speaks four
+short announcements. Confirm hearing both the initial and recovered foreground
+and notification announcements; completion events alone cannot establish
+audibility. Each report directory must be new.
+
+The check creates a private temporary token and remote source snapshot, starts
+its own loopback service and SSH reverse forward, and checks the forward's
+actual bind address. It verifies both lanes' inventory, voice registration,
+routing, realized engine, marked completion, and a 22-second idle heartbeat.
+It then interrupts **only its own tunnel**, checks that both pending requests
+fail once, restores the same forwarded port, and waits for automatic client
+reconnection and fresh speech. It does not restart Emacs to obtain recovery.
+
+Owned processes, tokens, and the remote snapshot are removed on completion.
+The remote test supervisor also retires its Emacs on client-connection EOF or
+a 180-second deadline. Cleanup failures make the check fail. Existing services,
+SSH tunnels, installed checkouts, and configuration files remain in place.
+Test reports redact the temporary token; logs still contain local paths and
+machine details. Local supervisor failure tests require no SSH host:
+`make remote-ssh-harness-test`.
+
+## Setup and recovery troubleshooting
+
+| Symptom | Check or action |
+| --- | --- |
+| SSH fails before the check starts | Establish host trust and key authentication using the selected SSH client. The check uses batch mode and strict host checking, so it cannot answer login or host-key prompts. |
+| Forwarding is reported ready but Emacs cannot connect | Confirm the workstation service is still listening and the SSH client runs on the same side of WSL's loopback boundary. `ExitOnForwardFailure` checks listener creation; it does not prove the destination service is reachable. See [OpenSSH's option documentation](https://man.openbsd.org/ssh_config#ExitOnForwardFailure). |
+| Authentication or token-file error | Use matching private token copies and the intended port. Unix token files must have no group or other permissions. Never paste the token into commands or diagnostics. |
+| `busy` after a dropped connection | One session owns the two lanes. Allow the old workers to retire; check for another connected Emacs before starting a new session. |
+| Speech stops after losing SSH | Restore the reverse forward on the same port. Emacs retries automatically, with backoff up to 30 seconds, and fails interrupted speech instead of replaying it. After an explicit `omnivox-remote-disconnect`, use `omnivox-remote-connect` to resume retries. |
+| Speech completes but nothing is heard | Check that the service uses `device` output, the intended workstation output is audible, and foreground/notification channel routing matches the speakers or headphones. A null-output check is intentionally silent. |
 
 The [wire contract](protocols/REMOTE-PROTOCOL.md) specifies framing, limits,
 authentication, resource rules, and lifecycle behavior.
