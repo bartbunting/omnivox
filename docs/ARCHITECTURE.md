@@ -43,14 +43,15 @@ omnivox-rutts-sys/     pinned portable C build and narrow native boundary
 omnivox-tgspeechbox-helper/ isolated TGSpeechBox/eSpeak adapter
 omnivox-tgspeechbox-sys/ narrow build-time TGSpeechBox C++ boundary
 windows-helpers/       32-bit Eloquence/DECtalk capture processes and host
+linux-helpers/         dynamically loaded Linux ECI/DECtalk capture processes
 third-party/           separately licensed, provenance-recorded native source
 elisp/                 standalone upstream-Emacspeak compatibility adapter
 ```
 
 The main server is `omnivox-cli`. Omnivox-specific data contracts live in
 `omnivox-tts`; the audio crate owns the single canonical `AudioBuffer`. The
-core crate remains independent of any one engine. The C# Windows helpers are
-separate executables and retain their GPL-2.0-or-later source license.
+core crate remains independent of any one engine. The Windows and Linux legacy
+engine helpers are separate executables with GPL-2.0-or-later source licenses.
 
 ## End-to-end flow
 
@@ -99,8 +100,9 @@ protocol loop may occupy the main thread. In every case a dedicated bounded
 stdin reader prevents a producer from creating unbounded line memory, and the
 synthesis worker is distinct from protocol admission.
 
-Rodio consumes audio asynchronously. Marker events describe mixer-source frame
-consumption, not guaranteed first output from the physical device. The tracked
+The selected output runtime consumes audio asynchronously. Marker events
+describe source frame consumption, not guaranteed first output from the
+physical device. The tracked
 playback reporter waits for every ticket owned by a request and flushes reached
 marker events before writing its terminal record. The marker reporter bounds
 outstanding marker-event work to 8,192 records and 16 MiB of serialized records
@@ -171,7 +173,8 @@ terminal, preventing a late completion from removing a newer domain token.
 Server mode eagerly registers available built-in engines. Windows retains
 WinRT and eSpeak NG, then independently discovers optional adjacent Eloquence
 and DECtalk helpers. macOS retains AVSpeechSynthesizer and eSpeak NG; Linux
-retains eSpeak NG. RHVoice, Flite, RuTTS, and TGSpeechBox companion helpers are
+retains eSpeak NG and discovers staged Linux Eloquence and DECtalk helpers.
+RHVoice, Flite, RuTTS, and TGSpeechBox companion helpers are
 discovered on every desktop build when staged or explicitly configured. A
 Piper-enabled build also registers Piper on every platform when a model is
 configured.
@@ -312,6 +315,22 @@ from the selected library directory or System32. A missing or rejected runtime
 is reported through the live helper protocol and does not become a helper
 process crash.
 
+The Linux ECI and DECtalk helpers use the existing Rust helper host and v5
+protocol. A dedicated owner thread creates, synthesizes with, and destroys
+each runtime. Callback PCM passes through a bounded, cancellation-aware queue
+and continuous canonical conversion. ECI cancellation aborts its callback;
+DECtalk discards cancelled PCM and resets outside the callback lock. ECI
+indexes provide exact requested anchors and word/sentence markers. DECtalk
+provides word/sentence/phoneme timing and word-boundary anchors, retaining one
+native audio block for late index records. Marker delivery uses the same
+bounded queue and canonical frame conversion as PCM. Both adapters expose
+the Windows voice-expression parameter mappings through existing ACSS fields.
+Their loaders require absolute library files, validate matching ELF architecture
+and required symbols, and report missing runtimes as engine unavailability.
+DECtalk loads its language library directly with an explicit dictionary path.
+The installed runtime's dependencies remain the system dynamic linker's
+responsibility. See the [Linux helper guide](../linux-helpers/README.md).
+
 See [HELPER-PROTOCOL.md](protocols/HELPER-PROTOCOL.md) and
 [ENGINE-ISOLATION.md](ENGINE-ISOLATION.md).
 
@@ -389,6 +408,19 @@ as quickly as possible without opening a device. It therefore preserves queue,
 cue, cancellation, overlay-barrier, and tracked-completion behavior while
 attaching progressive sources immediately and deliberately removing real-time
 device and acoustic timing from the run.
+
+Linux also has an opt-in native `pulse` backend governed by
+[ADR 0009](adr/0009-native-pulseaudio-output.md). The same source wrappers feed
+three independent PulseAudio streams, which the server mixes on its default
+sink. Each has a source worker and native event thread. It requests 20 ms
+buffering, writes about 5 ms at a time, drains/corks when idle, and retires a
+failed connection's queued sources. Fresh audio may reopen a failed lane after
+a short admission cooldown; reconnect runs on its source worker, with no idle
+retry loop or replay of failed speech. Consumer errors do not quarantine a
+healthy synthesis engine. A stream-wide stop discards local PCM and
+flushes that PulseAudio lane immediately; selective request cancellation keeps
+the shared source fade without flushing unrelated work. Marker/completion
+semantics remain source-based. WSLg still forwards PulseAudio output over RDP.
 
 ## Lifecycle invariants
 

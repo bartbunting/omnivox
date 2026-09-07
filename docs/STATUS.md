@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-06
+**Last reviewed:** 2026-09-07
 **Workspace version:** 1.8.0
 
 This file records present behavior and limitations. Protocol guarantees belong
@@ -77,6 +77,14 @@ the matching verified GitHub release.
 
 ### Presentation and audio
 
+- Development-only native PulseAudio output on Linux (`--audio-output pulse`):
+  persistent independent lanes, bounded writes, an adjustable 20 ms default
+  request, idle corking, stream-wide flushing, and failure retirement. Fresh
+  audio can reopen a failed native lane without replaying interrupted speech;
+  output errors retain healthy synthesis engines. The
+  existing `device` backend remains the default. See the
+  [WSLg comparison guide](WSL-AUDIO.md) and
+  [native output experiment](experiments/2026-09-07-native-pulseaudio.md).
 - Canonical stereo 44.1 kHz PCM conversion with bounded sample-rate conversion.
 - Silence trimming with marker/anchor remapping, volume adjustment, and channel
   routing.
@@ -111,6 +119,16 @@ the matching verified GitHub release.
   Omnivox 1.8.0.
 - Audio routing selects left, right, or both channels within one output device;
   arbitrary multi-device routing is not implemented.
+- Device output uses Rodio 0.19.0 and CPAL 0.15.3: shared-mode WASAPI on
+  Windows and ALSA on Linux. Native PulseAudio/PipeWire output and public
+  device/buffer selection are not implemented. The
+  [2026-09-06 WSLg experiment](experiments/2026-09-06-wslg-audio.md) verified a
+  local ALSA-to-PulseAudio setup and smaller application-buffer snapshots with
+  a 50 ms request. WSLg sink delay remained substantial; acoustic responsiveness
+  and Windows parity remain unmeasured. The unreleased
+  [WSLg trial tool](WSL-AUDIO.md) now prepares reproducible session launchers,
+  reports runtime/configuration identities, and repeats buffer/shutdown probes.
+  This remains an opt-in development workflow.
 - An explicit null output backend consumes normal queued sources without
   opening an audio device for silent diagnostics and faster lifecycle tests.
 - Protocol-v5 engines can feed ordinary speech, ordered native markers, and
@@ -197,20 +215,39 @@ the matching verified GitHub release.
   is a separate experimental release asset with native and exact-routing gates
   plus deterministic corresponding source. It remains excluded from generic
   and Emacsvox archives.
-- Eloquence and DECtalk use the shared 32-bit Windows C# host. Protocol v5
+- On Windows, Eloquence and DECtalk use the shared 32-bit C# host. Protocol v5
   forwards their callback PCM as canonical 44.1 kHz stereo windows while
   preserving Eloquence word/sentence and exact requested-anchor markers, and
   DECtalk word/sentence/phoneme/native-index markers. DECtalk retains one
   512-sample native block so late callback markers remain ahead of their audio.
   Protocol v4 and older clients still receive whole-result buffered output.
   Proprietary runtimes remain user-supplied under their own terms.
+- Linux development builds stage separate Eloquence/Outloud and DECtalk
+  helpers for installed native libraries. They expose progressive PCM,
+  cancellation, the six portable ACSS dimensions, and Latin-1 English text.
+  ECI now provides word/sentence markers and exact requested anchors; DECtalk
+  provides word/sentence/phoneme markers and word-boundary requested anchors.
+  Native marker ordering, repeated cancellation, all 17 voices, and ACSS
+  synthesis passed local runtime checks; see the
+  [platform parity audit](experiments/2026-09-07-linux-helper-parity.md).
+  DECtalk passed real WSLg playback, repeated
+  cancellation, rapid Dired movement, and letter feedback with the installed
+  x64 v4.99 runtime. Eloquence passed the same local playback/navigation
+  checks using the user's licensed Voxin 3.4 English installation, with its
+  64-bit libvoxin 1.6.3 wrapper and bundled 32-bit engine. The standard user
+  installation is discovered automatically. ABI/protocol stub tests also
+  cover its version-specific clear-input status workaround. Other Linux
+  runtime versions and architectures remain unverified. See the
+  [helper guide](../linux-helpers/README.md) and
+  [local experiment](experiments/2026-09-07-linux-legacy-engines.md).
 - Logical-language routing is implemented, but live multilingual coverage is
   not comprehensive across all backends.
 - WinRT, eSpeak NG, Piper, RHVoice, Flite, RuTTS, and DECtalk have measured
   monotonic rate curves anchored to the established Eloquence behavior.
   Individual voices still vary and several engines saturate before Eloquence's
-  extended high-rate range. AVSpeechSynthesizer retains its system-native rate
-  mapping until the repeatable audit is run on macOS.
+  extended high-rate range. The new Linux ECI/DECtalk mappings remain
+  provisional pending a Linux rate audit. AVSpeechSynthesizer retains its
+  system-native rate mapping until the repeatable audit is run on macOS.
 
 ## Platform and CI coverage
 

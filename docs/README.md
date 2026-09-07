@@ -43,6 +43,8 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 - [ADR 0008: Remote Workstation Service](adr/0008-remote-workstation-service.md)
   — loopback authentication, separate workers, and remote resource boundaries.
+- [ADR 0009: Native PulseAudio Output](adr/0009-native-pulseaudio-output.md)
+  — optional Linux output, buffering, cancellation and idle lifecycle.
 
 ## Protocol specifications
 
@@ -76,10 +78,24 @@ historical material so a proposal cannot be mistaken for a shipped feature.
   verification, upgrade, and removal.
 - [Windows capture helpers](../windows-helpers/README.md) — Eloquence and
   DECtalk helper ownership, build, test, runtime, and licensing boundaries.
+- [Linux capture helpers](../linux-helpers/README.md) — development
+  Eloquence/Outloud and DECtalk interfaces for user-installed runtimes.
 - [DIAGNOSTICS.md](DIAGNOSTICS.md) — log collection, privacy boundaries, and
   optional Windows crash dumps.
 - [Benchmark evidence](benchmarks/README.md) — immutable reports, raw samples,
   provenance, checksums, and measurement limitations.
+- [WSLg audio experiment](experiments/2026-09-06-wslg-audio.md) — local
+  Linux/Windows comparison launches, PulseAudio buffer observations, and
+  outstanding acoustic acceptance; an experiment rather than a shipped preset.
+- [WSLg comparison workflow](WSL-AUDIO.md) — prepare separate Windows/Linux
+  session launchers, inspect runtime selection, and repeat buffer/shutdown
+  probes using the repository's development tool.
+- [Linux helper parity](experiments/2026-09-07-linux-helper-parity.md) — native
+  timing and voice-expression support, runtime evidence and remaining
+  differences from the Windows adapters.
+- [Native PulseAudio trial](experiments/2026-09-07-native-pulseaudio.md) — direct
+  Linux output, full-profile launchers, buffer and monitor evidence, and
+  remaining WSLg latency limits.
 - [Release and deployment guide](../.github/DEPLOYMENT.md) — archives,
   verification, installation, and physical acceptance checks.
 - [Workflow reference](../.github/workflows/README.md) — CI and release job
@@ -91,8 +107,9 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 ## Plans and historical material
 
-- [NEXT_STEPS.md](plans/NEXT_STEPS.md) is the active roadmap. Its entries are
-  not promises of current behavior.
+- [NEXT_STEPS.md](plans/NEXT_STEPS.md) is the active roadmap, including the
+  prioritized feature backlog, voice-installation scope, and platform-specific
+  audio-output work. Its entries are not promises of current behavior.
 - [PIPER-RELEASE.md](plans/PIPER-RELEASE.md) records the audited gap between
   the experimental Piper helper and a reproducible cross-platform companion
   release, including the source-acquisition decision required before work.

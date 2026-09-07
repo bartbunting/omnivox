@@ -27,7 +27,7 @@ the selected backend.
 | `--tone-volume FLOAT` | Set tone gain from 0.0 through 1.0. |
 | `--sound-volume FLOAT` | Set sound/icon gain from 0.0 through 1.0. |
 | `--audio-target TARGET` | Route to `left`, `right`, or `both`. |
-| `--audio-output MODE` | Use `device` (the default) or `null`; null consumes audio without opening a device or waiting for real-time playback. |
+| `--audio-output MODE` | Use `device` (the default), opt-in `pulse` on Linux, or `null`; null consumes audio without opening a device or waiting for real-time playback. |
 | `--piper-model PATH` | Supply a Piper `.onnx` model for the server or diagnostic actions. |
 | `--dump-wav VOICE OUTPUT [TEXT]` | Synthesize a canonical diagnostic WAV and a raw intermediate WAV. |
 | `--play-wav FILE` | Play a WAV through the Omnivox audio path. |
@@ -239,6 +239,9 @@ profiles, controls, and limitations.
 `OMNIVOX_AUDIO_OUTPUT`
 
 - `device` uses the default operating-system audio device and is the default.
+- `pulse` uses native PulseAudio on Linux, with independent speech/tone/sound
+  streams. It needs system `libpulse.so.0` and a reachable PulseAudio-compatible
+  server. Other platforms reject this selection. See [WSL-AUDIO.md](WSL-AUDIO.md).
 - `null` opens no audio device and consumes queued speech, tones, sounds,
   playback cues, and tracked completions as quickly as possible.
 - Equivalent startup option: `--audio-output`; the command-line value takes
@@ -247,6 +250,23 @@ profiles, controls, and limitations.
   marker delivery, and completion plumbing. It does not exercise device
   buffering, real-time underruns, audible quality, or acoustic onset. Terminal
   latency from a null run is therefore not comparable with device playback.
+
+`OMNIVOX_PULSE_LATENCY_MS`
+
+- Native `pulse` backend only: integer 10–200 ms, default 20. Requests total
+  sink-plus-stream latency; the server may negotiate different buffer sizes.
+  The WSL comparison launcher starts at 40 ms unless explicitly overridden.
+- Writes are at most approximately 5 ms. Idle streams drain and cork. A
+  stream-wide stop discards local PCM and flushes that PulseAudio stream;
+  selective cancellation never flushes unrelated requests.
+- Unset `PULSE_LATENCY_MSEC` for native output: libpulse uses that variable to
+  override application buffer attributes. The WSL native launcher removes it.
+- `PULSE_SERVER` selects the native server; WSLg commonly uses
+  `unix:/mnt/wslg/PulseServer`. No server is automatically started.
+- Rate-limited informational logs include timing availability, the server
+  latency estimate, total underflows and underflows observed while a source is
+  active. End-of-source
+  underflows can be normal; these counters are not acoustic measurements.
 
 ### Diagnostics
 
@@ -337,6 +357,27 @@ by Omnivox or Emacsvox. See the
 [Windows helper guide](../windows-helpers/README.md#runtime-requirements-and-installation)
 for acquisition, installation, architecture, dependency, and verification
 details.
+
+### Optional Linux Eloquence/Outloud and DECtalk helpers
+
+`OMNIVOX_ELOQUENCE_HELPER` and `OMNIVOX_DECTALK_HELPER` also select Linux
+helper executables. Without overrides, Omnivox discovers
+`eloquence/omnivox-eloquence-helper` and `dectalk/omnivox-dectalk-helper`
+beside the main executable (or flat beside it). Native Linux `make build`
+and `make dev` stage these interfaces.
+
+| Variable | Linux runtime input |
+| --- | --- |
+| `OMNIVOX_ECI_LIBRARY` | Absolute path to the installed ECI-compatible library: Voxin's `libvoxin.so`, or `libibmeci.so` matching the helper ABI. |
+| `OMNIVOX_DECTALK_LIBRARY` | Absolute path to the English language library `libtts_us.so`. |
+| `OMNIVOX_DECTALK_DICTIONARY` | Absolute path to its matching `dtalk_us.dic`. |
+
+Explicit inputs take priority over the fixed installation paths listed in the
+[Linux helper guide](../linux-helpers/README.md), including Voxin's standard
+user installation under `~/.local/share/voxin/rfs`. The library ABI must match
+the helper executable. Windows DLL overrides do not select Linux libraries.
+The user supplies each runtime and its data; unavailable engines retain normal
+fallback and report their failure through inventory and exact diagnostics.
 
 ## Emacsvox adapter
 
