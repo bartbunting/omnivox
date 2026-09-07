@@ -79,8 +79,10 @@ when fresh audio arrives. Output failures no longer quarantine healthy voices.
 A subsequent live recurrence identified a shared WSLg stall: Weston's audio
 packet semaphore was exhausted, PulseAudio's output thread blocked sending to
 it, and independent control queries timed out. Reconnecting Omnivox cannot
-repair that shared server. Next, recover and investigate the idle/resume
-acknowledgement path, then collect matched-build listening and physical-output
+repair that shared server. An approved reset of the identified Windows RDP
+client restored both existing speech processes without restarting Emacs or
+Omnivox. Next, investigate the idle/resume acknowledgement path and recurrence,
+then collect matched-build listening and physical-output
 evidence, including long idle transitions and stop-to-silence. Keep the native
 backend opt-in. Evaluate an optional Windows WASAPI PCM-output helper while
 keeping synthesis on Linux if the shared RDP path remains unreliable. That

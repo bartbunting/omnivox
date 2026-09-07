@@ -274,16 +274,43 @@ The diagnostic tool now checks server responsiveness with a bounded `pactl`
 query, discards identifying server output, and distinguishes reachable,
 unavailable, timed-out and unverified states. It does not claim that a successful
 control query proves playback. A targeted Windows RDP-client reconnect was
-prepared for review, but not executed because it interrupts shared Linux GUI
-connections. Existing user Emacs, PulseAudio and Weston processes remain alive.
+prepared for review because it interrupts shared Linux GUI connections.
 Neither restarting Omnivox nor increasing its buffer is established as a fix.
+
+### Approved bridge recovery
+
+With the user's approval, the identified WSLg `msrdc.exe` process was stopped
+at 07:30:58 UTC after checking its executable, complete command line and process
+creation time. WSLGd started a replacement client for the same RDP endpoint.
+The first subsequent PulseAudio control query succeeded; Weston's new audio
+listener appeared at 07:31:19, about 21 seconds after the reset. This gap matters:
+control-query success alone did not establish that the audio channel was ready.
+
+The original Weston, PulseAudio, user Emacs and both Omnivox processes survived.
+Fresh requests reopened the existing Omnivox speech lanes without `tts-restart`.
+At 07:33:42–43 UTC, marked foreground and notification test utterances both
+completed through the original speech-server PIDs, using the existing DECtalk
+preference. The bridge's audio semaphore subsequently held all 256 permits,
+and PulseAudio's threads returned to normal polling. These observations confirm
+restored transport progress and application completion, not an acoustic
+latency measurement or a permanent fix for the acknowledgement stall.
+
+Recovery evidence is in the same ignored directory: `reconnect-execution.json`,
+`windows-rdp-after-reconnect.json`, `system-after-reconnect.log`,
+`health-after-reconnect.json`, `live-emacs-recovery.json` and
+`semaphores-after-speech.log`. The initial identity check rejected a 100 ns
+timestamp precision difference between Windows process APIs before changing
+anything; the executed check compared them at the reported microsecond
+precision. A first speech probe passed an invalid nil marker callback and was
+rejected by Emacsvox; its result is retained separately from the corrected,
+successful probes. No production speech code changed during this recovery.
 
 ## Next decision
 
 Compare the three launchers by listening, especially first speech after idle,
 short letters, rapid navigation and overlapping notifications. Keep the native
 backend opt-in while collecting physical-output evidence and load behaviour.
-First recover and investigate WSLg's idle/resume acknowledgement stall, then
+Investigate WSLg's idle/resume acknowledgement stall, then
 repeat the live workload over longer idle and focus transitions. An optional
 Windows WASAPI PCM-output helper with synthesis still on Linux would bypass
 this shared RDP audio path. That remains a separate architecture experiment;

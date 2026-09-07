@@ -76,9 +76,12 @@ A socket's presence alone does not establish server health.
 
 If this independent query times out, changing engines or restarting Omnivox
 cannot repair the shared server. Preserve the speech and WSLg logs first.
-Resetting the shared WSLg RDP connection may recover it, but disrupts Linux GUI
-connections and has not yet been tested for this incident. Do not automatically
-restart Weston, PulseAudio or WSL from a speech launcher. The
+Resetting the identified WSLg Windows RDP client restored this incident: the
+bridge reconnected, and both existing speech processes resumed without an
+Emacs or Omnivox restart. Audio-channel setup took about 21 seconds. This
+interrupts shared Linux GUI connections and does not prevent recurrence; save
+work and coordinate the interruption before attempting recovery. Do not
+automatically restart Weston, PulseAudio or WSL from a speech launcher. The
 [recurrence investigation](experiments/2026-09-07-native-pulseaudio.md#shared-wslg-bridge-stall-after-the-recovery-fix)
 records the blocked server threads and the remaining uncertainty.
 
