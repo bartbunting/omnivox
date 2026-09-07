@@ -28,8 +28,9 @@ use std::os::raw::{c_int, c_short, c_void};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::mpsc::{sync_channel, SyncSender};
+use std::sync::mpsc::{sync_channel, SyncSender, TrySendError};
 use std::sync::Mutex;
+use std::time::Duration;
 use tracing::{debug, info, warn};
 
 /// Global espeak-ng initialization guard.
@@ -60,12 +61,16 @@ const STREAM_CHANNEL_CAPACITY: usize = 4;
 
 /// Audio and synchronization events collected for the one serialized synthesis.
 static SYNTH_CAPTURE: Mutex<Option<EspeakSynthesisCapture>> = Mutex::new(None);
+// stop() must not wait for either the native FIFO or a callback holding the
+// capture lock while its bounded stream queue is full.
+static SYNTH_STOP_EPOCH: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Default)]
 struct EspeakSynthesisCapture {
     samples: Vec<i16>,
     markers: Vec<EspeakNativeMarker>,
     cancellation: Option<SynthesisCancellationToken>,
+    stop_epoch: u64,
     stream_sender: Option<SyncSender<EspeakStreamEvent>>,
     native_samples: usize,
     marker_count: usize,
@@ -308,17 +313,43 @@ unsafe extern "C" fn synth_callback(
 }
 
 impl EspeakSynthesisCapture {
+    fn is_cancelled(&self) -> bool {
+        self.stop_epoch != SYNTH_STOP_EPOCH.load(Ordering::Acquire)
+            || self
+                .cancellation
+                .as_ref()
+                .is_some_and(SynthesisCancellationToken::is_cancelled)
+    }
+
+    fn send_stream_event(
+        &self,
+        sender: &SyncSender<EspeakStreamEvent>,
+        mut event: EspeakStreamEvent,
+    ) -> Result<(), String> {
+        loop {
+            if self.is_cancelled() {
+                return Err("espeak synthesis was cancelled".to_owned());
+            }
+            match sender.try_send(event) {
+                Ok(()) => return Ok(()),
+                Err(TrySendError::Disconnected(_)) => {
+                    return Err("eSpeak streaming consumer disconnected".to_owned());
+                }
+                Err(TrySendError::Full(pending)) => {
+                    event = pending;
+                    std::thread::sleep(Duration::from_millis(2));
+                }
+            }
+        }
+    }
+
     unsafe fn consume(
         &mut self,
         wav: *mut c_short,
         sample_count: c_int,
         events: *mut espeak_rs_sys::espeak_EVENT,
     ) -> Result<c_int, String> {
-        if self
-            .cancellation
-            .as_ref()
-            .is_some_and(SynthesisCancellationToken::is_cancelled)
-        {
+        if self.is_cancelled() {
             return Ok(1);
         }
         let markers = unsafe { native_markers_from_callback(events)? };
@@ -351,9 +382,7 @@ impl EspeakSynthesisCapture {
             // eSpeak events describe the accompanying PCM block. Publish them
             // first so no marker can arrive behind already-visible audio.
             if !markers.is_empty() {
-                sender
-                    .send(EspeakStreamEvent::Markers(markers))
-                    .map_err(|_| "eSpeak streaming marker consumer disconnected".to_owned())?;
+                self.send_stream_event(sender, EspeakStreamEvent::Markers(markers))?;
             }
             if sample_count > 0 {
                 let samples = unsafe { std::slice::from_raw_parts(wav, sample_count) };
@@ -362,9 +391,7 @@ impl EspeakSynthesisCapture {
                     .try_reserve(sample_count)
                     .map_err(|_| "could not allocate the eSpeak PCM window".to_owned())?;
                 owned.extend_from_slice(samples);
-                sender
-                    .send(EspeakStreamEvent::Audio(owned))
-                    .map_err(|_| "eSpeak streaming audio consumer disconnected".to_owned())?;
+                self.send_stream_event(sender, EspeakStreamEvent::Audio(owned))?;
             }
         } else {
             self.markers
@@ -1064,6 +1091,7 @@ impl EspeakTtsEngine {
             TtsError::SynthesisFailed(format!("espeak-ng lock poisoned: {error}"))
         })?;
         let sample_rate = state_guard.sample_rate;
+        let stop_epoch = SYNTH_STOP_EPOCH.load(Ordering::Acquire);
 
         unsafe {
             let voice_name = Self::backend_voice_name(&voice_id);
@@ -1132,6 +1160,7 @@ impl EspeakTtsEngine {
                 })?;
                 *capture = Some(EspeakSynthesisCapture {
                     cancellation: request.cancellation.clone(),
+                    stop_epoch,
                     stream_sender: Some(sender),
                     expected_anchor_count: request.anchors.len(),
                     ..EspeakSynthesisCapture::default()
@@ -1157,11 +1186,7 @@ impl EspeakTtsEngine {
         }
 
         let capture = take_synthesis_capture()?;
-        if capture
-            .cancellation
-            .as_ref()
-            .is_some_and(SynthesisCancellationToken::is_cancelled)
-        {
+        if capture.is_cancelled() {
             return Err(TtsError::SynthesisFailed(
                 "espeak synthesis was cancelled".to_owned(),
             ));
@@ -1220,6 +1245,7 @@ impl TtsEngine for EspeakTtsEngine {
             .map_err(|e| TtsError::SynthesisFailed(format!("espeak-ng lock poisoned: {}", e)))?;
 
         let sample_rate = state_guard.sample_rate;
+        let stop_epoch = SYNTH_STOP_EPOCH.load(Ordering::Acquire);
 
         debug!(
             "espeak-ng synthesizing: {} (rate: {}, pitch: {}, volume: {})",
@@ -1283,6 +1309,7 @@ impl TtsEngine for EspeakTtsEngine {
                 })?;
                 *capture = Some(EspeakSynthesisCapture {
                     cancellation: request.cancellation.clone(),
+                    stop_epoch,
                     expected_anchor_count: request.anchors.len(),
                     ..EspeakSynthesisCapture::default()
                 });
@@ -1322,11 +1349,7 @@ impl TtsEngine for EspeakTtsEngine {
             capture.take().unwrap_or_default()
         };
 
-        if capture
-            .cancellation
-            .as_ref()
-            .is_some_and(SynthesisCancellationToken::is_cancelled)
-        {
+        if capture.is_cancelled() {
             return Err(TtsError::SynthesisFailed(
                 "espeak synthesis was cancelled".to_owned(),
             ));
@@ -1502,10 +1525,10 @@ impl TtsEngine for EspeakTtsEngine {
                 }
             }
 
+            // Disconnecting wakes a backpressured callback, which returns 1 to
+            // abort this utterance. A native cancel here can race a hard stop
+            // and wait forever in eSpeak's asynchronous FIFO acknowledgement.
             drop(receiver);
-            if stream_error.is_some() {
-                self.stop();
-            }
             let producer_result = producer.join().map_err(|_| {
                 TtsError::SynthesisFailed("eSpeak streaming worker panicked".to_owned())
             })?;
@@ -1535,14 +1558,10 @@ impl TtsEngine for EspeakTtsEngine {
 
     fn stop(&self) {
         debug!("espeak-ng: stopping synthesis");
-        // espeak_Cancel() is designed to be called from any thread to interrupt
-        // ongoing synthesis. We must NOT acquire ESPEAK_LOCK here because
-        // synthesize() holds it for the entire duration -- acquiring it in stop()
-        // would deadlock when called from the reader thread while the worker is
-        // synthesizing.
-        unsafe {
-            espeak_rs_sys::espeak_Cancel();
-        }
+        // Let the callback abort the active utterance cooperatively. Native
+        // espeak_Cancel waits for the FIFO thread and can deadlock with a full
+        // callback queue or another cancel. Future captures use the new epoch.
+        SYNTH_STOP_EPOCH.fetch_add(1, Ordering::AcqRel);
     }
 
     fn is_speaking(&self) -> bool {
@@ -2109,6 +2128,108 @@ mod tests {
             engine.synthesize(&request),
             Err(TtsError::SynthesisFailed(message)) if message.contains("cancelled")
         ));
+    }
+
+    #[test]
+    fn espeak_interrupted_streams_leave_engine_usable() {
+        const CHILD_ENV: &str = "OMNIVOX_TEST_ESPEAK_INTERRUPTION_CHILD";
+        // Isolate eSpeak's process-global state and put a deadline around native
+        // deadlocks so a regression cannot hang the rest of the test suite.
+        if std::env::var_os(CHILD_ENV).is_none() {
+            let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "espeak::tests::espeak_interrupted_streams_leave_engine_usable",
+                    "--nocapture",
+                ])
+                .env(CHILD_ENV, "1")
+                .spawn()
+                .unwrap();
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+            loop {
+                if let Some(status) = child.try_wait().unwrap() {
+                    assert!(
+                        status.success(),
+                        "eSpeak interruption child failed: {status}"
+                    );
+                    return;
+                }
+                if std::time::Instant::now() >= deadline {
+                    child.kill().unwrap();
+                    child.wait().unwrap();
+                    panic!("eSpeak stalled during interruption or subsequent synthesis");
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        }
+
+        struct InterruptingSink<'a> {
+            engine: &'a EspeakTtsEngine,
+            cancellation: Option<SynthesisCancellationToken>,
+            stop_engine: bool,
+            reject_audio: bool,
+            interrupted: bool,
+        }
+        impl SynthesisStreamSink for InterruptingSink<'_> {
+            fn start(&mut self, _: SynthesisStreamStart) -> Result<(), TtsError> {
+                Ok(())
+            }
+
+            fn markers(
+                &mut self,
+                _: Vec<SynthesisMarker>,
+                _: Vec<ResolvedAnchor>,
+            ) -> Result<(), TtsError> {
+                Ok(())
+            }
+
+            fn audio(&mut self, _: AudioBuffer) -> Result<(), TtsError> {
+                if !self.interrupted {
+                    self.interrupted = true;
+                    // Let the bounded native callback queue fill, as it does
+                    // while playback applies backpressure during navigation.
+                    std::thread::sleep(std::time::Duration::from_millis(40));
+                    if let Some(cancellation) = &self.cancellation {
+                        cancellation.cancel();
+                    } else if self.stop_engine {
+                        self.engine.stop();
+                        self.engine.stop();
+                    }
+                }
+                if self.reject_audio {
+                    Err(TtsError::SynthesisFailed("interrupted playback".to_owned()))
+                } else {
+                    Ok(())
+                }
+            }
+        }
+
+        let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        for iteration in 0..12 {
+            let cancellation = (iteration % 3 == 0).then(SynthesisCancellationToken::new);
+            let mut request = SynthesisRequest::new(
+                "Directory entry with enough words to fill the streaming queue. ".repeat(20),
+                TtsSettings::default(),
+            );
+            request.cancellation = cancellation.clone();
+            let mut sink = InterruptingSink {
+                engine: &engine,
+                cancellation,
+                stop_engine: iteration % 3 == 1,
+                reject_audio: iteration % 3 == 2 || iteration % 2 == 0,
+                interrupted: false,
+            };
+            assert!(engine.synthesize_stream(&request, &mut sink).is_err());
+            assert!(sink.interrupted, "test must interrupt active PCM delivery");
+
+            let next = SynthesisRequest::new("Next entry", TtsSettings::default());
+            let mut recording = RecordingStreamSink::default();
+            let completion = engine.synthesize_stream(&next, &mut recording).unwrap();
+            assert!(completion.frame_count > 0);
+            assert_eq!(completion.frame_count, recording.frames);
+            let buffered = engine.synthesize(&next).unwrap();
+            assert!(!buffered.audio.is_empty());
+        }
     }
 
     #[test]

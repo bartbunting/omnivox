@@ -12,6 +12,13 @@ Versioning for published releases.
   2026 Windows ARM64 runner explicitly. Compiled-cache keys now distinguish
   runner images so native builds are rechecked with the selected compiler.
 
+### Fixed
+
+- Rapid speech interruption could deadlock eSpeak's native cancellation and
+  leave later speech queued indefinitely, reproduced during Dired navigation
+  in the Linux WSLg trial. Cancellation now uses the synthesis callback and
+  remains responsive when its bounded audio queue is full.
+
 ## [1.8.0] - 2026-09-06
 
 ### Added
