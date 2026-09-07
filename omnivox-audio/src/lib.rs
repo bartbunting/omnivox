@@ -12,6 +12,8 @@ pub mod output;
 pub mod pipeline;
 pub mod post_synthesis;
 pub mod progressive_pcm;
+#[cfg(target_os = "linux")]
+mod pulse;
 pub mod timeline;
 pub mod tone;
 

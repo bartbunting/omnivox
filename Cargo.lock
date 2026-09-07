@@ -635,6 +635,7 @@ name = "omnivox-audio"
 version = "1.8.0"
 dependencies = [
  "anyhow",
+ "libloading",
  "omnivox-core",
  "rodio",
  "rubato",

@@ -8,6 +8,9 @@ Versioning for published releases.
 
 ### Added
 
+- Opt-in native PulseAudio output on Linux (`--audio-output pulse`) with
+  persistent independent streams, bounded writes, adjustable latency requests,
+  idle corking, stream-wide stop flushing, and timing/underflow diagnostics.
 - Linux development builds stage separate Eloquence/Outloud and DECtalk
   interfaces for user-installed native libraries. The helpers provide bounded
   progressive PCM and cancellation, report missing runtimes, and expose their

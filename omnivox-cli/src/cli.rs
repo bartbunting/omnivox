@@ -122,8 +122,11 @@ pub fn parse_args() -> CliArgs {
 fn parse_audio_backend(value: &str, source: &str) -> Result<AudioBackend> {
     match value.trim().to_ascii_lowercase().as_str() {
         "device" => Ok(AudioBackend::Device),
+        "pulse" => Ok(AudioBackend::Pulse),
         "null" => Ok(AudioBackend::Null),
-        _ => anyhow::bail!("Invalid {source} value {value:?}; expected device or null"),
+        _ => anyhow::bail!(
+            "Invalid {source} value {value:?}; expected device, pulse (Linux), or null"
+        ),
     }
 }
 
@@ -201,7 +204,9 @@ pub fn print_help() {
     println!("    --tone-volume F  Tone volume 0.0-1.0");
     println!("    --sound-volume F Sound/icon volume 0.0-1.0");
     println!("    --audio-target T Channel routing (left, right, both)");
-    println!("    --audio-output M Output backend (device or null; default device)");
+    println!(
+        "    --audio-output M Output backend (device, pulse (Linux), or null; default device)"
+    );
     println!("    --serve --token-file PATH [--listen 127.0.0.1:6417] [--sound-root DIR]");
     println!(
         "                    Authenticated workstation service (SSH tunnel required remotely)"
@@ -209,7 +214,7 @@ pub fn print_help() {
     println!("    --piper-model P  Piper .onnx model; keep its JSON config beside it");
     println!("    --dump-wav VOICE OUTPUT [TEXT]");
     println!("                     Save canonical OUTPUT plus an _raw.wav intermediate");
-    println!("    --play-wav FILE  Play a WAV file through the rodio audio path");
+    println!("    --play-wav FILE  Play a WAV file through the selected audio backend");
     println!();
     println!("ENGINES:");
     println!("    native    Platform-native TTS: {}", native);
@@ -241,7 +246,10 @@ pub fn print_help() {
         println!("    OMNIVOX_DECTALK_HELPER Override path to OmnivoxDectalkHelper32.exe");
     }
     println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (process-wide routing)");
-    println!("    OMNIVOX_AUDIO_OUTPUT   Same as --audio-output (device or null)");
+    println!("    OMNIVOX_AUDIO_OUTPUT   Same as --audio-output (device, pulse (Linux), or null)");
+    println!(
+        "    OMNIVOX_PULSE_LATENCY_MS  Native PulseAudio latency request, 10-200 ms (default 20)"
+    );
     println!("    ESPEAK_NG_DATA         Parent directory containing espeak-ng-data");
     println!("    OMNIVOX_LOG_SYNTHESIS_TEXT  Opt in to sensitive full-text diagnostics");
     println!();
@@ -411,6 +419,7 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
         Ok(streams) => {
             match audio_backend {
                 AudioBackend::Device => println!("  Audio device: OK"),
+                AudioBackend::Pulse => println!("  Native PulseAudio output: OK"),
                 AudioBackend::Null => println!("  Null output: OK (no audio device opened)"),
             }
 
@@ -803,6 +812,10 @@ mod tests {
         assert_eq!(
             parse_audio_backend("NULL", "test").unwrap(),
             AudioBackend::Null
+        );
+        assert_eq!(
+            parse_audio_backend("Pulse", "test").unwrap(),
+            AudioBackend::Pulse
         );
         assert!(parse_audio_backend("silent", "test").is_err());
     }

@@ -36,6 +36,8 @@ const PROGRESSIVE_PLAYBACK_POLL_INTERVAL: Duration = Duration::from_millis(2);
 pub enum AudioBackend {
     /// Play through the default system audio device in real time.
     Device,
+    /// Play directly through native PulseAudio on Linux (opt-in).
+    Pulse,
     /// Consume every source as quickly as possible without opening a device.
     Null,
 }
@@ -264,12 +266,12 @@ impl ProgressivePlaybackProducer {
             sink.clear();
             sink.play();
         }
-        sink.append(
+        sink.append_progressive(
             attachment
                 .source
                 .take()
                 .expect("pending progressive source is attached once"),
-        );
+        )?;
         sink.play();
         Ok(())
     }
@@ -438,24 +440,41 @@ impl NullSink {
 #[derive(Clone)]
 enum ManagedSink {
     Device(Arc<Sink>),
+    #[cfg(target_os = "linux")]
+    Pulse(Arc<crate::pulse::PulseSink>),
     Null(Arc<NullSink>),
 }
 
 impl ManagedSink {
-    fn append<S>(&self, source: S)
+    fn append<S>(&self, source: S) -> Result<(), AudioError>
     where
         S: Source<Item = f32> + Send + 'static,
     {
         match self {
             Self::Device(sink) => sink.append(source),
             Self::Null(sink) => sink.append(source),
+            #[cfg(target_os = "linux")]
+            Self::Pulse(sink) => return sink.append(source),
         }
+        Ok(())
+    }
+
+    fn append_progressive(&self, mut source: ProgressivePlaybackSource) -> Result<(), AudioError> {
+        #[cfg(target_os = "linux")]
+        if let Self::Pulse(sink) = self {
+            source.output_lifetime = Some(sink.lifetime());
+        }
+        // Keep one attachment path on targets without PulseAudio too.
+        let _ = &mut source;
+        self.append(source)
     }
 
     fn clear(&self) {
         match self {
             Self::Device(sink) => sink.clear(),
             Self::Null(sink) => sink.clear(),
+            #[cfg(target_os = "linux")]
+            Self::Pulse(sink) => sink.clear(),
         }
     }
 
@@ -473,6 +492,8 @@ impl ManagedSink {
         match self {
             Self::Device(sink) => sink.len(),
             Self::Null(sink) => sink.pending.len(),
+            #[cfg(target_os = "linux")]
+            Self::Pulse(sink) => sink.len(),
         }
     }
 
@@ -480,6 +501,8 @@ impl ManagedSink {
         match self {
             Self::Device(sink) => sink.sleep_until_end(),
             Self::Null(sink) => sink.pending.wait(),
+            #[cfg(target_os = "linux")]
+            Self::Pulse(sink) => sink.drain(),
         }
     }
 
@@ -639,9 +662,9 @@ impl AudioControl {
                 cancellation,
                 Self::smooth_stop_fade_frames(stream)
                     .expect("a smooth-stop stream has a fade duration"),
-            ));
+            ))?;
         } else {
-            sink.append(BufferSource::new(samples));
+            sink.append(BufferSource::new(samples))?;
         }
         sink.play();
         Ok(true)
@@ -716,7 +739,7 @@ impl AudioControl {
             self.smooth_stop_cancellation(stream),
             Self::smooth_stop_fade_frames(stream),
         );
-        sink.append(source);
+        sink.append(source)?;
         sink.play();
         Ok(Some(ticket))
     }
@@ -910,7 +933,7 @@ impl AudioControl {
             self.smooth_stop_cancellation(stream),
             Self::smooth_stop_fade_frames(stream),
         );
-        sink.append(source);
+        sink.append(source)?;
         sink.play();
         Ok(Some(ticket))
     }
@@ -1026,14 +1049,14 @@ impl AudioControl {
             stream_cancellation,
             Some(SPEECH_STOP_FADE_FRAMES),
         );
-        if matches!(sink, ManagedSink::Device(_)) {
+        if !matches!(sink, ManagedSink::Null(_)) {
             producer.pending_attachment = Some(ProgressivePlaybackAttachment {
                 control: self.clone(),
                 source: Some(source),
                 generation: self.schedule_generations[stream_index(stream)].load(Ordering::Acquire),
             });
         } else {
-            sink.append(source);
+            sink.append_progressive(source)?;
             sink.play();
         }
         Ok(Some((producer, ticket)))
@@ -1071,7 +1094,7 @@ impl AudioControl {
             self.smooth_stop_cancellation(stream),
             Self::smooth_stop_fade_frames(stream),
         );
-        sink.append(source);
+        sink.append(source)?;
         sink.play();
         Ok(Some(ticket))
     }
@@ -1115,6 +1138,12 @@ impl AudioControl {
             previous.cancel();
         } else {
             sink.clear();
+        }
+        #[cfg(target_os = "linux")]
+        if let ManagedSink::Pulse(sink) = sink {
+            if smooth_stop.is_some() {
+                sink.clear();
+            }
         }
         sink.play();
     }
@@ -1161,6 +1190,10 @@ pub struct AudioStreams {
 }
 
 enum AudioStreamRuntime {
+    #[cfg(target_os = "linux")]
+    Pulse {
+        sinks: [Arc<crate::pulse::PulseSink>; 3],
+    },
     Device {
         _stream: OutputStream,
         _stream_handle: OutputStreamHandle,
@@ -1200,6 +1233,9 @@ impl AudioStreams {
         match backend {
             AudioBackend::Device => {
                 Self::new_device(speech_max_depth, tone_max_depth, sound_max_depth)
+            }
+            AudioBackend::Pulse => {
+                Self::new_pulse(speech_max_depth, tone_max_depth, sound_max_depth)
             }
             AudioBackend::Null => Self::new_null(speech_max_depth, tone_max_depth, sound_max_depth),
         }
@@ -1242,6 +1278,40 @@ impl AudioStreams {
             },
             control,
         })
+    }
+
+    fn new_pulse(
+        speech_max_depth: usize,
+        tone_max_depth: usize,
+        sound_max_depth: usize,
+    ) -> Result<Self, AudioError> {
+        #[cfg(target_os = "linux")]
+        {
+            let sinks = [
+                crate::pulse::PulseSink::new("speech")?,
+                crate::pulse::PulseSink::new("tone")?,
+                crate::pulse::PulseSink::new("sound")?,
+            ];
+            let control = Arc::new(AudioControl::new(
+                ManagedSink::Pulse(sinks[0].clone()),
+                ManagedSink::Pulse(sinks[1].clone()),
+                ManagedSink::Pulse(sinks[2].clone()),
+                speech_max_depth,
+                tone_max_depth,
+                sound_max_depth,
+            ));
+            Ok(Self {
+                runtime: AudioStreamRuntime::Pulse { sinks },
+                control,
+            })
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = (speech_max_depth, tone_max_depth, sound_max_depth);
+            Err(AudioError::DeviceNotFound(
+                "native PulseAudio output is only supported on Linux".into(),
+            ))
+        }
     }
 
     fn new_null(
@@ -1334,6 +1404,13 @@ impl AudioStreams {
 
 impl Drop for AudioStreams {
     fn drop(&mut self) {
+        #[cfg(target_os = "linux")]
+        if let AudioStreamRuntime::Pulse { sinks } = &self.runtime {
+            for sink in sinks {
+                sink.shutdown();
+            }
+            return;
+        }
         let AudioStreamRuntime::Null { shutdown, workers } = &mut self.runtime else {
             return;
         };
@@ -1887,6 +1964,8 @@ impl Drop for TrackedBufferSource {
 
 /// Tracked rodio source that stays alive while bounded PCM windows arrive.
 struct ProgressivePlaybackSource {
+    #[cfg(target_os = "linux")]
+    output_lifetime: Option<crate::pulse::SourceLifetime>,
     receiver: Receiver<ProgressivePlaybackMessage>,
     current: BufferSource,
     position: usize,
@@ -1916,6 +1995,8 @@ impl ProgressivePlaybackSource {
             pending_attachment: None,
         };
         let source = Self {
+            #[cfg(target_os = "linux")]
+            output_lifetime: None,
             receiver,
             current: BufferSource::new(Vec::new()),
             position: 0,
@@ -1955,6 +2036,15 @@ impl Iterator for ProgressivePlaybackSource {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
+            #[cfg(target_os = "linux")]
+            if self
+                .output_lifetime
+                .as_ref()
+                .is_some_and(crate::pulse::SourceLifetime::is_cancelled)
+            {
+                self.report(PlaybackStatus::Cancelled);
+                return None;
+            }
             let Some(gain) = self.cancellation.next_gain(self.position) else {
                 self.report(PlaybackStatus::Cancelled);
                 return None;
@@ -2030,6 +2120,134 @@ impl Drop for ProgressivePlaybackSource {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "linux")]
+    fn pulse_fixture() -> (AudioStreams, [Arc<crate::pulse::tests::Fake>; 3]) {
+        let (speech, speech_device) = crate::pulse::tests::fake_sink();
+        let (tone, tone_device) = crate::pulse::tests::fake_sink();
+        let (sound, sound_device) = crate::pulse::tests::fake_sink();
+        let control = Arc::new(AudioControl::new(
+            ManagedSink::Pulse(speech.clone()),
+            ManagedSink::Pulse(tone.clone()),
+            ManagedSink::Pulse(sound.clone()),
+            4,
+            4,
+            4,
+        ));
+        (
+            AudioStreams {
+                runtime: AudioStreamRuntime::Pulse {
+                    sinks: [speech, tone, sound],
+                },
+                control,
+            },
+            [speech_device, tone_device, sound_device],
+        )
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn pulse_selective_cancellation_preserves_unrelated_audio_and_cues() {
+        let (streams, devices) = pulse_fixture();
+        let control = streams.control();
+        let cancelled = CancellationToken::new();
+        let first = control
+            .queue_tracked_cancellable_if(
+                StreamType::Speech,
+                &AudioBuffer::new(vec![0.1; 1000]),
+                cancelled.clone(),
+                || true,
+            )
+            .unwrap()
+            .unwrap();
+        let (sender, receiver) = mpsc::channel();
+        let second = control
+            .queue_tracked_with_cues(
+                StreamType::Speech,
+                &AudioBuffer::new(vec![0.2; 2000]),
+                vec![cue(0, 1), cue(500, 2), cue(1000, 3)],
+                sender,
+            )
+            .unwrap()
+            .unwrap();
+        cancelled.cancel();
+        devices[0].writable.store(true, Ordering::Release);
+        crate::pulse::tests::until(|| control.pending(StreamType::Speech) == 0);
+        assert_eq!(first.wait(), PlaybackStatus::Cancelled);
+        assert_eq!(second.wait(), PlaybackStatus::Completed);
+        assert_eq!(
+            receiver.try_iter().collect::<Vec<_>>(),
+            vec![cue(0, 1), cue(500, 2), cue(1000, 3)]
+        );
+        assert_eq!(devices[0].samples(), vec![0.2; 2000]);
+        assert!(!devices[0].events().contains(&"flush"));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn pulse_progressive_prebuffer_and_stop_do_not_wait_for_stalled_producer() {
+        let (streams, devices) = pulse_fixture();
+        let control = streams.control();
+        let (mut producer, ticket) = control
+            .queue_progressive_speech_with_cue_callback_cancellable_if(
+                |_| {},
+                CancellationToken::new(),
+                || true,
+            )
+            .unwrap()
+            .unwrap();
+        for _ in 0..2 {
+            producer
+                .push_audio(AudioBuffer::new(vec![0.1; 2048]))
+                .unwrap();
+        }
+        assert_eq!(control.pending(StreamType::Speech), 0);
+        producer
+            .push_audio(AudioBuffer::new(vec![0.1; 2048]))
+            .unwrap();
+        devices[0].writable.store(true, Ordering::Release);
+        crate::pulse::tests::until(|| devices[0].samples().len() >= 5720);
+        control.stop(StreamType::Speech);
+        crate::pulse::tests::until(|| control.pending(StreamType::Speech) == 0);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+        assert!(producer.push_audio(AudioBuffer::new(vec![0.1; 2])).is_err());
+        control.drain();
+        assert!(devices[0].events().contains(&"flush"));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn pulse_disconnect_retires_stalled_progressive_source_and_teardown_closes_controls() {
+        let (streams, devices) = pulse_fixture();
+        let control = streams.control();
+        let (mut producer, ticket) = control
+            .queue_progressive_speech_with_cue_callback_cancellable_if(
+                |_| {},
+                CancellationToken::new(),
+                || true,
+            )
+            .unwrap()
+            .unwrap();
+        for _ in 0..3 {
+            producer
+                .push_audio(AudioBuffer::new(vec![0.1; 2048]))
+                .unwrap();
+        }
+        devices[0].writable.store(true, Ordering::Release);
+        crate::pulse::tests::until(|| devices[0].samples().len() >= 5720);
+        devices[0].disconnect();
+        crate::pulse::tests::until(|| control.pending(StreamType::Speech) == 0);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+        assert!(control
+            .queue(StreamType::Speech, &AudioBuffer::new(vec![0.1; 2]))
+            .is_err());
+        drop(streams);
+        control.stop_all();
+        control.drain();
+        assert!(control
+            .queue(StreamType::Tone, &AudioBuffer::new(vec![0.1; 2]))
+            .is_err());
+        assert!(producer.push_audio(AudioBuffer::new(vec![0.1; 2])).is_err());
+    }
     use super::*;
     use std::sync::mpsc;
 

@@ -43,7 +43,7 @@ impl Config {
                     }
                     sound_root = Some(root);
                 }
-                "--audio-output" if matches!(value.as_str(), "device" | "null") => {
+                "--audio-output" if matches!(value.as_str(), "device" | "pulse" | "null") => {
                     audio_output = Some(value.clone());
                 }
                 _ => bail!("unsupported service option (see docs/protocols/REMOTE-PROTOCOL.md)"),

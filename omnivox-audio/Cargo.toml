@@ -13,4 +13,7 @@ tracing.workspace = true
 rubato = "0.16"
 rodio = { version = "0.19", default-features = false, features = ["vorbis", "wav"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+libloading = "0.8"
+
 [dev-dependencies]
