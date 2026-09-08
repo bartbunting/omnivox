@@ -269,6 +269,50 @@ These are not current features and require design or scope approval:
 - **Configurable chunking:** add a public control only if benchmarks show a
   useful trade-off beyond the current sentence/clause-aware hard limit.
 
+## Experimental ideas
+
+These are feasibility investigations, outside the ranked delivery backlog.
+They do not establish platform support or change accepted architecture.
+
+### iOS remote speech receiver over Tailscale
+
+Explore an iPhone app that synthesizes and plays speech for Emacsvox running
+on another machine. Both devices join the user's tailnet; Emacsvox connects
+over TCP to the phone, sending text and speech instructions while synthesis
+and playback remain on iOS. Tailscale supplies the encrypted network path
+without an SSH tunnel. Retain application authentication and restrict access
+through tailnet policy.
+
+Start with Apple's AVSpeechSynthesizer and investigate reuse of Omnivox's
+macOS buffer-capture adapter, Rust protocol handling, scheduling, and effects.
+Map logical voices to the phone's available voice inventory; desktop voice
+identity or acoustic parity is not assumed. Additional engines are later,
+separate porting and licensing investigations.
+
+The first experiment should establish TCP connectivity over Tailscale, speech
+playback, rapid replacement, and immediate cancellation with the app open.
+Then lock the phone, leave it silent for several minutes, and request new
+speech. Measure command-to-sound and stop-to-silence on a real iPhone, and test
+connection loss and recovery without replaying stale speech. Tailscale's VPN
+availability does not establish that iOS will keep the speech app running or
+wake it for incoming TCP traffic. Reliable operation after locked-screen idle
+is the main feasibility question, before committing to a full port.
+
+A usable follow-up would cover foreground and notification lanes, bundled
+icons, effects, truthful playback completion, VoiceOver coexistence, audio
+interruptions, Bluetooth routing, and battery use. The desktop service's
+separate worker processes need an iOS-compatible lifecycle design. Both the
+current Omnivox listener and Emacsvox client enforce loopback addresses;
+direct tailnet access requires an explicit revision of
+[ADR 0008](../adr/0008-remote-workstation-service.md) and review of the other
+accepted process-boundary decisions before implementation.
+
+Develop and test portable Rust and Emacsvox changes on Linux/WSL. Use a Mac
+with Xcode and the iOS SDK to build and sign the app; a remote Mac is sufficient
+for build access. Physical iPhone acceptance is required for the network,
+audio, and background-lifecycle questions. No implementation or delivery date
+is committed by this roadmap entry.
+
 ## Release acceptance
 
 A release candidate should satisfy all applicable locked checks and then pass
