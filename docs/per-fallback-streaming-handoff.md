@@ -1,12 +1,28 @@
 # Per-fallback tuning: synthesis and playback handoff
 
-Status: XHI implementation review complete, 2026-09-09. This is a plan, not
-implemented playback support. Reviewed against Omnivox `0cbfa93` on
+Status: High implementation in progress, 2026-09-09. The first routing handoff
+portion is tested; full playback support is not implemented. Reviewed against Omnivox `0cbfa93` on
 `voice-choice-tuning`; typed composition and registration are already tested.
 [ADR 0011](adr/0011-per-fallback-voice-tuning.md) and the
 [paired wire contract](per-fallback-voice-tuning.org) remain authoritative.
 No new user choice, wire field, dependency, helper protocol, calibration or
-process boundary is introduced by this review. Resume implementation at High.
+process boundary is introduced by this review. Continue implementation at High.
+
+Completed first portion: admission snapshots retain layered definitions and
+their generation alongside the compatibility projection, with queue byte
+accounting. Actual attempts compose fresh settings and retain the original
+resolution/choice identity. One internal retry loop hands buffered results or
+committed stream metadata over with the prepared attempt; legacy callers use
+an adapter. The layered entry remains internal and is not advertised.
+
+Validation: all 667 locked workspace tests pass, including five new routing
+tests covering all four buffered/streaming fallback combinations, frozen
+registrations, fresh default settings across chunks, duplicate-row versus
+policy identity, invalid stream identity and no replay after commitment/output
+failure. Pinned workspace Clippy, formatting and documentation checks pass.
+These tests exercise fake engine requests and handoff; they do not prove native
+DECtalk/Eloquence reset behavior or effect/playback observation ownership.
+Those remain in the implementation sequence below.
 
 ## Findings that determine the implementation
 

@@ -13,6 +13,7 @@ use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
 use omnivox_tts::resolver::{resolve_voice, resolve_voice_for_text, VoiceResolution};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
+use omnivox_tts::voice_choices::{LayeredVoiceDefinition, RegisteredVoiceDefinition};
 use omnivox_tts::{
     AudioBuffer, RequestedAnchor, ResolvedAnchor, SynthesisCancellationToken, SynthesisMarker,
     SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
@@ -22,6 +23,9 @@ use tracing::{debug, info, warn};
 
 use crate::health::{EngineAccess, EnginePermit, RuntimeEngineHealth};
 
+#[path = "routing_choice.rs"]
+mod choice;
+
 /// Maximum synthesis attempts for one routed chunk, including the first try.
 pub const MAX_RUNTIME_SYNTHESIS_ATTEMPTS: usize = 4;
 const IMPLICIT_LEGACY_VOICE_ID: &str = "__omnivox_internal_legacy__";
@@ -30,6 +34,8 @@ const IMPLICIT_LEGACY_VOICE_ID: &str = "__omnivox_internal_legacy__";
 #[derive(Clone)]
 pub struct LogicalVoiceRoutingSnapshot {
     definitions: Vec<LogicalVoiceDefinition>,
+    registry_generation: u64,
+    layered_definitions: Vec<LayeredVoiceDefinition>,
     fallback_policy: FallbackPolicy,
     inventory: Vec<EngineDescriptor>,
     disabled_engine_ids: Vec<String>,
@@ -43,6 +49,8 @@ impl LogicalVoiceRoutingSnapshot {
     ) -> Self {
         Self {
             definitions: logical_voices.definitions().to_vec(),
+            registry_generation: logical_voices.generation(),
+            layered_definitions: layered_definitions(logical_voices),
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: engine_registry.inventory(),
             disabled_engine_ids: Vec::new(),
@@ -56,6 +64,8 @@ impl LogicalVoiceRoutingSnapshot {
     ) -> Self {
         Self {
             definitions: logical_voices.definitions().to_vec(),
+            registry_generation: logical_voices.generation(),
+            layered_definitions: layered_definitions(logical_voices),
             fallback_policy: routing_policy
                 .effective_fallback_policy(logical_voices.fallback_policy()),
             inventory: routing_policy.project_inventory(engine_registry.inventory()),
@@ -72,6 +82,8 @@ impl LogicalVoiceRoutingSnapshot {
     ) -> Self {
         Self {
             definitions: logical_voices.definitions().to_vec(),
+            registry_generation: logical_voices.generation(),
+            layered_definitions: layered_definitions(logical_voices),
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: routing_policy.project_inventory(engine_registry.inventory()),
             disabled_engine_ids: routing_policy.policy().disabled_engine_ids.clone(),
@@ -86,6 +98,8 @@ impl LogicalVoiceRoutingSnapshot {
     ) -> Self {
         let mut snapshot = Self {
             definitions: logical_voices.definitions().to_vec(),
+            registry_generation: logical_voices.generation(),
+            layered_definitions: layered_definitions(logical_voices),
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: Vec::new(),
             disabled_engine_ids,
@@ -135,6 +149,12 @@ impl LogicalVoiceRoutingSnapshot {
                 usize::saturating_add,
             );
         definitions
+            .saturating_add(
+                self.layered_definitions
+                    .iter()
+                    .map(layered_definition_payload_bytes)
+                    .fold(0usize, usize::saturating_add),
+            )
             .saturating_add(fallback_policy_payload_bytes(&self.fallback_policy))
             .saturating_add(inventory)
             .saturating_add(string_vec_payload_bytes(&self.disabled_engine_ids))
@@ -291,6 +311,33 @@ impl LogicalVoiceRoutingSnapshot {
         .map_err(|error| error.to_string())?;
         route_from_resolution(resolution, definition, &self.inventory, engine_registry)
     }
+}
+
+fn layered_definitions(registry: &LogicalVoiceRegistry) -> Vec<LayeredVoiceDefinition> {
+    registry
+        .registered_definitions()
+        .iter()
+        .filter_map(|definition| match definition {
+            RegisteredVoiceDefinition::Layered(definition) => Some(definition.clone()),
+            RegisteredVoiceDefinition::Legacy(_) => None,
+        })
+        .collect()
+}
+
+fn layered_definition_payload_bytes(definition: &LayeredVoiceDefinition) -> usize {
+    let choices = definition
+        .choices
+        .iter()
+        .map(|choice| {
+            std::mem::size_of::<omnivox_tts::voice_choices::VoiceChoice>()
+                .saturating_add(choice.id.len())
+                .saturating_add(voice_selector_payload_bytes(&choice.selector))
+        })
+        .fold(0usize, usize::saturating_add);
+    std::mem::size_of::<LayeredVoiceDefinition>()
+        .saturating_add(definition.id.len())
+        .saturating_add(definition.language.as_ref().map_or(0, String::len))
+        .saturating_add(choices)
 }
 
 fn logical_voice_definition_payload_bytes(definition: &LogicalVoiceDefinition) -> usize {
@@ -468,6 +515,7 @@ pub(crate) fn legacy_voice_for_engine(engine: &dyn TtsEngine, requested: &str) -
 
 /// Physical route selected for one logical voice within a dispatched batch.
 pub struct LogicalRoute {
+    pub resolution: VoiceResolution,
     pub logical_voice_id: String,
     pub reported_logical_voice_id: Option<String>,
     pub engine: Arc<dyn TtsEngine>,
@@ -498,8 +546,9 @@ pub enum RuntimeProgressiveSynthesisOutcome {
 }
 
 struct RoutedAttemptStreamSink<'a> {
-    inner: &'a mut dyn SynthesisStreamSink,
-    degraded_acss: Vec<omnivox_tts::contracts::AcssDimension>,
+    inner: &'a mut dyn choice::RoutedPlaybackSink,
+    prepared: choice::PreparedVoiceAttempt,
+    validate_identity: bool,
     pending_start: Option<SynthesisStreamStart>,
     pending_markers: Vec<(Vec<SynthesisMarker>, Vec<ResolvedAnchor>)>,
     output_committed: bool,
@@ -519,7 +568,7 @@ impl RoutedAttemptStreamSink<'_> {
         })?;
         self.output_committed = true;
         self.inner
-            .start(start)
+            .start_attempt(&self.prepared, start)
             .inspect_err(|_| self.output_failed = true)?;
         for (markers, anchors) in self.pending_markers.drain(..) {
             self.inner
@@ -537,7 +586,15 @@ impl SynthesisStreamSink for RoutedAttemptStreamSink<'_> {
                 "progressive engine emitted stream metadata more than once".to_owned(),
             ));
         }
-        start.degraded_acss = self.degraded_acss.clone();
+        if self.validate_identity
+            && (start.engine_id != self.prepared.resolution.realized.engine_id
+                || start.actual_voice.as_ref() != Some(&self.prepared.resolution.realized))
+        {
+            return Err(TtsError::SynthesisFailed(
+                "stream metadata does not match the exact prepared voice".to_owned(),
+            ));
+        }
+        start.degraded_acss = self.prepared.acss.omitted.clone();
         self.pending_start = Some(start);
         Ok(())
     }
@@ -678,8 +735,42 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
     cancellation: Option<&SynthesisCancellationToken>,
     sink: &mut dyn SynthesisStreamSink,
 ) -> RuntimeProgressiveSynthesisOutcome {
+    synthesize_prepared_with_runtime_fallback_anchored(
+        chunk,
+        anchors,
+        &choice::AttemptStyle::Legacy {
+            settings,
+            acss: requested_acss,
+        },
+        route,
+        routing,
+        engine_registry,
+        runtime_health,
+        generation,
+        generation_counter,
+        cancellation,
+        &mut choice::LegacyPlaybackSink(sink),
+    )
+    .into_legacy()
+}
+
+/// Internal handoff shared by legacy playback and the forthcoming layered admission path.
+#[allow(clippy::too_many_arguments)]
+fn synthesize_prepared_with_runtime_fallback_anchored(
+    chunk: &str,
+    anchors: &[RequestedAnchor],
+    style: &choice::AttemptStyle<'_>,
+    route: &mut LogicalRoute,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    generation: u64,
+    generation_counter: &AtomicU64,
+    cancellation: Option<&SynthesisCancellationToken>,
+    sink: &mut dyn choice::RoutedPlaybackSink,
+) -> choice::PreparedSynthesisOutcome {
     if stale(generation, generation_counter, cancellation) {
-        return RuntimeProgressiveSynthesisOutcome::Cancelled;
+        return choice::PreparedSynthesisOutcome::Cancelled;
     }
     let previous_incompatibility = routing.text_incompatibility(route, chunk);
     let compatible_route = match routing.route_for_text(route, chunk, engine_registry) {
@@ -689,7 +780,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                 "Logical voice {} has no route capable of preserving this chunk: {}",
                 route.logical_voice_id, error
             );
-            return RuntimeProgressiveSynthesisOutcome::Exhausted;
+            return choice::PreparedSynthesisOutcome::Exhausted;
         }
     };
     if compatible_route.realized != route.realized {
@@ -710,7 +801,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
 
     for attempt in 1..=MAX_RUNTIME_SYNTHESIS_ATTEMPTS {
         if stale(generation, generation_counter, cancellation) {
-            return RuntimeProgressiveSynthesisOutcome::Cancelled;
+            return choice::PreparedSynthesisOutcome::Cancelled;
         }
         let permit = match runtime_health.acquire(&route.realized.engine_id) {
             EngineAccess::Permit(permit) => permit,
@@ -725,19 +816,19 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                         *route = retry;
                         continue;
                     }
-                    Err(outcome) => return progressive_outcome(outcome),
+                    Err(outcome) => return choice::PreparedSynthesisOutcome::from_retry(outcome),
                 }
             }
         };
         if stale(generation, generation_counter, cancellation) {
             release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
-            return RuntimeProgressiveSynthesisOutcome::Cancelled;
+            return choice::PreparedSynthesisOutcome::Cancelled;
         }
         if permit == EnginePermit::RecoveryProbe {
             if let Err(preparation_error) = route.engine.prepare_recovery_probe() {
                 if stale(generation, generation_counter, cancellation) {
                     release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
-                    return RuntimeProgressiveSynthesisOutcome::Cancelled;
+                    return choice::PreparedSynthesisOutcome::Cancelled;
                 }
                 let error = TtsError::SynthesisFailed(format!(
                     "recovery preparation failed: {preparation_error}"
@@ -755,30 +846,27 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                         *route = retry;
                         continue;
                     }
-                    Err(outcome) => return progressive_outcome(outcome),
+                    Err(outcome) => return choice::PreparedSynthesisOutcome::from_retry(outcome),
                 }
             }
         }
 
-        let mut routed_settings = settings.clone();
-        routed_settings.voice = route.realized.voice_id.clone();
-        let acss = requested_acss.map_or_else(
-            || route.acss.clone(),
-            |style| {
-                style
-                    .clone()
-                    .degrade_for(&route.engine.descriptor().capabilities.acss)
-            },
-        );
-        apply_normalized_acss(&mut routed_settings, &acss.style);
-        let mut request =
-            SynthesisRequest::new(chunk, routed_settings).with_normalized_acss(acss.style.clone());
+        let descriptor = route.engine.descriptor();
+        let prepared = match style.prepare(routing, route, &descriptor) {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+                warn!("Cannot prepare routed voice attempt: {error}");
+                return choice::PreparedSynthesisOutcome::Failed;
+            }
+        };
+        let mut request = SynthesisRequest::new(chunk, prepared.settings.clone())
+            .with_normalized_acss(prepared.acss.style.clone());
         request.cancellation = cancellation.cloned();
         request.requested_voice = Some(route.realized.clone());
         request.logical_voice_id = route.reported_logical_voice_id.clone();
         request.anchors = anchors.to_vec();
         let started_at = Instant::now();
-        let descriptor = route.engine.descriptor();
         info!(
             lifecycle_stage = "synthesis_started",
             logical_voice = route.logical_voice_id,
@@ -812,7 +900,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
             let synthesis = route.engine.synthesize(&request).and_then(|mut result| {
                 result.resolve_anchors(&request, descriptor.capabilities.markers.requested_anchors);
                 result.validate(&request)?;
-                result.degraded_acss = acss.omitted.clone();
+                result.degraded_acss = prepared.acss.omitted.clone();
                 Ok(result)
             });
             match synthesis {
@@ -831,15 +919,18 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                         "Routed buffered fallback synthesis completed"
                     );
                     return if stale(generation, generation_counter, cancellation) {
-                        RuntimeProgressiveSynthesisOutcome::Cancelled
+                        choice::PreparedSynthesisOutcome::Cancelled
                     } else {
-                        RuntimeProgressiveSynthesisOutcome::Buffered(Box::new(result))
+                        choice::PreparedSynthesisOutcome::Buffered {
+                            result: Box::new(result),
+                            attempt: Box::new(prepared),
+                        }
                     };
                 }
                 Err(error) => {
                     if stale(generation, generation_counter, cancellation) {
                         release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
-                        return RuntimeProgressiveSynthesisOutcome::Cancelled;
+                        return choice::PreparedSynthesisOutcome::Cancelled;
                     }
                     record_synthesis_failure(runtime_health, route, &error, permit);
                     warn_synthesis_failure(route, attempt, started_at, &error, false);
@@ -848,7 +939,9 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                             *route = retry;
                             continue;
                         }
-                        Err(outcome) => return progressive_outcome(outcome),
+                        Err(outcome) => {
+                            return choice::PreparedSynthesisOutcome::from_retry(outcome)
+                        }
                     }
                 }
             }
@@ -856,7 +949,8 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
 
         let mut attempt_sink = RoutedAttemptStreamSink {
             inner: sink,
-            degraded_acss: acss.omitted.clone(),
+            prepared,
+            validate_identity: matches!(style, choice::AttemptStyle::Layered { .. }),
             pending_start: None,
             pending_markers: Vec::new(),
             output_committed: false,
@@ -886,15 +980,15 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                     "Routed progressive synthesis completed"
                 );
                 return if stale(generation, generation_counter, cancellation) {
-                    RuntimeProgressiveSynthesisOutcome::Cancelled
+                    choice::PreparedSynthesisOutcome::Cancelled
                 } else {
-                    RuntimeProgressiveSynthesisOutcome::Streamed(completion)
+                    choice::PreparedSynthesisOutcome::Streamed(completion)
                 };
             }
             Err(error) => {
                 if stale(generation, generation_counter, cancellation) {
                     release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
-                    return RuntimeProgressiveSynthesisOutcome::Cancelled;
+                    return choice::PreparedSynthesisOutcome::Cancelled;
                 }
                 if attempt_sink.output_failed {
                     // The consumer shares one output device across voices.
@@ -907,7 +1001,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                         error = %error,
                         "Progressive output failed; retaining speech engine health"
                     );
-                    return RuntimeProgressiveSynthesisOutcome::Failed;
+                    return choice::PreparedSynthesisOutcome::Failed;
                 }
                 let output_committed = attempt_sink.output_committed;
                 let audio_accepted = attempt_sink.audio_accepted;
@@ -919,28 +1013,17 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
                         attempt,
                         "Progressive synthesis failed after committing output; refusing cross-engine splice"
                     );
-                    return RuntimeProgressiveSynthesisOutcome::Failed;
+                    return choice::PreparedSynthesisOutcome::Failed;
                 }
                 match select_retry(route, routing, engine_registry, &error, attempt) {
                     Ok(retry) => *route = retry,
-                    Err(outcome) => return progressive_outcome(outcome),
+                    Err(outcome) => return choice::PreparedSynthesisOutcome::from_retry(outcome),
                 }
             }
         }
     }
 
     unreachable!("the bounded routed synthesis loop always returns")
-}
-
-fn progressive_outcome(outcome: RuntimeSynthesisOutcome) -> RuntimeProgressiveSynthesisOutcome {
-    match outcome {
-        RuntimeSynthesisOutcome::Ready(_) => {
-            unreachable!("retry selection never returns a ready result")
-        }
-        RuntimeSynthesisOutcome::Cancelled => RuntimeProgressiveSynthesisOutcome::Cancelled,
-        RuntimeSynthesisOutcome::Failed => RuntimeProgressiveSynthesisOutcome::Failed,
-        RuntimeSynthesisOutcome::Exhausted => RuntimeProgressiveSynthesisOutcome::Exhausted,
-    }
 }
 
 fn record_synthesis_failure(
@@ -1312,6 +1395,7 @@ fn route_from_resolution(
     }
 
     Ok(LogicalRoute {
+        resolution: resolution.clone(),
         reported_logical_voice_id: Some(resolution.logical_voice_id.clone()),
         logical_voice_id: resolution.logical_voice_id,
         engine,
@@ -1383,6 +1467,9 @@ fn record_runtime_failure(
 
 #[cfg(test)]
 mod tests {
+    mod choice_tests {
+        include!("routing_choice_tests.rs");
+    }
     use std::sync::atomic::AtomicUsize;
     use std::sync::Mutex;
 
@@ -1406,6 +1493,8 @@ mod tests {
         StreamAfterMarkers,
         StreamAfterAudio,
         StreamWithMarkers,
+        StreamWrongVoice,
+        StreamMissingVoice,
     }
 
     struct MockEngine {
@@ -1473,7 +1562,9 @@ mod tests {
                     MockFailure::StreamBeforeAudio
                     | MockFailure::StreamAfterMarkers
                     | MockFailure::StreamAfterAudio
-                    | MockFailure::StreamWithMarkers,
+                    | MockFailure::StreamWithMarkers
+                    | MockFailure::StreamWrongVoice
+                    | MockFailure::StreamMissingVoice,
                 ) => success(),
                 Some(MockFailure::NotAvailableOnce(_) | MockFailure::SynthesisOnce(_)) => success(),
                 None => success(),
@@ -1489,9 +1580,21 @@ mod tests {
                 .lock()
                 .unwrap()
                 .push((request.text.clone(), request.settings.voice.clone()));
+            self.settings.lock().unwrap().push(request.settings.clone());
+            self.normalized_acss
+                .lock()
+                .unwrap()
+                .push(request.normalized_acss.clone());
+            let actual_voice = match self.failure {
+                Some(MockFailure::StreamWrongVoice) => {
+                    Some(PhysicalVoiceId::new(&self.descriptor.id, "wrong"))
+                }
+                Some(MockFailure::StreamMissingVoice) => None,
+                _ => request.requested_voice.clone(),
+            };
             sink.start(SynthesisStreamStart {
                 engine_id: self.descriptor.id.clone(),
-                actual_voice: request.requested_voice.clone(),
+                actual_voice,
                 degraded_acss: Vec::new(),
             })?;
             if matches!(self.failure.as_ref(), Some(MockFailure::StreamBeforeAudio)) {
