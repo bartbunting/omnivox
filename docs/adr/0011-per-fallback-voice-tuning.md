@@ -80,3 +80,10 @@ codec examples, compatibility and response bounds. All 662 workspace tests and
 workspace Clippy pass. Routed execution, timeline/preview codecs, playback
 evidence and client integration remain in progress in the isolated
 `voice-choice-tuning` worktree.
+
+The [streaming handoff review](../per-fallback-streaming-handoff.md) completes
+the XHI implementation boundary. It selects a CLI-owned prepared attempt,
+transactional sink handoff, route-owned DSP, early ticket retention and separate
+accepted/started observations using existing frame callbacks. Its test matrix
+and commit sequence are ready for High; those playback changes are not yet
+implemented. The capability bundle remains unadvertised.
