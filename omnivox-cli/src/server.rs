@@ -1112,6 +1112,7 @@ pub fn synthesis_worker(
                     timeline_renderer: Some(&timeline_renderer),
                     effect_processor: Some(&effect_processor),
                     marker_dispatch: marker_dispatch.as_ref(),
+                    voice_observations: None,
                     batch_failed: Some(&failed),
                 };
                 let status = process_batch(
@@ -1174,6 +1175,7 @@ pub fn synthesis_worker(
                     timeline_renderer: Some(&timeline_renderer),
                     effect_processor: Some(&effect_processor),
                     marker_dispatch: Some(&marker_dispatch),
+                    voice_observations: None,
                     batch_failed: Some(&failed),
                 };
                 let dispatch_id = timeline.dispatch_id;
@@ -1228,6 +1230,7 @@ pub fn synthesis_worker(
                     timeline_renderer: Some(&timeline_renderer),
                     effect_processor: Some(&effect_processor),
                     marker_dispatch: None,
+                    voice_observations: None,
                     batch_failed: Some(&failed),
                 };
                 let result = process_preview(
@@ -1299,6 +1302,7 @@ pub fn synthesis_worker(
                     timeline_renderer: Some(&timeline_renderer),
                     effect_processor: Some(&effect_processor),
                     marker_dispatch: None,
+                    voice_observations: None,
                     batch_failed: None,
                 };
                 if ctx.is_stale() {
@@ -1343,6 +1347,7 @@ pub fn synthesis_worker(
                     timeline_renderer: Some(&timeline_renderer),
                     effect_processor: Some(&effect_processor),
                     marker_dispatch: None,
+                    voice_observations: None,
                     batch_failed: None,
                 };
                 if ctx.is_stale() {
@@ -1377,6 +1382,7 @@ pub fn synthesis_worker(
                     timeline_renderer: None,
                     effect_processor: None,
                     marker_dispatch: None,
+                    voice_observations: None,
                     batch_failed: None,
                 };
                 if ctx.is_stale() {

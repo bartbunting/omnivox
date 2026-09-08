@@ -165,6 +165,7 @@ fn run(
         timeline_renderer: Some(&renderer),
         effect_processor: Some(&effects),
         marker_dispatch: None,
+        voice_observations: None,
         batch_failed: Some(&failed),
     };
     let mut result = process_preview(

@@ -564,6 +564,7 @@ impl MarkerDispatchContext {
         }
 
         PreparedMarkerPlayback {
+            first_frame_observer: None,
             cues,
             events: Arc::new(events),
             output: self.output.clone(),
@@ -599,6 +600,7 @@ pub struct PlaybackTimelineResolutionEvent {
 }
 
 pub struct PreparedMarkerPlayback {
+    first_frame_observer: Option<Box<dyn FnOnce() + Send>>,
     cues: Vec<PlaybackCue>,
     events: Arc<Vec<Arc<MarkerEventEnvelope>>>,
     output: MarkerEventOutput,
@@ -767,6 +769,11 @@ impl ProgressiveMarkerPublisher {
 }
 
 impl PreparedMarkerPlayback {
+    pub(crate) fn observe_first_frame(mut self, observer: impl FnOnce() + Send + 'static) -> Self {
+        self.first_frame_observer = Some(Box::new(observer));
+        self
+    }
+
     pub fn queue_if<F>(
         self,
         control: &AudioControl,
@@ -821,8 +828,12 @@ impl PreparedMarkerPlayback {
         let output = self.output;
         let callback_output = output.clone();
         let lifecycle = self.lifecycle.clone();
+        let mut first_frame_observer = self.first_frame_observer;
         let on_cue = move |cue: PlaybackCue| {
             if cue.identifier == 0 {
+                if let Some(observer) = first_frame_observer.take() {
+                    observer();
+                }
                 if let Some(lifecycle) = &lifecycle {
                     lifecycle.record_mixer_source_started();
                 }
@@ -885,8 +896,12 @@ impl PreparedMarkerPlayback {
         let mut events = events.into_iter().map(Some).collect::<Vec<_>>();
         let output = self.output;
         let lifecycle = self.lifecycle.clone();
+        let mut first_frame_observer = self.first_frame_observer;
         let on_cue = move |cue: PlaybackCue| {
             if cue.identifier == 0 {
+                if let Some(observer) = first_frame_observer.take() {
+                    observer();
+                }
                 if let Some(lifecycle) = &lifecycle {
                     lifecycle.record_mixer_source_started();
                 }

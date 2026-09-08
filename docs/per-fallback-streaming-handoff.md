@@ -1,7 +1,7 @@
 # Per-fallback tuning: synthesis and playback handoff
 
-Status: High implementation in progress, 2026-09-09. The first routing handoff
-portion is tested; full playback support is not implemented. Reviewed against Omnivox `0cbfa93` on
+Status: High implementation in progress, 2026-09-09. Routing, effects, ticket and
+observation handoffs are tested; full wire support is not implemented. Reviewed against Omnivox `0cbfa93` on
 `voice-choice-tuning`; typed composition and registration are already tested.
 [ADR 0011](adr/0011-per-fallback-voice-tuning.md) and the
 [paired wire contract](per-fallback-voice-tuning.org) remain authoritative.
@@ -47,8 +47,18 @@ no longer the registration point. PCM publication records acceptance using
 consumer and partial failure with/without markers, invalid initial cues with a
 settled ticket and no emitted event, and a real send-before-attachment-failure
 path with accepted PCM but no consumption. All 674 workspace tests, workspace
-Clippy, formatting and documentation checks pass. First-frame observations,
-bounded preview evidence and terminal serialization are next.
+Clippy, formatting and documentation checks pass.
+
+Completed observation portion: buffered and progressive prepared output allocate
+source handles before queueing. Acceptance and first consumed frame are separate
+facts, including when playback wins the producer acknowledgement race. Evidence
+deduplicates the complete choice identity, retains at most 32 entries and tracks
+the last started choice independently. Empty or wholly trimmed output creates no
+observation. Seven additional tests cover these rules, repeated identities,
+truncation, and cancellation or partial failure behind a held consumer. All 681
+workspace tests, workspace Clippy, formatting and documentation checks pass.
+Terminal serialization and new wire admission remain next; production legacy
+requests do not attach the new collector and the bundle remains unadvertised.
 
 ## Findings that determine the implementation
 

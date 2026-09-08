@@ -9,8 +9,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use thiserror::Error;
 
 use crate::contracts::{
-    apply_rate_offset, FallbackPolicy, LogicalVoiceDefinition, NormalizedAcss, PhysicalVoiceId,
-    PostSynthesisStyle, VoiceGender, VoiceSelector,
+    apply_rate_offset, AcssDimension, FallbackPolicy, LogicalVoiceDefinition, NormalizedAcss,
+    PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle, VoiceGender, VoiceSelector,
 };
 use crate::logical_voices::{
     validate_registration, LogicalVoiceRegistryError, MAX_LOGICAL_VOICE_ID_BYTES,
@@ -24,6 +24,17 @@ pub enum ChoiceTuningError {
     Invalid(&'static str),
     #[error(transparent)]
     Registry(#[from] LogicalVoiceRegistryError),
+}
+
+/// Identity of accepted/consumed audio, independent of mutable routing state.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AudioChoiceIdentity {
+    pub choice_id: Option<String>,
+    pub reason: ResolutionReason,
+    pub realized: PhysicalVoiceId,
+    pub degraded_acss: Vec<AcssDimension>,
+    pub degraded_effects: Vec<PostSynthesisDimension>,
 }
 
 fn required_nullable<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
@@ -621,6 +632,21 @@ mod tests {
             serde_json::from_value::<VoiceStylePatch>(json!({"richness":{"op":"default"}}))
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn audio_identity_matches_preview_and_receipt_contract_examples() {
+        let examples = fixture();
+        let expected = &examples["messages"]["preview_completed"]["last_started"];
+        let identity: AudioChoiceIdentity = serde_json::from_value(expected.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&identity).unwrap(), *expected);
+        assert_eq!(
+            examples["messages"]["playback_receipt"]["choice"],
+            *expected
+        );
+        let mut extra = expected.clone();
+        extra["unknown"] = json!(true);
+        assert!(serde_json::from_value::<AudioChoiceIdentity>(extra).is_err());
     }
 
     #[test]

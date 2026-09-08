@@ -33,6 +33,7 @@ mod routing;
 mod server;
 mod text;
 mod transaction;
+mod voice_observations;
 mod work_queue;
 
 use anyhow::Result;

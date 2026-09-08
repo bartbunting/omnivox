@@ -183,6 +183,7 @@ pub struct SynthCtx<'a> {
     pub timeline_renderer: Option<&'a Mutex<TimelineAudioRenderer>>,
     pub effect_processor: Option<&'a Mutex<DispatchEffects>>,
     pub marker_dispatch: Option<&'a MarkerDispatchContext>,
+    pub voice_observations: Option<&'a Mutex<crate::voice_observations::VoiceObservations>>,
     pub batch_failed: Option<&'a AtomicBool>,
 }
 
@@ -746,6 +747,14 @@ fn queue_synthesis_result_inner(
             (None, Vec::new())
         }
     };
+    let observation = if result.audio.is_empty() {
+        None
+    } else {
+        attempt.and_then(|attempt| {
+            ctx.voice_observations
+                .map(|evidence| evidence.lock().unwrap().prepare(attempt))
+        })
+    };
     let accepted = if let Some(marker_dispatch) =
         ctx.marker_dispatch.filter(|_| !result.audio.is_empty())
     {
@@ -793,6 +802,11 @@ fn queue_synthesis_result_inner(
                 &semantic_events,
             )
         };
+        let prepared = if let Some(observation) = observation.clone() {
+            prepared.observe_first_frame(move || observation.first_frame())
+        } else {
+            prepared
+        };
         let queued = if let Some(cancellation) = ctx.cancellation {
             prepared.queue_cancellable_if(ctx.control, &result.audio, cancellation.clone(), || {
                 !ctx.is_stale()
@@ -812,9 +826,42 @@ fn queue_synthesis_result_inner(
                 false
             }
         }
+    } else if let Some(observation) = observation.clone() {
+        ctx.flush_overlays();
+        let queued_at = Instant::now();
+        let queued = ctx.control.queue_tracked_with_cue_callback_cancellable_if(
+            StreamType::Speech,
+            &result.audio,
+            vec![omnivox_audio::PlaybackCue {
+                frame_offset: 0,
+                identifier: 0,
+            }],
+            move |_| observation.first_frame(),
+            ctx.cancellation.cloned().unwrap_or_default(),
+            || !ctx.is_stale(),
+        );
+        match queued {
+            Ok(Some(ticket)) => {
+                ctx.lifecycle.record_audio_queued_at(queued_at);
+                ctx.record_ticket(StreamType::Speech, ticket);
+                true
+            }
+            Ok(None) => false,
+            Err(error) => {
+                ctx.mark_failed();
+                warn!("Prepared speech queue error: {error}");
+                false
+            }
+        }
     } else {
         ctx.queue(StreamType::Speech, &result.audio)
     };
+    if accepted {
+        if let (Some(evidence), Some(observation)) = (ctx.voice_observations, observation.as_ref())
+        {
+            evidence.lock().unwrap().accept(observation);
+        }
+    }
     if attempt.is_some() && (ctx.failed() || (!accepted && !result.audio.is_empty())) {
         discard_effects(ctx);
         return false;
@@ -1191,6 +1238,7 @@ struct ProgressiveChunkSink<'a, 'ctx> {
     utterance_text: &'a str,
     logical_voice_id: Option<String>,
     effects: PostSynthesisStyle,
+    observation: Option<crate::voice_observations::VoiceObservation>,
     attempt: Option<PreparedVoiceAttempt>,
     routed_effects: Option<(&'a EngineRegistry, PostSynthesisStyle)>,
     degraded_effects: Vec<PostSynthesisDimension>,
@@ -1256,6 +1304,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             utterance_text,
             logical_voice_id: logical_voice_id.map(str::to_owned),
             effects,
+            observation: None,
             attempt: None,
             routed_effects: None,
             degraded_effects,
@@ -1294,6 +1343,11 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                     "progressive engine emitted audio before stream metadata".to_owned(),
                 )
             })?;
+            self.observation = self.attempt.as_ref().and_then(|attempt| {
+                self.ctx
+                    .voice_observations
+                    .map(|evidence| evidence.lock().unwrap().prepare(attempt))
+            });
             self.ctx.flush_overlays();
             let cancellation = self
                 .ctx
@@ -1327,6 +1381,11 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                         &[],
                     )
                 };
+                let prepared = if let Some(observation) = self.observation.clone() {
+                    prepared.observe_first_frame(move || observation.first_frame())
+                } else {
+                    prepared
+                };
                 let queued = prepared
                     .queue_progressive_cancellable_if(
                         self.ctx.control,
@@ -1343,12 +1402,17 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                 self.producer = Some(producer);
                 self.marker_publisher = Some(marker_publisher);
             } else {
+                let observation = self.observation.clone();
                 let queued_at = Instant::now();
                 let queued = self
                     .ctx
                     .control
                     .queue_progressive_speech_with_cue_callback_cancellable_if(
-                        |_| {},
+                        move |_| {
+                            if let Some(observation) = &observation {
+                                observation.first_frame();
+                            }
+                        },
                         cancellation,
                         || !self.ctx.is_stale(),
                     )
@@ -1361,8 +1425,18 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                         "progressive playback was superseded before queueing".to_owned(),
                     ));
                 };
-                self.producer = Some(producer);
+                let mut producer = producer;
                 self.ctx.record_ticket(StreamType::Speech, ticket);
+                if self.observation.is_some() {
+                    // ensure_playback is reached only for nonempty rendered PCM.
+                    producer
+                        .push_cues(vec![omnivox_audio::PlaybackCue {
+                            frame_offset: 0,
+                            identifier: 0,
+                        }])
+                        .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+                }
+                self.producer = Some(producer);
             }
         }
         Ok(self.producer.as_mut().unwrap())
@@ -1720,6 +1794,13 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
         let result = producer.push_audio(audio);
         // A nonempty send can succeed before source attachment fails.
         self.accepted_audio |= producer.published_frames() > 0;
+        if self.accepted_audio {
+            if let (Some(evidence), Some(observation)) =
+                (self.ctx.voice_observations, &self.observation)
+            {
+                evidence.lock().unwrap().accept(observation);
+            }
+        }
         result.map_err(|error| TtsError::SynthesisFailed(error.to_string()))
     }
 
@@ -3527,6 +3608,7 @@ mod tests {
             timeline_renderer: None,
             effect_processor: Some(&effects),
             marker_dispatch: None,
+            voice_observations: None,
             batch_failed: Some(&failed),
         };
         let actions = [EffectBus::Speech, EffectBus::Dry]
@@ -3678,7 +3760,7 @@ mod tests {
                 }
             }
         }
-        for markers in [false, true] {
+        for (markers, cancel) in [(false, false), (true, false), (false, true), (true, true)] {
             let streams = AudioStreams::new_with_backend(8, 8, 8, AudioBackend::Null).unwrap();
             let control = streams.control();
             let (entered, reached) = mpsc::sync_channel(1);
@@ -3703,6 +3785,8 @@ mod tests {
             gate.push_audio(AudioBuffer::new(vec![0.1, 0.1])).unwrap();
             gate.finish().unwrap();
             reached.recv().unwrap();
+            let cancellation = SynthesisCancellationToken::new();
+            let observations = Mutex::new(crate::voice_observations::VoiceObservations::default());
             let generation = AtomicU64::new(1);
             let lifecycle = RequestLifecycle::default();
             let engine = PipelineTestEngine;
@@ -3716,7 +3800,7 @@ mod tests {
             let ctx = SynthCtx {
                 gen: 1,
                 gen_counter: &generation,
-                cancellation: None,
+                cancellation: Some(&cancellation),
                 lifecycle: &lifecycle,
                 engine: &engine,
                 control: &control,
@@ -3726,6 +3810,7 @@ mod tests {
                 timeline_renderer: None,
                 effect_processor: Some(&effects),
                 marker_dispatch: markers.then_some(&marker_context),
+                voice_observations: Some(&observations),
                 batch_failed: None,
             };
             let mut sink = ProgressiveChunkSink::new(
@@ -3741,11 +3826,16 @@ mod tests {
                 &ctx,
             )
             .unwrap();
-            sink.start(SynthesisStreamStart {
-                engine_id: "mock".to_owned(),
-                actual_voice: Some(PhysicalVoiceId::new("mock", "voice")),
-                degraded_acss: Vec::new(),
-            })
+            let attempt = prepared_attempt(PostSynthesisStyle::default());
+            crate::routing::choice::RoutedPlaybackSink::start_attempt(
+                &mut sink,
+                &attempt,
+                SynthesisStreamStart {
+                    engine_id: "mock".to_owned(),
+                    actual_voice: Some(attempt.resolution.realized.clone()),
+                    degraded_acss: Vec::new(),
+                },
+            )
             .unwrap();
             sink.audio(AudioBuffer::new(vec![0.4; 4000])).unwrap();
             assert!(sink.accepted_audio);
@@ -3764,6 +3854,13 @@ mod tests {
                 .is_err());
             assert!(sink.accepted_audio);
             drop(sink);
+            let before = observations.lock().unwrap().snapshot();
+            assert_eq!(before.accepted.len(), 1);
+            assert!(!before.accepted[0].1);
+            assert_eq!(before.last_started, None);
+            if cancel {
+                cancellation.cancel();
+            }
             // The accepted stream is queued behind the held source. Closing its
             // producer must not lose its completion barrier.
             release.0.take().unwrap().send(()).unwrap();
@@ -3777,11 +3874,114 @@ mod tests {
                 PlaybackStatus::Cancelled
             );
             control.drain();
+            let after = observations.lock().unwrap().snapshot();
+            assert_eq!(after.accepted[0].1, !cancel);
+            assert_eq!(after.last_started.is_some(), !cancel);
             drop(marker_context);
             drop(control);
             drop(streams);
             reporter.join().unwrap();
         }
+    }
+
+    #[test]
+    fn observations_require_nonempty_buffered_or_progressive_output() {
+        let streams = AudioStreams::new_with_backend(8, 8, 8, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let generation = AtomicU64::new(1);
+        let lifecycle = RequestLifecycle::default();
+        let engine = PipelineTestEngine;
+        let state = TtsState::default();
+        let tickets = Mutex::new(Vec::new());
+        let effects = Mutex::new(DispatchEffects::new());
+        let renderer = Mutex::new(TimelineAudioRenderer::new());
+        let observations = Mutex::new(crate::voice_observations::VoiceObservations::default());
+        let ctx = SynthCtx {
+            gen: 1,
+            gen_counter: &generation,
+            cancellation: None,
+            lifecycle: &lifecycle,
+            engine: &engine,
+            control: &control,
+            playback_tickets: Some(&tickets),
+            presentation_clock: None,
+            pending_overlays: None,
+            timeline_renderer: Some(&renderer),
+            effect_processor: Some(&effects),
+            marker_dispatch: None,
+            voice_observations: Some(&observations),
+            batch_failed: None,
+        };
+        let attempt = prepared_attempt(PostSynthesisStyle::default());
+        for samples in [Vec::new(), vec![0.0; 4000], vec![0.4; 4000]] {
+            for progressive in [false, true] {
+                if progressive {
+                    let mut sink = ProgressiveChunkSink::new(
+                        "hello",
+                        Some("bolden"),
+                        PostSynthesisStyle::default(),
+                        Vec::new(),
+                        &state,
+                        false,
+                        true,
+                        &[],
+                        &[],
+                        &ctx,
+                    )
+                    .unwrap();
+                    crate::routing::choice::RoutedPlaybackSink::start_attempt(
+                        &mut sink,
+                        &attempt,
+                        SynthesisStreamStart {
+                            engine_id: "mock".to_owned(),
+                            actual_voice: Some(attempt.resolution.realized.clone()),
+                            degraded_acss: Vec::new(),
+                        },
+                    )
+                    .unwrap();
+                    if !samples.is_empty() {
+                        sink.audio(AudioBuffer::new(samples.clone())).unwrap();
+                    }
+                    sink.finish(SynthesisStreamCompletion {
+                        frame_count: (samples.len() / 2) as u64,
+                    })
+                    .unwrap();
+                } else {
+                    queue_synthesis_result_inner(
+                        SynthesisResult::audio(
+                            "mock",
+                            Some(attempt.resolution.realized.clone()),
+                            AudioBuffer::new(samples.clone()),
+                        ),
+                        "hello",
+                        Some("bolden"),
+                        &[],
+                        &[],
+                        &attempt.effects.style,
+                        &[],
+                        &state,
+                        false,
+                        true,
+                        Some(&attempt),
+                        &ctx,
+                    );
+                }
+                let retained = std::mem::take(&mut *tickets.lock().unwrap());
+                for ticket in retained {
+                    assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+                }
+                let snapshot = observations.lock().unwrap().snapshot();
+                if samples.iter().all(|sample| *sample == 0.0) {
+                    assert!(snapshot.accepted.is_empty());
+                    assert_eq!(snapshot.last_started, None);
+                } else {
+                    assert_eq!(snapshot.accepted.len(), 1);
+                    assert!(snapshot.accepted[0].1);
+                    assert_eq!(snapshot.last_started, Some(snapshot.accepted[0].0.clone()));
+                }
+            }
+        }
+        control.drain();
     }
 
     #[test]
@@ -3871,6 +4071,7 @@ mod tests {
             timeline_renderer: Some(&timeline_renderer),
             effect_processor: Some(&effect_processor),
             marker_dispatch: None,
+            voice_observations: None,
             batch_failed: None,
         };
         let actions = vec![TimelineChunkAction {
@@ -3950,6 +4151,7 @@ mod tests {
             timeline_renderer: Some(&timeline_renderer),
             effect_processor: Some(&effect_processor),
             marker_dispatch: None,
+            voice_observations: None,
             batch_failed: None,
         };
         let tones = vec![CapitalizationTone {
