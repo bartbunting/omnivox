@@ -60,6 +60,16 @@ workspace tests, workspace Clippy, formatting and documentation checks pass.
 Terminal serialization and new wire admission remain next; production legacy
 requests do not attach the new collector and the bundle remains unadvertised.
 
+Completed preview codec portion: strict `preview_voice_v2` requests retain a
+private full voice, sparse context, placement, original selection index and all
+policy fields. Version-2 terminal encoding bounds acceptance entries and UTF-8
+diagnostics while preserving status, frozen metadata and independent last-started
+identity. Four fixture/adversarial tests cover round trips, missing/unknown/
+duplicate fields, semantic validation and encoded-output truncation. All 685
+workspace tests, workspace Clippy, formatting and documentation checks pass.
+The live server still rejects this request pending its private execution path;
+no capability is advertised by the codec alone.
+
 ## Findings that determine the implementation
 
 - [Routing](../omnivox-cli/src/routing.rs) discards the resolver's reason/index

@@ -23,6 +23,7 @@ pub mod routing_policy;
 pub mod synthesis;
 pub mod timeline_protocol;
 pub mod voice_choices;
+pub mod voice_preview_v2;
 pub mod windows;
 
 pub use omnivox_audio::AudioBuffer;

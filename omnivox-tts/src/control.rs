@@ -20,6 +20,7 @@ use crate::routing_policy::{
     RoutingPolicy, RoutingPolicyError, RoutingPolicyRegistration, RoutingPolicyRegistry,
 };
 use crate::voice_choices::{ChoiceTuningError, RegisteredVoiceDefinition};
+use crate::voice_preview_v2::{VoicePreviewRequestV2, VoicePreviewResponseV2};
 
 /// Current control protocol version.
 pub const CONTROL_PROTOCOL_VERSION: u32 = 1;
@@ -79,6 +80,7 @@ pub enum ControlRequest {
         engine_id: String,
     },
     PreviewVoice(VoicePreviewRequest),
+    PreviewVoiceV2(VoicePreviewRequestV2),
     Preview {
         text: String,
         selector: VoiceSelector,
@@ -236,6 +238,7 @@ pub enum ControlResponse {
         base_rate: f32,
         effective_disabled_engine_ids: Vec<String>,
     },
+    PreviewVoiceCompletedV2(VoicePreviewResponseV2),
     PreviewCompleted {
         status: PreviewStatus,
         requested: VoiceSelector,
@@ -324,7 +327,10 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
     let bytes = decode_bytes(payload)?;
     let request: ControlRequestEnvelope =
         serde_json::from_slice(&bytes).map_err(ControlCodecError::InvalidJson)?;
-    if matches!(request.request, ControlRequest::RegisterLogicalVoicesV2(_)) {
+    if matches!(
+        request.request,
+        ControlRequest::RegisterLogicalVoicesV2(_) | ControlRequest::PreviewVoiceV2(_)
+    ) {
         // Legacy definitions inside a new envelope may accept extension keys,
         // but no key in the new message may occur twice.
         serde_json::from_slice::<DuplicateFreeJson>(&bytes)
@@ -545,6 +551,7 @@ pub fn process_control_request(
             },
             ControlRequest::Preview { .. }
             | ControlRequest::PreviewVoice(_)
+            | ControlRequest::PreviewVoiceV2(_)
             | ControlRequest::RequestEngineRecoveryProbe { .. } => error_response(
                 Some(request.request_id),
                 ControlErrorCode::InvalidConfiguration,
