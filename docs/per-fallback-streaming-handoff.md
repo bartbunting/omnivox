@@ -1,7 +1,7 @@
 # Per-fallback tuning: synthesis and playback handoff
 
-Status: High implementation in progress, 2026-09-09. Routing, effects, ticket and
-observation handoffs are tested; full wire support is not implemented. Reviewed against Omnivox `0cbfa93` on
+Status: server bundle implemented and accepted, 2026-09-09; Emacsvox client
+integration remains pending. The original High handoff was reviewed against Omnivox `0cbfa93` on
 `voice-choice-tuning`; typed composition and registration are already tested.
 [ADR 0011](adr/0011-per-fallback-voice-tuning.md) and the
 [paired wire contract](per-fallback-voice-tuning.org) remain authoritative.
@@ -146,6 +146,19 @@ queue, worker, consumed-choice and terminal reporting for both output modes.
 All 716 workspace tests, workspace Clippy, formatting and documentation checks
 pass. Both-lane/reconnect acceptance remains before capability advertisement;
 no runtime has been installed and the Emacsvox client/editor remains pending.
+
+Completed server acceptance: `tools/test_voice_choice_remote.py` runs the new
+bundle on real isolated speaker/notification workers with null audio output.
+Distinct lane-owned registrations, unavailable-primary fallback, strict duplicate
+row previews, multipart delivery, reconnect clearing, legacy replacement of a
+mixed registry and continued old-protocol speech pass. The inherited remote
+suite also passes authentication, framing, stop and backlog-discard checks: five
+executed tests pass, three optional live/lease/workstation checks are skipped.
+The development payload was built through `make dev`, using copied verified
+input caches, without installation. The complete three-feature bundle is now
+advertised. All 716 workspace tests, Clippy, formatting and documentation checks
+pass. Emacsvox negotiation, lossless context, playback readback and optional
+editor controls are the next slices; audible UX acceptance is still required.
 
 ## Findings that determine the implementation
 

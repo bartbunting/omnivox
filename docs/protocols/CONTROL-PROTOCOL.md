@@ -807,3 +807,22 @@ ACSS dimensions are `rate`, `average_pitch`, `pitch_range`, `stress`,
 - Clients must ignore unknown capability feature strings.
 - Omnivox must keep payload bounds, structured terminal errors, and legacy
   command behavior across protocol versions.
+
+## Per-choice tuning bundle
+
+`voice_choice_tuning_v1`, `presentation_timeline_v4` and
+`playback_marker_events_v3` are advertised together. Control envelope 1 adds
+`register_logical_voices_v2` / `logical_voices_registered_v2` and private
+`preview_voice_v2` / `preview_voice_completed_v2`. Old operations retain their
+semantics. The [paired wire contract](../per-fallback-voice-tuning.org) specifies
+required fields, strict sparse patches, registry generations, selected-row
+identity and bounded accepted/started evidence; its design-snapshot status is
+historical. The [implementation handoff](../per-fallback-streaming-handoff.md)
+records current acceptance evidence and client integration status.
+
+Version-3 playback events retain existing event kinds and add
+`voice_choice_applied`. At the first consumed source frame a layered utterance
+emits adjacent start and choice records through one reporter message, before
+other frame-zero events. Legacy spans emit no choice receipt. No receipt is
+emitted for empty or unconsumed cancelled output. The receipt is at most 32 KiB
+decoded and every version-3 marker line is at most 512 KiB, including framing.

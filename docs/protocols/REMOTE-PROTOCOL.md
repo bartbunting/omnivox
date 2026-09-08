@@ -49,6 +49,12 @@ or a transport error retires the lane. Disconnect cancels speech by terminating 
 queued speech and incomplete records are discarded. Reconnection creates new
 workers and repeats configuration; it does not restore pending utterances.
 
+The worker accepts the complete `voice_choice_tuning_v1`,
+`presentation_timeline_v4`, `playback_marker_events_v3` bundle over this same
+transport. Negotiate each lane independently and re-register voices after
+reconnection. Version-4 multipart frames use the existing 512 KiB line bound;
+assembly and registry validation belong to the worker, before queue admission.
+
 ## Audio resources
 
 Both legacy audio commands and structured timelines use identifiers such as

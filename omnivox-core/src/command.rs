@@ -74,10 +74,10 @@ pub enum CommandId {
     OmnivoxControl,                   // omnivox_control - versioned Base64-JSON control request
     EmacsvoxTx,                       // emacsvox_tx - replaceable Base64 presentation transaction
     EmacsvoxTimeline,                 // emacsvox_timeline - structured Base64-JSON presentation
-    EmacsvoxTimelinePart,             // emacsvox_timeline_part - one bounded V3 transport fragment
-    EmacsvoxTone,                     // emacsvox_tone - versioned presentation-clock tone
+    EmacsvoxTimelinePart, // emacsvox_timeline_part - one bounded V3/V4 transport fragment
+    EmacsvoxTone,         // emacsvox_tone - versioned presentation-clock tone
     EmacsvoxTrackedDispatch, // emacsvox_tracked_dispatch - dispatch with terminal playback status
-    EmacsvoxMarkerDispatch,  // emacsvox_marker_dispatch - dispatch with playback marker events
+    EmacsvoxMarkerDispatch, // emacsvox_marker_dispatch - dispatch with playback marker events
 
     // SwiftMac extensions
     TtsSetVoice,               // tts_set_voice

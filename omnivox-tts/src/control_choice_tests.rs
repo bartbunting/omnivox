@@ -66,8 +66,8 @@ fn registration_fixture_roundtrips_and_returns_bounded_flat_acknowledgement() {
         "playback_marker_events_v3",
     ] {
         assert!(
-            !features.iter().any(|f| f == feature),
-            "incomplete bundle advertised: {feature}"
+            features.iter().any(|f| f == feature),
+            "complete bundle is missing: {feature}"
         );
     }
 }

@@ -289,3 +289,20 @@ provides ordered speech, per-span voice routing and fallback, ACSS it supports,
 whole-span post-synthesis effects, queue/span-boundary audio, cancellation,
 and tracked completion. Only precision-dependent optional actions degrade.
 Speech is never dropped merely because marker or effect metadata is absent.
+
+## Mixed timelines, version 4
+
+Version 4 preserves explicit `legacy` and `layered` span wrappers and carries
+an admitted `registry_generation`. Shared settings, the actual selected choice
+patch and the winning sparse context compose in that order; output placement
+follows composition. The [paired wire contract](../per-fallback-voice-tuning.org)
+defines the complete grammar and bounds. Clients negotiate all three bundle
+features before using it. Old versions retain the rules above.
+
+The existing single-document command and multipart command both accept version
+4. Multipart headers and the decoded document must agree on version and identity;
+no prefix enters synthesis. Registry references, text encoding and all action
+windows are checked before replacement decisions. Replacement domains include
+protocol version, so a version-4 key cannot cancel version-3 work. Consecutive
+legacy spans retain effect state only within their legacy run; every such run
+starts neutral. Playback uses marker version 3 and one tracked terminal record.

@@ -393,9 +393,12 @@ pub fn process_control_request(
                         "logical_voice_routing".to_owned(),
                         "playback_marker_events_v1".to_owned(),
                         "playback_marker_events_v2".to_owned(),
+                        "playback_marker_events_v3".to_owned(),
                         "presentation_timeline_v1".to_owned(),
                         "presentation_timeline_v2".to_owned(),
                         "presentation_timeline_v3".to_owned(),
+                        "presentation_timeline_v4".to_owned(),
+                        "voice_choice_tuning_v1".to_owned(),
                         "presentation_tone_v1".to_owned(),
                         "post_synthesis_effects_v1".to_owned(),
                         "preferred_engine".to_owned(),
@@ -931,6 +934,8 @@ mod tests {
                 && !features
                     .iter()
                     .any(|feature| feature == "capitalization_presentation_v1")
+                && ["voice_choice_tuning_v1", "presentation_timeline_v4", "playback_marker_events_v3"]
+                    .iter().all(|required| features.iter().any(|feature| feature == required))
                 && features.iter().any(|feature| feature == "emacsvox_tx")
                 && features
                     .iter()
