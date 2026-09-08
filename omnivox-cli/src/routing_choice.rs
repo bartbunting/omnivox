@@ -4,7 +4,7 @@ use super::*;
 use omnivox_tts::voice_choices::VoiceStylePatch;
 
 /// A span's immutable input. Layered context never lives on mutable routing state.
-pub(super) enum AttemptStyle<'a> {
+pub(crate) enum AttemptStyle<'a> {
     Legacy {
         settings: &'a TtsSettings,
         acss: Option<&'a NormalizedAcss>,
@@ -20,10 +20,10 @@ pub(super) enum AttemptStyle<'a> {
 
 /// Values belong to the actual attempt, independently of subsequent route mutations.
 #[derive(Clone, Debug)]
-#[cfg_attr(not(test), expect(dead_code))]
-pub(super) struct PreparedVoiceAttempt {
+pub(crate) struct PreparedVoiceAttempt {
     pub registry_generation: u64,
     pub resolution: VoiceResolution,
+    #[cfg_attr(not(test), expect(dead_code))]
     pub choice_index: Option<usize>,
     pub choice_id: Option<String>,
     pub settings: TtsSettings,
@@ -32,7 +32,7 @@ pub(super) struct PreparedVoiceAttempt {
 }
 
 impl AttemptStyle<'_> {
-    pub(super) fn prepare(
+    pub(crate) fn prepare(
         &self,
         routing: &LogicalVoiceRoutingSnapshot,
         route: &LogicalRoute,
@@ -94,7 +94,7 @@ impl AttemptStyle<'_> {
 }
 
 /// The engine-facing stream adapter publishes identity and style together.
-pub(super) trait RoutedPlaybackSink {
+pub(crate) trait RoutedPlaybackSink {
     fn start_attempt(
         &mut self,
         attempt: &PreparedVoiceAttempt,
@@ -108,7 +108,7 @@ pub(super) trait RoutedPlaybackSink {
     ) -> Result<(), TtsError>;
 }
 
-pub(super) struct LegacyPlaybackSink<'a>(pub &'a mut dyn SynthesisStreamSink);
+pub(crate) struct LegacyPlaybackSink<'a>(pub &'a mut dyn SynthesisStreamSink);
 
 impl RoutedPlaybackSink for LegacyPlaybackSink<'_> {
     fn start_attempt(
@@ -132,7 +132,7 @@ impl RoutedPlaybackSink for LegacyPlaybackSink<'_> {
     }
 }
 
-pub(super) enum PreparedSynthesisOutcome {
+pub(crate) enum PreparedSynthesisOutcome {
     Streamed(SynthesisStreamCompletion),
     Buffered {
         result: Box<SynthesisResult>,
@@ -145,7 +145,7 @@ pub(super) enum PreparedSynthesisOutcome {
 }
 
 impl PreparedSynthesisOutcome {
-    pub(super) fn into_legacy(self) -> RuntimeProgressiveSynthesisOutcome {
+    pub(crate) fn into_legacy(self) -> RuntimeProgressiveSynthesisOutcome {
         match self {
             Self::Streamed(completion) => RuntimeProgressiveSynthesisOutcome::Streamed(completion),
             Self::Buffered { result, .. } => RuntimeProgressiveSynthesisOutcome::Buffered(result),
@@ -155,7 +155,7 @@ impl PreparedSynthesisOutcome {
         }
     }
 
-    pub(super) fn from_retry(outcome: RuntimeSynthesisOutcome) -> Self {
+    pub(crate) fn from_retry(outcome: RuntimeSynthesisOutcome) -> Self {
         match outcome {
             RuntimeSynthesisOutcome::Ready(_) => unreachable!("retry selection never succeeds"),
             RuntimeSynthesisOutcome::Cancelled => Self::Cancelled,

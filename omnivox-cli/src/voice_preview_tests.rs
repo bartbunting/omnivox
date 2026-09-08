@@ -150,7 +150,7 @@ fn run(
     let engine = engines.engine(&engines.inventory()[0].id).unwrap();
     let tickets = Mutex::new(Vec::new());
     let renderer = Mutex::new(TimelineAudioRenderer::new());
-    let effects = Mutex::new(PostSynthesisProcessor::new());
+    let effects = Mutex::new(crate::pipeline::DispatchEffects::new());
     let failed = AtomicBool::new(false);
     let ctx = SynthCtx {
         gen: 1,

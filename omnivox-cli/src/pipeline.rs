@@ -52,6 +52,12 @@ use crate::text::{
     PreparedSpeechChunk,
 };
 
+#[path = "pipeline_effects.rs"]
+mod effects;
+use crate::routing::choice::PreparedVoiceAttempt;
+pub(crate) use effects::DispatchEffects;
+use effects::EffectOwner;
+
 // ---------------------------------------------------------------------------
 // Buffer conversion
 // ---------------------------------------------------------------------------
@@ -175,7 +181,7 @@ pub struct SynthCtx<'a> {
     pub presentation_clock: Option<&'a Mutex<Vec<PlaybackTicket>>>,
     pub pending_overlays: Option<&'a Mutex<Vec<AudioBuffer>>>,
     pub timeline_renderer: Option<&'a Mutex<TimelineAudioRenderer>>,
-    pub effect_processor: Option<&'a Mutex<PostSynthesisProcessor>>,
+    pub effect_processor: Option<&'a Mutex<DispatchEffects>>,
     pub marker_dispatch: Option<&'a MarkerDispatchContext>,
     pub batch_failed: Option<&'a AtomicBool>,
 }
@@ -642,6 +648,49 @@ fn queue_synthesis_result(
     final_timeline_window: bool,
     ctx: &SynthCtx,
 ) -> bool {
+    queue_synthesis_result_inner(
+        result,
+        utterance_text,
+        logical_voice_id,
+        capitalization_tones,
+        timeline_actions,
+        effects,
+        degraded_effects,
+        state,
+        is_last_speech,
+        final_timeline_window,
+        None,
+        ctx,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn queue_synthesis_result_inner(
+    result: SynthesisResult,
+    utterance_text: &str,
+    logical_voice_id: Option<&str>,
+    capitalization_tones: &[CapitalizationTone],
+    timeline_actions: &[TimelineChunkAction],
+    effects: &PostSynthesisStyle,
+    degraded_effects: &[PostSynthesisDimension],
+    state: &TtsState,
+    is_last_speech: bool,
+    final_timeline_window: bool,
+    attempt: Option<&PreparedVoiceAttempt>,
+    ctx: &SynthCtx,
+) -> bool {
+    let (effects, degraded_effects) = attempt.map_or((effects, degraded_effects), |attempt| {
+        (&attempt.effects.style, attempt.effects.omitted.as_slice())
+    });
+    let owner = attempt.map_or(EffectOwner::Legacy, EffectOwner::layered);
+    if let Err(error) = select_effect_owner(owner, ctx) {
+        if attempt.is_some() {
+            ctx.mark_failed();
+            warn!("Cannot install prepared effects: {error}");
+            discard_effects(ctx);
+            return false;
+        }
+    }
     let mut result = canonicalize_synthesis_result(result);
     debug!(
         engine = %result.engine_id,
@@ -654,12 +703,21 @@ fn queue_synthesis_result(
     if let Err(error) = process_speech_result(&mut result, state, is_last_speech) {
         ctx.mark_failed();
         warn!("Pipeline error: {}", error);
+        if attempt.is_some() {
+            discard_effects(ctx);
+            return false;
+        }
     }
     let effect_tail =
         match process_effect_window(&mut result.audio, effects, final_timeline_window, ctx) {
             Ok(tail) => tail,
             Err(error) => {
                 ctx.mark_failed();
+                if attempt.is_some() {
+                    warn!("Prepared effect processing failed: {error}");
+                    discard_effects(ctx);
+                    return false;
+                }
                 warn!(
                     "Post-synthesis effect error; queueing dry speech: {}",
                     error
@@ -679,6 +737,11 @@ fn queue_synthesis_result(
         Ok(rendered) => rendered,
         Err(error) => {
             ctx.mark_failed();
+            if attempt.is_some() {
+                warn!("Prepared timeline rendering failed: {error}");
+                discard_effects(ctx);
+                return false;
+            }
             warn!("Timeline render error; queueing dry speech: {}", error);
             (None, Vec::new())
         }
@@ -752,6 +815,10 @@ fn queue_synthesis_result(
     } else {
         ctx.queue(StreamType::Speech, &result.audio)
     };
+    if attempt.is_some() && (ctx.failed() || (!accepted && !result.audio.is_empty())) {
+        discard_effects(ctx);
+        return false;
+    }
     if let Some(tail) = overlay_tail {
         ctx.queue_overlay(tail);
     }
@@ -781,6 +848,29 @@ fn post_synthesis_parameters(style: &PostSynthesisStyle) -> PostSynthesisParamet
         reverb: style.reverb.unwrap_or(0.0),
         echo: style.echo.unwrap_or(0.0),
     }
+}
+
+fn discard_effects(ctx: &SynthCtx) {
+    if let Some(processor) = ctx.effect_processor {
+        processor.lock().unwrap().discard();
+    }
+}
+
+fn select_effect_owner(owner: EffectOwner, ctx: &SynthCtx) -> Result<(), TtsError> {
+    let processor = ctx.effect_processor.ok_or_else(|| {
+        TtsError::SynthesisFailed("synthesis context has no effects processor".to_owned())
+    })?;
+    let tail = processor.lock().unwrap().select(owner);
+    if let Some(tail) = tail {
+        if ctx.pending_overlays.is_some() {
+            ctx.queue_overlay(tail);
+        } else if !ctx.queue(StreamType::Sound, &tail) {
+            return Err(TtsError::SynthesisFailed(
+                "previous effect tail could not be queued".to_owned(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn process_effect_window(
@@ -1101,6 +1191,7 @@ struct ProgressiveChunkSink<'a, 'ctx> {
     utterance_text: &'a str,
     logical_voice_id: Option<String>,
     effects: PostSynthesisStyle,
+    attempt: Option<PreparedVoiceAttempt>,
     routed_effects: Option<(&'a EngineRegistry, PostSynthesisStyle)>,
     degraded_effects: Vec<PostSynthesisDimension>,
     state: &'a TtsState,
@@ -1114,6 +1205,8 @@ struct ProgressiveChunkSink<'a, 'ctx> {
     pending_markers: VecDeque<SynthesisMarker>,
     marker_count: usize,
     last_marker_offset: Option<u64>,
+    source_tones: Vec<CapitalizationTone>,
+    source_actions: Vec<TimelineChunkAction>,
     timeline_actions: Vec<TimelineAction>,
     timeline_action_indices: HashMap<String, usize>,
     reported_timeline_action_ids: HashSet<String>,
@@ -1125,6 +1218,7 @@ struct ProgressiveChunkSink<'a, 'ctx> {
     primary_frame_count: u64,
     output_frame_count: u64,
     accepted_audio: bool,
+    finished: bool,
     ticket: Option<PlaybackTicket>,
 }
 
@@ -1146,6 +1240,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             .iter()
             .map(|action| action.id.clone())
             .collect();
+        let source_actions = timeline_actions.to_vec();
         let (timeline_actions, timeline_resources) = prepare_speech_timeline_actions(
             capitalization_tones,
             timeline_actions,
@@ -1162,6 +1257,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             utterance_text,
             logical_voice_id: logical_voice_id.map(str::to_owned),
             effects,
+            attempt: None,
             routed_effects: None,
             degraded_effects,
             state,
@@ -1175,6 +1271,8 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             pending_markers: VecDeque::new(),
             marker_count: 0,
             last_marker_offset: None,
+            source_tones: capitalization_tones.to_vec(),
+            source_actions,
             timeline_actions,
             timeline_action_indices,
             reported_timeline_action_ids,
@@ -1186,6 +1284,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             primary_frame_count: 0,
             output_frame_count: 0,
             accepted_audio: false,
+            finished: false,
             ticket: None,
         })
     }
@@ -1725,10 +1824,59 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
         let start = self.start.clone().ok_or_else(|| {
             TtsError::SynthesisFailed("progressive engine omitted stream metadata".to_owned())
         })?;
+        self.finished = true;
         Ok(CompletedProgressiveChunk {
             actual_voice: start.actual_voice,
             degraded_acss: start.degraded_acss,
         })
+    }
+}
+
+impl Drop for ProgressiveChunkSink<'_, '_> {
+    fn drop(&mut self) {
+        if self.attempt.is_some() && !self.finished {
+            discard_effects(self.ctx);
+        }
+    }
+}
+
+impl crate::routing::choice::RoutedPlaybackSink for ProgressiveChunkSink<'_, '_> {
+    fn start_attempt(
+        &mut self,
+        attempt: &PreparedVoiceAttempt,
+        start: SynthesisStreamStart,
+    ) -> Result<(), TtsError> {
+        if self.start.is_some() {
+            return Err(TtsError::SynthesisFailed(
+                "attempt already committed".to_owned(),
+            ));
+        }
+        // Speech-bus action resources also belong to the ACTUAL attempt. The
+        // source resources are immutable prepared data, so no file is reread.
+        let (actions, resources) = prepare_speech_timeline_actions(
+            &self.source_tones,
+            &self.source_actions,
+            &attempt.effects.style,
+            self.state,
+        )
+        .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        self.timeline_actions = actions;
+        self.timeline_resources = resources;
+        self.effects = attempt.effects.style.clone();
+        self.degraded_effects = attempt.effects.omitted.clone();
+        self.routed_effects = None;
+        self.attempt = Some(attempt.clone());
+        SynthesisStreamSink::start(self, start)
+    }
+    fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+        SynthesisStreamSink::audio(self, audio)
+    }
+    fn markers(
+        &mut self,
+        markers: Vec<SynthesisMarker>,
+        anchors: Vec<ResolvedAnchor>,
+    ) -> Result<(), TtsError> {
+        SynthesisStreamSink::markers(self, markers, anchors)
     }
 }
 
@@ -1748,6 +1896,14 @@ impl SynthesisStreamSink for ProgressiveChunkSink<'_, '_> {
                 .degrade_for(&engine.descriptor().capabilities.post_synthesis_dimensions);
             self.effects = application.style;
             self.degraded_effects = application.omitted;
+        }
+        let owner = self
+            .attempt
+            .as_ref()
+            .map_or(EffectOwner::Legacy, EffectOwner::layered);
+        // Existing non-layered test/legacy callers can lack a stateful processor.
+        if self.attempt.is_some() || self.ctx.effect_processor.is_some() {
+            select_effect_owner(owner, self.ctx)?;
         }
         self.start = Some(start);
         self.trimmer = Some(ProgressiveSilenceTrimmer::with_asymmetric_padding(
@@ -3328,6 +3484,189 @@ mod tests {
         }
     }
 
+    fn prepared_attempt(effects: PostSynthesisStyle) -> PreparedVoiceAttempt {
+        PreparedVoiceAttempt {
+            registry_generation: 41,
+            resolution: omnivox_tts::resolver::VoiceResolution {
+                logical_voice_id: "bolden".to_owned(),
+                requested: None,
+                realized: PhysicalVoiceId::new("mock", "voice"),
+                reason: omnivox_tts::resolver::ResolutionReason::Preferred,
+                failed_attempts: Vec::new(),
+            },
+            choice_index: Some(0),
+            choice_id: Some("actual".to_owned()),
+            settings: TtsSettings::default(),
+            acss: NormalizedAcss::default().degrade_for(&Default::default()),
+            effects: effects
+                .degrade_for(&omnivox_tts::contracts::buffered_post_synthesis_dimensions()),
+        }
+    }
+
+    #[test]
+    fn committed_attempt_restyles_speech_bus_resources_and_rejects_dry_fallback_on_error() {
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let generation = AtomicU64::new(1);
+        let lifecycle = RequestLifecycle::default();
+        let engine = PipelineTestEngine;
+        let mut state = TtsState::default();
+        state.sound_routing.channel_mode = ChannelMode::Both;
+        let tickets = Mutex::new(Vec::new());
+        let effects = Mutex::new(DispatchEffects::new());
+        let failed = AtomicBool::new(false);
+        let ctx = SynthCtx {
+            gen: 1,
+            gen_counter: &generation,
+            cancellation: None,
+            lifecycle: &lifecycle,
+            engine: &engine,
+            control: &control,
+            playback_tickets: Some(&tickets),
+            presentation_clock: None,
+            pending_overlays: None,
+            timeline_renderer: None,
+            effect_processor: Some(&effects),
+            marker_dispatch: None,
+            batch_failed: Some(&failed),
+        };
+        let actions = [EffectBus::Speech, EffectBus::Dry]
+            .into_iter()
+            .enumerate()
+            .map(|(index, effect_bus)| TimelineChunkAction {
+                id: format!("tone-{index}"),
+                text_offset: 0,
+                affinity: AnchorAffinity::Before,
+                kind: TimelineChunkActionKind::Audio {
+                    resource: TimelineAudioResource::File {
+                        audio: Arc::new(AudioBuffer::new(vec![0.4; 4000])),
+                        pan: 0.5,
+                    },
+                    mode: AudioActionMode::Insert,
+                    volume: 1.0,
+                    effect_bus,
+                },
+            })
+            .collect::<Vec<_>>();
+        let predicted = PostSynthesisStyle {
+            pan: Some(1.0),
+            ..Default::default()
+        };
+        let actual = prepared_attempt(PostSynthesisStyle {
+            pan: Some(0.0),
+            ..Default::default()
+        });
+        let mut sink = ProgressiveChunkSink::new(
+            "test",
+            Some("bolden"),
+            predicted.clone(),
+            Vec::new(),
+            &state,
+            true,
+            true,
+            &[],
+            &actions,
+            &ctx,
+        )
+        .unwrap();
+        let original_dry = sink.timeline_resources[1].audio.samples.clone();
+        crate::routing::choice::RoutedPlaybackSink::start_attempt(
+            &mut sink,
+            &actual,
+            SynthesisStreamStart {
+                engine_id: "mock".to_owned(),
+                actual_voice: Some(actual.resolution.realized.clone()),
+                degraded_acss: Vec::new(),
+            },
+        )
+        .unwrap();
+        assert_eq!(sink.effects.pan, Some(0.0));
+        assert_eq!(sink.timeline_resources[1].audio.samples, original_dry);
+        // The last half is beyond the processor's boundary ramp.
+        let speech = &sink.timeline_resources[0].audio.samples;
+        let frames = speech[speech.len() / 2..]
+            .chunks_exact(2)
+            .collect::<Vec<_>>();
+        assert!(frames.iter().any(|frame| frame[0].abs() > 0.001));
+        assert!(frames.iter().all(|frame| frame[1].abs() < 0.000001));
+        assert!(crate::routing::choice::RoutedPlaybackSink::start_attempt(
+            &mut sink,
+            &actual,
+            SynthesisStreamStart {
+                engine_id: "mock".to_owned(),
+                actual_voice: Some(actual.resolution.realized.clone()),
+                degraded_acss: Vec::new(),
+            }
+        )
+        .is_err());
+        drop(sink);
+        // Missing timeline renderer is an output error. Prepared playback must
+        // not enqueue dry speech and claim the complete style was applied.
+        let mut buffered_attempt = actual.clone();
+        buffered_attempt.effects.style.echo = Some(0.7);
+        let accepted = queue_synthesis_result_inner(
+            result(AudioBuffer::new(vec![0.2; 4000])),
+            "test",
+            Some("bolden"),
+            &[],
+            &[],
+            &predicted,
+            &[],
+            &state,
+            true,
+            true,
+            Some(&buffered_attempt),
+            &ctx,
+        );
+        assert!(!accepted);
+        assert!(failed.load(Ordering::Acquire));
+        assert!(tickets.lock().unwrap().is_empty());
+        assert!(effects.lock().unwrap().finish().is_none());
+        failed.store(false, Ordering::Release);
+        let mut rejected_stream = ProgressiveChunkSink::new(
+            "test",
+            Some("bolden"),
+            PostSynthesisStyle::default(),
+            Vec::new(),
+            &state,
+            true,
+            true,
+            &[],
+            &actions,
+            &ctx,
+        )
+        .unwrap();
+        crate::routing::choice::RoutedPlaybackSink::start_attempt(
+            &mut rejected_stream,
+            &buffered_attempt,
+            SynthesisStreamStart {
+                engine_id: "mock".to_owned(),
+                actual_voice: Some(buffered_attempt.resolution.realized.clone()),
+                degraded_acss: Vec::new(),
+            },
+        )
+        .unwrap();
+        rejected_stream
+            .markers(
+                Vec::new(),
+                actions
+                    .iter()
+                    .map(|action| ResolvedAnchor {
+                        id: action.id.clone(),
+                        frame_offset: Some(0),
+                        resolution: AnchorResolution::Exact,
+                    })
+                    .collect(),
+            )
+            .unwrap();
+        assert!(rejected_stream
+            .audio(AudioBuffer::new(vec![0.4; 4000]))
+            .is_err());
+        drop(rejected_stream);
+        assert!(effects.lock().unwrap().finish().is_none());
+        assert!(tickets.lock().unwrap().is_empty());
+    }
+
     #[test]
     fn complete_preview_evidence_deduplicates_and_bounds_accepted_voices() {
         let mut evidence = PreviewAudioEvidence::default();
@@ -3401,7 +3740,7 @@ mod tests {
         let state = TtsState::default();
         let tickets = Mutex::new(Vec::new());
         let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
-        let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+        let effect_processor = Mutex::new(DispatchEffects::new());
         let ctx = SynthCtx {
             gen: 1,
             gen_counter: &generation,
@@ -3480,7 +3819,7 @@ mod tests {
         let engine = PipelineTestEngine;
         let state = TtsState::default();
         let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
-        let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+        let effect_processor = Mutex::new(DispatchEffects::new());
         let ctx = SynthCtx {
             gen: 1,
             gen_counter: &generation,

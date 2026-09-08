@@ -27,6 +27,18 @@ native parameter queries (85 captured syntheses). No native reset change is
 needed for those tested runtimes. Effect/playback observation ownership and the
 remaining acceptance paths are still in the implementation sequence below.
 
+Completed effects portion: dispatch processors now retain an explicit legacy
+or layered owner. Actual-attempt handoff installs the selected effects and
+rebuilds speech-bus action resources from immutable source data. Same-owner
+windows retain state; an owner change flushes the previous bounded tail using
+its old placement and selects a clean processor. Rejected prepared output
+cannot become dry speech or a later audible effect tail. Four new pipeline/DSP
+tests cover continuity, duplicate physical targets, legacy boundaries, tail
+placement, speech-bus resources and rejected buffered/progressive rendering.
+All 671 workspace tests, workspace Clippy, formatting and documentation checks
+pass. New wire admission and the complete layered pipeline entry are still
+pending; the bundle remains unadvertised. Ticket/observation ownership is next.
+
 ## Findings that determine the implementation
 
 - [Routing](../omnivox-cli/src/routing.rs) discards the resolver's reason/index

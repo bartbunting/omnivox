@@ -2,8 +2,8 @@
 
 use anyhow::Result;
 use omnivox_audio::{
-    AudioBuffer, AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket,
-    PostSynthesisProcessor, StreamType, TimelineAudioRenderer, ToneGenerator,
+    AudioBuffer, AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, StreamType,
+    TimelineAudioRenderer, ToneGenerator,
 };
 use omnivox_core::{
     parse_command, parse_presentation_tone_arguments, parse_tone_arguments,
@@ -1090,7 +1090,7 @@ pub fn synthesis_worker(
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
-                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+                let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
                 let failed = AtomicBool::new(false);
                 let marker_dispatch = tracking.and_then(|tracking| match tracking {
                     DispatchTracking::Completion(_) => None,
@@ -1154,7 +1154,7 @@ pub fn synthesis_worker(
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
-                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+                let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
                 let failed = AtomicBool::new(false);
                 let marker_dispatch = MarkerDispatchContext::with_timeline_events(
                     timeline.dispatch_id,
@@ -1213,7 +1213,7 @@ pub fn synthesis_worker(
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
-                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+                let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
                 let failed = AtomicBool::new(false);
                 let ctx = SynthCtx {
                     gen,
@@ -1285,7 +1285,7 @@ pub fn synthesis_worker(
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
-                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+                let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,
@@ -1329,7 +1329,7 @@ pub fn synthesis_worker(
                 let presentation_clock = Mutex::new(Vec::new());
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
-                let effect_processor = Mutex::new(PostSynthesisProcessor::new());
+                let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
                 let ctx = SynthCtx {
                     gen,
                     gen_counter: &gen_counter,

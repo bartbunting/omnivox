@@ -24,7 +24,7 @@ use tracing::{debug, info, warn};
 use crate::health::{EngineAccess, EnginePermit, RuntimeEngineHealth};
 
 #[path = "routing_choice.rs"]
-mod choice;
+pub(crate) mod choice;
 
 /// Maximum synthesis attempts for one routed chunk, including the first try.
 pub const MAX_RUNTIME_SYNTHESIS_ATTEMPTS: usize = 4;
