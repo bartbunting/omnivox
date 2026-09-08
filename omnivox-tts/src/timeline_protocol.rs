@@ -74,6 +74,13 @@ pub struct PresentationTimelineIdentity {
 }
 
 impl PresentationTimelineIdentity {
+    pub(crate) fn new(generation: u64, dispatch_id: u64) -> Option<Self> {
+        (dispatch_id != 0).then_some(Self {
+            generation,
+            dispatch_id,
+        })
+    }
+
     /// Return the timeline generation supplied by the client.
     pub fn generation(self) -> u64 {
         self.generation
@@ -305,6 +312,13 @@ pub struct PresentationTimelineDecodeError {
 }
 
 impl PresentationTimelineDecodeError {
+    pub(crate) fn new(
+        identity: Option<PresentationTimelineIdentity>,
+        error: PresentationTimelineError,
+    ) -> Self {
+        Self { identity, error }
+    }
+
     /// Return callback ownership recovered before semantic validation failed.
     pub fn identity(&self) -> Option<PresentationTimelineIdentity> {
         self.identity
@@ -648,27 +662,7 @@ pub fn validate_presentation_timeline(
         if let Some(logical_voice_id) = &span.logical_voice_id {
             validate_id(logical_voice_id, "logical voice")?;
         }
-        validate_acss(&span.acss, span.id)?;
-        if let Some(rate_offset) = span.rate_offset {
-            invalid_if(
-                !(MIN_RATE_OFFSET_POINTS..=MAX_RATE_OFFSET_POINTS).contains(&rate_offset),
-                format!(
-                    "speech span {} rate offset must be between {} and {} points",
-                    span.id, MIN_RATE_OFFSET_POINTS, MAX_RATE_OFFSET_POINTS
-                ),
-            )?;
-            invalid_if(
-                span.acss.rate.is_some(),
-                format!(
-                    "speech span {} cannot combine absolute rate and rate offset",
-                    span.id
-                ),
-            )?;
-        }
-        if let PresentationEffectDirective::Replace { state_id, style } = &span.effects {
-            validate_id(state_id, "effect state")?;
-            validate_effects(style, span.id)?;
-        }
+        validate_legacy_span_style(span)?;
     }
 
     let spans = timeline
@@ -705,7 +699,36 @@ pub fn validate_presentation_timeline(
     Ok(())
 }
 
-fn validate_action(action: &PresentationTimelineAction) -> Result<(), PresentationTimelineError> {
+pub(crate) fn validate_legacy_span_style(
+    span: &PresentationSpeechSpan,
+) -> Result<(), PresentationTimelineError> {
+    validate_acss(&span.acss, span.id)?;
+    if let Some(rate_offset) = span.rate_offset {
+        invalid_if(
+            !(MIN_RATE_OFFSET_POINTS..=MAX_RATE_OFFSET_POINTS).contains(&rate_offset),
+            format!(
+                "speech span {} rate offset must be between {} and {} points",
+                span.id, MIN_RATE_OFFSET_POINTS, MAX_RATE_OFFSET_POINTS
+            ),
+        )?;
+        invalid_if(
+            span.acss.rate.is_some(),
+            format!(
+                "speech span {} cannot combine absolute rate and rate offset",
+                span.id
+            ),
+        )?;
+    }
+    if let PresentationEffectDirective::Replace { state_id, style } = &span.effects {
+        validate_id(state_id, "effect state")?;
+        validate_effects(style, span.id)?;
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_action(
+    action: &PresentationTimelineAction,
+) -> Result<(), PresentationTimelineError> {
     match &action.action {
         PresentationAction::Audio {
             path, volume, pan, ..
@@ -785,7 +808,7 @@ fn validate_effects(
     Ok(())
 }
 
-fn validate_id(value: &str, kind: &str) -> Result<(), PresentationTimelineError> {
+pub(crate) fn validate_id(value: &str, kind: &str) -> Result<(), PresentationTimelineError> {
     invalid_if(
         value.is_empty() || value.len() > MAX_TIMELINE_ID_BYTES,
         format!("{kind} ID must contain 1 to {MAX_TIMELINE_ID_BYTES} UTF-8 bytes"),

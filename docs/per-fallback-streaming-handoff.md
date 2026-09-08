@@ -85,6 +85,18 @@ workspace tests, workspace Clippy, formatting and documentation checks pass.
 Timeline-4 ordinary speech, marker-3 receipts and client integration remain
 pending, so the bundle remains unadvertised and no live runtime is replaced.
 
+Completed timeline codec portion: an explicit mixed-span timeline-4 type and
+bounded single-frame/reassembled-document codecs validate the new grammar,
+positive generations, unique IDs and whole-document action references. Registry
+validation rejects stale, missing or legacy targets while admitting unresolved
+registered layered voices for later runtime fallback. Existing legacy style and
+action validators are reused without flattening layered execution data. Six
+tests cover the independent mixed fixture, malformed new fields, trustworthy
+rejection identity, registry ownership, UTF-8 actions and separate transport
+limits. All 700 workspace tests, workspace Clippy, formatting and documentation
+checks pass. Reader assembly, queue admission and ordinary playback integration
+still remain; existing timeline decoders and advertised capabilities are unchanged.
+
 ## Findings that determine the implementation
 
 - [Routing](../omnivox-cli/src/routing.rs) discards the resolver's reason/index

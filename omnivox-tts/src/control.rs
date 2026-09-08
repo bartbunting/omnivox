@@ -651,7 +651,7 @@ fn decode_bytes(payload: &str) -> Result<Vec<u8>, ControlCodecError> {
 }
 
 /// Validate duplicate keys recursively without retaining another payload tree.
-struct DuplicateFreeJson;
+pub(crate) struct DuplicateFreeJson;
 
 impl<'de> Deserialize<'de> for DuplicateFreeJson {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {

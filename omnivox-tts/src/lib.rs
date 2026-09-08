@@ -22,6 +22,7 @@ pub mod resolver;
 pub mod routing_policy;
 pub mod synthesis;
 pub mod timeline_protocol;
+pub mod timeline_v4;
 pub mod voice_choices;
 pub mod voice_preview_v2;
 pub mod windows;
