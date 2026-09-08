@@ -179,7 +179,7 @@ impl LogicalVoiceRegistry {
     }
 }
 
-fn validate_registration(
+pub(crate) fn validate_registration(
     definitions: &[LogicalVoiceDefinition],
     fallback_policy: &FallbackPolicy,
 ) -> Result<(), LogicalVoiceRegistryError> {
