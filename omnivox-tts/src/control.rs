@@ -14,11 +14,12 @@ use crate::contracts::{
     PhysicalVoiceId, PostSynthesisDimension, PostSynthesisStyle, VoiceSelector,
 };
 use crate::logical_voices::{
-    LogicalVoiceRegistration, LogicalVoiceRegistry, LogicalVoiceRegistryError,
+    LogicalVoiceBinding, LogicalVoiceRegistration, LogicalVoiceRegistry, LogicalVoiceRegistryError,
 };
 use crate::routing_policy::{
     RoutingPolicy, RoutingPolicyError, RoutingPolicyRegistration, RoutingPolicyRegistry,
 };
+use crate::voice_choices::{ChoiceTuningError, RegisteredVoiceDefinition};
 
 /// Current control protocol version.
 pub const CONTROL_PROTOCOL_VERSION: u32 = 1;
@@ -68,6 +69,7 @@ pub enum ControlRequest {
         #[serde(default)]
         fallback_policy: FallbackPolicy,
     },
+    RegisterLogicalVoicesV2(VoiceRegistrationV2),
     SetRoutingPolicy {
         routing_policy_generation: u64,
         #[serde(flatten)]
@@ -91,6 +93,37 @@ pub enum ControlRequest {
         #[serde(default)]
         effects: PostSynthesisStyle,
     },
+}
+
+/// Complete mixed registry replacement. New forms reject omitted policy fields
+/// and extensions without changing the older registration grammar.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VoiceRegistrationV2 {
+    pub registry_generation: u64,
+    pub definitions: Vec<RegisteredVoiceDefinition>,
+    pub fallback_policy: ChoiceFallbackPolicy,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChoiceFallbackPolicy {
+    pub preferred_engines: Vec<String>,
+    pub allow_same_language_on_requested_engine: bool,
+    #[serde(deserialize_with = "crate::voice_choices::optional_choice_selector")]
+    pub global_default: Option<VoiceSelector>,
+    pub fallback_engines: Vec<String>,
+}
+
+impl From<ChoiceFallbackPolicy> for FallbackPolicy {
+    fn from(policy: ChoiceFallbackPolicy) -> Self {
+        Self {
+            preferred_engines: policy.preferred_engines,
+            allow_same_language_on_requested_engine: policy.allow_same_language_on_requested_engine,
+            global_default: policy.global_default,
+            fallback_engines: policy.fallback_engines,
+        }
+    }
 }
 
 /// One complete unsaved voice and its frozen workstation policy.
@@ -176,6 +209,12 @@ pub enum ControlResponse {
     LogicalVoicesRegistered {
         inventory_generation: u64,
         registration: LogicalVoiceRegistration,
+    },
+    LogicalVoicesRegisteredV2 {
+        registry_generation: u64,
+        inventory_generation: u64,
+        definition_count: usize,
+        unresolved_logical_voice_ids: Vec<String>,
     },
     RoutingPolicyApplied {
         inventory_generation: u64,
@@ -282,7 +321,16 @@ pub fn encode_request(request: &ControlRequestEnvelope) -> Result<String, Contro
 
 /// Decode and bound one request field.
 pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCodecError> {
-    decode_json(payload)
+    let bytes = decode_bytes(payload)?;
+    let request: ControlRequestEnvelope =
+        serde_json::from_slice(&bytes).map_err(ControlCodecError::InvalidJson)?;
+    if matches!(request.request, ControlRequest::RegisterLogicalVoicesV2(_)) {
+        // Legacy definitions inside a new envelope may accept extension keys,
+        // but no key in the new message may occur twice.
+        serde_json::from_slice::<DuplicateFreeJson>(&bytes)
+            .map_err(ControlCodecError::InvalidJson)?;
+    }
+    Ok(request)
 }
 
 /// Encode a response as one unwrapped Base64 field.
@@ -410,6 +458,64 @@ pub fn process_control_request(
                     error.to_string(),
                 ),
             },
+            ControlRequest::RegisterLogicalVoicesV2(registration) => {
+                let mut candidate = logical_voices.clone();
+                let projected = routing_policy.project_inventory(engines.to_vec());
+                match candidate.register_v2(
+                    registration.registry_generation,
+                    registration.definitions,
+                    registration.fallback_policy.into(),
+                    &projected,
+                ) {
+                    Ok(_) => {
+                        let effective =
+                            routing_policy.effective_fallback_policy(candidate.fallback_policy());
+                        let resolved =
+                            candidate.resolve_and_store_with_policy(&projected, &effective);
+                        let response = ControlResponseEnvelope {
+                            protocol_version: CONTROL_PROTOCOL_VERSION,
+                            request_id: Some(request.request_id),
+                            response: ControlResponse::LogicalVoicesRegisteredV2 {
+                                registry_generation: candidate.generation(),
+                                inventory_generation: routing_policy
+                                    .inventory_generation(inventory_generation),
+                                definition_count: candidate.registered_definitions().len(),
+                                unresolved_logical_voice_ids: resolved
+                                    .bindings
+                                    .iter()
+                                    .filter(|binding| {
+                                        matches!(binding, LogicalVoiceBinding::Unresolved { .. })
+                                    })
+                                    .map(|binding| binding.logical_voice_id().to_owned())
+                                    .collect(),
+                            },
+                        };
+                        // Publish only after the complete acknowledgement is encodable.
+                        match encode_response(&response) {
+                            Ok(_) => {
+                                *logical_voices = candidate;
+                                response
+                            }
+                            Err(error) => error_response(
+                                Some(request.request_id),
+                                error.code(),
+                                error.to_string(),
+                            ),
+                        }
+                    }
+                    Err(error) => {
+                        let code = match &error {
+                            ChoiceTuningError::Registry(error) => registry_error_code(error),
+                            _ => ControlErrorCode::InvalidConfiguration,
+                        };
+                        error_response(
+                            Some(request.request_id),
+                            code,
+                            bounded_message(error.to_string()),
+                        )
+                    }
+                }
+            }
             ControlRequest::SetRoutingPolicy {
                 routing_policy_generation,
                 policy,
@@ -446,13 +552,29 @@ pub fn process_control_request(
             ),
         },
         Err(error) => error_response(
-            decode_json::<serde_json::Value>(payload)
+            decode_json::<RequestIdentity>(payload)
                 .ok()
-                .and_then(|value| value.get("request_id").and_then(serde_json::Value::as_u64)),
+                .and_then(|value| value.request_id),
             error.code(),
-            error.to_string(),
+            bounded_message(error.to_string()),
         ),
     }
+}
+
+// Recover only an unambiguous ID. Parsing through Value would keep the last
+// duplicate, incorrectly correlating a rejected request with that ID.
+#[derive(Deserialize)]
+struct RequestIdentity {
+    request_id: Option<u64>,
+}
+
+fn bounded_message(mut message: String) -> String {
+    let mut end = message.len().min(1024);
+    while !message.is_char_boundary(end) {
+        end -= 1;
+    }
+    message.truncate(end);
+    message
 }
 
 fn policy_error_code(error: &RoutingPolicyError) -> ControlErrorCode {
@@ -505,6 +627,10 @@ fn encode_json<T: Serialize>(value: &T) -> Result<String, ControlCodecError> {
 }
 
 fn decode_json<T: DeserializeOwned>(payload: &str) -> Result<T, ControlCodecError> {
+    serde_json::from_slice(&decode_bytes(payload)?).map_err(ControlCodecError::InvalidJson)
+}
+
+fn decode_bytes(payload: &str) -> Result<Vec<u8>, ControlCodecError> {
     if payload.len() > MAX_CONTROL_ENCODED_BYTES {
         return Err(ControlCodecError::PayloadTooLarge);
     }
@@ -514,8 +640,66 @@ fn decode_json<T: DeserializeOwned>(payload: &str) -> Result<T, ControlCodecErro
     if json.len() > MAX_CONTROL_PAYLOAD_BYTES {
         return Err(ControlCodecError::PayloadTooLarge);
     }
-    serde_json::from_slice(&json).map_err(ControlCodecError::InvalidJson)
+    Ok(json)
 }
+
+/// Validate duplicate keys recursively without retaining another payload tree.
+struct DuplicateFreeJson;
+
+impl<'de> Deserialize<'de> for DuplicateFreeJson {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct Visitor;
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = DuplicateFreeJson;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("JSON without duplicate object keys")
+            }
+            fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> {
+                Ok(DuplicateFreeJson)
+            }
+            fn visit_bool<E: serde::de::Error>(self, _: bool) -> Result<Self::Value, E> {
+                Ok(DuplicateFreeJson)
+            }
+            fn visit_i64<E: serde::de::Error>(self, _: i64) -> Result<Self::Value, E> {
+                Ok(DuplicateFreeJson)
+            }
+            fn visit_u64<E: serde::de::Error>(self, _: u64) -> Result<Self::Value, E> {
+                Ok(DuplicateFreeJson)
+            }
+            fn visit_f64<E: serde::de::Error>(self, _: f64) -> Result<Self::Value, E> {
+                Ok(DuplicateFreeJson)
+            }
+            fn visit_str<E: serde::de::Error>(self, _: &str) -> Result<Self::Value, E> {
+                Ok(DuplicateFreeJson)
+            }
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(
+                self,
+                mut sequence: A,
+            ) -> Result<Self::Value, A::Error> {
+                while sequence.next_element::<DuplicateFreeJson>()?.is_some() {}
+                Ok(DuplicateFreeJson)
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(
+                self,
+                mut map: A,
+            ) -> Result<Self::Value, A::Error> {
+                let mut keys = std::collections::HashSet::new();
+                while let Some(key) = map.next_key::<String>()? {
+                    if !keys.insert(key) {
+                        return Err(serde::de::Error::custom("duplicate object key"));
+                    }
+                    map.next_value::<DuplicateFreeJson>()?;
+                }
+                Ok(DuplicateFreeJson)
+            }
+        }
+        deserializer.deserialize_any(Visitor)
+    }
+}
+
+#[cfg(test)]
+#[path = "control_choice_tests.rs"]
+mod choice_tests;
 
 #[cfg(test)]
 mod tests {

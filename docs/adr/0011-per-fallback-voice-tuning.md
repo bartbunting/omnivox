@@ -72,5 +72,11 @@ storage slice is committed as `3abe311ca`. Typed shared settings, sparse patches
 strict choice records, and pure shared/choice/context composition are implemented.
 Nine focused tests cover the paired examples, defaults, bounds and row identity;
 all 655 workspace tests and workspace Clippy pass with the pinned Rust toolchain.
-Registration, routed execution and client integration remain in progress in the
-isolated `voice-choice-tuning` worktree.
+Mixed registration and its version-2 control operation now retain authoritative
+choice records in the existing generation domain. New messages reject duplicate
+keys and malformed complete policies; acknowledgements are preflighted before
+publication. Seven additional tests cover registry identity, atomic failure,
+codec examples, compatibility and response bounds. All 662 workspace tests and
+workspace Clippy pass. Routed execution, timeline/preview codecs, playback
+evidence and client integration remain in progress in the isolated
+`voice-choice-tuning` worktree.

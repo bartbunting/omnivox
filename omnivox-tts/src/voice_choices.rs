@@ -360,6 +360,18 @@ where
     })
 }
 
+pub(crate) fn optional_choice_selector<'de, D>(
+    deserializer: D,
+) -> Result<Option<VoiceSelector>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(transparent)]
+    struct Selector(#[serde(deserialize_with = "choice_selector")] VoiceSelector);
+    Ok(Option::<Selector>::deserialize(deserializer)?.map(|selector| selector.0))
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VoiceChoice {

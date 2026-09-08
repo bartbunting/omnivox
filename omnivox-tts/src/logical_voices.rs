@@ -7,6 +7,7 @@ use thiserror::Error;
 
 use crate::contracts::{EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition, VoiceSelector};
 use crate::resolver::{resolve_voice, VoiceResolution, VoiceResolutionError};
+use crate::voice_choices::{ChoiceTuningError, RegisteredVoiceDefinition};
 
 pub const MAX_LOGICAL_VOICES: usize = 256;
 pub const MAX_LOGICAL_VOICE_ID_BYTES: usize = 128;
@@ -83,6 +84,7 @@ pub enum LogicalVoiceRegistryError {
 pub struct LogicalVoiceRegistry {
     generation: u64,
     definitions: Vec<LogicalVoiceDefinition>,
+    registered_definitions: Vec<RegisteredVoiceDefinition>,
     fallback_policy: FallbackPolicy,
     bindings: Vec<LogicalVoiceBinding>,
 }
@@ -94,6 +96,12 @@ impl LogicalVoiceRegistry {
 
     pub fn definitions(&self) -> &[LogicalVoiceDefinition] {
         &self.definitions
+    }
+
+    /// Authoritative definitions, including choice IDs and individual patches.
+    /// `definitions` is only the compatibility projection used for resolution.
+    pub fn registered_definitions(&self) -> &[RegisteredVoiceDefinition] {
+        &self.registered_definitions
     }
 
     pub fn fallback_policy(&self) -> &FallbackPolicy {
@@ -124,17 +132,82 @@ impl LogicalVoiceRegistry {
         for definition in &mut definitions {
             definition.acss = definition.acss.clone().clamped();
         }
+        let registered = definitions
+            .iter()
+            .cloned()
+            .map(RegisteredVoiceDefinition::Legacy)
+            .collect::<Vec<_>>();
 
         if generation == self.generation {
-            if definitions != self.definitions || fallback_policy != self.fallback_policy {
+            if registered != self.registered_definitions || fallback_policy != self.fallback_policy
+            {
                 return Err(LogicalVoiceRegistryError::GenerationConflict { generation });
             }
         } else {
             self.generation = generation;
             self.definitions = definitions;
+            self.registered_definitions = registered;
             self.fallback_policy = fallback_policy;
         }
 
+        let registration = self.resolve_all(inventory);
+        self.bindings = registration.bindings.clone();
+        Ok(registration)
+    }
+
+    /// Validate and replace mixed legacy/layered definitions in the same
+    /// generation domain as `register`. Failed validation leaves all state intact.
+    pub fn register_v2(
+        &mut self,
+        generation: u64,
+        mut definitions: Vec<RegisteredVoiceDefinition>,
+        fallback_policy: FallbackPolicy,
+        inventory: &[EngineDescriptor],
+    ) -> Result<LogicalVoiceRegistration, ChoiceTuningError> {
+        if generation == 0 {
+            return Err(ChoiceTuningError::Invalid(
+                "registry generation must be positive",
+            ));
+        }
+        if generation < self.generation {
+            return Err(LogicalVoiceRegistryError::StaleGeneration {
+                current: self.generation,
+                received: generation,
+            }
+            .into());
+        }
+        if definitions.len() > MAX_LOGICAL_VOICES {
+            return Err(LogicalVoiceRegistryError::TooManyDefinitions {
+                count: definitions.len(),
+                limit: MAX_LOGICAL_VOICES,
+            }
+            .into());
+        }
+        let mut projection = Vec::with_capacity(definitions.len());
+        for definition in &mut definitions {
+            match definition {
+                RegisteredVoiceDefinition::Legacy(legacy) => {
+                    legacy.acss = legacy.acss.clone().clamped();
+                    projection.push(legacy.clone());
+                }
+                RegisteredVoiceDefinition::Layered(layered) => {
+                    layered.validate()?;
+                    projection.push(layered.legacy_projection());
+                }
+            }
+        }
+        validate_registration(&projection, &fallback_policy)?;
+        if generation == self.generation {
+            if definitions != self.registered_definitions || fallback_policy != self.fallback_policy
+            {
+                return Err(LogicalVoiceRegistryError::GenerationConflict { generation }.into());
+            }
+        } else {
+            self.generation = generation;
+            self.definitions = projection;
+            self.registered_definitions = definitions;
+            self.fallback_policy = fallback_policy;
+        }
         let registration = self.resolve_all(inventory);
         self.bindings = registration.bindings.clone();
         Ok(registration)
@@ -474,5 +547,116 @@ mod tests {
         ));
         assert_eq!(registry.generation(), 1);
         assert_eq!(registry.definitions(), &[original]);
+    }
+
+    fn layered() -> RegisteredVoiceDefinition {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../docs/protocol-fixtures/voice-choice-tuning.json"
+        ))
+        .unwrap();
+        serde_json::from_value(fixture["messages"]["registration"]["definitions"][0].clone())
+            .unwrap()
+    }
+
+    #[test]
+    fn mixed_registry_has_one_generation_domain_and_retains_record_identity() {
+        let mut registry = LogicalVoiceRegistry::default();
+        let definitions = vec![
+            layered(),
+            RegisteredVoiceDefinition::Legacy(definition("plain", "winrt:David")),
+        ];
+        let policy = FallbackPolicy::default();
+        registry
+            .register_v2(8, definitions.clone(), policy.clone(), &inventory())
+            .unwrap();
+        let frozen = registry.clone();
+        assert_eq!(registry.registered_definitions(), definitions);
+        registry
+            .register_v2(8, definitions.clone(), policy.clone(), &[])
+            .unwrap();
+        assert!(registry
+            .bindings()
+            .iter()
+            .all(|b| matches!(b, LogicalVoiceBinding::Unresolved { .. })));
+        assert!(matches!(
+            registry.register_v2(7, definitions.clone(), policy.clone(), &[]),
+            Err(ChoiceTuningError::Registry(
+                LogicalVoiceRegistryError::StaleGeneration { .. }
+            ))
+        ));
+        assert!(matches!(
+            registry.register(8, registry.definitions().to_vec(), policy.clone(), &[]),
+            Err(LogicalVoiceRegistryError::GenerationConflict { .. })
+        ));
+        for mutation in 0..3 {
+            let mut changed = definitions.clone();
+            let RegisteredVoiceDefinition::Layered(voice) = &mut changed[0] else {
+                unreachable!()
+            };
+            match mutation {
+                0 => voice.choices[0].id = "new-row".into(),
+                1 => voice.choices[0].adjustments = Default::default(),
+                _ => voice.choices.swap(0, 1),
+            }
+            assert!(matches!(
+                registry.register_v2(8, changed, policy.clone(), &[]),
+                Err(ChoiceTuningError::Registry(
+                    LogicalVoiceRegistryError::GenerationConflict { .. }
+                ))
+            ));
+            assert_eq!(registry.registered_definitions(), definitions);
+        }
+        let projection = registry.definitions().to_vec();
+        registry
+            .register(9, projection.clone(), policy.clone(), &inventory())
+            .unwrap();
+        assert!(registry
+            .registered_definitions()
+            .iter()
+            .all(|d| matches!(d, RegisteredVoiceDefinition::Legacy(_))));
+        // A snapshot remains independent after replacement of the live registry.
+        assert_eq!(frozen.generation(), 8);
+        assert_eq!(frozen.registered_definitions(), definitions);
+        registry
+            .register_v2(
+                9,
+                projection
+                    .into_iter()
+                    .map(RegisteredVoiceDefinition::Legacy)
+                    .collect(),
+                policy,
+                &[],
+            )
+            .unwrap();
+    }
+
+    #[test]
+    fn v2_rejects_zero_invalid_patches_and_duplicate_definitions_atomically() {
+        let mut registry = LogicalVoiceRegistry::default();
+        let original = vec![layered()];
+        registry
+            .register_v2(1, original.clone(), FallbackPolicy::default(), &[])
+            .unwrap();
+        let mut invalid_patch = original.clone();
+        let RegisteredVoiceDefinition::Layered(voice) = &mut invalid_patch[0] else {
+            unreachable!()
+        };
+        voice.choices[0].adjustments.gain =
+            Some(crate::voice_choices::Adjustment::Set { value: f32::NAN });
+        for definitions in [
+            invalid_patch,
+            vec![layered(), layered()],
+            vec![layered(); MAX_LOGICAL_VOICES + 1],
+        ] {
+            assert!(registry
+                .register_v2(2, definitions, FallbackPolicy::default(), &[])
+                .is_err());
+            assert_eq!(registry.generation(), 1);
+            assert_eq!(registry.registered_definitions(), original);
+        }
+        assert!(registry
+            .register_v2(0, vec![], FallbackPolicy::default(), &[])
+            .is_err());
+        assert_eq!(registry.registered_definitions(), original);
     }
 }
