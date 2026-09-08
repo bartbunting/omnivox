@@ -1,13 +1,13 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-07
-**Workspace version:** 1.8.0
+**Last reviewed:** 2026-09-08
+**Workspace version:** 1.9.0
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
 [NEXT_STEPS.md](plans/NEXT_STEPS.md).
-Changes prepared for 1.8.0 are recorded in the
-[changelog](../CHANGELOG.md#180---2026-09-06). Later development changes belong
+Changes prepared for 1.9.0 are recorded in the
+[changelog](../CHANGELOG.md#190---2026-09-08). Later development changes belong
 under [Unreleased](../CHANGELOG.md#unreleased); publication is established by
 the matching verified GitHub release.
 

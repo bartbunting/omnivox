@@ -6,8 +6,14 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-09-08
+
 ### Added
 
+- Negotiated complete-voice previews audition a private draft voice chain with
+  its effective fallback policy, tuning, current rate, and disabled engines.
+  Preview results identify the voices that supplied accepted audio without
+  changing live logical voices or routing.
 - Opt-in native PulseAudio output on Linux (`--audio-output pulse`) with
   persistent independent streams, bounded writes, adjustable latency requests,
   idle corking, stream-wide stop flushing, and timing/underflow diagnostics.
@@ -22,6 +28,9 @@ Versioning for published releases.
   launchers, reports executable and configuration identities, and repeats
   process-scoped Linux buffer/shutdown probes. Measurements distinguish
   PulseAudio introspection from acoustic latency.
+- Real SSH workstation acceptance tooling checks independent speech lanes,
+  disconnect cleanup, reconnection, and recovery, with documented acceptance
+  results and recovery guidance.
 
 ### Changed
 
