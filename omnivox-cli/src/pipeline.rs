@@ -170,6 +170,7 @@ pub fn is_stale(request_gen: u64, gen_counter: &AtomicU64) -> bool {
 }
 
 /// Shared context threaded through all synthesis operations in the worker.
+#[derive(Clone, Copy)]
 pub struct SynthCtx<'a> {
     pub gen: u64,
     pub gen_counter: &'a AtomicU64,
@@ -182,6 +183,7 @@ pub struct SynthCtx<'a> {
     pub pending_overlays: Option<&'a Mutex<Vec<AudioBuffer>>>,
     pub timeline_renderer: Option<&'a Mutex<TimelineAudioRenderer>>,
     pub effect_processor: Option<&'a Mutex<DispatchEffects>>,
+    pub marker_span_id: Option<u64>,
     pub marker_dispatch: Option<&'a MarkerDispatchContext>,
     pub voice_observations: Option<&'a Mutex<crate::voice_observations::VoiceObservations>>,
     pub batch_failed: Option<&'a AtomicBool>,
@@ -777,7 +779,7 @@ fn queue_synthesis_result_inner(
                         })
                 })
                 .collect::<Vec<_>>();
-            marker_dispatch.prepare_timeline_utterance(
+            marker_dispatch.prepare_timeline_utterance_with_choice(
                 utterance_text,
                 &result.engine_id,
                 result.actual_voice.as_ref(),
@@ -789,6 +791,9 @@ fn queue_synthesis_result_inner(
                 &resolutions,
                 &result.degraded_acss,
                 degraded_effects,
+                ctx.marker_span_id.zip(attempt).map(|(span_id, attempt)| {
+                    crate::marker_events::PlaybackVoiceChoice { span_id, attempt }
+                }),
             )
         } else {
             marker_dispatch.prepare_utterance(
@@ -1356,7 +1361,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                 .unwrap_or_else(SynthesisCancellationToken::new);
             if let Some(marker_dispatch) = self.ctx.marker_dispatch {
                 let prepared = if marker_dispatch.supports_timeline_events() {
-                    marker_dispatch.prepare_timeline_utterance(
+                    marker_dispatch.prepare_timeline_utterance_with_choice(
                         self.utterance_text,
                         &start.engine_id,
                         start.actual_voice.as_ref(),
@@ -1368,6 +1373,12 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                         &[],
                         &start.degraded_acss,
                         &self.degraded_effects,
+                        self.ctx.marker_span_id.zip(self.attempt.as_ref()).map(
+                            |(span_id, attempt)| crate::marker_events::PlaybackVoiceChoice {
+                                span_id,
+                                attempt,
+                            },
+                        ),
                     )
                 } else {
                     marker_dispatch.prepare_utterance(
@@ -1921,6 +1932,19 @@ impl Drop for ProgressiveChunkSink<'_, '_> {
 }
 
 impl crate::routing::choice::RoutedPlaybackSink for ProgressiveChunkSink<'_, '_> {
+    fn preflight_attempt(&mut self, attempt: &PreparedVoiceAttempt) -> Result<(), TtsError> {
+        if let (Some(dispatch), Some(span_id)) = (self.ctx.marker_dispatch, self.ctx.marker_span_id)
+        {
+            dispatch
+                .preflight_choice(
+                    self.utterance_text,
+                    crate::marker_events::PlaybackVoiceChoice { span_id, attempt },
+                )
+                .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        }
+        Ok(())
+    }
+
     fn start_attempt(
         &mut self,
         attempt: &PreparedVoiceAttempt,
@@ -3727,6 +3751,18 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Default)]
+    struct PipelineCapture(Arc<Mutex<Vec<u8>>>);
+    impl std::io::Write for PipelineCapture {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0.lock().unwrap().extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
     fn prepared_attempt(effects: PostSynthesisStyle) -> PreparedVoiceAttempt {
         PreparedVoiceAttempt {
             registry_generation: 41,
@@ -3770,6 +3806,7 @@ mod tests {
             pending_overlays: None,
             timeline_renderer: None,
             effect_processor: Some(&effects),
+            marker_span_id: None,
             marker_dispatch: None,
             voice_observations: None,
             batch_failed: Some(&failed),
@@ -3923,7 +3960,14 @@ mod tests {
                 }
             }
         }
-        for (markers, cancel) in [(false, false), (true, false), (false, true), (true, true)] {
+        for (markers, cancel) in [
+            (0, false),
+            (1, false),
+            (3, false),
+            (0, true),
+            (1, true),
+            (3, true),
+        ] {
             let streams = AudioStreams::new_with_backend(8, 8, 8, AudioBackend::Null).unwrap();
             let control = streams.control();
             let (entered, reached) = mpsc::sync_channel(1);
@@ -3957,9 +4001,14 @@ mod tests {
             let tickets = Mutex::new(Vec::new());
             let clock = Mutex::new(Vec::new());
             let effects = Mutex::new(DispatchEffects::new());
+            let capture = PipelineCapture::default();
             let (output, reporter) =
-                crate::marker_events::spawn_marker_event_reporter_with_writer(std::io::sink());
-            let marker_context = MarkerDispatchContext::new(42, output);
+                crate::marker_events::spawn_marker_event_reporter_with_writer(capture.clone());
+            let marker_context = if markers == 3 {
+                MarkerDispatchContext::with_voice_choice_events(42, output)
+            } else {
+                MarkerDispatchContext::new(42, output)
+            };
             let ctx = SynthCtx {
                 gen: 1,
                 gen_counter: &generation,
@@ -3972,7 +4021,8 @@ mod tests {
                 pending_overlays: None,
                 timeline_renderer: None,
                 effect_processor: Some(&effects),
-                marker_dispatch: markers.then_some(&marker_context),
+                marker_span_id: (markers == 3).then_some(7),
+                marker_dispatch: (markers != 0).then_some(&marker_context),
                 voice_observations: Some(&observations),
                 batch_failed: None,
             };
@@ -4044,6 +4094,33 @@ mod tests {
             drop(control);
             drop(streams);
             reporter.join().unwrap();
+            let records = String::from_utf8(capture.0.lock().unwrap().clone()).unwrap();
+            assert_eq!(
+                records.lines().count(),
+                if cancel || markers == 0 {
+                    0
+                } else if markers == 3 {
+                    2
+                } else {
+                    1
+                }
+            );
+            if !cancel && markers == 3 {
+                let receipt = omnivox_tts::marker_protocol::decode_marker_event(
+                    records
+                        .lines()
+                        .nth(1)
+                        .unwrap()
+                        .split_whitespace()
+                        .last()
+                        .unwrap(),
+                )
+                .unwrap();
+                assert!(matches!(
+                    receipt.event,
+                    omnivox_tts::marker_protocol::MarkerEvent::VoiceChoiceApplied(_)
+                ));
+            }
         }
     }
 
@@ -4059,6 +4136,10 @@ mod tests {
         let effects = Mutex::new(DispatchEffects::new());
         let renderer = Mutex::new(TimelineAudioRenderer::new());
         let observations = Mutex::new(crate::voice_observations::VoiceObservations::default());
+        let capture = PipelineCapture::default();
+        let (output, reporter) =
+            crate::marker_events::spawn_marker_event_reporter_with_writer(capture.clone());
+        let marker_context = MarkerDispatchContext::with_voice_choice_events(42, output);
         let ctx = SynthCtx {
             gen: 1,
             gen_counter: &generation,
@@ -4071,7 +4152,8 @@ mod tests {
             pending_overlays: None,
             timeline_renderer: Some(&renderer),
             effect_processor: Some(&effects),
-            marker_dispatch: None,
+            marker_span_id: Some(7),
+            marker_dispatch: Some(&marker_context),
             voice_observations: Some(&observations),
             batch_failed: None,
         };
@@ -4145,6 +4227,30 @@ mod tests {
             }
         }
         control.drain();
+        drop(marker_context);
+        reporter.join().unwrap();
+        let records = String::from_utf8(capture.0.lock().unwrap().clone()).unwrap();
+        // Only the two nonempty sources emit a start/choice pair.
+        assert_eq!(records.lines().count(), 4);
+        let events = records
+            .lines()
+            .map(|line| {
+                omnivox_tts::marker_protocol::decode_marker_event(
+                    line.split_whitespace().last().unwrap(),
+                )
+                .unwrap()
+            })
+            .collect::<Vec<_>>();
+        for pair in events.chunks_exact(2) {
+            assert!(matches!(
+                pair[0].event,
+                omnivox_tts::marker_protocol::MarkerEvent::UtteranceStarted { .. }
+            ));
+            assert!(matches!(
+                pair[1].event,
+                omnivox_tts::marker_protocol::MarkerEvent::VoiceChoiceApplied(_)
+            ));
+        }
     }
 
     #[test]
@@ -4233,6 +4339,7 @@ mod tests {
             pending_overlays: None,
             timeline_renderer: Some(&timeline_renderer),
             effect_processor: Some(&effect_processor),
+            marker_span_id: None,
             marker_dispatch: None,
             voice_observations: None,
             batch_failed: None,
@@ -4313,6 +4420,7 @@ mod tests {
             pending_overlays: None,
             timeline_renderer: Some(&timeline_renderer),
             effect_processor: Some(&effect_processor),
+            marker_span_id: None,
             marker_dispatch: None,
             voice_observations: None,
             batch_failed: None,

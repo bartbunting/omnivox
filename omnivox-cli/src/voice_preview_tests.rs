@@ -591,6 +591,7 @@ fn run(
         pending_overlays: None,
         timeline_renderer: Some(&renderer),
         effect_processor: Some(&effects),
+        marker_span_id: None,
         marker_dispatch: None,
         voice_observations: None,
         batch_failed: Some(&failed),

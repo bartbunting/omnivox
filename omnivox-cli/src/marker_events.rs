@@ -7,8 +7,8 @@ use omnivox_audio::{
 use omnivox_core::timeline::TimelineActionId;
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId, PostSynthesisDimension};
 use omnivox_tts::marker_protocol::{
-    format_marker_event, MarkerEvent, MarkerEventEnvelope, MARKER_PROTOCOL_VERSION,
-    TIMELINE_EVENT_PROTOCOL_VERSION,
+    format_marker_event, MarkerEvent, MarkerEventEnvelope, VoiceChoiceApplied,
+    MARKER_PROTOCOL_VERSION, TIMELINE_EVENT_PROTOCOL_VERSION, VOICE_CHOICE_EVENT_PROTOCOL_VERSION,
 };
 use omnivox_tts::{AnchorResolution, SynthesisMarker};
 use std::cell::Cell;
@@ -18,6 +18,7 @@ use std::time::{Duration, Instant};
 use tracing::warn;
 
 use crate::lifecycle::RequestLifecycle;
+use crate::routing::choice::PreparedVoiceAttempt;
 
 const MAX_QUEUED_MARKER_EVENTS: usize = 8 * 1024;
 const MAX_QUEUED_MARKER_BYTES: usize = 16 * 1024 * 1024;
@@ -40,6 +41,7 @@ const MARKER_REPORTER_LIMITS: MarkerReporterLimits = MarkerReporterLimits {
 
 enum MarkerReporterMessage {
     Event(ReservedMarkerRecord),
+    StartAndChoice(ReservedMarkerRecord, ReservedMarkerRecord),
     Terminal(ReservedTerminalRecord),
 }
 
@@ -250,7 +252,15 @@ impl MarkerEventOutput {
     }
 
     fn emit(&self, event: ReservedMarkerRecord) {
-        match self.sender.try_send(MarkerReporterMessage::Event(event)) {
+        self.emit_reserved(MarkerReporterMessage::Event(event));
+    }
+
+    fn emit_start_and_choice(&self, started: ReservedMarkerRecord, choice: ReservedMarkerRecord) {
+        self.emit_reserved(MarkerReporterMessage::StartAndChoice(started, choice));
+    }
+
+    fn emit_reserved(&self, message: MarkerReporterMessage) {
+        match self.sender.try_send(message) {
             Ok(()) => {}
             Err(mpsc::TrySendError::Full(message)) => {
                 warn!(
@@ -357,8 +367,20 @@ fn run_marker_event_reporter<F>(
 }
 
 fn write_marker_reporter_message<W: Write>(writer: &mut W, message: &MarkerReporterMessage) {
+    if let MarkerReporterMessage::StartAndChoice(started, choice) = message {
+        // One reporter message and one writer lock: no other record can split
+        // the adjacent first-frame pair. Both reservations remain owned here.
+        if let Err(error) = writeln!(writer, "{}", started.record)
+            .and_then(|_| writeln!(writer, "{}", choice.record))
+            .and_then(|_| writer.flush())
+        {
+            warn!("Could not write start/choice pair: {error}");
+        }
+        return;
+    }
     let (record, kind) = match message {
         MarkerReporterMessage::Event(event) => (event.record.as_str(), "marker event"),
+        MarkerReporterMessage::StartAndChoice(..) => unreachable!(),
         MarkerReporterMessage::Terminal(terminal) => {
             (terminal.record.as_str(), "playback terminal")
         }
@@ -376,6 +398,23 @@ pub struct MarkerDispatchContext {
     next_utterance_id: Cell<u64>,
     output: MarkerEventOutput,
     lifecycle: Option<RequestLifecycle>,
+}
+
+pub(crate) struct PlaybackVoiceChoice<'a> {
+    pub span_id: u64,
+    pub attempt: &'a PreparedVoiceAttempt,
+}
+
+impl PlaybackVoiceChoice<'_> {
+    fn event(&self, utterance_id: u64) -> MarkerEvent {
+        MarkerEvent::VoiceChoiceApplied(VoiceChoiceApplied {
+            utterance_id,
+            span_id: self.span_id,
+            registry_generation: self.attempt.registry_generation,
+            logical_voice_id: self.attempt.resolution.logical_voice_id.clone(),
+            choice: self.attempt.audio_identity(),
+        })
+    }
 }
 
 impl MarkerDispatchContext {
@@ -408,8 +447,57 @@ impl MarkerDispatchContext {
         self
     }
 
+    // Activated by timeline-4 admission after pair publication is tested.
+    #[cfg_attr(not(test), expect(dead_code))]
+    pub(crate) fn with_voice_choice_events(dispatch_id: u64, output: MarkerEventOutput) -> Self {
+        Self {
+            protocol_version: VOICE_CHOICE_EVENT_PROTOCOL_VERSION,
+            ..Self::new(dispatch_id, output)
+        }
+    }
+
+    /// Check the exact actual-route identity and worst-width counters before
+    /// invoking synthesis. This allocates no sequence/utterance or reservation.
+    pub(crate) fn preflight_choice(
+        &self,
+        text: &str,
+        choice: PlaybackVoiceChoice<'_>,
+    ) -> Result<(), AudioError> {
+        if self.protocol_version != VOICE_CHOICE_EVENT_PROTOCOL_VERSION {
+            return Err(AudioError::InvalidFormat(
+                "choice receipt requires a version 3 dispatch".to_owned(),
+            ));
+        }
+        let voice = &choice.attempt.resolution.realized;
+        let events = [
+            MarkerEvent::UtteranceStarted {
+                utterance_id: u64::MAX,
+                text: text.to_owned(),
+                engine_id: voice.engine_id.clone(),
+                actual_voice: Some(voice.clone()),
+                logical_voice_id: Some(choice.attempt.resolution.logical_voice_id.clone()),
+                sample_rate: u32::MAX,
+                frame_count: u64::MAX,
+            },
+            choice.event(u64::MAX),
+        ];
+        for event in events {
+            format_marker_event(&MarkerEventEnvelope {
+                protocol_version: self.protocol_version,
+                dispatch_id: self.dispatch_id,
+                sequence: u64::MAX,
+                event,
+            })
+            .map_err(|error| AudioError::InvalidFormat(error.to_string()))?;
+        }
+        Ok(())
+    }
+
     pub fn supports_timeline_events(&self) -> bool {
-        self.protocol_version == TIMELINE_EVENT_PROTOCOL_VERSION
+        matches!(
+            self.protocol_version,
+            TIMELINE_EVENT_PROTOCOL_VERSION | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -454,12 +542,45 @@ impl MarkerDispatchContext {
         degraded_acss: &[AcssDimension],
         degraded_effects: &[PostSynthesisDimension],
     ) -> PreparedMarkerPlayback {
+        self.prepare_timeline_utterance_with_choice(
+            text,
+            engine_id,
+            actual_voice,
+            logical_voice_id,
+            sample_rate,
+            frame_count,
+            markers,
+            semantic_events,
+            resolutions,
+            degraded_acss,
+            degraded_effects,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare_timeline_utterance_with_choice(
+        &self,
+        text: &str,
+        engine_id: &str,
+        actual_voice: Option<&PhysicalVoiceId>,
+        logical_voice_id: Option<&str>,
+        sample_rate: u32,
+        frame_count: usize,
+        markers: &[SynthesisMarker],
+        semantic_events: &[PlaybackSemanticEvent],
+        resolutions: &[PlaybackTimelineResolution],
+        degraded_acss: &[AcssDimension],
+        degraded_effects: &[PostSynthesisDimension],
+        choice: Option<PlaybackVoiceChoice<'_>>,
+    ) -> PreparedMarkerPlayback {
+        assert!(choice.is_none() || self.protocol_version == VOICE_CHOICE_EVENT_PROTOCOL_VERSION);
         assert!(
             (semantic_events.is_empty()
                 && resolutions.is_empty()
                 && degraded_acss.is_empty()
                 && degraded_effects.is_empty())
-                || self.protocol_version == TIMELINE_EVENT_PROTOCOL_VERSION,
+                || self.supports_timeline_events(),
             "timeline playback events require a version 2 dispatch"
         );
         let utterance_id = increment(&self.next_utterance_id);
@@ -488,6 +609,17 @@ impl MarkerDispatchContext {
                 },
             },
         );
+        let paired_start = choice.is_some();
+        if let Some(choice) = choice {
+            // Identifier 1 deliberately has no separate audio cue. The first
+            // cue publishes records 0 and 1 together before any diagnostics.
+            events.push(Arc::new(MarkerEventEnvelope {
+                protocol_version: self.protocol_version,
+                dispatch_id: self.dispatch_id,
+                sequence: increment(&self.next_sequence),
+                event: choice.event(utterance_id),
+            }));
+        }
         for resolution in resolutions {
             push_event(
                 &mut events,
@@ -564,6 +696,7 @@ impl MarkerDispatchContext {
         }
 
         PreparedMarkerPlayback {
+            paired_start,
             first_frame_observer: None,
             cues,
             events: Arc::new(events),
@@ -600,6 +733,7 @@ pub struct PlaybackTimelineResolutionEvent {
 }
 
 pub struct PreparedMarkerPlayback {
+    paired_start: bool,
     first_frame_observer: Option<Box<dyn FnOnce() + Send>>,
     cues: Vec<PlaybackCue>,
     events: Arc<Vec<Arc<MarkerEventEnvelope>>>,
@@ -679,7 +813,10 @@ impl ProgressiveMarkerPublisher {
             })?;
 
         if (!resolutions.is_empty() || !semantic_events.is_empty())
-            && self.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION
+            && !matches!(
+                self.protocol_version,
+                TIMELINE_EVENT_PROTOCOL_VERSION | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+            )
         {
             return Err(AudioError::InvalidFormat(
                 "progressive semantic events require a timeline dispatch".to_owned(),
@@ -829,6 +966,7 @@ impl PreparedMarkerPlayback {
         let callback_output = output.clone();
         let lifecycle = self.lifecycle.clone();
         let mut first_frame_observer = self.first_frame_observer;
+        let paired_start = self.paired_start;
         let on_cue = move |cue: PlaybackCue| {
             if cue.identifier == 0 {
                 if let Some(observer) = first_frame_observer.take() {
@@ -838,13 +976,16 @@ impl PreparedMarkerPlayback {
                     lifecycle.record_mixer_source_started();
                 }
             }
-            let event = callback_events
-                .lock()
-                .unwrap()
-                .get_mut(cue.identifier as usize)
-                .and_then(Option::take);
-            if let Some(event) = event {
-                callback_output.emit(event);
+            let (event, choice) = {
+                let mut pending = callback_events.lock().unwrap();
+                take_cue_records(&mut pending, cue.identifier, paired_start)
+            };
+            match (event, choice) {
+                (Some(started), Some(choice)) => {
+                    callback_output.emit_start_and_choice(started, choice)
+                }
+                (Some(event), None) => callback_output.emit(event),
+                _ => {}
             }
         };
         let queue_attempted_at = Instant::now();
@@ -897,6 +1038,7 @@ impl PreparedMarkerPlayback {
         let output = self.output;
         let lifecycle = self.lifecycle.clone();
         let mut first_frame_observer = self.first_frame_observer;
+        let paired_start = self.paired_start;
         let on_cue = move |cue: PlaybackCue| {
             if cue.identifier == 0 {
                 if let Some(observer) = first_frame_observer.take() {
@@ -906,11 +1048,11 @@ impl PreparedMarkerPlayback {
                     lifecycle.record_mixer_source_started();
                 }
             }
-            if let Some(event) = events
-                .get_mut(cue.identifier as usize)
-                .and_then(Option::take)
-            {
-                output.emit(event);
+            let (event, choice) = take_cue_records(&mut events, cue.identifier, paired_start);
+            match (event, choice) {
+                (Some(started), Some(choice)) => output.emit_start_and_choice(started, choice),
+                (Some(event), None) => output.emit(event),
+                _ => {}
             }
         };
         let queue_attempted_at = Instant::now();
@@ -950,6 +1092,20 @@ fn increment(counter: &Cell<u64>) -> u64 {
     next
 }
 
+fn take_cue_records(
+    events: &mut [Option<ReservedMarkerRecord>],
+    identifier: u64,
+    paired_start: bool,
+) -> (Option<ReservedMarkerRecord>, Option<ReservedMarkerRecord>) {
+    let event = events.get_mut(identifier as usize).and_then(Option::take);
+    let choice = if identifier == 0 && paired_start {
+        events.get_mut(1).and_then(Option::take)
+    } else {
+        None
+    };
+    (event, choice)
+}
+
 fn push_event(
     events: &mut Vec<Arc<MarkerEventEnvelope>>,
     cues: &mut Vec<PlaybackCue>,
@@ -970,6 +1126,203 @@ mod tests {
     use omnivox_audio::{AudioBackend, AudioStreams, PlaybackStatus};
     use omnivox_tts::marker_protocol::{decode_marker_event, MARKER_EVENT_PREFIX};
     use omnivox_tts::SynthesisMarkerKind;
+
+    fn choice_attempt() -> PreparedVoiceAttempt {
+        PreparedVoiceAttempt {
+            registry_generation: 41,
+            resolution: omnivox_tts::resolver::VoiceResolution {
+                logical_voice_id: "bolden".to_owned(),
+                requested: None,
+                realized: PhysicalVoiceId::new("eloquence", "Reed"),
+                reason: omnivox_tts::resolver::ResolutionReason::ExplicitAlternative {
+                    preference_index: 1,
+                },
+                failed_attempts: Vec::new(),
+            },
+            choice_index: Some(1),
+            choice_id: Some("fallback".to_owned()),
+            settings: Default::default(),
+            acss: omnivox_tts::contracts::AcssApplication {
+                style: Default::default(),
+                omitted: vec![AcssDimension::Richness],
+            },
+            effects: omnivox_tts::contracts::PostSynthesisApplication {
+                style: Default::default(),
+                omitted: vec![PostSynthesisDimension::Pan],
+            },
+        }
+    }
+
+    #[test]
+    fn choice_pair_uses_one_first_frame_cue_before_diagnostics_in_both_playback_modes() {
+        for progressive in [false, true] {
+            let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+            let control = streams.control();
+            let writer = RecordingWriter::default();
+            let written = writer.bytes.clone();
+            let (output, reporter) = spawn_marker_event_reporter_with_writer(writer);
+            let capacity = output.capacity.clone();
+            let dispatch = MarkerDispatchContext::with_voice_choice_events(91, output);
+            let attempt = choice_attempt();
+            dispatch
+                .preflight_choice(
+                    "heading",
+                    PlaybackVoiceChoice {
+                        span_id: 7,
+                        attempt: &attempt,
+                    },
+                )
+                .unwrap();
+            assert_eq!(dispatch.next_sequence.get(), 0);
+            assert_eq!(dispatch.next_utterance_id.get(), 0);
+            let prepared = dispatch.prepare_timeline_utterance_with_choice(
+                "heading",
+                "eloquence",
+                Some(&attempt.resolution.realized),
+                Some("bolden"),
+                44100,
+                512,
+                &[marker(0, "native")],
+                &[PlaybackSemanticEvent {
+                    action_id: TimelineActionId::new("heading").unwrap(),
+                    frame_offset: 0,
+                }],
+                &[],
+                &attempt.acss.omitted,
+                &attempt.effects.omitted,
+                Some(PlaybackVoiceChoice {
+                    span_id: 7,
+                    attempt: &attempt,
+                }),
+            );
+            assert!(prepared.paired_start);
+            assert_eq!(
+                prepared
+                    .cues
+                    .iter()
+                    .map(|cue| cue.identifier)
+                    .collect::<Vec<_>>(),
+                vec![0, 2, 3, 4]
+            );
+            assert_eq!(
+                prepared
+                    .events
+                    .iter()
+                    .map(|event| event.sequence)
+                    .collect::<Vec<_>>(),
+                vec![1, 2, 3, 4, 5]
+            );
+            let audio = AudioBuffer::new(vec![0.25; 1024]);
+            let ticket = if progressive {
+                let (mut producer, ticket, mut publisher) = prepared
+                    .queue_progressive_cancellable_if(
+                        &control,
+                        CancellationToken::new(),
+                        || true,
+                        |_| {},
+                    )
+                    .unwrap()
+                    .unwrap();
+                publisher
+                    .push_markers(&dispatch, &mut producer, vec![marker(1, "later")], || true)
+                    .unwrap();
+                producer.push_audio(audio).unwrap();
+                producer.finish().unwrap();
+                ticket
+            } else {
+                prepared
+                    .queue_if(&control, &audio, || true)
+                    .unwrap()
+                    .unwrap()
+            };
+            assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+            dispatch.output.emit_terminal("terminal".to_owned());
+            drop(dispatch);
+            reporter.join().unwrap();
+            let records = String::from_utf8(written.lock().unwrap().clone()).unwrap();
+            let lines = records.lines().collect::<Vec<_>>();
+            assert_eq!(lines.last(), Some(&"terminal"));
+            let events = lines[..lines.len() - 1]
+                .iter()
+                .map(|line| decode_marker_event(line.split_whitespace().last().unwrap()).unwrap())
+                .collect::<Vec<_>>();
+            assert!(matches!(
+                events[0].event,
+                MarkerEvent::UtteranceStarted { .. }
+            ));
+            let MarkerEvent::VoiceChoiceApplied(choice) = &events[1].event else {
+                panic!("adjacent receipt")
+            };
+            assert_eq!(choice.span_id, 7);
+            assert_eq!(choice.registry_generation, 41);
+            assert_eq!(choice.choice.choice_id.as_deref(), Some("fallback"));
+            assert!(matches!(
+                events[2].event,
+                MarkerEvent::TimelineStyleDegraded { .. }
+            ));
+            assert!(events
+                .iter()
+                .all(|event| event.protocol_version == VOICE_CHOICE_EVENT_PROTOCOL_VERSION));
+            assert_eq!(events.len(), if progressive { 6 } else { 5 });
+            assert_eq!(capacity.state.lock().unwrap().events, 0);
+            assert_eq!(capacity.state.lock().unwrap().bytes, 0);
+            control.drain();
+        }
+    }
+
+    #[test]
+    fn pair_preflight_rejects_escaping_and_receipt_size_without_consuming_sequence() {
+        let writer = RecordingWriter::default();
+        let written = writer.bytes.clone();
+        let (output, reporter) = spawn_marker_event_reporter_with_writer(writer);
+        let dispatch = MarkerDispatchContext::with_voice_choice_events(91, output);
+        let mut attempt = choice_attempt();
+        assert!(dispatch
+            .preflight_choice(
+                &"\u{1}".repeat(70_000),
+                PlaybackVoiceChoice {
+                    span_id: 7,
+                    attempt: &attempt
+                }
+            )
+            .is_err());
+        attempt.resolution.realized.voice_id = "x".repeat(32 * 1024);
+        assert!(dispatch
+            .preflight_choice(
+                "heading",
+                PlaybackVoiceChoice {
+                    span_id: 7,
+                    attempt: &attempt
+                }
+            )
+            .is_err());
+        assert_eq!(dispatch.next_sequence.get(), 0);
+        assert_eq!(dispatch.next_utterance_id.get(), 0);
+        drop(dispatch);
+        reporter.join().unwrap();
+        assert!(written.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn start_and_choice_reserve_two_records_but_publish_one_reporter_message() {
+        let (output, receiver) = marker_reporter_channel(MARKER_REPORTER_LIMITS);
+        let mut records = output
+            .reserve_marker_records(vec!["start".to_owned(), "choice".to_owned()], &|| true)
+            .unwrap()
+            .unwrap();
+        let choice = records.pop().unwrap();
+        let started = records.pop().unwrap();
+        output.emit_start_and_choice(started, choice);
+        assert_eq!(output.capacity.state.lock().unwrap().events, 2);
+        let message = receiver.recv().unwrap();
+        assert!(matches!(message, MarkerReporterMessage::StartAndChoice(..)));
+        let mut bytes = Vec::new();
+        write_marker_reporter_message(&mut bytes, &message);
+        assert_eq!(bytes, b"start\nchoice\n");
+        drop(message);
+        assert_eq!(output.capacity.state.lock().unwrap().events, 0);
+        assert_eq!(output.capacity.state.lock().unwrap().bytes, 0);
+    }
 
     #[derive(Clone, Default)]
     struct RecordingWriter {

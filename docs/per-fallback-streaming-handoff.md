@@ -107,6 +107,20 @@ tests, workspace Clippy, formatting and documentation checks pass. First-frame
 pair publication and pre-synthesis chunk preflight are still to be connected;
 adding the codec does not advertise the bundle.
 
+Completed receipt publication portion: a layered source uses one first-frame
+cue and one reporter message for adjacent start/choice records, before other
+frame-zero diagnostics. Both records retain their own bounded reservation.
+The prepared-attempt router calls output preflight before native synthesis and
+does not retry an encoding failure. A span ID belongs to the playback context,
+independently of reusable style inputs. Four additional tests cover both output
+modes, encoded-size preflight without consumed sequence numbers, paired capacity
+release and rejection before any engine call. Existing held-consumer and
+empty-output tests now also cover marker 3: cancelled unconsumed audio emits no
+receipt; a consumed failed prefix does; empty/trimmed output emits no pair.
+All 707 workspace tests, workspace Clippy, formatting and documentation checks
+pass. Production timeline-4 admission must still supply the span context and
+version-3 dispatch; the complete feature remains unadvertised.
+
 ## Findings that determine the implementation
 
 - [Routing](../omnivox-cli/src/routing.rs) discards the resolver's reason/index

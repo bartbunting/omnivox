@@ -111,6 +111,9 @@ impl AttemptStyle<'_> {
 
 /// The engine-facing stream adapter publishes identity and style together.
 pub(crate) trait RoutedPlaybackSink {
+    fn preflight_attempt(&mut self, _attempt: &PreparedVoiceAttempt) -> Result<(), TtsError> {
+        Ok(())
+    }
     fn start_attempt(
         &mut self,
         attempt: &PreparedVoiceAttempt,

@@ -112,9 +112,19 @@ struct AttemptSink {
     attempts: Vec<PreparedVoiceAttempt>,
     stream: RecordingStreamSink,
     fail_start: bool,
+    fail_preflight: bool,
 }
 
 impl RoutedPlaybackSink for AttemptSink {
+    fn preflight_attempt(&mut self, _: &PreparedVoiceAttempt) -> Result<(), TtsError> {
+        if self.fail_preflight {
+            Err(TtsError::SynthesisFailed(
+                "marker output does not fit".to_owned(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
     fn start_attempt(
         &mut self,
         attempt: &PreparedVoiceAttempt,
@@ -139,6 +149,36 @@ impl RoutedPlaybackSink for AttemptSink {
         anchors: Vec<ResolvedAnchor>,
     ) -> Result<(), TtsError> {
         self.stream.markers(markers, anchors)
+    }
+}
+
+#[test]
+fn output_preflight_rejects_before_native_synthesis_and_without_fallback() {
+    for streaming in [false, true] {
+        let primary = full_engine("dectalk", "Paul", streaming, None);
+        let fallback = full_engine("eloquence", "Reed", !streaming, None);
+        let mut engines = EngineRegistry::new();
+        engines.register(primary.clone()).unwrap();
+        engines.register(fallback.clone()).unwrap();
+        let registry = registered(&engines, fixture_voice());
+        let mut routing = LogicalVoiceRoutingSnapshot::capture(&registry, &engines);
+        let context = VoiceStylePatch::default();
+        let style = AttemptStyle::Layered {
+            context: &context,
+            base_rate: 0.5,
+            placement_pan: None,
+        };
+        let mut sink = AttemptSink {
+            fail_preflight: true,
+            ..Default::default()
+        };
+        assert!(matches!(
+            run(&engines, &mut routing, &style, &mut sink),
+            PreparedSynthesisOutcome::Failed
+        ));
+        assert!(primary.calls.lock().unwrap().is_empty());
+        assert!(fallback.calls.lock().unwrap().is_empty());
+        assert!(sink.attempts.is_empty());
     }
 }
 

@@ -892,6 +892,11 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
                 return choice::PreparedSynthesisOutcome::Failed;
             }
         };
+        if let Err(error) = sink.preflight_attempt(&prepared) {
+            release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+            warn!("Prepared playback preflight failed: {error}");
+            return choice::PreparedSynthesisOutcome::Failed;
+        }
         let mut request = SynthesisRequest::new(chunk, prepared.settings.clone())
             .with_normalized_acss(prepared.acss.style.clone());
         request.cancellation = cancellation.cloned();
