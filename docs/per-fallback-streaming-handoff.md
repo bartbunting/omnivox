@@ -121,6 +121,19 @@ All 707 workspace tests, workspace Clippy, formatting and documentation checks
 pass. Production timeline-4 admission must still supply the span context and
 version-3 dispatch; the complete feature remains unadvertised.
 
+Completed ordinary renderer portion: prepared timeline spans retain an explicit
+legacy or layered style. The mixed executor uses fresh actual-attempt preparation
+for both, emits choice receipts only for layered spans, and ends legacy effect
+state at layered boundaries. Each legacy run begins neutral. Pure text encoding
+and action-window checks run for every span before any engine call; actual-route
+metadata is checked again on each attempt. Five new ordinary-playback tests cover
+buffered/streaming fallback, contextual precedence/defaults, placement, neutral
+legacy runs, immutable registry ownership, unresolved voices and atomic rejection
+of invalid later spans/windows. All 712 workspace tests, workspace Clippy,
+formatting and documentation checks pass. The ordinary entry remains internal
+until reader/queue admission and multipart assembly are connected; old timeline
+versions retain their existing adapter path and the bundle remains unadvertised.
+
 ## Findings that determine the implementation
 
 - [Routing](../omnivox-cli/src/routing.rs) discards the resolver's reason/index

@@ -17,7 +17,10 @@ pub(crate) enum EffectOwner {
 }
 
 impl EffectOwner {
-    pub(crate) fn layered(attempt: &PreparedVoiceAttempt) -> Self {
+    pub(crate) fn for_attempt(attempt: &PreparedVoiceAttempt) -> Self {
+        if attempt.kind == crate::routing::choice::VoiceAttemptKind::Legacy {
+            return Self::Legacy;
+        }
         Self::Layered {
             registry_generation: attempt.registry_generation,
             logical_voice_id: attempt.resolution.logical_voice_id.clone(),

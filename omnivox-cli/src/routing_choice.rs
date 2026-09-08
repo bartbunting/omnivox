@@ -8,6 +8,7 @@ pub(crate) enum AttemptStyle<'a> {
     Legacy {
         settings: &'a TtsSettings,
         acss: Option<&'a NormalizedAcss>,
+        effects: Option<&'a PostSynthesisStyle>,
     },
     Layered {
         context: &'a VoiceStylePatch,
@@ -16,9 +17,16 @@ pub(crate) enum AttemptStyle<'a> {
     },
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum VoiceAttemptKind {
+    Legacy,
+    Layered,
+}
+
 /// Values belong to the actual attempt, independently of subsequent route mutations.
 #[derive(Clone, Debug)]
 pub(crate) struct PreparedVoiceAttempt {
+    pub kind: VoiceAttemptKind,
     pub registry_generation: u64,
     pub resolution: VoiceResolution,
     #[cfg_attr(not(test), expect(dead_code))]
@@ -49,13 +57,24 @@ impl AttemptStyle<'_> {
         descriptor: &EngineDescriptor,
     ) -> Result<PreparedVoiceAttempt, String> {
         let (mut settings, acss, effects, choice_index, choice_id) = match self {
-            Self::Legacy { settings, acss } => (
+            Self::Legacy {
+                settings,
+                acss,
+                effects,
+            } => (
                 (*settings).clone(),
                 acss.map_or_else(
                     || route.acss.clone(),
                     |style| style.clone().degrade_for(&descriptor.capabilities.acss),
                 ),
-                route.effects.clone(),
+                effects.map_or_else(
+                    || route.effects.clone(),
+                    |style| {
+                        style
+                            .clone()
+                            .degrade_for(&descriptor.capabilities.post_synthesis_dimensions)
+                    },
+                ),
                 None,
                 None,
             ),
@@ -92,6 +111,11 @@ impl AttemptStyle<'_> {
         settings.voice = route.realized.voice_id.clone();
         apply_normalized_acss(&mut settings, &acss.style);
         let prepared = PreparedVoiceAttempt {
+            kind: if matches!(self, Self::Layered { .. }) {
+                VoiceAttemptKind::Layered
+            } else {
+                VoiceAttemptKind::Legacy
+            },
             registry_generation: routing.registry_generation,
             resolution: route.resolution.clone(),
             choice_index,

@@ -104,6 +104,7 @@ mod tests {
 
     fn attempt(choice: &str) -> PreparedVoiceAttempt {
         PreparedVoiceAttempt {
+            kind: crate::routing::choice::VoiceAttemptKind::Layered,
             registry_generation: 41,
             resolution: VoiceResolution {
                 logical_voice_id: "bolden".to_owned(),

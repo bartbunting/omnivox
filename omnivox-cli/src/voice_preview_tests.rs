@@ -9,6 +9,9 @@ use omnivox_tts::{
     SynthesisStreamStart, TtsError, VoiceInfo,
 };
 
+#[path = "mixed_timeline_tests.rs"]
+mod mixed_timeline_tests;
+
 #[derive(Clone, Copy)]
 enum Behavior {
     Buffered,

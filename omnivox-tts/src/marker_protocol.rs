@@ -168,6 +168,29 @@ pub fn format_marker_event(event: &MarkerEventEnvelope) -> Result<String, Marker
     ))
 }
 
+/// Reject text that cannot fit even before an actual route is available.
+/// The prepared-attempt preflight must subsequently check full route metadata.
+pub fn preflight_v3_utterance_text(
+    dispatch_id: u64,
+    text: &str,
+) -> Result<(), MarkerProtocolError> {
+    format_marker_event(&MarkerEventEnvelope {
+        protocol_version: VOICE_CHOICE_EVENT_PROTOCOL_VERSION,
+        dispatch_id,
+        sequence: u64::MAX,
+        event: MarkerEvent::UtteranceStarted {
+            utterance_id: u64::MAX,
+            text: text.to_owned(),
+            engine_id: String::new(),
+            actual_voice: None,
+            logical_voice_id: None,
+            sample_rate: u32::MAX,
+            frame_count: u64::MAX,
+        },
+    })
+    .map(|_| ())
+}
+
 fn encode_json<T: Serialize>(value: &T) -> Result<String, MarkerProtocolError> {
     let json = serde_json::to_vec(value).map_err(MarkerProtocolError::InvalidJson)?;
     if json.len() > MAX_MARKER_EVENT_PAYLOAD_BYTES {

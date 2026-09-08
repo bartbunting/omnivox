@@ -458,29 +458,30 @@ impl MarkerDispatchContext {
 
     /// Check the exact actual-route identity and worst-width counters before
     /// invoking synthesis. This allocates no sequence/utterance or reservation.
-    pub(crate) fn preflight_choice(
+    pub(crate) fn preflight_attempt(
         &self,
         text: &str,
-        choice: PlaybackVoiceChoice<'_>,
+        span_id: u64,
+        attempt: &PreparedVoiceAttempt,
     ) -> Result<(), AudioError> {
         if self.protocol_version != VOICE_CHOICE_EVENT_PROTOCOL_VERSION {
             return Err(AudioError::InvalidFormat(
                 "choice receipt requires a version 3 dispatch".to_owned(),
             ));
         }
-        let voice = &choice.attempt.resolution.realized;
-        let events = [
-            MarkerEvent::UtteranceStarted {
-                utterance_id: u64::MAX,
-                text: text.to_owned(),
-                engine_id: voice.engine_id.clone(),
-                actual_voice: Some(voice.clone()),
-                logical_voice_id: Some(choice.attempt.resolution.logical_voice_id.clone()),
-                sample_rate: u32::MAX,
-                frame_count: u64::MAX,
-            },
-            choice.event(u64::MAX),
-        ];
+        let voice = &attempt.resolution.realized;
+        let mut events = vec![MarkerEvent::UtteranceStarted {
+            utterance_id: u64::MAX,
+            text: text.to_owned(),
+            engine_id: voice.engine_id.clone(),
+            actual_voice: Some(voice.clone()),
+            logical_voice_id: Some(attempt.resolution.logical_voice_id.clone()),
+            sample_rate: u32::MAX,
+            frame_count: u64::MAX,
+        }];
+        if attempt.kind == crate::routing::choice::VoiceAttemptKind::Layered {
+            events.push(PlaybackVoiceChoice { span_id, attempt }.event(u64::MAX));
+        }
         for event in events {
             format_marker_event(&MarkerEventEnvelope {
                 protocol_version: self.protocol_version,
@@ -1129,6 +1130,7 @@ mod tests {
 
     fn choice_attempt() -> PreparedVoiceAttempt {
         PreparedVoiceAttempt {
+            kind: crate::routing::choice::VoiceAttemptKind::Layered,
             registry_generation: 41,
             resolution: omnivox_tts::resolver::VoiceResolution {
                 logical_voice_id: "bolden".to_owned(),
@@ -1164,15 +1166,7 @@ mod tests {
             let capacity = output.capacity.clone();
             let dispatch = MarkerDispatchContext::with_voice_choice_events(91, output);
             let attempt = choice_attempt();
-            dispatch
-                .preflight_choice(
-                    "heading",
-                    PlaybackVoiceChoice {
-                        span_id: 7,
-                        attempt: &attempt,
-                    },
-                )
-                .unwrap();
+            dispatch.preflight_attempt("heading", 7, &attempt).unwrap();
             assert_eq!(dispatch.next_sequence.get(), 0);
             assert_eq!(dispatch.next_utterance_id.get(), 0);
             let prepared = dispatch.prepare_timeline_utterance_with_choice(
@@ -1278,24 +1272,10 @@ mod tests {
         let dispatch = MarkerDispatchContext::with_voice_choice_events(91, output);
         let mut attempt = choice_attempt();
         assert!(dispatch
-            .preflight_choice(
-                &"\u{1}".repeat(70_000),
-                PlaybackVoiceChoice {
-                    span_id: 7,
-                    attempt: &attempt
-                }
-            )
+            .preflight_attempt(&"\u{1}".repeat(70_000), 7, &attempt)
             .is_err());
         attempt.resolution.realized.voice_id = "x".repeat(32 * 1024);
-        assert!(dispatch
-            .preflight_choice(
-                "heading",
-                PlaybackVoiceChoice {
-                    span_id: 7,
-                    attempt: &attempt
-                }
-            )
-            .is_err());
+        assert!(dispatch.preflight_attempt("heading", 7, &attempt).is_err());
         assert_eq!(dispatch.next_sequence.get(), 0);
         assert_eq!(dispatch.next_utterance_id.get(), 0);
         drop(dispatch);

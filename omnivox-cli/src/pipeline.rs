@@ -685,7 +685,7 @@ fn queue_synthesis_result_inner(
     let (effects, degraded_effects) = attempt.map_or((effects, degraded_effects), |attempt| {
         (&attempt.effects.style, attempt.effects.omitted.as_slice())
     });
-    let owner = attempt.map_or(EffectOwner::Legacy, EffectOwner::layered);
+    let owner = attempt.map_or(EffectOwner::Legacy, EffectOwner::for_attempt);
     if let Err(error) = select_effect_owner(owner, ctx) {
         if attempt.is_some() {
             ctx.mark_failed();
@@ -791,9 +791,16 @@ fn queue_synthesis_result_inner(
                 &resolutions,
                 &result.degraded_acss,
                 degraded_effects,
-                ctx.marker_span_id.zip(attempt).map(|(span_id, attempt)| {
-                    crate::marker_events::PlaybackVoiceChoice { span_id, attempt }
-                }),
+                ctx.marker_span_id
+                    .zip(attempt.filter(|attempt| {
+                        attempt.kind == crate::routing::choice::VoiceAttemptKind::Layered
+                    }))
+                    .map(
+                        |(span_id, attempt)| crate::marker_events::PlaybackVoiceChoice {
+                            span_id,
+                            attempt,
+                        },
+                    ),
             )
         } else {
             marker_dispatch.prepare_utterance(
@@ -1360,38 +1367,42 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                 .cloned()
                 .unwrap_or_else(SynthesisCancellationToken::new);
             if let Some(marker_dispatch) = self.ctx.marker_dispatch {
-                let prepared = if marker_dispatch.supports_timeline_events() {
-                    marker_dispatch.prepare_timeline_utterance_with_choice(
-                        self.utterance_text,
-                        &start.engine_id,
-                        start.actual_voice.as_ref(),
-                        self.logical_voice_id.as_deref(),
-                        SAMPLE_RATE,
-                        0,
-                        &[],
-                        &[],
-                        &[],
-                        &start.degraded_acss,
-                        &self.degraded_effects,
-                        self.ctx.marker_span_id.zip(self.attempt.as_ref()).map(
-                            |(span_id, attempt)| crate::marker_events::PlaybackVoiceChoice {
-                                span_id,
-                                attempt,
-                            },
-                        ),
-                    )
-                } else {
-                    marker_dispatch.prepare_utterance(
-                        self.utterance_text,
-                        &start.engine_id,
-                        start.actual_voice.as_ref(),
-                        self.logical_voice_id.as_deref(),
-                        SAMPLE_RATE,
-                        0,
-                        &[],
-                        &[],
-                    )
-                };
+                let prepared =
+                    if marker_dispatch.supports_timeline_events() {
+                        marker_dispatch.prepare_timeline_utterance_with_choice(
+                            self.utterance_text,
+                            &start.engine_id,
+                            start.actual_voice.as_ref(),
+                            self.logical_voice_id.as_deref(),
+                            SAMPLE_RATE,
+                            0,
+                            &[],
+                            &[],
+                            &[],
+                            &start.degraded_acss,
+                            &self.degraded_effects,
+                            self.ctx
+                                .marker_span_id
+                                .zip(self.attempt.as_ref().filter(|attempt| {
+                                    attempt.kind
+                                        == crate::routing::choice::VoiceAttemptKind::Layered
+                                }))
+                                .map(|(span_id, attempt)| {
+                                    crate::marker_events::PlaybackVoiceChoice { span_id, attempt }
+                                }),
+                        )
+                    } else {
+                        marker_dispatch.prepare_utterance(
+                            self.utterance_text,
+                            &start.engine_id,
+                            start.actual_voice.as_ref(),
+                            self.logical_voice_id.as_deref(),
+                            SAMPLE_RATE,
+                            0,
+                            &[],
+                            &[],
+                        )
+                    };
                 let prepared = if let Some(observation) = self.observation.clone() {
                     prepared.observe_first_frame(move || observation.first_frame())
                 } else {
@@ -1936,10 +1947,7 @@ impl crate::routing::choice::RoutedPlaybackSink for ProgressiveChunkSink<'_, '_>
         if let (Some(dispatch), Some(span_id)) = (self.ctx.marker_dispatch, self.ctx.marker_span_id)
         {
             dispatch
-                .preflight_choice(
-                    self.utterance_text,
-                    crate::marker_events::PlaybackVoiceChoice { span_id, attempt },
-                )
+                .preflight_attempt(self.utterance_text, span_id, attempt)
                 .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
         }
         Ok(())
@@ -2004,7 +2012,7 @@ impl SynthesisStreamSink for ProgressiveChunkSink<'_, '_> {
         let owner = self
             .attempt
             .as_ref()
-            .map_or(EffectOwner::Legacy, EffectOwner::layered);
+            .map_or(EffectOwner::Legacy, EffectOwner::for_attempt);
         // Existing non-layered test/legacy callers can lack a stateful processor.
         if self.attempt.is_some() || self.ctx.effect_processor.is_some() {
             select_effect_owner(owner, self.ctx)?;
@@ -2523,7 +2531,7 @@ pub(crate) fn process_layered_preview(
     let chunks = chunk_prepared_speech(prepare_speech_text(text, &state), 15);
     let count = chunks.len();
     for (index, chunk) in chunks.into_iter().enumerate() {
-        let status = synthesize_layered_chunk(
+        let status = synthesize_prepared_chunk(
             &chunk.text,
             &chunk.capitalization_tones,
             &[],
@@ -2559,7 +2567,7 @@ pub(crate) fn process_layered_preview(
 /// Shared layered entry: the actual attempt decides buffered/streaming mode,
 /// native settings, effect ownership and evidence after every reroute.
 #[allow(clippy::too_many_arguments)]
-fn synthesize_layered_chunk(
+fn synthesize_prepared_chunk(
     text: &str,
     tones: &[CapitalizationTone],
     actions: &[TimelineChunkAction],
@@ -2857,10 +2865,21 @@ fn preview_result(
 struct PreparedTimelineSpan {
     id: u64,
     logical_voice_id: Option<String>,
-    acss: NormalizedAcss,
-    effects: PresentationEffectDirective,
+    style: PreparedTimelineStyle,
     chunks: Vec<PreparedSpeechChunk>,
     actions: Vec<Vec<TimelineChunkAction>>,
+}
+
+#[derive(Debug)]
+enum PreparedTimelineStyle {
+    Legacy {
+        acss: NormalizedAcss,
+        effects: PresentationEffectDirective,
+    },
+    Layered {
+        context: omnivox_tts::voice_choices::VoiceStylePatch,
+        placement: omnivox_tts::voice_preview_v2::VoicePlacement,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -2886,7 +2905,7 @@ pub fn process_presentation_timeline(
     loader: &AudioFileLoader,
     engine_registry: &EngineRegistry,
     runtime_health: &RuntimeEngineHealth,
-    mut logical_voice_routing: LogicalVoiceRoutingSnapshot,
+    logical_voice_routing: LogicalVoiceRoutingSnapshot,
 ) -> BatchStatus {
     if ctx.is_stale() {
         return BatchStatus::Cancelled;
@@ -2912,16 +2931,152 @@ pub fn process_presentation_timeline(
             return BatchStatus::Failed;
         }
     };
+    process_prepared_timeline(
+        spans,
+        &state,
+        ctx,
+        engine_registry,
+        runtime_health,
+        logical_voice_routing,
+        false,
+    )
+}
+
+/// Execute an admitted mixed document with explicit layer boundaries. All
+/// references and prepared windows are checked before the first engine call.
+#[allow(clippy::too_many_arguments)]
+#[cfg_attr(not(test), expect(dead_code))] // Connected by the timeline-4 reader slice.
+pub(crate) fn process_presentation_timeline_v4(
+    timeline: omnivox_tts::timeline_v4::PresentationTimelineV4,
+    mut state: TtsState,
+    ctx: &SynthCtx,
+    loader: &AudioFileLoader,
+    engines: &EngineRegistry,
+    health: &RuntimeEngineHealth,
+    routing: LogicalVoiceRoutingSnapshot,
+) -> BatchStatus {
+    use omnivox_tts::timeline_v4::MixedSpeechSpan;
+    if ctx.is_stale() {
+        return BatchStatus::Cancelled;
+    }
+    if let Err(error) = timeline.validate(true) {
+        ctx.mark_failed();
+        warn!("Invalid mixed timeline: {error}");
+        return BatchStatus::Failed;
+    }
+    if timeline.registry_generation != routing.registry_generation()
+        || timeline.spans.iter().any(|span| matches!(span, MixedSpeechSpan::Layered(span) if !routing.has_layered_definition(&span.logical_voice_id))) {
+        ctx.mark_failed(); warn!("Mixed timeline references an unadmitted registry or layered voice"); return BatchStatus::Failed;
+    }
+    state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
+    let cancelled = || ctx.is_stale();
+    let prepare = || -> Result<Vec<PreparedTimelineSpan>, TimelinePreparationError> {
+        let resources = prepare_timeline_resources(&timeline.actions, &state, loader, &cancelled)?;
+        let actions = index_timeline_actions(&timeline.actions);
+        let mut spans = Vec::with_capacity(timeline.spans.len());
+        for span in &timeline.spans {
+            check_timeline_preparation_cancelled(&cancelled)?;
+            let span_actions = actions.get(&span.id()).map_or(&[][..], Vec::as_slice);
+            let prepared = match span {
+                MixedSpeechSpan::Legacy(span) => {
+                    prepare_timeline_span(span, span_actions, &state, &resources, &cancelled)?
+                }
+                MixedSpeechSpan::Layered(span) => prepare_timeline_span_data(
+                    span.id,
+                    &span.text,
+                    Some(span.logical_voice_id.clone()),
+                    PreparedTimelineStyle::Layered {
+                        context: span.context.clone(),
+                        placement: span.placement.clone(),
+                    },
+                    span_actions,
+                    &state,
+                    &resources,
+                    &cancelled,
+                )?,
+            };
+            for chunk in &prepared.chunks {
+                omnivox_tts::marker_protocol::preflight_v3_utterance_text(
+                    timeline.dispatch_id,
+                    &chunk.text,
+                )
+                .map_err(|error| TimelinePreparationError::Invalid(error.to_string()))?;
+            }
+            spans.push(prepared);
+        }
+        Ok(spans)
+    };
+    match prepare() {
+        Ok(spans) => process_prepared_timeline(spans, &state, ctx, engines, health, routing, true),
+        Err(TimelinePreparationError::Cancelled) => BatchStatus::Cancelled,
+        Err(TimelinePreparationError::Invalid(error)) => {
+            ctx.mark_failed();
+            warn!("Mixed timeline preparation failed: {error}");
+            BatchStatus::Failed
+        }
+    }
+}
+
+/// Non-mutating admission preflight for all prepared windows, including text
+/// escaping and capitalization actions on spans without explicit actions.
+#[cfg_attr(not(test), expect(dead_code))] // Connected by the timeline-4 reader slice.
+pub(crate) fn validate_presentation_timeline_v4_action_windows(
+    timeline: &omnivox_tts::timeline_v4::PresentationTimelineV4,
+    state: &TtsState,
+) -> Result<(), String> {
+    let actions = index_timeline_actions(&timeline.actions);
+    for span in &timeline.spans {
+        let layout = prepare_timeline_text_layout(
+            span.id(),
+            span.text(),
+            actions.get(&span.id()).map_or(&[], Vec::as_slice),
+            state,
+        );
+        validate_timeline_span_layout(span.id(), &layout)?;
+        for chunk in &layout.chunks {
+            omnivox_tts::marker_protocol::preflight_v3_utterance_text(
+                timeline.dispatch_id,
+                &chunk.text,
+            )
+            .map_err(|error| error.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn process_prepared_timeline(
+    spans: Vec<PreparedTimelineSpan>,
+    state: &TtsState,
+    ctx: &SynthCtx,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    mut logical_voice_routing: LogicalVoiceRoutingSnapshot,
+    mixed: bool,
+) -> BatchStatus {
     let total_chunks = spans.iter().map(|span| span.chunks.len()).sum::<usize>();
     let mut chunk_index = 0_usize;
     let mut active_effects: Option<PostSynthesisStyle> = None;
 
+    let mut in_legacy_run = !mixed;
     for span in spans {
-        match span.effects {
-            PresentationEffectDirective::Retain => {}
-            PresentationEffectDirective::Replace { style, .. } => active_effects = Some(style),
-            PresentationEffectDirective::End => {
-                active_effects = Some(PostSynthesisStyle::default())
+        let layered = matches!(span.style, PreparedTimelineStyle::Layered { .. });
+        if layered {
+            active_effects = None;
+            in_legacy_run = false;
+        } else if !in_legacy_run {
+            active_effects = Some(PostSynthesisStyle::default());
+            in_legacy_run = true;
+        }
+        if let PreparedTimelineStyle::Legacy { effects, .. } = &span.style {
+            match effects {
+                PresentationEffectDirective::Retain => {}
+                PresentationEffectDirective::Replace { style, .. } => {
+                    active_effects = Some(style.clone())
+                }
+                PresentationEffectDirective::End => {
+                    active_effects = Some(PostSynthesisStyle::default())
+                }
             }
         }
         let mut route = match span.logical_voice_id.as_deref() {
@@ -2929,6 +3084,11 @@ pub fn process_presentation_timeline(
                 match logical_voice_routing.initial_route(logical_voice_id, engine_registry) {
                     Ok(route) => Some(route),
                     Err(error) => {
+                        if layered {
+                            ctx.mark_failed();
+                            warn!("{error}; layered span {} failed", span.id);
+                            return BatchStatus::Failed;
+                        }
                         warn!(
                             "{error}; using the preferred legacy engine for span {}",
                             span.id
@@ -2940,14 +3100,70 @@ pub fn process_presentation_timeline(
             None => None,
         };
         if route.is_none() {
-            route = initial_legacy_route(&state, ctx, &mut logical_voice_routing, engine_registry);
+            route = initial_legacy_route(state, ctx, &mut logical_voice_routing, engine_registry);
         }
-        let requested_acss = acss_has_values(&span.acss).then_some(&span.acss);
+        let requested_acss = match &span.style {
+            PreparedTimelineStyle::Legacy { acss, .. } => acss_has_values(acss).then_some(acss),
+            PreparedTimelineStyle::Layered { .. } => None,
+        };
+        let span_ctx = SynthCtx {
+            marker_span_id: mixed.then_some(span.id),
+            ..*ctx
+        };
+        let ctx = &span_ctx;
+
         for (chunk, actions) in span.chunks.into_iter().zip(span.actions) {
             if ctx.is_stale() {
                 return BatchStatus::Cancelled;
             }
             let final_window = chunk_index + 1 == total_chunks;
+            if mixed {
+                let Some(route) = &mut route else {
+                    ctx.mark_failed();
+                    return BatchStatus::Failed;
+                };
+                let settings = TtsSettings {
+                    voice: route.realized.voice_id.clone(),
+                    rate: state.speech_rate,
+                    pitch: state.pitch_multiplier,
+                    volume: 1.0,
+                };
+                let style = match &span.style {
+                    PreparedTimelineStyle::Legacy { .. } => {
+                        crate::routing::choice::AttemptStyle::Legacy {
+                            settings: &settings,
+                            acss: requested_acss,
+                            effects: active_effects.as_ref(),
+                        }
+                    }
+                    PreparedTimelineStyle::Layered { context, placement } => {
+                        crate::routing::choice::AttemptStyle::Layered {
+                            context,
+                            base_rate: state.speech_rate,
+                            placement_pan: placement.pan,
+                        }
+                    }
+                };
+                let status = synthesize_prepared_chunk(
+                    &chunk.text,
+                    &chunk.capitalization_tones,
+                    &actions,
+                    &style,
+                    state,
+                    final_window,
+                    final_window,
+                    route,
+                    &mut logical_voice_routing,
+                    engine_registry,
+                    runtime_health,
+                    ctx,
+                );
+                if status != BatchStatus::Completed {
+                    return status;
+                }
+                chunk_index += 1;
+                continue;
+            }
             let queued = if let Some(route) = &mut route {
                 match synthesize_routed_chunk(
                     &chunk.text,
@@ -2955,7 +3171,7 @@ pub fn process_presentation_timeline(
                     &actions,
                     requested_acss,
                     active_effects.as_ref(),
-                    &state,
+                    state,
                     final_window,
                     final_window,
                     route,
@@ -2978,7 +3194,7 @@ pub fn process_presentation_timeline(
                     &actions,
                     requested_acss,
                     active_effects.as_ref(),
-                    &state,
+                    state,
                     final_window,
                     ctx,
                 )
@@ -3305,6 +3521,15 @@ fn prepare_timeline_span_layout(
     actions: &[&PresentationTimelineAction],
     state: &TtsState,
 ) -> PreparedTimelineSpanLayout {
+    prepare_timeline_text_layout(span.id, &span.text, actions, state)
+}
+
+fn prepare_timeline_text_layout(
+    id: u64,
+    text: &str,
+    actions: &[&PresentationTimelineAction],
+    state: &TtsState,
+) -> PreparedTimelineSpanLayout {
     let source_offsets = actions
         .iter()
         .filter_map(|action| match action.position {
@@ -3313,9 +3538,9 @@ fn prepare_timeline_span_layout(
         })
         .collect::<Vec<_>>();
     let (mut prepared, mapped_offsets) =
-        prepare_speech_text_with_offsets(&span.text, state, &source_offsets);
+        prepare_speech_text_with_offsets(text, state, &source_offsets);
     for (index, tone) in prepared.capitalization_tones.iter_mut().enumerate() {
-        tone.id = format!("omnivox.cap.{}.{}", span.id, index);
+        tone.id = format!("omnivox.cap.{}.{}", id, index);
     }
     let chunks = chunk_prepared_speech(prepared, 15);
     let mut mapped_offset_index = 0_usize;
@@ -3397,9 +3622,35 @@ fn prepare_timeline_span(
         acss.rate = Some(apply_rate_offset(state.speech_rate, rate_offset));
     }
     check_timeline_preparation_cancelled(cancelled)?;
-    let layout = prepare_timeline_span_layout(span, span_actions, state);
+    prepare_timeline_span_data(
+        span.id,
+        &span.text,
+        span.logical_voice_id.clone(),
+        PreparedTimelineStyle::Legacy {
+            acss,
+            effects: span.effects.clone(),
+        },
+        span_actions,
+        state,
+        resources,
+        cancelled,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_timeline_span_data(
+    id: u64,
+    text: &str,
+    logical_voice_id: Option<String>,
+    style: PreparedTimelineStyle,
+    span_actions: &[&PresentationTimelineAction],
+    state: &TtsState,
+    resources: &HashMap<String, TimelineAudioResource>,
+    cancelled: &dyn Fn() -> bool,
+) -> Result<PreparedTimelineSpan, TimelinePreparationError> {
+    let layout = prepare_timeline_text_layout(id, text, span_actions, state);
     check_timeline_preparation_cancelled(cancelled)?;
-    validate_timeline_span_layout(span.id, &layout).map_err(TimelinePreparationError::Invalid)?;
+    validate_timeline_span_layout(id, &layout).map_err(TimelinePreparationError::Invalid)?;
     let PreparedTimelineSpanLayout {
         chunks,
         action_positions,
@@ -3451,10 +3702,9 @@ fn prepare_timeline_span(
         });
     }
     Ok(PreparedTimelineSpan {
-        id: span.id,
-        logical_voice_id: span.logical_voice_id.clone(),
-        acss,
-        effects: span.effects.clone(),
+        id,
+        logical_voice_id,
+        style,
         chunks,
         actions: actions_by_chunk,
     })
@@ -3765,6 +4015,7 @@ mod tests {
 
     fn prepared_attempt(effects: PostSynthesisStyle) -> PreparedVoiceAttempt {
         PreparedVoiceAttempt {
+            kind: crate::routing::choice::VoiceAttemptKind::Layered,
             registry_generation: 41,
             resolution: omnivox_tts::resolver::VoiceResolution {
                 logical_voice_id: "bolden".to_owned(),

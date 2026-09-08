@@ -44,6 +44,14 @@ pub struct LogicalVoiceRoutingSnapshot {
 }
 
 impl LogicalVoiceRoutingSnapshot {
+    pub(crate) fn registry_generation(&self) -> u64 {
+        self.registry_generation
+    }
+
+    pub(crate) fn has_layered_definition(&self, id: &str) -> bool {
+        self.layered_definitions.iter().any(|voice| voice.id == id)
+    }
+
     #[cfg(test)]
     pub fn capture(
         logical_voices: &LogicalVoiceRegistry,
@@ -773,6 +781,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
         &choice::AttemptStyle::Legacy {
             settings,
             acss: requested_acss,
+            effects: None,
         },
         route,
         routing,
