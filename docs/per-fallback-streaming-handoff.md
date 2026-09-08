@@ -97,6 +97,16 @@ limits. All 700 workspace tests, workspace Clippy, formatting and documentation
 checks pass. Reader assembly, queue admission and ordinary playback integration
 still remain; existing timeline decoders and advertised capabilities are unchanged.
 
+Completed marker codec portion: marker version 3 adds the strict typed
+`voice_choice_applied` payload and accepts existing timeline event kinds. Receipts
+are limited to 32 KiB decoded; every version-3 event is limited to the existing
+512 KiB encoded line budget, including prefix and newline. Old event versions
+retain their limits. Three new fixture/adversarial tests cover required identity,
+duplicates, version isolation, escaping and both output limits. All 703 workspace
+tests, workspace Clippy, formatting and documentation checks pass. First-frame
+pair publication and pre-synthesis chunk preflight are still to be connected;
+adding the codec does not advertise the bundle.
+
 ## Findings that determine the implementation
 
 - [Routing](../omnivox-cli/src/routing.rs) discards the resolver's reason/index
