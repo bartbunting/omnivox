@@ -20,9 +20,12 @@ tests covering all four buffered/streaming fallback combinations, frozen
 registrations, fresh default settings across chunks, duplicate-row versus
 policy identity, invalid stream identity and no replay after commitment/output
 failure. Pinned workspace Clippy, formatting and documentation checks pass.
-These tests exercise fake engine requests and handoff; they do not prove native
-DECtalk/Eloquence reset behavior or effect/playback observation ownership.
-Those remain in the implementation sequence below.
+These routing tests exercise fake engine requests and handoff. The subsequent
+[Windows native audit](benchmarks/2026-09-09-windows-native-defaults.md) confirms
+set/default/set restoration for all 17 advertised Windows voices using actual
+native parameter queries (85 captured syntheses). No native reset change is
+needed for those tested runtimes. Effect/playback observation ownership and the
+remaining acceptance paths are still in the implementation sequence below.
 
 ## Findings that determine the implementation
 
