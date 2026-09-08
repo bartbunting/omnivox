@@ -76,6 +76,7 @@ pub enum ControlRequest {
     RequestEngineRecoveryProbe {
         engine_id: String,
     },
+    PreviewVoice(VoicePreviewRequest),
     Preview {
         text: String,
         selector: VoiceSelector,
@@ -92,8 +93,60 @@ pub enum ControlRequest {
     },
 }
 
-/// One versioned server response.
+/// One complete unsaved voice and its frozen workstation policy.
+/// Kept separate from the exact-audition request to preserve older semantics.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VoicePreviewRequest {
+    pub text: String,
+    pub preferences: Vec<VoiceSelector>,
+    #[serde(default)]
+    pub language: Option<String>,
+    #[serde(default)]
+    pub acss: NormalizedAcss,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rate_offset: Option<i16>,
+    #[serde(default)]
+    pub effects: PostSynthesisStyle,
+    pub fallback_policy: VoicePreviewPolicy,
+    pub disabled_engine_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_base_rate: Option<f32>,
+}
+
+/// Require every effective-policy field, including explicit empty arrays.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VoicePreviewPolicy {
+    pub preferred_engines: Vec<String>,
+    pub allow_same_language_on_requested_engine: bool,
+    // Option normally accepts absence; require an explicit null or selector.
+    #[serde(deserialize_with = "deserialize_required_optional")]
+    pub global_default: Option<VoiceSelector>,
+    pub fallback_engines: Vec<String>,
+}
+
+fn deserialize_required_optional<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(deserializer)
+}
+
+impl From<VoicePreviewPolicy> for FallbackPolicy {
+    fn from(policy: VoicePreviewPolicy) -> Self {
+        Self {
+            preferred_engines: policy.preferred_engines,
+            allow_same_language_on_requested_engine: policy.allow_same_language_on_requested_engine,
+            global_default: policy.global_default,
+            fallback_engines: policy.fallback_engines,
+        }
+    }
+}
+
+/// One versioned server response.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ControlResponseEnvelope {
     pub protocol_version: u32,
     pub request_id: Option<u64>,
@@ -102,7 +155,7 @@ pub struct ControlResponseEnvelope {
 }
 
 /// Response payloads emitted by the control channel.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ControlResponse {
     Capabilities {
@@ -132,6 +185,17 @@ pub enum ControlResponse {
     EngineRecoveryProbeRequested {
         inventory_generation: u64,
         engine_id: String,
+    },
+    PreviewVoiceCompleted {
+        status: PreviewStatus,
+        realized: Option<PhysicalVoiceId>,
+        realizations: Vec<PhysicalVoiceId>,
+        realizations_truncated: bool,
+        degraded_acss: Vec<AcssDimension>,
+        degraded_effects: Vec<PostSynthesisDimension>,
+        message: Option<String>,
+        base_rate: f32,
+        effective_disabled_engine_ids: Vec<String>,
     },
     PreviewCompleted {
         status: PreviewStatus,
@@ -268,6 +332,7 @@ pub fn process_control_request(
                         "engine_recovery_probe".to_owned(),
                         "startup_engine_rescan".to_owned(),
                         "exact_voice_preview".to_owned(),
+                        "voice_chain_preview_v1".to_owned(),
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
                         "logical_voice_language_routing".to_owned(),
@@ -372,15 +437,21 @@ pub fn process_control_request(
                     error.to_string(),
                 ),
             },
-            ControlRequest::Preview { .. } | ControlRequest::RequestEngineRecoveryProbe { .. } => {
-                error_response(
-                    Some(request.request_id),
-                    ControlErrorCode::InvalidConfiguration,
-                    "request requires a live playback server".to_owned(),
-                )
-            }
+            ControlRequest::Preview { .. }
+            | ControlRequest::PreviewVoice(_)
+            | ControlRequest::RequestEngineRecoveryProbe { .. } => error_response(
+                Some(request.request_id),
+                ControlErrorCode::InvalidConfiguration,
+                "request requires a live playback server".to_owned(),
+            ),
         },
-        Err(error) => error_response(None, error.code(), error.to_string()),
+        Err(error) => error_response(
+            decode_json::<serde_json::Value>(payload)
+                .ok()
+                .and_then(|value| value.get("request_id").and_then(serde_json::Value::as_u64)),
+            error.code(),
+            error.to_string(),
+        ),
     }
 }
 
@@ -456,6 +527,105 @@ mod tests {
     };
     use crate::logical_voices::LogicalVoiceBinding;
     use crate::VoiceQuality;
+
+    fn voice_preview_fixture() -> serde_json::Value {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../../test-fixtures/voice-preview.json")).unwrap();
+        fixture["cases"][0]["request"].clone()
+    }
+
+    #[test]
+    fn complete_preview_wire_examples_round_trip_without_changing_old_preview() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../../test-fixtures/voice-preview.json")).unwrap();
+        let wire: Vec<_> = include_str!("../../test-fixtures/voice-preview-wire.txt")
+            .lines()
+            .collect();
+        for (index, case) in fixture["cases"].as_array().unwrap().iter().enumerate() {
+            let request: ControlRequestEnvelope =
+                serde_json::from_value(case["request"].clone()).unwrap();
+            assert_eq!(
+                decode_request(&encode_request(&request).unwrap()).unwrap(),
+                request
+            );
+            assert_eq!(decode_request(wire[index * 2]).unwrap(), request);
+            assert_eq!(
+                decode_response(wire[index * 2 + 1]).unwrap(),
+                serde_json::from_value::<ControlResponseEnvelope>(
+                    case["expected_response"].clone()
+                )
+                .unwrap()
+            );
+            let ControlRequest::PreviewVoice(voice) = request.request else {
+                panic!("wrong request")
+            };
+            assert_eq!(
+                voice.preferences.len(),
+                if case["name"] == "unavailable-primary" {
+                    2
+                } else {
+                    0
+                }
+            );
+            let response: ControlResponseEnvelope =
+                serde_json::from_value(case["expected_response"].clone()).unwrap();
+            assert_eq!(
+                decode_response(&encode_response(&response).unwrap()).unwrap(),
+                response
+            );
+        }
+    }
+
+    #[test]
+    fn complete_preview_requires_explicit_arrays_and_complete_policy() {
+        for key in ["preferences", "disabled_engine_ids", "fallback_policy"] {
+            let mut request = voice_preview_fixture();
+            request.as_object_mut().unwrap().remove(key);
+            assert!(
+                serde_json::from_value::<ControlRequestEnvelope>(request).is_err(),
+                "{key}"
+            );
+        }
+        for key in [
+            "preferred_engines",
+            "allow_same_language_on_requested_engine",
+            "global_default",
+            "fallback_engines",
+        ] {
+            let mut request = voice_preview_fixture();
+            request["fallback_policy"]
+                .as_object_mut()
+                .unwrap()
+                .remove(key);
+            assert!(
+                serde_json::from_value::<ControlRequestEnvelope>(request).is_err(),
+                "{key}"
+            );
+        }
+        for key in ["selector", "unknown"] {
+            let mut request = voice_preview_fixture();
+            request[key] = serde_json::json!({"kind":"engine_default","engine_id":"dectalk"});
+            assert!(
+                serde_json::from_value::<ControlRequestEnvelope>(request).is_err(),
+                "{key}"
+            );
+        }
+    }
+
+    #[test]
+    fn malformed_complete_preview_keeps_request_correlation() {
+        let mut request = voice_preview_fixture();
+        request.as_object_mut().unwrap().remove("preferences");
+        let response = process_without_registry(&encode_json(&request).unwrap(), "test", 0, &[]);
+        assert_eq!(response.request_id, Some(41));
+        assert!(matches!(
+            response.response,
+            ControlResponse::Error {
+                code: ControlErrorCode::MalformedRequest,
+                ..
+            }
+        ));
+    }
 
     fn capabilities_request(version: u32, request_id: u64) -> ControlRequestEnvelope {
         ControlRequestEnvelope {

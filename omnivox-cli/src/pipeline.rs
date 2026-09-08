@@ -199,7 +199,7 @@ impl SynthCtx<'_> {
             .is_some_and(|failed| failed.load(Ordering::Acquire))
     }
 
-    pub fn queue(&self, stream: StreamType, buffer: &AudioBuffer) {
+    pub fn queue(&self, stream: StreamType, buffer: &AudioBuffer) -> bool {
         if stream == StreamType::Speech {
             self.flush_overlays();
         }
@@ -232,11 +232,15 @@ impl SynthCtx<'_> {
             self.control.queue_if(stream, buffer, || !self.is_stale())
         };
         match result {
-            Ok(true) => self.lifecycle.record_audio_queued_at(queue_attempted_at),
-            Ok(false) => {}
+            Ok(true) => {
+                self.lifecycle.record_audio_queued_at(queue_attempted_at);
+                !buffer.is_empty()
+            }
+            Ok(false) => false,
             Err(error) => {
                 self.mark_failed();
                 warn!("{:?} queue error: {}", stream, error);
+                false
             }
         }
     }
@@ -637,7 +641,7 @@ fn queue_synthesis_result(
     is_last_speech: bool,
     final_timeline_window: bool,
     ctx: &SynthCtx,
-) {
+) -> bool {
     let mut result = canonicalize_synthesis_result(result);
     debug!(
         engine = %result.engine_id,
@@ -679,7 +683,9 @@ fn queue_synthesis_result(
             (None, Vec::new())
         }
     };
-    if let Some(marker_dispatch) = ctx.marker_dispatch.filter(|_| !result.audio.is_empty()) {
+    let accepted = if let Some(marker_dispatch) =
+        ctx.marker_dispatch.filter(|_| !result.audio.is_empty())
+    {
         ctx.flush_overlays();
         let prepared = if marker_dispatch.supports_timeline_events() {
             let resolutions = timeline_actions
@@ -734,22 +740,25 @@ fn queue_synthesis_result(
         match queued {
             Ok(Some(ticket)) => {
                 ctx.record_ticket(StreamType::Speech, ticket);
+                true
             }
-            Ok(None) => {}
+            Ok(None) => false,
             Err(error) => {
                 ctx.mark_failed();
                 warn!("Speech queue error: {}", error);
+                false
             }
         }
     } else {
-        ctx.queue(StreamType::Speech, &result.audio);
-    }
+        ctx.queue(StreamType::Speech, &result.audio)
+    };
     if let Some(tail) = overlay_tail {
         ctx.queue_overlay(tail);
     }
     if let Some(tail) = effect_tail {
         ctx.queue_overlay(tail);
     }
+    accepted
 }
 
 fn post_synthesis_parameters(style: &PostSynthesisStyle) -> PostSynthesisParameters {
@@ -1092,6 +1101,7 @@ struct ProgressiveChunkSink<'a, 'ctx> {
     utterance_text: &'a str,
     logical_voice_id: Option<String>,
     effects: PostSynthesisStyle,
+    routed_effects: Option<(&'a EngineRegistry, PostSynthesisStyle)>,
     degraded_effects: Vec<PostSynthesisDimension>,
     state: &'a TtsState,
     is_last_speech: bool,
@@ -1114,6 +1124,7 @@ struct ProgressiveChunkSink<'a, 'ctx> {
     timeline_resources: Vec<SharedPreparedAudioResource>,
     primary_frame_count: u64,
     output_frame_count: u64,
+    accepted_audio: bool,
     ticket: Option<PlaybackTicket>,
 }
 
@@ -1151,6 +1162,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             utterance_text,
             logical_voice_id: logical_voice_id.map(str::to_owned),
             effects,
+            routed_effects: None,
             degraded_effects,
             state,
             is_last_speech,
@@ -1173,6 +1185,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             timeline_resources,
             primary_frame_count: 0,
             output_frame_count: 0,
+            accepted_audio: false,
             ticket: None,
         })
     }
@@ -1596,11 +1609,14 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             rendered.resolution_events,
             rendered.semantic_events,
         )?;
+        let nonempty = !rendered.audio.is_empty();
         self.producer
             .as_mut()
             .unwrap()
             .push_audio(rendered.audio)
-            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))
+            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        self.accepted_audio |= nonempty;
+        Ok(())
     }
 
     fn finish(
@@ -1691,6 +1707,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                 .unwrap()
                 .push_audio(rendered.audio)
                 .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+            self.accepted_audio = true;
         }
         if let Some(producer) = self.producer.take() {
             let ticket = self.ticket.take().expect("queued producer has a ticket");
@@ -1705,7 +1722,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
         if let Some(tail) = effect_tail {
             self.ctx.queue_overlay(tail);
         }
-        let start = self.start.take().ok_or_else(|| {
+        let start = self.start.clone().ok_or_else(|| {
             TtsError::SynthesisFailed("progressive engine omitted stream metadata".to_owned())
         })?;
         Ok(CompletedProgressiveChunk {
@@ -1721,6 +1738,16 @@ impl SynthesisStreamSink for ProgressiveChunkSink<'_, '_> {
             return Err(TtsError::SynthesisFailed(
                 "progressive engine emitted stream metadata more than once".to_owned(),
             ));
+        }
+        if let Some((registry, requested)) = &self.routed_effects {
+            let engine = registry.engine(&start.engine_id).ok_or_else(|| {
+                TtsError::SynthesisFailed("stream metadata names an unknown engine".to_owned())
+            })?;
+            let application = requested
+                .clone()
+                .degrade_for(&engine.descriptor().capabilities.post_synthesis_dimensions);
+            self.effects = application.style;
+            self.degraded_effects = application.omitted;
         }
         self.start = Some(start);
         self.trimmer = Some(ProgressiveSilenceTrimmer::with_asymmetric_padding(
@@ -1860,6 +1887,7 @@ fn synthesize_routed_chunk(
     engine_registry: &EngineRegistry,
     runtime_health: &RuntimeEngineHealth,
     ctx: &SynthCtx,
+    evidence: Option<&mut PreviewAudioEvidence>,
 ) -> RoutedChunkOutcome {
     let settings = TtsSettings {
         voice: route.realized.voice_id.clone(),
@@ -1885,6 +1913,7 @@ fn synthesize_routed_chunk(
             engine_registry,
             runtime_health,
             ctx,
+            evidence,
         );
     }
     let outcome = if let Some(requested_acss) = requested_acss {
@@ -1933,7 +1962,7 @@ fn synthesize_routed_chunk(
                         .post_synthesis_dimensions,
                 );
             let degraded_effects = effect_application.omitted.clone();
-            queue_synthesis_result(
+            let accepted = queue_synthesis_result(
                 *result,
                 chunk,
                 route.reported_logical_voice_id.as_deref(),
@@ -1946,6 +1975,11 @@ fn synthesize_routed_chunk(
                 final_timeline_window,
                 ctx,
             );
+            if accepted {
+                if let Some(evidence) = evidence {
+                    evidence.record(&realized, &degraded_acss, &degraded_effects);
+                }
+            }
             if ctx.is_stale() {
                 RoutedChunkOutcome::Cancelled
             } else {
@@ -1979,6 +2013,7 @@ fn synthesize_routed_chunk_progressively(
     engine_registry: &EngineRegistry,
     runtime_health: &RuntimeEngineHealth,
     ctx: &SynthCtx,
+    mut evidence: Option<&mut PreviewAudioEvidence>,
 ) -> RoutedChunkOutcome {
     let initial_effect_application = requested_effects
         .cloned()
@@ -2009,6 +2044,13 @@ fn synthesize_routed_chunk_progressively(
             return RoutedChunkOutcome::Failed;
         }
     };
+    sink.routed_effects = Some((
+        engine_registry,
+        requested_effects
+            .cloned()
+            .or_else(|| routing.requested_effects(&route.logical_voice_id))
+            .unwrap_or_else(|| route.effects.style.clone()),
+    ));
     let outcome = crate::routing::synthesize_progressively_with_runtime_fallback_anchored(
         chunk,
         anchors,
@@ -2023,7 +2065,7 @@ fn synthesize_routed_chunk_progressively(
         ctx.cancellation,
         &mut sink,
     );
-    match outcome {
+    let result = match outcome {
         crate::routing::RuntimeProgressiveSynthesisOutcome::Streamed(completion) => {
             match sink.finish(completion) {
                 Ok(_completed) if ctx.is_stale() => RoutedChunkOutcome::Cancelled,
@@ -2058,7 +2100,7 @@ fn synthesize_routed_chunk_progressively(
                         .post_synthesis_dimensions,
                 );
             let degraded_effects = effect_application.omitted.clone();
-            queue_synthesis_result(
+            let accepted = queue_synthesis_result(
                 *result,
                 chunk,
                 route.reported_logical_voice_id.as_deref(),
@@ -2071,6 +2113,11 @@ fn synthesize_routed_chunk_progressively(
                 final_timeline_window,
                 ctx,
             );
+            if accepted {
+                if let Some(evidence) = evidence.as_deref_mut() {
+                    evidence.record(&realized, &degraded_acss, &degraded_effects);
+                }
+            }
             if ctx.is_stale() {
                 RoutedChunkOutcome::Cancelled
             } else {
@@ -2088,7 +2135,17 @@ fn synthesize_routed_chunk_progressively(
         crate::routing::RuntimeProgressiveSynthesisOutcome::Exhausted => {
             RoutedChunkOutcome::Exhausted
         }
+    };
+    if sink.accepted_audio {
+        if let (Some(evidence), Some(start)) = (evidence, sink.start.as_ref()) {
+            evidence.record(
+                start.actual_voice.as_ref().unwrap_or(&route.realized),
+                &start.degraded_acss,
+                &sink.degraded_effects,
+            );
+        }
     }
+    result
 }
 
 fn initial_legacy_route(
@@ -2153,6 +2210,7 @@ pub fn process_letter(
             engine_registry,
             runtime_health,
             ctx,
+            None,
         ) {
             RoutedChunkOutcome::Queued { .. } => BatchStatus::Completed,
             RoutedChunkOutcome::Cancelled => BatchStatus::Cancelled,
@@ -2182,6 +2240,42 @@ pub struct PreviewSynthesisResult {
     pub degraded_acss: Vec<AcssDimension>,
     pub degraded_effects: Vec<PostSynthesisDimension>,
     pub message: Option<String>,
+    pub evidence: PreviewAudioEvidence,
+}
+
+#[derive(Default)]
+pub struct PreviewAudioEvidence {
+    pub realizations: Vec<PhysicalVoiceId>,
+    pub truncated: bool,
+    pub degraded_acss: Vec<AcssDimension>,
+    pub degraded_effects: Vec<PostSynthesisDimension>,
+}
+
+impl PreviewAudioEvidence {
+    fn record(
+        &mut self,
+        voice: &PhysicalVoiceId,
+        acss: &[AcssDimension],
+        effects: &[PostSynthesisDimension],
+    ) {
+        if !self.realizations.contains(voice) {
+            if self.realizations.len() < 32 {
+                self.realizations.push(voice.clone());
+            } else {
+                self.truncated = true;
+            }
+        }
+        for dimension in acss {
+            if !self.degraded_acss.contains(dimension) {
+                self.degraded_acss.push(*dimension);
+            }
+        }
+        for dimension in effects {
+            if !self.degraded_effects.contains(dimension) {
+                self.degraded_effects.push(*dimension);
+            }
+        }
+    }
 }
 
 /// Resolve, synthesize, and queue one preview without changing persistent TTS
@@ -2192,8 +2286,34 @@ pub fn process_preview(
     ctx: &SynthCtx,
     engine_registry: &EngineRegistry,
     runtime_health: &RuntimeEngineHealth,
+    logical_voice_routing: LogicalVoiceRoutingSnapshot,
+    logical_voice_id: &str,
+) -> PreviewSynthesisResult {
+    let mut evidence = PreviewAudioEvidence::default();
+    let mut result = process_preview_inner(
+        text,
+        state,
+        ctx,
+        engine_registry,
+        runtime_health,
+        logical_voice_routing,
+        logical_voice_id,
+        &mut evidence,
+    );
+    result.evidence = evidence;
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn process_preview_inner(
+    text: &str,
+    state: TtsState,
+    ctx: &SynthCtx,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
     mut logical_voice_routing: LogicalVoiceRoutingSnapshot,
     logical_voice_id: &str,
+    evidence: &mut PreviewAudioEvidence,
 ) -> PreviewSynthesisResult {
     if ctx.is_stale() {
         return preview_result(BatchStatus::Cancelled, None, Vec::new(), Vec::new(), None);
@@ -2218,7 +2338,7 @@ pub fn process_preview(
     let mut degraded_effects = route.effects.omitted.clone();
 
     for (index, chunk) in chunks.into_iter().enumerate() {
-        match synthesize_routed_chunk(
+        let outcome = synthesize_routed_chunk(
             &chunk.text,
             &chunk.capitalization_tones,
             &[],
@@ -2232,7 +2352,10 @@ pub fn process_preview(
             engine_registry,
             runtime_health,
             ctx,
-        ) {
+            Some(evidence),
+        );
+        realized = Some(route.realized.clone());
+        match outcome {
             RoutedChunkOutcome::Queued {
                 realized: chunk_realized,
                 degraded_acss: chunk_degraded,
@@ -2303,6 +2426,7 @@ fn preview_result(
         degraded_acss,
         degraded_effects,
         message,
+        evidence: PreviewAudioEvidence::default(),
     }
 }
 
@@ -2416,6 +2540,7 @@ pub fn process_presentation_timeline(
                     engine_registry,
                     runtime_health,
                     ctx,
+                    None,
                 ) {
                     RoutedChunkOutcome::Queued { .. } => true,
                     RoutedChunkOutcome::Cancelled => return BatchStatus::Cancelled,
@@ -3019,6 +3144,7 @@ pub fn process_batch(
                             engine_registry,
                             runtime_health,
                             ctx,
+                            None,
                         ) {
                             RoutedChunkOutcome::Cancelled => return BatchStatus::Cancelled,
                             RoutedChunkOutcome::Failed => ctx.mark_failed(),
@@ -3096,7 +3222,9 @@ pub fn process_batch(
                 placement,
             } => match prepare_tone_audio(frequency, duration, &state) {
                 Ok(buf) => match tone_queue_target(placement) {
-                    ToneQueueTarget::Stream(stream) => ctx.queue(stream, &buf),
+                    ToneQueueTarget::Stream(stream) => {
+                        ctx.queue(stream, &buf);
+                    }
                     ToneQueueTarget::Overlay => ctx.queue_overlay(buf),
                 },
                 Err(error) => {
@@ -3198,6 +3326,26 @@ mod tests {
         fn voice_info(&self, _identifier: &str) -> Option<omnivox_tts::VoiceInfo> {
             None
         }
+    }
+
+    #[test]
+    fn complete_preview_evidence_deduplicates_and_bounds_accepted_voices() {
+        let mut evidence = PreviewAudioEvidence::default();
+        for index in 0..35 {
+            let voice = PhysicalVoiceId::new("test", format!("voice-{index}"));
+            for _ in 0..2 {
+                evidence.record(
+                    &voice,
+                    &[AcssDimension::Richness],
+                    &[PostSynthesisDimension::Pan],
+                );
+            }
+        }
+        assert_eq!(evidence.realizations.len(), 32);
+        assert_eq!(evidence.realizations[31].voice_id, "voice-31");
+        assert!(evidence.truncated);
+        assert_eq!(evidence.degraded_acss, vec![AcssDimension::Richness]);
+        assert_eq!(evidence.degraded_effects, vec![PostSynthesisDimension::Pan]);
     }
 
     const CAPITAL_TONE_HZ: f32 = 440.0;

@@ -17,12 +17,12 @@ use omnivox_tts::contracts::{
 };
 use omnivox_tts::control::{
     decode_request, format_control_event, process_control_request, ControlErrorCode,
-    ControlRequest, ControlResponse, ControlResponseEnvelope, PreviewStatus,
+    ControlRequest, ControlResponse, ControlResponseEnvelope, PreviewStatus, VoicePreviewRequest,
     CONTROL_PROTOCOL_VERSION, MAX_PREVIEW_TEXT_BYTES,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
-use omnivox_tts::routing_policy::RoutingPolicyRegistry;
+use omnivox_tts::routing_policy::{RoutingPolicy, RoutingPolicyRegistry};
 use omnivox_tts::timeline_protocol::{
     PresentationAction, PresentationDeliveryPolicy, PresentationEffectDirective,
     PresentationTimelineEnvelope,
@@ -42,7 +42,7 @@ use crate::marker_events::{MarkerDispatchContext, MarkerEventOutput};
 use crate::pipeline::{
     build_sound_pipeline, build_tone_pipeline, process_batch, process_letter,
     process_presentation_timeline, process_preview, validate_presentation_timeline_action_windows,
-    BatchStatus, SynthCtx,
+    BatchStatus, PreviewSynthesisResult, SynthCtx,
 };
 use crate::routing::LogicalVoiceRoutingSnapshot;
 use crate::text::{normalize_rate, parse_resource_path};
@@ -159,6 +159,27 @@ impl Drop for KeyedCancellationLease {
 // Synthesis request types
 // ---------------------------------------------------------------------------
 
+/// Metadata retained privately for the terminal preview response.
+pub enum PreviewTarget {
+    Individual(VoiceSelector),
+    Complete {
+        base_rate: f32,
+        disabled_engine_ids: Vec<String>,
+    },
+}
+
+impl PreviewTarget {
+    fn payload_bytes(&self) -> usize {
+        match self {
+            Self::Individual(selector) => voice_selector_payload_bytes(selector),
+            Self::Complete {
+                disabled_engine_ids,
+                ..
+            } => disabled_engine_ids.iter().map(String::len).sum(),
+        }
+    }
+}
+
 /// Messages sent from the reader thread to the synthesis worker.
 ///
 /// Each request carries a `gen` (generation) stamp. The worker compares it
@@ -188,7 +209,7 @@ pub enum SynthRequest {
     Preview {
         request_id: u64,
         text: String,
-        requested: VoiceSelector,
+        requested: PreviewTarget,
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
         lifecycle: RequestLifecycle,
@@ -311,7 +332,7 @@ impl BoundedWork for SynthRequest {
                 ..
             } => text
                 .len()
-                .saturating_add(voice_selector_payload_bytes(requested))
+                .saturating_add(requested.payload_bytes())
                 .saturating_add(state.current_voice.len())
                 .saturating_add(logical_voice_routing.queued_payload_bytes()),
             Self::Immediate {
@@ -553,6 +574,12 @@ pub(crate) struct TrackedPlayback {
 
 pub(crate) enum PlaybackCompletion {
     Tracked(u64),
+    VoicePreview {
+        request_id: u64,
+        result: PreviewSynthesisResult,
+        base_rate: f32,
+        disabled_engine_ids: Vec<String>,
+    },
     Preview {
         request_id: u64,
         requested: VoiceSelector,
@@ -611,6 +638,15 @@ fn tracked_playback_reporter(
         }
         let record = match completion {
             PlaybackCompletion::Tracked(identifier) => tracked_status_record(identifier, status),
+            PlaybackCompletion::VoicePreview {
+                request_id,
+                mut result,
+                base_rate,
+                disabled_engine_ids,
+            } => {
+                result.status = status;
+                voice_preview_status_record(request_id, result, base_rate, disabled_engine_ids)
+            }
             PlaybackCompletion::Preview {
                 request_id,
                 requested,
@@ -638,7 +674,8 @@ fn tracked_playback_reporter(
 fn playback_completion_identifier(completion: &PlaybackCompletion) -> u64 {
     match completion {
         PlaybackCompletion::Tracked(identifier) => *identifier,
-        PlaybackCompletion::Preview { request_id, .. } => *request_id,
+        PlaybackCompletion::Preview { request_id, .. }
+        | PlaybackCompletion::VoicePreview { request_id, .. } => *request_id,
     }
 }
 
@@ -687,6 +724,55 @@ fn reject_deprecated_command(command: &CommandId) {
             warn!("{message}");
         }
         write_control_response(&response);
+    }
+}
+
+fn voice_preview_status_record(
+    request_id: u64,
+    result: PreviewSynthesisResult,
+    base_rate: f32,
+    disabled_engine_ids: Vec<String>,
+) -> String {
+    let status = match result.status {
+        BatchStatus::Completed => PreviewStatus::Completed,
+        BatchStatus::Cancelled => PreviewStatus::Cancelled,
+        BatchStatus::Failed => PreviewStatus::Failed,
+    };
+    let mut envelope = ControlResponseEnvelope {
+        protocol_version: CONTROL_PROTOCOL_VERSION,
+        request_id: Some(request_id),
+        response: ControlResponse::PreviewVoiceCompleted {
+            status,
+            realized: result.realized,
+            realizations: result.evidence.realizations,
+            realizations_truncated: result.evidence.truncated,
+            degraded_acss: result.evidence.degraded_acss,
+            degraded_effects: result.evidence.degraded_effects,
+            message: result.message,
+            base_rate,
+            effective_disabled_engine_ids: disabled_engine_ids,
+        },
+    };
+    loop {
+        if let Ok(record) = format_control_event(&envelope) {
+            return record;
+        }
+        if let ControlResponse::PreviewVoiceCompleted {
+            realizations,
+            realizations_truncated,
+            ..
+        } = &mut envelope.response
+        {
+            if realizations.pop().is_some() {
+                *realizations_truncated = true;
+                continue;
+            }
+        }
+        envelope.response = ControlResponse::Error {
+            code: ControlErrorCode::PayloadTooLarge,
+            message: "Voice preview terminal metadata exceeded the output limit".to_owned(),
+        };
+        return format_control_event(&envelope).expect("bounded preview error must encode");
     }
 }
 
@@ -872,15 +958,36 @@ fn report_retired_synthesis(retired: RetiredWork<SynthRequest>) {
             request_id,
             requested,
             ..
-        } => write_preview_status(
-            request_id,
-            status,
-            requested,
-            None,
-            Vec::new(),
-            Vec::new(),
-            Some(message.to_owned()),
-        ),
+        } => {
+            let record = match requested {
+                PreviewTarget::Individual(selector) => preview_status_record(
+                    request_id,
+                    status,
+                    selector,
+                    None,
+                    Vec::new(),
+                    Vec::new(),
+                    Some(message.to_owned()),
+                ),
+                PreviewTarget::Complete {
+                    base_rate,
+                    disabled_engine_ids,
+                } => voice_preview_status_record(
+                    request_id,
+                    PreviewSynthesisResult {
+                        status,
+                        realized: None,
+                        degraded_acss: Vec::new(),
+                        degraded_effects: Vec::new(),
+                        message: Some(message.to_owned()),
+                        evidence: Default::default(),
+                    },
+                    base_rate,
+                    disabled_engine_ids,
+                ),
+            };
+            write_stdout_record(&record, "preview status");
+        }
         SynthRequest::Batch { tracking: None, .. }
         | SynthRequest::Immediate { .. }
         | SynthRequest::Letter { .. }
@@ -1132,8 +1239,9 @@ pub fn synthesis_worker(
                     logical_voice_routing,
                     PREVIEW_LOGICAL_VOICE_ID,
                 );
-                let playback = TrackedPlayback {
-                    completion: PlaybackCompletion::Preview {
+                let status = result.status;
+                let completion = match requested {
+                    PreviewTarget::Individual(requested) => PlaybackCompletion::Preview {
                         request_id,
                         requested,
                         realized: result.realized,
@@ -1141,7 +1249,19 @@ pub fn synthesis_worker(
                         degraded_effects: result.degraded_effects,
                         message: result.message,
                     },
-                    status: result.status,
+                    PreviewTarget::Complete {
+                        base_rate,
+                        disabled_engine_ids,
+                    } => PlaybackCompletion::VoicePreview {
+                        request_id,
+                        result,
+                        base_rate,
+                        disabled_engine_ids,
+                    },
+                };
+                let playback = TrackedPlayback {
+                    completion,
+                    status,
                     tickets: tickets.into_inner().unwrap(),
                     lifecycle: Some(request_lifecycle.clone()),
                     cancellation: None,
@@ -2221,6 +2341,79 @@ fn execute_presentation(
 // Command dispatch
 // ---------------------------------------------------------------------------
 
+/// Validated private preview data; preparation never changes live registries.
+struct PreparedVoicePreview {
+    text: String,
+    routing: LogicalVoiceRoutingSnapshot,
+    base_rate: f32,
+    disabled_engine_ids: Vec<String>,
+}
+
+fn prepare_voice_preview(
+    request: VoicePreviewRequest,
+    base_rate: f32,
+    engine_registry: &EngineRegistry,
+    applied_policy: &RoutingPolicyRegistry,
+) -> Result<PreparedVoicePreview, String> {
+    if request.text.is_empty() || request.text.len() > MAX_PREVIEW_TEXT_BYTES {
+        return Err(format!(
+            "preview text must contain 1..={MAX_PREVIEW_TEXT_BYTES} UTF-8 bytes"
+        ));
+    }
+    if let Some(expected) = request.expected_base_rate {
+        if !expected.is_finite() || !(0.0..=2.0).contains(&expected) {
+            return Err("expected base rate must be finite and between zero and two".to_owned());
+        }
+        if expected != base_rate {
+            return Err("Comparison rate changed; restart comparison".to_owned());
+        }
+    }
+    let mut acss = request.acss;
+    apply_preview_rate_offset(&mut acss, request.rate_offset, base_rate)?;
+    let mut local_policy = RoutingPolicyRegistry::new("preview");
+    local_policy
+        .register(
+            1,
+            RoutingPolicy {
+                disabled_engine_ids: request.disabled_engine_ids.clone(),
+                ..RoutingPolicy::default()
+            },
+        )
+        .map_err(|error| error.to_string())?;
+    let mut disabled_engine_ids = request.disabled_engine_ids;
+    for engine in &applied_policy.policy().disabled_engine_ids {
+        if !disabled_engine_ids.contains(engine) {
+            disabled_engine_ids.push(engine.clone());
+        }
+    }
+    let mut private = LogicalVoiceRegistry::default();
+    private
+        .register(
+            1,
+            vec![LogicalVoiceDefinition {
+                id: PREVIEW_LOGICAL_VOICE_ID.to_owned(),
+                language: request.language,
+                preferences: request.preferences,
+                acss,
+                effects: request.effects,
+            }],
+            request.fallback_policy.into(),
+            &engine_registry.inventory(),
+        )
+        .map_err(|error| error.to_string())?;
+    let routing = LogicalVoiceRoutingSnapshot::capture_voice_preview(
+        &private,
+        engine_registry,
+        disabled_engine_ids.clone(),
+    );
+    Ok(PreparedVoicePreview {
+        text: request.text,
+        routing,
+        base_rate,
+        disabled_engine_ids,
+    })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn dispatch_preview(
     request_id: u64,
@@ -2298,7 +2491,7 @@ fn dispatch_preview(
     let request = SynthRequest::Preview {
         request_id,
         text,
-        requested: selector.clone(),
+        requested: PreviewTarget::Individual(selector.clone()),
         state: state.clone(),
         logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_preview(
             &preview_registry,
@@ -2664,6 +2857,41 @@ fn handle_command(
                 Some(request)
             });
             match live_request.map(|request| (request.request_id, request.request)) {
+                Some((request_id, ControlRequest::PreviewVoice(request))) => {
+                    match prepare_voice_preview(
+                        request,
+                        state.speech_rate,
+                        engine_registry,
+                        routing_policy,
+                    ) {
+                        Ok(prepared) => {
+                            enqueue_synthesis(
+                                tx,
+                                SynthRequest::Preview {
+                                    request_id,
+                                    text: prepared.text,
+                                    requested: PreviewTarget::Complete {
+                                        base_rate: prepared.base_rate,
+                                        disabled_engine_ids: prepared.disabled_engine_ids,
+                                    },
+                                    state: state.clone(),
+                                    logical_voice_routing: prepared.routing,
+                                    lifecycle: RequestLifecycle::default(),
+                                    gen: *current_gen,
+                                },
+                            );
+                        }
+                        Err(message) => write_control_response(&ControlResponseEnvelope {
+                            protocol_version: CONTROL_PROTOCOL_VERSION,
+                            request_id: Some(request_id),
+                            response: ControlResponse::Error {
+                                code: ControlErrorCode::InvalidConfiguration,
+                                message,
+                            },
+                        }),
+                    }
+                }
+
                 Some((
                     request_id,
                     ControlRequest::Preview {
@@ -3953,3 +4181,7 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+#[path = "voice_preview_tests.rs"]
+mod voice_preview_tests;

@@ -157,6 +157,87 @@ inherit the active logical registry or its fallback policy. A property or
 engine-default selector remains portable and may resolve again within that
 same selector if its first runtime target fails.
 
+### Complete voice drafts
+
+`voice_chain_preview_v1` adds `preview_voice` and `preview_voice_completed`.
+It preserves the existing single-selector operation above. Negotiate this
+capability on the actual connection before sending a complete draft.
+
+```json
+{
+  "protocol_version": 1,
+  "request_id": 46,
+  "type": "preview_voice",
+  "text": "Compare this complete voice.",
+  "preferences": [
+    { "kind": "exact", "engine_id": "dectalk", "voice_id": "Paul" },
+    { "kind": "exact", "engine_id": "eloquence", "voice_id": "Reed" }
+  ],
+  "language": "en-AU",
+  "acss": { "average_pitch": 0.4 },
+  "rate_offset": 4,
+  "effects": { "reverb": 0.2 },
+  "fallback_policy": {
+    "preferred_engines": ["dectalk", "eloquence"],
+    "allow_same_language_on_requested_engine": true,
+    "global_default": null,
+    "fallback_engines": ["espeak"]
+  },
+  "disabled_engine_ids": ["winrt"]
+}
+```
+
+`preferences`, `disabled_engine_ids`, and all four `fallback_policy` fields
+are required. Empty preferences mean Automatic, resolved solely through the
+supplied policy, language and current inventory. They never recover an old
+legacy binding. `global_default` must be present even when null. Other tuning
+fields use the existing preview normalization and bounds; at most 32 selectors
+and 16 KiB of text are accepted. Unknown top-level draft fields, including the
+old `selector`, are rejected. Palette names and local choice-set IDs are not
+part of this protocol.
+
+The policy is the client's complete effective workstation policy, including
+preferred engine order. Admission freezes it and unions disabled engines with
+the server's applied administrative disablements. Later policy changes do not
+rewrite queued previews. Worker-time inventory/health refresh retains that
+union. The private registration and TTS snapshot never alter ordinary speech.
+Normal fallback and PCM commitment rules apply: a failed attempt before PCM
+may select another eligible voice; output failure or failure after committed
+PCM cannot replay the chunk through another engine.
+
+A comparison's later request may include `expected_base_rate` from its first
+response. It must be a finite host rate from 0 through 2. A different current
+host rate produces `invalid_configuration` before queue admission with a
+restart-comparison message. Relative offsets use the captured host rate.
+
+The terminal response contains:
+
+- `status`: `completed`, `cancelled`, or `failed`, after playback tracking.
+- `realized`: last physical target, or null. A target alone does not prove audio
+  was accepted or heard, particularly on failure.
+- `realizations`: ordered distinct physical identities that supplied accepted
+  audio. Failed attempts before audio do not appear here.
+- `realizations_truncated`: true if the 32-identity or encoded-output bound
+  prevents reporting the whole accepted-audio list.
+- `degraded_acss`, `degraded_effects`: dimensions omitted from accepted audio,
+  aggregated across chunks, rather than predictions for failed candidates.
+- `message`: optional failure explanation.
+- `base_rate`: captured host rate before applying any relative offset.
+- `effective_disabled_engine_ids`: captured union of client/server disablements.
+
+A complete-preview client accepts successful fallback and retains its own
+request snapshot for explaining the result. It must invalidate a comparison
+whose returned disablement union changes. It must not infer one uninterrupted
+physical voice from the last target when several identities are reported.
+Input is never truncated to fit. Invalid requests and unencodable terminal
+metadata return bounded correlated errors; valid but oversized realization
+lists are explicitly truncated. Queued cancellation/rejection retains this
+operation's terminal response shape with no accepted audio.
+
+[Wire fixtures](../../test-fixtures/voice-preview.json) and their paired Base64
+records are checked together, and executed by the server's simulated-engine
+tests. [ADR 0010](../adr/0010-complete-voice-preview.md) records the boundary.
+
 When `relative_rate_v1` is advertised, previews and presentation speech spans
 may include a signed integer `rate_offset` from `-20` through `20`. Omnivox adds
 `rate_offset / 100` to the stored normalized host rate, then clamps the derived

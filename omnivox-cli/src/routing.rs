@@ -78,6 +78,22 @@ impl LogicalVoiceRoutingSnapshot {
         }
     }
 
+    /// Capture a complete draft's private policy without replacing live routing.
+    pub fn capture_voice_preview(
+        logical_voices: &LogicalVoiceRegistry,
+        engine_registry: &EngineRegistry,
+        disabled_engine_ids: Vec<String>,
+    ) -> Self {
+        let mut snapshot = Self {
+            definitions: logical_voices.definitions().to_vec(),
+            fallback_policy: logical_voices.fallback_policy().clone(),
+            inventory: Vec::new(),
+            disabled_engine_ids,
+        };
+        snapshot.replace_inventory(engine_registry.inventory());
+        snapshot
+    }
+
     /// Replace the dispatch-time inventory with the worker's current runtime
     /// view before resolving any logical voice in this batch.
     pub fn replace_inventory(&mut self, inventory: Vec<EngineDescriptor>) {
@@ -143,6 +159,14 @@ impl LogicalVoiceRoutingSnapshot {
                     .and_then(|_| engine_registry.engine(engine_id))
             })
             .unwrap_or_else(|| Arc::clone(default))
+    }
+
+    /// Retain the complete shared effect request until the actual engine is known.
+    pub fn requested_effects(&self, logical_voice_id: &str) -> Option<PostSynthesisStyle> {
+        self.definitions
+            .iter()
+            .find(|definition| definition.id == logical_voice_id)
+            .map(|definition| definition.effects.clone())
     }
 
     pub fn initial_route(
