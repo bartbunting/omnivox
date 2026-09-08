@@ -447,8 +447,6 @@ impl MarkerDispatchContext {
         self
     }
 
-    // Activated by timeline-4 admission after pair publication is tested.
-    #[cfg_attr(not(test), expect(dead_code))]
     pub(crate) fn with_voice_choice_events(dispatch_id: u64, output: MarkerEventOutput) -> Self {
         Self {
             protocol_version: VOICE_CHOICE_EVENT_PROTOCOL_VERSION,

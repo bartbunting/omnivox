@@ -12,6 +12,125 @@ use crate::voice_preview_v2::VoicePlacement;
 
 pub const PRESENTATION_TIMELINE_PROTOCOL_V4: u32 = 4;
 
+/// A decoded document retains its original representation through admission.
+#[derive(Debug, Clone, PartialEq)]
+pub enum TimelineDocument {
+    Legacy(PresentationTimelineEnvelope),
+    Layered(PresentationTimelineV4),
+}
+
+impl From<PresentationTimelineEnvelope> for TimelineDocument {
+    fn from(timeline: PresentationTimelineEnvelope) -> Self {
+        Self::Legacy(timeline)
+    }
+}
+
+impl From<PresentationTimelineV4> for TimelineDocument {
+    fn from(timeline: PresentationTimelineV4) -> Self {
+        Self::Layered(timeline)
+    }
+}
+
+impl TimelineDocument {
+    pub fn protocol_version(&self) -> u32 {
+        match self {
+            Self::Legacy(t) => t.protocol_version,
+            Self::Layered(t) => t.protocol_version,
+        }
+    }
+    pub fn generation(&self) -> u64 {
+        match self {
+            Self::Legacy(t) => t.generation,
+            Self::Layered(t) => t.generation,
+        }
+    }
+    pub fn dispatch_id(&self) -> u64 {
+        match self {
+            Self::Legacy(t) => t.dispatch_id,
+            Self::Layered(t) => t.dispatch_id,
+        }
+    }
+    pub fn effective_delivery_policy(&self) -> PresentationDeliveryPolicy {
+        match self {
+            Self::Legacy(t) => t.effective_delivery_policy(),
+            Self::Layered(t) => t.delivery_policy,
+        }
+    }
+    pub fn replacement_key(&self) -> Option<&str> {
+        match self {
+            Self::Legacy(t) => t.replacement_key.as_deref(),
+            Self::Layered(t) => t.replacement_key.as_deref(),
+        }
+    }
+    pub fn tracking_identity(&self) -> Option<PresentationTimelineIdentity> {
+        match self {
+            Self::Legacy(t) => t.tracking_identity(),
+            Self::Layered(t) => t.tracking_identity(),
+        }
+    }
+    pub fn span_text(&self, index: usize) -> Option<&str> {
+        match self {
+            Self::Legacy(t) => t.spans.get(index).map(|span| span.text.as_str()),
+            Self::Layered(t) => t.spans.get(index).map(MixedSpeechSpan::text),
+        }
+    }
+    pub fn shares_replacement_domain(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Legacy(a), Self::Legacy(b)) => a.shares_replacement_domain(b),
+            (Self::Layered(a), Self::Layered(b)) => a.shares_replacement_domain(b),
+            _ => false,
+        }
+    }
+}
+
+/// Select the versioned decoder within existing transport bounds. Old decoder
+/// entry points remain available with their original accepted versions.
+pub fn decode_timeline_document(
+    payload: &str,
+    aggregate_bytes: Option<usize>,
+) -> Result<TimelineDocument, PresentationTimelineDecodeError> {
+    #[derive(Deserialize)]
+    struct Version {
+        protocol_version: u32,
+    }
+    let aggregate = aggregate_bytes.is_some();
+    let limit = if aggregate {
+        MAX_TIMELINE_AGGREGATE_BYTES
+    } else {
+        MAX_TIMELINE_PAYLOAD_BYTES
+    };
+    let version = || {
+        let payload = payload.trim();
+        let payload = payload
+            .strip_prefix('{')
+            .and_then(|value| value.strip_suffix('}'))
+            .unwrap_or(payload);
+        if payload.len() > limit.div_ceil(3) * 4 || aggregate_bytes.is_some_and(|size| size > limit)
+        {
+            return Err(size_error(aggregate));
+        }
+        let bytes = STANDARD
+            .decode(payload)
+            .map_err(PresentationTimelineError::InvalidBase64)?;
+        if bytes.len() > limit {
+            return Err(size_error(aggregate));
+        }
+        serde_json::from_slice::<Version>(&bytes)
+            .map(|value| value.protocol_version)
+            .map_err(PresentationTimelineError::InvalidJson)
+    };
+    let version = version().map_err(|error| PresentationTimelineDecodeError::new(None, error))?;
+    if version == PRESENTATION_TIMELINE_PROTOCOL_V4 {
+        decode_timeline_v4(payload, aggregate_bytes).map(TimelineDocument::Layered)
+    } else if let Some(bytes) = aggregate_bytes {
+        decode_multipart_presentation_timeline(payload, bytes)
+            .map(TimelineDocument::Legacy)
+            .map_err(|error| PresentationTimelineDecodeError::new(None, error))
+    } else {
+        decode_presentation_timeline(payload).map(TimelineDocument::Legacy)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LayeredSpeechSpan {

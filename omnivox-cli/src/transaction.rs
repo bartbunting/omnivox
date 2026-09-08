@@ -6,12 +6,12 @@ use omnivox_core::{
 };
 use omnivox_tts::presentation::decode_presentation_frame;
 use omnivox_tts::timeline_protocol::{
-    decode_multipart_presentation_timeline, decode_presentation_timeline,
-    decode_presentation_timeline_part, PresentationTimelineEnvelope, PresentationTimelineIdentity,
-    PresentationTimelinePart, MAX_TIMELINE_AGGREGATE_ENCODED_BYTES,
+    decode_any_timeline_part, PresentationTimelineIdentity, PresentationTimelinePart,
+    MAX_TIMELINE_AGGREGATE_ENCODED_BYTES,
 };
 
 use crate::text::parse_resource_path;
+use omnivox_tts::timeline_v4::{decode_timeline_document, TimelineDocument};
 
 const MAX_PRESENTATION_COMMANDS: usize = 4096;
 
@@ -24,7 +24,7 @@ pub struct PreparedPresentation {
 #[derive(Debug)]
 pub struct PreparedStructuredPresentation {
     pub generation: u64,
-    pub timeline: PresentationTimelineEnvelope,
+    pub timeline: TimelineDocument,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,9 +57,10 @@ pub struct PresentationGenerations {
     latest: u64,
 }
 
-/// Bounded in-order reconstruction of one V3 timeline transport aggregate.
+/// Bounded in-order reconstruction of one V3 or V4 timeline transport aggregate.
 #[derive(Debug)]
 pub struct MultipartTimelineAssembler {
+    protocol_version: u32,
     generation: u64,
     dispatch_id: u64,
     part_count: usize,
@@ -70,8 +71,7 @@ pub struct MultipartTimelineAssembler {
 
 impl MultipartTimelineAssembler {
     pub fn start(arguments: &str) -> Result<Self, String> {
-        let part =
-            decode_presentation_timeline_part(arguments).map_err(|error| error.to_string())?;
+        let part = decode_any_timeline_part(arguments).map_err(|error| error.to_string())?;
         if part.part_index != 0 {
             return Err("multipart timeline must begin with part index 0".to_owned());
         }
@@ -80,6 +80,7 @@ impl MultipartTimelineAssembler {
             return Err("multipart timeline exceeds the encoded aggregate bound".to_owned());
         }
         let mut assembler = Self {
+            protocol_version: part.protocol_version,
             generation: part.generation,
             dispatch_id: part.dispatch_id,
             part_count: part.part_count,
@@ -104,13 +105,13 @@ impl MultipartTimelineAssembler {
     }
 
     pub fn push(&mut self, arguments: &str) -> Result<(), String> {
-        let part =
-            decode_presentation_timeline_part(arguments).map_err(|error| error.to_string())?;
+        let part = decode_any_timeline_part(arguments).map_err(|error| error.to_string())?;
         self.push_part(part)
     }
 
     fn push_part(&mut self, part: PresentationTimelinePart) -> Result<(), String> {
-        if part.generation != self.generation
+        if part.protocol_version != self.protocol_version
+            || part.generation != self.generation
             || part.dispatch_id != self.dispatch_id
             || part.part_count != self.part_count
             || part.decoded_bytes != self.decoded_bytes
@@ -142,10 +143,12 @@ impl MultipartTimelineAssembler {
                 self.next_part_index, self.part_count
             ));
         }
-        let timeline =
-            decode_multipart_presentation_timeline(&self.encoded_payload, self.decoded_bytes)
-                .map_err(|error| error.to_string())?;
-        if timeline.generation != self.generation || timeline.dispatch_id != self.dispatch_id {
+        let timeline = decode_timeline_document(&self.encoded_payload, Some(self.decoded_bytes))
+            .map_err(|error| error.to_string())?;
+        if timeline.protocol_version() != self.protocol_version
+            || timeline.generation() != self.generation
+            || timeline.dispatch_id() != self.dispatch_id
+        {
             return Err("multipart timeline header does not match its decoded envelope".to_owned());
         }
         generations.prepare_decoded_timeline(timeline)
@@ -178,37 +181,39 @@ impl PresentationGenerations {
         &self,
         payload: &str,
     ) -> Result<PreparedStructuredPresentation, StructuredTimelineRejection> {
-        let timeline =
-            decode_presentation_timeline(payload).map_err(|error| StructuredTimelineRejection {
+        let timeline = decode_timeline_document(payload, None).map_err(|error| {
+            StructuredTimelineRejection {
                 identity: error.identity(),
                 kind: StructuredTimelineRejectionKind::Invalid,
                 message: error.to_string(),
-            })?;
-        if timeline.generation <= self.latest {
+            }
+        })?;
+        if timeline.generation() <= self.latest {
             return Err(StructuredTimelineRejection {
                 identity: timeline.tracking_identity(),
                 kind: StructuredTimelineRejectionKind::Stale,
                 message: format!(
                     "structured timeline generation {} is not newer than committed generation {}",
-                    timeline.generation, self.latest
+                    timeline.generation(),
+                    self.latest
                 ),
             });
         }
         Ok(PreparedStructuredPresentation {
-            generation: timeline.generation,
+            generation: timeline.generation(),
             timeline,
         })
     }
 
     fn prepare_decoded_timeline(
         &self,
-        timeline: PresentationTimelineEnvelope,
+        timeline: TimelineDocument,
     ) -> Result<Option<PreparedStructuredPresentation>, String> {
-        if timeline.generation <= self.latest {
+        if timeline.generation() <= self.latest {
             return Ok(None);
         }
         Ok(Some(PreparedStructuredPresentation {
-            generation: timeline.generation,
+            generation: timeline.generation(),
             timeline,
         }))
     }
@@ -246,9 +251,9 @@ pub fn select_adjacent_timeline(
     }
 
     let cancelled_dispatch_id = if candidate.generation > current.generation {
-        current.timeline.dispatch_id
+        current.timeline.dispatch_id()
     } else {
-        candidate.timeline.dispatch_id
+        candidate.timeline.dispatch_id()
     };
     AdjacentTimelineSelection::Coalesced {
         selected: prefer_newer_timeline(current, candidate),
@@ -609,7 +614,7 @@ mod tests {
         let newer = generations
             .prepare_timeline(&timeline_payload(9, 43, "newer"))
             .unwrap();
-        assert_eq!(newer.timeline.dispatch_id, 43);
+        assert_eq!(newer.timeline.dispatch_id(), 43);
     }
 
     #[test]
@@ -655,7 +660,7 @@ mod tests {
             AdjacentTimelineSelection::Coalesced {
                 selected,
                 cancelled_dispatch_id: 40,
-            } if selected.generation == 11 && selected.timeline.dispatch_id == 41
+            } if selected.generation == 11 && selected.timeline.dispatch_id() == 41
         ));
 
         let current = generations
@@ -673,7 +678,7 @@ mod tests {
         assert!(matches!(
             select_adjacent_timeline(current, other_key),
             AdjacentTimelineSelection::PreserveOrder { current, .. }
-                if current.timeline.dispatch_id == 42
+                if current.timeline.dispatch_id() == 42
         ));
     }
 
@@ -704,7 +709,7 @@ mod tests {
             assert!(matches!(
                 select_adjacent_timeline(current, candidate),
                 AdjacentTimelineSelection::PreserveOrder { current, .. }
-                    if current.timeline.dispatch_id == dispatch_id
+                    if current.timeline.dispatch_id() == dispatch_id
             ));
         }
     }
@@ -724,7 +729,7 @@ mod tests {
             AdjacentTimelineSelection::Coalesced {
                 selected,
                 cancelled_dispatch_id: 59,
-            } if selected.generation == 20 && selected.timeline.dispatch_id == 60
+            } if selected.generation == 20 && selected.timeline.dispatch_id() == 60
         ));
     }
 
@@ -788,8 +793,8 @@ mod tests {
 
         let prepared = assembler.finish(&generations).unwrap().unwrap();
         assert_eq!(prepared.generation, 41);
-        assert_eq!(prepared.timeline.dispatch_id, 81);
-        assert_eq!(prepared.timeline.spans[0].text, text);
+        assert_eq!(prepared.timeline.dispatch_id(), 81);
+        assert_eq!(prepared.timeline.span_text(0), Some(text.as_str()));
         assert_eq!(generations.latest(), 0);
     }
 

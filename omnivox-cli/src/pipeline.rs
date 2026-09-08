@@ -2945,7 +2945,6 @@ pub fn process_presentation_timeline(
 /// Execute an admitted mixed document with explicit layer boundaries. All
 /// references and prepared windows are checked before the first engine call.
 #[allow(clippy::too_many_arguments)]
-#[cfg_attr(not(test), expect(dead_code))] // Connected by the timeline-4 reader slice.
 pub(crate) fn process_presentation_timeline_v4(
     timeline: omnivox_tts::timeline_v4::PresentationTimelineV4,
     mut state: TtsState,
@@ -3019,7 +3018,6 @@ pub(crate) fn process_presentation_timeline_v4(
 
 /// Non-mutating admission preflight for all prepared windows, including text
 /// escaping and capitalization actions on spans without explicit actions.
-#[cfg_attr(not(test), expect(dead_code))] // Connected by the timeline-4 reader slice.
 pub(crate) fn validate_presentation_timeline_v4_action_windows(
     timeline: &omnivox_tts::timeline_v4::PresentationTimelineV4,
     state: &TtsState,

@@ -26,8 +26,8 @@ use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
 use omnivox_tts::routing_policy::{RoutingPolicy, RoutingPolicyRegistry};
 use omnivox_tts::timeline_protocol::{
     PresentationAction, PresentationDeliveryPolicy, PresentationEffectDirective,
-    PresentationTimelineEnvelope,
 };
+use omnivox_tts::timeline_v4::{MixedSpeechSpan, TimelineDocument};
 use omnivox_tts::voice_choices::{RegisteredVoiceDefinition, VoiceStylePatch};
 use omnivox_tts::voice_preview_v2::{
     VoicePlacement, VoicePreviewRequestV2, VoicePreviewResponseV2,
@@ -90,11 +90,11 @@ struct ReplacementDomain {
 }
 
 impl ReplacementDomain {
-    fn from_timeline(timeline: &PresentationTimelineEnvelope) -> Option<Self> {
+    fn from_timeline(timeline: &TimelineDocument) -> Option<Self> {
         (timeline.effective_delivery_policy() == PresentationDeliveryPolicy::Replaceable).then(
             || Self {
-                protocol_version: timeline.protocol_version,
-                replacement_key: timeline.replacement_key.clone(),
+                protocol_version: timeline.protocol_version(),
+                replacement_key: timeline.replacement_key().map(str::to_owned),
             },
         )
     }
@@ -211,9 +211,9 @@ pub enum SynthRequest {
         lifecycle: RequestLifecycle,
         gen: u64,
     },
-    /// Render one atomic structured presentation with marker v2 tracking.
+    /// Render one atomic structured presentation with versioned marker tracking.
     Timeline {
-        timeline: PresentationTimelineEnvelope,
+        timeline: TimelineDocument,
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
         cancellation: Option<KeyedCancellationLease>,
@@ -295,7 +295,7 @@ impl SynthRequest {
                 tracking: Some(tracking),
                 ..
             } => Some(tracking.identifier()),
-            Self::Timeline { timeline, .. } => Some(timeline.dispatch_id),
+            Self::Timeline { timeline, .. } => Some(timeline.dispatch_id()),
             Self::Preview { request_id, .. } => Some(*request_id),
             _ => None,
         }
@@ -303,7 +303,7 @@ impl SynthRequest {
 
     fn diagnostic_protocol_generation(&self) -> Option<u64> {
         match self {
-            Self::Timeline { timeline, .. } => Some(timeline.generation),
+            Self::Timeline { timeline, .. } => Some(timeline.generation()),
             _ => None,
         }
     }
@@ -422,42 +422,56 @@ fn queue_item_payload_bytes(item: &QueueItem) -> usize {
     }
 }
 
-fn timeline_payload_bytes(timeline: &PresentationTimelineEnvelope) -> usize {
-    let spans = timeline
-        .spans
-        .iter()
-        .map(|span| {
-            span.text
-                .len()
-                .saturating_add(span.logical_voice_id.as_ref().map_or(0, String::len))
-                .saturating_add(match &span.effects {
-                    PresentationEffectDirective::Replace { state_id, .. } => state_id.len(),
-                    PresentationEffectDirective::Retain | PresentationEffectDirective::End => 0,
+fn timeline_payload_bytes(timeline: &TimelineDocument) -> usize {
+    let legacy_span_bytes = |span: &omnivox_tts::timeline_protocol::PresentationSpeechSpan| {
+        span.text
+            .len()
+            .saturating_add(span.logical_voice_id.as_ref().map_or(0, String::len))
+            .saturating_add(match &span.effects {
+                PresentationEffectDirective::Replace { state_id, .. } => state_id.len(),
+                _ => 0,
+            })
+    };
+    let (spans, actions) = match timeline {
+        TimelineDocument::Legacy(timeline) => (
+            timeline.spans.iter().map(legacy_span_bytes).fold(
+                std::mem::size_of_val(timeline.spans.as_slice()),
+                usize::saturating_add,
+            ),
+            &timeline.actions,
+        ),
+        TimelineDocument::Layered(timeline) => (
+            timeline
+                .spans
+                .iter()
+                .map(|span| match span {
+                    MixedSpeechSpan::Legacy(span) => legacy_span_bytes(span),
+                    MixedSpeechSpan::Layered(span) => {
+                        span.text.len().saturating_add(span.logical_voice_id.len())
+                    }
                 })
-        })
-        .fold(
-            std::mem::size_of_val(timeline.spans.as_slice()),
-            usize::saturating_add,
-        );
-    let actions = timeline
-        .actions
+                .fold(
+                    std::mem::size_of_val(timeline.spans.as_slice()),
+                    usize::saturating_add,
+                ),
+            &timeline.actions,
+        ),
+    };
+    let actions = actions
         .iter()
         .map(|action| {
             action.id.len().saturating_add(match &action.action {
                 PresentationAction::Audio { path, .. } => path.len(),
-                PresentationAction::Tone { .. }
-                | PresentationAction::Silence { .. }
-                | PresentationAction::SemanticEvent => 0,
+                _ => 0,
             })
         })
         .fold(
-            std::mem::size_of_val(timeline.actions.as_slice()),
+            std::mem::size_of_val(actions.as_slice()),
             usize::saturating_add,
         );
     timeline
-        .replacement_key
-        .as_ref()
-        .map_or(0, String::len)
+        .replacement_key()
+        .map_or(0, str::len)
         .saturating_add(spans)
         .saturating_add(actions)
 }
@@ -1018,7 +1032,7 @@ fn report_retired_synthesis(retired: RetiredWork<SynthRequest>) {
             ..
         } => write_tracked_status(tracking.identifier(), status),
         SynthRequest::Timeline { timeline, .. } => {
-            write_tracked_status(timeline.dispatch_id, status);
+            write_tracked_status(timeline.dispatch_id(), status);
         }
         SynthRequest::Preview {
             request_id,
@@ -1236,10 +1250,18 @@ pub fn synthesis_worker(
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
                 let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
                 let failed = AtomicBool::new(false);
-                let marker_dispatch = MarkerDispatchContext::with_timeline_events(
-                    timeline.dispatch_id,
-                    marker_output.clone(),
-                )
+                let marker_dispatch = match &timeline {
+                    TimelineDocument::Legacy(_) => MarkerDispatchContext::with_timeline_events(
+                        timeline.dispatch_id(),
+                        marker_output.clone(),
+                    ),
+                    TimelineDocument::Layered(_) => {
+                        MarkerDispatchContext::with_voice_choice_events(
+                            timeline.dispatch_id(),
+                            marker_output.clone(),
+                        )
+                    }
+                }
                 .with_lifecycle(request_lifecycle.clone());
                 let ctx = SynthCtx {
                     gen,
@@ -1258,16 +1280,29 @@ pub fn synthesis_worker(
                     voice_observations: None,
                     batch_failed: Some(&failed),
                 };
-                let dispatch_id = timeline.dispatch_id;
-                let status = process_presentation_timeline(
-                    timeline,
-                    state,
-                    &ctx,
-                    &loader,
-                    &engine_registry,
-                    &runtime_health,
-                    logical_voice_routing,
-                );
+                let dispatch_id = timeline.dispatch_id();
+                let status = match timeline {
+                    TimelineDocument::Legacy(timeline) => process_presentation_timeline(
+                        timeline,
+                        state,
+                        &ctx,
+                        &loader,
+                        &engine_registry,
+                        &runtime_health,
+                        logical_voice_routing,
+                    ),
+                    TimelineDocument::Layered(timeline) => {
+                        crate::pipeline::process_presentation_timeline_v4(
+                            timeline,
+                            state,
+                            &ctx,
+                            &loader,
+                            &engine_registry,
+                            &runtime_health,
+                            logical_voice_routing,
+                        )
+                    }
+                };
                 let playback = TrackedPlayback {
                     completion: PlaybackCompletion::Tracked(dispatch_id),
                     status,
@@ -1732,6 +1767,7 @@ pub fn run_server(
                 command,
                 &input_rx,
                 &state,
+                &logical_voices,
             )? {
                 StructuredSubmissionRead::Prepared(presentation) => presentation,
                 StructuredSubmissionRead::Rejected(rejection) => {
@@ -1781,11 +1817,12 @@ pub fn run_server(
                             next,
                             &input_rx,
                             &state,
+                            &logical_voices,
                         )? {
                             StructuredSubmissionRead::Prepared(candidate) => {
                                 if candidate.generation <= selected.generation {
                                     write_tracked_status(
-                                        candidate.timeline.dispatch_id,
+                                        candidate.timeline.dispatch_id(),
                                         BatchStatus::Cancelled,
                                     );
                                 } else {
@@ -1843,7 +1880,7 @@ pub fn run_server(
                                 if stop_barrier {
                                     presentation_generations.commit(selected.generation);
                                     write_tracked_status(
-                                        selected.timeline.dispatch_id,
+                                        selected.timeline.dispatch_id(),
                                         BatchStatus::Cancelled,
                                     );
                                 } else {
@@ -1871,7 +1908,10 @@ pub fn run_server(
                             selected.generation
                         );
                         presentation_generations.commit(selected.generation);
-                        write_tracked_status(selected.timeline.dispatch_id, BatchStatus::Cancelled);
+                        write_tracked_status(
+                            selected.timeline.dispatch_id(),
+                            BatchStatus::Cancelled,
+                        );
                         handle_command(
                             next,
                             &mut state,
@@ -2127,7 +2167,7 @@ fn structured_policy_uses_reader_coalescing(policy: PresentationDeliveryPolicy) 
 
 fn begin_keyed_cancellation(
     registry: &KeyedCancellationRegistry,
-    timeline: &PresentationTimelineEnvelope,
+    timeline: &TimelineDocument,
 ) -> Option<KeyedCancellationLease> {
     ReplacementDomain::from_timeline(timeline).map(|domain| registry.prepare(domain))
 }
@@ -2178,12 +2218,14 @@ fn read_structured_submission(
     first: Command,
     receiver: &mpsc::Receiver<io::Result<String>>,
     state: &TtsState,
+    logical_voices: &LogicalVoiceRegistry,
 ) -> Result<StructuredSubmissionRead> {
     read_structured_submission_with_timeout(
         generations,
         first,
         receiver,
         state,
+        logical_voices,
         TIMELINE_MULTIPART_TIMEOUT,
     )
 }
@@ -2193,12 +2235,14 @@ fn read_structured_submission_with_timeout(
     first: Command,
     receiver: &mpsc::Receiver<io::Result<String>>,
     state: &TtsState,
+    logical_voices: &LogicalVoiceRegistry,
     multipart_timeout: Duration,
 ) -> Result<StructuredSubmissionRead> {
     if first.id == CommandId::EmacsvoxTimeline {
-        return Ok(validate_structured_action_windows(
+        return Ok(validate_structured_admission(
             prepare_structured_presentation(generations, &first),
             state,
+            logical_voices,
         ));
     }
 
@@ -2235,7 +2279,7 @@ fn read_structured_submission_with_timeout(
                     })
                 }
             };
-            return Ok(validate_structured_action_windows(read, state));
+            return Ok(validate_structured_admission(read, state, logical_voices));
         }
         match receive_command_until(receiver, deadline)? {
             TimedCommand::Command(next) if next.id == CommandId::EmacsvoxTimelinePart => {
@@ -2302,22 +2346,34 @@ fn read_structured_submission_with_timeout(
     }
 }
 
-fn validate_structured_action_windows(
+fn validate_structured_admission(
     read: StructuredSubmissionRead,
     state: &TtsState,
+    logical_voices: &LogicalVoiceRegistry,
 ) -> StructuredSubmissionRead {
     let StructuredSubmissionRead::Prepared(presentation) = read else {
         return read;
     };
-    match validate_presentation_timeline_action_windows(&presentation.timeline, state) {
+    let validation = match &presentation.timeline {
+        TimelineDocument::Legacy(timeline) => {
+            validate_presentation_timeline_action_windows(timeline, state)
+        }
+        TimelineDocument::Layered(timeline) => timeline
+            .validate_registry(logical_voices)
+            .map_err(|error| error.to_string())
+            .and_then(|_| {
+                crate::pipeline::validate_presentation_timeline_v4_action_windows(timeline, state)
+            }),
+    };
+    match validation {
         Ok(()) => StructuredSubmissionRead::Prepared(presentation),
         Err(error) => {
             warn!(
-                "Invalid structured Emacsvox action distribution for dispatch {}: {error}",
-                presentation.timeline.dispatch_id
+                "Invalid structured Emacsvox admission for dispatch {}: {error}",
+                presentation.timeline.dispatch_id()
             );
             StructuredSubmissionRead::Rejected(RejectedStructuredSubmission {
-                dispatch_id: presentation.timeline.dispatch_id,
+                dispatch_id: presentation.timeline.dispatch_id(),
                 status: BatchStatus::Failed,
             })
         }
@@ -3562,7 +3618,8 @@ mod tests {
                 91,
                 PresentationDeliveryPolicy::Replaceable,
                 Some("navigation"),
-            ),
+            )
+            .into(),
             state: TtsState::default(),
             logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
                 &LogicalVoiceRegistry::default(),
@@ -3665,7 +3722,7 @@ mod tests {
     ) -> SynthRequest {
         let engines = EngineRegistry::new();
         SynthRequest::Timeline {
-            timeline: timeline_envelope(generation, dispatch_id, policy, replacement_key),
+            timeline: timeline_envelope(generation, dispatch_id, policy, replacement_key).into(),
             state: TtsState::default(),
             logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
                 &LogicalVoiceRegistry::default(),
@@ -3687,7 +3744,8 @@ mod tests {
                 11,
                 PresentationDeliveryPolicy::Replaceable,
                 Some("navigation"),
-            ),
+            )
+            .into(),
         )
         .unwrap();
         assert!(registry.active.lock().unwrap().is_empty());
@@ -3699,7 +3757,8 @@ mod tests {
                 12,
                 PresentationDeliveryPolicy::Replaceable,
                 Some("review"),
-            ),
+            )
+            .into(),
         )
         .unwrap();
         other.activate();
@@ -3711,7 +3770,8 @@ mod tests {
                 13,
                 PresentationDeliveryPolicy::Replaceable,
                 Some("navigation"),
-            ),
+            )
+            .into(),
         )
         .unwrap();
 
@@ -3722,7 +3782,7 @@ mod tests {
         assert!(!replacement.token().is_cancelled());
         assert!(begin_keyed_cancellation(
             &registry,
-            &timeline_envelope(4, 14, PresentationDeliveryPolicy::Ordered, None),
+            &timeline_envelope(4, 14, PresentationDeliveryPolicy::Ordered, None).into(),
         )
         .is_none());
 
@@ -3744,7 +3804,8 @@ mod tests {
                 11,
                 PresentationDeliveryPolicy::Replaceable,
                 Some("navigation"),
-            ),
+            )
+            .into(),
         )
         .unwrap();
         first.activate();
@@ -3763,7 +3824,8 @@ mod tests {
                 12,
                 PresentationDeliveryPolicy::Replaceable,
                 Some("navigation"),
-            ),
+            )
+            .into(),
         )
         .unwrap();
 
@@ -3836,7 +3898,8 @@ mod tests {
             11,
             PresentationDeliveryPolicy::Replaceable,
             Some("navigation"),
-        );
+        )
+        .into();
         let active_cancellation = begin_keyed_cancellation(&registry, &active_timeline).unwrap();
         let active_token = active_cancellation.token().clone();
         let engines = EngineRegistry::new();
@@ -3881,7 +3944,8 @@ mod tests {
             14,
             PresentationDeliveryPolicy::Replaceable,
             Some("navigation"),
-        );
+        )
+        .into();
         let replacement_cancellation =
             begin_keyed_cancellation(&registry, &replacement_timeline).unwrap();
         let replacement_token = replacement_cancellation.token().clone();
@@ -4103,6 +4167,7 @@ mod tests {
             first,
             &receiver,
             &TtsState::default(),
+            &LogicalVoiceRegistry::default(),
         )
         .unwrap();
 
@@ -4110,8 +4175,8 @@ mod tests {
             read,
             StructuredSubmissionRead::Prepared(presentation)
                 if presentation.generation == 12
-                    && presentation.timeline.dispatch_id == 34
-                    && presentation.timeline.spans[0].text == "café 日本"
+                    && presentation.timeline.dispatch_id() == 34
+                    && presentation.timeline.span_text(0) == Some("café 日本")
         ));
     }
 
@@ -4125,6 +4190,7 @@ mod tests {
             first,
             &receiver,
             &TtsState::default(),
+            &LogicalVoiceRegistry::default(),
             Duration::ZERO,
         )
         .unwrap();
@@ -4152,6 +4218,7 @@ mod tests {
             first,
             &receiver,
             &TtsState::default(),
+            &LogicalVoiceRegistry::default(),
         )
         .unwrap();
 
@@ -4188,9 +4255,14 @@ mod tests {
         );
         let (_sender, receiver) = mpsc::channel();
 
-        let read =
-            read_structured_submission(&generations, command, &receiver, &TtsState::default())
-                .unwrap();
+        let read = read_structured_submission(
+            &generations,
+            command,
+            &receiver,
+            &TtsState::default(),
+            &LogicalVoiceRegistry::default(),
+        )
+        .unwrap();
 
         assert!(matches!(
             read,
@@ -4255,6 +4327,7 @@ mod tests {
             first,
             &receiver,
             &TtsState::default(),
+            &LogicalVoiceRegistry::default(),
         )
         .unwrap();
 
@@ -4290,6 +4363,7 @@ mod tests {
             first,
             &receiver,
             &TtsState::default(),
+            &LogicalVoiceRegistry::default(),
         )
         .unwrap();
 
@@ -4330,6 +4404,7 @@ mod tests {
             old_first,
             &receiver,
             &TtsState::default(),
+            &LogicalVoiceRegistry::default(),
         )
         .unwrap();
         let StructuredSubmissionRead::Aborted(abort) = aborted else {
@@ -4344,13 +4419,14 @@ mod tests {
             deferred,
             &receiver,
             &TtsState::default(),
+            &LogicalVoiceRegistry::default(),
         )
         .unwrap();
         assert!(matches!(
             replacement,
             StructuredSubmissionRead::Prepared(presentation)
                 if presentation.generation == 16
-                    && presentation.timeline.dispatch_id == 38
+                    && presentation.timeline.dispatch_id() == 38
         ));
     }
 
@@ -4369,8 +4445,14 @@ mod tests {
         let mut generations = PresentationGenerations::default();
         generations.commit(17);
 
-        let read = read_structured_submission(&generations, first, &receiver, &TtsState::default())
-            .unwrap();
+        let read = read_structured_submission(
+            &generations,
+            first,
+            &receiver,
+            &TtsState::default(),
+            &LogicalVoiceRegistry::default(),
+        )
+        .unwrap();
 
         assert!(matches!(
             read,

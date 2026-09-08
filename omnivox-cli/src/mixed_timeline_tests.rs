@@ -1,5 +1,8 @@
 //! Ordinary mixed-span execution using the same simulated engines as preview.
 use super::*;
+
+#[path = "mixed_timeline_admission_tests.rs"]
+mod mixed_timeline_admission_tests;
 use omnivox_tts::marker_protocol::{decode_marker_event, MarkerEvent, MarkerEventEnvelope};
 use omnivox_tts::timeline_protocol::*;
 use omnivox_tts::timeline_v4::{LayeredSpeechSpan, MixedSpeechSpan, PresentationTimelineV4};

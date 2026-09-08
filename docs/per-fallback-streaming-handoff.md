@@ -134,6 +134,19 @@ formatting and documentation checks pass. The ordinary entry remains internal
 until reader/queue admission and multipart assembly are connected; old timeline
 versions retain their existing adapter path and the bundle remains unadvertised.
 
+Completed reader/queue portion: the existing command admits explicit old or
+mixed documents without flattening. Version-4 registry, action-window and text
+checks precede reader coalescing or cancellation leases. Multipart assembly
+requires matching protocol versions throughout and in the decoded document;
+partial frames cannot enter synthesis. Version-3 and version-4 replacement keys
+remain separate in both reader selection and the bounded queue. Four additional
+acceptance tests cover version changes, incomplete/replayed assemblies, invalid
+later work preserving active speech, replacement domains, and complete reader,
+queue, worker, consumed-choice and terminal reporting for both output modes.
+All 716 workspace tests, workspace Clippy, formatting and documentation checks
+pass. Both-lane/reconnect acceptance remains before capability advertisement;
+no runtime has been installed and the Emacsvox client/editor remains pending.
+
 ## Findings that determine the implementation
 
 - [Routing](../omnivox-cli/src/routing.rs) discards the resolver's reason/index

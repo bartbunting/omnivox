@@ -129,6 +129,7 @@ impl PresentationTimelineEnvelope {
 /// One bounded fragment of the Base64 encoding of a V3 timeline JSON document.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PresentationTimelinePart {
+    pub protocol_version: u32,
     pub generation: u64,
     pub dispatch_id: u64,
     pub part_index: usize,
@@ -489,6 +490,20 @@ fn decoded_base64_length(payload: &str) -> Result<usize, PresentationTimelineErr
 pub fn decode_presentation_timeline_part(
     arguments: &str,
 ) -> Result<PresentationTimelinePart, PresentationTimelineError> {
+    decode_timeline_part_version(arguments, true)
+}
+
+/// Decode multipart headers for either supported aggregate document version.
+pub fn decode_any_timeline_part(
+    arguments: &str,
+) -> Result<PresentationTimelinePart, PresentationTimelineError> {
+    decode_timeline_part_version(arguments, false)
+}
+
+fn decode_timeline_part_version(
+    arguments: &str,
+    legacy_only: bool,
+) -> Result<PresentationTimelinePart, PresentationTimelineError> {
     let fields = arguments.split_whitespace().collect::<Vec<_>>();
     invalid_if(
         fields.len() != 7,
@@ -523,7 +538,9 @@ pub fn decode_presentation_timeline_part(
     let encoded_fragment = fields[6];
 
     invalid_if(
-        version != u64::from(PRESENTATION_TIMELINE_PROTOCOL_V3),
+        version != u64::from(PRESENTATION_TIMELINE_PROTOCOL_V3)
+            && (legacy_only
+                || version != u64::from(crate::timeline_v4::PRESENTATION_TIMELINE_PROTOCOL_V4)),
         format!("unsupported timeline part version {version}"),
     )?;
     invalid_if(generation == 0, "timeline part generation must be positive")?;
@@ -559,6 +576,7 @@ pub fn decode_presentation_timeline_part(
     )?;
 
     Ok(PresentationTimelinePart {
+        protocol_version: version as u32,
         generation,
         dispatch_id,
         part_index,
