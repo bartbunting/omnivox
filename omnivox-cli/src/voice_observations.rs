@@ -7,7 +7,7 @@ use omnivox_tts::voice_choices::AudioChoiceIdentity;
 
 use crate::routing::choice::PreparedVoiceAttempt;
 
-const MAX_ACCEPTED_CHOICES: usize = 32;
+use omnivox_tts::voice_preview_v2::MAX_ACCEPTED_AUDIO_CHOICES;
 
 #[derive(Clone)]
 pub(crate) struct VoiceObservation {
@@ -36,7 +36,6 @@ pub(crate) struct VoiceObservations {
     last_started: Arc<Mutex<Option<Arc<AudioChoiceIdentity>>>>,
 }
 
-#[cfg_attr(not(test), expect(dead_code))]
 pub(crate) struct VoiceObservationSnapshot {
     pub accepted: Vec<(AudioChoiceIdentity, bool)>,
     pub truncated: bool,
@@ -47,13 +46,7 @@ impl VoiceObservations {
     /// The synthesis producer prepares and publishes sources sequentially.
     /// Allocate the handle before enqueue: null playback can win the ack race.
     pub(crate) fn prepare(&self, attempt: &PreparedVoiceAttempt) -> VoiceObservation {
-        let identity = AudioChoiceIdentity {
-            choice_id: attempt.choice_id.clone(),
-            reason: attempt.resolution.reason.clone(),
-            realized: attempt.resolution.realized.clone(),
-            degraded_acss: attempt.acss.omitted.clone(),
-            degraded_effects: attempt.effects.omitted.clone(),
-        };
+        let identity = attempt.audio_identity();
         let existing = self.accepted.iter().find(|item| *item.identity == identity);
         VoiceObservation {
             identity: existing.map_or_else(|| Arc::new(identity), |item| item.identity.clone()),
@@ -75,7 +68,7 @@ impl VoiceObservations {
         {
             return;
         }
-        if self.accepted.len() == MAX_ACCEPTED_CHOICES {
+        if self.accepted.len() == MAX_ACCEPTED_AUDIO_CHOICES {
             self.truncated = true;
         } else {
             self.accepted.push(observation.clone());
@@ -83,7 +76,6 @@ impl VoiceObservations {
     }
 
     /// Terminal callers must wait for ALL source tickets before taking this snapshot.
-    #[cfg_attr(not(test), expect(dead_code))]
     pub(crate) fn snapshot(&self) -> VoiceObservationSnapshot {
         let last_started = self.last_started.lock().unwrap().clone();
         VoiceObservationSnapshot {

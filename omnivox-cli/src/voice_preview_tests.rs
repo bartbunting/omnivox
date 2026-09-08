@@ -12,6 +12,7 @@ use omnivox_tts::{
 #[derive(Clone, Copy)]
 enum Behavior {
     Buffered,
+    BufferedFailBeforeAudio,
     Empty,
     FailBeforeAudio,
     Stream,
@@ -42,7 +43,10 @@ impl PreviewEngine {
                         richness: true,
                         volume: true,
                     },
-                    audio_output: if matches!(behavior, Behavior::Buffered | Behavior::Empty) {
+                    audio_output: if matches!(
+                        behavior,
+                        Behavior::Buffered | Behavior::BufferedFailBeforeAudio | Behavior::Empty
+                    ) {
                         AudioOutputMode::BufferedPcm
                     } else {
                         AudioOutputMode::StreamingPcm
@@ -77,6 +81,11 @@ impl TtsEngine for PreviewEngine {
     }
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         self.requests.lock().unwrap().push(request.clone());
+        if matches!(self.behavior, Behavior::BufferedFailBeforeAudio) {
+            return Err(TtsError::SynthesisFailed(
+                "before buffered audio".to_owned(),
+            ));
+        }
         Ok(SynthesisResult::audio(
             self.descriptor.id.clone(),
             request.requested_voice.clone(),
@@ -117,6 +126,424 @@ impl TtsEngine for PreviewEngine {
     fn voice_info(&self, _: &str) -> Option<VoiceInfo> {
         None
     }
+}
+
+fn layered_request() -> VoicePreviewRequestV2 {
+    use omnivox_tts::control::ChoiceFallbackPolicy;
+    use omnivox_tts::voice_choices::{Adjustment, SharedAcss, SharedVoiceStyle, VoiceChoice};
+    use omnivox_tts::voice_preview_v2::{PrivatePreviewVoice, VoicePreviewSelection};
+    VoicePreviewRequestV2 {
+        text: "A preview.".to_owned(),
+        voice: PrivatePreviewVoice {
+            language: Some("en-AU".to_owned()),
+            shared: SharedVoiceStyle {
+                acss: SharedAcss {
+                    average_pitch: Some(0.4),
+                    richness: Some(0.5),
+                    ..Default::default()
+                },
+                rate_offset: Some(2),
+                ..Default::default()
+            },
+            choices: [
+                ("primary", "first", "one", 0.2, 0.8, 4),
+                ("fallback", "second", "two", 0.6, 0.3, -1),
+                ("soft", "second", "two", 0.9, 1.0, 0),
+            ]
+            .into_iter()
+            .map(|(id, engine, voice, pitch, richness, offset)| VoiceChoice {
+                id: id.to_owned(),
+                selector: VoiceSelector::Exact(PhysicalVoiceId::new(engine, voice)),
+                adjustments: VoiceStylePatch {
+                    average_pitch: Some(Adjustment::Set { value: pitch }),
+                    richness: Some(Adjustment::Set { value: richness }),
+                    rate_offset: Some(Adjustment::Set { value: offset }),
+                    ..Default::default()
+                },
+            })
+            .collect(),
+        },
+        context: VoiceStylePatch::default(),
+        placement: VoicePlacement::default(),
+        selection: VoicePreviewSelection::Automatic {},
+        fallback_policy: ChoiceFallbackPolicy {
+            preferred_engines: vec!["second".to_owned()],
+            allow_same_language_on_requested_engine: true,
+            global_default: Some(VoiceSelector::Exact(PhysicalVoiceId::new("second", "two"))),
+            fallback_engines: vec!["second".to_owned()],
+        },
+        disabled_engine_ids: Vec::new(),
+        expected_base_rate: Some(0.65),
+    }
+}
+
+fn run_layered(
+    prepared: PreparedVoicePreviewV2,
+    engines: &EngineRegistry,
+    stale: bool,
+) -> VoicePreviewResponseV2 {
+    #[derive(Clone)]
+    struct Capture(Arc<Mutex<Vec<u8>>>);
+    impl std::io::Write for Capture {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0.lock().unwrap().extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let PreviewTarget::Layered { base_rate, .. } = &prepared.target else {
+        panic!("wrong target")
+    };
+    let state = TtsState {
+        speech_rate: *base_rate,
+        current_voice: "unrelated".to_owned(),
+        pitch_multiplier: 1.8,
+        ..Default::default()
+    };
+    let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+    let control = streams.control();
+    let engine = engines.engine(&engines.inventory()[0].id).unwrap();
+    let mut owned_engines = EngineRegistry::new();
+    for descriptor in engines.inventory() {
+        owned_engines
+            .register(engines.engine(&descriptor.id).unwrap())
+            .unwrap();
+    }
+    let captured = Capture(Arc::new(Mutex::new(Vec::new())));
+    let (output, writer) =
+        crate::marker_events::spawn_marker_event_reporter_with_writer(captured.clone());
+    let (sender, tracker) = spawn_tracked_playback_reporter(output.clone());
+    let (work_sender, receiver) = synthesis_channel();
+    assert!(enqueue_synthesis(
+        &work_sender,
+        SynthRequest::Preview {
+            request_id: 702,
+            text: prepared.text,
+            requested: prepared.target,
+            state,
+            logical_voice_routing: prepared.routing,
+            lifecycle: RequestLifecycle::default(),
+            gen: 1,
+        }
+    ));
+    drop(work_sender);
+    synthesis_worker(
+        receiver,
+        Arc::new(AtomicU64::new(if stale { 2 } else { 1 })),
+        engine,
+        Arc::new(owned_engines),
+        Arc::new(RuntimeEngineHealth::new()),
+        control.clone(),
+        AudioFileLoader::with_cache(),
+        sender,
+        output,
+    );
+    tracker.join().unwrap();
+    writer.join().unwrap();
+    control.drain();
+    let records = String::from_utf8(captured.0.lock().unwrap().clone()).unwrap();
+    assert_eq!(records.lines().count(), 1);
+    let envelope = decode_record(&records);
+    assert_eq!(envelope.request_id, Some(702));
+    let ControlResponse::PreviewVoiceCompletedV2(response) = envelope.response else {
+        panic!("wrong response")
+    };
+    response
+}
+
+#[test]
+fn layered_preview_fallback_uses_actual_patch_in_all_output_mode_combinations() {
+    use omnivox_tts::voice_choices::Adjustment;
+    for primary in [Behavior::BufferedFailBeforeAudio, Behavior::FailBeforeAudio] {
+        for fallback in [Behavior::Buffered, Behavior::Stream] {
+            let first = PreviewEngine::new("first", "one", primary);
+            let second = PreviewEngine::new("second", "two", fallback);
+            let mut engines = EngineRegistry::new();
+            engines.register(first.clone()).unwrap();
+            engines.register(second.clone()).unwrap();
+            let mut draft = layered_request();
+            draft.context.richness = Some(Adjustment::Set { value: 0.5 }); // Same as shared still wins.
+            let prepared = prepare_voice_preview_v2(
+                draft,
+                0.65,
+                &engines,
+                &RoutingPolicyRegistry::new("first"),
+            )
+            .unwrap();
+            let response = run_layered(prepared, &engines, false);
+            assert_eq!(response.status, PreviewStatus::Completed);
+            assert_eq!(response.accepted_audio.len(), 1);
+            let audio = &response.accepted_audio[0];
+            assert_eq!(audio.choice_id.as_deref(), Some("fallback"));
+            assert_eq!(
+                audio.reason,
+                omnivox_tts::resolver::ResolutionReason::ExplicitAlternative {
+                    preference_index: 1
+                }
+            );
+            assert!(audio.playback_started);
+            assert_eq!(
+                response.last_started.unwrap().realized,
+                PhysicalVoiceId::new("second", "two")
+            );
+            let requests = second.requests.lock().unwrap();
+            assert!(!requests.is_empty());
+            for request in requests.iter() {
+                assert!((request.settings.rate - 0.64).abs() < 0.00001);
+                assert_eq!(request.normalized_acss.average_pitch, Some(0.6));
+                assert_eq!(request.normalized_acss.richness, Some(0.5));
+            }
+        }
+    }
+}
+
+#[test]
+fn layered_individual_preview_keeps_duplicate_row_identity_and_cannot_substitute() {
+    use omnivox_tts::voice_preview_v2::VoicePreviewSelection;
+    let first = PreviewEngine::new("first", "one", Behavior::Buffered);
+    let second = PreviewEngine::new("second", "two", Behavior::Buffered);
+    let mut engines = EngineRegistry::new();
+    engines.register(first.clone()).unwrap();
+    engines.register(second.clone()).unwrap();
+    let policy = RoutingPolicyRegistry::new("first");
+    let mut draft = layered_request();
+    draft.selection = VoicePreviewSelection::Choice {
+        choice_id: "soft".to_owned(),
+    };
+    let response = run_layered(
+        prepare_voice_preview_v2(draft.clone(), 0.65, &engines, &policy).unwrap(),
+        &engines,
+        false,
+    );
+    let last = response.last_started.unwrap();
+    assert_eq!(last.choice_id.as_deref(), Some("soft"));
+    assert_eq!(
+        last.reason,
+        omnivox_tts::resolver::ResolutionReason::ExplicitAlternative {
+            preference_index: 2
+        }
+    );
+    assert!(first.requests.lock().unwrap().is_empty());
+    assert_eq!(
+        second.requests.lock().unwrap()[0].normalized_acss.richness,
+        Some(1.0)
+    );
+    assert_eq!(second.requests.lock().unwrap()[0].settings.rate, 0.65);
+    draft.disabled_engine_ids = vec!["second".to_owned()];
+    let response = run_layered(
+        prepare_voice_preview_v2(draft, 0.65, &engines, &policy).unwrap(),
+        &engines,
+        false,
+    );
+    assert_eq!(response.status, PreviewStatus::Failed);
+    assert!(response.accepted_audio.is_empty());
+    assert!(response.last_started.is_none());
+    assert!(first.requests.lock().unwrap().is_empty());
+}
+
+#[test]
+fn layered_policy_fallback_uses_shared_without_a_choice_patch() {
+    let second = PreviewEngine::new("second", "two", Behavior::Buffered);
+    let mut engines = EngineRegistry::new();
+    engines.register(second.clone()).unwrap();
+    let mut draft = layered_request();
+    draft.voice.choices.clear();
+    let response = run_layered(
+        prepare_voice_preview_v2(draft, 0.65, &engines, &RoutingPolicyRegistry::new("first"))
+            .unwrap(),
+        &engines,
+        false,
+    );
+    assert_eq!(response.status, PreviewStatus::Completed);
+    assert_eq!(response.last_started.unwrap().choice_id, None);
+    let requests = second.requests.lock().unwrap();
+    assert_eq!(requests[0].normalized_acss.average_pitch, Some(0.4));
+    assert!((requests[0].settings.rate - 0.67).abs() < 0.00001);
+}
+
+#[test]
+fn layered_preview_default_and_zero_restore_captured_host_rate_above_one() {
+    use omnivox_tts::voice_choices::Adjustment;
+    use omnivox_tts::voice_preview_v2::VoicePreviewSelection;
+    for reset in [Adjustment::Default {}, Adjustment::Set { value: 0 }] {
+        let second = PreviewEngine::new("second", "two", Behavior::Buffered);
+        let mut engines = EngineRegistry::new();
+        engines.register(second.clone()).unwrap();
+        let mut draft = layered_request();
+        draft.expected_base_rate = Some(1.4);
+        draft.selection = VoicePreviewSelection::Choice {
+            choice_id: "soft".to_owned(),
+        };
+        draft.context.average_pitch = Some(Adjustment::Default {});
+        draft.context.rate_offset = Some(reset);
+        let response = run_layered(
+            prepare_voice_preview_v2(draft, 1.4, &engines, &RoutingPolicyRegistry::new("first"))
+                .unwrap(),
+            &engines,
+            false,
+        );
+        assert_eq!(response.status, PreviewStatus::Completed);
+        assert_eq!(response.base_rate, 1.4);
+        let requests = second.requests.lock().unwrap();
+        assert_eq!(requests[0].settings.rate, 1.4);
+        assert_eq!(requests[0].settings.pitch, 1.0);
+        assert_eq!(requests[0].normalized_acss.average_pitch, None);
+    }
+}
+
+#[test]
+fn layered_preview_empty_stale_and_failed_stream_terminals_are_truthful() {
+    for (behavior, stale) in [
+        (Behavior::Empty, false),
+        (Behavior::Buffered, true),
+        (Behavior::FailAfterAudio, false),
+    ] {
+        let first = PreviewEngine::new("first", "one", behavior);
+        let second = PreviewEngine::new("second", "two", Behavior::Buffered);
+        let mut engines = EngineRegistry::new();
+        engines.register(first.clone()).unwrap();
+        engines.register(second.clone()).unwrap();
+        let response = run_layered(
+            prepare_voice_preview_v2(
+                layered_request(),
+                0.65,
+                &engines,
+                &RoutingPolicyRegistry::new("first"),
+            )
+            .unwrap(),
+            &engines,
+            stale,
+        );
+        if stale {
+            assert_eq!(response.status, PreviewStatus::Cancelled);
+            assert!(first.requests.lock().unwrap().is_empty());
+            assert!(response.accepted_audio.is_empty());
+        } else if matches!(behavior, Behavior::Empty) {
+            assert_eq!(response.status, PreviewStatus::Completed);
+            assert!(response.accepted_audio.is_empty());
+            assert!(response.last_started.is_none());
+        } else {
+            assert_eq!(response.status, PreviewStatus::Failed);
+            assert_eq!(response.accepted_audio.len(), 1);
+            assert_eq!(
+                response.accepted_audio[0].choice_id.as_deref(),
+                Some("primary")
+            );
+            assert!(second.requests.lock().unwrap().is_empty());
+        }
+    }
+}
+
+#[test]
+fn layered_preview_freezes_private_policy_disable_union_and_full_queue_payload() {
+    let first = PreviewEngine::new("first", "one", Behavior::Buffered);
+    let second = PreviewEngine::new("second", "two", Behavior::Buffered);
+    let mut engines = EngineRegistry::new();
+    engines.register(first.clone()).unwrap();
+    engines.register(second.clone()).unwrap();
+    let mut policy = RoutingPolicyRegistry::new("first");
+    policy
+        .register(
+            1,
+            RoutingPolicy {
+                disabled_engine_ids: vec!["first".to_owned(), "admin".to_owned()],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let mut draft = layered_request();
+    draft.disabled_engine_ids = vec!["client".to_owned(), "admin".to_owned()];
+    let prepared = prepare_voice_preview_v2(draft.clone(), 0.65, &engines, &policy).unwrap();
+    policy
+        .register(
+            2,
+            RoutingPolicy {
+                disabled_engine_ids: vec!["second".to_owned()],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let response = run_layered(prepared, &engines, false);
+    assert_eq!(response.status, PreviewStatus::Completed);
+    assert_eq!(
+        response.effective_disabled_engine_ids,
+        vec!["client", "admin", "first"]
+    );
+    assert_eq!(
+        response.last_started.unwrap().choice_id.as_deref(),
+        Some("fallback")
+    );
+    assert!(first.requests.lock().unwrap().is_empty());
+    assert_eq!(policy.generation(), 2);
+    assert_eq!(policy.policy().disabled_engine_ids, vec!["second"]);
+    let payload = |draft| {
+        let prepared = prepare_voice_preview_v2(draft, 0.65, &engines, &policy).unwrap();
+        SynthRequest::Preview {
+            request_id: 702,
+            text: prepared.text,
+            requested: prepared.target,
+            state: TtsState::default(),
+            logical_voice_routing: prepared.routing,
+            lifecycle: RequestLifecycle::default(),
+            gen: 1,
+        }
+        .queued_payload_bytes()
+    };
+    // Even strict selection must retain/account for the other authoritative rows.
+    draft.selection = omnivox_tts::voice_preview_v2::VoicePreviewSelection::Choice {
+        choice_id: "primary".to_owned(),
+    };
+    let small = payload(draft.clone());
+    draft.voice.choices[2].selector =
+        VoiceSelector::Exact(PhysicalVoiceId::new("second", "x".repeat(4096)));
+    assert!(payload(draft) >= small + 4000);
+}
+
+#[test]
+fn layered_individual_runtime_failure_does_not_use_automatic_policy() {
+    let first = PreviewEngine::new("first", "one", Behavior::FailBeforeAudio);
+    let second = PreviewEngine::new("second", "two", Behavior::Buffered);
+    let mut engines = EngineRegistry::new();
+    engines.register(first.clone()).unwrap();
+    engines.register(second.clone()).unwrap();
+    let mut draft = layered_request();
+    draft.selection = omnivox_tts::voice_preview_v2::VoicePreviewSelection::Choice {
+        choice_id: "primary".to_owned(),
+    };
+    let result = run_layered(
+        prepare_voice_preview_v2(draft, 0.65, &engines, &RoutingPolicyRegistry::new("first"))
+            .unwrap(),
+        &engines,
+        false,
+    );
+    assert_eq!(result.status, PreviewStatus::Failed);
+    assert!(result.accepted_audio.is_empty());
+    assert!(result.last_started.is_none());
+    assert_eq!(first.requests.lock().unwrap().len(), 1);
+    assert!(second.requests.lock().unwrap().is_empty());
+}
+
+#[test]
+fn layered_preview_rejects_unreportable_actual_voice_before_synthesis() {
+    let first = PreviewEngine::new("first", &"x".repeat(32 * 1024), Behavior::Buffered);
+    let mut engines = EngineRegistry::new();
+    engines.register(first.clone()).unwrap();
+    let mut draft = layered_request();
+    draft.voice.choices[0].selector = VoiceSelector::EngineDefault {
+        engine_id: "first".to_owned(),
+    };
+    let response = run_layered(
+        prepare_voice_preview_v2(draft, 0.65, &engines, &RoutingPolicyRegistry::new("first"))
+            .unwrap(),
+        &engines,
+        false,
+    );
+    assert_eq!(response.status, PreviewStatus::Failed);
+    assert!(response.accepted_audio.is_empty());
+    assert!(response.last_started.is_none());
+    assert!(first.requests.lock().unwrap().is_empty());
 }
 
 fn request() -> VoicePreviewRequest {

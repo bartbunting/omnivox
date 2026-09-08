@@ -17,6 +17,16 @@ use crate::voice_choices::{
 pub const PRIVATE_PREVIEW_VOICE_ID: &str = "__omnivox_preview__";
 pub const MAX_ACCEPTED_AUDIO_CHOICES: usize = 32;
 pub const MAX_PREVIEW_MESSAGE_BYTES: usize = 1024;
+pub const MAX_AUDIO_CHOICE_IDENTITY_BYTES: usize = 32 * 1024;
+
+/// Check before synthesis, so an unreportable voice never produces audio.
+pub fn validate_audio_choice_identity(identity: &AudioChoiceIdentity) -> Result<(), String> {
+    let bytes = serde_json::to_vec(identity).map_err(|error| error.to_string())?;
+    if bytes.len() > MAX_AUDIO_CHOICE_IDENTITY_BYTES {
+        return Err("voice choice identity exceeds the output budget".to_owned());
+    }
+    Ok(())
+}
 
 fn required_nullable<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
@@ -174,6 +184,37 @@ pub struct VoicePreviewResponseV2 {
 }
 
 impl VoicePreviewResponseV2 {
+    /// Reserve room for a bounded identity and maximally escaped diagnostic
+    /// before admission. Acceptance entries can later be shortened independently.
+    pub fn validate_metadata_budget(base_rate: f32, disabled: &[String]) -> Result<(), String> {
+        let envelope = ControlResponseEnvelope {
+            protocol_version: CONTROL_PROTOCOL_VERSION,
+            request_id: Some(u64::MAX),
+            response: ControlResponse::PreviewVoiceCompletedV2(Self {
+                status: PreviewStatus::Cancelled,
+                accepted_audio: Vec::new(),
+                accepted_audio_truncated: false,
+                last_started: None,
+                message: None,
+                base_rate,
+                effective_disabled_engine_ids: disabled.to_vec(),
+            }),
+        };
+        let fixed = serde_json::to_vec(&envelope)
+            .map_err(|error| error.to_string())?
+            .len();
+        if fixed
+            .saturating_add(MAX_AUDIO_CHOICE_IDENTITY_BYTES)
+            .saturating_add(6 * MAX_PREVIEW_MESSAGE_BYTES)
+            > crate::control::MAX_CONTROL_PAYLOAD_BYTES
+        {
+            return Err(
+                "preview frozen metadata leaves insufficient terminal output space".to_owned(),
+            );
+        }
+        Ok(())
+    }
+
     /// Shrink only the acceptance list and diagnostic text. Never lose the
     /// independent last-started identity, frozen inputs or typed status.
     pub fn bounded_event(mut self, request_id: u64) -> Result<String, ControlCodecError> {
@@ -370,5 +411,22 @@ mod tests {
             Some("row-0")
         );
         assert_eq!(response.message.unwrap(), "é".repeat(512));
+    }
+
+    #[test]
+    fn terminal_metadata_reservation_and_identity_are_checked_before_audio() {
+        assert!(
+            VoicePreviewResponseV2::validate_metadata_budget(1.4, &["admin".to_owned()]).is_ok()
+        );
+        let too_many = vec!["x".repeat(128); 2000];
+        assert!(VoicePreviewResponseV2::validate_metadata_budget(1.4, &too_many).is_err());
+        let mut identity: AudioChoiceIdentity =
+            serde_json::from_value(fixture("preview_completed")["last_started"].clone()).unwrap();
+        assert!(validate_audio_choice_identity(&identity).is_ok());
+        identity.realized.voice_id = "x".repeat(MAX_AUDIO_CHOICE_IDENTITY_BYTES);
+        assert!(validate_audio_choice_identity(&identity).is_err());
+        let mut missing = fixture("preview_completed")["last_started"].clone();
+        missing.as_object_mut().unwrap().remove("choice_id");
+        assert!(serde_json::from_value::<AudioChoiceIdentity>(missing).is_err());
     }
 }

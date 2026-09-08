@@ -36,6 +36,8 @@ pub struct LogicalVoiceRoutingSnapshot {
     definitions: Vec<LogicalVoiceDefinition>,
     registry_generation: u64,
     layered_definitions: Vec<LayeredVoiceDefinition>,
+    // A private one-selector resolution view, mapped back into the full draft.
+    preview_choice_index: Option<usize>,
     fallback_policy: FallbackPolicy,
     inventory: Vec<EngineDescriptor>,
     disabled_engine_ids: Vec<String>,
@@ -51,6 +53,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
+            preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: engine_registry.inventory(),
             disabled_engine_ids: Vec::new(),
@@ -66,6 +69,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
+            preview_choice_index: None,
             fallback_policy: routing_policy
                 .effective_fallback_policy(logical_voices.fallback_policy()),
             inventory: routing_policy.project_inventory(engine_registry.inventory()),
@@ -84,6 +88,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
+            preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: routing_policy.project_inventory(engine_registry.inventory()),
             disabled_engine_ids: routing_policy.policy().disabled_engine_ids.clone(),
@@ -100,12 +105,29 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
+            preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: Vec::new(),
             disabled_engine_ids,
         };
         snapshot.replace_inventory(engine_registry.inventory());
         snapshot
+    }
+
+    /// Restrict a validated private draft without renumbering its authoritative
+    /// choices. Only the resolver projection changes; no policy substitute remains.
+    pub(crate) fn restrict_preview_to_choice(&mut self, index: usize) -> Result<(), String> {
+        if self.definitions.len() != 1 || self.layered_definitions.len() != 1 {
+            return Err("individual preview requires one private layered draft".to_owned());
+        }
+        let choice = self.layered_definitions[0]
+            .choices
+            .get(index)
+            .ok_or("preview choice index is absent from the draft")?;
+        self.definitions[0].preferences = vec![choice.selector.clone()];
+        self.preview_choice_index = Some(index);
+        self.fallback_policy = FallbackPolicy::default();
+        Ok(())
     }
 
     /// Replace the dispatch-time inventory with the worker's current runtime
@@ -302,13 +324,23 @@ impl LogicalVoiceRoutingSnapshot {
             .ok_or_else(|| {
                 format!("logical voice {logical_voice_id} no longer has a definition")
             })?;
-        let resolution = match text {
+        let mut resolution = match text {
             Some(text) => {
                 resolve_voice_for_text(&self.inventory, definition, &self.fallback_policy, text)
             }
             None => resolve_voice(&self.inventory, definition, &self.fallback_policy),
         }
         .map_err(|error| error.to_string())?;
+        if let Some(index) = self.preview_choice_index {
+            if resolution.reason != omnivox_tts::resolver::ResolutionReason::Preferred {
+                return Err("individual preview attempted a policy substitute".to_owned());
+            }
+            if index > 0 {
+                resolution.reason = omnivox_tts::resolver::ResolutionReason::ExplicitAlternative {
+                    preference_index: index,
+                };
+            }
+        }
         route_from_resolution(resolution, definition, &self.inventory, engine_registry)
     }
 }
@@ -756,7 +788,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
 
 /// Internal handoff shared by legacy playback and the forthcoming layered admission path.
 #[allow(clippy::too_many_arguments)]
-fn synthesize_prepared_with_runtime_fallback_anchored(
+pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
     chunk: &str,
     anchors: &[RequestedAnchor],
     style: &choice::AttemptStyle<'_>,

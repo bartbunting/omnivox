@@ -872,7 +872,7 @@ fn queue_synthesis_result_inner(
     if let Some(tail) = effect_tail {
         ctx.queue_overlay(tail);
     }
-    accepted
+    accepted || (attempt.is_some() && result.audio.is_empty() && !ctx.failed() && !ctx.is_stale())
 }
 
 fn post_synthesis_parameters(style: &PostSynthesisStyle) -> PostSynthesisParameters {
@@ -2470,6 +2470,169 @@ pub fn process_letter(
 }
 
 /// Terminal synthesis metadata for a non-mutating one-shot preview.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn process_layered_preview(
+    text: &str,
+    state: TtsState,
+    context: &omnivox_tts::voice_choices::VoiceStylePatch,
+    placement: &omnivox_tts::voice_preview_v2::VoicePlacement,
+    ctx: &SynthCtx,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    mut routing: LogicalVoiceRoutingSnapshot,
+) -> (BatchStatus, Option<String>) {
+    if ctx.is_stale() {
+        return (BatchStatus::Cancelled, None);
+    }
+    let mut route = match routing.initial_route(
+        omnivox_tts::voice_preview_v2::PRIVATE_PREVIEW_VOICE_ID,
+        engine_registry,
+    ) {
+        Ok(route) => route,
+        Err(message) => return (BatchStatus::Failed, Some(message)),
+    };
+    let style = crate::routing::choice::AttemptStyle::Layered {
+        context,
+        base_rate: state.speech_rate,
+        placement_pan: placement.pan,
+    };
+    let chunks = chunk_prepared_speech(prepare_speech_text(text, &state), 15);
+    let count = chunks.len();
+    for (index, chunk) in chunks.into_iter().enumerate() {
+        let status = synthesize_layered_chunk(
+            &chunk.text,
+            &chunk.capitalization_tones,
+            &[],
+            &style,
+            &state,
+            index + 1 == count,
+            index + 1 == count,
+            &mut route,
+            &mut routing,
+            engine_registry,
+            runtime_health,
+            ctx,
+        );
+        if status != BatchStatus::Completed {
+            return (
+                status,
+                (status == BatchStatus::Failed)
+                    .then(|| "preview synthesis or playback preparation failed".to_owned()),
+            );
+        }
+    }
+    ctx.flush_overlays();
+    if ctx.failed() {
+        (
+            BatchStatus::Failed,
+            Some("preview output failed".to_owned()),
+        )
+    } else {
+        (BatchStatus::Completed, None)
+    }
+}
+
+/// Shared layered entry: the actual attempt decides buffered/streaming mode,
+/// native settings, effect ownership and evidence after every reroute.
+#[allow(clippy::too_many_arguments)]
+fn synthesize_layered_chunk(
+    text: &str,
+    tones: &[CapitalizationTone],
+    actions: &[TimelineChunkAction],
+    style: &crate::routing::choice::AttemptStyle<'_>,
+    state: &TtsState,
+    is_last_speech: bool,
+    final_timeline_window: bool,
+    route: &mut LogicalRoute,
+    routing: &mut LogicalVoiceRoutingSnapshot,
+    engines: &EngineRegistry,
+    health: &RuntimeEngineHealth,
+    ctx: &SynthCtx,
+) -> BatchStatus {
+    use crate::routing::choice::PreparedSynthesisOutcome;
+    let anchors = requested_timeline_anchors(tones, actions);
+    let mut sink = match ProgressiveChunkSink::new(
+        text,
+        route.reported_logical_voice_id.as_deref(),
+        PostSynthesisStyle::default(),
+        Vec::new(),
+        state,
+        is_last_speech,
+        final_timeline_window,
+        tones,
+        actions,
+        ctx,
+    ) {
+        Ok(sink) => sink,
+        Err(error) => {
+            warn!("Layered playback preparation failed: {error}");
+            ctx.mark_failed();
+            return BatchStatus::Failed;
+        }
+    };
+    let outcome = crate::routing::synthesize_prepared_with_runtime_fallback_anchored(
+        text,
+        &anchors,
+        style,
+        route,
+        routing,
+        engines,
+        health,
+        ctx.gen,
+        ctx.gen_counter,
+        ctx.cancellation,
+        &mut sink,
+    );
+    match outcome {
+        PreparedSynthesisOutcome::Streamed(completion) => {
+            if let Err(error) = sink.finish(completion) {
+                if ctx.is_stale() && !ctx.failed() {
+                    return BatchStatus::Cancelled;
+                }
+                warn!("Layered progressive output failed: {error}");
+                ctx.mark_failed();
+                return BatchStatus::Failed;
+            }
+        }
+        PreparedSynthesisOutcome::Buffered { result, attempt } => {
+            drop(sink);
+            if !queue_synthesis_result_inner(
+                *result,
+                text,
+                route.reported_logical_voice_id.as_deref(),
+                tones,
+                actions,
+                &attempt.effects.style,
+                &attempt.effects.omitted,
+                state,
+                is_last_speech,
+                final_timeline_window,
+                Some(&attempt),
+                ctx,
+            ) {
+                return if ctx.is_stale() {
+                    BatchStatus::Cancelled
+                } else {
+                    BatchStatus::Failed
+                };
+            }
+        }
+        PreparedSynthesisOutcome::Cancelled => return BatchStatus::Cancelled,
+        PreparedSynthesisOutcome::Failed | PreparedSynthesisOutcome::Exhausted => {
+            ctx.mark_failed();
+            return BatchStatus::Failed;
+        }
+    }
+    if ctx.failed() {
+        BatchStatus::Failed
+    } else if ctx.is_stale() {
+        BatchStatus::Cancelled
+    } else {
+        BatchStatus::Completed
+    }
+}
+
+/// Terminal synthesis metadata for a non-mutating legacy preview.
 pub struct PreviewSynthesisResult {
     pub status: BatchStatus,
     pub realized: Option<PhysicalVoiceId>,

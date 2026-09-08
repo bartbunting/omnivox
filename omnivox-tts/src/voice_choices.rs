@@ -30,6 +30,7 @@ pub enum ChoiceTuningError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AudioChoiceIdentity {
+    #[serde(deserialize_with = "required_nullable")]
     pub choice_id: Option<String>,
     pub reason: ResolutionReason,
     pub realized: PhysicalVoiceId,

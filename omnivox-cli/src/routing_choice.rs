@@ -9,8 +9,6 @@ pub(crate) enum AttemptStyle<'a> {
         settings: &'a TtsSettings,
         acss: Option<&'a NormalizedAcss>,
     },
-    // Timeline 4 admission will construct this variant after the playback path is complete.
-    #[cfg_attr(not(test), expect(dead_code))]
     Layered {
         context: &'a VoiceStylePatch,
         base_rate: f32,
@@ -29,6 +27,18 @@ pub(crate) struct PreparedVoiceAttempt {
     pub settings: TtsSettings,
     pub acss: AcssApplication,
     pub effects: PostSynthesisApplication,
+}
+
+impl PreparedVoiceAttempt {
+    pub(crate) fn audio_identity(&self) -> omnivox_tts::voice_choices::AudioChoiceIdentity {
+        omnivox_tts::voice_choices::AudioChoiceIdentity {
+            choice_id: self.choice_id.clone(),
+            reason: self.resolution.reason.clone(),
+            realized: self.resolution.realized.clone(),
+            degraded_acss: self.acss.omitted.clone(),
+            degraded_effects: self.effects.omitted.clone(),
+        }
+    }
 }
 
 impl AttemptStyle<'_> {
@@ -81,7 +91,7 @@ impl AttemptStyle<'_> {
         };
         settings.voice = route.realized.voice_id.clone();
         apply_normalized_acss(&mut settings, &acss.style);
-        Ok(PreparedVoiceAttempt {
+        let prepared = PreparedVoiceAttempt {
             registry_generation: routing.registry_generation,
             resolution: route.resolution.clone(),
             choice_index,
@@ -89,7 +99,13 @@ impl AttemptStyle<'_> {
             settings,
             acss,
             effects,
-        })
+        };
+        if matches!(self, Self::Layered { .. }) {
+            omnivox_tts::voice_preview_v2::validate_audio_choice_identity(
+                &prepared.audio_identity(),
+            )?;
+        }
+        Ok(prepared)
     }
 }
 
@@ -136,7 +152,6 @@ pub(crate) enum PreparedSynthesisOutcome {
     Streamed(SynthesisStreamCompletion),
     Buffered {
         result: Box<SynthesisResult>,
-        #[cfg_attr(not(test), expect(dead_code))]
         attempt: Box<PreparedVoiceAttempt>,
     },
     Cancelled,

@@ -70,6 +70,21 @@ workspace tests, workspace Clippy, formatting and documentation checks pass.
 The live server still rejects this request pending its private execution path;
 no capability is advertised by the codec alone.
 
+Completed private execution portion: live `preview_voice_v2` admission validates
+the complete draft and reserves terminal metadata space before queueing. Automatic
+previews retain the private policy; individual auditions restrict only the
+resolver projection and preserve the original full-row identity and index.
+Both run the prepared-attempt pipeline and hand observations to the existing
+ticket-waiting reporter. Empty output completes without evidence; pre-consumption
+cancellation and committed failures retain their distinct status. Eight new
+tests exercise the actual worker/reporter with simulated buffered and streaming
+engines, strict duplicates, no substitute after failure, frozen disablement,
+defaults above host rate one, queue accounting and unreportable identities before
+synthesis. One additional codec test checks terminal-space reservation. All 694
+workspace tests, workspace Clippy, formatting and documentation checks pass.
+Timeline-4 ordinary speech, marker-3 receipts and client integration remain
+pending, so the bundle remains unadvertised and no live runtime is replaced.
+
 ## Findings that determine the implementation
 
 - [Routing](../omnivox-cli/src/routing.rs) discards the resolver's reason/index
