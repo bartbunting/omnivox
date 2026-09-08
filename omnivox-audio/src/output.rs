@@ -2269,6 +2269,47 @@ mod tests {
     }
 
     #[test]
+    fn failed_attachment_can_follow_accepted_pcm_without_consumption() {
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let callbacks = Arc::new(AtomicU64::new(0));
+        let observed = callbacks.clone();
+        let (mut producer, source, ticket) = ProgressivePlaybackSource::new(
+            Box::new(move |_| {
+                observed.fetch_add(1, Ordering::AcqRel);
+            }),
+            CancellationToken::new(),
+            CancellationToken::new(),
+            None,
+        );
+        // Exercise the real delayed-attachment path without requiring a sound
+        // device: the source's scheduling generation has already been replaced.
+        let generation =
+            control.schedule_generations[stream_index(StreamType::Speech)].load(Ordering::Acquire);
+        producer.pending_attachment = Some(ProgressivePlaybackAttachment {
+            control: (*control).clone(),
+            source: Some(source),
+            generation: generation.wrapping_add(1),
+        });
+        producer.push_cues(vec![cue(0, 0)]).unwrap();
+        for _ in 1..PROGRESSIVE_PLAYBACK_PREBUFFER_WINDOWS {
+            producer
+                .push_audio(AudioBuffer::new(vec![0.1, 0.1]))
+                .unwrap();
+        }
+        assert!(producer
+            .push_audio(AudioBuffer::new(vec![0.1, 0.1]))
+            .is_err());
+        assert_eq!(
+            producer.published_frames(),
+            PROGRESSIVE_PLAYBACK_PREBUFFER_WINDOWS as u64
+        );
+        assert_eq!(callbacks.load(Ordering::Acquire), 0);
+        drop(producer);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+    }
+
+    #[test]
     fn progressive_source_consumes_ordered_windows_and_dynamic_cues() {
         let request_cancellation = CancellationToken::new();
         let stream_cancellation = CancellationToken::new();

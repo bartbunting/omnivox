@@ -1219,7 +1219,6 @@ struct ProgressiveChunkSink<'a, 'ctx> {
     output_frame_count: u64,
     accepted_audio: bool,
     finished: bool,
-    ticket: Option<PlaybackTicket>,
 }
 
 impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
@@ -1285,7 +1284,6 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             output_frame_count: 0,
             accepted_audio: false,
             finished: false,
-            ticket: None,
         })
     }
 
@@ -1330,18 +1328,20 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                     )
                 };
                 let queued = prepared
-                    .queue_progressive_cancellable_if(self.ctx.control, cancellation, || {
-                        !self.ctx.is_stale()
-                    })
+                    .queue_progressive_cancellable_if(
+                        self.ctx.control,
+                        cancellation,
+                        || !self.ctx.is_stale(),
+                        |ticket| self.ctx.record_ticket(StreamType::Speech, ticket.clone()),
+                    )
                     .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
-                let Some((producer, ticket, marker_publisher)) = queued else {
+                let Some((producer, _ticket, marker_publisher)) = queued else {
                     return Err(TtsError::SynthesisFailed(
                         "progressive playback was superseded before queueing".to_owned(),
                     ));
                 };
                 self.producer = Some(producer);
                 self.marker_publisher = Some(marker_publisher);
-                self.ticket = Some(ticket);
             } else {
                 let queued_at = Instant::now();
                 let queued = self
@@ -1362,7 +1362,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                     ));
                 };
                 self.producer = Some(producer);
-                self.ticket = Some(ticket);
+                self.ctx.record_ticket(StreamType::Speech, ticket);
             }
         }
         Ok(self.producer.as_mut().unwrap())
@@ -1708,14 +1708,19 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             rendered.resolution_events,
             rendered.semantic_events,
         )?;
-        let nonempty = !rendered.audio.is_empty();
-        self.producer
-            .as_mut()
-            .unwrap()
-            .push_audio(rendered.audio)
-            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
-        self.accepted_audio |= nonempty;
+        self.publish_audio(rendered.audio)?;
         Ok(())
+    }
+
+    fn publish_audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+        let producer = self
+            .producer
+            .as_mut()
+            .expect("playback prepared before PCM");
+        let result = producer.push_audio(audio);
+        // A nonempty send can succeed before source attachment fails.
+        self.accepted_audio |= producer.published_frames() > 0;
+        result.map_err(|error| TtsError::SynthesisFailed(error.to_string()))
     }
 
     fn finish(
@@ -1801,19 +1806,13 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             ));
         }
         if !rendered.audio.is_empty() {
-            self.producer
-                .as_mut()
-                .unwrap()
-                .push_audio(rendered.audio)
-                .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
-            self.accepted_audio = true;
+            self.publish_audio(rendered.audio)?;
         }
         if let Some(producer) = self.producer.take() {
-            let ticket = self.ticket.take().expect("queued producer has a ticket");
+            self.accepted_audio |= producer.published_frames() > 0;
             producer
                 .finish()
                 .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
-            self.ctx.record_ticket(StreamType::Speech, ticket);
         }
         if let Some(tail) = rendered.overlay_tail {
             self.ctx.queue_overlay(tail);
@@ -3665,6 +3664,124 @@ mod tests {
         drop(rejected_stream);
         assert!(effects.lock().unwrap().finish().is_none());
         assert!(tickets.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn progressive_failure_retains_accepted_audio_tickets_while_the_consumer_is_held() {
+        use omnivox_audio::PlaybackCue;
+        use std::sync::mpsc;
+        struct ReleaseOnDrop(Option<mpsc::SyncSender<()>>);
+        impl Drop for ReleaseOnDrop {
+            fn drop(&mut self) {
+                if let Some(release) = self.0.take() {
+                    let _ = release.send(());
+                }
+            }
+        }
+        for markers in [false, true] {
+            let streams = AudioStreams::new_with_backend(8, 8, 8, AudioBackend::Null).unwrap();
+            let control = streams.control();
+            let (entered, reached) = mpsc::sync_channel(1);
+            let (release, blocked) = mpsc::sync_channel(1);
+            let mut release = ReleaseOnDrop(Some(release));
+            let (mut gate, gate_ticket) = control
+                .queue_progressive_speech_with_cue_callback_cancellable_if(
+                    move |_| {
+                        entered.send(()).unwrap();
+                        blocked.recv().unwrap();
+                    },
+                    SynthesisCancellationToken::new(),
+                    || true,
+                )
+                .unwrap()
+                .unwrap();
+            gate.push_cues(vec![PlaybackCue {
+                frame_offset: 0,
+                identifier: 0,
+            }])
+            .unwrap();
+            gate.push_audio(AudioBuffer::new(vec![0.1, 0.1])).unwrap();
+            gate.finish().unwrap();
+            reached.recv().unwrap();
+            let generation = AtomicU64::new(1);
+            let lifecycle = RequestLifecycle::default();
+            let engine = PipelineTestEngine;
+            let state = TtsState::default();
+            let tickets = Mutex::new(Vec::new());
+            let clock = Mutex::new(Vec::new());
+            let effects = Mutex::new(DispatchEffects::new());
+            let (output, reporter) =
+                crate::marker_events::spawn_marker_event_reporter_with_writer(std::io::sink());
+            let marker_context = MarkerDispatchContext::new(42, output);
+            let ctx = SynthCtx {
+                gen: 1,
+                gen_counter: &generation,
+                cancellation: None,
+                lifecycle: &lifecycle,
+                engine: &engine,
+                control: &control,
+                playback_tickets: Some(&tickets),
+                presentation_clock: Some(&clock),
+                pending_overlays: None,
+                timeline_renderer: None,
+                effect_processor: Some(&effects),
+                marker_dispatch: markers.then_some(&marker_context),
+                batch_failed: None,
+            };
+            let mut sink = ProgressiveChunkSink::new(
+                "hello",
+                Some("bolden"),
+                PostSynthesisStyle::default(),
+                Vec::new(),
+                &state,
+                true,
+                true,
+                &[],
+                &[],
+                &ctx,
+            )
+            .unwrap();
+            sink.start(SynthesisStreamStart {
+                engine_id: "mock".to_owned(),
+                actual_voice: Some(PhysicalVoiceId::new("mock", "voice")),
+                degraded_acss: Vec::new(),
+            })
+            .unwrap();
+            sink.audio(AudioBuffer::new(vec![0.4; 4000])).unwrap();
+            assert!(sink.accepted_audio);
+            assert_eq!(
+                tickets.lock().unwrap().len(),
+                1,
+                "ticket retained before finish"
+            );
+            assert_eq!(
+                clock.lock().unwrap().len(),
+                1,
+                "same source retained in speech clock"
+            );
+            assert!(sink
+                .finish(SynthesisStreamCompletion { frame_count: 999 })
+                .is_err());
+            assert!(sink.accepted_audio);
+            drop(sink);
+            // The accepted stream is queued behind the held source. Closing its
+            // producer must not lose its completion barrier.
+            release.0.take().unwrap().send(()).unwrap();
+            assert_eq!(gate_ticket.wait(), PlaybackStatus::Completed);
+            assert_eq!(
+                tickets.lock().unwrap().pop().unwrap().wait(),
+                PlaybackStatus::Cancelled
+            );
+            assert_eq!(
+                clock.lock().unwrap().pop().unwrap().wait(),
+                PlaybackStatus::Cancelled
+            );
+            control.drain();
+            drop(marker_context);
+            drop(control);
+            drop(streams);
+            reporter.join().unwrap();
+        }
     }
 
     #[test]

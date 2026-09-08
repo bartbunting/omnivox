@@ -794,11 +794,12 @@ impl PreparedMarkerPlayback {
 
     /// Queue a progressive speech source whose events and initial cues are
     /// already known while its final audio length is not.
-    pub fn queue_progressive_cancellable_if<F>(
+    pub fn queue_progressive_cancellable_if<F, C>(
         self,
         control: &AudioControl,
         cancellation: CancellationToken,
         predicate: F,
+        on_created: C,
     ) -> Result<
         Option<(
             ProgressivePlaybackProducer,
@@ -809,6 +810,7 @@ impl PreparedMarkerPlayback {
     >
     where
         F: Fn() -> bool,
+        C: FnOnce(&PlaybackTicket),
     {
         let records = self.output.format_events(&self.events)?;
         let Some(events) = self.output.reserve_marker_records(records, &predicate)? else {
@@ -848,6 +850,8 @@ impl PreparedMarkerPlayback {
         let Some((mut producer, ticket)) = result? else {
             return Ok(None);
         };
+        // Retain the source's ticket before any subsequent cue/setup error.
+        on_created(&ticket);
         producer.push_cues(self.cues)?;
         Ok(Some((
             producer,
@@ -1165,6 +1169,44 @@ mod tests {
     }
 
     #[test]
+    fn failed_initial_cues_still_handoff_and_settle_the_created_source_ticket() {
+        let writer = RecordingWriter::default();
+        let written = writer.bytes.clone();
+        let (output, reporter) = spawn_marker_event_reporter_with_writer(writer);
+        let context = MarkerDispatchContext::new(94, output);
+        let mut prepared =
+            context.prepare_utterance("hello", "helper", None, None, 44100, 0, &[], &[]);
+        prepared.cues = vec![
+            PlaybackCue {
+                frame_offset: 2,
+                identifier: 0,
+            },
+            PlaybackCue {
+                frame_offset: 1,
+                identifier: 1,
+            },
+        ];
+        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+        let control = streams.control();
+        let mut retained = Vec::new();
+        let result = prepared.queue_progressive_cancellable_if(
+            &control,
+            CancellationToken::new(),
+            || true,
+            |ticket| retained.push(ticket.clone()),
+        );
+        assert!(result.is_err());
+        assert_eq!(retained.len(), 1);
+        assert_eq!(retained.pop().unwrap().wait(), PlaybackStatus::Cancelled);
+        control.drain();
+        drop(context);
+        drop(control);
+        drop(streams);
+        reporter.join().unwrap();
+        assert!(written.lock().unwrap().is_empty());
+    }
+
+    #[test]
     fn progressive_markers_are_reserved_before_their_audio_and_reach_the_reporter() {
         let writer = RecordingWriter::default();
         let written = writer.bytes.clone();
@@ -1174,7 +1216,7 @@ mod tests {
         let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
         let control = streams.control();
         let (mut producer, ticket, mut publisher) = prepared
-            .queue_progressive_cancellable_if(&control, CancellationToken::new(), || true)
+            .queue_progressive_cancellable_if(&control, CancellationToken::new(), || true, |_| {})
             .unwrap()
             .unwrap();
 
@@ -1239,7 +1281,7 @@ mod tests {
         let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
         let control = streams.control();
         let (mut producer, ticket, mut publisher) = prepared
-            .queue_progressive_cancellable_if(&control, CancellationToken::new(), || true)
+            .queue_progressive_cancellable_if(&control, CancellationToken::new(), || true, |_| {})
             .unwrap()
             .unwrap();
 

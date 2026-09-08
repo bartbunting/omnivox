@@ -24,7 +24,7 @@ These routing tests exercise fake engine requests and handoff. The subsequent
 [Windows native audit](benchmarks/2026-09-09-windows-native-defaults.md) confirms
 set/default/set restoration for all 17 advertised Windows voices using actual
 native parameter queries (85 captured syntheses). No native reset change is
-needed for those tested runtimes. Effect/playback observation ownership and the
+needed for those tested runtimes. Playback observation ownership and the
 remaining acceptance paths are still in the implementation sequence below.
 
 Completed effects portion: dispatch processors now retain an explicit legacy
@@ -37,7 +37,18 @@ tests cover continuity, duplicate physical targets, legacy boundaries, tail
 placement, speech-bus resources and rejected buffered/progressive rendering.
 All 671 workspace tests, workspace Clippy, formatting and documentation checks
 pass. New wire admission and the complete layered pipeline entry are still
-pending; the bundle remains unadvertised. Ticket/observation ownership is next.
+pending; the bundle remains unadvertised.
+
+Completed ticket portion: marker and private progressive sources hand off their
+completion ticket immediately, including before fallible initial-cue setup.
+Both completion and speech-clock lists retain it once; successful `finish` is
+no longer the registration point. PCM publication records acceptance using
+`published_frames()` even when attachment fails. Three new tests cover a held
+consumer and partial failure with/without markers, invalid initial cues with a
+settled ticket and no emitted event, and a real send-before-attachment-failure
+path with accepted PCM but no consumption. All 674 workspace tests, workspace
+Clippy, formatting and documentation checks pass. First-frame observations,
+bounded preview evidence and terminal serialization are next.
 
 ## Findings that determine the implementation
 
