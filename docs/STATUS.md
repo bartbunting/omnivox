@@ -1,13 +1,13 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-08
-**Workspace version:** 1.9.0
+**Last reviewed:** 2026-09-09
+**Workspace version:** 1.10.0
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
 [NEXT_STEPS.md](plans/NEXT_STEPS.md).
-Changes prepared for 1.9.0 are recorded in the
-[changelog](../CHANGELOG.md#190---2026-09-08). Later development changes belong
+Changes prepared for 1.10.0 are recorded in the
+[changelog](../CHANGELOG.md#1100---2026-09-09). Later development changes belong
 under [Unreleased](../CHANGELOG.md#unreleased); publication is established by
 the matching verified GitHub release.
 
@@ -21,8 +21,12 @@ the matching verified GitHub release.
 - Versioned Base64-JSON control negotiation, inventory, logical-voice
   registration, runtime routing policy, recovery probes, and non-mutating
   preview.
-- Tracked terminal status and marker protocols v1 and v2.
-- Structured presentation timelines v1 through v3, including v3 multipart
+- Tracked terminal status and marker protocols v1 through v3; v3 reports the
+  selected voice choice and physical voice at first-frame consumption.
+- Negotiated `voice_choice_tuning_v1` support includes version-2 logical-voice
+  registration and private previews, timeline v4, and marker v3. Preview
+  evidence distinguishes accepted audio from audio whose playback started.
+- Structured presentation timelines v1 through v4, including v3/v4 multipart
   framing, bounded schema/cross-reference/action-window validation before
   admission, resource preparation before new-span synthesis, and terminal
   status for decodable invalid or stale submissions.
@@ -33,6 +37,10 @@ the matching verified GitHub release.
 - Optional out-of-process Piper, RHVoice, Flite, RuTTS, Eloquence, DECtalk,
   and experimental TGSpeechBox engines.
 - Structured engine/voice inventory and deterministic per-span logical routing.
+- Layered logical voices compose shared settings, the actual selected choice's
+  adjustments, and contextual overrides for each synthesis attempt. Explicit
+  adapter defaults and duplicate-selector choice identities are preserved;
+  mixed legacy/layered runs isolate their effect state.
 - Server registration retains WinRT and eSpeak on Windows,
   AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. Configured
   Piper helpers join that registry in Piper-enabled builds. Staged or

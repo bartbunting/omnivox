@@ -6,6 +6,35 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-09-09
+
+### Added
+
+- Negotiated per-choice voice tuning composes shared settings, the selected
+  physical voice's adjustments, and contextual overrides in that order.
+  Each fallback attempt uses its own settings and native adapter defaults;
+  duplicate physical selectors retain distinct choice identities.
+- Version-2 logical-voice registration and private complete-voice previews,
+  including auditions of a specific choice. Preview results distinguish audio
+  accepted by playback from audio whose playback actually started.
+- Version-4 presentation timelines preserve per-span context and support mixed
+  legacy and layered voices, bounded multipart transport, and independent
+  speaker and notification workers over the existing remote protocol.
+- Version-3 playback markers identify the selected choice and physical voice
+  when the first frame is consumed. Clients negotiate the complete
+  `voice_choice_tuning_v1` bundle; older protocol versions remain supported.
+
+### Fixed
+
+- Failed synthesis attempts no longer leak native settings or effects into
+  fallback voices. Effect state follows the committed voice choice and resets
+  between legacy and layered runs.
+- Partial progressive failures retain playback tracking until accepted audio
+  settles, preserving accurate completion and started-voice evidence without
+  replaying committed speech through another engine.
+- Playback start and choice receipts are published together at the first
+  consumed frame, with bounded metadata and encoded event sizes.
+
 ## [1.9.0] - 2026-09-08
 
 ### Added
@@ -512,7 +541,9 @@ superseded by `v1.4.1` and its assets should not be used.
 - Added recovery for a draft release whose native verification needs to be
   rerun without rebuilding or replacing its uploaded assets.
 
-[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/bartbunting/omnivox/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/bartbunting/omnivox/compare/v1.9.0...v1.10.0
+[1.9.0]: https://github.com/bartbunting/omnivox/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/bartbunting/omnivox/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/bartbunting/omnivox/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/bartbunting/omnivox/compare/v1.6.4...v1.7.0
