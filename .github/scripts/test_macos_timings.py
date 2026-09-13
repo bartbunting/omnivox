@@ -36,7 +36,7 @@ class MacOsTimingTests(unittest.TestCase):
                 "import sys\n"
                 f"print('build-{index} server evidence', file=sys.stderr, flush=True)\n"
                 "if '--list-voices' in sys.argv:\n"
-                "    print('test voice inventory')\n"
+                f"    print('Samantha [{macos_timings.VOICES['macos']}]')\n"
                 "    raise SystemExit(0)\n" + server,
                 encoding="utf-8",
             )
@@ -50,6 +50,21 @@ class MacOsTimingTests(unittest.TestCase):
         with patch.object(macos_timings.subprocess, "check_output", return_value="a" * 40):
             with contextlib.redirect_stdout(io.StringIO()):
                 return macos_timings.compare(*sources, output)
+
+    def test_freezes_a_common_samantha_identity_after_first_use(self) -> None:
+        compact, super_compact = macos_timings.SAMANTHA_IDS
+        self.assertEqual(
+            macos_timings.select_samantha([f"[{super_compact}]", f"[{super_compact}]"]),
+            super_compact,
+        )
+        self.assertEqual(
+            macos_timings.select_samantha([f"[{compact}]", f"[{compact}] [{super_compact}]"]),
+            compact,
+        )
+        with self.assertRaisesRegex(RuntimeError, "common supported Samantha"):
+            macos_timings.select_samantha([f"[{compact}]", f"[{super_compact}]"])
+        with self.assertRaisesRegex(RuntimeError, "common supported Samantha"):
+            macos_timings.select_samantha(["Eddy", "Eddy"])
 
     def test_both_binaries_are_measured_with_exact_voices_and_logs_retained(self) -> None:
         with tempfile.TemporaryDirectory(prefix="macos timings ") as temporary:

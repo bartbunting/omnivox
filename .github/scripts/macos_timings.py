@@ -12,12 +12,24 @@ import sys
 
 
 VOICES = {
-    # The macOS 26 hosted image includes super-compact Samantha. Parham's
-    # compact variant is a separate voice ID and is not installed on this image.
-    "macos": "com.apple.voice.super-compact.en-US.Samantha",
+    "macos": "com.apple.voice.compact.en-US.Samantha",
     "espeak": "espeak:gmw/en-US",
 }
+SAMANTHA_IDS = (
+    VOICES["macos"],
+    "com.apple.voice.super-compact.en-US.Samantha",
+)
 CASES = ("character", "word", "line")
+
+
+def select_samantha(inventories: list[str]) -> str:
+    # First use on hosted macOS can replace super-compact with compact Samantha.
+    # Freeze one identity present in BOTH post-preparation inventories; exact
+    # benchmark registration and source markers must continue to match it.
+    for identifier in SAMANTHA_IDS:
+        if all(f"[{identifier}]" in inventory for inventory in inventories):
+            return identifier
+    raise RuntimeError("baseline and candidate do not advertise a common supported Samantha voice")
 
 
 def run_order() -> list[tuple[str, str, str]]:
@@ -45,6 +57,12 @@ def summarize(output: Path, runs: list[dict]) -> None:
         "Each pass uses five measured samples per mode and case.",
         "",
         "Order: " + ", ".join(run["id"] for run in runs) + ".",
+        "",
+        "Exact voices after preparation: " + ", ".join(
+            f"{engine} `{voice}`" for engine, voice in json.loads(
+                (output / "selected-voices.json").read_text()
+            ).items()
+        ) + ".",
         "",
     ]
     failed = [run["id"] for run in runs if run["exit_code"] != 0]
@@ -132,6 +150,14 @@ def compare(baseline: Path, candidate: Path, output: Path) -> int:
                     stdout=log, stderr=subprocess.STDOUT, check=True, timeout=60,
                 )
 
+    voices = dict(VOICES)
+    voices["macos"] = select_samantha([
+        (output / f"{name}-macos-voices.txt").read_text()
+        for name in ("baseline", "candidate")
+    ])
+    (output / "selected-voices.json").write_text(json.dumps(voices, indent=2) + "\n")
+    print("Exact voices after preparation: " + json.dumps(voices), flush=True)
+
     # benchmark_server consumes stderr internally. Redirect at exec, preserving
     # the protocol on stdout and the server PID for timeout cleanup and log IDs.
     wrapper = output / "server"
@@ -151,7 +177,7 @@ def compare(baseline: Path, candidate: Path, output: Path) -> int:
         command = [
             sys.executable, str(candidate / "tools/benchmark_server.py"), str(wrapper),
             "--engine", engine, "--expected-engine-id", engine,
-            "--voice-id", VOICES[engine], "--null-audio", "--mode", "both",
+            "--voice-id", voices[engine], "--null-audio", "--mode", "both",
             "--iterations", "5", "--warmups", "2", "--timeout", "30",
             "--json-output", str(directory / "report.json"),
             "--provenance", str(output / f"{build}-provenance.txt"),

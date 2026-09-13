@@ -26,16 +26,26 @@ Both revisions build from separate checkouts on the same runner, using Rust
 stages each binary's matching eSpeak data. The candidate's benchmark client
 drives both servers; an incompatible baseline fails visibly.
 
-The comparison uses null output, exact super-compact US Samantha and US eSpeak
+Before measurement, five unmeasured WAV syntheses prepare US Samantha by name.
+The hosted macOS 26 image initially advertises super-compact Samantha, whose
+identity disappeared during the first few calls in the unmodified 1.10.0 trial.
+The preparation logs and successive inventories retain that first-use evidence.
+The harness then selects one exact Samantha ID present in both builds' fresh
+inventories, preferring `com.apple.voice.compact.en-US.Samantha` and otherwise
+accepting `com.apple.voice.super-compact.en-US.Samantha`. It records the selected
+ID in `selected-voices.json`, the job summary, and every raw benchmark report.
+This selection is frozen throughout measurement; a later identity change fails
+the comparison. Preparation time is outside both cold and warm measurements.
+
+The comparison uses null output, the selected US Samantha and exact US eSpeak
 voices, and character, word, and line workloads. Each of two passes takes five
 cold and five warm samples per case, with two warmups per warm case. Build and
 engine order reverse on the second pass. A cold sample starts a fresh server
 process; it does not reset Apple's voice services or filesystem caches. Missing
 voices and unexpected fallback fail the run rather than substituting a voice.
-The hosted macOS 26 image provides
-`com.apple.voice.super-compact.en-US.Samantha`; this is a different physical
-voice from the tester's `com.apple.voice.compact.en-US.Samantha`. Keep that
-difference alongside the recorded inventories when interpreting the comparison.
+If super-compact is selected, it is a different physical voice from the tester's
+compact Samantha. Keep that difference alongside the recorded inventories when
+interpreting the comparison.
 
 The `macos-speech-timings-*` artifact retains the OS and toolchain identity,
 source commits, binary hashes, inventories, build logs, raw benchmark JSON,

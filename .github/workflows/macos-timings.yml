@@ -74,6 +74,20 @@ jobs:
             ) 2>&1 | tee "timing-reports/$source-build.log"
           done
 
+      - name: Prepare macOS Samantha before freezing its exact identity
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          for attempt in 1 2 3 4 5; do
+            baseline/target/release/omnivox --engine macos --list-voices \
+              > "timing-reports/prepare-$attempt-voices.txt" 2>&1
+            baseline/target/release/omnivox --engine macos \
+              --dump-wav en-US:Samantha "timing-reports/prepare-$attempt.wav" \
+              'Preparing Samantha for the Omnivox software timing comparison.' \
+              > "timing-reports/prepare-$attempt.txt" 2>&1
+            sleep 2
+          done
+
       - name: Compare software timings
         timeout-minutes: 20
         run: python candidate/.github/scripts/macos_timings.py baseline candidate timing-reports
