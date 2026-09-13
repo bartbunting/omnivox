@@ -5,11 +5,47 @@ TGSpeechBox release matrix, plus the core Debian package.
 [`piper-native.yml`](piper-native.yml) is a manual, non-publishing validation
 workflow for the optional Piper companion. User-facing artifact and
 installation details are in [../DEPLOYMENT.md](../DEPLOYMENT.md).
+[`macos-timings.yml`](macos-timings.yml) is a manual, non-publishing software
+latency comparison on an Apple Silicon macOS 26 runner.
 
-Both workflows use Node 24 action releases: checkout v7, setup-python v7,
+The workflows use Node 24 action releases: checkout v7, setup-python v7,
 cache v6, and upload-artifact v7. The release workflow also uses
 download-artifact v8 and action-gh-release v3. Artifact uploads retain the
 default archived layout; downloads fail if the service digest does not match.
+
+## Manual macOS timing comparison
+
+Run **macOS Speech Timings** with the candidate branch selected and
+`baseline_ref` set to a branch, commit, or tag in this repository (default
+`v1.10.0`). GitHub requires a manually dispatched workflow to exist on the
+default branch before it appears in the Actions UI. This workflow does not
+tag, package, or publish a release.
+
+Both revisions build from separate checkouts on the same runner, using Rust
+1.97.1, locked dependencies, and matching release flags. The build wrapper
+stages each binary's matching eSpeak data. The candidate's benchmark client
+drives both servers; an incompatible baseline fails visibly.
+
+The comparison uses null output, exact compact US Samantha and US eSpeak
+voices, and character, word, and line workloads. Each of two passes takes five
+cold and five warm samples per case, with two warmups per warm case. Build and
+engine order reverse on the second pass. A cold sample starts a fresh server
+process; it does not reset Apple's voice services or filesystem caches. Missing
+voices and unexpected fallback fail the run rather than substituting a voice.
+
+The `macos-speech-timings-*` artifact retains the OS and toolchain identity,
+source commits, binary hashes, inventories, build logs, raw benchmark JSON,
+per-process server logs, run order and status, and a Markdown comparison. The
+job summary shows pooled p50/p95 source-start timings and their changes. Failed
+runs preserve partial evidence and suppress the aggregate comparison. Native
+first/last buffer and completion timings remain in the candidate server logs;
+see [macOS buffer capture](../../docs/DIAGNOSTICS.md#macos-buffer-capture).
+
+Timings are observations without a fixed latency gate. Hosted load, installed
+voices, and macOS service state differ from a user's Mac. Null output isolates
+software synthesis and source consumption; it cannot establish acoustic onset,
+device latency, Bluetooth behavior, or the audible benefit of streaming.
+Native build and timing results are separate from a tester's listening check.
 
 ## Jobs
 

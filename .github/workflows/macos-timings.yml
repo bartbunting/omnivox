@@ -1,0 +1,95 @@
+name: macOS Speech Timings
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: Baseline branch, tag, or commit in this repository
+        type: string
+        default: v1.10.0
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-timings-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  compare:
+    name: Compare on Apple Silicon
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      RUSTUP_TOOLCHAIN: 1.97.1
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v7
+        with:
+          path: candidate
+          persist-credentials: false
+
+      - name: Checkout baseline
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.baseline_ref }}
+          path: baseline
+          persist-credentials: false
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+
+      - name: Install Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: Test timing harness
+        run: python -W error::ResourceWarning candidate/.github/scripts/test_macos_timings.py
+
+      - name: Record host and build settings
+        shell: bash
+        run: |
+          mkdir timing-reports
+          {
+            date -u
+            sw_vers
+            uname -m
+            sysctl -n machdep.cpu.brand_string
+            rustc --version
+            python --version
+            xcodebuild -version
+            echo 'Both builds: tools/build.py --release --package omnivox-cli --features piper'
+            echo 'Audio output: null; no acoustic onset measured'
+          } > timing-reports/host.txt
+
+      - name: Build baseline and candidate with matching settings
+        shell: bash
+        run: |
+          for source in baseline candidate; do
+            (
+              cd "$source" || exit
+              python tools/build.py --release --package omnivox-cli --features piper
+            ) 2>&1 | tee "timing-reports/$source-build.log"
+          done
+
+      - name: Compare software timings
+        timeout-minutes: 20
+        run: python candidate/.github/scripts/macos_timings.py baseline candidate timing-reports
+
+      - name: Show comparison
+        if: always()
+        shell: bash
+        run: |
+          if [ -f timing-reports/summary.md ]; then
+            cat timing-reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload timing evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-speech-timings-${{ github.run_id }}-${{ github.run_attempt }}
+          path: timing-reports/
+          if-no-files-found: warn

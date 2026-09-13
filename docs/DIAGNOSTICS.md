@@ -61,6 +61,50 @@ dispatch ID. The first mixer-source measurement is not physical acoustic
 onset: operating-system, device, and hardware buffers can add latency after
 the mixer requests its first sample.
 
+### macOS buffer capture
+
+Each macOS synthesis call also emits one info-level
+`lifecycle_stage="macos_buffer_capture"` record in the same `speech_request`
+span. The record contains no spoken text and is emitted after the native call
+returns, including when it returns no audio. No extra logging switch or
+benchmark option is required. Keep the Omnivox server logs alongside the
+benchmark JSON; these native timings are not added to the client JSON.
+
+The following offsets are monotonic microseconds **from entry into the native
+bridge**, not from protocol admission or the surrounding Rust synthesis call:
+
+| Field | Meaning |
+|---|---|
+| `queue_wait_us` | Bridge entry to execution on the serial synthesis queue, including argument preparation. |
+| `write_started_us` | About to call Apple's `writeUtterance:toBufferCallback:` after voice selection and utterance setup. |
+| `first_buffer_us`, `last_buffer_us` | Arrival of the first and last nonempty float PCM buffers accepted by the bridge. |
+| `completion_signal_us` | Arrival of Apple's first zero-length completion buffer, if observed. |
+| `capture_completed_us` | The bridge exits its buffer collection loop. |
+| `bridge_elapsed_us` | The bridge is ready to return to Rust, after copying PCM and waking the caller. |
+
+Unobserved callback offsets appear as `None`, never as zero latency.
+`buffers_received` counts accepted nonempty PCM buffers. `completion_reason`
+identifies the exit path: `empty_buffer` for Apple's completion signal,
+`inactivity_timeout` for the existing 200 ms fallback, or `deadline` for the
+existing 30-second deadline. These identify how capture ended, not successful
+playback; consult the surrounding synthesis and playback records for outcome.
+
+Two derived durations help assess streaming: `first_buffer_to_return_us` is
+the time from the first accepted buffer to bridge return, and
+`last_buffer_to_completion_us` isolates the wait after the last accepted buffer.
+The former measures time currently spent waiting with initial PCM available;
+it is not a promised streaming speedup or acoustic onset measurement. Initial
+silence, conversion, playback scheduling, and device buffering still matter.
+Rust audio conversion and result validation occur after the bridge timing and
+remain included in the surrounding `synthesis_elapsed_us` measurement.
+
+### Server benchmarks
+
+The manual [macOS Speech Timings workflow](../.github/workflows/README.md#manual-macos-timing-comparison)
+compares a baseline and candidate on the same hosted Apple Silicon Mac, using
+null output and retaining the native buffer logs alongside raw benchmark
+reports. It provides software timing evidence before a tester's listening check.
+
 Use `tools/benchmark_server.py` to collect repeatable client-observed cold and
 warm distributions through the public server protocol. Cold samples start a
 fresh process; warm samples reuse one process after configurable warmups. The

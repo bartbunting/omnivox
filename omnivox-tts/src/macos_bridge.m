@@ -9,6 +9,7 @@
 
 #import <AVFoundation/AVFoundation.h>
 #import <Foundation/Foundation.h>
+#include <time.h>
 
 // Persistent synthesizer instance
 static AVSpeechSynthesizer *_sharedSynth = nil;
@@ -33,12 +34,74 @@ static dispatch_queue_t synthQueue(void) {
     return _synthQueue;
 }
 
+// Keep the same voice inventory for the lifetime of this process, including
+// across Rust engine instances. Restart Omnivox after installing new voices.
+static NSArray<AVSpeechSynthesisVoice *> *sharedVoices(void) {
+    static NSArray<AVSpeechSynthesisVoice *> *voices = nil;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        voices = [[AVSpeechSynthesisVoice speechVoices] copy];
+    });
+    return voices;
+}
+
+// Called only on synthQueue. Cache native selection too: neither enumerating
+// voices nor asking Apple for the default language voice belongs on every
+// utterance. NSNull retains failed lookups without changing their fallback.
+static AVSpeechSynthesisVoice *cachedVoice(NSString *lang, NSString *name) {
+    static NSMutableDictionary<NSArray *, id> *selected = nil;
+    if (selected == nil) selected = [NSMutableDictionary dictionary];
+    NSArray *key = @[lang, name ?: (id)[NSNull null]];
+    id voice = selected[key];
+    if (voice == nil) {
+        if (name != nil) {
+            for (AVSpeechSynthesisVoice *candidate in sharedVoices()) {
+                if ([candidate.language isEqualToString:lang] &&
+                    [candidate.name isEqualToString:name]) {
+                    voice = candidate;
+                    break;
+                }
+            }
+        } else {
+            voice = [AVSpeechSynthesisVoice voiceWithLanguage:lang];
+        }
+        selected[key] = voice ?: [NSNull null];
+    }
+    return voice == [NSNull null] ? nil : voice;
+}
+
+// Monotonic offsets from entry to omnivox_synthesize, in microseconds.
+// UINT64_MAX means that the corresponding callback was not observed.
+// Keep this layout and the completion codes in sync with macos.rs.
+typedef struct {
+    uint64_t queue_wait_us;
+    uint64_t write_started_us;
+    uint64_t first_buffer_us;
+    uint64_t last_buffer_us;
+    uint64_t completion_signal_us;
+    uint64_t capture_completed_us;
+    uint64_t bridge_elapsed_us;
+    uint32_t buffers_received;
+    uint32_t completion_reason;
+} SynthTimings;
+
+enum {
+    SynthCompletionEmptyBuffer = 1,
+    SynthCompletionInactivity = 2,
+    SynthCompletionDeadline = 3,
+};
+
+static uint64_t elapsedMicroseconds(uint64_t startedAt) {
+    return (clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - startedAt) / 1000;
+}
+
 // Result struct returned to Rust
 typedef struct {
     float *samples;
     uint32_t sample_count;
     uint32_t sample_rate;
     uint16_t channels;
+    SynthTimings timings;
 } SynthResult;
 
 // Core synthesis — must be called on a GCD thread (synthQueue) so the RunLoop
@@ -49,9 +112,11 @@ static SynthResult do_synthesize(
     NSString *name,
     float rate,
     float pitch,
-    float volume
+    float volume,
+    uint64_t startedAt
 ) {
-    SynthResult result = {NULL, 0, 0, 0};
+    SynthResult result = {0};
+    result.timings.queue_wait_us = elapsedMicroseconds(startedAt);
 
     @autoreleasepool {
         AVSpeechSynthesizer *synth = sharedSynthesizer();
@@ -67,17 +132,7 @@ static SynthResult do_synthesize(
 
         // Set voice
         if (lang != nil) {
-            if (name != nil) {
-                NSArray<AVSpeechSynthesisVoice *> *voices = [AVSpeechSynthesisVoice speechVoices];
-                for (AVSpeechSynthesisVoice *v in voices) {
-                    if ([v.language isEqualToString:lang] && [v.name isEqualToString:name]) {
-                        utterance.voice = v;
-                        break;
-                    }
-                }
-            } else {
-                utterance.voice = [AVSpeechSynthesisVoice voiceWithLanguage:lang];
-            }
+            utterance.voice = cachedVoice(lang, name);
         }
 
         utterance.rate = rate;
@@ -90,11 +145,17 @@ static SynthResult do_synthesize(
         __block uint16_t channelCount = 0;
         __block BOOL synthesisComplete = NO;
         __block uint32_t chunksReceived = 0;
+        __block uint64_t firstBufferUs = UINT64_MAX;
+        __block uint64_t lastBufferUs = UINT64_MAX;
+        __block uint64_t completionSignalUs = UINT64_MAX;
 
+        result.timings.write_started_us = elapsedMicroseconds(startedAt);
         [synth writeUtterance:utterance toBufferCallback:^(AVAudioBuffer * _Nonnull buffer) {
+            uint64_t arrivedUs = elapsedMicroseconds(startedAt);
             AVAudioPCMBuffer *pcm = (AVAudioPCMBuffer *)buffer;
 
             if (pcm.frameLength == 0) {
+                if (completionSignalUs == UINT64_MAX) completionSignalUs = arrivedUs;
                 synthesisComplete = YES;
                 return;
             }
@@ -105,6 +166,8 @@ static SynthResult do_synthesize(
             float * const *floatData = pcm.floatChannelData;
             if (floatData == NULL) return;
 
+            if (firstBufferUs == UINT64_MAX) firstBufferUs = arrivedUs;
+            lastBufferUs = arrivedUs;
             for (uint32_t frame = 0; frame < pcm.frameLength; frame++) {
                 for (uint16_t ch = 0; ch < channelCount; ch++) {
                     float sample = floatData[ch][frame];
@@ -119,12 +182,16 @@ static SynthResult do_synthesize(
         NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:30.0];
         uint32_t lastChunkCount = 0;
         NSDate *lastChunkTime = [NSDate date];
+        result.timings.completion_reason = SynthCompletionDeadline;
 
         while ([[NSDate date] compare:deadline] == NSOrderedAscending) {
             [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
                                      beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
 
-            if (synthesisComplete) break;
+            if (synthesisComplete) {
+                result.timings.completion_reason = SynthCompletionEmptyBuffer;
+                break;
+            }
 
             // If chunks have stopped arriving for 200ms, consider synthesis done.
             // (Some macOS versions omit the frameLength==0 completion signal.)
@@ -133,10 +200,17 @@ static SynthResult do_synthesize(
                     lastChunkCount = chunksReceived;
                     lastChunkTime = [NSDate date];
                 } else if ([[NSDate date] timeIntervalSinceDate:lastChunkTime] > 0.2) {
+                    result.timings.completion_reason = SynthCompletionInactivity;
                     break;
                 }
             }
         }
+
+        result.timings.capture_completed_us = elapsedMicroseconds(startedAt);
+        result.timings.first_buffer_us = firstBufferUs;
+        result.timings.last_buffer_us = lastBufferUs;
+        result.timings.completion_signal_us = completionSignalUs;
+        result.timings.buffers_received = chunksReceived;
 
         if (audioData.length > 0) {
             uint32_t totalSamples = (uint32_t)(audioData.length / sizeof(float));
@@ -159,20 +233,22 @@ SynthResult omnivox_synthesize(
     float pitch,
     float volume
 ) {
+    uint64_t startedAt = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
     // Convert C strings to NSStrings on the calling thread before dispatching.
     NSString *nsText     = [NSString stringWithUTF8String:text];
     NSString *nsLang     = voice_lang ? [NSString stringWithUTF8String:voice_lang] : nil;
     NSString *nsName     = voice_name ? [NSString stringWithUTF8String:voice_name] : nil;
 
-    __block SynthResult result = {NULL, 0, 0, 0};
+    __block SynthResult result = {0};
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
 
     dispatch_async(synthQueue(), ^{
-        result = do_synthesize(nsText, nsLang, nsName, rate, pitch, volume);
+        result = do_synthesize(nsText, nsLang, nsName, rate, pitch, volume, startedAt);
         dispatch_semaphore_signal(done);
     });
 
     dispatch_semaphore_wait(done, DISPATCH_TIME_FOREVER);
+    result.timings.bridge_elapsed_us = elapsedMicroseconds(startedAt);
     return result;
 }
 
@@ -228,7 +304,7 @@ VoiceList omnivox_list_voices(void) {
     VoiceList list = {NULL, 0};
 
     @autoreleasepool {
-        NSArray<AVSpeechSynthesisVoice *> *voices = [AVSpeechSynthesisVoice speechVoices];
+        NSArray<AVSpeechSynthesisVoice *> *voices = sharedVoices();
         list.count = (uint32_t)voices.count;
         list.entries = (VoiceEntry *)malloc(sizeof(VoiceEntry) * list.count);
 

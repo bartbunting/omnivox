@@ -6,6 +6,18 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- macOS synthesis logs first and last PCM buffer timings, the native completion
+  signal or fallback reason, and time until the bridge returns audio. These
+  records share existing request identities to support latency comparisons.
+
+### Fixed
+
+- macOS speech reuses the process's voice inventory, engine descriptor, and
+  native voice selections instead of querying Apple voices for each utterance.
+  Restart Omnivox after installing voices to refresh the cached inventory.
+
 ## [1.10.0] - 2026-09-09
 
 ### Added
