@@ -12,7 +12,9 @@ import sys
 
 
 VOICES = {
-    "macos": "com.apple.voice.compact.en-US.Samantha",
+    # The macOS 26 hosted image includes super-compact Samantha. Parham's
+    # compact variant is a separate voice ID and is not installed on this image.
+    "macos": "com.apple.voice.super-compact.en-US.Samantha",
     "espeak": "espeak:gmw/en-US",
 }
 CASES = ("character", "word", "line")

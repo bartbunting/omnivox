@@ -26,12 +26,16 @@ Both revisions build from separate checkouts on the same runner, using Rust
 stages each binary's matching eSpeak data. The candidate's benchmark client
 drives both servers; an incompatible baseline fails visibly.
 
-The comparison uses null output, exact compact US Samantha and US eSpeak
+The comparison uses null output, exact super-compact US Samantha and US eSpeak
 voices, and character, word, and line workloads. Each of two passes takes five
 cold and five warm samples per case, with two warmups per warm case. Build and
 engine order reverse on the second pass. A cold sample starts a fresh server
 process; it does not reset Apple's voice services or filesystem caches. Missing
 voices and unexpected fallback fail the run rather than substituting a voice.
+The hosted macOS 26 image provides
+`com.apple.voice.super-compact.en-US.Samantha`; this is a different physical
+voice from the tester's `com.apple.voice.compact.en-US.Samantha`. Keep that
+difference alongside the recorded inventories when interpreting the comparison.
 
 The `macos-speech-timings-*` artifact retains the OS and toolchain identity,
 source commits, binary hashes, inventories, build logs, raw benchmark JSON,
