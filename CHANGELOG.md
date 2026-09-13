@@ -6,11 +6,16 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-09-14
+
 ### Added
 
 - macOS synthesis logs first and last PCM buffer timings, the native completion
   signal or fallback reason, and time until the bridge returns audio. These
   records share existing request identities to support latency comparisons.
+- A manual Apple Silicon CI workflow compares baseline and candidate cold/warm
+  speech timings using exact Samantha and eSpeak voices, preserving raw samples,
+  native buffer logs, voice inventories, and build provenance.
 
 ### Fixed
 

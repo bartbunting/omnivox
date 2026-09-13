@@ -1,13 +1,13 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-09
-**Workspace version:** 1.10.0
+**Last reviewed:** 2026-09-14
+**Workspace version:** 1.11.0
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
 [NEXT_STEPS.md](plans/NEXT_STEPS.md).
-Changes prepared for 1.10.0 are recorded in the
-[changelog](../CHANGELOG.md#1100---2026-09-09). Later development changes belong
+Changes prepared for 1.11.0 are recorded in the
+[changelog](../CHANGELOG.md#1110---2026-09-14). Later development changes belong
 under [Unreleased](../CHANGELOG.md#unreleased); publication is established by
 the matching verified GitHub release.
 
@@ -34,6 +34,10 @@ the matching verified GitHub release.
 ### Routing and synthesis
 
 - macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
+- macOS reuses its voice inventory, engine descriptor, and native voice
+  selections for the process lifetime. Restart Omnivox after installing voices.
+  Buffer timing logs identify first/last PCM, completion, and bridge return;
+  macOS synthesis remains buffered.
 - Optional out-of-process Piper, RHVoice, Flite, RuTTS, Eloquence, DECtalk,
   and experimental TGSpeechBox engines.
 - Structured engine/voice inventory and deterministic per-span logical routing.
