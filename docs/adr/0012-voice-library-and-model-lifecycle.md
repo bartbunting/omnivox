@@ -101,3 +101,9 @@ loads, refusal of overlapping construction, inference failure and subsequent
 successful synthesis in one process. This establishes Linux recovery, not
 Windows acceptance or measured memory release. Cancellation and library
 selection still follow in separate implementation slices.
+
+The helper host now attaches its permanent request cancellation token before
+publishing the active request. The same token gates protocol completion and
+is visible to adapters, including a worker starting after cancellation. The
+blocked-worker regression verifies that the adapter observes cancellation;
+existing cancel acknowledgements and helper protocol versions are unchanged.

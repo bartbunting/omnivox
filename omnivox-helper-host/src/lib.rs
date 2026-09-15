@@ -2,7 +2,6 @@
 
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::panic::{self, AssertUnwindSafe};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -18,9 +17,9 @@ use omnivox_tts::helper_protocol::{
     MAX_HELPER_SYNTHESIS_BYTES, SUPPORTED_HELPER_PROTOCOL_VERSIONS,
 };
 use omnivox_tts::{
-    AudioBuffer, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind, SynthesisRequest,
-    SynthesisResult, SynthesisStreamSink, SynthesisStreamStart, TtsEngine, TtsError, TtsSettings,
-    STANDARD_CHANNELS, STANDARD_SAMPLE_RATE,
+    AudioBuffer, ResolvedAnchor, SynthesisCancellationToken, SynthesisMarker, SynthesisMarkerKind,
+    SynthesisRequest, SynthesisResult, SynthesisStreamSink, SynthesisStreamStart, TtsEngine,
+    TtsError, TtsSettings, STANDARD_CHANNELS, STANDARD_SAMPLE_RATE,
 };
 use thiserror::Error;
 
@@ -97,7 +96,7 @@ where
 #[derive(Debug, Clone)]
 struct ActiveSynthesis {
     request_id: u64,
-    cancelled: Arc<AtomicBool>,
+    cancelled: SynthesisCancellationToken,
 }
 
 #[derive(Default)]
@@ -354,7 +353,7 @@ where
                     false,
                 )
             })?;
-        active.cancelled.store(true, Ordering::Release);
+        active.cancelled.cancel();
         self.engine.stop();
         // Retain the state lock through the acknowledgement. The synthesis
         // worker therefore cannot publish a conflicting successful terminal
@@ -433,8 +432,9 @@ where
 
         let active = ActiveSynthesis {
             request_id,
-            cancelled: Arc::new(AtomicBool::new(false)),
+            cancelled: SynthesisCancellationToken::new(),
         };
+        request.cancellation = Some(active.cancelled.clone());
         {
             let mut state = self.state.lock().unwrap();
             if state.active.is_some() {
@@ -483,7 +483,7 @@ where
             return;
         }
         let synthesis = panic::catch_unwind(AssertUnwindSafe(|| self.engine.synthesize(&request)));
-        let terminal = if active.cancelled.load(Ordering::Acquire) {
+        let terminal = if active.cancelled.is_cancelled() {
             HelperResponseBody::SynthesisCancelled
         } else {
             match synthesis {
@@ -522,7 +522,7 @@ where
         let synthesis = panic::catch_unwind(AssertUnwindSafe(|| {
             self.engine.synthesize_stream(&request, &mut sink)
         }));
-        let terminal = if active.cancelled.load(Ordering::Acquire) {
+        let terminal = if active.cancelled.is_cancelled() {
             HelperResponseBody::SynthesisCancelled
         } else {
             match synthesis {
@@ -595,7 +595,7 @@ where
 
         let samples_per_chunk = MAX_HELPER_AUDIO_CHUNK_BYTES / std::mem::size_of::<i16>();
         for (sequence, samples) in result.audio.samples.chunks(samples_per_chunk).enumerate() {
-            if active.cancelled.load(Ordering::Acquire) {
+            if active.cancelled.is_cancelled() {
                 return Ok(None);
             }
             let mut bytes = Vec::with_capacity(samples.len() * std::mem::size_of::<i16>());
@@ -621,7 +621,7 @@ where
             )
             .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
         }
-        if active.cancelled.load(Ordering::Acquire) {
+        if active.cancelled.is_cancelled() {
             return Ok(None);
         }
         Ok(Some(result.audio.frame_count() as u64))
@@ -652,7 +652,7 @@ where
         {
             return Ok(());
         }
-        let terminal = if active.cancelled.load(Ordering::Acquire) {
+        let terminal = if active.cancelled.is_cancelled() {
             HelperResponseBody::SynthesisCancelled
         } else {
             completed_terminal
@@ -665,7 +665,7 @@ where
     fn cancel_active(&self) {
         let active = self.state.lock().unwrap().active.clone();
         if let Some(active) = active {
-            active.cancelled.store(true, Ordering::Release);
+            active.cancelled.cancel();
             self.engine.stop();
         }
     }
@@ -759,7 +759,7 @@ where
     }
 
     fn ensure_active(&self) -> Result<(), TtsError> {
-        if self.active.cancelled.load(Ordering::Acquire) {
+        if self.active.cancelled.is_cancelled() {
             return Err(TtsError::SynthesisFailed(
                 "helper synthesis was cancelled".to_owned(),
             ));
@@ -1091,7 +1091,7 @@ fn bounded_message(message: &str) -> String {
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
-    use std::sync::atomic::AtomicUsize;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::Condvar;
     use std::time::{Duration, Instant};
 
@@ -1273,6 +1273,7 @@ mod tests {
         changed: Condvar,
         started: AtomicBool,
         stops: AtomicUsize,
+        observed_cancellation: AtomicBool,
     }
 
     impl BlockingEngine {
@@ -1282,6 +1283,7 @@ mod tests {
                 changed: Condvar::new(),
                 started: AtomicBool::new(false),
                 stops: AtomicUsize::new(0),
+                observed_cancellation: AtomicBool::new(false),
             }
         }
 
@@ -1310,6 +1312,13 @@ mod tests {
             while !*released {
                 released = self.changed.wait(released).unwrap();
             }
+            self.observed_cancellation.store(
+                request
+                    .cancellation
+                    .as_ref()
+                    .is_some_and(SynthesisCancellationToken::is_cancelled),
+                Ordering::Release,
+            );
             Ok(SynthesisResult::audio(
                 "mock",
                 request.requested_voice.clone(),
@@ -1585,6 +1594,7 @@ mod tests {
 
         native.release();
         writer.wait_for(|body| matches!(body, HelperResponseBody::SynthesisCancelled));
+        assert!(native.observed_cancellation.load(Ordering::Acquire));
         let responses = writer.responses();
         assert!(!responses
             .iter()

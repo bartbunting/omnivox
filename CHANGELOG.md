@@ -11,6 +11,8 @@ Versioning for published releases.
 - Piper contains native model-loading and inference exceptions instead of
   aborting the helper. Partial model construction is cleaned up, and overlapping
   model construction is rejected without disrupting the resident model.
+- Isolated helper adapters receive the host's persistent request cancellation
+  token, so cancellation remains visible during delayed native startup.
 
 ## [1.11.0] - 2026-09-14
 
