@@ -28,6 +28,9 @@ Versioning for published releases.
 
 ### Fixed
 
+- Helper replacement waits for confirmed direct-child exit and reader completion.
+  Failed cleanup remains owned for retry, and termination no longer waits for a
+  blocked input writer before killing the child.
 - Piper contains native model-loading and inference exceptions instead of
   aborting the helper. Partial model construction is cleaned up, and overlapping
   model construction is rejected without disrupting the resident model.

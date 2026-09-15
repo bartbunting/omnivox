@@ -7,7 +7,7 @@ use std::io::{BufReader, BufWriter, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
-use std::sync::{mpsc, Arc, Mutex, RwLock};
+use std::sync::{mpsc, Arc, Mutex, MutexGuard, RwLock, TryLockError};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
@@ -38,6 +38,8 @@ pub const HELPER_DESCRIPTOR_CACHE_FILE_NAME: &str = "VOICE-INVENTORY.json";
 const HELPER_DESCRIPTOR_CACHE_SCHEMA_VERSION: u32 = 1;
 const MAX_HELPER_DESCRIPTOR_CACHE_BYTES: u64 = 1024 * 1024;
 const HELPER_RESPONSE_QUEUE_CAPACITY: usize = 8;
+const HELPER_CLEANUP_TIMEOUT: Duration = Duration::from_secs(5);
+const HELPER_CLEANUP_POLL: Duration = Duration::from_millis(10);
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -262,7 +264,8 @@ fn validate_helper_descriptor(
 trait HelperConnection: Send + Sync {
     fn send(&self, request: &HelperRequest) -> Result<(), HelperEngineError>;
     fn receive(&self, timeout: Duration) -> Result<HelperResponse, HelperEngineError>;
-    fn terminate(&self);
+    /// Success confirms child reaping and reader completion. Failure must block replacement.
+    fn terminate(&self) -> Result<(), HelperEngineError>;
 }
 
 trait HelperConnector: Send + Sync {
@@ -301,6 +304,7 @@ struct ProcessHelperConnection {
     engine_id: String,
     child_id: u32,
     terminated: AtomicBool,
+    cleanup: Mutex<()>,
     writer: Mutex<Option<BufWriter<ChildStdin>>>,
     responses: Mutex<Option<mpsc::Receiver<HelperReadResult>>>,
     child: Mutex<Child>,
@@ -341,6 +345,16 @@ impl ProcessHelperConnection {
         })?;
         let (response_sender, response_receiver) =
             mpsc::sync_channel(HELPER_RESPONSE_QUEUE_CAPACITY);
+        let connection = Self {
+            engine_id: engine_id.to_owned(),
+            child_id,
+            terminated: AtomicBool::new(false),
+            cleanup: Mutex::new(()),
+            writer: Mutex::new(Some(BufWriter::new(stdin))),
+            responses: Mutex::new(Some(response_receiver)),
+            child: Mutex::new(child),
+            reader_handle: Mutex::new(None),
+        };
         let reader_engine_id = engine_id.to_owned();
         let reader_handle = std::thread::Builder::new()
             .name("omnivox-helper-reader".to_owned())
@@ -373,22 +387,18 @@ impl ProcessHelperConnection {
                 }
             })
             .map_err(|error| {
-                let _ = child.kill();
-                let _ = child.wait();
                 HelperEngineError::Transport(format!(
                     "could not start helper reader thread: {error}"
                 ))
-            })?;
-
-        Ok(Self {
-            engine_id: engine_id.to_owned(),
-            child_id,
-            terminated: AtomicBool::new(false),
-            writer: Mutex::new(Some(BufWriter::new(stdin))),
-            responses: Mutex::new(Some(response_receiver)),
-            child: Mutex::new(child),
-            reader_handle: Mutex::new(Some(reader_handle)),
-        })
+            });
+        match reader_handle {
+            Ok(handle) => *connection.reader_handle.lock().unwrap() = Some(handle),
+            Err(error) => {
+                connection.terminate()?;
+                return Err(error);
+            }
+        }
+        Ok(connection)
     }
 }
 
@@ -396,6 +406,9 @@ impl HelperConnection for ProcessHelperConnection {
     fn send(&self, request: &HelperRequest) -> Result<(), HelperEngineError> {
         request.validate()?;
         let mut writer = self.writer.lock().unwrap();
+        if self.terminated.load(Ordering::Acquire) {
+            return Err(HelperEngineError::Exited);
+        }
         let writer = writer.as_mut().ok_or(HelperEngineError::Exited)?;
         write_frame(writer, request)?;
         Ok(())
@@ -404,43 +417,116 @@ impl HelperConnection for ProcessHelperConnection {
     fn receive(&self, timeout: Duration) -> Result<HelperResponse, HelperEngineError> {
         let responses = self.responses.lock().unwrap();
         let responses = responses.as_ref().ok_or(HelperEngineError::Exited)?;
-        match responses.recv_timeout(timeout) {
-            Ok(result) => result,
-            Err(mpsc::RecvTimeoutError::Timeout) => {
-                Err(HelperEngineError::Timeout("helper response"))
+        let deadline = Instant::now() + timeout;
+        loop {
+            if self.terminated.load(Ordering::Acquire) {
+                return Err(HelperEngineError::Exited);
             }
-            Err(mpsc::RecvTimeoutError::Disconnected) => Err(HelperEngineError::Exited),
+            match responses.recv_timeout(
+                deadline
+                    .saturating_duration_since(Instant::now())
+                    .min(HELPER_CLEANUP_POLL),
+            ) {
+                Ok(result) => return result,
+                Err(mpsc::RecvTimeoutError::Timeout) if Instant::now() < deadline => {}
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    return Err(HelperEngineError::Timeout("helper response"));
+                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => return Err(HelperEngineError::Exited),
+            }
         }
     }
 
-    fn terminate(&self) {
-        if self.terminated.swap(true, Ordering::AcqRel) {
-            return;
-        }
-        self.writer.lock().unwrap().take();
-        self.responses.lock().unwrap().take();
-        let exit_status = {
-            let mut child = self.child.lock().unwrap();
-            if child.try_wait().ok().flatten().is_none() {
-                let _ = child.kill();
+    fn terminate(&self) -> Result<(), HelperEngineError> {
+        self.terminate_before(Instant::now() + HELPER_CLEANUP_TIMEOUT)
+    }
+}
+
+fn cleanup_lock<T>(
+    mutex: &Mutex<T>,
+    deadline: Instant,
+) -> Result<MutexGuard<'_, T>, HelperEngineError> {
+    loop {
+        match mutex.try_lock() {
+            Ok(guard) => return Ok(guard),
+            Err(TryLockError::Poisoned(_)) => {
+                return Err(HelperEngineError::Transport(
+                    "helper cleanup lock poisoned".to_owned(),
+                ));
             }
-            child.wait().ok()
+            Err(TryLockError::WouldBlock) if Instant::now() < deadline => {
+                thread::sleep(HELPER_CLEANUP_POLL);
+            }
+            Err(TryLockError::WouldBlock) => {
+                return Err(HelperEngineError::Timeout("helper cleanup lock"))
+            }
+        }
+    }
+}
+
+impl ProcessHelperConnection {
+    fn terminate_before(&self, deadline: Instant) -> Result<(), HelperEngineError> {
+        // Closing is distinct from confirmed cleanup. Every caller can retry a failed cleanup.
+        self.terminated.store(true, Ordering::Release);
+        let _cleanup = cleanup_lock(&self.cleanup, deadline)?;
+        let mut child = cleanup_lock(&self.child, deadline)?;
+        let transport = |error| HelperEngineError::Transport(format!("helper cleanup: {error}"));
+        let exit_status = match child.try_wait().map_err(transport)? {
+            Some(status) => status,
+            None => {
+                // Kill before touching stdin: another thread may be blocked writing to it.
+                if let Err(error) = child.kill() {
+                    // The process may have exited between try_wait and kill.
+                    if child.try_wait().map_err(transport)?.is_none() {
+                        return Err(transport(error));
+                    }
+                }
+                loop {
+                    if let Some(status) = child.try_wait().map_err(transport)? {
+                        break status;
+                    }
+                    if Instant::now() >= deadline {
+                        return Err(HelperEngineError::Timeout("helper process reaping"));
+                    }
+                    thread::sleep(HELPER_CLEANUP_POLL);
+                }
+            }
         };
+        drop(child);
+        // Discard buffered requests without flushing during retirement.
+        if let Some(writer) = cleanup_lock(&self.writer, deadline)?.take() {
+            let _ = writer.into_parts();
+        }
+        cleanup_lock(&self.responses, deadline)?.take();
+        let mut reader = cleanup_lock(&self.reader_handle, deadline)?;
+        if let Some(handle) = reader.as_ref() {
+            while !handle.is_finished() {
+                if Instant::now() >= deadline {
+                    return Err(HelperEngineError::Timeout("helper reader completion"));
+                }
+                thread::sleep(HELPER_CLEANUP_POLL);
+            }
+        }
+        if let Some(handle) = reader.take() {
+            // A panicked reader has also finished; it cannot retain the child or its pipe.
+            let _ = handle.join();
+        }
         info!(
             engine_id = self.engine_id,
             child_id = self.child_id,
             status = ?exit_status,
-            "TTS helper process reaped"
+            "TTS helper process reaped and reader finished"
         );
-        if let Some(handle) = self.reader_handle.lock().unwrap().take() {
-            let _ = handle.join();
-        }
+        Ok(())
     }
 }
 
 impl Drop for ProcessHelperConnection {
     fn drop(&mut self) {
-        self.terminate();
+        if let Err(error) = self.terminate() {
+            warn!(engine_id = self.engine_id, child_id = self.child_id, %error,
+                  "Could not confirm TTS helper cleanup");
+        }
     }
 }
 
@@ -1103,6 +1189,8 @@ pub struct HelperTtsEngine {
     config: HelperEngineConfig,
     connector: Arc<dyn HelperConnector>,
     connection: RwLock<Option<Arc<dyn HelperConnection>>>,
+    // Holds ownership until cleanup succeeds; also serializes retirement with admission.
+    retiring_connection: Mutex<Option<Arc<dyn HelperConnection>>>,
     descriptor: RwLock<Option<EngineDescriptor>>,
     descriptor_is_deferred: AtomicBool,
     protocol_version: AtomicU64,
@@ -1171,6 +1259,7 @@ impl HelperTtsEngine {
             config,
             connector,
             connection: RwLock::new(None),
+            retiring_connection: Mutex::new(None),
             descriptor: RwLock::new(descriptor),
             descriptor_is_deferred: AtomicBool::new(descriptor_is_deferred),
             protocol_version: AtomicU64::new(0),
@@ -1216,16 +1305,25 @@ impl HelperTtsEngine {
             engine_id = self.config.engine_id,
             "Installing fresh TTS helper connection"
         );
-        if let Some(connection) = self.connection.write().unwrap().take() {
-            connection.terminate();
+        let mut retiring = self.retiring_connection.lock().unwrap();
+        if let Some(connection) = retiring.as_ref() {
+            connection.terminate()?;
         }
+        *retiring = self.connection.write().unwrap().take();
+        if let Some(connection) = retiring.as_ref() {
+            connection.terminate()?;
+        }
+        *retiring = None;
         self.cancellations_by_target.lock().unwrap().clear();
 
         let connection = self.connector.connect()?;
+        // A failed greeting also owns a process that must be reaped before retrying.
+        *retiring = Some(Arc::clone(&connection));
         let (descriptor, protocol_version) = match self.negotiate(&connection) {
             Ok(negotiated) => negotiated,
             Err(error) => {
-                connection.terminate();
+                connection.terminate()?;
+                *retiring = None;
                 return Err(error);
             }
         };
@@ -1233,7 +1331,8 @@ impl HelperTtsEngine {
             let cached_descriptor = self.descriptor.read().unwrap();
             if cached_descriptor.as_ref() != Some(&descriptor) {
                 drop(cached_descriptor);
-                connection.terminate();
+                connection.terminate()?;
+                *retiring = None;
                 return Err(HelperEngineError::InvalidDescriptor(
                     "live helper descriptor differs from its cached voice inventory".to_owned(),
                 ));
@@ -1244,6 +1343,7 @@ impl HelperTtsEngine {
         self.protocol_version
             .store(u64::from(protocol_version), Ordering::Release);
         *self.connection.write().unwrap() = Some(connection);
+        *retiring = None;
         info!(
             engine_id = self.config.engine_id,
             protocol_version,
@@ -1425,6 +1525,7 @@ impl HelperTtsEngine {
     }
 
     fn invalidate_connection(&self, connection: &Arc<dyn HelperConnection>) {
+        let mut retiring = self.retiring_connection.lock().unwrap();
         let removed = {
             let mut current = self.connection.write().unwrap();
             if current
@@ -1437,7 +1538,13 @@ impl HelperTtsEngine {
             }
         };
         if let Some(connection) = removed {
-            connection.terminate();
+            *retiring = Some(connection);
+            if let Err(error) = retiring.as_ref().unwrap().terminate() {
+                warn!(engine_id = self.config.engine_id, %error,
+                      "Helper cleanup unconfirmed; replacement remains blocked");
+            } else {
+                *retiring = None;
+            }
         }
     }
 
@@ -1993,7 +2100,9 @@ impl TtsEngine for HelperTtsEngine {
                         grace_ms = HELPER_CANCEL_GRACE.as_millis(),
                         "TTS helper did not finish cancellation; terminating it"
                     );
-                    watchdog_connection.terminate();
+                    if let Err(error) = watchdog_connection.terminate() {
+                        warn!(engine_id, %error, "Cancellation watchdog could not confirm helper cleanup");
+                    }
                 }
             });
         if let Err(error) = watchdog {
@@ -2004,7 +2113,10 @@ impl TtsEngine for HelperTtsEngine {
                 "Could not start TTS helper cancellation watchdog; terminating it"
             );
             if cancellation.begin_retirement() {
-                connection.terminate();
+                if let Err(error) = connection.terminate() {
+                    warn!(engine_id = self.config.engine_id, %error,
+                          "Could not confirm cancelled helper cleanup");
+                }
             }
         }
     }
@@ -2037,7 +2149,18 @@ impl Drop for HelperTtsEngine {
     fn drop(&mut self) {
         if let Ok(connection) = self.connection.get_mut() {
             if let Some(connection) = connection.take() {
-                connection.terminate();
+                if let Err(error) = connection.terminate() {
+                    warn!(engine_id = self.config.engine_id, %error,
+                          "Could not confirm helper cleanup during engine drop");
+                }
+            }
+        }
+        if let Ok(retiring) = self.retiring_connection.get_mut() {
+            if let Some(connection) = retiring.take() {
+                if let Err(error) = connection.terminate() {
+                    warn!(engine_id = self.config.engine_id, %error,
+                          "Retired helper cleanup remains unconfirmed during engine drop");
+                }
             }
         }
     }
@@ -2086,6 +2209,7 @@ mod tests {
         cancel_accepted_received: AtomicBool,
         terminated: AtomicBool,
         termination_count: AtomicUsize,
+        cleanup_fails: AtomicBool,
     }
 
     impl MockConnection {
@@ -2100,6 +2224,7 @@ mod tests {
                 cancel_accepted_received: AtomicBool::new(false),
                 terminated: AtomicBool::new(false),
                 termination_count: AtomicUsize::new(0),
+                cleanup_fails: AtomicBool::new(false),
             }
         }
 
@@ -2471,12 +2596,16 @@ mod tests {
             }
         }
 
-        fn terminate(&self) {
+        fn terminate(&self) -> Result<(), HelperEngineError> {
+            if self.cleanup_fails.load(Ordering::Acquire) {
+                return Err(HelperEngineError::Timeout("mock cleanup"));
+            }
             if self.terminated.swap(true, Ordering::AcqRel) {
-                return;
+                return Ok(());
             }
             self.termination_count.fetch_add(1, Ordering::AcqRel);
             self.response_ready.notify_all();
+            Ok(())
         }
     }
 
@@ -3297,6 +3426,142 @@ mod tests {
             .synthesize(&synthesis_request("next utterance"))
             .is_ok());
         assert!(!recovered.terminated.load(Ordering::Acquire));
+    }
+
+    #[test]
+    fn unconfirmed_cleanup_blocks_replacement_until_retry_succeeds() {
+        let failed = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.0"),
+            MockSynthesisMode::RetryableSynthesisFailure,
+        ));
+        let recovered = Arc::new(MockConnection::new(
+            helper_descriptor("eloquence", "1.1"),
+            MockSynthesisMode::Complete,
+        ));
+        let engine = mock_engine(vec![Arc::clone(&failed), Arc::clone(&recovered)]).unwrap();
+        failed.cleanup_fails.store(true, Ordering::Release);
+        assert!(engine.synthesize(&synthesis_request("fail")).is_err());
+        assert!(engine.current_connection().is_err());
+        for _ in 0..2 {
+            assert!(matches!(
+                engine.prewarm_connection(),
+                Err(HelperEngineError::Timeout("mock cleanup"))
+            ));
+            assert!(engine.synthesize(&synthesis_request("retry")).is_err());
+            assert!(recovered.sent.lock().unwrap().is_empty());
+        }
+        failed.cleanup_fails.store(false, Ordering::Release);
+        assert!(engine.synthesize(&synthesis_request("recovered")).is_ok());
+        assert!(failed.terminated.load(Ordering::Acquire));
+        assert_eq!(engine.descriptor().version.as_deref(), Some("1.1"));
+    }
+
+    #[test]
+    fn failed_negotiation_retains_cleanup_ownership_before_retry() {
+        let failed = Arc::new(MockConnection::new(
+            helper_descriptor("wrong-engine", "1.0"),
+            MockSynthesisMode::Complete,
+        ));
+        failed.cleanup_fails.store(true, Ordering::Release);
+        let descriptor = helper_descriptor("eloquence", "1.0");
+        let recovered = Arc::new(MockConnection::new(
+            descriptor.clone(),
+            MockSynthesisMode::Complete,
+        ));
+        let connector = Arc::new(MockConnector::new(vec![
+            Arc::clone(&failed),
+            Arc::clone(&recovered),
+        ]));
+        let engine = HelperTtsEngine::with_deferred_connector(
+            HelperEngineConfig::new("eloquence", "unused"),
+            connector,
+            descriptor,
+        )
+        .unwrap();
+        for _ in 0..2 {
+            assert!(matches!(
+                engine.prewarm_connection(),
+                Err(HelperEngineError::Timeout("mock cleanup"))
+            ));
+            assert!(engine.current_connection().is_err());
+            assert!(recovered.sent.lock().unwrap().is_empty());
+        }
+        failed.cleanup_fails.store(false, Ordering::Release);
+        assert!(engine.prewarm_connection().unwrap());
+        assert!(failed.terminated.load(Ordering::Acquire));
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn process_cleanup_kills_before_waiting_for_a_blocked_writer() {
+        use std::io::Write;
+        #[cfg(unix)]
+        let (program, arguments) = ("/bin/sh", vec!["-c".into(), "exec sleep 10".into()]);
+        #[cfg(windows)]
+        let (program, arguments) = (
+            "powershell.exe",
+            vec![
+                "-NoProfile".into(),
+                "-NonInteractive".into(),
+                "-Command".into(),
+                "Start-Sleep -Seconds 10".into(),
+            ],
+        );
+        let connection = Arc::new(
+            ProcessHelperConnection::spawn("cleanup-test", Path::new(program), &arguments).unwrap(),
+        );
+        let writer_connection = Arc::clone(&connection);
+        let (locked, ready) = mpsc::channel();
+        let writer = thread::spawn(move || {
+            let mut writer = writer_connection.writer.lock().unwrap();
+            locked.send(()).unwrap();
+            writer.as_mut().unwrap().write_all(&vec![0; 1024 * 1024])
+        });
+        ready.recv_timeout(Duration::from_secs(2)).unwrap();
+        connection
+            .terminate_before(Instant::now() + Duration::from_secs(2))
+            .unwrap();
+        assert!(writer.join().unwrap().is_err());
+        assert!(connection
+            .child
+            .lock()
+            .unwrap()
+            .try_wait()
+            .unwrap()
+            .is_some());
+        assert!(connection.reader_handle.lock().unwrap().is_none());
+        connection.terminate().unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn process_cleanup_retains_unfinished_reader_for_bounded_retry() {
+        // The finite descendant holds stdout after the immediate child exits.
+        let connection = ProcessHelperConnection::spawn(
+            "cleanup-test",
+            Path::new("/bin/sh"),
+            &["-c".into(), "sleep 0.5 & exit 0".into()],
+        )
+        .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while connection
+            .child
+            .lock()
+            .unwrap()
+            .try_wait()
+            .unwrap()
+            .is_none()
+        {
+            assert!(Instant::now() < deadline);
+            thread::sleep(HELPER_CLEANUP_POLL);
+        }
+        assert!(matches!(
+            connection.terminate_before(Instant::now() + Duration::from_millis(30)),
+            Err(HelperEngineError::Timeout("helper reader completion"))
+        ));
+        assert!(connection.reader_handle.lock().unwrap().is_some());
+        connection.terminate().unwrap();
+        assert!(connection.reader_handle.lock().unwrap().is_none());
     }
 
     #[test]

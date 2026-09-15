@@ -217,11 +217,21 @@ The development status operation uses one inventory/health snapshot and the
 current reader-owned routing policy. Its administrative eligibility is
 independent of runtime health. Initial inventory and status are checked against
 the complete encoded control and remote line bounds, including unrelated
-engines. No capability is advertised yet: disposable native validation, reliable
-cleanup evidence, dynamic helper availability and coordinated activation remain
-unfinished. The existing helper termination path ignores kill/wait errors and
-can block while joining its reader; it is not sufficient evidence for a safe
-activation preflight.
+engines. No capability is advertised yet: disposable native validation, process
+tree cleanup evidence, dynamic helper availability and coordinated activation
+remain unfinished.
+
+Helper retirement now checks direct-child exit and reader completion with a
+five-second cleanup deadline. It kills before acquiring stdin, discards buffered
+requests without flushing, and retains unfinished cleanup for retry. An existing
+adapter cannot start a replacement after invalidation or failed negotiation
+until that cleanup succeeds. Cancellation and drop paths report cleanup failures
+instead of claiming success. Linux and native Windows GNU process tests cover
+blocked stdin; Linux additionally covers an inherited stdout pipe. Fault-injection
+tests on both platforms cover blocked replacement and retry.
+This is not yet a disposable-validation supervisor: process groups or jobs,
+parent-exit cleanup, memory limits, and cleanup ownership across adapter disposal
+remain necessary. Direct-child reaping does not establish descendant cleanup.
 
 Owned Linux main-server probes cover managed Flite/Piper previews, legacy
 status, exact exclusions, default reselection, policy generations, input
