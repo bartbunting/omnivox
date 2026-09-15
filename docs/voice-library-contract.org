@@ -1,0 +1,389 @@
+#+title: Voice Library and Activation Contract, Version 1
+#+date: 2026-09-15
+#+startup: content
+
+* Status and scope
+
+Proposed for joint acceptance with Omnivox ADR 0012 and Emacsvox ADR 0019.
+This is the authoritative format proposal, not an implemented interface.
+Emacsvox's =docs/engine-management-design.org= supplies the interaction and
+delivery plan. Existing single-model Piper and explicit Flite paths continue
+to work until the maintainer explicitly adopts a library.
+
+The first implementation targets the bundled WSL launcher and per-user native
+Windows speech host. The formats use speech-host paths; they do not make a
+remote speech socket a file-management service. Other local providers must
+pass the same acceptance checks before exposing activation.
+
+Version 1 covers storage, identity, eligibility, Piper model/speaker selection,
+Flite file selection and coordinated restart. It establishes the extension
+boundary for MBROLA and other providers without specifying their native
+interfaces or approving a download catalogue. No new dependency, release pin,
+model redistribution or helper-process boundary follows from this proposal.
+
+* Ownership and storage
+
+Omnivox owns the shared formats, parsers and native validation. Emacsvox owns
+the initial reviewed catalogue and accessible interaction. A reusable local
+management service owns installation transactions; renderers only read its
+results. Native helpers never download or interpret catalogue instructions.
+
+The first host root is =%LOCALAPPDATA%\Emacsvox\Omnivox\voices=, outside the
+versioned executable releases. A provider resolves it on the speech host, not
+by translating the WSL user's home directory. Under that root:
+
+| Relative path | Meaning |
+|---------------+---------|
+| =packages/PACKAGE_UUID/REVISION_UUID/= | Immutable managed package revision. |
+| =profiles/PROFILE_UUID/index.json= | Desired installed/enablement records. |
+| =profiles/PROFILE_UUID/generations/GENERATION_UUID.json= | Immutable runtime projection. |
+| =profiles/PROFILE_UUID/active.json= | Last successfully activated generation and its digest. |
+| =operations/OPERATION_UUID/= | Durable plan, state journal and bounded diagnostics. |
+| =staging/OPERATION_UUID/= | Unpublished downloads and validation inputs. |
+
+UUIDs are canonical lowercase UUID strings generated locally. The provider
+also persists a target UUID: a path or executable version is not a target
+identity. A profile is a target-local configuration shared by the two speech
+lanes, not a portable presentation profile. Concurrent sessions pin their own
+generation. Restart affects only the invoking Emacs session; another session
+may therefore truthfully remain on an older generation.
+
+Imported files retain their external paths and are never deleted by package
+removal. Managed cleanup requires ownership evidence and excludes revisions
+referenced by active, rollback or live-session generations. If live references
+cannot be established, retain the revision. Editing a palette never acquires,
+enables or deletes an asset.
+
+* Common encoding and limits
+
+Files are UTF-8 JSON objects with =schema_version: 1=. Reject duplicate object
+keys, unknown fields, unknown provider kinds and unsupported schema versions
+before changing state. Future providers require an explicit schema revision;
+catalogue data cannot introduce code or free-form native arguments.
+
+Strings have no NUL or control characters. Identifiers and SHA-256 hashes use
+canonical ASCII; hashes are 64 lowercase hex digits. Paths are absolute native
+host paths, at most 4096 UTF-8 bytes, with no environment expansion. Labels are
+at most 256 bytes and optional language tags at most 64 bytes. A runtime file
+is at most 1 MiB; the management index is at most 8 MiB. Version 1 permits at
+most 64 Piper models, 64 external Flite files, 256 projected library voices,
+and 4096 disabled physical IDs. Index limits are 1024 package revisions and
+4096 voice records. Reject excess records; never silently truncate them.
+
+Existing helper/control/remote limits still apply. Preflight the complete
+encoded inventory and status response, including non-library engines and
+Base64 framing, against every applicable transport limit. A small library
+file alone does not establish that discovery fits. No limit increase is
+implicitly authorized here.
+
+Hash the exact immutable file bytes, not a reserialized JSON object. Digests
+identify configuration and verified assets; they do not authenticate a remote
+publisher. Managed catalogue entries separately pin source, sizes, hashes,
+licence evidence and required model cards. Actual catalogue entries are a
+later reviewed slice.
+
+* Stable physical identities
+
+Continue using the existing engine ID and physical voice ID fields. A new
+Piper voice has one of these spellings:
+
+- =piper:v1/c/CATALOGUE_KEY/SPEAKER=: reviewed catalogue identity.
+- =piper:v1/i/IMPORT_UUID/SPEAKER=: persistent local import identity.
+
+=CATALOGUE_KEY= is 1–96 lowercase ASCII letters, digits, hyphens or underscores,
+starting with a letter or digit. It is assigned once and is not an upstream
+filename. =SPEAKER= is the canonical decimal native speaker index, from 0 to
+2147483647, with no leading zero except =0=. There is no percent decoding,
+case folding or alternate spelling. Native configuration must independently
+prove that each index exists. Labels and speaker names may change without
+changing identity; renumbering/replacing the person represented by an index
+requires a new catalogue key. Compatible model revisions retain voice IDs.
+
+Two imports with the same filename receive different UUIDs. Moving an import
+through an explicit relink operation preserves its ID after validation; an
+unexplained content change invalidates previous validation evidence.
+
+Legacy =piper:FILENAME_STEM= remains unchanged in legacy single-model mode.
+Explicit adoption may preserve that exact ID for the imported model's default
+speaker (native index 0); record it as =legacy_physical_id= on that index entry.
+It replaces, rather than aliases, the new import ID for that speaker. Other
+speakers use the import namespace. Adoption must derive the legacy ID from
+the existing native descriptor and check uniqueness. Only imported identities
+may carry this field. Do not rewrite saved palettes or expose two IDs for the
+same binding. A future package update preserves an adopted identity.
+
+Flite retains =cmu_us_slt= and =flitevox:INTERNAL_NAME=. Read the external name
+in isolated native validation, not from the filename. Reject duplicate native
+IDs across enabled files before activation. A changed internal name is a new
+voice; it cannot silently replace a palette reference.
+
+* Management index
+
+The index records desired state, including disabled and unavailable voices.
+It is not passed to synthesizers. Required top-level fields are
+=schema_version=, =target_id=, =profile_id=, =revision_id=, =packages=,
+=voices= and =disabled_physical_ids=. Lists may be empty. Unknown physical
+IDs in the disabled list are retained so a later reappearing voice stays
+disabled; the list also covers voices supplied by OS/runtime providers.
+
+Each package revision has =package_id=, =revision_id=, =provider= (=piper= or
+=flite=), =ownership= (=managed= or =imported=), =identity=, =files= and
+=validation=. Identity is exactly one of ={catalogue_key: KEY}= or
+={import_id: UUID}=; compatible revisions keep it. A managed revision must
+have catalogue provenance, while importing never changes file ownership.
+The package's catalogue provenance is a nullable =catalogue= record with
+=revision= and =entry_id=; both are bounded identifiers of at most 128 bytes.
+
+Each file has =role=, =path=, =bytes= (positive integer) and =sha256=.
+Piper requires exactly =model= and =config= roles; Flite requires =voice=.
+Validation is null or a record containing =validator_version=, =target_id=,
+=validated_at= (UTC RFC 3339), and =file_set_sha256=. The latter hashes the
+UTF-8 JSON array of file records sorted by role, with keys in role/path/bytes/
+sha256 order and compact separators. Evidence becomes stale when inputs or
+the compatible native validator change. Success means the data loaded in an
+isolated check; it does not mean sound was heard.
+
+Each voice has =physical_id=, =engine_id=, =display_name=, nullable =language=,
+=enabled=, =package_id=, =revision_id= and =speaker_index=. Package/revision
+and speaker fields are null for built-in or OS voices; speaker is also null
+for Flite. An imported Piper default may additionally have
+=legacy_physical_id= equal to its =physical_id=. Every package reference must
+resolve. The management transaction maintains the disabled list and voice
+rows together: =enabled=false= must appear in the list and =enabled=true=
+must not. Contradictions invalidate the index. Engine disablement is separate
+existing workstation policy; it preserves these choices.
+
+New acquisitions start disabled. Compatible updates preserve enablement but
+remain unapplied until explicit activation. Local adoption has an explicit
+impact plan preserving the currently enabled set. Merely opening the library
+does not import configuration.
+
+* Immutable runtime projection
+
+Required top-level fields are =schema_version=, =target_id=, =profile_id=,
+=generation_id=, =disabled_physical_ids=, =piper= and =flite=.
+Generation UUIDs are independent of inventory and palette counters. The
+[[file:protocol-fixtures/voice-library-v1.json][example bundle]] contains illustrative data, not usable models. Physical-ID
+exclusion lists use existing ={engine_id, voice_id}= pairs, sorted by engine
+then voice ID and without duplicates; they are not unqualified name strings.
+
+=piper= is null (legacy configuration) or an object with =models=. Each model
+has =identity=, =model= and =config= file records (path/bytes/sha256), and
+=voices=. Each voice has =physical_id=, =speaker_index=, =display_name= and
+nullable =language=. Imported legacy IDs follow the index rule above. Model
+identities are unique; each physical ID and model/speaker binding appears
+once. Include only enabled speakers, and no model with zero enabled speakers.
+An empty =models= list explicitly permits no Piper voices. Validation checks
+speaker indices and the selected companion's phonemizer prerequisites.
+
+=flite= is null (legacy configuration) or an object with =builtin_slt= (boolean)
+and =files=. Each external entry has =physical_id=, =file= (path/bytes/sha256),
+=display_name= and nullable =language=. Include only enabled files. False plus
+an empty list explicitly permits no Flite voices. Disabling built-in SLT must
+prevent its native registration when the helper supports this mode; do not
+merely hide a loaded voice. Existing legacy mode retains its current SLT rule.
+
+Projection is the intersection of enabled records and installed, validated
+inputs. A missing enabled input is an error with an impact report, not an
+implicit fallback to legacy mode. Policy-disabled engines need not spawn
+helpers; their stored voice selections remain intact. A projected voice may
+not also occur in =disabled_physical_ids=.
+
+All selectors, engine defaults, Automatic, fallback and previews enforce
+eligibility before native loading. Helpers additionally restrict requests to
+their projected set. Palette references to a disabled voice remain stored
+and visibly unavailable. Normal speech may follow existing eligible fallback
+policy; exact audition reports unavailable and cannot enable a voice.
+Sort projected models by identity and their speakers by native index; sort
+Flite files by physical ID. In managed mode, the engine default is its first
+eligible voice in that order (built-in SLT precedes external Flite voices).
+Existing explicit physical choices and workstation engine ordering retain
+precedence. An empty eligible set has no engine default and requires no helper;
+it is reported as excluded by configuration, not as a missing runtime.
+
+* Startup precedence and compatibility
+
+Proposed main-server inputs are =--voice-library PATH= and
+=OMNIVOX_VOICE_LIBRARY=. CLI wins over the environment for selecting the
+generation file. With neither, startup is unchanged. An explicit malformed
+library fails preflight/startup; do not quietly ignore it.
+
+Within each engine, existing explicit CLI/native environment file settings
+win over the managed projection, which wins over defaults. This includes the
+typed Emacs file settings already projected by the local launcher. Override
+replaces that engine's managed load set; it does not disable the generation's
+global physical-ID exclusions or existing engine policy. Status identifies
+the override, and activation cannot claim that engine's proposed load set
+was applied. The plan must resolve an affected override before retiring live
+workers. Unaffected overrides may remain and are included in the plan.
+
+Piper's proposed helper startup adds =--voice-library PATH=, mutually exclusive
+with legacy =--model PATH=. Flite gains the same managed startup input while
+retaining its existing path mode. The trusted native parent passes a verified
+immutable generation; helpers consume only their provider's fields. Native
+paths, argument vectors and private environment projection avoid shell
+evaluation. The launcher performs WSL conversion once before writing host
+configuration; helpers never translate WSL paths.
+
+Discovery must not load all installed models. A managed Piper helper reports
+eligible voices from verified metadata and initially holds no model. Protocol
+versions 1–5 and legacy startup remain supported; selection uses existing
+physical voice fields and reports the actual requested binding. Before
+activation, a disposable process probes the exact executable and companion
+set with the candidate. Unsupported startup options fail while the old pair
+is still intact. Installing a newer Emacsvox must not implicitly require an
+upgrade of a running older server.
+
+* Acknowledgement over the existing control channel
+
+Add feature =voice_library_v1= and request type =voice_library_status_v1=,
+using existing control envelope version 1 and request IDs. Advertise the
+feature only after eligibility, helper startup, validation and this response
+are implemented together. Older clients continue using existing inventory;
+new clients must not send the request without the feature. Existing control
+operations, remote framing and helper framing are unchanged.
+
+The response type is =voice_library_status_v1=, with required fields:
+
+- =configuration=: null for legacy startup, or =target_id=, =profile_id=,
+  =generation_id= and =sha256= of the exact input generation.
+- =overridden_engines=: sorted unique engine IDs whose explicit settings
+  replaced a non-null library provider. This is not an applied-state flag.
+- =eligible_voices=: sorted unique existing ={engine_id, voice_id}= pairs,
+  after all administrative exclusions; no inferred loaded state.
+- =inventory_generation=: the inventory generation for the same atomic
+  snapshot, so a client cannot combine unrelated discovery and eligibility.
+
+Status establishes configuration and eligibility, not acoustic success or
+model residency. Engine readiness still comes from inventory and native
+validation. The client correlates replies with the owned process/session,
+request ID and generation digest for each lane; matching UUID text alone is
+insufficient. Absence, timeout or disagreement is pending/failed evidence,
+never success. Runtime health may change after acknowledgement.
+
+* Piper memory and failure lifecycle
+
+Each lane owns one Piper helper with at most one resident model. Selecting a
+speaker of the resident model reuses it and sets the native speaker index in
+both buffered and streaming synthesis. A model switch waits for the previous
+utterance to finish or cancel, releases the old synthesizer, then loads the
+new one. No parallel preload or background model cache in version 1. Both
+lanes may independently hold the same model; installed size is not RAM use.
+
+The current native create/synthesis calls are opaque. Cancellation must not
+promise to interrupt them cooperatively. When a deadline requires termination,
+the owner kills and reaps the helper before creating a replacement. Native
+validation uses an owned process group/job with bounded lifetime and memory
+where supported, including cleanup when its parent exits. Failure to prove
+cleanup blocks another load instead of accumulating orphan processes.
+
+A model-specific load failure makes that model's voices unavailable for the
+helper generation and returns non-retryable =VoiceNotFound= with a bounded
+reason. It leaves other models selectable and does not open an engine-wide
+circuit. A helper crash or broken transport remains an engine failure. Test
+both buffered and streaming routing: the current engine-wide health store
+must not turn a per-model failure into loss of all Piper voices. A fresh
+generation or explicit recovery may retry a failed model. Native synthesis
+errors keep their existing failure classification; do not disguise them as
+missing voices. No cross-engine replay after PCM commitment.
+
+Disabling the last speaker of a model removes it from the next load set.
+Applying the change retires the old helper, establishing resource release by
+process exit. Report process/model observations separately from measured RAM;
+restarting does not prove an exact byte saving. Flite initially releases its
+selected external voices at helper exit, without claiming individual unload.
+
+* Transaction and two-lane activation
+
+An operation plan freezes target/profile, operation UUID, previous active
+generation/digest, index revision, candidate generation/digest, file hashes,
+overrides, affected palette references and the invoking session's two workers.
+Record the actual startup configuration of each old worker separately from
+the active pointer: another session may have advanced that pointer since this
+pair started. Rollback restores this pair's configurations and explicit
+overrides, not another session's newer generation. A legacy worker has no
+generation, so retain its resolved startup inputs and require ordinary legacy
+readiness on rollback without inventing a generation acknowledgement.
+Lock the target/profile for commit and use compare-and-swap against previous
+state. Concurrent preparation is allowed; a stale plan requires recomputation.
+
+=active.json= contains exactly =schema_version=, =target_id=, =profile_id=,
+=generation_id= and =sha256=. Derive its immutable generation path from the
+UUID; do not accept an arbitrary pointer path. The absent initial pointer
+means no managed activation yet. The operation journal records whether it was
+absent so a first-activation failure cannot manufacture a previous generation.
+
+1. Download/import and verify bounded inputs in staging. Reject traversal,
+   links escaping the package root, unexpected files and unpinned managed
+   bytes. No executable hooks in catalogue metadata.
+2. Validate models one at a time in disposable owned helpers; this may itself
+   use substantial RAM and must be shown before starting. Do not load the
+   whole library simultaneously or speak samples automatically. Publish only
+   complete immutable revisions. A crash leaves recoverable staged data.
+3. Write the candidate generation and retained operation journal. Update
+   desired index state atomically; applied state remains the previous active
+   pointer. Explicit Apply names this session's restart and voice impact.
+4. Verify candidate startup/status with the exact target binaries and all
+   projected settings before interrupting the live pair. Recheck plan hashes,
+   overrides, session ownership and previous active pointer under the lock.
+5. Persist =activating=, retire both old workers and their helpers, confirm
+   exit, then start both workers against the same candidate path. Avoid
+   overlapping old/new model residents during activation. Preserve unsent
+   editor input; never replay already committed speech.
+6. Obtain matching per-lane status and normal readiness. Verify the expected
+   eligible set and any unrelated declared overrides. Only then atomically
+   replace and durably publish =active.json= and record =succeeded=. Snapshot
+   identity, not a shared counter or elapsed delay, establishes success.
+7. On partial start, mismatch or timeout, stop and reap the candidate pair
+   and restart both using their retained actual previous configurations.
+   Leave the previous active pointer unchanged. Record =rolled_back= only
+   after both old configurations acknowledge readiness;
+   otherwise record =recovery_failed= and expose each lane's actual state.
+   Desired edits remain pending. Do not destroy evidence or quietly choose
+   another library to make the operation look successful.
+
+Durable states are =prepared=, =validating=, =staged=, =activating=,
+=succeeded=, =rolling_back=, =rolled_back=, =recovery_failed=, =cancelled= and
+=failed=. Before activation, cancellation stops owned work and retains the
+previous active pointer. During activation it completes rollback rather than
+leaving a mixed pair. If the manager crashes, reconciliation uses the durable
+pointer and owned process identities; it does not automatically restart the
+user's speech. A candidate running before pointer commit is shown as
+interrupted/uncommitted. Offer explicit recovery and retain both revisions.
+If pointer commit succeeded before the final journal write, matching pointer
+and live evidence allow reconciliation to success without repeating restart.
+
+Atomic replacement and durability must be demonstrated on the actual Windows
+filesystem/provider. A POSIX rename test alone is insufficient. Imported files
+are hash-checked again before opening; validation cannot promise immutability
+against another program rewriting a user-owned file.
+
+* Delivery and acceptance checks
+
+Implement in separate commits after acceptance: typed storage/identity and
+fixtures; managed Piper model/speaker selection; eligibility and negotiated
+status; local transaction/activation provider; accessible enablement/import;
+reviewed Piper acquisition; Flite acquisition. Flite managed load-set support
+must pass before offering its general enablement UI. MBROLA still needs the
+frontend/database/helper feasibility decision from the parent design.
+
+Required behavioral checks include:
+
+- Legacy Piper IDs and paths; adoption preserving palette references; equal
+  filenames in two imports; compatible revisions and renamed speaker labels.
+- Multi-speaker native selection through buffered and streamed output;
+  speakers sharing one resident model; repeated model switches/cancellation.
+- Disabled voices rejected by every selector and exact preview; fallback
+  remains eligible; missing files do not silently restore legacy configuration.
+- Bad model A with usable model B; helper crash; no replay after committed PCM.
+- Zero-enabled Piper/Flite, disabled built-in SLT, duplicate Flite IDs, malformed
+  files, opaque native load timeout and confirmed child cleanup.
+- Old/new clients and servers, overridden settings, stale acknowledgements,
+  all response bounds and correlated evidence from both lanes.
+- Competing managers, stale plans, interrupted downloads, changed imported
+  files, candidate/rollback failures and crashes before/after pointer commit.
+- Fresh graphical Emacs: short completion speech, retained progress/results,
+  stable focus/drafts, keyboard return paths and pending/applied distinctions.
+- Real Windows WSL-provider activation and recovery; actual native model and
+  speaker checks, then maintainer audible acceptance. Mock tests establish
+  neither spoken identity nor measured memory recovery.

@@ -1,0 +1,209 @@
+{
+  "description": "Proposed contract examples only. Paths, hashes, byte sizes and catalogue records are fictitious; these are not installable assets.",
+  "index_before_validation": {
+    "schema_version": 1,
+    "target_id": "11111111-1111-4111-8111-111111111111",
+    "profile_id": "22222222-2222-4222-8222-222222222222",
+    "revision_id": "66666666-6666-4666-8666-666666666666",
+    "packages": [
+      {
+        "package_id": "44444444-4444-4444-8444-444444444444",
+        "revision_id": "55555555-5555-4555-8555-555555555555",
+        "provider": "piper",
+        "ownership": "managed",
+        "identity": {
+          "catalogue_key": "example-multispeaker"
+        },
+        "files": [
+          {
+            "role": "model",
+            "path": "C:\\Users\\Example\\AppData\\Local\\Emacsvox\\Omnivox\\voices\\packages\\44444444-4444-4444-8444-444444444444\\55555555-5555-4555-8555-555555555555\\voice.onnx",
+            "bytes": 1000,
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "role": "config",
+            "path": "C:\\Users\\Example\\AppData\\Local\\Emacsvox\\Omnivox\\voices\\packages\\44444444-4444-4444-8444-444444444444\\55555555-5555-4555-8555-555555555555\\voice.onnx.json",
+            "bytes": 100,
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        ],
+        "validation": null,
+        "catalogue": {
+          "revision": "example-1",
+          "entry_id": "example-multispeaker"
+        }
+      }
+    ],
+    "voices": [
+      {
+        "physical_id": "piper:v1/c/example-multispeaker/0",
+        "engine_id": "piper",
+        "display_name": "Example speaker zero",
+        "language": "en-US",
+        "enabled": true,
+        "package_id": "44444444-4444-4444-8444-444444444444",
+        "revision_id": "55555555-5555-4555-8555-555555555555",
+        "speaker_index": 0
+      },
+      {
+        "physical_id": "piper:v1/c/example-multispeaker/1",
+        "engine_id": "piper",
+        "display_name": "Example speaker one",
+        "language": "en-US",
+        "enabled": false,
+        "package_id": "44444444-4444-4444-8444-444444444444",
+        "revision_id": "55555555-5555-4555-8555-555555555555",
+        "speaker_index": 1
+      }
+    ],
+    "disabled_physical_ids": [
+      {
+        "engine_id": "piper",
+        "voice_id": "piper:v1/c/example-multispeaker/1"
+      }
+    ]
+  },
+  "runtime_after_successful_validation": {
+    "schema_version": 1,
+    "target_id": "11111111-1111-4111-8111-111111111111",
+    "profile_id": "22222222-2222-4222-8222-222222222222",
+    "generation_id": "33333333-3333-4333-8333-333333333333",
+    "disabled_physical_ids": [
+      {
+        "engine_id": "piper",
+        "voice_id": "piper:v1/c/example-multispeaker/1"
+      }
+    ],
+    "piper": {
+      "models": [
+        {
+          "identity": {
+            "catalogue_key": "example-multispeaker"
+          },
+          "model": {
+            "path": "C:\\Users\\Example\\AppData\\Local\\Emacsvox\\Omnivox\\voices\\packages\\44444444-4444-4444-8444-444444444444\\55555555-5555-4555-8555-555555555555\\voice.onnx",
+            "bytes": 1000,
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "config": {
+            "path": "C:\\Users\\Example\\AppData\\Local\\Emacsvox\\Omnivox\\voices\\packages\\44444444-4444-4444-8444-444444444444\\55555555-5555-4555-8555-555555555555\\voice.onnx.json",
+            "bytes": 100,
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          "voices": [
+            {
+              "physical_id": "piper:v1/c/example-multispeaker/0",
+              "speaker_index": 0,
+              "display_name": "Example speaker zero",
+              "language": "en-US"
+            }
+          ]
+        }
+      ]
+    },
+    "flite": {
+      "builtin_slt": true,
+      "files": []
+    }
+  },
+  "runtime_digest_encoding": "UTF-8 compact JSON of runtime_after_successful_validation, key order as shown, no trailing newline",
+  "active_pointer": {
+    "schema_version": 1,
+    "target_id": "11111111-1111-4111-8111-111111111111",
+    "profile_id": "22222222-2222-4222-8222-222222222222",
+    "generation_id": "33333333-3333-4333-8333-333333333333",
+    "sha256": "de6168ac1bcdb3a530e896fd7c4d7ad82c276f3f10d02ed8f84f3811e21a4001"
+  },
+  "status_request": {
+    "protocol_version": 1,
+    "request_id": 73,
+    "type": "voice_library_status_v1"
+  },
+  "status_response": {
+    "protocol_version": 1,
+    "request_id": 73,
+    "type": "voice_library_status_v1",
+    "configuration": {
+      "target_id": "11111111-1111-4111-8111-111111111111",
+      "profile_id": "22222222-2222-4222-8222-222222222222",
+      "generation_id": "33333333-3333-4333-8333-333333333333",
+      "sha256": "de6168ac1bcdb3a530e896fd7c4d7ad82c276f3f10d02ed8f84f3811e21a4001"
+    },
+    "overridden_engines": [],
+    "eligible_voices": [
+      {
+        "engine_id": "flite",
+        "voice_id": "cmu_us_slt"
+      },
+      {
+        "engine_id": "piper",
+        "voice_id": "piper:v1/c/example-multispeaker/0"
+      }
+    ],
+    "inventory_generation": 8
+  },
+  "identity_cases": [
+    {
+      "id": "piper:v1/c/example-multispeaker/0",
+      "valid": true,
+      "reason": "Catalogue default speaker"
+    },
+    {
+      "id": "piper:v1/i/77777777-7777-4777-8777-777777777777/2",
+      "valid": true,
+      "reason": "Imported speaker; native index must still be validated"
+    },
+    {
+      "id": "piper:old-model",
+      "valid": true,
+      "reason": "Legacy mode, or explicitly adopted imported default speaker only"
+    },
+    {
+      "id": "piper:v1/c/Example/0",
+      "valid": false,
+      "reason": "Catalogue keys are lowercase"
+    },
+    {
+      "id": "piper:v1/c/example/01",
+      "valid": false,
+      "reason": "Speaker spelling must be canonical"
+    },
+    {
+      "id": "piper:v1/c/example%2fother/0",
+      "valid": false,
+      "reason": "No percent-encoded path components"
+    },
+    {
+      "id": "piper:v1/c/example/2147483648",
+      "valid": false,
+      "reason": "Speaker exceeds native signed integer range"
+    }
+  ],
+  "activation_cases": [
+    {
+      "case": "Both owned lanes acknowledge candidate and expected eligibility",
+      "outcome": "Commit pointer"
+    },
+    {
+      "case": "Notification lane fails candidate startup",
+      "outcome": "Retire candidate pair and restore actual previous pair; pointer unchanged"
+    },
+    {
+      "case": "Rollback notification lane also fails",
+      "outcome": "Recovery failed; report each lane and retain revisions"
+    },
+    {
+      "case": "Affected Piper model environment override remains",
+      "outcome": "Resolve plan before retiring old workers"
+    },
+    {
+      "case": "Another session advanced active pointer after this pair started",
+      "outcome": "Compare-and-swap against current pointer; rollback uses this pair actual startup snapshots"
+    },
+    {
+      "case": "Manager exits before pointer commit",
+      "outcome": "Show interrupted operation; no automatic speech restart"
+    }
+  ]
+}
