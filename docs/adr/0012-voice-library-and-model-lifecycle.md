@@ -150,3 +150,28 @@ with the native Windows x64 GNU executable through WSL. Tests remove the
 temporary voice after dropping the last engine to check file-handle release.
 MSVC release validation, two-lane activation, measured memory recovery and
 parent-side hash verification remain pending.
+
+### Shared administrative eligibility
+
+The shared TTS library now derives immutable eligibility from a validated
+generation and resolved Piper/Flite overrides. Overrides replace only the
+provider load set; global physical-ID exclusions remain effective. Projection
+keeps excluded inventory rows unavailable, preserves runtime failures, and
+selects managed defaults in generation order. Administrative eligible IDs are
+sorted independently of runtime health and exclude policy-disabled engines.
+
+An opt-in engine registry pins this policy for its lifetime. Its engine handles
+guard both buffered and streamed synthesis before native submission, require
+exact physical IDs, and retain the guard after startup rescans and descriptor
+refreshes. Empty managed providers cannot trigger a rescan. Legacy registries
+keep their existing constructor and behavior. Native load sets must still be
+configured before engine construction; filtering alone cannot establish that
+a disabled model was never loaded.
+
+Tests cover exact/default/property selectors, fallback, direct synthesis,
+typed requests, saved references, native-default precedence, global exclusions
+under explicit overrides, late discovery, empty providers and health separation.
+Main-server startup wiring, SHA-256 verification and the negotiated status
+operation remain pending. No `voice_library_v1` capability is advertised. The
+SHA-256 crate addition awaits the maintainer's dependency approval; no Cargo
+manifest or lockfile was changed in these slices.

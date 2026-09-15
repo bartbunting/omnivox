@@ -12,8 +12,11 @@ use thiserror::Error;
 
 use crate::contracts::PhysicalVoiceId;
 
+mod eligibility;
 mod index;
 mod runtime;
+
+pub use eligibility::{ProviderOverrides, VoiceEligibility};
 
 pub use index::{
     CatalogueReference, FileRole, IndexDocument, IndexedFile, IndexedVoice, LibraryIndex,

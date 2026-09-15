@@ -65,11 +65,23 @@ impl RegistryState {
 #[derive(Default)]
 pub struct EngineRegistry {
     inner: Arc<RwLock<RegistryState>>,
+    eligibility: Option<Arc<crate::voice_library::VoiceEligibility>>,
 }
 
 impl EngineRegistry {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Pin administrative voice eligibility for this registry's entire lifetime.
+    /// Native helper load sets must be configured before engines are registered.
+    pub fn with_voice_eligibility(
+        eligibility: Arc<crate::voice_library::VoiceEligibility>,
+    ) -> Self {
+        Self {
+            eligibility: Some(eligibility),
+            ..Self::default()
+        }
     }
 
     pub fn generation(&self) -> u64 {
@@ -87,6 +99,15 @@ impl EngineRegistry {
     /// Add one engine after validating its complete descriptor.
     pub fn register(&mut self, engine: Arc<dyn TtsEngine>) -> Result<(), EngineRegistryError> {
         let descriptor = engine.descriptor();
+        let (engine, descriptor) = if let Some(policy) = &self.eligibility {
+            validate_descriptor(&descriptor)?;
+            (
+                policy.guard_engine(engine),
+                policy.project_descriptor(descriptor),
+            )
+        } else {
+            (engine, descriptor)
+        };
         self.insert(RegisteredEngine {
             engine: Some(engine),
             descriptor,
@@ -102,10 +123,30 @@ impl EngineRegistry {
         descriptor: EngineDescriptor,
         retry: impl Fn() -> Result<Arc<dyn TtsEngine>, String> + Send + Sync + 'static,
     ) -> Result<(), EngineRegistryError> {
+        validate_descriptor(&descriptor)?;
+        let (descriptor, retry): (_, Option<EngineFactory>) =
+            if let Some(policy) = &self.eligibility {
+                let excluded = policy.excludes_provider(&descriptor.id);
+                let descriptor = policy.project_descriptor(descriptor);
+                let policy = Arc::clone(policy);
+                (
+                    descriptor,
+                    (!excluded).then(|| {
+                        Arc::new(move || {
+                            let engine = retry()?;
+                            validate_descriptor(&engine.descriptor())
+                                .map_err(|error| error.to_string())?;
+                            Ok(policy.guard_engine(engine))
+                        }) as EngineFactory
+                    }),
+                )
+            } else {
+                (descriptor, Some(Arc::new(retry)))
+            };
         self.insert(RegisteredEngine {
             engine: None,
             descriptor,
-            retry: Some(Arc::new(retry)),
+            retry,
             rescanning: false,
         })
     }
