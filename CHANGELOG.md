@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Development native voice validation checks one Piper model or Flite voice at
+  a time, silently, with process-tree ownership, memory limits, deadlines and
+  confirmed cleanup before the next load. Installation and activation remain
+  pending; no new voice-library capability is advertised.
 - Development main-server library startup accepts `--voice-library` or
   `OMNIVOX_VOICE_LIBRARY`, applies eligibility, omits empty managed helpers and
   rejects changed generations or incomplete required helper inventories.

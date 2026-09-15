@@ -40,6 +40,23 @@ Omit `--piper-helper` on hosts without a matching native Piper build. Passing
 these probes does not enable the capability or establish two-lane activation,
 audible acceptance, native validation isolation or measured memory recovery.
 
+`verify_voice_validation.py` checks the separate development
+[native validator](../docs/VOICE-VALIDATION.md) on Linux, including descendants,
+deadlines, cancellation, parent death, unconfirmed pipe cleanup, memory-limit
+inheritance and recovery. It requires staged Piper and Flite helpers:
+
+```sh
+python3 -W error::ResourceWarning tools/verify_voice_validation.py \
+  target/debug/omnivox \
+  --flite-helper target/debug/flite/omnivox-flite-helper \
+  --piper-helper target/debug/piper/omnivox-piper-helper
+```
+
+For an external Flite voice check, add `--flite-tests PATH` naming the native
+`omnivox-flite-helper` library test executable produced by
+`cargo test --locked -p omnivox-flite-helper --lib --no-run`. Its existing test
+exporter creates a temporary copy of bundled SLT; no voice is downloaded.
+
 `build.py` is the supported wrapper for distributable Cargo builds. It keeps
 Cargo's locked dependency resolution, reads the exact `espeak-rs-sys` output
 from Cargo's JSON build messages, and stages `espeak-ng-data` plus applicable

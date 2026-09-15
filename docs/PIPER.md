@@ -169,6 +169,9 @@ Piper model settings retain precedence and their legacy loading behavior;
 global physical-ID exclusions still apply. Activation and download management
 remain pending, and `voice_library_v1` is not advertised yet.
 
+The development [native validation command](VOICE-VALIDATION.md) checks each
+model and its enabled speakers in a disposable process, without playback.
+
 Managed discovery reads enabled voice metadata without loading a model. The
 first synthesis loads its selected model; switching speakers reuses that model,
 and switching models releases it before loading the next. A failed load excludes

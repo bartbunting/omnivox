@@ -219,6 +219,10 @@ pub fn print_help() {
     );
     println!("    --piper-model P  Piper .onnx model; keep its JSON config beside it");
     println!("    --voice-library P  Verified runtime generation (or OMNIVOX_VOICE_LIBRARY)");
+    println!("    --validate-voice-library P  Development native validation; keep stdin open");
+    println!("      --piper-helper P --flite-helper P  Exact helpers for projected providers");
+    println!("      --validation-timeout-seconds N  Per-load deadline, 1-600 (default 60)");
+    println!("      --validation-memory-mib N  Memory limit, 256-65536 (default 4096)");
     println!("    --dump-wav VOICE OUTPUT [TEXT]");
     println!("                     Save canonical OUTPUT plus an _raw.wav intermediate");
     println!("    --play-wav FILE  Play a WAV file through the selected audio backend");

@@ -148,9 +148,10 @@ the exact physical ID; a native-name alias cannot select an excluded voice.
 
 False `builtin_slt` with an empty file list initializes no native voices and
 has no default. Main-server library startup omits that helper entirely and
-reports it as excluded by configuration. Installation provenance, disposable
-native validation and coordinated activation remain separate implementation
-work; the helper expects a trusted parent to provide
+reports it as excluded by configuration. The development
+[native validation command](VOICE-VALIDATION.md) checks external voices one at a
+time with SLT omitted. Installation provenance and coordinated activation remain
+separate implementation work; the helper expects a trusted parent to provide
 verified immutable inputs. Rehashing cannot make a user-owned file immutable
 during concurrent writes. `voice_library_v1` is not advertised yet.
 

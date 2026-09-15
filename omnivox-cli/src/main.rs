@@ -35,6 +35,7 @@ mod text;
 mod transaction;
 mod voice_library;
 mod voice_observations;
+mod voice_validation;
 mod work_queue;
 
 use anyhow::Result;
@@ -64,6 +65,9 @@ pub(crate) const SOUND_MAX_DEPTH: usize = 10;
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if voice_validation::requested(&args) {
+        return voice_validation::run(&args);
+    }
     if args.iter().any(|arg| arg == "--serve") {
         return remote::run(&args);
     }

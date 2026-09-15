@@ -229,9 +229,8 @@ until that cleanup succeeds. Cancellation and drop paths report cleanup failures
 instead of claiming success. Linux and native Windows GNU process tests cover
 blocked stdin; Linux additionally covers an inherited stdout pipe. Fault-injection
 tests on both platforms cover blocked replacement and retry.
-This is not yet a disposable-validation supervisor: process groups or jobs,
-parent-exit cleanup, memory limits, and cleanup ownership across adapter disposal
-remain necessary. Direct-child reaping does not establish descendant cleanup.
+This adapter retirement alone does not establish descendant cleanup. Disposable
+validation now has a separate supervisor, described below.
 
 Owned Linux main-server probes cover managed Flite/Piper previews, legacy
 status, exact exclusions, default reselection, policy generations, input
@@ -242,3 +241,35 @@ tests nor the development status response establishes MSVC or live Emacsvox
 activation acceptance. The full Windows main-server probe remains pending:
 the GNU cross-build produced no eSpeak data and the normal staging wrapper
 rejected that incomplete runtime. No alternate data set was substituted.
+
+### Disposable native validation
+
+The development [native validation command](../VOICE-VALIDATION.md) uses private
+per-load projections without changing installed or active state. One Piper load
+checks all projected speakers of that model; external Flite voices are isolated
+from each other and from compiled-in SLT. Projection digests remain distinct from
+the original input digest. The existing helper protocol and startup arguments
+suffice; no native code moves into the supervisor.
+
+A gated worker owns the exact helper path supplied for its provider. The
+supervisor requires exact inventory, nonempty PCM and actual voice identity,
+then confirmed tree and reader cleanup before admitting another load. No audio
+device is opened. Windows uses a private job with checked termination, active
+process accounting, aggregate committed-memory limits and kill-on-close. Linux
+uses a private group, a dedicated subreaper, inherited address-space limits and
+a worker thread that kills its group when the supervisor pipe closes. Group
+signalling precedes reaping and is never repeated after PID reuse becomes
+possible. Normal speech-worker and remote-service lifecycle rules are retained.
+
+This is development validation of managed loads, not the transaction service or
+full candidate startup preflight. Durable executable/companion provenance,
+operation ownership across manager restarts, full Windows acceptance, macOS
+supervision, dynamic helper availability and coordinated activation remain
+pending. The capability is still unadvertised.
+
+Linux probes cover managed Piper speakers, compiled-in and external Flite,
+failed hashes/native models, deadlines, cancellation, supervisor death,
+descendant reaping, inherited limits and refusal to continue after unconfirmed
+pipe cleanup. Native Windows x64 GNU component tests cover job termination,
+descendant pipes, last-handle closure and an over-budget native memory commit.
+These are not full Windows target/companion or acoustic acceptance claims.
