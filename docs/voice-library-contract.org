@@ -63,9 +63,11 @@ keys, unknown fields, unknown provider kinds and unsupported schema versions
 before changing state. Future providers require an explicit schema revision;
 catalogue data cannot introduce code or free-form native arguments.
 
-Strings have no NUL or control characters. Identifiers and SHA-256 hashes use
-canonical ASCII; hashes are 64 lowercase hex digits. Paths are absolute native
-host paths, at most 4096 UTF-8 bytes, with no environment expansion. Labels are
+Strings have no NUL or control characters. New library identifiers and
+SHA-256 hashes use canonical ASCII; hashes are 64 lowercase hex digits.
+Native and adopted legacy physical IDs retain their existing spelling,
+including Unicode. Paths are absolute native host paths, at most 4096 UTF-8
+bytes, with no environment expansion. Labels are
 at most 256 bytes and optional language tags at most 64 bytes. A runtime file
 is at most 1 MiB; the management index is at most 8 MiB. Version 1 permits at
 most 64 Piper models, 64 external Flite files, 256 projected library voices,

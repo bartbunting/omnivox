@@ -53,3 +53,11 @@ authorized implementation in slices. This acceptance commit introduces no
 runtime behavior. Native and two-lane acceptance checks are in the contract.
 The paired Emacsvox record is
 `docs/adr/0019-voice-library-and-activation.org` in that repository.
+
+The first implementation slice adds bounded, strict readers for runtime
+generations, the installation index and active-pointer records. It validates
+stable identities, ownership records, package references, exclusions and load
+sets without touching asset files. It preserves exact generation bytes and
+defines deterministic file-set hash inputs; actual hash verification and
+native validation remain service responsibilities. No startup flag or control
+capability is advertised, and existing synthesis paths are unchanged.

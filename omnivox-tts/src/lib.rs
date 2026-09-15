@@ -24,6 +24,7 @@ pub mod synthesis;
 pub mod timeline_protocol;
 pub mod timeline_v4;
 pub mod voice_choices;
+pub mod voice_library;
 pub mod voice_preview_v2;
 pub mod windows;
 
