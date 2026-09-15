@@ -17,7 +17,7 @@ use omnivox_tts::contracts::{
     MAX_RATE_OFFSET_POINTS, MIN_RATE_OFFSET_POINTS,
 };
 use omnivox_tts::control::{
-    decode_request, format_control_event, process_control_request, ControlErrorCode,
+    decode_request, format_control_event, process_control_request_with_library, ControlErrorCode,
     ControlRequest, ControlResponse, ControlResponseEnvelope, PreviewStatus, VoicePreviewRequest,
     CONTROL_PROTOCOL_VERSION, MAX_PREVIEW_TEXT_BYTES,
 };
@@ -3230,7 +3230,12 @@ fn handle_command(
                         &inventory.engines,
                         &routing_policy.policy().disabled_engine_ids,
                     );
-                    let response = process_control_request(
+                    let library_status = engine_registry.voice_library_status(
+                        routing_policy.inventory_generation(inventory.generation),
+                        &inventory.engines,
+                        &routing_policy.policy().disabled_engine_ids,
+                    );
+                    let response = process_control_request_with_library(
                         payload,
                         crate::VERSION,
                         inventory.generation,
@@ -3239,6 +3244,7 @@ fn handle_command(
                         &engine_runtime,
                         logical_voices,
                         routing_policy,
+                        Some(&library_status),
                     );
                     write_control_response(&response);
                 }

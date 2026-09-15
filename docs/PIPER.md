@@ -162,8 +162,12 @@ Linux success does not establish Windows behavior.
 
 The Piper helper accepts `--voice-library GENERATION.json` as an alternative
 to `--model MODEL.onnx`. The generation uses the accepted
-[voice-library contract](voice-library-contract.org). Main-server library
-activation, download management and `voice_library_v1` status are still pending.
+[voice-library contract](voice-library-contract.org). The main server accepts
+`--voice-library GENERATION.json` or `OMNIVOX_VOICE_LIBRARY`, verifies selected
+assets, and pins the generation digest in managed helper startup. Explicit
+Piper model settings retain precedence and their legacy loading behavior;
+global physical-ID exclusions still apply. Activation and download management
+remain pending, and `voice_library_v1` is not advertised yet.
 
 Managed discovery reads enabled voice metadata without loading a model. The
 first synthesis loads its selected model; switching speakers reuses that model,
@@ -175,8 +179,8 @@ availability locally; the helper host's descriptor remains its startup snapshot.
 This startup path expects a trusted parent to supply a verified immutable
 generation. Before each managed native model load, the helper rechecks exact
 file sizes and SHA-256 hashes, then validates configuration and native speaker
-bounds. Installation provenance and main-server preflight remain management
-work. Hash checks cannot make user-owned files immutable during concurrent
+bounds. Installation provenance and disposable native validation remain
+management work. Hash checks cannot make user-owned files immutable during concurrent
 writes. Legacy `--model` startup keeps its filename-derived voice ID and
 speaker zero.
 

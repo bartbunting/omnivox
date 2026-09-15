@@ -8,6 +8,11 @@ Versioning for published releases.
 
 ### Added
 
+- Development main-server library startup accepts `--voice-library` or
+  `OMNIVOX_VOICE_LIBRARY`, applies eligibility, omits empty managed helpers and
+  rejects changed generations or incomplete required helper inventories.
+  A development status operation reports configuration and eligible voices;
+  its capability remains unadvertised pending native validation and cleanup.
 - Managed Piper and Flite assets are checked against their declared SHA-256
   hashes before native loading, including detection of same-size file edits.
   Shared verification also identifies exact generation bytes and file sets

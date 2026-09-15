@@ -33,6 +33,7 @@ mod routing;
 mod server;
 mod text;
 mod transaction;
+mod voice_library;
 mod voice_observations;
 mod work_queue;
 
@@ -89,12 +90,20 @@ fn main() -> Result<()> {
             return Ok(());
         }
         "list-voices" => {
-            let engine = create_engine(&cli.engine, cli.piper_model.as_deref())?;
+            let engine = create_engine(
+                &cli.engine,
+                cli.piper_model.as_deref(),
+                cli.voice_library.as_deref(),
+            )?;
             cli::cmd_list_voices(engine.as_ref());
             return Ok(());
         }
         "list-voices-alist" => {
-            let engine = create_engine(&cli.engine, cli.piper_model.as_deref())?;
+            let engine = create_engine(
+                &cli.engine,
+                cli.piper_model.as_deref(),
+                cli.voice_library.as_deref(),
+            )?;
             cli::cmd_list_voices_alist(engine.as_ref());
             return Ok(());
         }
@@ -175,6 +184,7 @@ fn main() -> Result<()> {
         create_engines(
             &cli.engine,
             cli.piper_model.as_deref(),
+            cli.voice_library.as_deref(),
             Arc::clone(&gen_counter),
         )?
     };

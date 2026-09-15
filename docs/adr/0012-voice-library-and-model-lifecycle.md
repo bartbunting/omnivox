@@ -125,12 +125,11 @@ speakers, empty eligibility and all helper protocol versions 1–5 on Linux. The
 fixtures contain no trained weights and establish no trained speech quality,
 audible acceptance, Windows behavior or measured memory recovery.
 
-This slice assumes a trusted parent has verified the immutable generation's
-assets. Hash/provenance verification, main-server eligibility and status,
-dynamic host inventory, storage/download service and Emacsvox activation remain
+This slice assumed a trusted parent had verified the immutable generation's
+assets. Subsequent verification and startup work is recorded below. Dynamic
+host inventory, storage/download services and Emacsvox activation remain
 pending. The helper host retains its startup descriptor; the adapter rejects
-quarantined voices even though they remain in that snapshot. No main-server
-library flag or `voice_library_v1` capability is advertised yet.
+quarantined voices even though they remain in that snapshot.
 
 ### Managed Flite helper selection
 
@@ -148,8 +147,8 @@ versions 1–5 pass enabled/disabled SLT checks. No additional model is download
 or included in an artifact. The same adapter and protocol checks also pass
 with the native Windows x64 GNU executable through WSL. Tests remove the
 temporary voice after dropping the last engine to check file-handle release.
-MSVC release validation, two-lane activation, measured memory recovery and
-parent-side hash verification remain pending.
+MSVC release validation, two-lane activation and measured memory recovery
+remain pending. Parent-side hash verification is described below.
 
 ### Shared administrative eligibility
 
@@ -171,8 +170,8 @@ a disabled model was never loaded.
 Tests cover exact/default/property selectors, fallback, direct synthesis,
 typed requests, saved references, native-default precedence, global exclusions
 under explicit overrides, late discovery, empty providers and health separation.
-Main-server startup wiring and the negotiated status operation remain pending.
-No `voice_library_v1` capability is advertised.
+The main-server integration is described below. No `voice_library_v1`
+capability is advertised.
 
 ### Asset and generation verification
 
@@ -199,7 +198,37 @@ timed out awaiting its greeting when reading generation files through the WSL
 share, including empty libraries which do no hashing. That startup limitation
 remains unresolved; these checks do not establish MSVC or two-lane acceptance.
 
-Main-server preflight must still use the verifier after resolving overrides,
-configure native load sets before constructing engines, and acknowledge the
-same generation with its inventory. Native validation, transport-size preflight
-and coordinated two-lane activation remain separate unfinished work.
+### Main-server startup and development status
+
+The server now accepts the generation via CLI or native environment, with CLI
+precedence. It verifies active provider assets before engine construction,
+binds registry eligibility for the process lifetime, and omits empty managed
+helpers. Required helpers must supply the complete projected voice set;
+missing helpers, startup errors or mismatched inventories fail startup. The
+parent passes the exact source digest to managed helpers, which reject changed
+generation bytes before constructing an engine.
+
+Explicit file overrides retain their legacy load behavior and defaults while
+global physical-ID exclusions still govern selection. An override is reported
+as such; this does not claim that the managed load set or its memory policy
+was applied. Diagnostic engine selection uses the same configuration rules.
+
+The development status operation uses one inventory/health snapshot and the
+current reader-owned routing policy. Its administrative eligibility is
+independent of runtime health. Initial inventory and status are checked against
+the complete encoded control and remote line bounds, including unrelated
+engines. No capability is advertised yet: disposable native validation, reliable
+cleanup evidence, dynamic helper availability and coordinated activation remain
+unfinished. The existing helper termination path ignores kill/wait errors and
+can block while joining its reader; it is not sufficient evidence for a safe
+activation preflight.
+
+Owned Linux main-server probes cover managed Flite/Piper previews, legacy
+status, exact exclusions, default reselection, policy generations, input
+precedence, required-helper failure, generation changes and model overrides.
+Windows x64 GNU startup tests use a native temporary directory and matching GCC
+runtime DLLs; the first raw Cargo launch lacked that DLL setup. Neither these
+tests nor the development status response establishes MSVC or live Emacsvox
+activation acceptance. The full Windows main-server probe remains pending:
+the GNU cross-build produced no eSpeak data and the normal staging wrapper
+rejected that incomplete runtime. No alternate data set was substituted.

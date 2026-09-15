@@ -66,6 +66,7 @@ impl RegistryState {
 pub struct EngineRegistry {
     inner: Arc<RwLock<RegistryState>>,
     eligibility: Option<Arc<crate::voice_library::VoiceEligibility>>,
+    library_configuration: Option<crate::voice_library::VoiceLibraryConfiguration>,
 }
 
 impl EngineRegistry {
@@ -81,6 +82,37 @@ impl EngineRegistry {
         Self {
             eligibility: Some(eligibility),
             ..Self::default()
+        }
+    }
+
+    /// Bind the generation acknowledgement and eligibility for this session.
+    pub fn with_voice_library(
+        library: &crate::voice_library::RuntimeLibrary,
+        overrides: crate::voice_library::ProviderOverrides,
+    ) -> Self {
+        Self {
+            library_configuration: Some(library.configuration()),
+            ..Self::with_voice_eligibility(Arc::new(
+                crate::voice_library::VoiceEligibility::from_library(library, overrides),
+            ))
+        }
+    }
+
+    /// Project status from the same inventory/health/policy snapshot as inventory.
+    /// This performs no discovery, native calls, file reads or mutable-state reads.
+    pub fn voice_library_status(
+        &self,
+        inventory_generation: u64,
+        engines: &[EngineDescriptor],
+        disabled_engines: &[String],
+    ) -> crate::voice_library::VoiceLibraryStatus {
+        let legacy = crate::voice_library::VoiceEligibility::default();
+        let eligibility = self.eligibility.as_deref().unwrap_or(&legacy);
+        crate::voice_library::VoiceLibraryStatus {
+            configuration: self.library_configuration.clone(),
+            overridden_engines: eligibility.overridden_engines().to_vec(),
+            eligible_voices: eligibility.eligible_voices(engines, disabled_engines),
+            inventory_generation,
         }
     }
 

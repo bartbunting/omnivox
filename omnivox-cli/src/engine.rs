@@ -23,6 +23,7 @@ use std::time::{Duration, Instant};
 use tracing::{info, warn};
 
 use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
+use crate::voice_library::StartupLibrary;
 
 const ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_millis(500);
 const NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
@@ -55,17 +56,45 @@ pub struct CreatedEngines {
 pub fn create_engines(
     engine_name: &str,
     piper_model: Option<&str>,
+    voice_library: Option<&str>,
     generation: Arc<AtomicU64>,
 ) -> Result<CreatedEngines> {
+    let library = StartupLibrary::from_environment(voice_library, piper_model)?;
     let isolation_budget = Arc::new(IsolationBudget::new());
     #[cfg(target_os = "windows")]
     {
-        create_windows_engines(engine_name, piper_model, generation, isolation_budget)
+        let created = create_windows_engines(
+            engine_name,
+            piper_model,
+            library.as_ref(),
+            generation,
+            isolation_budget,
+        )?;
+        if library.is_some() {
+            crate::voice_library::preflight_responses(
+                &created.registry,
+                &created.preferred.descriptor().id,
+            )?;
+        }
+        Ok(created)
     }
 
     #[cfg(not(target_os = "windows"))]
     {
-        create_non_windows_engines(engine_name, piper_model, generation, isolation_budget)
+        let created = create_non_windows_engines(
+            engine_name,
+            piper_model,
+            library.as_ref(),
+            generation,
+            isolation_budget,
+        )?;
+        if library.is_some() {
+            crate::voice_library::preflight_responses(
+                &created.registry,
+                &created.preferred.descriptor().id,
+            )?;
+        }
+        Ok(created)
     }
 }
 
@@ -73,13 +102,17 @@ pub fn create_engines(
 fn create_non_windows_engines(
     engine_name: &str,
     piper_model: Option<&str>,
+    library: Option<&StartupLibrary>,
     generation: Arc<AtomicU64>,
     isolation_budget: Arc<IsolationBudget>,
 ) -> Result<CreatedEngines> {
     let requested = requested_engine(engine_name);
     let helper_initializations =
-        start_helper_initializations(configured_helper_configs(&requested, piper_model));
-    let mut registry = EngineRegistry::new();
+        start_helper_initializations(configured_helper_configs(&requested, piper_model, library)?);
+    let mut registry = match library {
+        Some(library) => library.registry()?,
+        None => EngineRegistry::new(),
+    };
 
     #[cfg(target_os = "macos")]
     match MacOsTtsEngine::new() {
@@ -113,11 +146,13 @@ fn create_non_windows_engines(
         helper_initializations,
         generation,
         isolation_budget,
+        library,
     )?;
 
     let preferred = engine_preference_order(&requested, native_registry_engine_id())
         .iter()
-        .find_map(|engine_id| registry.engine(engine_id))
+        .filter_map(|engine_id| registry.engine(engine_id))
+        .find(|engine| library.is_none() || engine.descriptor().can_synthesize())
         .ok_or_else(|| anyhow::anyhow!("No TTS engine available"))?;
     info!(
         "Using {} as the preferred TTS engine",
@@ -134,6 +169,7 @@ fn create_non_windows_engines(
 fn create_windows_engines(
     engine_name: &str,
     piper_model: Option<&str>,
+    library: Option<&StartupLibrary>,
     generation: Arc<AtomicU64>,
     isolation_budget: Arc<IsolationBudget>,
 ) -> Result<CreatedEngines> {
@@ -153,9 +189,12 @@ fn create_windows_engines(
     .into_iter()
     .flatten()
     .collect::<Vec<_>>();
-    helper_configs.extend(configured_helper_configs(&forced, piper_model));
+    helper_configs.extend(configured_helper_configs(&forced, piper_model, library)?);
     let helper_initializations = start_helper_initializations(helper_configs);
-    let mut registry = EngineRegistry::new();
+    let mut registry = match library {
+        Some(library) => library.registry()?,
+        None => EngineRegistry::new(),
+    };
 
     match WindowsTtsEngine::new() {
         Ok(engine) => {
@@ -183,11 +222,13 @@ fn create_windows_engines(
         helper_initializations,
         generation,
         isolation_budget,
+        library,
     )?;
 
     let preferred = engine_preference_order(&forced, Some("winrt"))
         .iter()
-        .find_map(|engine_id| registry.engine(engine_id))
+        .filter_map(|engine_id| registry.engine(engine_id))
+        .find(|engine| library.is_none() || engine.descriptor().can_synthesize())
         .ok_or_else(|| anyhow::anyhow!("No TTS engine available"))?;
     info!(
         "Using {} as the preferred TTS engine",
@@ -351,7 +392,9 @@ fn register_initialized_helpers(
     pending: Vec<PendingHelper>,
     generation: Arc<AtomicU64>,
     isolation_budget: Arc<IsolationBudget>,
+    library: Option<&StartupLibrary>,
 ) -> Result<()> {
+    let mut required_failures = Vec::new();
     for initialization in pending {
         let PendingHelperInitialization {
             engine_id,
@@ -370,6 +413,14 @@ fn register_initialized_helpers(
                 result
                     .map(|engine| (engine, elapsed))
                     .map_err(|error| error.to_string())
+            })
+            .and_then(|(engine, elapsed)| {
+                if let Some(library) = library {
+                    library
+                        .validate_descriptor(&engine.descriptor())
+                        .map_err(|e| e.to_string())?;
+                }
+                Ok((engine, elapsed))
             });
         match result {
             Ok((engine, elapsed)) => {
@@ -383,6 +434,9 @@ fn register_initialized_helpers(
                 info!(engine_id, helper = %helper_path.display(), elapsed_ms, "Registered helper engine");
             }
             Err(reason) => {
+                if library.is_some_and(|library| library.requires(&engine_id)) {
+                    required_failures.push(format!("{engine_id}: {reason}"));
+                }
                 warn!(engine_id, helper = %helper_path.display(), %reason, "Helper is not available");
                 let generation = Arc::clone(&generation);
                 let isolation_budget = Arc::clone(&isolation_budget);
@@ -403,6 +457,11 @@ fn register_initialized_helpers(
             }
         }
     }
+    anyhow::ensure!(
+        required_failures.is_empty(),
+        "voice-library helper startup failed: {}",
+        required_failures.join("; ")
+    );
     Ok(())
 }
 
@@ -572,9 +631,30 @@ fn configured_piper_helper(requested: &str, model: Option<&str>) -> Option<Helpe
     None
 }
 
-fn configured_helper_configs(requested: &str, model: Option<&str>) -> Vec<HelperEngineConfig> {
+fn configured_helper_configs(
+    requested: &str,
+    model: Option<&str>,
+    library: Option<&StartupLibrary>,
+) -> Result<Vec<HelperEngineConfig>> {
     let mut configs = Vec::with_capacity(5);
-    if let Some(piper) = configured_piper_helper(requested, model) {
+    if library.is_some_and(|library| library.manages("piper")) {
+        if library.is_some_and(|library| library.requires("piper")) {
+            #[cfg(not(feature = "piper"))]
+            anyhow::bail!("voice library requires Piper; rebuild Omnivox with --features piper");
+            #[cfg(feature = "piper")]
+            {
+                let mut config = companion_helper_config("piper", "OMNIVOX_PIPER_HELPER")
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "voice library requires the Piper helper, but it was not found"
+                        )
+                    })?;
+                config.startup_timeout = Duration::from_secs(60);
+                config.synthesis_idle_timeout = Duration::from_secs(60);
+                configs.push(config);
+            }
+        }
+    } else if let Some(piper) = configured_piper_helper(requested, model) {
         configs.push(piper);
     }
     configs.extend(companion_helper_configs());
@@ -587,7 +667,20 @@ fn configured_helper_configs(requested: &str, model: Option<&str>) -> Vec<Helper
             configs.push(config);
         }
     }
-    configs
+    if let Some(library) = library {
+        configs.retain(|config| !library.eligibility.excludes_provider(&config.engine_id));
+        for engine in ["piper", "flite"] {
+            anyhow::ensure!(
+                !library.requires(engine)
+                    || configs.iter().any(|config| config.engine_id == engine),
+                "voice library requires the {engine} helper, but it was not found"
+            );
+        }
+        for config in &mut configs {
+            library.configure(config);
+        }
+    }
+    Ok(configs)
 }
 
 /// Create one exact TTS engine for a diagnostic action.
@@ -601,7 +694,36 @@ fn configured_helper_configs(requested: &str, model: Option<&str>) -> Vec<Helper
 /// so diagnostic results cannot silently describe a fallback engine.
 /// `piper_model` is the path to a `.onnx` model file; if `None`,
 /// `OMNIVOX_PIPER_MODEL` is consulted.
-pub fn create_engine(engine_name: &str, _piper_model: Option<&str>) -> Result<Arc<dyn TtsEngine>> {
+pub fn create_engine(
+    engine_name: &str,
+    piper_model: Option<&str>,
+    voice_library: Option<&str>,
+) -> Result<Arc<dyn TtsEngine>> {
+    let Some(library) = StartupLibrary::from_environment(voice_library, piper_model)? else {
+        return create_legacy_engine(engine_name, piper_model);
+    };
+    let forced = requested_engine(engine_name);
+    anyhow::ensure!(
+        !library.eligibility.excludes_provider(&forced),
+        "{forced} is excluded by voice-library configuration"
+    );
+    let engine: Arc<dyn TtsEngine> = if library.manages(&forced) {
+        let config = configured_helper_configs(&forced, piper_model, Some(&library))?
+            .into_iter()
+            .find(|config| config.engine_id == forced)
+            .ok_or_else(|| anyhow::anyhow!("voice library requires the {forced} helper"))?;
+        Arc::new(HelperTtsEngine::new(config)?)
+    } else {
+        create_legacy_engine(engine_name, piper_model)?
+    };
+    library.validate_descriptor(&engine.descriptor())?;
+    Ok(library.eligibility.guard_engine(engine))
+}
+
+fn create_legacy_engine(
+    engine_name: &str,
+    _piper_model: Option<&str>,
+) -> Result<Arc<dyn TtsEngine>> {
     let forced = requested_engine(engine_name);
 
     if forced == "piper" {
@@ -849,6 +971,7 @@ mod tests {
             pending,
             Arc::new(std::sync::atomic::AtomicU64::new(0)),
             Arc::new(crate::engine_execution::IsolationBudget::new()),
+            None,
         )
         .unwrap();
         let inventory = registry.inventory();
@@ -1168,7 +1291,7 @@ mod tests {
     #[cfg(target_os = "macos")]
     #[test]
     fn macos_server_registers_native_when_espeak_is_preferred() {
-        let created = create_engines("espeak", None, Arc::new(AtomicU64::new(0)))
+        let created = create_engines("espeak", None, None, Arc::new(AtomicU64::new(0)))
             .expect("macOS and eSpeak engines should initialize");
         assert_eq!(created.preferred.descriptor().id, "espeak");
         assert!(created.registry.engine("macos").is_some());

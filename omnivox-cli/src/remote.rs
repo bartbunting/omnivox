@@ -9,7 +9,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-const MAX_LINE: usize = 512 * 1024;
+pub(crate) const MAX_LINE: usize = 512 * 1024;
 const LEASE: Duration = Duration::from_secs(20);
 const TICK: Duration = Duration::from_millis(100);
 static STOP: AtomicBool = AtomicBool::new(false);

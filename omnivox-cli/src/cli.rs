@@ -31,6 +31,8 @@ pub struct CliArgs {
     pub audio_output: Option<String>,
     /// Path to a piper `.onnx` model file (overrides `OMNIVOX_PIPER_MODEL`).
     pub piper_model: Option<String>,
+    /// Immutable runtime generation (overrides `OMNIVOX_VOICE_LIBRARY`).
+    pub voice_library: Option<String>,
 }
 
 fn parse_float_flag(flag: &str, args: &[String], i: &mut usize) -> f32 {
@@ -70,6 +72,7 @@ pub fn parse_args() -> CliArgs {
         audio_target: None,
         audio_output: None,
         piper_model: None,
+        voice_library: None,
     };
 
     let mut i = 0;
@@ -103,6 +106,9 @@ pub fn parse_args() -> CliArgs {
             }
             "--piper-model" => {
                 cli.piper_model = Some(parse_string_flag("--piper-model", &args, &mut i))
+            }
+            "--voice-library" => {
+                cli.voice_library = Some(parse_string_flag("--voice-library", &args, &mut i))
             }
             other => {
                 if cli.action == "dump-wav" || cli.action == "play-wav" {
@@ -212,6 +218,7 @@ pub fn print_help() {
         "                    Authenticated workstation service (SSH tunnel required remotely)"
     );
     println!("    --piper-model P  Piper .onnx model; keep its JSON config beside it");
+    println!("    --voice-library P  Verified runtime generation (or OMNIVOX_VOICE_LIBRARY)");
     println!("    --dump-wav VOICE OUTPUT [TEXT]");
     println!("                     Save canonical OUTPUT plus an _raw.wav intermediate");
     println!("    --play-wav FILE  Play a WAV file through the selected audio backend");
@@ -347,7 +354,11 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
     println!();
 
     println!("[engine]");
-    let engine: Arc<dyn TtsEngine> = match create_engine(&cli.engine, cli.piper_model.as_deref()) {
+    let engine: Arc<dyn TtsEngine> = match create_engine(
+        &cli.engine,
+        cli.piper_model.as_deref(),
+        cli.voice_library.as_deref(),
+    ) {
         Ok(e) => {
             println!("  Status: OK");
             e
@@ -598,8 +609,12 @@ fn raw_wav_path(output: &str) -> Result<String> {
 }
 
 pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) -> Result<()> {
-    let engine = create_engine(&cli.engine, cli.piper_model.as_deref())
-        .context("Failed to create engine")?;
+    let engine = create_engine(
+        &cli.engine,
+        cli.piper_model.as_deref(),
+        cli.voice_library.as_deref(),
+    )
+    .context("Failed to create engine")?;
     let state = dump_wav_state(cli, voice, engine.descriptor().default_voice_id.as_deref());
     let request = SynthesisRequest::new(text, settings_from_state(&state));
     let result = engine.synthesize(&request).context("Synthesis failed")?;
@@ -712,6 +727,7 @@ mod tests {
             audio_target: Some("left".to_owned()),
             audio_output: None,
             piper_model: None,
+            voice_library: None,
         };
         let mut state = TtsState::default();
 
@@ -736,6 +752,7 @@ mod tests {
             audio_target: None,
             audio_output: None,
             piper_model: None,
+            voice_library: None,
         };
 
         let state = dump_wav_state(&cli, "positional-voice", Some("slt"));
@@ -762,6 +779,7 @@ mod tests {
             audio_target: None,
             audio_output: None,
             piper_model: None,
+            voice_library: None,
         };
 
         assert_eq!(
@@ -784,6 +802,7 @@ mod tests {
             audio_target: None,
             audio_output: None,
             piper_model: None,
+            voice_library: None,
         };
         for default_voice in [Some("paul"), Some("slt"), Some("male"), None] {
             let expected = default_voice.unwrap_or_default();

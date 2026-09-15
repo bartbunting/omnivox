@@ -64,6 +64,7 @@ pub struct ControlRequestEnvelope {
 pub enum ControlRequest {
     Capabilities,
     Inventory,
+    VoiceLibraryStatusV1,
     RegisterLogicalVoices {
         registry_generation: u64,
         definitions: Vec<LogicalVoiceDefinition>,
@@ -193,6 +194,7 @@ pub struct ControlResponseEnvelope {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ControlResponse {
+    VoiceLibraryStatusV1(crate::voice_library::VoiceLibraryStatus),
     Capabilities {
         server_version: String,
         supported_protocol_versions: Vec<u32>,
@@ -329,7 +331,9 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
         serde_json::from_slice(&bytes).map_err(ControlCodecError::InvalidJson)?;
     if matches!(
         request.request,
-        ControlRequest::RegisterLogicalVoicesV2(_) | ControlRequest::PreviewVoiceV2(_)
+        ControlRequest::RegisterLogicalVoicesV2(_)
+            | ControlRequest::PreviewVoiceV2(_)
+            | ControlRequest::VoiceLibraryStatusV1
     ) {
         // Legacy definitions inside a new envelope may accept extension keys,
         // but no key in the new message may occur twice.
@@ -363,6 +367,33 @@ pub fn process_control_request(
     logical_voices: &mut LogicalVoiceRegistry,
     routing_policy: &mut RoutingPolicyRegistry,
 ) -> ControlResponseEnvelope {
+    process_control_request_with_library(
+        payload,
+        server_version,
+        inventory_generation,
+        preferred_engine_id,
+        engines,
+        engine_runtime,
+        logical_voices,
+        routing_policy,
+        None,
+    )
+}
+
+/// Development status plumbing. The capability remains unadvertised until
+/// disposable native validation and confirmed cleanup are integrated.
+#[allow(clippy::too_many_arguments)]
+pub fn process_control_request_with_library(
+    payload: &str,
+    server_version: &str,
+    inventory_generation: u64,
+    preferred_engine_id: &str,
+    engines: &[EngineDescriptor],
+    engine_runtime: &[EngineRuntimeStatus],
+    logical_voices: &mut LogicalVoiceRegistry,
+    routing_policy: &mut RoutingPolicyRegistry,
+    voice_library: Option<&crate::voice_library::VoiceLibraryStatus>,
+) -> ControlResponseEnvelope {
     match decode_request(payload) {
         Ok(request) if request.protocol_version != CONTROL_PROTOCOL_VERSION => error_response(
             Some(request.request_id),
@@ -373,6 +404,18 @@ pub fn process_control_request(
             ),
         ),
         Ok(request) => match request.request {
+            ControlRequest::VoiceLibraryStatusV1 => match voice_library {
+                Some(status) => ControlResponseEnvelope {
+                    protocol_version: CONTROL_PROTOCOL_VERSION,
+                    request_id: Some(request.request_id),
+                    response: ControlResponse::VoiceLibraryStatusV1(status.clone()),
+                },
+                None => error_response(
+                    Some(request.request_id),
+                    ControlErrorCode::UnsupportedOperation,
+                    "voice-library status is unavailable in this context".to_owned(),
+                ),
+            },
             ControlRequest::Capabilities => ControlResponseEnvelope {
                 protocol_version: CONTROL_PROTOCOL_VERSION,
                 request_id: Some(request.request_id),
@@ -1288,5 +1331,36 @@ mod tests {
         ));
         assert_eq!(registry.generation(), 0);
         assert!(registry.definitions().is_empty());
+    }
+}
+
+#[cfg(test)]
+mod voice_library_contract_tests {
+    use super::*;
+
+    #[test]
+    fn accepted_status_examples_match_the_wire_types_and_required_fields() {
+        let examples: serde_json::Value = serde_json::from_str(include_str!(
+            "../../docs/protocol-fixtures/voice-library-v1.json"
+        ))
+        .unwrap();
+        let request: ControlRequestEnvelope =
+            serde_json::from_value(examples["status_request"].clone()).unwrap();
+        assert_eq!(request.request, ControlRequest::VoiceLibraryStatusV1);
+        assert_eq!(
+            decode_request(&encode_request(&request).unwrap()).unwrap(),
+            request
+        );
+        let response: ControlResponseEnvelope =
+            serde_json::from_value(examples["status_response"].clone()).unwrap();
+        assert_eq!(
+            serde_json::to_value(&response).unwrap(),
+            examples["status_response"]
+        );
+        let mut missing = examples["status_response"].clone();
+        missing.as_object_mut().unwrap().remove("configuration");
+        assert!(serde_json::from_value::<ControlResponseEnvelope>(missing).is_err());
+        let duplicate = br#"{"protocol_version":1,"request_id":73,"request_id":74,"type":"voice_library_status_v1"}"#;
+        assert!(decode_request(&STANDARD.encode(duplicate)).is_err());
     }
 }

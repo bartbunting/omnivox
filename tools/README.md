@@ -24,6 +24,22 @@ make docs-check
 
 ## Build and runtime staging
 
+`verify_voice_library_startup.py` exercises staged main-server library startup,
+the unadvertised development status operation, exact previews, administrative
+exclusions, routing-policy generations, CLI/environment precedence and required
+helper failures. It uses owned processes, temporary fixtures and null playback:
+
+```sh
+python3 -W error::ResourceWarning tools/verify_voice_library_startup.py \
+  target/debug/omnivox \
+  --flite-helper target/debug/flite/omnivox-flite-helper \
+  --piper-helper target/debug/piper/omnivox-piper-helper
+```
+
+Omit `--piper-helper` on hosts without a matching native Piper build. Passing
+these probes does not enable the capability or establish two-lane activation,
+audible acceptance, native validation isolation or measured memory recovery.
+
 `build.py` is the supported wrapper for distributable Cargo builds. It keeps
 Cargo's locked dependency resolution, reads the exact `espeak-rs-sys` output
 from Cargo's JSON build messages, and stages `espeak-ng-data` plus applicable

@@ -135,7 +135,8 @@ The helper accepts `--voice-library GENERATION.json` using the accepted
 [voice-library contract](voice-library-contract.org). With no arguments it
 retains built-in SLT and the existing `OMNIVOX_FLITE_VOICES` behavior. Managed
 startup consumes only the generation's Flite fields and ignores that environment
-path list; the main server will resolve explicit overrides before helper startup.
+path list. The main server resolves explicit overrides before helper startup
+and passes the expected generation digest to managed helpers.
 
 Managed loading registers SLT only when `builtin_slt` is true and loads exactly
 the projected external files. It rechecks sizes and SHA-256 hashes immediately
@@ -146,9 +147,10 @@ and optional language metadata come from the generation. Synthesis requires
 the exact physical ID; a native-name alias cannot select an excluded voice.
 
 False `builtin_slt` with an empty file list initializes no native voices and
-has no default. The final main-server activation path should omit that helper
-entirely. Installation provenance and main-server library startup remain
-separate implementation work; the helper expects a trusted parent to provide
+has no default. Main-server library startup omits that helper entirely and
+reports it as excluded by configuration. Installation provenance, disposable
+native validation and coordinated activation remain separate implementation
+work; the helper expects a trusted parent to provide
 verified immutable inputs. Rehashing cannot make a user-owned file immutable
 during concurrent writes. `voice_library_v1` is not advertised yet.
 
