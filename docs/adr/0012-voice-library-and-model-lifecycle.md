@@ -61,3 +61,32 @@ sets without touching asset files. It preserves exact generation bytes and
 defines deterministic file-set hash inputs; actual hash verification and
 native validation remain service responsibilities. No startup flag or control
 capability is advertised, and existing synthesis paths are unchanged.
+
+### Native loading prerequisite
+
+Inspection and an isolated Linux helper probe on 2026-09-15 exposed a required
+failure boundary before implementing model switching. With the existing staged
+Piper helper, a file containing `not an ONNX model` and a copied valid Kristin
+configuration terminated the process with SIGABRT (subprocess return code -6).
+The diagnostic was an uncaught `Ort::Exception` during protobuf parsing.
+No audio or live speech process was involved; the temporary fixture was removed.
+
+In the vendored `libpiper/src/piper.cpp`, `piper_create_with_options` parses
+configuration, initializes eSpeak, allocates a synthesizer and constructs an
+ONNX session without an exception boundary. `piper_free` terminates the shared
+eSpeak phonemizer. Rust's helper-host panic handler cannot contain a C++
+exception crossing this boundary. Merely checking a null return value or
+replacing the adapter's model pointer cannot meet the accepted model-specific
+failure contract.
+
+The next implementation must establish exception containment and cleanup of
+partial native construction, then verify repeated create/free/create and
+failed-load/recovery sequences in one owned helper. Preserve pristine vendored
+source and make any native overlay explicit and reproducible. Review startup
+cancellation as part of this boundary: a queued stop must not be cleared when
+the synthesis worker begins model loading. Keep opaque-call deadlines and
+forced helper retirement; do not claim native cooperative cancellation.
+
+These are prerequisites for the accepted design, not a change to its one-model
+residency limit. The probe establishes the current failure, not a working fix,
+Windows behavior, audible acceptance or measured memory recovery.
