@@ -270,8 +270,8 @@ cutoff, not a hard allocation cap. Cleanup must still finish before another load
 
 This is development validation of managed loads, not the transaction service or
 full candidate startup preflight. Durable executable/companion provenance,
-operation ownership across manager restarts, full Windows acceptance, native macOS
-acceptance, dynamic helper availability and coordinated activation remain
+operation ownership across manager restarts, full Windows acceptance,
+dynamic helper availability and coordinated activation remain
 pending. The capability is still unadvertised.
 
 Linux probes cover managed Piper speakers, compiled-in and external Flite,
@@ -280,7 +280,15 @@ descendant reaping, inherited limits and refusal to continue after unconfirmed
 pipe cleanup. Native Windows x64 GNU component tests cover job termination,
 descendant pipes, last-handle closure and an over-budget native memory commit.
 These are not full Windows target/companion or acoustic acceptance claims.
-The supervisor and native test sources compile for both Apple targets from Linux;
-this does not establish native linking or execution. An Intel/Apple Silicon
-workflow now covers native footprint limits, Piper/Flite validation and Unix
-ownership faults, but has not yet been run for this change.
+
+Native Intel and Apple Silicon validation passed in
+[run 35035356056](https://github.com/bartbunting/omnivox/actions/runs/35035356056)
+at commit `9107e6f578094c6dfba90a75d4a62a6a390c2179`. Each target passed six
+supervision tests five times, staged native main/Piper/Flite payloads, relevant
+Clippy checks and the complete silent validation/fault probe. Native testing
+exposed Darwin's `EPERM` response for an all-zombie group. Retirement now waits
+for confirmed group absence under the existing deadline; it never accepts that
+response as cleanup success. A real unreaped-child regression covers both the
+termination attempt and absence check. These results establish native validator
+behavior on both Macs, not acoustic output, durable operation recovery or
+two-lane activation.

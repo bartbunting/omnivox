@@ -129,9 +129,13 @@ The [macOS Voice Validation workflow](../.github/workflows/voice-validation-maco
 runs native component tests and the full Piper/Flite probe on Intel and Apple
 Silicon, on manual dispatch or pushes to `ci/macos-voice-validation-*` branches.
 It builds the supported staged payloads and uses only bundled/generated
-voice fixtures. This change was checked on Linux, including compilation of the
-supervisor and its tests for both Apple targets; native macOS execution remains
-unverified until that workflow or equivalent Mac checks pass.
+voice fixtures. Native Intel and Apple Silicon checks passed in
+[verification run 35035356056](https://github.com/bartbunting/omnivox/actions/runs/35035356056)
+at source commit `9107e6f578094c6dfba90a75d4a62a6a390c2179`. Each host passed six
+supervision tests five times, including a deterministic zombie-group regression,
+then the full Piper/Flite probe and its ownership fault checks. Native Clippy
+also passed for the validator and its prepared dependencies. These are silent
+validation checks, not acoustic or coordinated-activation acceptance.
 
 Full Windows server/companion validation and MSVC acceptance also remain separate
 work. The existing Windows GNU main staging limitation is recorded in
