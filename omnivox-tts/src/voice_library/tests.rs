@@ -498,3 +498,52 @@ fn model_file_and_index_record_count_limits_are_enforced() {
         Err(LibraryError::Invalid("too many indexed voices"))
     ));
 }
+
+#[test]
+fn validation_units_load_one_model_or_voice_without_mutating_the_generation() {
+    let mut value = runtime();
+    value["disabled_physical_ids"] = json!([]);
+    value["flite"]["files"] = json!([{
+        "physical_id": "flitevox:example", "display_name": "Example", "language": null,
+        "file": {"path": "C:\\Voices\\example.flitevox", "bytes": 10, "sha256": "0".repeat(64)}
+    }]);
+    let mut speaker = value["piper"]["models"][0]["voices"][0].clone();
+    speaker["physical_id"] = json!("piper:v1/c/example-multispeaker/1");
+    speaker["speaker_index"] = json!(1);
+    value["piper"]["models"][0]["voices"]
+        .as_array_mut()
+        .unwrap()
+        .push(speaker);
+    let library = parse_runtime(&value).unwrap();
+    let original = library.source_bytes().to_vec();
+    let targets = library.validation_targets();
+    assert_eq!(targets.len(), 3); // One Piper model, SLT, one external Flite voice.
+    for target in targets {
+        let unit = library.validation_unit(&target).unwrap();
+        let reread = RuntimeLibrary::parse(unit.source_bytes(), HostPlatform::Windows).unwrap();
+        assert_eq!(reread.validation_targets().len(), 1);
+        assert_ne!(unit.sha256(), library.sha256());
+        if target.engine_id == "piper" {
+            assert_eq!(
+                unit.document().piper.as_ref().unwrap().models[0]
+                    .voices
+                    .len(),
+                2
+            );
+            assert!(!unit.document().flite.as_ref().unwrap().builtin_slt);
+            assert!(unit.document().flite.as_ref().unwrap().files.is_empty());
+        } else {
+            assert!(unit.document().piper.as_ref().unwrap().models.is_empty());
+            let flite = unit.document().flite.as_ref().unwrap();
+            assert_eq!(flite.builtin_slt, target.voice_id == "cmu_us_slt");
+            assert_eq!(flite.files.len(), usize::from(!flite.builtin_slt));
+        }
+    }
+    assert_eq!(library.source_bytes(), original);
+    assert!(library
+        .validation_unit(&PhysicalVoiceId::new("piper", "piper:missing"))
+        .is_err());
+    assert!(library
+        .validation_unit(&PhysicalVoiceId::new("espeak", "en"))
+        .is_err());
+}

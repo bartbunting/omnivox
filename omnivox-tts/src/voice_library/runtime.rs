@@ -136,6 +136,90 @@ impl RuntimeLibrary {
         &self.source_bytes
     }
 
+    /// One representative per native load, without opening files or loading voices.
+    pub fn validation_targets(&self) -> Vec<PhysicalVoiceId> {
+        let mut targets = Vec::new();
+        if let Some(piper) = &self.document.piper {
+            targets.extend(
+                piper
+                    .models
+                    .iter()
+                    .map(|model| PhysicalVoiceId::new("piper", &model.voices[0].physical_id)),
+            );
+        }
+        if let Some(flite) = &self.document.flite {
+            if flite.builtin_slt {
+                targets.push(PhysicalVoiceId::new("flite", "cmu_us_slt"));
+            }
+            targets.extend(
+                flite
+                    .files
+                    .iter()
+                    .map(|voice| PhysicalVoiceId::new("flite", &voice.physical_id)),
+            );
+        }
+        targets
+    }
+
+    /// Isolate one native load for a disposable validator. This is a new input,
+    /// never an acknowledgement of the original generation's digest or load set.
+    /// Piper retains every enabled speaker of the selected model; Flite retains
+    /// just one voice and omits SLT when validating an external file.
+    pub fn validation_unit(&self, target: &PhysicalVoiceId) -> Result<Self, LibraryError> {
+        let mut document = self.document.clone();
+        document.piper = Some(PiperLibrary { models: Vec::new() });
+        document.flite = Some(FliteLibrary {
+            builtin_slt: false,
+            files: Vec::new(),
+        });
+        match target.engine_id.as_str() {
+            "piper" => {
+                let model = self
+                    .document
+                    .piper
+                    .as_ref()
+                    .and_then(|piper| {
+                        piper.models.iter().find(|model| {
+                            model
+                                .voices
+                                .iter()
+                                .any(|voice| voice.physical_id == target.voice_id)
+                        })
+                    })
+                    .ok_or(LibraryError::Invalid("validation target is not projected"))?;
+                document.piper.as_mut().unwrap().models.push(model.clone());
+            }
+            "flite" => {
+                let source = self
+                    .document
+                    .flite
+                    .as_ref()
+                    .ok_or(LibraryError::Invalid("validation target is not projected"))?;
+                if target.voice_id == "cmu_us_slt" && source.builtin_slt {
+                    document.flite.as_mut().unwrap().builtin_slt = true;
+                } else {
+                    let voice = source
+                        .files
+                        .iter()
+                        .find(|voice| voice.physical_id == target.voice_id)
+                        .ok_or(LibraryError::Invalid("validation target is not projected"))?;
+                    document.flite.as_mut().unwrap().files.push(voice.clone());
+                }
+            }
+            _ => return Err(LibraryError::Invalid("unsupported validation engine")),
+        }
+        // All fields are copied from validated input and only load sets shrink.
+        let source_bytes = serde_json::to_vec(&document)?;
+        require(
+            source_bytes.len() <= MAX_RUNTIME_BYTES,
+            "validation projection exceeds runtime byte limit",
+        )?;
+        Ok(Self {
+            document,
+            source_bytes,
+        })
+    }
+
     /// Permission under this projection, not final runtime eligibility.
     /// The caller must resolve explicit provider overrides and engine policy
     /// separately. A null provider leaves legacy discovery in charge of its
