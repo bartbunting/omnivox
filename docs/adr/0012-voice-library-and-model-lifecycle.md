@@ -281,6 +281,6 @@ pipe cleanup. Native Windows x64 GNU component tests cover job termination,
 descendant pipes, last-handle closure and an over-budget native memory commit.
 These are not full Windows target/companion or acoustic acceptance claims.
 The supervisor and native test sources compile for both Apple targets from Linux;
-this does not establish native linking or execution. A manual Intel/Apple Silicon
+this does not establish native linking or execution. An Intel/Apple Silicon
 workflow now covers native footprint limits, Piper/Flite validation and Unix
 ownership faults, but has not yet been run for this change.

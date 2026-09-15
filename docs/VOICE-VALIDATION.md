@@ -121,9 +121,10 @@ No trained voice download is required. Native Windows component tests exercise
 job termination, descendant pipes, closure of the last job handle and refusal of
 a native memory commit above the configured budget.
 
-The manual [macOS Voice Validation workflow](../.github/workflows/voice-validation-macos.yml)
+The [macOS Voice Validation workflow](../.github/workflows/voice-validation-macos.yml)
 runs native component tests and the full Piper/Flite probe on Intel and Apple
-Silicon. It builds the supported staged payloads and uses only bundled/generated
+Silicon, on manual dispatch or pushes to `ci/macos-voice-validation-*` branches.
+It builds the supported staged payloads and uses only bundled/generated
 voice fixtures. This change was checked on Linux, including compilation of the
 supervisor and its tests for both Apple targets; native macOS execution remains
 unverified until that workflow or equivalent Mac checks pass.

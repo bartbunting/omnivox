@@ -58,7 +58,7 @@ For an external Flite voice check, add `--flite-tests PATH` naming the native
 `cargo test --locked -p omnivox-flite-helper --lib --no-run`. Its existing test
 exporter creates a temporary copy of bundled SLT; no voice is downloaded.
 Run `cargo test --locked -p omnivox-cli voice_validation:: -- --test-threads=1`
-for platform supervision tests. The manual
+for platform supervision tests. The
 [macOS workflow](../.github/workflows/voice-validation-macos.yml) builds both
 companions and runs these checks on Intel and Apple Silicon.
 
