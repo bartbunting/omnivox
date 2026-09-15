@@ -131,3 +131,22 @@ dynamic host inventory, storage/download service and Emacsvox activation remain
 pending. The helper host retains its startup descriptor; the adapter rejects
 quarantined voices even though they remain in that snapshot. No main-server
 library flag or `voice_library_v1` capability is advertised yet.
+
+### Managed Flite helper selection
+
+Flite now accepts the same helper-local generation option. It registers
+compiled-in SLT only when enabled, loads exactly the projected external files,
+checks their byte sizes and native physical IDs, and rejects incomplete load
+sets. Earlier external loads are released on startup failure. Legacy environment
+selection retains SLT, its default and warnings for unusable optional files.
+
+Linux tests use a temporary export of the bundled SLT data, including buffered
+and streamed external synthesis, native identity mismatch, changed file sizes,
+partial failure and subsequent loading. A fresh owned process verifies SLT's
+native registration remains absent for an empty managed selection. Helper
+versions 1–5 pass enabled/disabled SLT checks. No additional model is downloaded
+or included in an artifact. The same adapter and protocol checks also pass
+with the native Windows x64 GNU executable through WSL. Tests remove the
+temporary voice after dropping the last engine to check file-handle release.
+MSVC release validation, two-lane activation, measured memory recovery and
+parent-side hash verification remain pending.

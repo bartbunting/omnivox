@@ -129,6 +129,53 @@ the isolated helper, after which Omnivox can fall back and recreate it. Only
 install files from a source you trust, and review each voice's licence before
 redistribution. Optional voice files are never included in Omnivox releases.
 
+## Managed helper development
+
+The helper accepts `--voice-library GENERATION.json` using the accepted
+[voice-library contract](voice-library-contract.org). With no arguments it
+retains built-in SLT and the existing `OMNIVOX_FLITE_VOICES` behavior. Managed
+startup consumes only the generation's Flite fields and ignores that environment
+path list; the main server will resolve explicit overrides before helper startup.
+
+Managed loading registers SLT only when `builtin_slt` is true and loads exactly
+the projected external files. It checks file sizes and requires each file's
+native voice ID to match its recorded physical ID. A failed or changed file
+rejects the complete selection and releases earlier external loads. Labels
+and optional language metadata come from the generation. Synthesis requires
+the exact physical ID; a native-name alias cannot select an excluded voice.
+
+False `builtin_slt` with an empty file list initializes no native voices and
+has no default. The final main-server activation path should omit that helper
+entirely. File hash/provenance verification and main-server library startup
+remain separate implementation work; the helper expects a trusted parent to
+provide verified immutable inputs. `voice_library_v1` is not advertised yet.
+
+Run the native adapter and owned helper checks without playback:
+
+```sh
+cargo test --locked -p omnivox-flite-helper
+python3 tools/build_flite.py
+python3 tools/verify_flite_library.py target/debug/flite/omnivox-flite-helper
+```
+
+Adapter tests export the already bundled SLT data to a temporary `.flitevox`
+file in a fresh owned process, then test external selection, native identity,
+both synthesis paths, partial-load cleanup and legacy compatibility. They
+also inspect the native SLT registration slot in a fresh process. No extra
+voice is downloaded or distributed. The protocol check covers versions 1–5
+with SLT enabled and disabled. Both checks pass on Linux x64 and on a Windows
+x64 GNU build executed through WSL. This verifies helper behavior, not the
+complete two-lane activation workflow, the MSVC release build or measured RAM
+recovery. Repeat on the intended runtime before deployment.
+
+The Windows GNU development checks use the installed cross toolchain:
+
+```sh
+python3 tools/build_flite.py --target x86_64-pc-windows-gnu
+cargo test --locked -p omnivox-flite-helper --target x86_64-pc-windows-gnu
+python3 tools/verify_flite_library.py target/x86_64-pc-windows-gnu/debug/flite/omnivox-flite-helper.exe
+```
+
 ## Provenance, licensing, and removal
 
 Each binary companion includes its payload checksums, exact target and source

@@ -25,6 +25,8 @@ use omnivox_tts::{
     TtsEngine, TtsError, VoiceInfo, VoiceQuality, STANDARD_SAMPLE_RATE,
 };
 
+mod library;
+
 const ENGINE_ID: &str = "flite";
 const BUILT_IN_VOICE_ID: &str = "cmu_us_slt";
 const EXTERNAL_VOICES_ENV: &str = "OMNIVOX_FLITE_VOICES";
@@ -65,6 +67,7 @@ impl Drop for Runtime {
 /// voices. Native synthesis remains isolated in the helper process.
 pub struct FliteTtsEngine {
     descriptor: EngineDescriptor,
+    managed: bool,
     runtime: Mutex<Runtime>,
     cancellation: AtomicBool,
     speaking: AtomicBool,
@@ -83,86 +86,100 @@ impl FliteTtsEngine {
     }
 
     fn new(paths: Vec<PathBuf>, warnings: &mut Vec<String>) -> Result<Self, TtsError> {
+        Self::load_selection(paths, None, warnings)
+    }
+
+    /// Load only a verified generation's enabled Flite voices.
+    /// Asset hashes/provenance must be verified by the trusted parent first.
+    pub fn from_library(
+        library: &omnivox_tts::voice_library::RuntimeLibrary,
+    ) -> Result<Self, TtsError> {
+        let selection = library.document().flite.as_ref().ok_or_else(|| {
+            TtsError::InvalidParameter("library has no managed Flite configuration".to_owned())
+        })?;
+        let paths = selection
+            .files
+            .iter()
+            .map(|voice| PathBuf::from(&voice.file.path))
+            .collect();
+        Self::load_selection(paths, Some(selection), &mut Vec::new())
+    }
+
+    fn load_selection(
+        paths: Vec<PathBuf>,
+        selection: Option<&omnivox_tts::voice_library::FliteLibrary>,
+        warnings: &mut Vec<String>,
+    ) -> Result<Self, TtsError> {
+        // Declare the owner before the global guard: on an early return the
+        // guard unlocks first, then Runtime::drop locks and frees partial loads.
+        let mut runtime = Runtime { voices: Vec::new() };
         let _global = lock_flite_global()?;
-        let initialized = unsafe { omnivox_flite_sys::omnivox_flite_initialize() };
-        if initialized != 0 {
-            return Err(TtsError::SynthesisFailed(format!(
-                "Flite initialization failed with status {initialized}"
-            )));
+        let builtin = selection.is_none_or(|selection| selection.builtin_slt);
+        if builtin || !paths.is_empty() {
+            let initialized = unsafe { omnivox_flite_sys::omnivox_flite_initialize() };
+            if initialized != 0 {
+                return Err(TtsError::SynthesisFailed(format!(
+                    "Flite initialization failed with status {initialized}"
+                )));
+            }
         }
-
-        let built_in = unsafe { omnivox_flite_sys::omnivox_flite_register_slt() };
-        if built_in.is_null() {
-            return Err(TtsError::NotAvailable);
+        if builtin {
+            let pointer = unsafe { omnivox_flite_sys::omnivox_flite_register_slt() };
+            if pointer.is_null() {
+                return Err(TtsError::NotAvailable);
+            }
+            runtime.voices.push(NativeVoice {
+                pointer,
+                id: BUILT_IN_VOICE_ID.to_owned(),
+                name: native_voice_name(pointer).map_err(TtsError::SynthesisFailed)?,
+                owned: false,
+            });
         }
-        let built_in_name = native_voice_name(built_in).map_err(TtsError::SynthesisFailed)?;
-        let mut voices = vec![NativeVoice {
-            pointer: built_in,
-            id: BUILT_IN_VOICE_ID.to_owned(),
-            name: built_in_name,
-            owned: false,
-        }];
         let mut external_names = HashSet::new();
-
-        for path in paths.into_iter().take(MAX_EXTERNAL_VOICES) {
-            let path = match validate_external_voice_path(&path) {
-                Ok(path) => path,
+        for (index, path) in paths.into_iter().take(MAX_EXTERNAL_VOICES).enumerate() {
+            let expected = selection.map(|selection| &selection.files[index]);
+            let result = library::load_external_voice(&path, expected);
+            let voice = match result {
+                Ok(voice) => voice,
+                Err(reason) if selection.is_some() => return Err(TtsError::VoiceNotFound(reason)),
                 Err(reason) => {
                     warnings.push(reason);
                     continue;
                 }
             };
-            let Some(path_text) = path.to_str() else {
-                warnings.push(format!(
-                    "Flite voice path is not valid Unicode: {}",
-                    path.display()
-                ));
-                continue;
-            };
-            let path_string = match CString::new(path_text) {
-                Ok(path) => path,
-                Err(_) => {
-                    warnings.push(format!(
-                        "Flite voice path contains a null byte: {}",
-                        path.display()
-                    ));
-                    continue;
+            if !external_names.insert(voice.name.clone()) {
+                unsafe { omnivox_flite_sys::omnivox_flite_delete_voice(voice.pointer) };
+                let reason = format!(
+                    "Flite voice {} duplicates external voice name {}",
+                    path.display(),
+                    voice.name
+                );
+                if selection.is_some() {
+                    return Err(TtsError::VoiceNotFound(reason));
                 }
-            };
-            let pointer =
-                unsafe { omnivox_flite_sys::omnivox_flite_load_voice(path_string.as_ptr()) };
-            if pointer.is_null() {
-                warnings.push(format!("Flite could not load voice {}", path.display()));
+                warnings.push(reason);
                 continue;
             }
-            let name = match native_voice_name(pointer) {
-                Ok(name) => name,
-                Err(reason) => {
-                    unsafe { omnivox_flite_sys::omnivox_flite_delete_voice(pointer) };
-                    warnings.push(format!("{}: {reason}", path.display()));
-                    continue;
-                }
-            };
-            if !external_names.insert(name.clone()) {
-                unsafe { omnivox_flite_sys::omnivox_flite_delete_voice(pointer) };
-                warnings.push(format!(
-                    "Flite voice {} duplicates external voice name {name}",
-                    path.display()
-                ));
-                continue;
-            }
-            voices.push(NativeVoice {
-                pointer,
-                id: format!("flitevox:{name}"),
-                name,
-                owned: true,
-            });
+            runtime.voices.push(voice);
         }
 
-        let descriptor = descriptor(&voices, warnings);
+        let mut descriptor = descriptor(&runtime.voices, warnings);
+        if let Some(selection) = selection {
+            for voice in &mut descriptor.voices {
+                if let Some(expected) = selection
+                    .files
+                    .iter()
+                    .find(|entry| entry.physical_id == voice.id.voice_id)
+                {
+                    voice.display_name = expected.display_name.clone();
+                    voice.language = expected.language.clone();
+                }
+            }
+        }
         Ok(Self {
             descriptor,
-            runtime: Mutex::new(Runtime { voices }),
+            managed: selection.is_some(),
+            runtime: Mutex::new(runtime),
             cancellation: AtomicBool::new(false),
             speaking: AtomicBool::new(false),
         })
@@ -193,7 +210,7 @@ impl TtsEngine for FliteTtsEngine {
         let voice = runtime
             .voices
             .iter()
-            .find(|voice| voice.id == voice_id || voice.name == voice_id)
+            .find(|voice| voice.id == voice_id || (!self.managed && voice.name == voice_id))
             .ok_or_else(|| TtsError::VoiceNotFound(voice_id.to_owned()))?;
         let actual_voice = Some(PhysicalVoiceId::new(ENGINE_ID, voice.id.clone()));
         if request.text.is_empty() {
@@ -295,7 +312,7 @@ impl TtsEngine for FliteTtsEngine {
         let voice = runtime
             .voices
             .iter()
-            .find(|voice| voice.id == voice_id || voice.name == voice_id)
+            .find(|voice| voice.id == voice_id || (!self.managed && voice.name == voice_id))
             .ok_or_else(|| TtsError::VoiceNotFound(voice_id.to_owned()))?;
         let actual_voice = Some(PhysicalVoiceId::new(ENGINE_ID, voice.id.clone()));
         let degraded_acss = request
@@ -683,7 +700,13 @@ fn descriptor(voices: &[NativeVoice], warnings: &[String]) -> EngineDescriptor {
             omnivox_flite_sys::FLITE_VERSION,
             &omnivox_flite_sys::FLITE_COMMIT[..12]
         )),
-        availability: Availability::Available,
+        availability: if voices.is_empty() {
+            Availability::Unavailable {
+                reason: "All Flite voices are excluded by configuration".to_owned(),
+            }
+        } else {
+            Availability::Available
+        },
         health: if warnings.is_empty() {
             EngineHealth::Healthy
         } else {

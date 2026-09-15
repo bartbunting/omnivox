@@ -8,6 +8,9 @@ Versioning for published releases.
 
 ### Added
 
+- Flite helper library startup loads only enabled external files and can leave
+  built-in SLT unregistered. Changed native voice IDs or incomplete load sets
+  fail startup; legacy environment-based configuration remains supported.
 - Piper helper library startup selects enabled models and speakers on demand.
   Each helper retains at most one model, reuses it for speaker changes, and
   isolates failed model loads so other voices remain selectable. This is
