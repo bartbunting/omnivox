@@ -12,6 +12,9 @@ use std::time::{Duration, Instant};
 #[cfg(target_os = "linux")]
 #[path = "linux.rs"]
 mod platform;
+#[cfg(target_os = "macos")]
+#[path = "macos.rs"]
+mod platform;
 #[cfg(windows)]
 #[path = "windows.rs"]
 mod platform;
@@ -130,6 +133,8 @@ impl Owned {
                 Instant::now() < deadline,
                 "native voice validation deadline exceeded"
             );
+            #[cfg(target_os = "macos")]
+            self.tree.check_memory()?;
             match self.replies.recv_timeout(POLL) {
                 Ok((true, result)) => return result.context("could not read validation receipt"),
                 Ok((false, result)) => {
@@ -277,7 +282,7 @@ mod tests {
         ));
         std::fs::create_dir(&directory).unwrap();
         let ready = directory.join("ready");
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
         let mut command = {
             let mut command = Command::new("/bin/sh");
             command.args([
@@ -400,6 +405,89 @@ mod tests {
         owned.cleanup(Instant::now() + CLEANUP).unwrap();
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "limited");
         std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(directory).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn footprint_fixture() {
+        let Some(path) = std::env::var_os("OMNIVOX_VALIDATION_FOOTPRINT_PROBE") else {
+            return;
+        };
+        if std::env::var_os("OMNIVOX_VALIDATION_FOOTPRINT_CHILD").is_some() {
+            let ready = std::path::PathBuf::from(path);
+            std::fs::write(&ready, "ready").unwrap();
+            while !ready.with_extension("allocate").exists() {
+                thread::sleep(POLL);
+            }
+            // Touch a bounded allocation in a descendant, not in the worker.
+            // Hold it until the supervisor retires the whole group.
+            let allocation = vec![0xa5u8; 320 * 1024 * 1024];
+            std::hint::black_box(&allocation);
+            loop {
+                thread::sleep(Duration::from_secs(1));
+                std::hint::black_box(&allocation);
+            }
+        }
+        worker_gate().unwrap();
+        let mut child = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "voice_validation::owned::tests::footprint_fixture",
+            ])
+            .env("OMNIVOX_VALIDATION_FOOTPRINT_CHILD", "1")
+            .stdin(Stdio::null())
+            .spawn()
+            .unwrap();
+        child.wait().unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn footprint_budget_includes_helper_descendants_and_confirms_cleanup() {
+        platform::initialize().unwrap();
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "omnivox-validation-footprint-{}-{unique}",
+            std::process::id()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let path = directory.join("ready");
+        let mut command = Command::new(std::env::current_exe().unwrap());
+        command
+            .args([
+                "--exact",
+                "voice_validation::owned::tests::footprint_fixture",
+            ])
+            .env("OMNIVOX_VALIDATION_FOOTPRINT_PROBE", &path)
+            .env_remove("OMNIVOX_VALIDATION_FOOTPRINT_CHILD");
+        let mut owned = Owned::spawn(&mut command, 256 * 1024 * 1024).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(15);
+        while !path.exists() {
+            assert!(Instant::now() < deadline, "footprint fixture never started");
+            thread::sleep(POLL);
+        }
+        // Confirm the worker and idle descendant fit before asking only the
+        // descendant to allocate. A broken ABI or early failure cannot pass.
+        owned.tree.check_memory().unwrap();
+        let allocate = path.with_extension("allocate");
+        std::fs::write(&allocate, "allocate").unwrap();
+        let result = owned.wait(
+            Instant::now() + Duration::from_secs(15),
+            &AtomicBool::new(false),
+        );
+        owned.cleanup(Instant::now() + CLEANUP).unwrap();
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("memory footprint budget exceeded"));
+        assert!(owned.tree.empty().unwrap());
+        assert!(owned.readers.is_empty());
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_file(allocate).unwrap();
         std::fs::remove_dir(directory).unwrap();
     }
 

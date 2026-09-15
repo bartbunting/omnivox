@@ -1,7 +1,7 @@
 //! Development-only native validation. No activation or capability advertisement.
-#[cfg(any(target_os = "linux", windows))]
+#[cfg(any(target_os = "linux", target_os = "macos", windows))]
 mod owned;
-#[cfg(any(target_os = "linux", windows))]
+#[cfg(any(target_os = "linux", target_os = "macos", windows))]
 mod supported;
 
 pub fn requested(args: &[String]) -> bool {
@@ -14,13 +14,13 @@ pub fn requested(args: &[String]) -> bool {
 }
 
 pub fn run(args: &[String]) -> anyhow::Result<()> {
-    #[cfg(any(target_os = "linux", windows))]
+    #[cfg(any(target_os = "linux", target_os = "macos", windows))]
     {
         supported::run(args)
     }
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     {
         let _ = args;
-        anyhow::bail!("disposable voice validation is currently implemented for Linux and Windows")
+        anyhow::bail!("disposable voice validation is implemented for Linux, macOS and Windows")
     }
 }

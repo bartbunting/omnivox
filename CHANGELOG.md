@@ -32,6 +32,9 @@ Versioning for published releases.
 
 ### Fixed
 
+- macOS can run the development native voice validator with private process-group
+  cleanup and a sampled aggregate memory-footprint budget. Native Intel and Apple
+  Silicon acceptance checks are prepared; execution on a Mac remains unverified.
 - Helper replacement waits for confirmed direct-child exit and reader completion.
   Failed cleanup remains owned for retry, and termination no longer waits for a
   blocked input writer before killing the child.

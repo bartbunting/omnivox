@@ -109,8 +109,10 @@ pub fn run(args: &[String]) -> Result<()> {
     }
     // Confirm all inputs and helpers before creating scratch or loading anything.
     let mut scratch = Scratch::new()?;
-    eprintln!("Validating {} native loads, one at a time; {} MiB limit, {} seconds per load. No audio playback.",
+    eprintln!("Validating {} native loads, one at a time; {} MiB budget, {} seconds per load. No audio playback.",
         targets.len(), options.memory / (1024 * 1024), options.timeout.as_secs());
+    #[cfg(target_os = "macos")]
+    eprintln!("macOS samples total process-group memory footprint; brief spikes may exceed the budget between samples.");
     for (index, target) in targets.iter().enumerate() {
         anyhow::ensure!(
             !cancelled.load(Ordering::Acquire),
