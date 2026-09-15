@@ -107,3 +107,27 @@ publishing the active request. The same token gates protocol completion and
 is visible to adapters, including a worker starting after cancellation. The
 blocked-worker regression verifies that the adapter observes cancellation;
 existing cancel acknowledgements and helper protocol versions are unchanged.
+
+### Managed Piper helper selection
+
+The Piper helper now accepts an immutable runtime generation through its own
+`--voice-library` option. It advertises enabled voice metadata without native
+loading, validates selected asset sizes/configuration/speaker bounds, and loads
+one model on demand. Both synthesis paths set the selected speaker index. Model
+changes drop the old native owner before constructing another; speaker changes
+reuse it. Request cancellation remains visible before and after opaque loading.
+Failed loads quarantine only that model until helper retirement. Legacy model
+startup retains its physical ID and speaker zero.
+
+Owned deterministic ONNX fixtures verify actual PCM routing through the native
+runtime. Tests cover lifecycle, model-specific errors, cancellation, disabled
+speakers, empty eligibility and all helper protocol versions 1–5 on Linux. These
+fixtures contain no trained weights and establish no trained speech quality,
+audible acceptance, Windows behavior or measured memory recovery.
+
+This slice assumes a trusted parent has verified the immutable generation's
+assets. Hash/provenance verification, main-server eligibility and status,
+dynamic host inventory, storage/download service and Emacsvox activation remain
+pending. The helper host retains its startup descriptor; the adapter rejects
+quarantined voices even though they remain in that snapshot. No main-server
+library flag or `voice_library_v1` capability is advertised yet.

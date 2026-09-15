@@ -1,0 +1,6 @@
+{
+  "phoneme_type": "text",
+  "num_speakers": 2,
+  "audio": {"sample_rate": 44100},
+  "phoneme_id_map": {"_": [0], "^": [1], "$": [2], "a": [3]}
+}

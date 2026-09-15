@@ -10,7 +10,8 @@
 //!
 //! # Configuration
 //!
-//! - Model path: `OMNIVOX_PIPER_MODEL` env var (required when using this engine)
+//! - Legacy model path: `OMNIVOX_PIPER_MODEL` or the helper's `--model` option
+//! - Managed library: helper `--voice-library`, with lazy model/speaker selection
 //! - espeak data path: `OMNIVOX_PIPER_ESPEAK_DATA` overrides auto-discovery
 //!
 //! # Thread Safety
@@ -31,11 +32,15 @@ use crate::{
     SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, VoiceQuality,
 };
 use omnivox_audio::ProgressivePcmCanonicalizer;
+use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
+
+mod library;
+use library::{ModelSpec, ResidentModel, VoiceBinding};
 
 /// espeak-ng data path discovered at build time by omnivox-piper-sys/build.rs.
 /// Exposed as a pub const in the sys crate so we can reference it here.
@@ -44,34 +49,16 @@ use omnivox_piper_sys::PIPER_ESPEAK_DATA_DIR;
 const MAX_NATIVE_SAMPLES: usize = MAX_HELPER_SYNTHESIS_BYTES / std::mem::size_of::<f32>();
 const STREAMING_INPUT_FRAMES: usize = 512;
 
-/// Piper neural TTS engine.
-///
-/// Wraps libpiper's C API via `omnivox_piper_sys`. A single voice model is
-/// loaded at construction time; voice switching requires creating a new engine.
+/// Piper helper adapter with serialized, single-model native residency.
+/// Legacy construction eagerly loads its one model; library discovery is lazy.
 pub struct PiperTtsEngine {
-    /// Raw libpiper synthesizer pointer protected by a mutex.
-    // SAFETY: libpiper synthesizers are not thread-safe on their own, so all
-    // native calls are serialized. The pointer is non-null after construction.
-    state: Mutex<*mut omnivox_piper_sys::piper_synthesizer>,
+    state: Mutex<Option<ResidentModel>>,
+    // Separate metadata lock: discovery never waits for native model loading.
+    failed_models: Mutex<HashMap<usize, String>>,
+    models: Vec<ModelSpec>,
+    voices: Vec<VoiceBinding>,
     cancel_requested: AtomicBool,
     speaking: AtomicBool,
-    /// Display name derived from the model filename.
-    voice_name: String,
-    /// The model path, kept for voice listing (language extraction etc.).
-    #[allow(dead_code)]
-    model_path: PathBuf,
-}
-
-// SAFETY: All native synthesizer accesses are serialized through the Mutex.
-unsafe impl Send for PiperTtsEngine {}
-unsafe impl Sync for PiperTtsEngine {}
-
-impl Drop for PiperTtsEngine {
-    fn drop(&mut self) {
-        if let Ok(ptr) = self.state.lock() {
-            unsafe { omnivox_piper_sys::piper_free(*ptr) };
-        }
-    }
 }
 
 impl PiperTtsEngine {
@@ -92,79 +79,161 @@ impl PiperTtsEngine {
         }
     }
 
-    /// Create a new piper TTS engine loading the given `.onnx` model file.
-    ///
-    /// The JSON config is expected alongside the model as either
-    /// `<model>.onnx.json` or `<model>.json`.
+    /// Load the legacy single-model configuration, preserving its physical ID.
     pub fn new(model_path: impl AsRef<Path>) -> Result<Self, TtsError> {
         let model_path = model_path.as_ref().to_path_buf();
-
-        if !model_path.exists() {
-            return Err(TtsError::VoiceNotFound(format!(
-                "Piper model not found: {}",
-                model_path.display()
-            )));
-        }
-
-        let config_path = find_config_path(&model_path).ok_or_else(|| {
+        let config = find_config_path(&model_path).ok_or_else(|| {
             TtsError::VoiceNotFound(format!(
-                "Piper config (.onnx.json or .json) not found alongside {}",
+                "Piper configuration missing beside {}",
                 model_path.display()
             ))
         })?;
-
-        let espeak_data = find_espeak_data().ok_or_else(|| {
-            TtsError::SynthesisFailed(
-                "Cannot find espeak-ng data directory for piper phonemizer. \
-                 Set OMNIVOX_PIPER_ESPEAK_DATA to the directory containing espeak-ng-data/."
-                    .to_string(),
-            )
-        })?;
-
-        debug!(
-            "Initializing piper: model={} config={} espeak={}",
-            model_path.display(),
-            config_path.display(),
-            espeak_data.display()
-        );
-
-        let espeak_cstr = CString::new(espeak_data.to_string_lossy().as_bytes())
-            .map_err(|_| TtsError::InvalidParameter("Invalid espeak data path".to_string()))?;
-
-        let model_cstr = CString::new(model_path.to_string_lossy().as_ref())
-            .map_err(|_| TtsError::InvalidParameter("Invalid model path".to_string()))?;
-        let config_cstr = CString::new(config_path.to_string_lossy().as_ref())
-            .map_err(|_| TtsError::InvalidParameter("Invalid config path".to_string()))?;
-
-        let create_options = omnivox_piper_sys::piper_create_options {
-            struct_size: std::mem::size_of::<omnivox_piper_sys::piper_create_options>(),
-            model_path: model_cstr.as_ptr(),
-            config_path: config_cstr.as_ptr(),
-            espeak_data_path: espeak_cstr.as_ptr(),
-        };
-        let state_ptr = unsafe { omnivox_piper_sys::piper_create_with_options(&create_options) };
-        if state_ptr.is_null() {
-            return Err(TtsError::VoiceNotFound(format!(
-                "Failed to load piper voice from {}",
-                model_path.display()
-            )));
-        }
-
-        let voice_name = model_path
+        let name = model_path
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("piper")
-            .to_string();
-
-        info!("Piper TTS engine ready: {}", voice_name);
-
+            .to_owned();
+        let language = extract_language_from_name(&name);
+        let spec = ModelSpec {
+            model: model_path,
+            config,
+            speakers: vec![0],
+            expected_bytes: None,
+        };
+        let native = spec.load()?;
         Ok(Self {
-            state: Mutex::new(state_ptr),
+            state: Mutex::new(Some(ResidentModel {
+                model_index: 0,
+                native,
+            })),
+            failed_models: Mutex::new(HashMap::new()),
+            models: vec![spec],
+            voices: vec![VoiceBinding {
+                info: VoiceInfo {
+                    identifier: format!("piper:{name}"),
+                    name,
+                    language: language.clone(),
+                    quality: VoiceQuality::Enhanced,
+                },
+                language: Some(language),
+                model_index: 0,
+                speaker_index: 0,
+            }],
             cancel_requested: AtomicBool::new(false),
             speaking: AtomicBool::new(false),
-            voice_name,
-            model_path,
         })
+    }
+
+    /// Consume an already verified library generation without loading models.
+    /// The manager owns hash/provenance validation; parsing alone is not that proof.
+    /// Only this generation's enabled Piper bindings can reach native loading.
+    pub fn from_library(library: &crate::voice_library::RuntimeLibrary) -> Result<Self, TtsError> {
+        let piper = library.document().piper.as_ref().ok_or_else(|| {
+            TtsError::InvalidParameter("library has no managed Piper configuration".to_owned())
+        })?;
+        let mut models = Vec::new();
+        let mut voices = Vec::new();
+        for (model_index, model) in piper.models.iter().enumerate() {
+            models.push(ModelSpec {
+                model: PathBuf::from(&model.model.path),
+                config: PathBuf::from(&model.config.path),
+                speakers: model.voices.iter().map(|v| v.speaker_index).collect(),
+                expected_bytes: Some((model.model.bytes, model.config.bytes)),
+            });
+            for voice in &model.voices {
+                voices.push(VoiceBinding {
+                    info: VoiceInfo {
+                        identifier: voice.physical_id.clone(),
+                        name: voice.display_name.clone(),
+                        language: voice.language.clone().unwrap_or_else(|| "und".to_owned()),
+                        quality: VoiceQuality::Enhanced,
+                    },
+                    language: voice.language.clone(),
+                    model_index,
+                    speaker_index: voice.speaker_index,
+                });
+            }
+        }
+        Ok(Self {
+            state: Mutex::new(None),
+            failed_models: Mutex::new(HashMap::new()),
+            models,
+            voices,
+            cancel_requested: AtomicBool::new(false),
+            speaking: AtomicBool::new(false),
+        })
+    }
+
+    fn binding(&self, request: &SynthesisRequest) -> Result<&VoiceBinding, TtsError> {
+        let id = request.voice_id_for_engine("piper")?;
+        let voice = self
+            .voices
+            .iter()
+            .find(|v| v.info.identifier == id)
+            .ok_or_else(|| {
+                TtsError::VoiceNotFound("Piper voice is not enabled in this helper".to_owned())
+            })?;
+        if let Some(reason) = self
+            .failed_models
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&voice.model_index)
+        {
+            return Err(TtsError::VoiceNotFound(reason.clone()));
+        }
+        Ok(voice)
+    }
+
+    fn prepare_model(
+        &self,
+        state: &mut Option<ResidentModel>,
+        voice: &VoiceBinding,
+        request: &SynthesisRequest,
+    ) -> Result<*mut omnivox_piper_sys::piper_synthesizer, TtsError> {
+        // Recheck after taking the native lock: another request may have failed
+        // this model while we waited. Never clear a host-owned cancellation token.
+        self.binding(request)?;
+        self.cancel_requested.store(false, Ordering::Release);
+        self.check_cancelled(request)?;
+        if state
+            .as_ref()
+            .is_none_or(|resident| resident.model_index != voice.model_index)
+        {
+            drop(state.take());
+            self.check_cancelled(request)?;
+            match self.models[voice.model_index].load() {
+                Ok(native) => {
+                    *state = Some(ResidentModel {
+                        model_index: voice.model_index,
+                        native,
+                    })
+                }
+                Err(error) => {
+                    let reason = error.to_string();
+                    self.failed_models
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .insert(voice.model_index, reason);
+                    return Err(error);
+                }
+            }
+        }
+        self.check_cancelled(request)?;
+        Ok(state
+            .as_ref()
+            .expect("selected native model is resident")
+            .native
+            .0)
+    }
+
+    fn check_cancelled(&self, request: &SynthesisRequest) -> Result<(), TtsError> {
+        if synthesis_cancelled(self, request) {
+            Err(TtsError::SynthesisFailed(
+                "Piper synthesis was cancelled".to_owned(),
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     /// Create from the `OMNIVOX_PIPER_MODEL` environment variable.
@@ -196,19 +265,39 @@ impl PiperTtsEngine {
 
 impl TtsEngine for PiperTtsEngine {
     fn descriptor(&self) -> EngineDescriptor {
+        let failed = self.failed_models.lock().unwrap_or_else(|e| e.into_inner());
         let voices: Vec<VoiceDescriptor> = self
-            .available_voices()
-            .into_iter()
-            .map(|voice| VoiceDescriptor::from_voice_info("piper", voice))
+            .voices
+            .iter()
+            .map(|binding| {
+                let mut voice = VoiceDescriptor::from_voice_info("piper", binding.info.clone());
+                voice.language = binding.language.clone();
+                if let Some(reason) = failed.get(&binding.model_index) {
+                    voice.availability = Availability::Unavailable {
+                        reason: reason.clone(),
+                    };
+                }
+                voice
+            })
             .collect();
-        let default_voice_id = voices.first().map(|voice| voice.id.voice_id.clone());
+        let default_voice_id = self
+            .voices
+            .iter()
+            .find(|voice| !failed.contains_key(&voice.model_index))
+            .map(|voice| voice.info.identifier.clone());
         let version = piper_version();
 
         EngineDescriptor {
             id: "piper".to_owned(),
             display_name: "Piper".to_owned(),
             version: (version != "unknown").then_some(version),
-            availability: Availability::Available,
+            availability: if default_voice_id.is_some() {
+                Availability::Available
+            } else {
+                Availability::Unavailable {
+                    reason: "No eligible Piper voices in this helper".to_owned(),
+                }
+            },
             health: EngineHealth::Healthy,
             capabilities: Self::capabilities(),
             voices,
@@ -219,11 +308,17 @@ impl TtsEngine for PiperTtsEngine {
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         let text = request.text.as_str();
         let settings = &request.settings;
-        request.voice_id_for_engine("piper")?;
-        let actual_voice = Some(PhysicalVoiceId::new(
-            "piper",
-            format!("piper:{}", self.voice_name),
-        ));
+        let voice = self.binding(request)?;
+        let actual_voice = Some(PhysicalVoiceId::new("piper", voice.info.identifier.clone()));
+        if request
+            .cancellation
+            .as_ref()
+            .is_some_and(crate::SynthesisCancellationToken::is_cancelled)
+        {
+            return Err(TtsError::SynthesisFailed(
+                "Piper synthesis was cancelled".to_owned(),
+            ));
+        }
         if text.is_empty() {
             return Ok(SynthesisResult::audio(
                 "piper",
@@ -232,13 +327,12 @@ impl TtsEngine for PiperTtsEngine {
             ));
         }
 
-        let ptr = self
-            .state
-            .lock()
-            .map_err(|e| TtsError::SynthesisFailed(format!("piper state lock poisoned: {}", e)))?;
-        self.cancel_requested.store(false, Ordering::Release);
+        let mut state = self.state.lock().map_err(|error| {
+            TtsError::SynthesisFailed(format!("Piper state lock poisoned: {error}"))
+        })?;
         self.speaking.store(true, Ordering::Release);
         let _speaking = SpeakingGuard(&self.speaking);
+        let ptr = self.prepare_model(&mut state, voice, request)?;
 
         let length_scale = Self::map_rate_to_length_scale(settings.rate);
 
@@ -251,11 +345,11 @@ impl TtsEngine for PiperTtsEngine {
         let text_cstr = CString::new(text)
             .map_err(|_| TtsError::SynthesisFailed("Text contains null bytes".to_string()))?;
 
-        let mut options = unsafe { omnivox_piper_sys::piper_default_synthesize_options(*ptr) };
+        let mut options = unsafe { omnivox_piper_sys::piper_default_synthesize_options(ptr) };
+        options.speaker_id = voice.speaker_index as i32;
         options.length_scale = length_scale;
-        let start = unsafe {
-            omnivox_piper_sys::piper_synthesize_start(*ptr, text_cstr.as_ptr(), &options)
-        };
+        let start =
+            unsafe { omnivox_piper_sys::piper_synthesize_start(ptr, text_cstr.as_ptr(), &options) };
         if start != omnivox_piper_sys::PIPER_OK as i32 {
             return Err(TtsError::SynthesisFailed(format!(
                 "libpiper could not start synthesis (status {start})"
@@ -265,13 +359,13 @@ impl TtsEngine for PiperTtsEngine {
         let mut samples = Vec::new();
         let mut sample_rate = None;
         loop {
-            if self.cancel_requested.load(Ordering::Acquire) {
+            if synthesis_cancelled(self, request) {
                 return Err(TtsError::SynthesisFailed(
                     "Piper synthesis was cancelled".to_owned(),
                 ));
             }
             let mut chunk: omnivox_piper_sys::piper_audio_chunk = unsafe { std::mem::zeroed() };
-            let status = unsafe { omnivox_piper_sys::piper_synthesize_next(*ptr, &mut chunk) };
+            let status = unsafe { omnivox_piper_sys::piper_synthesize_next(ptr, &mut chunk) };
             if status != omnivox_piper_sys::PIPER_OK as i32
                 && status != omnivox_piper_sys::PIPER_DONE as i32
             {
@@ -354,11 +448,17 @@ impl TtsEngine for PiperTtsEngine {
         sink: &mut dyn SynthesisStreamSink,
     ) -> Result<SynthesisStreamCompletion, TtsError> {
         let text = request.text.as_str();
-        request.voice_id_for_engine("piper")?;
-        let actual_voice = Some(PhysicalVoiceId::new(
-            "piper",
-            format!("piper:{}", self.voice_name),
-        ));
+        let voice = self.binding(request)?;
+        let actual_voice = Some(PhysicalVoiceId::new("piper", voice.info.identifier.clone()));
+        if request
+            .cancellation
+            .as_ref()
+            .is_some_and(crate::SynthesisCancellationToken::is_cancelled)
+        {
+            return Err(TtsError::SynthesisFailed(
+                "Piper synthesis was cancelled".to_owned(),
+            ));
+        }
         let degraded_acss = request
             .normalized_acss
             .clone()
@@ -373,19 +473,19 @@ impl TtsEngine for PiperTtsEngine {
             return Ok(SynthesisStreamCompletion { frame_count: 0 });
         }
 
-        let ptr = self.state.lock().map_err(|error| {
-            TtsError::SynthesisFailed(format!("piper state lock poisoned: {error}"))
+        let mut state = self.state.lock().map_err(|error| {
+            TtsError::SynthesisFailed(format!("Piper state lock poisoned: {error}"))
         })?;
-        self.cancel_requested.store(false, Ordering::Release);
         self.speaking.store(true, Ordering::Release);
         let _speaking = SpeakingGuard(&self.speaking);
+        let ptr = self.prepare_model(&mut state, voice, request)?;
         let text_cstr = CString::new(text)
             .map_err(|_| TtsError::SynthesisFailed("Text contains null bytes".to_owned()))?;
-        let mut options = unsafe { omnivox_piper_sys::piper_default_synthesize_options(*ptr) };
+        let mut options = unsafe { omnivox_piper_sys::piper_default_synthesize_options(ptr) };
+        options.speaker_id = voice.speaker_index as i32;
         options.length_scale = Self::map_rate_to_length_scale(request.settings.rate);
-        let start = unsafe {
-            omnivox_piper_sys::piper_synthesize_start(*ptr, text_cstr.as_ptr(), &options)
-        };
+        let start =
+            unsafe { omnivox_piper_sys::piper_synthesize_start(ptr, text_cstr.as_ptr(), &options) };
         if start != omnivox_piper_sys::PIPER_OK as i32 {
             return Err(TtsError::SynthesisFailed(format!(
                 "libpiper could not start synthesis (status {start})"
@@ -402,7 +502,7 @@ impl TtsEngine for PiperTtsEngine {
                 ));
             }
             let mut chunk: omnivox_piper_sys::piper_audio_chunk = unsafe { std::mem::zeroed() };
-            let status = unsafe { omnivox_piper_sys::piper_synthesize_next(*ptr, &mut chunk) };
+            let status = unsafe { omnivox_piper_sys::piper_synthesize_next(ptr, &mut chunk) };
             if status != omnivox_piper_sys::PIPER_OK as i32
                 && status != omnivox_piper_sys::PIPER_DONE as i32
             {
@@ -495,12 +595,12 @@ impl TtsEngine for PiperTtsEngine {
     }
 
     fn available_voices(&self) -> Vec<VoiceInfo> {
-        vec![VoiceInfo {
-            identifier: format!("piper:{}", self.voice_name),
-            name: self.voice_name.clone(),
-            language: extract_language_from_name(&self.voice_name),
-            quality: VoiceQuality::Enhanced,
-        }]
+        let failed = self.failed_models.lock().unwrap_or_else(|e| e.into_inner());
+        self.voices
+            .iter()
+            .filter(|voice| !failed.contains_key(&voice.model_index))
+            .map(|voice| voice.info.clone())
+            .collect()
     }
 
     fn voice_info(&self, identifier: &str) -> Option<VoiceInfo> {
@@ -671,6 +771,9 @@ pub fn piper_version() -> String {
         .to_string_lossy()
         .into_owned()
 }
+
+#[cfg(test)]
+mod library_tests;
 
 #[cfg(test)]
 mod tests {

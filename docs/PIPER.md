@@ -157,3 +157,40 @@ produces PCM without playback. The opt-in `native-tests` feature keeps this
 asset-dependent test out of ordinary workspace tests. Other platforms need
 their native runtime on the corresponding test process's library search path;
 Linux success does not establish Windows behavior.
+
+## Managed helper development
+
+The Piper helper accepts `--voice-library GENERATION.json` as an alternative
+to `--model MODEL.onnx`. The generation uses the accepted
+[voice-library contract](voice-library-contract.org). Main-server library
+activation, download management and `voice_library_v1` status are still pending.
+
+Managed discovery reads enabled voice metadata without loading a model. The
+first synthesis loads its selected model; switching speakers reuses that model,
+and switching models releases it before loading the next. A failed load excludes
+all speakers of that model for this helper's lifetime and returns non-retryable
+`voice_not_found`. Other models remain selectable. The adapter records changed
+availability locally; the helper host's descriptor remains its startup snapshot.
+
+This startup path expects a trusted parent to supply a verified immutable
+generation. The helper checks schema, file sizes, configuration and native
+speaker bounds. It does not yet verify file hashes or installation provenance;
+that service is a separate implementation slice. Legacy `--model` startup keeps
+its filename-derived voice ID and speaker zero.
+
+The owned [speaker fixtures](../test-fixtures/piper-speakers/README.md) exercise
+native model and speaker selection without trained voice downloads or playback:
+
+```sh
+python3 tools/build_piper.py
+python3 tools/verify_piper_library.py target/debug/piper/omnivox-piper-helper
+LD_LIBRARY_PATH="$PWD/target/piper-native/1.7.0/x86_64-unknown-linux-gnu/i1/lib" \
+  cargo test --locked -p omnivox-tts --no-default-features --features piper piper::
+```
+
+The protocol check exercises versions 1–5, including buffered and streaming
+synthesis, model failure isolation and clean shutdown. Adapter tests also cover
+disabled speakers, cancellation before loading, empty eligibility, changed asset
+sizes, native speaker bounds and recovery through a fresh helper. Run the native
+Windows build and these checks there before Windows acceptance; Linux results do
+not establish Windows behavior or measured memory recovery.

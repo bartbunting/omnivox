@@ -6,6 +6,14 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Piper helper library startup selects enabled models and speakers on demand.
+  Each helper retains at most one model, reuses it for speaker changes, and
+  isolates failed model loads so other voices remain selectable. This is
+  helper support for the planned voice manager; main-server activation and
+  voice downloads are not yet available.
+
 ### Fixed
 
 - Piper contains native model-loading and inference exceptions instead of
