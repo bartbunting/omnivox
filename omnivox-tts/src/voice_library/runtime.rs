@@ -1,5 +1,26 @@
 use super::*;
 
+/// Identity acknowledged by one server process, derived from exact input bytes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VoiceLibraryConfiguration {
+    pub target_id: String,
+    pub profile_id: String,
+    pub generation_id: String,
+    pub sha256: String,
+}
+
+/// Configuration and administrative eligibility from one inventory snapshot.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VoiceLibraryStatus {
+    #[serde(deserialize_with = "required_nullable")]
+    pub configuration: Option<VoiceLibraryConfiguration>,
+    pub overridden_engines: Vec<String>,
+    pub eligible_voices: Vec<PhysicalVoiceId>,
+    pub inventory_generation: u64,
+}
+
 /// Serializable input. Use `RuntimeLibrary::parse` before consuming it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -81,8 +102,34 @@ impl RuntimeLibrary {
         Self::parse(&read_bounded(reader, MAX_RUNTIME_BYTES)?, host)
     }
 
+    /// Read a generation pinned by its trusted parent, before native loading.
+    pub fn read_expected(
+        reader: impl Read,
+        host: HostPlatform,
+        expected_sha256: Option<&str>,
+    ) -> Result<Self, LibraryError> {
+        let library = Self::read(reader, host)?;
+        if let Some(expected) = expected_sha256 {
+            sha256(expected)?;
+            require(
+                library.sha256() == expected,
+                "generation SHA-256 differs from parent configuration",
+            )?;
+        }
+        Ok(library)
+    }
+
     pub fn document(&self) -> &RuntimeDocument {
         &self.document
+    }
+
+    pub fn configuration(&self) -> VoiceLibraryConfiguration {
+        VoiceLibraryConfiguration {
+            target_id: self.document.target_id.clone(),
+            profile_id: self.document.profile_id.clone(),
+            generation_id: self.document.generation_id.clone(),
+            sha256: self.sha256(),
+        }
     }
 
     pub fn source_bytes(&self) -> &[u8] {

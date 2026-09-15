@@ -9,13 +9,17 @@ use omnivox_tts::TtsEngine;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let engine: Arc<dyn TtsEngine> = Arc::new(match parse_source(std::env::args_os().skip(1))? {
         Source::Model(path) => PiperTtsEngine::new(path)?,
-        Source::Library(path) => {
+        Source::Library(path, expected) => {
             let host = if cfg!(windows) {
                 HostPlatform::Windows
             } else {
                 HostPlatform::Posix
             };
-            let library = RuntimeLibrary::read(std::fs::File::open(path)?, host)?;
+            let library = RuntimeLibrary::read_expected(
+                std::fs::File::open(path)?,
+                host,
+                expected.as_deref(),
+            )?;
             PiperTtsEngine::from_library(&library)?
         }
     });
@@ -26,13 +30,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[derive(Debug, PartialEq, Eq)]
 enum Source {
     Model(PathBuf),
-    Library(PathBuf),
+    Library(PathBuf, Option<String>),
 }
 
 fn parse_source(arguments: impl IntoIterator<Item = std::ffi::OsString>) -> Result<Source, String> {
     let mut arguments = arguments.into_iter();
     let mut source = None;
+    let mut expected = None;
     while let Some(argument) = arguments.next() {
+        if argument == "--voice-library-sha256" {
+            if expected.is_some() {
+                return Err("specify the generation digest once".to_owned());
+            }
+            expected = Some(
+                arguments
+                    .next()
+                    .and_then(|s| s.into_string().ok())
+                    .filter(|s| !s.is_empty())
+                    .ok_or("--voice-library-sha256 requires a digest")?,
+            );
+            continue;
+        }
         if argument == "--model" || argument == "--voice-library" {
             let value = arguments
                 .next()
@@ -43,7 +61,7 @@ fn parse_source(arguments: impl IntoIterator<Item = std::ffi::OsString>) -> Resu
             let candidate = if argument == "--model" {
                 Source::Model(value.into())
             } else {
-                Source::Library(value.into())
+                Source::Library(value.into(), None)
             };
             match (&source, &candidate) {
                 // Preserve the existing last --model wins behavior.
@@ -55,6 +73,12 @@ fn parse_source(arguments: impl IntoIterator<Item = std::ffi::OsString>) -> Resu
             }
         } else {
             return Err(format!("unknown Piper helper argument: {:?}", argument));
+        }
+    }
+    if let Some(expected) = expected {
+        match &mut source {
+            Some(Source::Library(_, digest)) => *digest = Some(expected),
+            _ => return Err("a generation digest requires --voice-library".to_owned()),
         }
     }
     source.ok_or_else(|| {
@@ -79,7 +103,7 @@ mod tests {
         );
         assert_eq!(
             parse(&["--voice-library", "generation.json"]).unwrap(),
-            Source::Library("generation.json".into())
+            Source::Library("generation.json".into(), None)
         );
         for args in [
             vec![],
@@ -88,6 +112,17 @@ mod tests {
             vec!["--model", "a", "--voice-library", "b"],
             vec!["--voice-library", "a", "--model", "b"],
             vec!["--voice-library", "a", "--voice-library", "b"],
+            vec!["--voice-library-sha256", "abc"],
+            vec!["--model", "a", "--voice-library-sha256", "abc"],
+            vec!["--voice-library", "a", "--voice-library-sha256"],
+            vec![
+                "--voice-library",
+                "a",
+                "--voice-library-sha256",
+                "a",
+                "--voice-library-sha256",
+                "b",
+            ],
         ] {
             assert!(parse(&args).is_err(), "{args:?}");
         }

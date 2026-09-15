@@ -229,6 +229,12 @@ paths, argument vectors and private environment projection avoid shell
 evaluation. The launcher performs WSL conversion once before writing host
 configuration; helpers never translate WSL paths.
 
+The main server also passes =--voice-library-sha256 DIGEST= to managed Piper
+and Flite helpers. They compare it with the exact generation bytes before
+constructing an engine. A changed file or an older helper which rejects the
+option fails startup; it cannot acknowledge the parent's configuration.
+Direct helper development calls may omit this extra argument.
+
 Discovery must not load all installed models. A managed Piper helper reports
 eligible voices from verified metadata and initially holds no model. Protocol
 versions 1–5 and legacy startup remain supported; selection uses existing

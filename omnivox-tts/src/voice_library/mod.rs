@@ -26,7 +26,7 @@ pub use index::{
 };
 pub use runtime::{
     ActivePointer, FliteLibrary, FliteVoice, PiperLibrary, PiperModel, PiperVoice, RuntimeDocument,
-    RuntimeLibrary,
+    RuntimeLibrary, VoiceLibraryConfiguration, VoiceLibraryStatus,
 };
 
 pub const MAX_RUNTIME_BYTES: usize = 1024 * 1024;

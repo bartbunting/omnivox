@@ -8,13 +8,17 @@ use omnivox_tts::TtsEngine;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let engine: Arc<dyn TtsEngine> = Arc::new(match library_path(std::env::args_os().skip(1))? {
         None => FliteTtsEngine::from_environment()?,
-        Some(path) => {
+        Some((path, expected)) => {
             let host = if cfg!(windows) {
                 HostPlatform::Windows
             } else {
                 HostPlatform::Posix
             };
-            let library = RuntimeLibrary::read(std::fs::File::open(path)?, host)?;
+            let library = RuntimeLibrary::read_expected(
+                std::fs::File::open(path)?,
+                host,
+                expected.as_deref(),
+            )?;
             FliteTtsEngine::from_library(&library)?
         }
     });
@@ -24,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn library_path(
     arguments: impl IntoIterator<Item = std::ffi::OsString>,
-) -> Result<Option<std::path::PathBuf>, String> {
+) -> Result<Option<(std::path::PathBuf, Option<String>)>, String> {
     let mut arguments = arguments.into_iter();
     let Some(flag) = arguments.next() else {
         return Ok(None);
@@ -36,10 +40,21 @@ fn library_path(
         .next()
         .filter(|path| !path.is_empty())
         .ok_or_else(|| "--voice-library requires a non-empty path".to_owned())?;
+    let expected = match arguments.next() {
+        None => None,
+        Some(flag) if flag == "--voice-library-sha256" => Some(
+            arguments
+                .next()
+                .and_then(|value| value.into_string().ok())
+                .filter(|value| !value.is_empty())
+                .ok_or("--voice-library-sha256 requires a digest")?,
+        ),
+        _ => return Err("specify exactly one --voice-library path".to_owned()),
+    };
     if arguments.next().is_some() {
-        return Err("specify exactly one --voice-library path".to_owned());
+        return Err("unexpected Flite helper argument".to_owned());
     }
-    Ok(Some(path.into()))
+    Ok(Some((path.into(), expected)))
 }
 
 #[cfg(test)]
@@ -52,13 +67,16 @@ mod tests {
         assert_eq!(parse(&[]).unwrap(), None);
         assert_eq!(
             parse(&["--voice-library", "generation.json"]).unwrap(),
-            Some("generation.json".into())
+            Some(("generation.json".into(), None))
         );
         for args in [
             vec!["--voice-library"],
             vec!["--voice-library", ""],
             vec!["--voice-library", "a", "--voice-library", "b"],
             vec!["--unknown"],
+            vec!["--voice-library-sha256", "abc"],
+            vec!["--voice-library", "a", "--voice-library-sha256"],
+            vec!["--voice-library", "a", "--voice-library-sha256", ""],
         ] {
             assert!(parse(&args).is_err());
         }
