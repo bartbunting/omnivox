@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Silent native voice validation and Linux ownership fault probes (owned processes only)."""
+"""Silent native voice validation and Linux/macOS ownership fault probes."""
 import argparse
 import copy
 import ctypes
+import errno
 import hashlib
 import json
 import os
@@ -26,10 +27,37 @@ def main():
     parser.add_argument("--piper-helper", type=Path, required=True)
     parser.add_argument("--flite-tests", type=Path, help="native test binary that can export bundled SLT")
     args = parser.parse_args()
-    assert os.name == "posix" and Path("/proc/self").exists(), "Linux fault-probe runner required"
-    # Adopt this test's descendants if an intentionally killed supervisor exits.
-    libc = ctypes.CDLL(None, use_errno=True)
-    assert libc.prctl(36, 1, 0, 0, 0) == 0
+    assert sys.platform in {"linux", "darwin"}, "Linux or macOS fault-probe runner required"
+    if sys.platform == "linux":
+        # Adopt this test's descendants if a killed supervisor exits. macOS
+        # instead relies on launchd and observes the recorded identities vanish.
+        libc = ctypes.CDLL(None, use_errno=True)
+        assert libc.prctl(36, 1, 0, 0, 0) == 0
+    else:
+        class MacUsage(ctypes.Structure):
+            _fields_ = [("uuid", ctypes.c_ubyte * 16)] + [
+                (field, ctypes.c_uint64) for field in (
+                    "user_time", "system_time", "package_idle_wakeups", "interrupt_wakeups",
+                    "pageins", "wired_size", "resident_size", "physical_footprint",
+                    "process_start", "process_exit")]
+        libproc = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
+        libproc.proc_pid_rusage.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.POINTER(MacUsage)]
+        libproc.proc_pid_rusage.restype = ctypes.c_int
+
+    def identity(pid):
+        if sys.platform == "linux":
+            try:
+                return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19]
+            except FileNotFoundError:
+                return None
+        record = MacUsage()
+        if libproc.proc_pid_rusage(pid, 0, ctypes.byref(record)) == -1:
+            error = ctypes.get_errno()
+            if error == errno.ESRCH:
+                return None
+            raise OSError(error, os.strerror(error))
+        assert record.process_start, "missing native process identity"
+        return record.process_start
     server = args.server.resolve()
     source = Path(__file__).resolve().parent.parent / "test-fixtures/piper-speakers"
     with tempfile.TemporaryDirectory(prefix="omnivox-validation-probe-") as name:
@@ -109,7 +137,7 @@ def main():
                         return list(map(int, fields))
                 time.sleep(.01)
             raise AssertionError("owned helper never started")
-        def gone(pids):
+        def gone(pids, identities):
             deadline = time.monotonic() + 8
             while time.monotonic() < deadline:
                 for pid in pids:
@@ -117,7 +145,7 @@ def main():
                         os.waitpid(pid, os.WNOHANG)
                     except ChildProcessError:
                         pass
-                if all(not Path(f"/proc/{pid}").exists() for pid in pids):
+                if all(identity(pid) != identities[pid] for pid in pids):
                     return
                 time.sleep(.01)
             raise AssertionError(f"owned processes survived: {pids}")
@@ -138,10 +166,12 @@ def main():
             identities = {}
             try:
                 pids = await_pids()
-                identities = {pid: Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19] for pid in pids}
-                limits = Path(f"/proc/{pids[1]}/limits").read_text()
-                address_limit = next(line for line in limits.splitlines() if line.startswith("Max address space"))
-                assert address_limit.split()[3:5] == [str(4096 * 1024 * 1024)] * 2, address_limit
+                identities = {pid: identity(pid) for pid in pids}
+                assert all(value is not None for value in identities.values()), "fixture exited before observation"
+                if sys.platform == "linux":
+                    limits = Path(f"/proc/{pids[1]}/limits").read_text()
+                    address_limit = next(line for line in limits.splitlines() if line.startswith("Max address space"))
+                    assert address_limit.split()[3:5] == [str(4096 * 1024 * 1024)] * 2, address_limit
                 if action == "cancel":
                     run[0].stdin.close()
                 elif action == "parent-death":
@@ -151,7 +181,7 @@ def main():
                 if action == "unconfirmed-pipe":
                     assert "pipe cleanup unconfirmed" in diagnostics, diagnostics
                 else:
-                    gone(pids)
+                    gone(pids, identities)
                     pids = []  # Never signal a numeric PID after confirming its reaping.
             finally:
                 if run[0].poll() is None:
@@ -161,14 +191,15 @@ def main():
                 run[1].close()
                 run[2].close()
                 for pid in pids:
-                    # Exact process identity, including Linux start time; never
+                    # Exact process identity, including native start time; never
                     # signal a PID that has been reused after a failed check.
                     try:
-                        identity = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19]
-                        if identity == identities.get(pid): os.kill(pid, signal.SIGKILL)
+                        recorded = identities.get(pid)
+                        if recorded is not None and identity(pid) == recorded:
+                            os.kill(pid, signal.SIGKILL)
                     except ProcessLookupError: pass
                     except FileNotFoundError: pass
-                gone(pids)
+                gone(pids, identities)
             if action == "unconfirmed-pipe":
                 print("unconfirmed-pipe: next load blocked; test owner retired escaped process", flush=True)
             else:

@@ -1,0 +1,86 @@
+name: macOS Voice Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voice-validation-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            target: aarch64-apple-darwin
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.97.1
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: Check native supervision and memory cutoff
+        run: >-
+          cargo test --locked -p omnivox-cli voice_validation:: -- --test-threads=1
+
+      - name: Stage native companions and server
+        run: |
+          python tools/build_flite.py
+          python tools/build_piper.py
+          python tools/build.py --package omnivox-cli --features piper
+
+      - name: Lint native validation and helpers
+        run: >-
+          cargo clippy --locked --workspace --all-targets
+          --features omnivox-cli/piper,omnivox-piper-helper/piper -- -D warnings
+
+      - name: Locate the bundled Flite test exporter
+        run: |
+          cargo test --locked -p omnivox-flite-helper --lib --no-run --message-format=json > flite-tests.jsonl
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          artifacts = [json.loads(line) for line in Path("flite-tests.jsonl").read_text().splitlines()]
+          binaries = [item["executable"] for item in artifacts
+                      if item.get("reason") == "compiler-artifact" and item.get("executable")
+                      and item.get("target", {}).get("name") == "omnivox_flite_helper"
+                      and item.get("profile", {}).get("test")]
+          assert len(binaries) == 1, binaries
+          with open(os.environ["GITHUB_ENV"], "a") as output:
+              output.write(f"FLITE_TEST_EXECUTABLE={binaries[0]}\n")
+          PY
+
+      - name: Validate native voices and ownership fault recovery
+        run: |
+          set -o pipefail
+          python -W error::ResourceWarning tools/verify_voice_validation.py \
+            target/debug/omnivox \
+            --flite-helper target/debug/flite/omnivox-flite-helper \
+            --piper-helper target/debug/piper/omnivox-piper-helper \
+            --flite-tests "$FLITE_TEST_EXECUTABLE" 2>&1 | tee voice-validation.log
+
+      - name: Upload validation results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: voice-validation-${{ matrix.target }}
+          path: voice-validation.log
+          if-no-files-found: ignore

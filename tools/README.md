@@ -41,9 +41,10 @@ these probes does not enable the capability or establish two-lane activation,
 audible acceptance, native validation isolation or measured memory recovery.
 
 `verify_voice_validation.py` checks the separate development
-[native validator](../docs/VOICE-VALIDATION.md) on Linux, including descendants,
+[native validator](../docs/VOICE-VALIDATION.md) on Linux and macOS, including descendants,
 deadlines, cancellation, parent death, unconfirmed pipe cleanup, memory-limit
-inheritance and recovery. It requires staged Piper and Flite helpers:
+inheritance on Linux and recovery. macOS component tests separately exercise
+the sampled footprint cutoff. The probe requires staged Piper and Flite helpers:
 
 ```sh
 python3 -W error::ResourceWarning tools/verify_voice_validation.py \
@@ -56,6 +57,10 @@ For an external Flite voice check, add `--flite-tests PATH` naming the native
 `omnivox-flite-helper` library test executable produced by
 `cargo test --locked -p omnivox-flite-helper --lib --no-run`. Its existing test
 exporter creates a temporary copy of bundled SLT; no voice is downloaded.
+Run `cargo test --locked -p omnivox-cli voice_validation:: -- --test-threads=1`
+for platform supervision tests. The manual
+[macOS workflow](../.github/workflows/voice-validation-macos.yml) builds both
+companions and runs these checks on Intel and Apple Silicon.
 
 `build.py` is the supported wrapper for distributable Cargo builds. It keeps
 Cargo's locked dependency resolution, reads the exact `espeak-rs-sys` output

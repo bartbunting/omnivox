@@ -261,10 +261,17 @@ a worker thread that kills its group when the supervisor pipe closes. Group
 signalling precedes reaping and is never repeated after PID reuse becomes
 possible. Normal speech-worker and remote-service lifecycle rules are retained.
 
+macOS also uses a private group and parent-pipe watcher, with system reaping of
+orphaned descendants and bounded observation of group absence. It samples the
+aggregate native physical footprint instead of applying a virtual-address limit
+that may be below the worker's existing mappings. Exceeding the budget, unavailable
+accounting or a full bounded process snapshot aborts the load; this is a sampled
+cutoff, not a hard allocation cap. Cleanup must still finish before another load.
+
 This is development validation of managed loads, not the transaction service or
 full candidate startup preflight. Durable executable/companion provenance,
-operation ownership across manager restarts, full Windows acceptance, macOS
-supervision, dynamic helper availability and coordinated activation remain
+operation ownership across manager restarts, full Windows acceptance, native macOS
+acceptance, dynamic helper availability and coordinated activation remain
 pending. The capability is still unadvertised.
 
 Linux probes cover managed Piper speakers, compiled-in and external Flite,
@@ -273,3 +280,7 @@ descendant reaping, inherited limits and refusal to continue after unconfirmed
 pipe cleanup. Native Windows x64 GNU component tests cover job termination,
 descendant pipes, last-handle closure and an over-budget native memory commit.
 These are not full Windows target/companion or acoustic acceptance claims.
+The supervisor and native test sources compile for both Apple targets from Linux;
+this does not establish native linking or execution. A manual Intel/Apple Silicon
+workflow now covers native footprint limits, Piper/Flite validation and Unix
+ownership faults, but has not yet been run for this change.

@@ -36,16 +36,26 @@ initialization and synthesis. It can be set from 1 to 600 seconds. Cleanup gets 
 separate five-second attempt and reports failure rather than waiting forever;
 drop makes one further bounded attempt if necessary.
 
-The memory limit defaults to 4096 MiB, adjustable from 256 to 65536 MiB:
+The memory budget defaults to 4096 MiB, adjustable from 256 to 65536 MiB:
 
 - Windows limits committed memory for the complete private job.
 - Linux limits each worker/helper's virtual address space with inherited
   `RLIMIT_AS`. This is not an aggregate RAM limit, and shared mappings and native
   thread stacks also consume address space.
+- macOS samples the sum of `ri_phys_footprint` for the private process group
+  during each supervisor wait, normally every 10 milliseconds. Exceeding the
+  budget terminates the group and fails validation. This is a sampled cutoff,
+  not a hard allocation cap: transient spikes or allocations between samples
+  can exceed it. Missing accounting or a full 256-process snapshot fails closed.
 
-These limits have different operating-system meanings. They do not measure model
-RAM, and a low limit may reject an otherwise valid large model. macOS currently
-rejects this development command; ordinary speech behavior is unchanged.
+These budgets have different operating-system meanings. They do not measure
+model RAM, and a low budget may reject an otherwise valid large model. macOS
+uses footprint accounting because its virtual address-space limit can reject
+a worker whose existing mappings already exceed the requested limit. The
+implementation uses the fixed V0 record in Apple's
+[resource header](https://github.com/apple-oss-distributions/xnu/blob/xnu-11215.81.4/bsd/sys/resource.h)
+and the process-group enumeration in
+[libproc](https://github.com/apple-oss-distributions/xnu/blob/xnu-11215.81.4/libsyscall/wrappers/libproc/libproc.c).
 
 ## What is checked
 
@@ -87,24 +97,40 @@ changing speech-worker lifecycle rules. A worker thread watches the supervisor's
 pipe and kills its own group on parent exit. Normal retirement signals the owned
 group before reaping its leader, then checks group absence and reader completion.
 It never sends another group signal after reaping begins, avoiding PID-reuse
-hazards. A process group is not a sandbox against native code deliberately
-escaping it; an inherited pipe that prevents confirmed cleanup blocks progress.
+hazards.
+
+macOS uses the same private-group startup gate and parent-pipe watcher. It
+reaps its direct worker and waits for group absence as the system reaps orphaned
+descendants; it does not claim Linux subreaper behavior. Cleanup requires both
+group absence and reader completion and never signals a group again after
+reaping starts. On either Unix platform, a process group is not a sandbox against
+native code deliberately escaping it; an inherited pipe that prevents confirmed
+cleanup blocks progress.
 
 ## Verification and remaining work
 
-[The Linux probe](../tools/verify_voice_validation.py) uses deterministic Piper
+[The Linux/macOS probe](../tools/verify_voice_validation.py) uses deterministic Piper
 fixtures and, optionally, a temporary export of bundled Flite SLT. It checks
 native results, bad hashes/models, deadlines, cancellation, supervisor death,
-descendant reaping, inherited memory limits and a fresh check after failures.
+descendant exit and a fresh check after failures. Linux also checks inherited
+address-space limits. macOS component tests exercise the footprint cutoff with
+a real allocation in a helper descendant and require confirmed cleanup.
 It also verifies refusal to continue when an escaped child retains a pipe; the
 test owner explicitly retires that deliberately escaped child afterward.
 No trained voice download is required. Native Windows component tests exercise
 job termination, descendant pipes, closure of the last job handle and refusal of
 a native memory commit above the configured budget.
 
-Full Windows server/companion validation, MSVC acceptance and macOS supervision
-remain separate acceptance work. The existing Windows GNU main staging limitation
-is recorded in [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md).
+The manual [macOS Voice Validation workflow](../.github/workflows/voice-validation-macos.yml)
+runs native component tests and the full Piper/Flite probe on Intel and Apple
+Silicon. It builds the supported staged payloads and uses only bundled/generated
+voice fixtures. This change was checked on Linux, including compilation of the
+supervisor and its tests for both Apple targets; native macOS execution remains
+unverified until that workflow or equivalent Mac checks pass.
+
+Full Windows server/companion validation and MSVC acceptance also remain separate
+work. The existing Windows GNU main staging limitation is recorded in
+[ADR 0012](adr/0012-voice-library-and-model-lifecycle.md).
 
 The storage service must still bind durable validation evidence to executable and
 companion provenance, persist interrupted operation ownership, reconcile failed

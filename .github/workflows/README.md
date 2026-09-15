@@ -13,6 +13,18 @@ cache v6, and upload-artifact v7. The release workflow also uses
 download-artifact v8 and action-gh-release v3. Artifact uploads retain the
 default archived layout; downloads fail if the service digest does not match.
 
+## Manual macOS voice validation
+
+[macOS Voice Validation](voice-validation-macos.yml) runs the development voice
+validator checks on native Intel and Apple Silicon runners. It checks process
+cleanup and the sampled memory-footprint cutoff, stages the main executable and
+Piper/Flite companions, and runs silent native validation plus cancellation,
+deadline, supervisor-exit and unconfirmed-pipe probes. Voice inputs are generated
+Piper fixtures and a temporary export of bundled Flite SLT; no trained voice is
+downloaded. The workflow is manual, uploads its probe log, and publishes no
+release. See the [validator guide](../../docs/VOICE-VALIDATION.md) for limits and
+the current acceptance status.
+
 ## Manual macOS timing comparison
 
 Run **macOS Speech Timings** with the candidate branch selected and
