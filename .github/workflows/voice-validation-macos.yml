@@ -40,8 +40,11 @@ jobs:
           python-version: '3.x'
 
       - name: Check native supervision and memory cutoff
-        run: >-
-          cargo test --locked -p omnivox-cli voice_validation:: -- --test-threads=1
+        run: |
+          # Repeat retirement checks across different exit/reaping schedules.
+          for attempt in 1 2 3 4 5; do
+            cargo test --locked -p omnivox-cli voice_validation:: -- --test-threads=1
+          done
 
       - name: Stage native companions and server
         run: |

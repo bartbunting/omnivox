@@ -103,7 +103,11 @@ macOS uses the same private-group startup gate and parent-pipe watcher. It
 reaps its direct worker and waits for group absence as the system reaps orphaned
 descendants; it does not claim Linux subreaper behavior. Cleanup requires both
 group absence and reader completion and never signals a group again after
-reaping starts. On either Unix platform, a process group is not a sandbox against
+reaping starts. Darwin can report `EPERM` for a group containing only zombies;
+this remains pending until group absence is observed within the cleanup deadline.
+It is never treated as cleanup success. This follows the zombie filtering in
+[Darwin's group signalling](https://github.com/apple-oss-distributions/xnu/blob/xnu-11215.81.4/bsd/kern/kern_sig.c).
+On either Unix platform, a process group is not a sandbox against
 native code deliberately escaping it; an inherited pipe that prevents confirmed
 cleanup blocks progress.
 

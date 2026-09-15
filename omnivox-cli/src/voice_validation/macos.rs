@@ -142,7 +142,10 @@ impl Tree {
         // the identity. Never signal it again after reaping begins, even on retry.
         if unsafe { kill(-self.group, 9) } == -1 {
             let error = io::Error::last_os_error();
-            if error.raw_os_error() != Some(3) {
+            // Darwin skips zombies when signalling a group and can return
+            // EPERM when no live member remains. Reap our child and observe
+            // absence below; EPERM alone never confirms successful cleanup.
+            if !matches!(error.raw_os_error(), Some(1 | 3)) {
                 return Err(error);
             }
         }
@@ -160,6 +163,12 @@ impl Tree {
             return Ok(false);
         }
         let error = io::Error::last_os_error();
+        if error.raw_os_error() == Some(1) {
+            // An all-zombie group can report EPERM until the system reaps it.
+            // A genuinely inaccessible or reused group also remains pending;
+            // the caller's existing deadline prevents unbounded waiting.
+            return Ok(false);
+        }
         if error.raw_os_error() != Some(3) {
             return Err(error);
         }
@@ -184,4 +193,42 @@ pub fn check_worker_group() -> io::Result<()> {
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn zombie_group_remains_pending_until_reaped() {
+        let mut command = Command::new("/bin/sh");
+        command.args(["-c", "exit 0"]);
+        configure(&mut command, 0);
+        let mut child = command.spawn().unwrap();
+        let mut tree = Tree::new(0).unwrap();
+        tree.assign(&child).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        // Observe exit without wait/try_wait: keep a real zombie in the group
+        // so Darwin's EPERM response is deterministic rather than timing-based.
+        let observed = loop {
+            match usage(tree.group) {
+                Ok(record) if record.process_exit != 0 => break Ok(()),
+                Err(error) => break Err(error),
+                _ if Instant::now() >= deadline => {
+                    break Err(io::Error::other("fixture did not become a zombie"));
+                }
+                _ => std::thread::sleep(Duration::from_millis(10)),
+            }
+        };
+        let pending = tree.empty();
+        let termination = tree.terminate();
+        // Clean up even when an observation above failed, before asserting.
+        let _ = child.kill();
+        child.wait().unwrap();
+        observed.unwrap();
+        assert!(!pending.unwrap(), "a zombie must not confirm group absence");
+        termination.unwrap();
+        assert!(tree.empty().unwrap());
+    }
 }
