@@ -51,7 +51,10 @@ jobs:
 
       - name: Lint native validation and helpers
         run: >-
-          cargo clippy --locked --workspace --all-targets
+          cargo clippy --locked --all-targets
+          -p omnivox-cli -p omnivox-tts -p omnivox-helper-host
+          -p omnivox-piper-helper -p omnivox-piper-sys
+          -p omnivox-flite-helper -p omnivox-flite-sys
           --features omnivox-cli/piper,omnivox-piper-helper/piper -- -D warnings
 
       - name: Locate the bundled Flite test exporter
