@@ -83,9 +83,12 @@ impl Fixture {
     }
 
     fn library(&self, builtin: bool, entries: &[(&str, &str, u64)]) -> RuntimeLibrary {
+        use sha2::{Digest, Sha256};
         let files = entries.iter().map(|(id, name, bytes)| {
+            let hash: String = Sha256::digest(std::fs::read(self.0.join(name)).unwrap_or_default())
+                .iter().map(|byte| format!("{byte:02x}")).collect();
             let path = self.0.join(name).to_str().unwrap().replace('\\', "\\\\").replace('"', "\\\"");
-            format!(r#"{{"physical_id":"{id}","file":{{"path":"{path}","bytes":{bytes},"sha256":"{}"}},"display_name":"Local test voice","language":null}}"#, "0".repeat(64))
+            format!(r#"{{"physical_id":"{id}","file":{{"path":"{path}","bytes":{bytes},"sha256":"{hash}"}},"display_name":"Local test voice","language":null}}"#)
         }).collect::<Vec<_>>().join(",");
         let source = format!(
             r#"{{"schema_version":1,"target_id":"11111111-1111-4111-8111-111111111111","profile_id":"22222222-2222-4222-8222-222222222222","generation_id":"33333333-3333-4333-8333-333333333333","disabled_physical_ids":[],"piper":null,"flite":{{"builtin_slt":{builtin},"files":[{files}]}}}}"#
@@ -237,6 +240,21 @@ fn managed_native_files_enforce_identity_enablement_and_complete_loading() {
     );
     assert_eq!(warnings.len(), 1);
     drop(legacy);
+    // A same-size edit after generation creation must fail before native load.
+    use std::io::{Read, Seek, SeekFrom, Write};
+    let mut changed = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(fixture.0.join("unrelated-filename.flitevox"))
+        .unwrap();
+    let mut byte = [0];
+    changed.read_exact(&mut byte).unwrap();
+    changed.seek(SeekFrom::Start(0)).unwrap();
+    changed.write_all(&[byte[0] ^ 1]).unwrap();
+    drop(changed);
+    assert!(
+        matches!(FliteTtsEngine::from_library(&library), Err(TtsError::VoiceNotFound(reason)) if reason.contains("SHA-256"))
+    );
     // In particular on Windows, outstanding native file handles must not
     // prevent removal after successful and partially failed selections.
     std::fs::remove_file(fixture.0.join("unrelated-filename.flitevox")).unwrap();

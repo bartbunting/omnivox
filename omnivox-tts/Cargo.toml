@@ -22,6 +22,7 @@ once_cell.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 base64.workspace = true
+sha2.workspace = true
 omnivox-audio = { path = "../omnivox-audio" }
 
 # eSpeak NG backend (enabled by default; supported builds stage its runtime data)

@@ -30,9 +30,14 @@ impl Fixture {
     }
 
     fn document(&self) -> Value {
+        use sha2::{Digest, Sha256};
         let asset = |name: &str| {
             let path = self.0.join(name);
-            json!({"path": path.to_str().unwrap(), "bytes": std::fs::metadata(path).unwrap().len(), "sha256": "0".repeat(64)})
+            let hash: String = Sha256::digest(std::fs::read(&path).unwrap())
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect();
+            json!({"path": path.to_str().unwrap(), "bytes": std::fs::metadata(path).unwrap().len(), "sha256": hash})
         };
         let models: Vec<_> = ["alpha", "beta", "z-bad"].iter().map(|name| json!({
             "identity": {"catalogue_key": name}, "model": asset(&format!("{name}.onnx")), "config": asset("config.json"),
@@ -210,6 +215,13 @@ fn native_library_selects_models_and_speakers_without_overlapping_residency() {
     drop(engine);
 
     let fresh = engine_from_document(&document);
+    // A fresh helper still rejects the repaired, same-size file until a new
+    // generation pins its actual contents.
+    assert!(
+        matches!(fresh.synthesize(&request("z-bad", 1)), Err(TtsError::VoiceNotFound(reason)) if reason.contains("SHA-256"))
+    );
+    drop(fresh);
+    let fresh = engine_from_document(&fixture.document());
     constant_samples(
         &fresh
             .synthesize(&request("z-bad", 1))

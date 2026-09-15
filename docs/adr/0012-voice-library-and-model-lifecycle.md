@@ -171,7 +171,35 @@ a disabled model was never loaded.
 Tests cover exact/default/property selectors, fallback, direct synthesis,
 typed requests, saved references, native-default precedence, global exclusions
 under explicit overrides, late discovery, empty providers and health separation.
-Main-server startup wiring, SHA-256 verification and the negotiated status
-operation remain pending. No `voice_library_v1` capability is advertised. The
-SHA-256 crate addition awaits the maintainer's dependency approval; no Cargo
-manifest or lockfile was changed in these slices.
+Main-server startup wiring and the negotiated status operation remain pending.
+No `voice_library_v1` capability is advertised.
+
+### Asset and generation verification
+
+The maintainer approved adding RustCrypto `sha2` on 2026-09-16. Shared
+verification now hashes original generation bytes and deterministic file-set
+metadata. Asset reads use a fixed 64 KiB buffer, require regular files with
+the declared length, and reject mismatched content or observed changes while
+reading. Provider overrides skip only the assets they replace. Parsing remains
+free of filesystem access; verification is explicit and does not establish
+ownership, provenance or native compatibility.
+
+Piper rechecks both managed assets on each model load, without loading models
+during discovery. Flite rechecks managed external files before native loading.
+A repaired same-size Piper model remains unavailable under an old generation;
+a new matching generation is required. Tests exercise same-size edits in both
+native adapters, interrupted and bounded reads, generation byte identity and
+provider-specific verification. Native reopening by path cannot guarantee
+immutability against concurrent writes to imported files.
+
+Native adapter checks pass for Linux Piper and Linux/Windows x64 GNU Flite.
+Staged helper protocols 1–5 pass on Linux and with generation files in the
+Windows native temporary directory. The Windows protocol run intermittently
+timed out awaiting its greeting when reading generation files through the WSL
+share, including empty libraries which do no hashing. That startup limitation
+remains unresolved; these checks do not establish MSVC or two-lane acceptance.
+
+Main-server preflight must still use the verifier after resolving overrides,
+configure native load sets before constructing engines, and acknowledge the
+same generation with its inventory. Native validation, transport-size preflight
+and coordinated two-lane activation remain separate unfinished work.

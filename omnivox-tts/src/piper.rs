@@ -98,7 +98,7 @@ impl PiperTtsEngine {
             model: model_path,
             config,
             speakers: vec![0],
-            expected_bytes: None,
+            expected_assets: None,
         };
         let native = spec.load()?;
         Ok(Self {
@@ -125,7 +125,7 @@ impl PiperTtsEngine {
     }
 
     /// Consume an already verified library generation without loading models.
-    /// The manager owns hash/provenance validation; parsing alone is not that proof.
+    /// Native loading rechecks asset hashes; the manager owns provenance validation.
     /// Only this generation's enabled Piper bindings can reach native loading.
     pub fn from_library(library: &crate::voice_library::RuntimeLibrary) -> Result<Self, TtsError> {
         let piper = library.document().piper.as_ref().ok_or_else(|| {
@@ -138,7 +138,7 @@ impl PiperTtsEngine {
                 model: PathBuf::from(&model.model.path),
                 config: PathBuf::from(&model.config.path),
                 speakers: model.voices.iter().map(|v| v.speaker_index).collect(),
-                expected_bytes: Some((model.model.bytes, model.config.bytes)),
+                expected_assets: Some((model.model.clone(), model.config.clone())),
             });
             for voice in &model.voices {
                 voices.push(VoiceBinding {

@@ -1,5 +1,5 @@
-//! Helper-local model ownership. The manager verifies asset hashes before use;
-//! this layer validates selected config/speaker metadata and owns native lifetime.
+//! Helper-local model ownership. Recheck hashes before each native load, validate
+//! selected config/speaker metadata and own native lifetime.
 use super::*;
 use std::fs::File;
 use std::io::Read;
@@ -8,7 +8,10 @@ pub(super) struct ModelSpec {
     pub model: PathBuf,
     pub config: PathBuf,
     pub speakers: Vec<u32>,
-    pub expected_bytes: Option<(u64, u64)>,
+    pub expected_assets: Option<(
+        crate::voice_library::AssetFile,
+        crate::voice_library::AssetFile,
+    )>,
 }
 
 pub(super) struct VoiceBinding {
@@ -45,20 +48,21 @@ impl ModelSpec {
         if !model_metadata.is_file() {
             return Err(unavailable("model path is not a file"));
         }
-        let config =
-            File::open(&self.config).map_err(|_| unavailable("configuration is unreadable"))?;
+        let config = if let Some((model, config)) = &self.expected_assets {
+            model
+                .open_verified()
+                .map_err(|e| unavailable(&e.to_string()))?;
+            config
+                .open_verified()
+                .map_err(|e| unavailable(&e.to_string()))?
+        } else {
+            File::open(&self.config).map_err(|_| unavailable("configuration is unreadable"))?
+        };
         let config_metadata = config
             .metadata()
             .map_err(|_| unavailable("configuration metadata is unreadable"))?;
         if !config_metadata.is_file() {
             return Err(unavailable("configuration path is not a file"));
-        }
-        if self.expected_bytes.is_some_and(|(model, config)| {
-            model != model_metadata.len() || config != config_metadata.len()
-        }) {
-            return Err(unavailable(
-                "asset size changed since the library was prepared",
-            ));
         }
         const MAX_CONFIG_BYTES: u64 = 1024 * 1024;
         let mut bytes = Vec::new();

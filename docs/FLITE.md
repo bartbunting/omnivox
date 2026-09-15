@@ -138,17 +138,19 @@ startup consumes only the generation's Flite fields and ignores that environment
 path list; the main server will resolve explicit overrides before helper startup.
 
 Managed loading registers SLT only when `builtin_slt` is true and loads exactly
-the projected external files. It checks file sizes and requires each file's
-native voice ID to match its recorded physical ID. A failed or changed file
+the projected external files. It rechecks sizes and SHA-256 hashes immediately
+before native loading and requires each file's native voice ID to match its
+recorded physical ID. A failed or changed file
 rejects the complete selection and releases earlier external loads. Labels
 and optional language metadata come from the generation. Synthesis requires
 the exact physical ID; a native-name alias cannot select an excluded voice.
 
 False `builtin_slt` with an empty file list initializes no native voices and
 has no default. The final main-server activation path should omit that helper
-entirely. File hash/provenance verification and main-server library startup
-remain separate implementation work; the helper expects a trusted parent to
-provide verified immutable inputs. `voice_library_v1` is not advertised yet.
+entirely. Installation provenance and main-server library startup remain
+separate implementation work; the helper expects a trusted parent to provide
+verified immutable inputs. Rehashing cannot make a user-owned file immutable
+during concurrent writes. `voice_library_v1` is not advertised yet.
 
 Run the native adapter and owned helper checks without playback:
 

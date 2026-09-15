@@ -1,7 +1,8 @@
 //! Validated voice-library metadata, without filesystem mutation or native loading.
 //!
-//! Parsing establishes structural consistency only. Asset hashes, ownership,
-//! native compatibility and activation must be checked by the management service.
+//! Parsing establishes structural consistency only. Explicit asset verification
+//! checks file contents; ownership, native compatibility and activation remain
+//! separate management-service responsibilities.
 //! Keep the original bytes for generation hashing; never hash a reserialization.
 
 use std::collections::HashSet;
@@ -15,6 +16,7 @@ use crate::contracts::PhysicalVoiceId;
 mod eligibility;
 mod index;
 mod runtime;
+mod verification;
 
 pub use eligibility::{ProviderOverrides, VoiceEligibility};
 
@@ -44,6 +46,8 @@ pub enum LibraryError {
     Json(#[from] serde_json::Error),
     #[error("could not read voice library: {0}")]
     Io(#[from] std::io::Error),
+    #[error("could not verify voice-library asset {path}: {reason}")]
+    Asset { path: String, reason: String },
 }
 
 /// The speech host's path rules, which may differ from the manager's OS.

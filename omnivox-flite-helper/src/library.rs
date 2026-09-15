@@ -9,11 +9,10 @@ pub(super) fn load_external_voice(
 ) -> Result<NativeVoice, String> {
     let path = validate_external_voice_path(path)?;
     if let Some(expected) = expected {
-        let metadata = std::fs::metadata(&path)
-            .map_err(|error| format!("could not inspect Flite voice: {error}"))?;
-        if metadata.len() != expected.file.bytes {
-            return Err("Flite asset size changed since the library was prepared".to_owned());
-        }
+        expected
+            .file
+            .open_verified()
+            .map_err(|error| error.to_string())?;
     }
     let text = path
         .to_str()

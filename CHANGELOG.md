@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Managed Piper and Flite assets are checked against their declared SHA-256
+  hashes before native loading, including detection of same-size file edits.
+  Shared verification also identifies exact generation bytes and file sets
+  for the planned voice manager.
 - Flite helper library startup loads only enabled external files and can leave
   built-in SLT unregistered. Changed native voice IDs or incomplete load sets
   fail startup; legacy environment-based configuration remains supported.

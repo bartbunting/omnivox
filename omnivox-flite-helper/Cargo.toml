@@ -14,3 +14,6 @@ omnivox-tts = { path = "../omnivox-tts", default-features = false }
 [[bin]]
 name = "omnivox-flite-helper"
 path = "src/main.rs"
+
+[dev-dependencies]
+sha2.workspace = true

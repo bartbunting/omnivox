@@ -173,10 +173,12 @@ all speakers of that model for this helper's lifetime and returns non-retryable
 availability locally; the helper host's descriptor remains its startup snapshot.
 
 This startup path expects a trusted parent to supply a verified immutable
-generation. The helper checks schema, file sizes, configuration and native
-speaker bounds. It does not yet verify file hashes or installation provenance;
-that service is a separate implementation slice. Legacy `--model` startup keeps
-its filename-derived voice ID and speaker zero.
+generation. Before each managed native model load, the helper rechecks exact
+file sizes and SHA-256 hashes, then validates configuration and native speaker
+bounds. Installation provenance and main-server preflight remain management
+work. Hash checks cannot make user-owned files immutable during concurrent
+writes. Legacy `--model` startup keeps its filename-derived voice ID and
+speaker zero.
 
 The owned [speaker fixtures](../test-fixtures/piper-speakers/README.md) exercise
 native model and speaker selection without trained voice downloads or playback:
