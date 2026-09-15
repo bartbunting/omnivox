@@ -4,8 +4,8 @@
 
 * Status and scope
 
-Proposed for joint acceptance with Omnivox ADR 0012 and Emacsvox ADR 0019.
-This is the authoritative format proposal, not an implemented interface.
+Accepted on 2026-09-15 with Omnivox ADR 0012 and Emacsvox ADR 0019.
+This is the authoritative contract; implementation proceeds in tested slices.
 Emacsvox's =docs/engine-management-design.org= supplies the interaction and
 delivery plan. Existing single-model Piper and explicit Flite paths continue
 to work until the maintainer explicitly adopts a library.
@@ -19,13 +19,15 @@ Version 1 covers storage, identity, eligibility, Piper model/speaker selection,
 Flite file selection and coordinated restart. It establishes the extension
 boundary for MBROLA and other providers without specifying their native
 interfaces or approving a download catalogue. No new dependency, release pin,
-model redistribution or helper-process boundary follows from this proposal.
+model redistribution or helper-process boundary follows from this contract.
 
 * Ownership and storage
 
 Omnivox owns the shared formats, parsers and native validation. Emacsvox owns
-the initial reviewed catalogue and accessible interaction. A reusable local
-management service owns installation transactions; renderers only read its
+the initial reviewed catalogue, accessible interaction and coordination of
+its two speech processes. Omnivox owns the reusable local download,
+installation and storage service. Downloaded files belong to the user;
+the service manages their lifecycle. Renderers only read operation
 results. Native helpers never download or interpret catalogue instructions.
 
 The first host root is =%LOCALAPPDATA%\Emacsvox\Omnivox\voices=, outside the
@@ -203,7 +205,7 @@ it is reported as excluded by configuration, not as a missing runtime.
 
 * Startup precedence and compatibility
 
-Proposed main-server inputs are =--voice-library PATH= and
+Main-server inputs are =--voice-library PATH= and
 =OMNIVOX_VOICE_LIBRARY=. CLI wins over the environment for selecting the
 generation file. With neither, startup is unchanged. An explicit malformed
 library fails preflight/startup; do not quietly ignore it.
@@ -217,7 +219,7 @@ the override, and activation cannot claim that engine's proposed load set
 was applied. The plan must resolve an affected override before retiring live
 workers. Unaffected overrides may remain and are included in the plan.
 
-Piper's proposed helper startup adds =--voice-library PATH=, mutually exclusive
+Piper's managed helper startup adds =--voice-library PATH=, mutually exclusive
 with legacy =--model PATH=. Flite gains the same managed startup input while
 retaining its existing path mode. The trusted native parent passes a verified
 immutable generation; helpers consume only their provider's fields. Native
@@ -360,7 +362,7 @@ against another program rewriting a user-owned file.
 
 * Delivery and acceptance checks
 
-Implement in separate commits after acceptance: typed storage/identity and
+Implement in separate commits: typed storage/identity and
 fixtures; managed Piper model/speaker selection; eligibility and negotiated
 status; local transaction/activation provider; accessible enablement/import;
 reviewed Piper acquisition; Flite acquisition. Flite managed load-set support
