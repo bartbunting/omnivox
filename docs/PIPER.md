@@ -132,3 +132,28 @@ or eSpeak engines.
 See [LICENSING.md](LICENSING.md) for the source, native-library, and model
 licensing boundaries. The engineering CI model is explicitly not included in
 companion artifacts and does not constitute a general model endorsement.
+
+## Native lifecycle verification
+
+Omnivox applies a checked lifecycle overlay to the generated libpiper build
+copy. It preserves the vendored source, catches C++ construction/inference
+exceptions, cleans up partial construction and permits one resident model per
+process. Companion provenance includes the overlay's source hashes. Native
+crashes and calls that exceed their deadline still require helper retirement.
+
+On Linux x64, explicitly run the native recovery test with the reviewed test
+model and the freshly built runtime:
+
+```sh
+python3 tools/prepare_piper_test_model.py --check
+LD_LIBRARY_PATH="$PWD/target/piper-native/1.7.0/x86_64-unknown-linux-gnu/i1/lib" \
+  OMNIVOX_PIPER_TEST_MODEL="$PWD/target/piper-test-model/en_US-kristin-medium.onnx" \
+  cargo test --locked -p omnivox-piper-sys --features native-tests --test lifecycle
+```
+
+The test exercises failed construction, repeated creation/destruction,
+overlapping-load refusal, inference errors and successful recovery. It
+produces PCM without playback. The opt-in `native-tests` feature keeps this
+asset-dependent test out of ordinary workspace tests. Other platforms need
+their native runtime on the corresponding test process's library search path;
+Linux success does not establish Windows behavior.

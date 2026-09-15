@@ -90,3 +90,14 @@ forced helper retirement; do not claim native cooperative cancellation.
 These are prerequisites for the accepted design, not a change to its one-model
 residency limit. The probe establishes the current failure, not a working fix,
 Windows behavior, audible acceptance or measured memory recovery.
+
+The native prerequisite now has a checked overlay on the generated libpiper
+build copy. It contains construction and inference exceptions inside C++,
+owns partial construction through RAII, and reserves one native model slot
+until destruction finishes. The pristine vendor is unchanged. Companion
+provenance records the overlay and build-script hashes. An explicit native
+lifecycle test covers repeated malformed-config/invalid-model/valid-model
+loads, refusal of overlapping construction, inference failure and subsequent
+successful synthesis in one process. This establishes Linux recovery, not
+Windows acceptance or measured memory release. Cancellation and library
+selection still follow in separate implementation slices.

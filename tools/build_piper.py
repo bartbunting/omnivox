@@ -374,6 +374,17 @@ def provenance(
             "vendored_source_tree_sha256": source_tree_digest(
                 vendored_piper, {"UPSTREAM.md"}
             ),
+            "omnivox_native_overlay": {
+                "version": "lifecycle-v1",
+                "files": {
+                    relative: sha256_file(repository / relative)
+                    for relative in (
+                        "omnivox-piper-sys/build.rs",
+                        "omnivox-piper-sys/native_overlay.rs",
+                        "omnivox-piper-sys/native/omnivox_lifecycle.hpp",
+                    )
+                },
+            },
         },
         "espeak_ng": {
             "repository": "https://github.com/espeak-ng/espeak-ng",

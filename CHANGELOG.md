@@ -6,6 +6,12 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Piper contains native model-loading and inference exceptions instead of
+  aborting the helper. Partial model construction is cleaned up, and overlapping
+  model construction is rejected without disrupting the resident model.
+
 ## [1.11.0] - 2026-09-14
 
 ### Added

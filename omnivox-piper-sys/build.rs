@@ -5,6 +5,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+mod native_overlay;
+
 const VENDORED_PIPER: &str = "../third-party/piper1-gpl";
 const PIPER_VERSION: &str = "1.7.0";
 
@@ -260,6 +262,15 @@ fn main() {
     copy_tree(&vendored_root, &source_copy);
     let source = source_copy.join("libpiper");
     let inputs = require_verified_inputs(&source, &target_base, &target);
+    let native_source = source.join("src/piper.cpp");
+    let contents = fs::read_to_string(&native_source).expect("could not read generated piper.cpp");
+    fs::write(&native_source, native_overlay::apply(&contents))
+        .expect("could not apply the Piper lifecycle overlay");
+    fs::copy(
+        manifest_dir.join("native/omnivox_lifecycle.hpp"),
+        source.join("src/omnivox_lifecycle.hpp"),
+    )
+    .expect("could not copy the Piper lifecycle overlay header");
     // Keep the verified-input graph separate from pre-migration CMake caches,
     // whose ExternalProject source directory points at an in-tree Git clone.
     let build = build_root.join("b1");
@@ -310,6 +321,8 @@ fn main() {
         .expect("could not write libpiper bindings");
 
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=native_overlay.rs");
+    println!("cargo:rerun-if-changed=native/omnivox_lifecycle.hpp");
     println!("cargo:rerun-if-changed={}", vendored_source.display());
     println!(
         "cargo:rerun-if-changed={}",

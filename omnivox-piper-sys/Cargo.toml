@@ -10,5 +10,14 @@ links = "piper"
 [lib]
 name = "omnivox_piper_sys"
 
+[features]
+# Opt-in native acceptance test; requires reviewed model assets and the built
+# Piper runtime on the test process's library search path.
+native-tests = []
+
+[[test]]
+name = "lifecycle"
+required-features = ["native-tests"]
+
 [build-dependencies]
 bindgen = "0.69"
