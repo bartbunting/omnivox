@@ -388,3 +388,15 @@ reconstruct authority from saved PIDs or kernel-object names. A supervisor crash
 whole-tree termination or unconfirmed cleanup still leaves history blocked;
 old incomplete histories are not cleared. There is no persistent daemon, new
 release artifact, automatic speech restart or voice-library capability added.
+
+### Abandon recorded cleanup after a damaged final write
+
+Explicit recovery also accepts a damaged journal suffix when its verified prefix
+ends at `validating` and every retained worker has complete cleanup records. A
+distinct receipt basis binds the entire original journal, including its damage.
+Later admission verifies that receipt and all original evidence before accepting
+the abandoned attempt. The journal cannot be repaired, resumed or promoted to
+success. Missing cleanup, damage before the validating record, damaged terminal
+prefixes and partial recovery receipts remain blocked. This extends recorded
+cleanup reconciliation without adding authority over processes after supervisor
+loss during native work.

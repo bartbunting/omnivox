@@ -82,7 +82,7 @@ only lock acquisition itself is nonblocking.
 | `staged` | Confirmed, with evidence digest | Validation result recorded; no further writes or activation implied. |
 | `cancelled` or `failed` | Not started, or confirmed after validation | Terminal; no further writes. |
 | `recovery_failed` | Unconfirmed | Cleanup failure retained; append/reuse blocked. |
-| Any incomplete/damaged suffix | Unknown | Damaged; append/reuse blocked even after an otherwise terminal prefix. |
+| Any incomplete/damaged suffix | Unknown until independent cleanup verification | Damaged; append/reuse blocked. Explicit abandonment is possible only with a verified `validating` prefix and complete worker cleanup. |
 
 The initial transition is `prepared`. Only a current owner can record
 `validating`, and it must do so before native work. That same owner can record
@@ -95,7 +95,9 @@ Losing the lock proves only that no owner holds that lease. It does not prove
 that helpers, descendants or readers finished. Therefore a new process that
 acquires a `validating` or damaged operation can inspect it but cannot append a
 terminal result or restart it. Explicit recovery may add a separate abandonment
-receipt when all retained worker cleanup records are complete, as described below.
+receipt when the verified prefix ends at `validating` and all retained worker
+cleanup records are complete, as described below. This can include a damaged final
+append; the damage remains part of the retained evidence.
 Automatic PID-based termination, report-based completion, journal reset and speech
 restart are deliberately absent from recovery inspection.
 
@@ -219,10 +221,10 @@ because this manager/supervisor split was installed.
 ## Abandonment using recorded cleanup
 
 The explicit recovery command acquires the profile and operation leases, checks
-the existing claim and exact plan binding, then examines an intact `validating`
-journal and its initialized `workers/` directory. Each worker must have a complete
-intent, ownership and cleanup triple in sequence. Every event must match the
-operation, plan, platform ownership and phase. Missing, partial, unknown or
+the existing claim and exact plan binding, then examines a journal whose verified
+prefix ends at `validating` and its initialized `workers/` directory. Each worker
+must have a complete intent, ownership and cleanup triple in sequence. Every event
+must match the operation, plan, platform ownership and phase. Missing, partial, unknown or
 inconsistent events block recovery. The same 256-worker and 128 KiB per-event
 bounds apply; the count cannot exceed the planned native loads plus the two input
 observations. Strict readers reject duplicate keys and omitted nullable fields.
@@ -236,24 +238,46 @@ it does not discover live processes, signal stored PIDs or execute saved paths.
 Successful recovery creates `cleanup-recovery.frames`, leaving the journal, report,
 claim and worker files untouched. The receipt is one checksummed JSON frame, at
 most 128 KiB. It records schema 1, outcome `abandoned`, basis
-`completed-worker-records-v1`, the operation ID, exact plan and original journal
-digests, and the ordered names and digests of every worker event. Creation never
-overwrites a file and synchronizes it, plus its directory on Unix. The same
-process-crash versus power-loss limitations described above apply.
+`completed-worker-records-v1` for an intact journal, the operation ID, exact plan
+and original journal digests, and the ordered names and digests of every worker
+event. Creation never overwrites a file and synchronizes it, plus its directory
+on Unix. The same process-crash versus power-loss limitations described above apply.
 
 Every subsequent opening checks the receipt against the original journal and the
 complete current worker history. A valid receipt yields inspection state
-`Abandoned`; the original journal still says `validating` and cannot be appended
-to. Repeating recovery verifies the existing receipt without rewriting it. This
-handles a lost acknowledgement. A partial receipt or changed evidence blocks
+`Abandoned`; the original journal's verified prefix still ends at `validating`
+and cannot be appended to. Repeating recovery verifies the existing receipt
+without rewriting it. This handles a lost acknowledgement. A partial receipt or changed evidence blocks
 admission and is retained for further recovery; there is no overwrite or force
 clear. Other unresolved claims still block new work independently.
 
 Abandonment allows admission of a new operation ID. It does not authorize reuse of
 the old attempt, native-check skipping, report promotion, installation or
 activation. A missing or partial native report is retained but is irrelevant to
-cleanup reconciliation. Damaged journals, `recovery_failed` operations and workers
-without recorded cleanup remain blocked even if their old processes have exited.
+cleanup reconciliation. Journals without a verified `validating` prefix,
+`recovery_failed` operations and workers without recorded cleanup remain blocked
+even if their old processes have exited.
+
+### Supervisor loss during the final append
+
+After the last worker cleanup record is synchronized, the supervisor can die
+while writing its terminal journal frame. The valid prefix still ends at
+`validating`, but the suffix is damaged. Explicit recovery can abandon this
+attempt using the same complete worker-history verification. It does not infer
+success from the partial frame or a saved report.
+
+For this case the receipt uses basis
+`completed-worker-records-damaged-journal-v1`. It hashes the entire original
+journal, including the damaged suffix. Recovery does not truncate, repair or
+append to that journal. Later inspection reports `Abandoned` only after verifying
+the receipt and all original bytes again; changing even the uninterpreted suffix
+invalidates recovery. Older readers reject this basis rather than accepting
+evidence they cannot verify.
+
+Damage to the initial or validating frame still blocks recovery, as does a
+damaged suffix after a terminal prefix. An outstanding worker intent or missing
+cleanup record also blocks it. This handles a lost final write after recorded
+cleanup; it provides no new process-tree authority after an active-worker crash.
 
 The standalone `--validate-voice-library` diagnostic retains its existing behavior
 and does not participate in profile admission. The operation command is the path

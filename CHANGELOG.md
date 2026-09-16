@@ -10,11 +10,13 @@ Versioning for published releases.
 
 - Development managed validation keeps a separate supervisor alive through
   manager-process death so it can confirm native cleanup and persist cancellation.
-  Supervisor death or unconfirmed cleanup still blocks subsequent admission.
+  Supervisor death with missing cleanup records still blocks subsequent admission.
 - Development validation recovery can abandon an interrupted attempt using its
   complete worker cleanup records, allowing fresh validation through profile
-  admission. It preserves and rechecks original evidence; unfinished workers and
-  damaged history remain blocked. It never promotes an old report to success.
+  admission. A torn final journal write is recoverable when its verified prefix
+  records validation and every worker has recorded cleanup; all original bytes
+  are preserved and rechecked. Unfinished workers and other damaged history
+  remain blocked. Recovery never promotes an old report to success.
 - Development managed voice validation now retains profile admission claims and
   records worker ownership before native startup. Interrupted history blocks
   fresh operation IDs; successful evidence is bound to the exact operation and

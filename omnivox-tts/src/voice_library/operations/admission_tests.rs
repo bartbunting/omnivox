@@ -133,6 +133,7 @@ fn native_owner_death_keeps_the_profile_claim() {
         "failed",
         "partial",
         "cleaned",
+        "cleaned-partial",
         "idle-workers",
     ] {
         let fixture = setup();
@@ -168,7 +169,7 @@ fn native_owner_death_keeps_the_profile_claim() {
         } else {
             assert!(owner.admit(OPERATION_ID).is_err());
         }
-        if matches!(mode, "cleaned" | "idle-workers") {
+        if matches!(mode, "cleaned" | "cleaned-partial" | "idle-workers") {
             owner.abandon_cleaned_validation(OPERATION_ID).unwrap();
             assert!(owner.admit(SECOND).is_ok());
         } else if mode != "claimed" {
@@ -197,13 +198,29 @@ fn profile_owner_fixture() {
         file.write_all(b"partial").unwrap();
         file.sync_all().unwrap();
     }
-    if matches!(mode.as_str(), "cleaned" | "idle-workers") {
+    if matches!(
+        mode.as_str(),
+        "cleaned" | "cleaned-partial" | "idle-workers"
+    ) {
         let mut records = ExecutionRecords::create(&admitted).unwrap();
-        if mode == "cleaned" {
+        if mode != "idle-workers" {
             records.starting("fixture-validator", &[]).unwrap();
             records.owned(std::process::id()).unwrap();
             records.cleaned().unwrap();
         }
+    }
+    if mode == "cleaned-partial" {
+        let operation = admitted.operation();
+        let frame = operation
+            .journal()
+            .next_frame(operation.plan(), staged())
+            .unwrap();
+        let mut file = OpenOptions::new()
+            .append(true)
+            .open(operation.path().join("journal.frames"))
+            .unwrap();
+        file.write_all(&frame[..frame.len() - 1]).unwrap();
+        file.sync_all().unwrap();
     }
     fs::write(root.join("ready"), b"ready").unwrap();
     let _ = std::io::stdin().read_exact(&mut [0]);

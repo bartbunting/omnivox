@@ -134,11 +134,14 @@ impl Operation {
         Ok(Self::try_open(path)?.map_or(Inspection::Busy, |operation| operation.inspection()))
     }
     pub(super) fn inspection(&self) -> Inspection {
-        if self.poisoned || self.journal.damage().is_some() {
+        if self.poisoned {
             return Inspection::Damaged;
         }
         if self.abandoned {
             return Inspection::Abandoned;
+        }
+        if self.journal.damage().is_some() {
+            return Inspection::Damaged;
         }
         match self.journal.state() {
             Some(ValidationState::Prepared) => Inspection::Prepared,

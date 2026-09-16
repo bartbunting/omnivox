@@ -115,12 +115,11 @@ fn incomplete_or_inconsistent_cleanup_never_changes_history_or_releases_admissio
                 fs::write(&cleaned, &bytes[..bytes.len() - 1]).unwrap();
             }
             "torn-journal" => {
-                OpenOptions::new()
-                    .append(true)
-                    .open(operation.join("journal.frames"))
-                    .unwrap()
-                    .write_all(b"partial")
-                    .unwrap();
+                // Damage the validating frame itself: cleanup records must not
+                // substitute for a verified admission-to-validation transition.
+                let path = operation.join("journal.frames");
+                let bytes = fs::read(&path).unwrap();
+                fs::write(path, &bytes[..bytes.len() - 1]).unwrap();
             }
             "duplicate-key" => {
                 let bytes = fs::read_to_string(&cleaned).unwrap();
@@ -151,6 +150,117 @@ fn incomplete_or_inconsistent_cleanup_never_changes_history_or_releases_admissio
                 fs::write(path, event.to_string()).unwrap();
             }
         }
+        let original = files(&fixture.0);
+        let mut owner = gate(&fixture.0);
+        assert!(
+            owner.abandon_cleaned_validation(OPERATION_ID).is_err(),
+            "{mode}"
+        );
+        assert!(owner.admit(SECOND).is_err(), "{mode}");
+        drop(owner);
+        assert_eq!(files(&fixture.0), original, "{mode}");
+    }
+}
+
+#[test]
+fn torn_completion_can_be_abandoned_without_repairing_or_reusing_the_attempt() {
+    for cut in [1, 20, usize::MAX] {
+        let fixture = setup();
+        let operation = interrupted(&fixture.0, 1);
+        let path = operation.join("journal.frames");
+        let mut bytes = fs::read(&path).unwrap();
+        let frame = Journal::read(bytes.as_slice(), &plan())
+            .unwrap()
+            .next_frame(&plan(), staged())
+            .unwrap();
+        bytes.extend_from_slice(&frame[..cut.min(frame.len() - 1)]);
+        fs::write(&path, &bytes).unwrap();
+        let original = files(&fixture.0);
+        assert_eq!(Operation::inspect(&operation).unwrap(), Inspection::Damaged);
+        let mut owner = gate(&fixture.0);
+        assert!(owner.admit(SECOND).is_err());
+        owner.abandon_cleaned_validation(OPERATION_ID).unwrap();
+        assert_eq!(
+            Operation::inspect(&operation).unwrap(),
+            Inspection::Abandoned
+        );
+        let mut reopened = Operation::try_open(&operation).unwrap().unwrap();
+        assert!(reopened.journal().damage().is_some());
+        assert_eq!(reopened.journal().source_bytes(), bytes);
+        assert!(reopened.append(staged()).is_err());
+        drop(reopened);
+        owner.abandon_cleaned_validation(OPERATION_ID).unwrap();
+        assert!(owner.admit(OPERATION_ID).is_err());
+        assert!(owner.admit(SECOND).is_ok());
+        drop(owner);
+        let receipt = operation
+            .join("cleanup-recovery.frames")
+            .canonicalize()
+            .unwrap();
+        let mut after = files(&fixture.0);
+        let saved = after.remove(&receipt).unwrap();
+        // Admission above adds a new claim; all old bytes are still retained.
+        for (path, bytes) in original {
+            assert_eq!(after.get(&path), Some(&bytes));
+        }
+        assert!(String::from_utf8(saved)
+            .unwrap()
+            .contains("completed-worker-records-damaged-journal-v1"));
+
+        // Even a change to the previously uninterpreted suffix invalidates the
+        // receipt. Recovery binds every original byte, not just the valid prefix.
+        bytes.push(b' ');
+        fs::write(path, bytes).unwrap();
+        let mut owner = gate(&fixture.0);
+        assert!(Operation::inspect(&operation).is_err());
+        assert!(owner.abandon_cleaned_validation(OPERATION_ID).is_err());
+        assert!(owner.admit(SECOND).is_err());
+    }
+}
+
+#[test]
+fn damaged_completion_still_requires_complete_workers_and_a_validating_prefix() {
+    for mode in [
+        "outstanding-worker",
+        "missing-workers",
+        "terminal-prefix",
+        "prepared-prefix",
+    ] {
+        let fixture = setup();
+        let operation = interrupted(&fixture.0, 1);
+        let path = operation.join("journal.frames");
+        let mut bytes = fs::read(&path).unwrap();
+        match mode {
+            "outstanding-worker" => {
+                fs::remove_file(operation.join("workers/0000-cleaned.json")).unwrap()
+            }
+            "missing-workers" => fs::rename(
+                operation.join("workers"),
+                operation.join("retained-workers"),
+            )
+            .unwrap(),
+            "terminal-prefix" => {
+                let frame = Journal::read(bytes.as_slice(), &plan())
+                    .unwrap()
+                    .next_frame(&plan(), staged())
+                    .unwrap();
+                bytes.extend_from_slice(&frame);
+            }
+            "prepared-prefix" => {
+                let end = bytes
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, byte)| **byte == b'\n')
+                    .nth(1)
+                    .unwrap()
+                    .0
+                    + 1;
+                bytes.truncate(end);
+            }
+            _ => unreachable!(),
+        }
+        bytes.extend_from_slice(b"partial");
+        fs::write(path, bytes).unwrap();
         let original = files(&fixture.0);
         let mut owner = gate(&fixture.0);
         assert!(

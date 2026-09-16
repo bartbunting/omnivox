@@ -232,7 +232,8 @@ impl Admission {
     }
 
     /// Abandon an interrupted validation only when every retained worker has a
-    /// complete cleanup record. Holds both leases, preserves the journal, and
+    /// complete cleanup record and the journal has a verified validating prefix.
+    /// A damaged suffix is retained. Holds both leases, preserves the journal, and
     /// never signals processes or promotes a saved report to validation success.
     /// An already verified abandonment is an idempotent success.
     pub fn abandon_cleaned_validation(&mut self, operation_id: &str) -> Result<(), LibraryError> {

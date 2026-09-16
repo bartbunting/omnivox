@@ -46,9 +46,8 @@ struct WorkerEvent {
 impl Recovery {
     fn observe(operation: &Operation) -> Result<Self, LibraryError> {
         require(
-            operation.journal().damage().is_none()
-                && operation.journal().state() == Some(ValidationState::Validating),
-            "cleanup recovery requires an intact interrupted validation journal",
+            operation.journal().state() == Some(ValidationState::Validating),
+            "cleanup recovery requires a verified validating journal prefix",
         )?;
         let plan = operation.plan();
         let directory = operation.path().join("workers");
@@ -139,7 +138,15 @@ impl Recovery {
         Ok(Self {
             schema_version: 1,
             outcome: "abandoned".into(),
-            basis: "completed-worker-records-v1".into(),
+            // The damaged suffix is retained and hashed, never interpreted as
+            // completion. Only the independent worker history proves cleanup.
+            // A distinct basis makes older readers reject this new case.
+            basis: if operation.journal().damage().is_some() {
+                "completed-worker-records-damaged-journal-v1"
+            } else {
+                "completed-worker-records-v1"
+            }
+            .into(),
             operation_id: plan.document().operation_id.clone(),
             plan_sha256,
             journal_sha256: digest(operation.journal().source_bytes()),
@@ -176,8 +183,11 @@ pub(super) fn check(operation: &Operation) -> Result<bool, LibraryError> {
 
 pub(super) fn abandon(operation: &Operation) -> Result<(), LibraryError> {
     require(
-        operation.inspection() == Inspection::Interrupted,
-        "only interrupted validation can be abandoned",
+        matches!(
+            operation.inspection(),
+            Inspection::Interrupted | Inspection::Damaged
+        ),
+        "only interrupted or damaged validation can be abandoned",
     )?;
     let recovery = Recovery::observe(operation)?;
     // Check the exact plan and journal again before adding a separate receipt.

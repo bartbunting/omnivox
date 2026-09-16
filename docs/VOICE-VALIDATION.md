@@ -204,8 +204,10 @@ never authority to signal processes or restart speech.
 an interrupted validation when every worker has a complete saved cleanup record.
 It preserves the journal and any report, adds a separately verified abandonment
 receipt, and allows a fresh operation through normal admission. It does not count
-the old validation as successful. Missing cleanup records and damaged history
-remain blocked; see the operation-journal guide for the exact recovery boundary.
+the old validation as successful. A damaged final write can also be abandoned
+when the verified journal prefix ends at `validating` and worker cleanup is
+complete; the damaged bytes are preserved. Missing cleanup and other damaged
+history remain blocked; see the operation-journal guide for the exact boundary.
 
 The development run command keeps native ownership in a separate supervisor. If
 its manager process dies or disconnects, that supervisor can still cancel the
