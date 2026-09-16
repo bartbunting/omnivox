@@ -108,6 +108,11 @@ fn main() -> Result<()> {
             cli::cmd_check(&cli)?;
             return Ok(());
         }
+        "list-espeak-variants" => {
+            let engine = omnivox_tts::espeak::EspeakTtsEngine::with_variant_choices(&[])?;
+            println!("{}", serde_json::to_string(&engine.variant_catalogue()?)?);
+            return Ok(());
+        }
         "list-voices" => {
             let engine = create_engine(
                 &cli.engine,

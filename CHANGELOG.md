@@ -8,6 +8,11 @@ Versioning for published releases.
 
 ### Added
 
+- Development eSpeak variant discovery and explicit enabled combinations, with
+  stable base IDs and exact variant reporting in buffered and streamed speech.
+  Missing or disabled variants cannot silently pass an exact audition using the
+  base voice. Selection changes apply to newly started speech workers.
+
 - Development voice installation can register natively validated local Piper
   models and external Flite voices, initially disabled, while retaining their
   original files. Desired enablement is saved independently of active speech.

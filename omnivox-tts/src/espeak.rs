@@ -33,6 +33,9 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tracing::{debug, info, warn};
 
+mod variants;
+pub use variants::{EspeakVariant, EspeakVariantCatalogue, EspeakVariantChoice};
+
 /// Global espeak-ng initialization guard.
 /// espeak-ng uses global state internally, so we need a mutex to serialize access.
 static ESPEAK_LOCK: OnceCell<Mutex<EspeakState>> = OnceCell::new();
@@ -600,6 +603,12 @@ impl EspeakTtsEngine {
     /// Create a new espeak-ng TTS engine.
     /// Initializes espeak-ng on first call; subsequent calls reuse the existing initialization.
     pub fn new() -> Result<Self, TtsError> {
+        let choices = variants::configured_choices()?;
+        Self::with_variant_choices(&choices)
+    }
+
+    /// Construct the bundled engine with an explicit, bounded selection of variants.
+    pub fn with_variant_choices(choices: &[EspeakVariantChoice]) -> Result<Self, TtsError> {
         let state = ESPEAK_LOCK
             .get_or_try_init(|| -> Result<Mutex<EspeakState>, TtsError> {
                 info!("Initializing espeak-ng TTS engine");
@@ -654,9 +663,11 @@ impl EspeakTtsEngine {
 
         drop(guard);
 
-        Ok(Self {
+        let mut engine = Self {
             descriptor: Self::discover_descriptor(data_parent.as_deref()),
-        })
+        };
+        engine.add_variant_choices(choices)?;
+        Ok(engine)
     }
 
     /// Map the host rate to eSpeak NG's 80-through-450 words-per-minute control.
@@ -1094,33 +1105,7 @@ impl EspeakTtsEngine {
         let stop_epoch = SYNTH_STOP_EPOCH.load(Ordering::Acquire);
 
         unsafe {
-            let voice_name = Self::backend_voice_name(&voice_id);
-            let voice_cstr = CString::new(voice_name)
-                .map_err(|_| TtsError::InvalidParameter("Invalid voice name".to_owned()))?;
-            let voice_result = espeak_rs_sys::espeak_SetVoiceByName(voice_cstr.as_ptr());
-            if voice_result != espeak_rs_sys::espeak_ERROR_EE_OK {
-                return Err(TtsError::VoiceNotFound(voice_id));
-            }
-            let current_voice = espeak_rs_sys::espeak_GetCurrentVoice();
-            let actual_voice = if current_voice.is_null() {
-                None
-            } else {
-                let current_voice = &*current_voice;
-                let identifier = if current_voice.identifier.is_null() {
-                    current_voice.name
-                } else {
-                    current_voice.identifier
-                };
-                (!identifier.is_null()).then(|| {
-                    PhysicalVoiceId::new(
-                        "espeak",
-                        Self::reported_voice_id(
-                            &voice_id,
-                            &CStr::from_ptr(identifier).to_string_lossy(),
-                        ),
-                    )
-                })
-            };
+            let actual_voice = self.select_native_voice(&voice_id)?;
             espeak_rs_sys::espeak_SetParameter(
                 espeak_rs_sys::espeak_PARAMETER_espeakRATE,
                 Self::map_rate(request.settings.rate),
@@ -1211,6 +1196,7 @@ impl TtsEngine for EspeakTtsEngine {
     }
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+        self.check_variant_voice(request.voice_id_for_engine("espeak")?)?;
         let text = request.text.as_str();
         let settings = &request.settings;
         if request
@@ -1254,34 +1240,7 @@ impl TtsEngine for EspeakTtsEngine {
 
         let actual_voice;
         unsafe {
-            // Set voice
-            let voice_name = Self::backend_voice_name(&voice_id);
-            let voice_cstr = CString::new(voice_name)
-                .map_err(|_| TtsError::InvalidParameter("Invalid voice name".to_string()))?;
-            let voice_result = espeak_rs_sys::espeak_SetVoiceByName(voice_cstr.as_ptr());
-            if voice_result != espeak_rs_sys::espeak_ERROR_EE_OK {
-                return Err(TtsError::VoiceNotFound(voice_id));
-            }
-            let current_voice = espeak_rs_sys::espeak_GetCurrentVoice();
-            actual_voice = if current_voice.is_null() {
-                None
-            } else {
-                let current_voice = &*current_voice;
-                let identifier = if current_voice.identifier.is_null() {
-                    current_voice.name
-                } else {
-                    current_voice.identifier
-                };
-                (!identifier.is_null()).then(|| {
-                    PhysicalVoiceId::new(
-                        "espeak",
-                        Self::reported_voice_id(
-                            &voice_id,
-                            &CStr::from_ptr(identifier).to_string_lossy(),
-                        ),
-                    )
-                })
-            };
+            actual_voice = self.select_native_voice(&voice_id)?;
 
             // Set parameters
             espeak_rs_sys::espeak_SetParameter(
@@ -1415,6 +1374,7 @@ impl TtsEngine for EspeakTtsEngine {
         request: &SynthesisRequest,
         sink: &mut dyn SynthesisStreamSink,
     ) -> Result<SynthesisStreamCompletion, TtsError> {
+        self.check_variant_voice(request.voice_id_for_engine("espeak")?)?;
         if request
             .cancellation
             .as_ref()

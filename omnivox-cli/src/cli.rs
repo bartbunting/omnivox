@@ -82,6 +82,7 @@ pub fn parse_args() -> CliArgs {
             "--version" | "-V" => cli.action = String::from("version"),
             "--check" => cli.action = String::from("check"),
             "--list-voices" => cli.action = String::from("list-voices"),
+            "--list-espeak-variants" => cli.action = String::from("list-espeak-variants"),
             "--list-voices-alist" => cli.action = String::from("list-voices-alist"),
             "--dump-wav" => cli.action = String::from("dump-wav"),
             "--play-wav" => cli.action = String::from("play-wav"),
@@ -201,6 +202,7 @@ pub fn print_help() {
     println!("    --version        Show version number");
     println!("    --check          Run diagnostic self-test (nonzero exit on failure)");
     println!("    --list-voices    List available TTS voices");
+    println!("    --list-espeak-variants  List native base voices and bundled variants as JSON");
     println!("    --list-voices-alist  List voices as Emacs-readable alist");
     println!("    --engine NAME    Prefer in server mode; select exactly for diagnostics");
     println!("    --voice ID       Set default voice (copy ID from --list-voices)");
@@ -265,6 +267,9 @@ pub fn print_help() {
         "    OMNIVOX_PULSE_LATENCY_MS  Native PulseAudio latency request, 10-200 ms (default 20)"
     );
     println!("    ESPEAK_NG_DATA         Parent directory containing espeak-ng-data");
+    println!(
+        "    OMNIVOX_ESPEAK_VARIANTS  JSON array of base_voice_id, variant_id, enabled choices"
+    );
     println!("    OMNIVOX_LOG_SYNTHESIS_TEXT  Opt in to sensitive full-text diagnostics");
     println!();
     println!("EMACSPEAK SETUP:");

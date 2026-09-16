@@ -20,6 +20,7 @@ the selected backend.
 | `--list-voices` | Print voices for the selected startup engine. |
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
 | `--engine NAME` | Prefer `native`, `espeak`, `piper`, `rhvoice`, `flite`, `rutts`, or experimental `tgspeechbox`; Windows also accepts `winrt`, `eloquence`, and `dectalk`, while macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
+| `--list-espeak-variants` | Silently list base voices and bundled variants from the selected speech host as JSON; see [eSpeak variants](ESPEAK-VARIANTS.md). |
 | `--voice ID` | Set the startup physical voice; copy an exact ID from `--list-voices`. |
 | `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 targets the calibrated normal reference speed. |
 | `--pitch FLOAT` | Set pitch multiplier from 0.5 through 2.0. |
@@ -223,6 +224,12 @@ profiles, controls, and limitations.
   binary.
 - The Emacsvox WSL launcher forwards this value for its content-addressed
   staged Windows runtime.
+
+`OMNIVOX_ESPEAK_VARIANTS`
+
+- Bounded JSON startup choices for bundled [eSpeak variants](ESPEAK-VARIANTS.md).
+- Each entry has exact `base_voice_id`, `variant_id` and Boolean `enabled`.
+  Changes take effect in newly started workers; existing base voices are retained.
 
 ### Audio routing
 
