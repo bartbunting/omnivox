@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "platform": "linux",
+  "corpus": "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet and helps compare speech rates.",
+  "helper_sha256": "9314e8a8fbc463e88d23876b2f5af25468c6dbf5325d394f4e9dee80e7ac2c7a",
+  "manifest_sha256": "504930b002f3c946fbf38d25d7ac6b2f41466a40945cd720b001b259b6e4101c",
+  "rates": [
+    {
+      "host_rate": 0.0,
+      "audio_seconds": 14.104081632653061,
+      "wall_seconds": 0.12331672300206264,
+      "pcm_sha256": "d3dd40a8430df56ba4ff5f2f5e1cfa39db391bed5b0dde0532c878608969b1a1"
+    },
+    {
+      "host_rate": 0.5,
+      "audio_seconds": 6.678956916099773,
+      "wall_seconds": 0.05211984099878464,
+      "pcm_sha256": "4b4eeeb8c797b4f8bda7ca07c917c813a8bf3c7b60dea8185f0b9f3998b54a35"
+    },
+    {
+      "host_rate": 1.0,
+      "audio_seconds": 2.957891156462585,
+      "wall_seconds": 0.03712096600065706,
+      "pcm_sha256": "e6d6995246b48f6570aeafe9cd4a9747f1d93b27fd696a5ddd2b7ddf24456b9b"
+    },
+    {
+      "host_rate": 1.5,
+      "audio_seconds": 2.181451247165533,
+      "wall_seconds": 0.03102832999866223,
+      "pcm_sha256": "93ba5a07aaf2ec382d2fc62fbc46b9d05202575ea4d659479ca7f3f287c40bc7"
+    },
+    {
+      "host_rate": 2.0,
+      "audio_seconds": 1.457142857142857,
+      "wall_seconds": 0.031101639004191384,
+      "pcm_sha256": "a72a3c184096e1e015b5dce26766ec64deb8eddc97617fe3e500bea6dc639ce5"
+    }
+  ],
+  "complete_text_endings": [
+    {
+      "text": "focus",
+      "synthesis_ms": 28.344,
+      "pcm_sha256": "c258239ea5526275c9af2671bd3aa162497fb43d29b89dc2de061c2a2830f77b"
+    },
+    {
+      "text": "lost focus",
+      "synthesis_ms": 31.229,
+      "pcm_sha256": "df7c3ca0391773c89ce051bcb600571f88f977dd3231e0a21ba28868584662ed"
+    },
+    {
+      "text": "test",
+      "synthesis_ms": 23.719,
+      "pcm_sha256": "fdb0ef366570855fba78c1dbf58403140d291e5a1d26ab3d698d83c993ca882d"
+    },
+    {
+      "text": "testing",
+      "synthesis_ms": 30.323,
+      "pcm_sha256": "b4d83c75df8629cf72dd6b3c20a74a183b022d707b6799b58218aabe909cfd84"
+    },
+    {
+      "text": "hello",
+      "synthesis_ms": 25.779,
+      "pcm_sha256": "e089d5ab2ccff9933a4f5dc58fce8e77d17cb19b1f92f30cec27e820d690f869"
+    },
+    {
+      "text": "caf\u00e9",
+      "synthesis_ms": 27.759,
+      "pcm_sha256": "6bfabc426eced076bf5d5ced6b24e97b97877ea12d728981925e3281ebeceff1"
+    }
+  ],
+  "cancellation_replacement_and_forced_retirement": "passed",
+  "server_sha256": "e68c14afbea9ed22e498f74b309993637363e1bebbc62428b37547b1babed5f7",
+  "two_lane_exact_preview_and_fallback": "passed"
+}

@@ -35,7 +35,11 @@ python3 tools/build_mbrola_prototype.py --platform windows
 ```
 
 The helper reads its adjacent `prototype.json`, verifies required private files,
-and accepts only this exact voice. Set `OMNIVOX_MBROLA_HELPER` to the absolute
+and accepts only this exact voice. The builder stages only the English dictionary,
+phoneme tables, mb-en1 voice definition and en1 translation/database needed by
+this prototype. Each request still hashes every staged manifest file and rejects
+unlisted data files; reducing unrelated language data avoids repeated Windows
+filesystem work without weakening those checks. Set `OMNIVOX_MBROLA_HELPER` to the absolute
 staged helper path to register it; use `--engine mbrola` to prefer it. Merely
 placing a helper next to Omnivox does not enable it. Native Windows needs a
 Windows path in that variable. Ordinary eSpeak fallback remains available.
@@ -113,3 +117,32 @@ drive, and `--espeak-data` with the native parent of the launcher's shared
 reusing previously completed helper acceptance. Listening, extended soak,
 calibration, progressive output, broader databases, installation UX and release
 licensing/packaging remain outside this one-voice prototype.
+
+## Complete text and startup latency, 2026-09-17
+
+The pinned eSpeak frontend's bulk stdin reader overwrites the final input byte
+with NUL. The helper now supplies an explicit terminator: previously `focus`
+was synthesized as `focu`, and a final multibyte character could also be damaged.
+Native acceptance compares unterminated words against newline-terminated
+controls, requires different audio for genuinely shortened words, and covers
+`focus`, `lost focus`, `test`, `testing`, `hello`, and `café`. The regression fails
+against the original helper.
+
+The private bundle previously included 516 files, mostly unrelated languages.
+The new builder retains only en1 dependencies and all notices, and regenerates
+the data directory so obsolete languages do not survive a rebuild. A controlled
+native Windows comparison with the same helper and five texts reduced median
+synthesis time from 494.5 ms to 160.0 ms; canonical PCM was byte-identical for
+each text. These are local warm-run measurements, not a general latency promise.
+The prototype still buffers each utterance and starts its two native subprocesses
+for each request.
+
+The [updated Linux report](experiments/2026-09-17-mbrola-linux.json) and
+[updated Windows report](experiments/2026-09-17-mbrola-windows.json) record rebuilt
+artifact identities, complete-text checks and timing, native rate/pitch/mute,
+cancellation/replacement and forced retirement, plus two simultaneous silent
+server lanes exercising exact preview and fallback. Repeat with the verification
+commands above. `python3 tools/test_build_mbrola_prototype.py` also checks stale
+language removal and preserves the prior staging data if a required input is
+missing. Audible acceptance of the original focus interaction remains a separate
+listening check.
