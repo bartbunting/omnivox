@@ -349,30 +349,32 @@ def main():
             completed.append(operation)
         print("Profile admission runs sequential Piper/Flite validation with evidence bound to each exact attempt", flush=True)
 
-        # Reconstruct loss of the final journal append after complete evidence
-        # publication. A report alone must never clear an interrupted claim.
-        operation = completed[0]
-        original = (operation / "journal.frames").read_bytes().splitlines(keepends=True)
-        (operation / "journal.frames").write_bytes(b"".join(original[:4]))
-        blocked = prepare_managed(directory, document, helpers)
-        finish(start_managed(directory, blocked), False)
-        assert journal(blocked)[-1]["transition"]["state"] == "prepared"
-        assert not (blocked / "workers").exists()
-        assert (operation / "validation-evidence.json").exists()
-        retained = {path: path.read_bytes() for path in operation.rglob("*") if path.is_file()}
-        recover(directory, operation, True)
-        receipt = (operation / "cleanup-recovery.frames").read_bytes()
-        recover(directory, operation, True)
-        assert (operation / "cleanup-recovery.frames").read_bytes() == receipt
-        assert all(path.read_bytes() == original for path, original in retained.items())
-        assert journal(operation)[-1]["transition"]["state"] == "validating"
-        inspected = subprocess.run([str(server), "--inspect-voice-admission", str(directory),
-                                    document["profile_id"]], env=environment, stdin=subprocess.DEVNULL,
-                                   capture_output=True, text=True, check=True, timeout=20)
-        assert "Abandoned" in inspected.stdout
-        finish(start_managed(directory, operation), False)
-        finish(start_managed(directory, blocked), True)
-        print("Explicit recovery preserves completed cleanup and the interrupted journal, abandons the old attempt, and permits fresh validation", flush=True)
+        # Inject missing and torn final appends after real native cleanup. A
+        # report alone must never clear a claim, and recovery must retain damage.
+        for torn, operation in enumerate(completed):
+            original = (operation / "journal.frames").read_bytes().splitlines(keepends=True)
+            suffix = b"".join(original[4:])[:-1] if torn else b""
+            (operation / "journal.frames").write_bytes(b"".join(original[:4]) + suffix)
+            blocked = prepare_managed(directory, document, helpers)
+            finish(start_managed(directory, blocked), False)
+            assert journal(blocked)[-1]["transition"]["state"] == "prepared"
+            assert not (blocked / "workers").exists()
+            assert (operation / "validation-evidence.json").exists()
+            retained = {path: path.read_bytes() for path in operation.rglob("*") if path.is_file()}
+            recover(directory, operation, True)
+            receipt = (operation / "cleanup-recovery.frames").read_bytes()
+            basis = "completed-worker-records-damaged-journal-v1" if torn else "completed-worker-records-v1"
+            assert json.loads(receipt.splitlines()[0])["basis"] == basis
+            recover(directory, operation, True)
+            assert (operation / "cleanup-recovery.frames").read_bytes() == receipt
+            assert all(path.read_bytes() == original for path, original in retained.items())
+            inspected = subprocess.run([str(server), "--inspect-voice-operation", str(operation)],
+                                       env=environment, stdin=subprocess.DEVNULL,
+                                       capture_output=True, text=True, check=True, timeout=20)
+            assert "abandoned using verified cleanup" in inspected.stdout
+            finish(start_managed(directory, operation), False)
+            finish(start_managed(directory, blocked), True)
+        print("Explicit recovery retains missing or torn completion journals and complete native cleanup, abandons the old attempts, and permits fresh validation", flush=True)
 
         for action in ["cancel", "manager-death", "supervisor-death"]:
             directory = admission_root(action)
