@@ -2,12 +2,12 @@
 
 Status: Development implementation boundary, 2026-09-16.
 
-This is the first persistent-operation slice under
+This implements development validation operations under
 [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md) and the
-[voice-library contract](voice-library-contract.org). It adds preparation,
-exclusive ownership and inspection for one validation operation. It does not
-connect the native validator to a profile admission gate yet, publish packages,
-change an index/active pointer, or restart speech.
+[voice-library contract](voice-library-contract.org). It provides preparation,
+profile admission, native execution, exclusive operation ownership and recovery
+inspection. It does not publish packages, change an index/active pointer, or
+restart speech. Interrupted native work remains blocked pending recovery support.
 
 ## Ownership and frozen input
 
@@ -16,7 +16,7 @@ the CLI exposes development preparation and inspection. Helpers do not call the
 storage primitives. The caller supplies an existing operations directory and a
 locally generated operation UUID. Creating an operation adds only its new UUID
 subdirectory; existing paths and partially created operations are retained.
-Target-root provisioning and profile-wide locking remain admission-provider work.
+Target-root provisioning and host-identity resolution remain provider work.
 
 The immutable `plan.json` is a strict `native_validation` request containing:
 
@@ -102,12 +102,76 @@ and speech restart are deliberately absent from recovery inspection.
 ```sh
 omnivox --prepare-voice-validation /absolute/request.json /absolute/operations
 omnivox --inspect-voice-operation /absolute/operations/OPERATION_UUID
+omnivox --prepare-voice-admission ROOT TARGET_UUID PROFILE_UUID
+omnivox --inspect-voice-admission ROOT PROFILE_UUID
+omnivox --run-voice-validation-operation ROOT PROFILE_UUID OPERATION_UUID
 ```
 
 Preparation writes `prepared` and exits; it does not execute the saved request.
 Inspection obtains a temporary lease for stable reads and changes no file
-contents. Both commands run before audio/engine startup. Their text output is
+contents. All commands run before audio/engine startup. Their text output is
 for development, not a negotiated management API.
+
+## Profile admission and native execution
+
+The provider selects one root containing `operations/` and
+`profiles/PROFILE_UUID/`. These directories must already exist. Explicit gate
+preparation creates only `profiles/PROFILE_UUID/validation-admission/`, containing
+an immutable target/profile `identity.json`, permanent `owner.lock`, and `claims/`.
+It never repairs or replaces an existing or incomplete gate. This pairs a profile
+with the provider-supplied target identity; it does not discover or authenticate
+the speech host. Cooperating managers must use the same provider-selected root.
+
+An admitted run retains the profile lease and the operation lease. Before
+starting, it reads every retained claim and its operation. Claims contain the
+operation UUID and exact plan digest, with a checksum of their original bytes.
+Creating a new claim uses non-overwriting creation and file synchronization;
+Unix also synchronizes the directory. History is limited to 4,096 claims and is
+never pruned automatically. Full history needs an explicit retention review.
+
+Only intact `staged`, `cancelled` or `failed` operations allow a different
+operation to proceed. Claimed `prepared` work may resume only under that same
+operation ID. Busy, validating, recovery-failed, damaged, missing or mismatched
+history blocks admission. A different UUID cannot bypass such history. A complete
+report beside an interrupted journal does not release the claim. Inspection
+acquires no cleanup authority and never edits history or signals stored PIDs.
+
+The run command checks the host platform and the planned validator against the
+current executable, resolves the planned helpers and rejects unsupported runtime
+overrides. It records `validating` before native work and retains the original
+generation under the operation. The existing bounded supervisor performs input
+observations and native Piper/Flite probes, one load at a time, without playback.
+
+For every observation or native worker, retained files under `workers/` record:
+
+1. Spawn intent, including exact program and arguments, before process creation.
+2. Assignment to the supervisor's private process group or job, before `START`.
+3. Confirmed process-tree and reader cleanup, before admitting another worker.
+
+These are bounded, non-overwriting files synchronized before acknowledgement.
+A failed ownership write leaves `START` closed. Failed or incomplete recording
+keeps work unresolved even if an unrecorded cleanup attempt later succeeds.
+Each event is limited to 128 KiB, with at most 256 workers. The bound report names
+and hashes every event in intent/owned/cleaned order and requires exactly the
+selected native loads plus the two input-observation workers.
+
+The saved `validation-evidence.json` binds the operation UUID, exact plan digest,
+original native evidence and complete worker-record manifest. Its 18 MiB bound
+allows the existing 8 MiB native report to be embedded without losing exact bytes.
+It is written and synchronized before the terminal journal frame records its
+digest. Same-generation evidence from another attempt fails operation binding.
+These records remain unauthenticated observations of the trusted supervisor.
+
+Normal failures or cancellation record terminal state only after confirmed
+cleanup. An interrupted manager leaves its claim blocked even if all workers
+subsequently exit. Worker PIDs describe the live supervisor's observed assignment;
+they are explicitly marked `live-supervisor-only`, not reusable boot/birth
+identities. There is no automatic restart, PID signalling or force-clear command.
+Cross-invocation cleanup reconciliation still requires provider-specific evidence.
+
+The standalone `--validate-voice-library` diagnostic retains its existing behavior
+and does not participate in profile admission. The operation command is the path
+for admitted management work. The voice-library capability remains unadvertised.
 
 The [command probe](../tools/verify_voice_operations.py) checks exact input
 preservation, refusal to overwrite, damaged-journal inspection and absence of
@@ -119,7 +183,8 @@ that normal owner retirement releases the lease without waiting for that child.
 
 ## Verification
 
-At source `f10a32f3b32c72ad9b79accd3019f49b7bee65b2`, Linux passed all 11 shared
+For the original per-operation foundation at source
+`f10a32f3b32c72ad9b79accd3019f49b7bee65b2`, Linux passed all 11 shared
 operation tests, the staged command probe and the locked workspace suite
 (785 passed, one existing ignored test). Workspace Clippy with Piper features,
 formatting and local documentation-link checks also passed. Native Windows x64
@@ -139,16 +204,14 @@ of the native validator or full installation/activation recovery. Full Windows
 server/companion and MSVC acceptance remain separate, as recorded in
 [the validator guide](VOICE-VALIDATION.md).
 
-## Next admission slice
+## Remaining recovery work
 
-Before this journal can govern actual native validation, add the target/profile
-admission owner so a new operation UUID cannot bypass an interrupted operation.
-Persist worker ownership before opening each native startup gate, with explicit
-handling of a crash between spawn and identity recording. Reconciliation needs
-boot/process-tree identity and confirmed absence, not a reusable numeric PID.
-Bind the validation report to this operation and exact request; a matching report
-from a different attempt cannot finish an interrupted operation automatically.
+Profile admission now blocks the spawn/record crash gap, and reports are bound to
+the operation and request. Reopening blocked work still needs provider-specific
+boot/process-tree identity and confirmed absence, not a reusable numeric PID or
+a matching report from another attempt. That reconciliation must also account
+for lost acknowledgements and incomplete worker records without inventing success.
 
 Only after those boundaries work should installation transactions and full
 candidate startup/activation use the journal. The voice-library capability
-remains unadvertised, and ordinary native validation retains its prior behavior.
+remains unadvertised.

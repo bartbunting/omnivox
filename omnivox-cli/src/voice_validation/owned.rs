@@ -24,6 +24,20 @@ pub const RECEIPT: &[u8] = b"OMNIVOX-VOICE-VALIDATION 1 OK\n";
 const CLEANUP: Duration = Duration::from_secs(5);
 const POLL: Duration = Duration::from_millis(10);
 
+pub trait Recorder {
+    fn starting(&mut self, _command: &Command) -> Result<()> {
+        Ok(())
+    }
+    fn owned(&mut self, _pid: u32) -> Result<()> {
+        Ok(())
+    }
+    fn cleaned(&mut self) -> Result<()> {
+        Ok(())
+    }
+}
+pub struct Unrecorded;
+impl Recorder for Unrecorded {}
+
 pub fn worker_gate() -> Result<()> {
     platform::check_worker_group()?;
     let (sender, receiver) = mpsc::sync_channel(1);
@@ -82,7 +96,8 @@ struct Owned {
     cleaned: bool,
 }
 impl Owned {
-    fn spawn(command: &mut Command, memory: usize) -> Result<Self> {
+    fn spawn(command: &mut Command, memory: usize, recorder: &mut dyn Recorder) -> Result<Self> {
+        recorder.starting(command)?;
         let tree = platform::Tree::new(memory)?;
         platform::configure(command, memory);
         command
@@ -102,6 +117,9 @@ impl Owned {
             cleaned: false,
         };
         owned.tree.assign(&owned.child)?;
+        // Persistence failure must leave START closed. Drop still attempts
+        // cleanup, but cannot turn an unrecorded result into recovery authority.
+        recorder.owned(owned.child.id())?;
         let stdout = owned
             .child
             .stdout
@@ -249,13 +267,15 @@ pub fn probe(
     timeout: Duration,
     memory: usize,
     cancelled: &AtomicBool,
+    recorder: &mut dyn Recorder,
 ) -> Result<()> {
     let deadline = Instant::now() + timeout;
-    let mut owned = Owned::spawn(command, memory)?;
+    let mut owned = Owned::spawn(command, memory, recorder)?;
     let result = owned.wait(deadline, cancelled);
     // A receipt alone is never success. Cleanup takes precedence on every path;
     // the caller must return on error, never move to the next model.
     owned.cleanup(Instant::now() + CLEANUP)?;
+    recorder.cleaned()?;
     if !owned.diagnostics.is_empty() {
         eprintln!("{}", String::from_utf8_lossy(&owned.diagnostics));
     }
@@ -269,6 +289,50 @@ pub fn probe(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn failed_ownership_record_keeps_the_worker_gate_closed() {
+        struct RejectOwnership;
+        impl Recorder for RejectOwnership {
+            fn owned(&mut self, _: u32) -> Result<()> {
+                anyhow::bail!("injected ownership-record failure")
+            }
+        }
+        let directory = std::env::temp_dir().join(format!(
+            "omnivox-gate-record-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let marker = directory.join("native-started");
+        let mut command = Command::new(std::env::current_exe().unwrap());
+        command
+            .args([
+                "--exact",
+                "voice_validation::owned::tests::record_gate_fixture",
+                "--nocapture",
+            ])
+            .env("OMNIVOX_RECORD_GATE_MARKER", &marker);
+        let result = Owned::spawn(&mut command, 1024 * 1024 * 1024, &mut RejectOwnership);
+        assert!(result.is_err());
+        assert!(
+            !marker.exists(),
+            "worker passed START after persistence failed"
+        );
+        std::fs::remove_dir(directory).unwrap();
+    }
+
+    #[test]
+    fn record_gate_fixture() {
+        let Some(marker) = std::env::var_os("OMNIVOX_RECORD_GATE_MARKER") else {
+            return;
+        };
+        worker_gate().unwrap();
+        std::fs::write(marker, b"started").unwrap();
+    }
 
     fn owned_family() -> (Owned, std::path::PathBuf) {
         platform::initialize().unwrap();
@@ -299,7 +363,7 @@ mod tests {
             command
         };
         command.env("VALIDATION_CHILD_READY", &ready);
-        let owned = Owned::spawn(&mut command, 1024 * 1024 * 1024).unwrap();
+        let owned = Owned::spawn(&mut command, 1024 * 1024 * 1024, &mut Unrecorded).unwrap();
         let deadline = Instant::now() + Duration::from_secs(15);
         while !ready.exists() {
             assert!(Instant::now() < deadline, "descendant never started");
@@ -396,7 +460,7 @@ mod tests {
                 "voice_validation::owned::tests::allocation_fixture",
             ])
             .env("OMNIVOX_VALIDATION_ALLOCATION_PROBE", &path);
-        let mut owned = Owned::spawn(&mut command, 256 * 1024 * 1024).unwrap();
+        let mut owned = Owned::spawn(&mut command, 256 * 1024 * 1024, &mut Unrecorded).unwrap();
         let deadline = Instant::now() + Duration::from_secs(15);
         while !path.exists() {
             assert!(Instant::now() < deadline, "allocation probe did not finish");
@@ -464,7 +528,7 @@ mod tests {
             ])
             .env("OMNIVOX_VALIDATION_FOOTPRINT_PROBE", &path)
             .env_remove("OMNIVOX_VALIDATION_FOOTPRINT_CHILD");
-        let mut owned = Owned::spawn(&mut command, 256 * 1024 * 1024).unwrap();
+        let mut owned = Owned::spawn(&mut command, 256 * 1024 * 1024, &mut Unrecorded).unwrap();
         let deadline = Instant::now() + Duration::from_secs(15);
         while !path.exists() {
             assert!(Instant::now() < deadline, "footprint fixture never started");

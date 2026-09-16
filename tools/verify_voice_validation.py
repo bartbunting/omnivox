@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 
 
 def asset(path):
@@ -275,6 +276,118 @@ def main():
                         except ProcessLookupError: pass
                 gone(pids, identities)
         print("Cancellation and supervisor death cannot publish pending evidence", flush=True)
+
+        def admission_root(label):
+            directory = root / f"admission-{label}"
+            (directory / "operations").mkdir(parents=True)
+            (directory / "profiles" / document["profile_id"]).mkdir(parents=True)
+            subprocess.run([str(server), "--prepare-voice-admission", str(directory),
+                            document["target_id"], document["profile_id"]], env=environment,
+                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, check=True, timeout=20)
+            return directory
+
+        def prepare_managed(directory, doc, helpers):
+            operation_id = str(uuid.uuid4())
+            plan = {"schema_version": 1, "operation_kind": "native_validation",
+                    "operation_id": operation_id, "platform": "macos" if sys.platform == "darwin" else "linux",
+                    "generation_json": json.dumps(doc), "validator_path": str(server),
+                    "helpers": {engine: str(helper.resolve()) for engine, helper in helpers.items()},
+                    "timeout_seconds": 60, "memory_bytes": 4096 * 1024 * 1024,
+                    "runtime_policy": "bundled-companions-v1"}
+            request = directory / f"{operation_id}.json"
+            request.write_text(json.dumps(plan))
+            subprocess.run([str(server), "--prepare-voice-validation", str(request), str(directory / "operations")],
+                           env=environment, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, check=True, timeout=20)
+            return directory / "operations" / operation_id
+
+        def start_managed(directory, operation):
+            output = tempfile.TemporaryFile(mode="w+")
+            errors = tempfile.TemporaryFile(mode="w+")
+            process = subprocess.Popen([str(server), "--run-voice-validation-operation", str(directory),
+                                        document["profile_id"], operation.name], env=environment,
+                                       stdin=subprocess.PIPE, stdout=output, stderr=errors)
+            return process, output, errors
+
+        def journal(operation):
+            lines = (operation / "journal.frames").read_bytes().splitlines()
+            assert len(lines) % 2 == 0
+            for body, checksum in zip(lines[::2], lines[1::2]):
+                assert hashlib.sha256(body).hexdigest().encode() == checksum
+            return [json.loads(body) for body in lines[::2]]
+
+        directory = admission_root("success")
+        helpers = {"piper": args.piper_helper, "flite": args.flite_helper}
+        completed = []
+        for _ in range(2):
+            operation = prepare_managed(directory, document, helpers)
+            text, _ = finish(start_managed(directory, operation), True)
+            assert "staged; native cleanup confirmed" in text
+            bound_bytes = (operation / "validation-evidence.json").read_bytes()
+            bound = json.loads(bound_bytes)
+            assert bound["operation_id"] == operation.name
+            assert bound["plan_sha256"] == asset(operation / "plan.json")["sha256"]
+            assert journal(operation)[-1]["transition"]["evidence_sha256"] == hashlib.sha256(bound_bytes).hexdigest()
+            report = json.loads(bound["evidence_json"])
+            assert report["cleanup_confirmed"]
+            assert len(bound["workers"]) == (len(report["snapshot"]["loads"]) + 2) * 3
+            for record in bound["workers"]:
+                assert asset(operation / "workers" / record["name"])["sha256"] == record["sha256"]
+            completed.append(operation)
+        print("Profile admission runs sequential Piper/Flite validation with evidence bound to each exact attempt", flush=True)
+
+        # Reconstruct loss of the final journal append after complete evidence
+        # publication. A report alone must never clear an interrupted claim.
+        operation = completed[0]
+        original = (operation / "journal.frames").read_bytes().splitlines(keepends=True)
+        (operation / "journal.frames").write_bytes(b"".join(original[:4]))
+        blocked = prepare_managed(directory, document, helpers)
+        finish(start_managed(directory, blocked), False)
+        assert journal(blocked)[-1]["transition"]["state"] == "prepared"
+        assert not (blocked / "workers").exists()
+        assert (operation / "validation-evidence.json").exists()
+
+        for action in ["cancel", "parent-death"]:
+            directory = admission_root(action)
+            operation = prepare_managed(directory, stalled, {"flite": staged_helper})
+            pidfile.unlink(missing_ok=True)
+            run = start_managed(directory, operation)
+            pids = []
+            identities = {}
+            try:
+                pids = await_pids(timeout=90)
+                identities = {pid: identity(pid) for pid in pids}
+                ownership = json.loads((operation / "workers/0001-owned.json").read_bytes())
+                assert ownership["pid"] == pids[0]
+                assert ownership["recovery_authority"] == "live-supervisor-only"
+                if action == "cancel":
+                    run[0].stdin.close()
+                else:
+                    run[0].kill()
+                finish(run, False)
+                gone(pids, identities)
+                pids = []
+                assert not (operation / "validation-evidence.json").exists()
+                state = journal(operation)[-1]["transition"]
+                assert state["state"] == ("cancelled" if action == "cancel" else "validating")
+                assert state["cleanup"] == ("confirmed" if action == "cancel" else "unconfirmed")
+                inspected = subprocess.run([str(server), "--inspect-voice-admission", str(directory),
+                                            document["profile_id"]], env=environment, stdin=subprocess.DEVNULL,
+                                           capture_output=True, text=True, check=True, timeout=20)
+                assert ("Cancelled" if action == "cancel" else "Interrupted") in inspected.stdout
+                following = prepare_managed(directory, document, helpers)
+                finish(start_managed(directory, following), action == "cancel")
+                if action == "parent-death":
+                    assert not (following / "workers").exists()
+            finally:
+                if run[0].poll() is None:
+                    run[0].kill(); run[0].wait(timeout=10)
+                run[0].stdin.close(); run[1].close(); run[2].close()
+                for pid in pids:
+                    if identities.get(pid) is not None and identity(pid) == identities[pid]:
+                        try: os.kill(pid, signal.SIGKILL)
+                        except ProcessLookupError: pass
+                gone(pids, identities)
+        print("Confirmed cancellation releases profile admission; owner death or a lost terminal append blocks fresh operation IDs", flush=True)
         text, _ = finish(start(document), True)
         assert "cleanup confirmed" in text
         print("Fresh validation succeeds after failure cleanup", flush=True)

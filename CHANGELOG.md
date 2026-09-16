@@ -8,6 +8,11 @@ Versioning for published releases.
 
 ### Added
 
+- Development managed voice validation now retains profile admission claims and
+  records worker ownership before native startup. Interrupted history blocks
+  fresh operation IDs; successful evidence is bound to the exact operation and
+  plan. Confirmed cancellation permits later work; crash reconciliation remains
+  pending. Inspection does not signal saved PIDs or restart speech.
 - Development validation operations can preserve a frozen request and a
   checksummed journal with exclusive ownership. Inspection distinguishes busy,
   interrupted, completed and damaged records; incomplete work cannot be silently

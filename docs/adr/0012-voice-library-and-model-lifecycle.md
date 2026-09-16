@@ -334,3 +334,23 @@ native-worker identities, report-to-operation binding and cleanup reconciliation
 must precede claims of cross-invocation native ownership. The development prepare
 and inspect commands change neither desired nor applied voice state. Durable
 multi-file publication and full provider recovery remain pending.
+
+### Profile admission and recorded native execution
+
+Development managed validation now uses a permanent profile lease and bounded,
+immutable claims referring to exact operation plans. Every claimed operation is
+checked before admission. Unresolved, missing or damaged history blocks a new
+operation ID; complete terminal cleanup permits the next operation. The provider
+still owns root provisioning and target-identity resolution.
+
+The separate operation execution command records spawn intent before creating
+workers, live job/group assignment before opening their native gates, and cleanup
+after tree and reader retirement. Its completion evidence binds the operation,
+plan and every worker observation. Losing the final journal append does not allow
+a saved report to clear an interrupted claim. The standalone diagnostic retains
+its prior behavior and does not participate in these claims.
+
+Saved PIDs explicitly have live-supervisor-only authority. They do not establish
+boot/birth identity for cross-invocation signalling. Interrupted work stays blocked
+pending provider-specific reconciliation; no force-clear, automatic speech
+restart or activation is added. Filesystem power-loss guarantees remain pending.

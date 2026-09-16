@@ -48,6 +48,7 @@ pub(super) fn observe(
     scratch: &mut Scratch,
     cancelled: &AtomicBool,
     phase: &str,
+    recorder: &mut dyn owned::Recorder,
 ) -> Result<EvidenceSnapshot> {
     anyhow::ensure!(
         !cancelled.load(Ordering::Acquire),
@@ -71,7 +72,14 @@ pub(super) fn observe(
     {
         command.arg(target).arg(&options.helpers[target]);
     }
-    owned::probe(&mut command, options.timeout, options.memory, cancelled).with_context(|| {
+    owned::probe(
+        &mut command,
+        options.timeout,
+        options.memory,
+        cancelled,
+        recorder,
+    )
+    .with_context(|| {
         format!(
             "{phase} input observation failed; scratch retained at {}",
             scratch.path.display()

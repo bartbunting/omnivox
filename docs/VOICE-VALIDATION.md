@@ -191,6 +191,11 @@ loads; it does not implement those transaction guarantees or two-lane rollback.
 The [operation-journal foundation](voice-operation-journal-design.md) now provides
 separate development preparation and inspection commands. It preserves frozen
 requests and detects interrupted or damaged state under an exclusive lease.
-Ordinary `--validate-voice-library` is not connected to this journal yet; a
-profile admission owner and persisted native-worker evidence must govern that
-connection before it can coordinate recovery across invocations.
+The separate `--run-voice-validation-operation` command now executes a frozen
+request under profile and operation leases. It records intent before spawn,
+ownership before opening each native gate, and confirmed cleanup before further
+work; its report binds the exact operation and plan. An interrupted profile stays
+blocked even when a fresh operation ID is supplied. Ordinary
+`--validate-voice-library` remains a standalone diagnostic. Provider-specific
+reconciliation of blocked native work is still pending; stored PIDs are never
+authority to signal processes or restart speech.

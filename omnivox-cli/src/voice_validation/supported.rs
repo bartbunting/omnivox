@@ -9,10 +9,11 @@ use std::fs::{self, File, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 mod evidence;
+mod managed;
 
 fn host() -> HostPlatform {
     if cfg!(windows) {
@@ -103,6 +104,12 @@ impl Options {
 pub fn run(args: &[String]) -> Result<()> {
     if args
         .first()
+        .is_some_and(|arg| arg == "--run-voice-validation-operation")
+    {
+        return managed::run(args);
+    }
+    if args
+        .first()
         .is_some_and(|arg| arg == "--internal-voice-validation-snapshot")
     {
         return evidence::worker(args);
@@ -123,6 +130,20 @@ pub fn run(args: &[String]) -> Result<()> {
     owned::initialize()?;
     let cancelled = owned::cancellation_input()?;
     let library = RuntimeLibrary::read(File::open(&options.path)?, host())?;
+    let report = validate(&options, &library, &cancelled, &mut owned::Unrecorded)?;
+    if let (Some(path), Some(bytes)) = (&options.report, report) {
+        evidence::publish(path, &bytes, &cancelled)?;
+        println!("Saved validation evidence to {}", path.display());
+    }
+    Ok(())
+}
+
+fn validate(
+    options: &Options,
+    library: &RuntimeLibrary,
+    cancelled: &AtomicBool,
+    recorder: &mut dyn owned::Recorder,
+) -> Result<Option<Vec<u8>>> {
     let targets = library.validation_targets();
     for target in &targets {
         anyhow::ensure!(
@@ -135,11 +156,12 @@ pub fn run(args: &[String]) -> Result<()> {
     let mut scratch = Scratch::new()?;
     let before = if options.report.is_some() || options.check_report.is_some() {
         Some(evidence::observe(
-            &options,
-            &library,
+            options,
+            library,
             &mut scratch,
-            &cancelled,
+            cancelled,
             "before",
+            recorder,
         )?)
     } else {
         None
@@ -157,7 +179,7 @@ pub fn run(args: &[String]) -> Result<()> {
         );
         scratch.remove()?;
         println!("Saved validation observations match; native validation and activation checks are still required");
-        return Ok(());
+        return Ok(None);
     }
     eprintln!("Validating {} native loads, one at a time; {} MiB budget, {} seconds per load. No audio playback.",
         targets.len(), options.memory / (1024 * 1024), options.timeout.as_secs());
@@ -184,15 +206,20 @@ pub fn run(args: &[String]) -> Result<()> {
             .env_remove("OMNIVOX_PIPER_MODEL")
             .env_remove("OMNIVOX_FLITE_VOICES")
             .env_remove("OMNIVOX_REMOTE_WORKER");
-        owned::probe(&mut command, options.timeout, options.memory, &cancelled).with_context(
-            || {
-                format!(
-                    "{} validation failed; scratch retained at {}",
-                    target.voice_id,
-                    scratch.path.display()
-                )
-            },
-        )?;
+        owned::probe(
+            &mut command,
+            options.timeout,
+            options.memory,
+            cancelled,
+            recorder,
+        )
+        .with_context(|| {
+            format!(
+                "{} validation failed; scratch retained at {}",
+                target.voice_id,
+                scratch.path.display()
+            )
+        })?;
         anyhow::ensure!(
             !cancelled.load(Ordering::Acquire),
             "voice validation cancelled"
@@ -204,7 +231,8 @@ pub fn run(args: &[String]) -> Result<()> {
         "voice validation cancelled"
     );
     let report = if let Some(before) = before {
-        let after = evidence::observe(&options, &library, &mut scratch, &cancelled, "after")?;
+        let after =
+            evidence::observe(options, library, &mut scratch, cancelled, "after", recorder)?;
         anyhow::ensure!(
             before == after,
             "validation inputs changed; no report saved"
@@ -220,16 +248,12 @@ pub fn run(args: &[String]) -> Result<()> {
         None
     };
     scratch.remove()?;
-    if let (Some(path), Some(bytes)) = (&options.report, report) {
-        evidence::publish(path, &bytes, &cancelled)?;
-        println!("Saved validation evidence to {}", path.display());
-    }
     println!(
         "Validated generation {}: {} native loads; cleanup confirmed",
         library.sha256(),
         targets.len()
     );
-    Ok(())
+    Ok(report)
 }
 
 fn worker(args: &[String]) -> Result<()> {

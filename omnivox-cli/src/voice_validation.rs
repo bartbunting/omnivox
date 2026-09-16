@@ -9,6 +9,7 @@ pub fn requested(args: &[String]) -> bool {
         matches!(
             arg.as_str(),
             "--validate-voice-library"
+                | "--run-voice-validation-operation"
                 | "--internal-voice-validation-worker"
                 | "--internal-voice-validation-snapshot"
         )
