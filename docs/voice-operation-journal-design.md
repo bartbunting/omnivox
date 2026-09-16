@@ -349,6 +349,34 @@ external Flite, and metadata command checks. Both verified recovery after a lost
 terminal append and continued refusal when worker cleanup had not been recorded.
 The canonical-path comparison also handles macOS temporary-directory aliases.
 
+### Separate supervisor verification
+
+The implementation and fault probes are committed in `431e716` and `c63e7c6`.
+Linux passed the locked workspace suite (803 passed, one existing ignored test),
+workspace Clippy with Piper features, formatting and documentation links. The
+metadata command probe rejects closed and malformed supervisor startup gates
+without changing the prepared journal or initializing admission. The staged
+silent Piper/Flite probe, including an exported external Flite voice, distinguishes
+manager death from supervisor death: the former records confirmed cancellation
+and permits fresh admission; the latter keeps incomplete work blocked. It observes
+the independent supervisor and all tested native descendants exit before checking
+the retained outcome.
+
+Native Windows x64 GNU passed all 13 supervisor/command tests and Windows-target
+Clippy. The lifetime test uses a real manager process and observes supervisor exit
+through a native wait handle after both explicit cancellation and manager death.
+These are process-control and component checks; full Windows server/companion and
+MSVC acceptance remain separate. They do not establish recovery after the
+supervisor itself dies, filesystem power loss, or whole-job/host shutdown.
+
+Native Intel and Apple Silicon macOS passed at
+`c63e7c629bb7608ef1a2ab8ae0a2e36bd271788d` in
+[verification run 35052109946](https://github.com/bartbunting/omnivox/actions/runs/35052109946).
+Each host passed the supervisor suite five times, all 24 operation/admission tests,
+evidence tests, native Clippy, the full silent Piper/Flite probe including external
+Flite, and the metadata command probe. Both distinguished confirmed cleanup after
+manager death from blocked recovery after supervisor death.
+
 ## Remaining recovery work
 
 Profile admission now blocks the spawn/record crash gap, and reports are bound to
