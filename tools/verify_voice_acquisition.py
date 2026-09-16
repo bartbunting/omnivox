@@ -37,7 +37,7 @@ def main():
             "voices": [{"physical_id": "piper:v1/c/piper-acquisition-fixture/0", "name": "Kristin", "speaker_index": 0}]}]}
     root = Path(tempfile.mkdtemp(prefix="omnivox-acquire-"))
     print(f"Retained private acquisition root: {root}", flush=True)
-    environment = {key: value for key, value in os.environ.items() if not key.startswith("OMNIVOX_") and key != "ESPEAK_NG_DATA"}
+    environment = {key: value for key, value in os.environ.items() if not key.startswith(("OMNIVOX_", "LD_", "DYLD_")) and key != "ESPEAK_NG_DATA"}
     environment["OMNIVOX_VOICE_ROOT"] = str(root)
 
     def inspect():
@@ -87,6 +87,10 @@ def main():
     assert inspect()["sha256"] == before["sha256"]
     for entry in catalogue["entries"]:
         result = acquire(catalogue, entry["id"])
+        if result["progress"]["state"] != "installed-disabled":
+            diagnostics = root / "acquisitions" / result["progress"]["operation_id"] / "validation.log"
+            if diagnostics.is_file():
+                print(diagnostics.read_text(errors="replace")[-16000:], flush=True)
         assert result["progress"]["state"] == "installed-disabled", result
     after = inspect()
     assert len(after["index"]["voices"]) == sum(len(e["voices"]) for e in catalogue["entries"])
