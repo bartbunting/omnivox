@@ -224,8 +224,8 @@ The explicit recovery command acquires the profile and operation leases, checks
 the existing claim and exact plan binding, then examines a journal whose verified
 prefix ends at `validating` and its initialized `workers/` directory. Each worker
 must have a complete intent, ownership and cleanup triple in sequence. Every event
-must match the operation, plan, platform ownership and phase. Missing, partial, unknown or
-inconsistent events block recovery. The same 256-worker and 128 KiB per-event
+must match the operation, plan, platform ownership and phase. Missing, partial,
+unknown or inconsistent events block recovery. The same 256-worker and 128 KiB per-event
 bounds apply; the count cannot exceed the planned native loads plus the two input
 observations. Strict readers reject duplicate keys and omitted nullable fields.
 
@@ -247,8 +247,8 @@ Every subsequent opening checks the receipt against the original journal and the
 complete current worker history. A valid receipt yields inspection state
 `Abandoned`; the original journal's verified prefix still ends at `validating`
 and cannot be appended to. Repeating recovery verifies the existing receipt
-without rewriting it. This handles a lost acknowledgement. A partial receipt or changed evidence blocks
-admission and is retained for further recovery; there is no overwrite or force
+without rewriting it. This handles a lost acknowledgement. A partial receipt or
+changed evidence blocks admission and is retained for further recovery; there is no overwrite or force
 clear. Other unresolved claims still block new work independently.
 
 Abandonment allows admission of a new operation ID. It does not authorize reuse of
@@ -401,17 +401,46 @@ evidence tests, native Clippy, the full silent Piper/Flite probe including exter
 Flite, and the metadata command probe. Both distinguished confirmed cleanup after
 manager death from blocked recovery after supervisor death.
 
+### Damaged completion verification
+
+The recovery change and native probe are committed in `261f07a` and `6a35e57`.
+Linux passed all 805 locked workspace tests (one existing ignored test), including
+26 operation/admission tests. These cover a real writer killed after a partial
+terminal append, explicit abandonment, preserved damaged bytes, refusal to reuse
+the attempt, and rejection of later changes to the damaged suffix. Missing
+cleanup or damage to the validating record still blocks new work.
+
+The staged silent Piper/Flite probe, including an exported external Flite voice,
+passed both missing and torn final-write scenarios after actual native cleanup.
+It verifies idempotent recovery, inspection and fresh validation, while retaining
+the original operation files. The metadata command probe, workspace Clippy with
+Piper features, formatting, Python syntax and documentation-link checks passed.
+
+Native Windows x64 GNU passed all 24 applicable operation/admission tests on its
+native temporary filesystem, including the killed-writer case. Windows-target
+Clippy passed. Full Windows server/companion and MSVC acceptance remain separate;
+these results do not establish cleanup recovery for active workers, power-loss
+durability, speech playback or installation/activation transactions.
+
+Native Intel and Apple Silicon macOS passed at
+`6a35e57a9e97efffd8d0472f34ab428425f49784` in
+[verification run 35053686464](https://github.com/bartbunting/omnivox/actions/runs/35053686464).
+Both passed all 26 operation/admission tests, five repetitions of the supervisor
+suite, evidence tests, native Clippy, the full silent Piper/Flite probe including
+external Flite, and metadata command checks. Both verified explicit recovery of
+the torn final write and continued refusal when worker cleanup was missing.
+
 ## Remaining recovery work
 
 Profile admission now blocks the spawn/record crash gap, and reports are bound to
 the operation and request. An independent supervisor now retains cleanup ownership
 through manager death. Complete saved cleanup can release an interrupted claim
-through explicit abandonment. Work with missing cleanup records after supervisor
-death still needs
-provider-specific boot/process-tree identity and confirmed absence, not a reusable
-numeric PID or a matching report from another attempt. That reconciliation must
-also account for incomplete worker records and damaged journals/receipts without
-inventing success.
+through explicit abandonment, including a damaged final journal write after a
+verified validating prefix. Work with missing cleanup records after supervisor
+death still needs provider-specific boot/process-tree identity and confirmed
+absence, not a reusable numeric PID or a matching report from another attempt. That reconciliation must
+also account for incomplete worker records, damaged receipts and journals without
+a verified validating prefix without inventing success.
 
 Only after those boundaries work should installation transactions and full
 candidate startup/activation use the journal. The voice-library capability
