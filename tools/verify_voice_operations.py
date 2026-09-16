@@ -54,6 +54,14 @@ def main():
         assert end == b"" and checksum.decode() == hashlib.sha256(payload).hexdigest()
         assert json.loads(payload)["transition"]["state"] == "prepared"
         assert "Prepared" in run("--inspect-voice-operation", directory)
+        for start in [b"", b"WRONG\n"]:
+            result = subprocess.run([str(server), "--internal-voice-validation-supervisor", str(root),
+                                     generation["profile_id"], operation_id], input=start,
+                                    capture_output=True, timeout=20)
+            assert result.returncode != 0
+            assert b"supervisor startup" in result.stderr
+            assert journal.read_bytes() == original
+            assert not (root / "profiles").exists()
         run("--prepare-voice-validation", plan_path, operations, success=False)
         assert journal.read_bytes() == original
         with journal.open("ab") as stream:

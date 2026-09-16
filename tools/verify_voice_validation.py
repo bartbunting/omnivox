@@ -300,12 +300,16 @@ def main():
                            env=environment, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, check=True, timeout=20)
             return directory / "operations" / operation_id
 
-        def start_managed(directory, operation):
+        def start_managed(directory, operation, direct_supervisor=False):
             output = tempfile.TemporaryFile(mode="w+")
             errors = tempfile.TemporaryFile(mode="w+")
-            process = subprocess.Popen([str(server), "--run-voice-validation-operation", str(directory),
+            mode = "--internal-voice-validation-supervisor" if direct_supervisor else "--run-voice-validation-operation"
+            process = subprocess.Popen([str(server), mode, str(directory),
                                         document["profile_id"], operation.name], env=environment,
                                        stdin=subprocess.PIPE, stdout=output, stderr=errors)
+            if direct_supervisor:
+                process.stdin.write(b"START\n")
+                process.stdin.flush()
             return process, output, errors
 
         def journal(operation):
@@ -370,16 +374,24 @@ def main():
         finish(start_managed(directory, blocked), True)
         print("Explicit recovery preserves completed cleanup and the interrupted journal, abandons the old attempt, and permits fresh validation", flush=True)
 
-        for action in ["cancel", "parent-death"]:
+        for action in ["cancel", "manager-death", "supervisor-death"]:
             directory = admission_root(action)
             operation = prepare_managed(directory, stalled, {"flite": staged_helper})
             pidfile.unlink(missing_ok=True)
-            run = start_managed(directory, operation)
+            run = start_managed(directory, operation, direct_supervisor=action == "supervisor-death")
             pids = []
             identities = {}
             try:
                 pids = await_pids(timeout=90)
                 identities = {pid: identity(pid) for pid in pids}
+                supervisor = journal(operation)[-1]["writer_pid"]
+                if action == "supervisor-death":
+                    assert supervisor == run[0].pid
+                else:
+                    assert supervisor != run[0].pid
+                    pids.append(supervisor)
+                    identities[supervisor] = identity(supervisor)
+                    assert identities[supervisor] is not None
                 ownership = json.loads((operation / "workers/0001-owned.json").read_bytes())
                 assert ownership["pid"] == pids[0]
                 assert ownership["recovery_authority"] == "live-supervisor-only"
@@ -392,15 +404,16 @@ def main():
                 pids = []
                 assert not (operation / "validation-evidence.json").exists()
                 state = journal(operation)[-1]["transition"]
-                assert state["state"] == ("cancelled" if action == "cancel" else "validating")
-                assert state["cleanup"] == ("confirmed" if action == "cancel" else "unconfirmed")
+                cleaned = action != "supervisor-death"
+                assert state["state"] == ("cancelled" if cleaned else "validating")
+                assert state["cleanup"] == ("confirmed" if cleaned else "unconfirmed")
                 inspected = subprocess.run([str(server), "--inspect-voice-admission", str(directory),
                                             document["profile_id"]], env=environment, stdin=subprocess.DEVNULL,
                                            capture_output=True, text=True, check=True, timeout=20)
-                assert ("Cancelled" if action == "cancel" else "Interrupted") in inspected.stdout
+                assert ("Cancelled" if cleaned else "Interrupted") in inspected.stdout
                 following = prepare_managed(directory, document, helpers)
-                finish(start_managed(directory, following), action == "cancel")
-                if action == "parent-death":
+                finish(start_managed(directory, following), cleaned)
+                if action == "supervisor-death":
                     assert not (following / "workers").exists()
                     retained = {path: path.read_bytes() for path in operation.rglob("*") if path.is_file()}
                     recover(directory, operation, False)
@@ -417,7 +430,7 @@ def main():
                         try: os.kill(pid, signal.SIGKILL)
                         except ProcessLookupError: pass
                 gone(pids, identities)
-        print("Confirmed cancellation releases admission; unrecorded cleanup after owner death remains blocked even when those processes have exited", flush=True)
+        print("Manager death and cancellation retain independent supervision through confirmed cleanup; supervisor death still blocks recovery and admission", flush=True)
         text, _ = finish(start(document), True)
         assert "cleanup confirmed" in text
         print("Fresh validation succeeds after failure cleanup", flush=True)
