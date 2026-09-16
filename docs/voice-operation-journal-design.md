@@ -117,6 +117,28 @@ from cleanup/reuse, as well as changed/replaced files and incomplete initializat
 A Unix regression test also holds a forked descriptor before exec and verifies
 that normal owner retirement releases the lease without waiting for that child.
 
+## Verification
+
+At source `f10a32f3b32c72ad9b79accd3019f49b7bee65b2`, Linux passed all 11 shared
+operation tests, the staged command probe and the locked workspace suite
+(785 passed, one existing ignored test). Workspace Clippy with Piper features,
+formatting and local documentation-link checks also passed. Native Windows x64
+GNU passed all nine applicable operation tests on its native temporary filesystem,
+including real owner termination and interrupted/torn-journal inspection.
+The Unix-only tests cover symbolic links and descriptor inheritance across fork.
+
+Native Intel and Apple Silicon macOS passed at the same source in
+[verification run 35045813419](https://github.com/bartbunting/omnivox/actions/runs/35045813419).
+Each host passed all 11 operation tests and the staged command probe, together
+with the workflow's repeated supervisor tests, saved-evidence checks, full native
+Piper/Flite validation probe and Clippy gate. The deterministic fork regression
+passed on both architectures.
+
+These checks establish this storage slice's behavior, not persistent ownership
+of the native validator or full installation/activation recovery. Full Windows
+server/companion and MSVC acceptance remain separate, as recorded in
+[the validator guide](VOICE-VALIDATION.md).
+
 ## Next admission slice
 
 Before this journal can govern actual native validation, add the target/profile
