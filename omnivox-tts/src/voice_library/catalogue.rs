@@ -57,7 +57,7 @@ impl Catalogue {
     pub fn parse(bytes: &[u8]) -> Result<Self, LibraryError> {
         let document: CatalogueDocument = decode(bytes, MAX_CATALOGUE_BYTES)?;
         require(
-            document.schema_version == 1,
+            matches!(document.schema_version, 1 | 2),
             "unknown voice catalogue schema",
         )?;
         text(&document.revision, 128)?;
@@ -68,6 +68,10 @@ impl Catalogue {
         let mut ids = HashSet::new();
         let mut physical = HashSet::new();
         for entry in &document.entries {
+            require(
+                entry.provider != Provider::Mbrola || document.schema_version == 2,
+                "MBROLA requires catalogue schema 2",
+            )?;
             entry.validate()?;
             require(ids.insert(&entry.id), "duplicate catalogue identity")?;
             for voice in &entry.voices {
@@ -106,6 +110,8 @@ impl DownloadFile {
             "model" => Ok("model.onnx"),
             "config" => Ok("model.onnx.json"),
             "voice" => Ok("voice.flitevox"),
+            "database" => Ok("database.mbrola"),
+            "readme" => Ok("README"),
             "model_card" => Ok("MODEL_CARD"),
             "licence" => Ok("LICENSE"),
             _ => Err(LibraryError::Invalid("unsupported catalogue file role")),
@@ -227,7 +233,10 @@ impl Entry {
                 file.bytes > 0 && file.bytes <= MAX_DOWNLOAD_BYTES,
                 "invalid catalogue file size",
             )?;
-            if matches!(file.role.as_str(), "config" | "model_card" | "licence") {
+            if matches!(
+                file.role.as_str(),
+                "config" | "model_card" | "licence" | "readme"
+            ) {
                 require(
                     file.bytes <= MAX_RUNTIME_BYTES as u64,
                     "catalogue metadata exceeds bound",
@@ -247,13 +256,23 @@ impl Entry {
                 roles.contains("model")
                     && roles.contains("config")
                     && roles.contains("model_card")
-                    && !roles.contains("voice"),
+                    && !roles.contains("voice")
+                    && !roles.contains("database"),
                 "incomplete Piper catalogue package",
+            )?,
+            Provider::Mbrola => require(
+                roles.len() == 3
+                    && roles.contains("database")
+                    && roles.contains("licence")
+                    && roles.contains("readme")
+                    && self.voices.len() == 1,
+                "invalid MBROLA catalogue package",
             )?,
             Provider::Flite => require(
                 roles.contains("voice")
                     && !roles.contains("model")
                     && !roles.contains("config")
+                    && !roles.contains("database")
                     && self.voices.len() == 1,
                 "invalid Flite catalogue package",
             )?,
@@ -269,6 +288,22 @@ impl Entry {
                     }),
                     "catalogue Piper speaker identity mismatch",
                 )?,
+                Provider::Mbrola => {
+                    require(
+                        voice.speaker_index.is_none() && voice.physical_id != MBROLA_EN1,
+                        "MBROLA downloads must be external voices without a speaker index",
+                    )?;
+                    let profile = MbrolaProfile::for_id(&voice.physical_id)?;
+                    let database = self
+                        .files
+                        .iter()
+                        .find(|file| file.role == "database")
+                        .unwrap();
+                    require(
+                        database.sha256 == profile.database_sha256,
+                        "catalogue MBROLA database/profile mismatch",
+                    )?;
+                }
                 Provider::Flite => {
                     text(&voice.physical_id, 256)?;
                     require(
@@ -299,13 +334,18 @@ impl Entry {
                 .asset(directory)
         };
         let mut document = RuntimeDocument {
-            schema_version: 1,
+            schema_version: if self.provider == Provider::Mbrola {
+                2
+            } else {
+                1
+            },
             target_id: target.into(),
             profile_id: profile.into(),
             generation_id: generation.into(),
             disabled_physical_ids: vec![],
             piper: None,
             flite: None,
+            mbrola: None,
         };
         match self.provider {
             Provider::Piper => {
@@ -326,6 +366,17 @@ impl Entry {
                             .collect(),
                     }],
                 })
+            }
+            Provider::Mbrola => {
+                document.mbrola = Some(MbrolaLibrary {
+                    builtin_en1: false,
+                    files: vec![MbrolaVoice {
+                        physical_id: self.voices[0].physical_id.clone(),
+                        database: asset("database")?,
+                        display_name: self.voices[0].name.clone(),
+                        language: Some(self.language.clone()),
+                    }],
+                });
             }
             Provider::Flite => {
                 document.flite = Some(FliteLibrary {

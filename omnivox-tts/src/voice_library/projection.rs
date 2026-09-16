@@ -11,6 +11,7 @@ impl LibraryIndex {
         generation_id: &str,
         piper: bool,
         flite: bool,
+        mbrola: bool,
         host: HostPlatform,
     ) -> Result<RuntimeLibrary, LibraryError> {
         uuid(generation_id)?;
@@ -19,12 +20,24 @@ impl LibraryIndex {
             BTreeMap::new();
         let mut files = Vec::new();
         let mut builtin_slt = false;
+        let mut builtin_en1 = false;
+        let mut databases = Vec::new();
         for voice in index.voices.iter().filter(|voice| voice.enabled) {
-            if !((piper && voice.engine_id == "piper") || (flite && voice.engine_id == "flite")) {
+            if !((piper && voice.engine_id == "piper")
+                || (flite && voice.engine_id == "flite")
+                || (mbrola && voice.engine_id == "mbrola"))
+            {
                 continue;
             }
             if voice.engine_id == "flite" && voice.physical_id == "cmu_us_slt" {
                 builtin_slt = true;
+                continue;
+            }
+            if voice.engine_id == "mbrola"
+                && voice.physical_id == MBROLA_EN1
+                && voice.package_id.is_none()
+            {
+                builtin_en1 = true;
                 continue;
             }
             let package = index
@@ -58,6 +71,13 @@ impl LibraryIndex {
                     display_name: voice.display_name.clone(),
                     language: voice.language.clone(),
                 });
+            } else if voice.engine_id == "mbrola" {
+                databases.push(MbrolaVoice {
+                    physical_id: voice.physical_id.clone(),
+                    database: asset(package, FileRole::Database)?,
+                    display_name: voice.display_name.clone(),
+                    language: voice.language.clone(),
+                });
             } else {
                 files.push(FliteVoice {
                     physical_id: voice.physical_id.clone(),
@@ -78,14 +98,19 @@ impl LibraryIndex {
             });
         }
         files.sort_by(|a, b| a.physical_id.cmp(&b.physical_id));
+        databases.sort_by(|a, b| a.physical_id.cmp(&b.physical_id));
         let document = RuntimeDocument {
-            schema_version: 1,
+            schema_version: if mbrola { 2 } else { 1 },
             target_id: index.target_id.clone(),
             profile_id: index.profile_id.clone(),
             generation_id: generation_id.into(),
             disabled_physical_ids: index.disabled_physical_ids.clone(),
             piper: piper.then_some(PiperLibrary { models: projected }),
             flite: flite.then_some(FliteLibrary { builtin_slt, files }),
+            mbrola: mbrola.then_some(MbrolaLibrary {
+                builtin_en1,
+                files: databases,
+            }),
         };
         RuntimeLibrary::parse(&serde_json::to_vec(&document)?, host)
     }

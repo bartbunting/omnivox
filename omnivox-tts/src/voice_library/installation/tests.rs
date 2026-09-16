@@ -76,13 +76,16 @@ fn explicit_builtin_inclusion_and_disablement_are_pending_until_apply() {
         .unwrap();
     let candidate = profile
         .index
-        .project(GENERATION, false, true, host())
+        .project(GENERATION, false, true, false, host())
         .unwrap();
     assert!(!candidate.document().flite.as_ref().unwrap().builtin_slt);
     assert!(profile.active_json().unwrap().is_none());
 }
 fn old_active(profile: &Profile) -> Vec<u8> {
-    let library = profile.index.project(OLD, false, true, host()).unwrap();
+    let library = profile
+        .index
+        .project(OLD, false, true, false, host())
+        .unwrap();
     save_new(&profile.generation_path(OLD), library.source_bytes()).unwrap();
     let configuration = library.configuration();
     let pointer = ActivePointer {
@@ -120,7 +123,7 @@ fn apply_retains_lease_and_publishes_only_after_both_verified_lanes() {
     let profile = fixture.open();
     let previous = old_active(&profile);
     let candidate = profile
-        .stage_activation(GENERATION, false, true, &profile.index_sha256())
+        .stage_activation(GENERATION, false, true, false, &profile.index_sha256())
         .unwrap();
     let mut apply = profile.begin_activation(THIRD, GENERATION, "{}").unwrap();
     assert!(Profile::open(&fixture.0, PROFILE).is_err());
@@ -153,7 +156,7 @@ fn interrupted_apply_is_retained_and_blocks_another_activation() {
     let fixture = Fixture::new();
     let profile = fixture.open();
     profile
-        .stage_activation(GENERATION, true, false, &profile.index_sha256())
+        .stage_activation(GENERATION, true, false, false, &profile.index_sha256())
         .unwrap();
     let mut apply = profile.begin_activation(THIRD, GENERATION, "{}").unwrap();
     apply.activating().unwrap();
@@ -171,7 +174,7 @@ fn rolled_back_apply_preserves_pointer_and_allows_a_new_reviewed_attempt() {
     let profile = fixture.open();
     let previous = old_active(&profile);
     profile
-        .stage_activation(GENERATION, true, false, &profile.index_sha256())
+        .stage_activation(GENERATION, true, false, false, &profile.index_sha256())
         .unwrap();
     let mut apply = profile.begin_activation(THIRD, GENERATION, "{}").unwrap();
     apply.activating().unwrap();
@@ -266,7 +269,7 @@ fn candidate_preparation_retains_active_pointer_and_detects_stale_plans() {
         builtin(&mut profile);
         let active = previous.then(|| old_active(&profile));
         let candidate = profile
-            .stage_activation(GENERATION, false, true, &profile.index_sha256())
+            .stage_activation(GENERATION, false, true, false, &profile.index_sha256())
             .unwrap();
         assert_eq!(
             candidate
@@ -280,7 +283,7 @@ fn candidate_preparation_retains_active_pointer_and_detects_stale_plans() {
         assert_eq!(candidate.configuration.sha256, digest(&original));
         profile.activation_candidate(GENERATION).unwrap();
         assert!(profile
-            .stage_activation(GENERATION, false, true, &profile.index_sha256())
+            .stage_activation(GENERATION, false, true, false, &profile.index_sha256())
             .is_err());
         assert_eq!(fs::read(&path).unwrap(), original);
         profile
@@ -306,7 +309,7 @@ fn changed_generation_or_active_pointer_invalidates_prepared_activation() {
         let mut profile = fixture.open();
         builtin(&mut profile);
         profile
-            .stage_activation(GENERATION, false, true, &profile.index_sha256())
+            .stage_activation(GENERATION, false, true, false, &profile.index_sha256())
             .unwrap();
         match changed {
             "generation" => {
@@ -386,7 +389,7 @@ fn imported_files_are_rechecked_before_projecting_enabled_assets() {
         .unwrap();
     fs::write(&path, b"changed").unwrap();
     assert!(profile
-        .stage_activation(GENERATION, false, true, &profile.index_sha256())
+        .stage_activation(GENERATION, false, true, false, &profile.index_sha256())
         .is_err());
     assert!(!profile.generation_path(GENERATION).exists());
     profile
@@ -398,7 +401,7 @@ fn imported_files_are_rechecked_before_projecting_enabled_assets() {
         )
         .unwrap();
     profile
-        .stage_activation(GENERATION, false, true, &profile.index_sha256())
+        .stage_activation(GENERATION, false, true, false, &profile.index_sha256())
         .unwrap();
     assert_eq!(fs::read(path).unwrap(), b"changed");
 }

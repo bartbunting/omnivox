@@ -57,12 +57,12 @@ impl Options {
             match flag.as_str() {
                 "--validation-report" => options.report = Some(value.into()),
                 "--check-validation-report" => options.check_report = Some(value.into()),
-                "--piper-helper" | "--flite-helper" => {
-                    let engine = if flag == "--piper-helper" {
-                        "piper"
-                    } else {
-                        "flite"
-                    };
+                "--piper-helper" | "--flite-helper" | "--mbrola-helper" => {
+                    let engine = flag
+                        .strip_prefix("--")
+                        .unwrap()
+                        .strip_suffix("-helper")
+                        .unwrap();
                     let path = PathBuf::from(value)
                         .canonicalize()
                         .context("could not locate validation helper")?;
@@ -279,7 +279,7 @@ fn worker(args: &[String]) -> Result<()> {
             .iter()
             .map(|voice| PhysicalVoiceId::new("piper", &voice.physical_id))
             .collect(),
-        "flite" => targets,
+        "flite" | "mbrola" => targets,
         _ => anyhow::bail!("unsupported validation engine"),
     };
     let mut config = HelperEngineConfig::new(&args[3], &args[4]);

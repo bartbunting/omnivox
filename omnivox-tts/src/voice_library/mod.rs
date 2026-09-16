@@ -19,6 +19,8 @@ pub mod catalogue;
 mod eligibility;
 pub mod evidence;
 mod index;
+mod mbrola;
+pub use mbrola::{MbrolaLibrary, MbrolaProfile, MbrolaVoice, MBROLA_EN1};
 pub mod installation;
 pub mod local;
 pub mod operations;

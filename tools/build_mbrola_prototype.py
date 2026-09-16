@@ -61,11 +61,14 @@ def source(cache, archive, dest, child):
     return dest / child
 
 
-# This prototype exposes only mb-en1. Do not scan and hash hundreds of unused
+# Keep just the reviewed English profiles. Do not scan and hash hundreds of unused
 # language/voice files on every utterance, especially on native Windows.
 FRONTEND_DATA = (
     "phontab", "phondata", "phonindex", "intonations", "en_dict",
     "voices/mb/mb-en1", "mbrola_ph/en1_phtrans",
+    "voices/mb/mb-us1", "mbrola_ph/us_phtrans",
+    "voices/mb/mb-us2",
+    "voices/mb/mb-us3", "mbrola_ph/us3_phtrans",
 )
 
 
@@ -137,7 +140,7 @@ def build_native(platform, cache):
                     database="espeak-ng-data/mbrola/en1",
                     files={p.relative_to(stage).as_posix(): digest(p)
                            for p in sorted(stage.rglob("*")) if p.is_file()
-                           and p.name not in ("prototype.json", f"omnivox-mbrola-helper{suffix}")},
+                           and p.name not in ("prototype.json", "SHA256SUMS", "SOURCE-PROVENANCE.json", f"omnivox-mbrola-helper{suffix}")},
                     sources={name: dict(url=url, sha256=sha) for name, (url, sha) in INPUTS.items()},
                     builder_sha256=digest(Path(__file__)),
                     frontend_overlay_sha256=digest(ROOT / "tools/mbrola/frontend-only.c"))
@@ -160,6 +163,15 @@ def main():
             "-p", "omnivox-mbrola-helper")
         name = "omnivox-mbrola-helper" + (".exe" if args.platform == "windows" else "")
         shutil.copy2(ROOT / "target" / target / "release" / name, stage / name)
+        provenance = dict(schema_version=1, target=target,
+                          artifact=f"omnivox-mbrola-companion-development-{target}",
+                          prototype_sha256=digest(stage / "prototype.json"),
+                          source_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+                          tracked_diff_sha256=hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD", "--"], cwd=ROOT)).hexdigest())
+        (stage / "SOURCE-PROVENANCE.json").write_text(json.dumps(provenance, indent=2) + "\n")
+        (stage / "SHA256SUMS").write_text("".join(
+            f"{digest(p)}  {p.relative_to(stage).as_posix()}\n"
+            for p in sorted(stage.rglob("*")) if p.is_file() and p.name != "SHA256SUMS"))
     print(f"Private prototype staged at {stage}")
 
 

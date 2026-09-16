@@ -40,6 +40,8 @@ pub struct Request {
     #[serde(default)]
     pub flite: bool,
     #[serde(default)]
+    pub mbrola: bool,
+    #[serde(default)]
     pub package: String,
     #[serde(default)]
     pub revision: String,
@@ -68,6 +70,7 @@ pub enum Reply {
         events: Vec<super::acquisition::Progress>,
     },
     Host {
+        catalogue_providers: Vec<String>,
         root: String,
         target_id: String,
         profile_id: String,
@@ -226,6 +229,7 @@ impl Host {
     }
     pub fn reply(&self) -> Reply {
         Reply::Host {
+            catalogue_providers: vec!["piper".into(), "flite".into(), "mbrola".into()],
             root: self.root.to_string_lossy().into(),
             target_id: self.target_id.clone(),
             profile_id: self.profile_id.clone(),
@@ -476,7 +480,7 @@ mod tests {
         let profile = host.profile().unwrap();
         let generation = new_uuid().unwrap();
         profile
-            .stage_activation(&generation, true, false, &profile.index_sha256())
+            .stage_activation(&generation, true, false, false, &profile.index_sha256())
             .unwrap();
         let mut startup = Startup {
             executable: identify(&std::env::current_exe().unwrap()).unwrap(),

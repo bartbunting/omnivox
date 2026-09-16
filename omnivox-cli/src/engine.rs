@@ -682,7 +682,7 @@ fn configured_helper_configs(
     }
     if let Some(library) = library {
         configs.retain(|config| !library.eligibility.excludes_provider(&config.engine_id));
-        for engine in ["piper", "flite"] {
+        for engine in ["piper", "flite", "mbrola"] {
             anyhow::ensure!(
                 !library.requires(engine)
                     || configs.iter().any(|config| config.engine_id == engine),

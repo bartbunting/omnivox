@@ -39,6 +39,11 @@ impl RuntimeLibrary {
                 }
             }
         }
+        if let Some(mbrola) = &self.document().mbrola {
+            for voice in &mbrola.files {
+                voice.database.open_verified()?;
+            }
+        }
         Ok(())
     }
 }

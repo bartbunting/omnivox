@@ -68,6 +68,7 @@ impl Profile {
                 "model" => FileRole::Model,
                 "config" => FileRole::Config,
                 "voice" => FileRole::Voice,
+                "database" => FileRole::Database,
                 _ => continue,
             };
             files.push(imports::file(role, &file.asset(&directory)?));
@@ -89,6 +90,31 @@ impl Profile {
             Some(evidence.installation_validation(&package, self.admission.target_id())?);
         let mut document = self.index.document().clone();
         document.packages.push(package);
+        if entry.provider == Provider::Mbrola {
+            document.schema_version = 2;
+        }
+        // First managed download must not remove the already included en1.
+        // Preserve an explicit exclusion and any existing built-in row.
+        if entry.provider == Provider::Mbrola
+            && !document
+                .voices
+                .iter()
+                .any(|voice| voice.engine_id == "mbrola" && voice.physical_id == MBROLA_EN1)
+        {
+            document.voices.push(IndexedVoice {
+                physical_id: MBROLA_EN1.into(),
+                engine_id: "mbrola".into(),
+                display_name: "en1 (Roger, British English; included)".into(),
+                language: Some("en-GB".into()),
+                enabled: !document
+                    .disabled_physical_ids
+                    .contains(&PhysicalVoiceId::new("mbrola", MBROLA_EN1)),
+                package_id: None,
+                revision_id: None,
+                speaker_index: None,
+                legacy_physical_id: None,
+            });
+        }
         for voice in &entry.voices {
             let id = PhysicalVoiceId::new(entry.engine_id(), &voice.physical_id);
             if !document.disabled_physical_ids.contains(&id) {

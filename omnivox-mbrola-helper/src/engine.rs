@@ -18,7 +18,8 @@ use omnivox_tts::{
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-pub const VOICE: &str = "mbrola:v1/mb-en1/en1";
+use omnivox_tts::voice_library::{AssetFile, MbrolaProfile, RuntimeLibrary, MBROLA_EN1};
+pub const VOICE: &str = MBROLA_EN1;
 const DATABASE_SHA256: &str = "edb8eaae6f0e38493d88ed627518632e6ff8a3843bcf08474a1a70aa786fd99f";
 const MAX_TEXT: usize = 8192;
 const MAX_PHO: usize = 1024 * 1024;
@@ -97,6 +98,11 @@ impl Bundle {
             manifest.database.as_str(),
             "espeak-ng-data/voices/mb/mb-en1",
             "espeak-ng-data/mbrola_ph/en1_phtrans",
+            "espeak-ng-data/voices/mb/mb-us1",
+            "espeak-ng-data/voices/mb/mb-us2",
+            "espeak-ng-data/voices/mb/mb-us3",
+            "espeak-ng-data/mbrola_ph/us_phtrans",
+            "espeak-ng-data/mbrola_ph/us3_phtrans",
             "espeak-ng-data/phontab",
             "espeak-ng-data/phondata",
             "espeak-ng-data/phonindex",
@@ -177,15 +183,62 @@ impl Bundle {
 
 pub struct MbrolaEngine {
     bundle: Result<Bundle, String>,
+    voices: Vec<ManagedVoice>,
     lock: Mutex<()>,
     cancelled: AtomicU64,
     speaking: AtomicBool,
 }
 
+struct ManagedVoice {
+    profile: MbrolaProfile,
+    database: Option<AssetFile>,
+    descriptor: VoiceDescriptor,
+}
+
 impl MbrolaEngine {
-    pub fn new(root: PathBuf) -> Self {
+    pub fn new(root: PathBuf, library: Option<&RuntimeLibrary>) -> Self {
+        let mut voices = Vec::new();
+        let managed = library.and_then(|library| library.document().mbrola.as_ref());
+        let mut bundle = Bundle::load(root).map_err(|e| e.to_string());
+        if managed.is_none_or(|managed| managed.builtin_en1) {
+            voices.push(ManagedVoice {
+                profile: MbrolaProfile::for_id(VOICE).unwrap(),
+                database: None,
+                descriptor: VoiceDescriptor {
+                    id: PhysicalVoiceId::new("mbrola", VOICE),
+                    display_name: "MBROLA en1 (Roger, British English)".to_owned(),
+                    language: Some("en-GB".to_owned()),
+                    gender: Some(VoiceGender::Male),
+                    quality: VoiceQuality::Compact,
+                    availability: Availability::Available,
+                },
+            });
+        }
+        if let Some(managed) = managed {
+            for voice in &managed.files {
+                // Metadata was structurally checked by RuntimeLibrary. Verify
+                // every selected asset once at startup; synthesize checks only
+                // the selected database, without retaining any native handles.
+                if let Err(error) = voice.database.open_verified() {
+                    bundle = Err(error.to_string());
+                }
+                voices.push(ManagedVoice {
+                    profile: MbrolaProfile::for_id(&voice.physical_id).expect("validated profile"),
+                    database: Some(voice.database.clone()),
+                    descriptor: VoiceDescriptor {
+                        id: PhysicalVoiceId::new("mbrola", &voice.physical_id),
+                        display_name: voice.display_name.clone(),
+                        language: voice.language.clone(),
+                        gender: None,
+                        quality: VoiceQuality::Compact,
+                        availability: Availability::Available,
+                    },
+                });
+            }
+        }
         Self {
-            bundle: Bundle::load(root).map_err(|e| e.to_string()),
+            bundle,
+            voices,
             lock: Mutex::new(()),
             cancelled: AtomicU64::new(0),
             speaking: AtomicBool::new(false),
@@ -211,28 +264,30 @@ impl TtsEngine for MbrolaEngine {
         }
         EngineDescriptor {
             id: "mbrola".to_owned(),
-            display_name: "MBROLA prototype (en1)".to_owned(),
+            display_name: "MBROLA (English prototype)".to_owned(),
             version: Some("274dead162f28 / en1 fe05a0ccef6a".to_owned()),
             availability: Availability::Available,
             health: EngineHealth::Healthy,
             capabilities: capabilities(),
-            default_voice_id: Some(VOICE.to_owned()),
-            voices: vec![VoiceDescriptor {
-                id: PhysicalVoiceId::new("mbrola", VOICE),
-                display_name: "MBROLA en1 (Roger, British English)".to_owned(),
-                language: Some("en-GB".to_owned()),
-                gender: Some(VoiceGender::Male),
-                quality: VoiceQuality::Compact,
-                availability: Availability::Available,
-            }],
+            default_voice_id: self
+                .voices
+                .first()
+                .map(|voice| voice.profile.physical_id.to_owned()),
+            voices: self
+                .voices
+                .iter()
+                .map(|voice| voice.descriptor.clone())
+                .collect(),
         }
     }
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
         let voice = request.voice_id_for_engine("mbrola")?;
-        if voice != VOICE {
-            return Err(TtsError::VoiceNotFound(voice.to_owned()));
-        }
+        let selected = self
+            .voices
+            .iter()
+            .find(|selected| selected.profile.physical_id == voice)
+            .ok_or_else(|| TtsError::VoiceNotFound(voice.to_owned()))?;
         let bundle = self.bundle.as_ref().map_err(failure)?;
         if request.text.len() > MAX_TEXT || request.text.contains('\0') {
             return Err(TtsError::InvalidParameter(
@@ -267,7 +322,13 @@ impl TtsEngine for MbrolaEngine {
         self.speaking.store(true, Ordering::Release);
         let _speaking = Speaking(&self.speaking);
         bundle.verify().map_err(failure)?;
-        let actual_voice = Some(PhysicalVoiceId::new("mbrola", VOICE));
+        let database = if let Some(database) = &selected.database {
+            database.open_verified().map_err(failure)?;
+            PathBuf::from(&database.path)
+        } else {
+            bundle.root.join(&bundle.manifest.database)
+        };
+        let actual_voice = Some(PhysicalVoiceId::new("mbrola", voice));
         if request.text.trim().is_empty() {
             return Ok(SynthesisResult::audio(
                 "mbrola",
@@ -287,7 +348,7 @@ impl TtsEngine for MbrolaEngine {
             "--pho",
             "-q",
             "-v",
-            "mb-en1",
+            selected.profile.frontend,
             "--stdin",
             "-s",
             &rate.to_string(),
@@ -315,9 +376,7 @@ impl TtsEngine for MbrolaEngine {
         let volume = request.settings.volume.clamp(0.0, 1.0);
         // MBROLA rejects -v 0. Preserve utterance timing, then mute its PCM.
         runtime.args(["-v", &if volume == 0.0 { 1.0 } else { volume }.to_string()]);
-        runtime
-            .arg(bundle.root.join(&bundle.manifest.database))
-            .args(["-", "-"]);
+        runtime.arg(database).args(["-", "-"]);
         let pcm = crate::process::capture(
             &mut runtime,
             pho,
@@ -342,7 +401,9 @@ impl TtsEngine for MbrolaEngine {
                 }
             })
             .collect();
-        let audio = AudioBuffer::try_from_interleaved_i16(&samples, 16000, 1).map_err(failure)?;
+        let audio =
+            AudioBuffer::try_from_interleaved_i16(&samples, selected.profile.sample_rate, 1)
+                .map_err(failure)?;
         let mut result = SynthesisResult::audio("mbrola", actual_voice, audio);
         result.degraded_acss = request
             .normalized_acss
@@ -401,7 +462,8 @@ mod tests {
     use super::*;
     #[test]
     fn missing_bundle_never_advertises_a_voice_or_accepts_base_alias() {
-        let engine = MbrolaEngine::new(PathBuf::from("/nonexistent-omnivox-mbrola-prototype"));
+        let engine =
+            MbrolaEngine::new(PathBuf::from("/nonexistent-omnivox-mbrola-prototype"), None);
         assert!(engine.available_voices().is_empty());
         assert!(!engine.descriptor().availability.is_available());
         assert!(matches!(

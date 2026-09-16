@@ -143,6 +143,7 @@ fn service(host: Host) -> Result<()> {
                         &request.generation,
                         request.piper,
                         request.flite,
+                        request.mbrola,
                         &request.expected_sha256,
                     )?;
                     Ok(Reply::Candidate {

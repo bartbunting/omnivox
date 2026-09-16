@@ -75,6 +75,7 @@ impl StartupLibrary {
         match engine {
             "piper" => self.library.document().piper.is_some() && !self.overrides.piper,
             "flite" => self.library.document().flite.is_some() && !self.overrides.flite,
+            "mbrola" => self.library.document().mbrola.is_some(),
             _ => false,
         }
     }
@@ -118,6 +119,14 @@ impl StartupLibrary {
                     .chain(flite.files.iter().map(|voice| voice.physical_id.as_str()))
                     .collect()
             }
+            "mbrola" => self
+                .library
+                .document()
+                .mbrola
+                .as_ref()
+                .unwrap()
+                .voice_ids()
+                .collect(),
             _ => unreachable!(),
         };
         let actual: std::collections::BTreeSet<&str> = descriptor
@@ -142,7 +151,7 @@ impl StartupLibrary {
 
     pub fn registry(&self) -> Result<EngineRegistry> {
         let mut registry = EngineRegistry::with_voice_library(&self.library, self.overrides);
-        for engine in ["piper", "flite"] {
+        for engine in ["piper", "flite", "mbrola"] {
             if self.eligibility.excludes_provider(engine) {
                 registry.register_unavailable(
                     EngineDescriptor::unavailable(

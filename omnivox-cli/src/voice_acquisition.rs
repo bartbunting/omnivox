@@ -134,7 +134,7 @@ fn execute(
     // Resolve only the selected bundled companion; no discovery of live engines.
     let executable = std::env::current_exe()?.canonicalize()?;
     let engine = entry.engine_id();
-    let helper = executable
+    let bundled_helper = executable
         .parent()
         .context("speech executable has no directory")?
         .join(engine)
@@ -142,6 +142,15 @@ fn execute(
             "omnivox-{engine}-helper{}",
             std::env::consts::EXE_SUFFIX
         ));
+    let helper = if engine == "mbrola" {
+        let path = std::env::var_os("OMNIVOX_MBROLA_HELPER")
+            .map(std::path::PathBuf::from)
+            .context("MBROLA downloads require the configured MBROLA development companion")?;
+        anyhow::ensure!(path.is_absolute(), "MBROLA helper path must be absolute");
+        path
+    } else {
+        bundled_helper
+    };
     anyhow::ensure!(
         helper.is_file(),
         "The {engine} companion is missing from this speech runtime"

@@ -21,6 +21,7 @@ pub struct IndexDocument {
 pub enum Provider {
     Piper,
     Flite,
+    Mbrola,
 }
 
 impl Provider {
@@ -28,6 +29,7 @@ impl Provider {
         match self {
             Self::Piper => "piper",
             Self::Flite => "flite",
+            Self::Mbrola => "mbrola",
         }
     }
 }
@@ -60,6 +62,7 @@ pub enum FileRole {
     Model,
     Config,
     Voice,
+    Database,
 }
 
 // Deliberately not flattened: serde flattening would weaken strict field checks.
@@ -151,7 +154,19 @@ impl LibraryIndex {
 
 impl IndexDocument {
     fn validate(&self, host: HostPlatform) -> Result<(), LibraryError> {
-        require(self.schema_version == 1, "unsupported index schema")?;
+        require(
+            matches!(self.schema_version, 1 | 2),
+            "unsupported index schema",
+        )?;
+        require(
+            self.schema_version == 2
+                || (!self
+                    .packages
+                    .iter()
+                    .any(|package| package.provider == Provider::Mbrola)
+                    && !self.voices.iter().any(|voice| voice.engine_id == "mbrola")),
+            "MBROLA requires index schema 2",
+        )?;
         uuid(&self.target_id)?;
         uuid(&self.profile_id)?;
         uuid(&self.revision_id)?;
@@ -233,6 +248,23 @@ impl IndexDocument {
                                 "legacy adoption must be explicit and match the physical ID",
                             )?;
                         }
+                        Provider::Mbrola => {
+                            let profile = MbrolaProfile::for_id(&voice.physical_id)?;
+                            let file = &package.files[0];
+                            profile.validate_database(&AssetFile {
+                                path: file.path.clone(),
+                                bytes: file.bytes,
+                                sha256: file.sha256.clone(),
+                            })?;
+                            require(
+                                voice.speaker_index.is_none() && voice.legacy_physical_id.is_none(),
+                                "MBROLA voice cannot specify a speaker or legacy ID",
+                            )?;
+                            require(
+                                bindings.insert((&package.identity, 0)),
+                                "MBROLA package exposes more than one voice",
+                            )?;
+                        }
                         Provider::Flite => {
                             runtime::flite_id(&voice.physical_id)?;
                             require(
@@ -253,7 +285,8 @@ impl IndexDocument {
                     )?;
                     require(
                         voice.engine_id != "piper"
-                            && (voice.engine_id != "flite" || voice.physical_id == "cmu_us_slt"),
+                            && (voice.engine_id != "flite" || voice.physical_id == "cmu_us_slt")
+                            && (voice.engine_id != "mbrola" || voice.physical_id == MBROLA_EN1),
                         "external voice needs a package revision",
                     )?;
                 }
@@ -284,6 +317,7 @@ impl PackageRevision {
         let expected: &[FileRole] = match self.provider {
             Provider::Piper => &[FileRole::Model, FileRole::Config],
             Provider::Flite => &[FileRole::Voice],
+            Provider::Mbrola => &[FileRole::Database],
         };
         require(
             self.files.len() == expected.len(),
@@ -317,6 +351,7 @@ impl PackageRevision {
             FileRole::Config => "config",
             FileRole::Model => "model",
             FileRole::Voice => "voice",
+            FileRole::Database => "database",
         });
         Ok(serde_json::to_vec(&files)?)
     }

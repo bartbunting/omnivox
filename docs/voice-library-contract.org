@@ -16,8 +16,8 @@ remote speech socket a file-management service. Other local providers must
 pass the same acceptance checks before exposing activation.
 
 Version 1 covers storage, identity, eligibility, Piper model/speaker selection,
-Flite file selection and coordinated restart. It establishes the extension
-boundary for MBROLA and other providers without specifying their native
+Flite file selection and coordinated restart. Schema 2 adds the reviewed English
+MBROLA development companion. Other providers still require their own native
 interfaces or approving a download catalogue. No new dependency, release pin,
 model redistribution or helper-process boundary follows from this contract.
 
@@ -58,7 +58,12 @@ enables or deletes an asset.
 
 * Common encoding and limits
 
-Files are UTF-8 JSON objects with =schema_version: 1=. Reject duplicate object
+Files are UTF-8 JSON objects. Existing Piper/Flite documents use
+=schema_version: 1=. [[file:adr/0013-mbrola-voice-library.md][ADR 0013]] adds schema 2 for catalogues, management
+indexes and runtime generations containing the MBROLA provider. Readers retain
+schema 1 support; writers retain schema 1 when no new provider is selected.
+Active pointers, validation plans, evidence and control/helper envelopes keep
+their existing independent versions. Reject duplicate object
 keys, unknown fields, unknown provider kinds and unsupported schema versions
 before changing state. Future providers require an explicit schema revision;
 catalogue data cannot introduce code or free-form native arguments.
@@ -131,7 +136,7 @@ IDs in the disabled list are retained so a later reappearing voice stays
 disabled; the list also covers voices supplied by OS/runtime providers.
 
 Each package revision has =package_id=, =revision_id=, =provider= (=piper= or
-=flite=), =ownership= (=managed= or =imported=), =identity=, =files= and
+=flite=; schema 2 also accepts =mbrola=), =ownership= (=managed= or =imported=), =identity=, =files= and
 =validation=. Identity is exactly one of ={catalogue_key: KEY}= or
 ={import_id: UUID}=; compatible revisions keep it. A managed revision must
 have catalogue provenance, while importing never changes file ownership.
@@ -140,6 +145,7 @@ The package's catalogue provenance is a nullable =catalogue= record with
 
 Each file has =role=, =path=, =bytes= (positive integer) and =sha256=.
 Piper requires exactly =model= and =config= roles; Flite requires =voice=.
+MBROLA requires =database= and a reviewed physical-ID/database-hash binding.
 Validation is null or a record containing =validator_version=, =target_id=,
 =validated_at= (UTC RFC 3339), and =file_set_sha256=. The latter hashes the
 UTF-8 JSON array of file records sorted by role, with keys in role/path/bytes/
@@ -186,6 +192,26 @@ and =files=. Each external entry has =physical_id=, =file= (path/bytes/sha256),
 an empty list explicitly permits no Flite voices. Disabling built-in SLT must
 prevent its native registration when the helper supports this mode; do not
 merely hide a loaded voice. Existing legacy mode retains its current SLT rule.
+
+Schema 2 adds =mbrola=, either null (legacy en1) or an object with
+=builtin_en1= and =files=. Each file has =physical_id=, =database=
+(path/bytes/sha256), =display_name= and nullable =language=. The reviewed
+English set is at most four databases, with en1 preceding external voices
+sorted by physical ID. Physical IDs bind the exact frontend profile, database
+hash and 16 kHz sample rate; arbitrary profile arguments are not supported.
+False plus no files excludes the provider without starting a helper.
+MBROLA has no separate file override. A missing section retains legacy en1.
+Its helper accepts the same pinned generation arguments, verifies assets at
+startup and checks only the selected external database on each request.
+Native database memory is released when the request's child exits.
+
+The local service's =host= reply lists =catalogue_providers=; older services
+omit it. Clients only submit the separate schema-2 MBROLA catalogue when the
+provider is advertised, preserving their existing catalogues on older servers.
+MBROLA packages retain =database=, =licence= and =readme= downloads. New US
+voices start disabled; first installation adds en1 as an included index row,
+preserving any explicit exclusion. The current import command remains limited
+to Piper and Flite; MBROLA acquisition uses reviewed catalogue entries.
 
 Projection is the intersection of enabled records and installed, validated
 inputs. A missing enabled input is an error with an impact report, not an

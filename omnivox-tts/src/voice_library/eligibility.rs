@@ -64,6 +64,12 @@ impl VoiceEligibility {
                 policy.managed.insert("flite".to_owned(), voices);
             }
         }
+        if let Some(mbrola) = &document.mbrola {
+            policy.managed.insert(
+                "mbrola".to_owned(),
+                mbrola.voice_ids().map(str::to_owned).collect(),
+            );
+        }
         policy.overridden.sort();
         policy
     }

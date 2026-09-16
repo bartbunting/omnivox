@@ -35,6 +35,8 @@ pub struct RuntimeDocument {
     pub piper: Option<PiperLibrary>,
     #[serde(deserialize_with = "required_nullable")]
     pub flite: Option<FliteLibrary>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mbrola: Option<MbrolaLibrary>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -158,6 +160,13 @@ impl RuntimeLibrary {
                     .map(|voice| PhysicalVoiceId::new("flite", &voice.physical_id)),
             );
         }
+        if let Some(mbrola) = &self.document.mbrola {
+            targets.extend(
+                mbrola
+                    .voice_ids()
+                    .map(|id| PhysicalVoiceId::new("mbrola", id)),
+            );
+        }
         targets
     }
 
@@ -171,6 +180,10 @@ impl RuntimeLibrary {
         document.flite = Some(FliteLibrary {
             builtin_slt: false,
             files: Vec::new(),
+        });
+        document.mbrola = self.document.mbrola.as_ref().map(|_| MbrolaLibrary {
+            builtin_en1: false,
+            files: vec![],
         });
         match target.engine_id.as_str() {
             "piper" => {
@@ -206,6 +219,23 @@ impl RuntimeLibrary {
                     document.flite.as_mut().unwrap().files.push(voice.clone());
                 }
             }
+            "mbrola" => {
+                let source = self
+                    .document
+                    .mbrola
+                    .as_ref()
+                    .ok_or(LibraryError::Invalid("validation target is not projected"))?;
+                if target.voice_id == MBROLA_EN1 && source.builtin_en1 {
+                    document.mbrola.as_mut().unwrap().builtin_en1 = true;
+                } else {
+                    let voice = source
+                        .files
+                        .iter()
+                        .find(|voice| voice.physical_id == target.voice_id)
+                        .ok_or(LibraryError::Invalid("validation target is not projected"))?;
+                    document.mbrola.as_mut().unwrap().files.push(voice.clone());
+                }
+            }
             _ => return Err(LibraryError::Invalid("unsupported validation engine")),
         }
         // All fields are copied from validated input and only load sets shrink.
@@ -239,6 +269,11 @@ impl RuntimeLibrary {
                 (flite.builtin_slt && voice.voice_id == "cmu_us_slt")
                     || flite.files.iter().any(|v| v.physical_id == voice.voice_id)
             }),
+            "mbrola" => self
+                .document
+                .mbrola
+                .as_ref()
+                .is_none_or(|mbrola| mbrola.voice_ids().any(|id| id == voice.voice_id)),
             _ => true,
         }
     }
@@ -246,7 +281,14 @@ impl RuntimeLibrary {
 
 impl RuntimeDocument {
     fn validate(&self, host: HostPlatform) -> Result<(), LibraryError> {
-        require(self.schema_version == 1, "unsupported library schema")?;
+        require(
+            matches!(self.schema_version, 1 | 2),
+            "unsupported library schema",
+        )?;
+        require(
+            self.mbrola.is_none() || self.schema_version == 2,
+            "MBROLA requires runtime schema 2",
+        )?;
         uuid(&self.target_id)?;
         uuid(&self.profile_id)?;
         uuid(&self.generation_id)?;
@@ -326,6 +368,9 @@ impl RuntimeDocument {
                 )?;
             }
             count += flite.files.len();
+        }
+        if let Some(mbrola) = &self.mbrola {
+            count += mbrola.validate(host, &disabled)?;
         }
         require(count <= MAX_PROJECTED_VOICES, "too many projected voices")
     }
