@@ -1,93 +1,120 @@
-# Saved native-validation evidence: design review
+# Saved native-validation evidence
 
-Status: Draft. No report format or new command is implemented by this note.
+Status: Accepted implementation boundary, 2026-09-16. Development format 1.
 
-The next delivery slice is saved validation evidence for the existing disposable
-Piper/Flite validator. It follows [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md)
-and the [voice-library contract](voice-library-contract.org). Installation
-transactions, restart recovery and coordinated activation remain later work.
+This follows [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md) and the
+[voice-library contract](voice-library-contract.org). Omnivox owns capture,
+comparison and publication. Helpers still only load and synthesize voices;
+they do not own reports, catalogues or downloads.
 
-## Existing constraints and evidence
+## Meaning and scope
 
-- The installed index already has `NativeValidation`: `validator_version`,
-  `target_id`, `validated_at` and `file_set_sha256`. Preserve that accepted
-  schema. Detailed operation evidence can live separately from this summary.
-- `--validate-voice-library` checks private per-load projections and confirms
-  their process-tree and reader cleanup. It currently returns development text,
-  with no persistent success record. A projection digest is distinct from the
-  original generation digest.
-- Both companion staging tools produce `SHA256SUMS` covering all companion
-  files and `SOURCE-PROVENANCE.json`. Piper's inventory includes its native
-  libraries and phonemizer data; Flite statically includes its native runtime.
-  Checksums identify bytes, not a trusted publisher or the actual loaded modules.
-- Piper's data selection permits `OMNIVOX_PIPER_ESPEAK_DATA` ahead of bundled
-  data. It also has fallback data locations. Native-loader environment and
-  platform lookup rules can affect dependency selection. Hashing just the
-  helper executable or its staged directory would not cover these choices.
-- Validation budgets have platform-specific meanings. The effective budget,
-  deadline and probe policy must accompany the result; current defaults are
-  documented in the [validator guide](VOICE-VALIDATION.md).
+A report records a successful silent native-validation run and the inputs
+observed before and after it. Matching observations help diagnose whether those
+inputs have changed. They do **not** permit skipping another native check,
+authorize activation, acknowledge a running generation, or establish recovery
+ownership after an interrupted manager operation. Reports are unauthenticated
+local metadata, not publisher signatures or attestations of loaded modules.
 
-## Proposed direction
+Keep the accepted installation-index `NativeValidation` schema unchanged.
+This slice neither populates it nor defines a reusable `validator_version`
+token. A later manager must establish the package/file-set and validated-load
+correspondence before attaching that summary. Testing enabled speakers of one
+Piper model does not validate every voice of its installed package.
 
-Use a separate, bounded report for one complete managed native-validation run.
-It should record the exact original generation identity and bytes/digest,
-validated model/speaker or Flite load identities, the validator identity,
-effective helper/runtime/data identities, policy and limits, completion time,
-and confirmed cleanup. Reports are local operational evidence, not authenticated
-attestations or activation acknowledgements.
+## Observed identities
 
-Validate each staged companion's complete checksum inventory. Reject missing,
-extra, repeated or unsafe paths and mismatched bytes; include the inventory and
-source-provenance file identities in the observed snapshot. Keep parsing bounded
-and do not follow arbitrary paths or execute programs supplied by a saved report.
-The caller supplies the current intended configuration for any comparison.
+The shared TTS library contains strict metadata readers and explicit capture.
+Each snapshot includes:
 
-Create a success report only after every intended native load and cleanup has
-succeeded, cancellation has been checked, and the relevant inputs have been
-rechecked. Retain the distinction between observed file stability and immutable
-inputs: before/after hashing cannot exclude an external edit followed by a revert.
+- Exact original generation JSON bytes and their SHA-256. The embedded generation
+  retains target, profile, generation, asset and model identities.
+- Each private native-load projection's digest and every tested physical voice.
+  One Piper projection covers all its enabled speakers; Flite loads are separate.
+- Canonical validator path, size and SHA-256 of the executable on disk.
+- Canonical helper paths and every file's relative path, size and SHA-256 in each
+  selected staged companion, including `SHA256SUMS`, `SOURCE-PROVENANCE.json`,
+  native libraries and Piper's bundled phonemizer data.
+- OS, architecture, probe/cleanup policy version, platform memory-policy version,
+  memory limit and per-worker deadline. Working directory and `PATH`, `SystemRoot`
+  and `WINDIR`, when present, record ordinary search configuration.
 
-Keep the existing index summary unchanged. Do not manufacture package-wide
-validation from a report covering only a subset of its intended voices. The
-manager must establish the package/file-set and validated-load correspondence
-before attaching a summary to an installed revision.
+A completed report additionally records schema/kind, completion time as Unix
+seconds, and confirmed cleanup. Comparison requires equality of the whole input
+snapshot. Paths and search configuration are deliberately part of the identity:
+relocation requires a new observation even when file bytes are identical.
 
-## Questions to settle before implementation
+Reports are limited to 8 MiB on read and serialization. Embedded generations
+retain their 1 MiB limit. Companion manifests and provenance are limited to
+2 MiB each; directory traversal is limited to 8,192 entries and 16 path
+components. Reads hash with a fixed 64 KiB buffer. Parsing rejects duplicate JSON
+keys, unknown fields, incomplete success records and inconsistent generation or
+load identities. Reading a report never opens or executes its stored paths;
+the caller supplies the current generation and helper locations for capture.
 
-1. **Effective runtime identity.** Define which packaged files, selected data
-   roots, loader settings and platform information are required for a reusable
-   result. The initial implementation could restrict reports to staged
-   companions and reject unsupported overrides, or capture explicitly selected
-   external data as well. Do not silently validate a different configuration.
-   Define what remains outside the report's guarantee, including system
-   dependencies and already-loaded executable mappings.
-2. **Freshness and reuse.** Define the exact comparison against current inputs,
-   and whether this first slice only reports matching observations or permits
-   skipping a future native check. A current report alone must never authorize
-   activation or bypass startup preflight. Binding the detailed report to the
-   existing `validator_version` summary needs an explicit rule.
-3. **Publication and interruption.** Choose a bounded, non-overwriting publication
-   path with clear completion semantics on Windows, Linux and macOS. A partial
-   record must not parse as success. Demonstrate the Windows filesystem behavior
-   before claiming crash durability. Publishing a result does not implement
-   operation ownership or reconciliation across manager restarts.
+## Supported runtime context
 
-## Required verification
+Initial capture requires the supported staged companion layout. Check the
+complete checksum inventory against the actual file tree, then verify each
+file. Reject missing, unlisted, repeated, case-aliased or unsafe entries,
+symlinks/reparse points and unsupported file types. Check source-provenance
+schema, engine family and native target OS/architecture. Separate helpers may
+use a different compiler ABI, including Windows GNU/MSVC. Updating a checksum file cannot
+hide a payload change from comparison with an earlier report.
 
-- Changed validator/helper bytes, runtime libraries, phonemizer data, selected
-  data locations and policy invalidate the applicable previous evidence.
-- Updated checksum files do not conceal a changed payload identity; missing or
-  unlisted files, duplicate entries, path escapes and unsupported file types
-  fail before native loading.
-- Original generation bytes, projection identities, enabled speakers and
-  package file-set identity remain distinct and correctly associated.
-- Native failure, cancellation, timeout, changed inputs and unconfirmed cleanup
-  cannot publish a success record or admit work through an old record.
-- Malformed, duplicate-key, oversized and truncated reports are rejected.
-  Existing destination files are preserved on publication failure.
-- Native platform checks exercise creation, comparison, cancellation and
-  interruption using the supported staged payloads and actual filesystems.
+Piper must have its bundled native libraries and `espeak-ng-data/phontab`, with
+no competing adjacent `phontab`. Saving or comparing rejects nonempty
+`OMNIVOX_PIPER_ESPEAK_DATA`, `ESPEAK_NG_DATA`, `LD_*`, `DYLD_*`, `_RLD*`, `LIBPATH`
+and `SHLIB_PATH`. Do not silently sanitize an unsupported runtime selection.
+Ordinary native validation remains available without saving evidence.
 
-The voice-library capability remains unadvertised until the full eligibility,
-status and activation contract is implemented and accepted.
+These checks identify observed packaged bytes and selected configuration, not
+all dependencies actually loaded by the OS. System libraries, loader caches,
+OS patch levels, injected modules and already-mapped executable images are
+outside this guarantee. In particular, hashing the current executable path
+cannot attest the supervisor's mapped image after a concurrent replacement.
+Companion checksums and provenance can themselves be edited; their inclusion
+provides identity, not trust. These limits are why matching observations cannot
+be a validation cache or activation prerequisite on their own.
+
+## Supervision and publication
+
+Run both input observations in disposable owned workers with the validator's
+memory budget, deadline, cancellation and confirmed-cleanup rules. The first
+observation precedes native loading. After every native probe succeeds, repeat
+asset verification and capture, require equality, and remove owned scratch
+files before publishing. Native failure, timeout, cancellation, mismatched
+inputs or unconfirmed cleanup cannot reach publication. Before/after reads
+cannot exclude an external edit followed by a revert, or later mutations.
+
+Write a uniquely named temporary file beside the requested destination, flush
+and synchronize it, close it, then check cancellation. Create the destination
+using a same-directory hard link; this is the publication commit point and
+never replaces an existing name. Unsupported filesystems fail closed. On Unix,
+new report files have mode 0600. Remove the temporary name on ordinary exit;
+a process killed before cleanup may leave it behind.
+
+Cancellation observed before the commit point prevents publication. Cancellation
+or supervisor death after that point does not revoke the report. Readers can
+see only the fully written published record, but the report is **not a
+power-loss-durable transaction**: directory-entry persistence and restart
+reconciliation are not established. File publication may block on the selected
+filesystem; it is outside the owned-worker deadline. Never interpret a missing
+command response, stray temporary file or saved report as proof of operation
+ownership or cleanup in another invocation.
+
+## Delivery and verification
+
+The shared evidence layer is the first implementation slice. The development
+validator then exposes optional save and compare operations, documented in the
+[validator guide](VOICE-VALIDATION.md). Component tests cover content/policy
+changes, unsafe/incomplete inventories, exact speaker/generation identities,
+bounded parsing and non-overwriting publication. Native integration checks
+exercise real Piper and Flite validation, saving, comparison and refusal after
+changed inputs or native failure.
+
+Native Windows filesystem/component checks and both native Mac architectures
+must be distinguished from full Windows server/companion acceptance and
+power-loss recovery. Storage transactions, interrupted-operation ownership,
+full candidate startup/status and coordinated two-lane rollback remain later
+work. The voice-library capability remains unadvertised.

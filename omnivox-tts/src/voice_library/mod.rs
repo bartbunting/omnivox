@@ -14,6 +14,7 @@ use thiserror::Error;
 use crate::contracts::PhysicalVoiceId;
 
 mod eligibility;
+pub mod evidence;
 mod index;
 mod runtime;
 mod verification;
