@@ -13,6 +13,7 @@ pub enum Inspection {
     Cancelled,
     Failed,
     RecoveryFailed,
+    Abandoned,
     Damaged,
 }
 
@@ -26,6 +27,7 @@ pub struct Operation {
     journal: Journal,
     writable: bool,
     poisoned: bool,
+    abandoned: bool,
 }
 
 impl Drop for Operation {
@@ -73,6 +75,7 @@ impl Operation {
             journal,
             writable: true,
             poisoned: false,
+            abandoned: false,
         };
         operation.write_transition(Transition {
             state: ValidationState::Prepared,
@@ -111,7 +114,7 @@ impl Operation {
         let journal = Journal::read(&mut file, &plan)?;
         let writable =
             journal.damage().is_none() && journal.state() == Some(ValidationState::Prepared);
-        Ok(Some(Self {
+        let mut operation = Self {
             path,
             _lease: lease,
             file,
@@ -119,7 +122,10 @@ impl Operation {
             journal,
             writable,
             poisoned: false,
-        }))
+            abandoned: false,
+        };
+        operation.abandoned = super::recovery::check(&operation)?;
+        Ok(Some(operation))
     }
 
     /// Inspect stable records under a temporary lease. No file is created or
@@ -130,6 +136,9 @@ impl Operation {
     pub(super) fn inspection(&self) -> Inspection {
         if self.poisoned || self.journal.damage().is_some() {
             return Inspection::Damaged;
+        }
+        if self.abandoned {
+            return Inspection::Abandoned;
         }
         match self.journal.state() {
             Some(ValidationState::Prepared) => Inspection::Prepared,
@@ -160,6 +169,10 @@ impl Operation {
             self.writable && !self.poisoned,
             "operation requires recovery or is already terminal",
         )?;
+        self.file = self.check_unchanged()?;
+        self.write_transition(transition)
+    }
+    pub(super) fn check_unchanged(&self) -> Result<File, LibraryError> {
         let plan = ValidationPlan::read(open_file(&self.path.join("plan.json"), false)?)?;
         super::require(
             plan.source_bytes() == self.plan.source_bytes(),
@@ -171,8 +184,7 @@ impl Operation {
             current.source_bytes() == self.journal.source_bytes(),
             "operation journal changed outside its owner",
         )?;
-        self.file = file;
-        self.write_transition(transition)
+        Ok(file)
     }
     fn write_transition(&mut self, transition: Transition) -> Result<(), LibraryError> {
         let frame = self.journal.next_frame(&self.plan, transition)?;

@@ -1,4 +1,5 @@
-//! Development preparation/inspection only. Never executes a saved request.
+//! Development preparation, inspection and recorded-cleanup recovery.
+//! Never executes a saved request or signals saved process IDs.
 use anyhow::{Context, Result};
 use omnivox_tts::voice_library::operations::{Admission, Inspection, Operation, ValidationPlan};
 use std::fs::File;
@@ -12,11 +13,24 @@ pub fn requested(args: &[String]) -> bool {
                 | "--inspect-voice-operation"
                 | "--prepare-voice-admission"
                 | "--inspect-voice-admission"
+                | "--recover-voice-validation-operation"
         )
     })
 }
 pub fn run(args: &[String]) -> Result<()> {
     match args.first().map(String::as_str) {
+        Some("--recover-voice-validation-operation") => {
+            anyhow::ensure!(
+                args.len() == 4,
+                "expected --recover-voice-validation-operation ROOT PROFILE_UUID OPERATION_UUID"
+            );
+            let mut admission = Admission::try_open(Path::new(&args[1]), &args[2])?
+                .context("profile validation is already owned")?;
+            admission
+                .abandon_cleaned_validation(&args[3])
+                .context("cleanup recovery refused; retained history still controls admission")?;
+            println!("Validation operation {} abandoned using recorded worker cleanup; a new validation requires admission", args[3]);
+        }
         Some("--prepare-voice-admission") => {
             anyhow::ensure!(
                 args.len() == 4,
@@ -76,6 +90,7 @@ pub fn run(args: &[String]) -> Result<()> {
                 Inspection::Cancelled => "Validation cancelled with no outstanding native work recorded",
                 Inspection::Failed => "Validation failed with no outstanding native work recorded",
                 Inspection::RecoveryFailed => "Cleanup failed; operation reuse is blocked",
+                Inspection::Abandoned => "Interrupted validation abandoned using verified cleanup records; no validation success or activation implied",
                 Inspection::Damaged => "Incomplete or damaged journal; operation reuse is blocked; retained for recovery",
             });
         }

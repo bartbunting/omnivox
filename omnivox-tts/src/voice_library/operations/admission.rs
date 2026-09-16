@@ -1,5 +1,5 @@
 //! Profile admission for cooperating managers using one provider-selected root.
-//! Claims are permanent. Only an intact terminal operation releases its claim.
+//! Claims are permanent. Terminal results or verified abandonment release them.
 use super::storage::{new_file, open_file, ordinary};
 use super::{
     decode, digest, read_bounded, require, uuid, Inspection, LibraryError, Operation, Transition,
@@ -178,7 +178,10 @@ impl Admission {
             require(
                 matches!(
                     entry.state,
-                    Inspection::Staged | Inspection::Cancelled | Inspection::Failed
+                    Inspection::Staged
+                        | Inspection::Cancelled
+                        | Inspection::Failed
+                        | Inspection::Abandoned
                 ) || (entry.operation_id == operation_id && entry.state == Inspection::Prepared),
                 "profile has an unresolved validation operation; inspect retained history",
             )?;
@@ -226,6 +229,34 @@ impl Admission {
             _admission: self,
             operation,
         })
+    }
+
+    /// Abandon an interrupted validation only when every retained worker has a
+    /// complete cleanup record. Holds both leases, preserves the journal, and
+    /// never signals processes or promotes a saved report to validation success.
+    /// An already verified abandonment is an idempotent success.
+    pub fn abandon_cleaned_validation(&mut self, operation_id: &str) -> Result<(), LibraryError> {
+        uuid(operation_id)?;
+        self.check_identity()?;
+        let claims = self.claims()?;
+        let claim = claims
+            .iter()
+            .find(|claim| claim.operation_id == operation_id)
+            .ok_or(LibraryError::Invalid(
+                "operation has no profile admission claim",
+            ))?;
+        let operation = Operation::try_open(&self.operations.join(operation_id))?.ok_or(
+            LibraryError::Invalid("validation operation is already owned"),
+        )?;
+        self.check_operation(&operation)?;
+        require(
+            operation.plan().sha256() == claim.plan_sha256,
+            "claimed plan changed",
+        )?;
+        if operation.inspection() == Inspection::Abandoned {
+            return Ok(());
+        }
+        super::recovery::abandon(&operation)
     }
 
     fn check_identity(&self) -> Result<(), LibraryError> {

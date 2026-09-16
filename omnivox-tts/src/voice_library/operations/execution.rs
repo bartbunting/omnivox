@@ -7,15 +7,15 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-const MAX_WORKERS: u32 = 256;
-const MAX_EVENT_BYTES: usize = 128 * 1024;
+pub(super) const MAX_WORKERS: u32 = 256;
+pub(super) const MAX_EVENT_BYTES: usize = 128 * 1024;
 const MAX_BOUND_EVIDENCE_BYTES: usize = 18 * 1024 * 1024;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct EventDigest {
-    name: String,
-    sha256: String,
+pub(super) struct EventDigest {
+    pub(super) name: String,
+    pub(super) sha256: String,
 }
 
 #[derive(Serialize)]

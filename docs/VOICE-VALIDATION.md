@@ -197,5 +197,12 @@ ownership before opening each native gate, and confirmed cleanup before further
 work; its report binds the exact operation and plan. An interrupted profile stays
 blocked even when a fresh operation ID is supplied. Ordinary
 `--validate-voice-library` remains a standalone diagnostic. Provider-specific
-reconciliation of blocked native work is still pending; stored PIDs are never
-authority to signal processes or restart speech.
+reconciliation of workers without saved cleanup is still pending; stored PIDs are
+never authority to signal processes or restart speech.
+
+`--recover-voice-validation-operation ROOT PROFILE_UUID OPERATION_UUID` can abandon
+an interrupted validation when every worker has a complete saved cleanup record.
+It preserves the journal and any report, adds a separately verified abandonment
+receipt, and allows a fresh operation through normal admission. It does not count
+the old validation as successful. Missing cleanup records and damaged history
+remain blocked; see the operation-journal guide for the exact recovery boundary.

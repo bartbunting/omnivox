@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Development validation recovery can abandon an interrupted attempt using its
+  complete worker cleanup records, allowing fresh validation through profile
+  admission. It preserves and rechecks original evidence; unfinished workers and
+  damaged history remain blocked. It never promotes an old report to success.
 - Development managed voice validation now retains profile admission claims and
   records worker ownership before native startup. Interrupted history blocks
   fresh operation IDs; successful evidence is bound to the exact operation and

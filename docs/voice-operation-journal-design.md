@@ -6,8 +6,9 @@ This implements development validation operations under
 [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md) and the
 [voice-library contract](voice-library-contract.org). It provides preparation,
 profile admission, native execution, exclusive operation ownership and recovery
-inspection. It does not publish packages, change an index/active pointer, or
-restart speech. Interrupted native work remains blocked pending recovery support.
+inspection and abandonment using recorded cleanup. It does not publish packages,
+change an index/active pointer, or restart speech. Interrupted native work without
+complete worker cleanup records remains blocked.
 
 ## Ownership and frozen input
 
@@ -93,9 +94,10 @@ operation correspondence. The integrating supervisor must establish both.
 Losing the lock proves only that no owner holds that lease. It does not prove
 that helpers, descendants or readers finished. Therefore a new process that
 acquires a `validating` or damaged operation can inspect it but cannot append a
-terminal result or restart it. There is no force-clear/retry command in this
-slice. Automatic PID-based termination, report-based completion, journal reset
-and speech restart are deliberately absent from recovery inspection.
+terminal result or restart it. Explicit recovery may add a separate abandonment
+receipt when all retained worker cleanup records are complete, as described below.
+Automatic PID-based termination, report-based completion, journal reset and speech
+restart are deliberately absent from recovery inspection.
 
 ## Development commands
 
@@ -105,6 +107,7 @@ omnivox --inspect-voice-operation /absolute/operations/OPERATION_UUID
 omnivox --prepare-voice-admission ROOT TARGET_UUID PROFILE_UUID
 omnivox --inspect-voice-admission ROOT PROFILE_UUID
 omnivox --run-voice-validation-operation ROOT PROFILE_UUID OPERATION_UUID
+omnivox --recover-voice-validation-operation ROOT PROFILE_UUID OPERATION_UUID
 ```
 
 Preparation writes `prepared` and exits; it does not execute the saved request.
@@ -129,8 +132,8 @@ Creating a new claim uses non-overwriting creation and file synchronization;
 Unix also synchronizes the directory. History is limited to 4,096 claims and is
 never pruned automatically. Full history needs an explicit retention review.
 
-Only intact `staged`, `cancelled` or `failed` operations allow a different
-operation to proceed. Claimed `prepared` work may resume only under that same
+Only intact `staged`, `cancelled`, `failed` or verified `abandoned` operations allow
+a different operation to proceed. Claimed `prepared` work may resume only under that same
 operation ID. Busy, validating, recovery-failed, damaged, missing or mismatched
 history blocks admission. A different UUID cannot bypass such history. A complete
 report beside an interrupted journal does not release the claim. Inspection
@@ -167,7 +170,46 @@ cleanup. An interrupted manager leaves its claim blocked even if all workers
 subsequently exit. Worker PIDs describe the live supervisor's observed assignment;
 they are explicitly marked `live-supervisor-only`, not reusable boot/birth
 identities. There is no automatic restart, PID signalling or force-clear command.
-Cross-invocation cleanup reconciliation still requires provider-specific evidence.
+Missing cleanup observations still require provider-specific recovery evidence.
+
+## Abandonment using recorded cleanup
+
+The explicit recovery command acquires the profile and operation leases, checks
+the existing claim and exact plan binding, then examines an intact `validating`
+journal and its initialized `workers/` directory. Each worker must have a complete
+intent, ownership and cleanup triple in sequence. Every event must match the
+operation, plan, platform ownership and phase. Missing, partial, unknown or
+inconsistent events block recovery. The same 256-worker and 128 KiB per-event
+bounds apply; the count cannot exceed the planned native loads plus the two input
+observations. Strict readers reject duplicate keys and omitted nullable fields.
+
+An empty initialized worker directory also qualifies: the supervisor must persist
+intent before any process creation. A missing directory does not qualify. A
+complete prefix qualifies only when there is no outstanding next-worker intent.
+This trusts the original supervisor's recorded process-tree and reader cleanup;
+it does not discover live processes, signal stored PIDs or execute saved paths.
+
+Successful recovery creates `cleanup-recovery.frames`, leaving the journal, report,
+claim and worker files untouched. The receipt is one checksummed JSON frame, at
+most 128 KiB. It records schema 1, outcome `abandoned`, basis
+`completed-worker-records-v1`, the operation ID, exact plan and original journal
+digests, and the ordered names and digests of every worker event. Creation never
+overwrites a file and synchronizes it, plus its directory on Unix. The same
+process-crash versus power-loss limitations described above apply.
+
+Every subsequent opening checks the receipt against the original journal and the
+complete current worker history. A valid receipt yields inspection state
+`Abandoned`; the original journal still says `validating` and cannot be appended
+to. Repeating recovery verifies the existing receipt without rewriting it. This
+handles a lost acknowledgement. A partial receipt or changed evidence blocks
+admission and is retained for further recovery; there is no overwrite or force
+clear. Other unresolved claims still block new work independently.
+
+Abandonment allows admission of a new operation ID. It does not authorize reuse of
+the old attempt, native-check skipping, report promotion, installation or
+activation. A missing or partial native report is retained but is irrelevant to
+cleanup reconciliation. Damaged journals, `recovery_failed` operations and workers
+without recorded cleanup remain blocked even if their old processes have exited.
 
 The standalone `--validate-voice-library` diagnostic retains its existing behavior
 and does not participate in profile admission. The operation command is the path
@@ -236,10 +278,12 @@ cancellation and blocked admission after manager death or a lost terminal append
 ## Remaining recovery work
 
 Profile admission now blocks the spawn/record crash gap, and reports are bound to
-the operation and request. Reopening blocked work still needs provider-specific
-boot/process-tree identity and confirmed absence, not a reusable numeric PID or
-a matching report from another attempt. That reconciliation must also account
-for lost acknowledgements and incomplete worker records without inventing success.
+the operation and request. Complete saved cleanup can release an interrupted
+claim through explicit abandonment. Work with missing cleanup records still needs
+provider-specific boot/process-tree identity and confirmed absence, not a reusable
+numeric PID or a matching report from another attempt. That reconciliation must
+also account for incomplete worker records and damaged journals/receipts without
+inventing success.
 
 Only after those boundaries work should installation transactions and full
 candidate startup/activation use the journal. The voice-library capability

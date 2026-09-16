@@ -1,4 +1,6 @@
 use super::*;
+#[path = "recovery_tests.rs"]
+mod recovery_tests;
 const TARGET: &str = "11111111-1111-4111-8111-111111111111";
 const PROFILE: &str = "22222222-2222-4222-8222-222222222222";
 const SECOND: &str = "55555555-5555-4555-8555-555555555555";
@@ -125,7 +127,14 @@ fn inspection_preserves_missing_initialization_and_missing_claimed_operations() 
 
 #[test]
 fn native_owner_death_keeps_the_profile_claim() {
-    for mode in ["claimed", "validating", "failed", "partial"] {
+    for mode in [
+        "claimed",
+        "validating",
+        "failed",
+        "partial",
+        "cleaned",
+        "idle-workers",
+    ] {
         let fixture = setup();
         let child = Command::new(std::env::current_exe().unwrap())
             .args([
@@ -159,6 +168,12 @@ fn native_owner_death_keeps_the_profile_claim() {
         } else {
             assert!(owner.admit(OPERATION_ID).is_err());
         }
+        if matches!(mode, "cleaned" | "idle-workers") {
+            owner.abandon_cleaned_validation(OPERATION_ID).unwrap();
+            assert!(owner.admit(SECOND).is_ok());
+        } else if mode != "claimed" {
+            assert!(owner.abandon_cleaned_validation(OPERATION_ID).is_err());
+        }
     }
 }
 
@@ -181,6 +196,14 @@ fn profile_owner_fixture() {
         let mut file = OpenOptions::new().append(true).open(claim(&root)).unwrap();
         file.write_all(b"partial").unwrap();
         file.sync_all().unwrap();
+    }
+    if matches!(mode.as_str(), "cleaned" | "idle-workers") {
+        let mut records = ExecutionRecords::create(&admitted).unwrap();
+        if mode == "cleaned" {
+            records.starting("fixture-validator", &[]).unwrap();
+            records.owned(std::process::id()).unwrap();
+            records.cleaned().unwrap();
+        }
     }
     fs::write(root.join("ready"), b"ready").unwrap();
     let _ = std::io::stdin().read_exact(&mut [0]);

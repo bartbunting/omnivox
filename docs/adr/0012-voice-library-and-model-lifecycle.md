@@ -354,3 +354,20 @@ Saved PIDs explicitly have live-supervisor-only authority. They do not establish
 boot/birth identity for cross-invocation signalling. Interrupted work stays blocked
 pending provider-specific reconciliation; no force-clear, automatic speech
 restart or activation is added. Filesystem power-loss guarantees remain pending.
+
+### Reconciliation of recorded cleanup
+
+Explicit recovery can now abandon an intact interrupted validation when every
+retained worker has a complete intent/ownership/cleanup sequence, or its
+initialized worker directory is empty. It retains both leases, the original
+journal and any report. A separate checksummed abandonment receipt binds the
+exact plan, journal and complete worker history; every later opening rechecks it.
+A verified abandonment permits a new operation through ordinary profile admission
+and never promotes the old attempt to successful validation. Lost recovery
+acknowledgements are handled by verifying the existing receipt without rewriting.
+
+This reuses the live supervisor's recorded tree and reader cleanup. It introduces
+no native process-identity API or authority to signal a saved PID. Missing cleanup
+events, malformed history and partial recovery receipts remain blocked and
+preserved. Provider-specific cleanup proof for those cases, power-loss recovery,
+installation transactions and activation remain separate work.

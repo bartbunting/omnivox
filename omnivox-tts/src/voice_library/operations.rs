@@ -16,6 +16,7 @@ mod admission;
 pub use admission::{Admission, AdmissionEntry, AdmittedOperation};
 mod execution;
 pub use execution::{BoundValidationEvidence, ExecutionRecords};
+mod recovery;
 #[cfg(test)]
 mod tests;
 
