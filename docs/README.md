@@ -65,6 +65,8 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 - [eSpeak variants](ESPEAK-VARIANTS.md) — native discovery, explicit combinations,
   startup enablement, exact identity and development acceptance limits.
+- [MBROLA prototype](MBROLA-PROTOTYPE.md) — private pinned frontend/runtime,
+  opt-in setup, test evidence and production boundaries.
 
 - [Debian packages](DEBIAN.md) — amd64 installation, development and release
   packaging, corresponding source, and Ubuntu verification.

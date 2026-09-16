@@ -8,6 +8,11 @@ Versioning for published releases.
 
 ### Added
 
+- Opt-in MBROLA en1 prototype with a private source-pinned eSpeak frontend and
+  MBROLA subprocess, bounded PCM capture, cancellation and exact voice preview.
+  Its runtime and database remain outside generic release bundles; rates are
+  provisional and no word markers or exact source anchors are advertised.
+
 - Development eSpeak variant discovery and explicit enabled combinations, with
   stable base IDs and exact variant reporting in buffered and streamed speech.
   Missing or disabled variants cannot silently pass an exact audition using the

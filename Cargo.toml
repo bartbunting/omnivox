@@ -6,6 +6,7 @@ members = [
     "omnivox-audio",
     "omnivox-cli",
     "omnivox-helper-host",
+    "omnivox-mbrola-helper",
     "linux-helpers",
     "omnivox-flite-helper",
     "omnivox-flite-sys",

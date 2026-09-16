@@ -529,6 +529,17 @@ fn companion_helper_configs() -> Vec<HelperEngineConfig> {
     .collect()
 }
 
+// A research runtime must be explicitly selected. Never discover or distribute
+// this prototype alongside the supported companion payloads.
+fn mbrola_prototype_config() -> Option<HelperEngineConfig> {
+    let config = helper_config_with_candidates("mbrola", "OMNIVOX_MBROLA_HELPER", &[])?;
+    if !config.program.is_absolute() {
+        warn!("OMNIVOX_MBROLA_HELPER must be an absolute prototype helper path");
+        return None;
+    }
+    Some(config)
+}
+
 fn requested_engine(engine_name: &str) -> String {
     if engine_name.is_empty() {
         std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
@@ -549,6 +560,7 @@ fn engine_preference_order(
         "flite" => order.push("flite"),
         "rutts" => order.push("rutts"),
         "tgspeechbox" => order.push("tgspeechbox"),
+        "mbrola" => order.push("mbrola"),
         "eloquence" => order.push("eloquence"),
         "dectalk" => order.push("dectalk"),
         _ => {
@@ -658,6 +670,7 @@ fn configured_helper_configs(
         configs.push(piper);
     }
     configs.extend(companion_helper_configs());
+    configs.extend(mbrola_prototype_config());
     #[cfg(target_os = "linux")]
     for (id, variable) in [
         ("eloquence", "OMNIVOX_ELOQUENCE_HELPER"),
@@ -703,6 +716,7 @@ pub fn create_engine(
         return create_legacy_engine(engine_name, piper_model);
     };
     let forced = requested_engine(engine_name);
+
     anyhow::ensure!(
         !library.eligibility.excludes_provider(&forced),
         "{forced} is excluded by voice-library configuration"
@@ -725,6 +739,13 @@ fn create_legacy_engine(
     _piper_model: Option<&str>,
 ) -> Result<Arc<dyn TtsEngine>> {
     let forced = requested_engine(engine_name);
+
+    if forced == "mbrola" {
+        let config = mbrola_prototype_config().ok_or_else(|| {
+            anyhow::anyhow!("MBROLA prototype requires an absolute OMNIVOX_MBROLA_HELPER path")
+        })?;
+        return Ok(Arc::new(HelperTtsEngine::new(config)?));
+    }
 
     if forced == "piper" {
         #[cfg(feature = "piper")]
@@ -874,7 +895,14 @@ fn isolate_server_engine(
 ) -> Arc<dyn TtsEngine> {
     if !matches!(
         engine.descriptor().id.as_str(),
-        "piper" | "rhvoice" | "flite" | "rutts" | "tgspeechbox" | "eloquence" | "dectalk"
+        "piper"
+            | "rhvoice"
+            | "flite"
+            | "rutts"
+            | "tgspeechbox"
+            | "eloquence"
+            | "dectalk"
+            | "mbrola"
     ) {
         return engine;
     }

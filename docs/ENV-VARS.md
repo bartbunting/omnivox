@@ -160,6 +160,12 @@ tree; this is a build input, not a server runtime setting.
 See [RUTTS.md](RUTTS.md) for installation, source build, text repertoire,
 pronunciation, verification, and licensing details.
 
+`OMNIVOX_MBROLA_HELPER`
+
+- Absolute path to the privately staged [MBROLA prototype](MBROLA-PROTOTYPE.md)
+  helper. Explicit opt-in only; it has no adjacent discovery or generic release
+  payload. Each lane uses its own helper and the helper's adjacent manifest.
+
 `OMNIVOX_TGSPEECHBOX_HELPER`
 
 - Optional path to `omnivox-tgspeechbox-helper` (with `.exe` on Windows).

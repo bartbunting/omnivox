@@ -242,6 +242,7 @@ pub fn print_help() {
     println!("    flite     Flite compact English companion (compiled-in SLT voice)");
     println!("    rutts     RuTTS compact Russian companion (built-in male and female voices)");
     println!("    tgspeechbox TGSpeechBox experimental formant-synthesis companion");
+    println!("    mbrola    Opt-in en1 prototype (requires OMNIVOX_MBROLA_HELPER)");
     if cfg!(target_os = "windows") {
         println!("    eloquence Windows Eloquence helper (user-installed ECI runtime)");
         println!("    dectalk   Windows DECtalk helper (user-installed DECtalk runtime)");

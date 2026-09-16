@@ -795,6 +795,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "omnivox-mbrola-helper"
+version = "1.11.0"
+dependencies = [
+ "omnivox-helper-host",
+ "omnivox-tts",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "omnivox-piper-helper"
 version = "1.11.0"
 dependencies = [
