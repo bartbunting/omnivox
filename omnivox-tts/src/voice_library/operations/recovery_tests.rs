@@ -22,7 +22,12 @@ fn files(path: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
         if entry.file_type().unwrap().is_dir() {
             result.extend(files(&entry.path()));
         } else {
-            result.insert(entry.path(), fs::read(entry.path()).unwrap());
+            // Match the canonical operation path, including Windows' extended
+            // path prefix, when comparing snapshots with individual receipts.
+            result.insert(
+                entry.path().canonicalize().unwrap(),
+                fs::read(entry.path()).unwrap(),
+            );
         }
     }
     result
@@ -45,9 +50,13 @@ fn recorded_cleanup_releases_only_new_work_and_preserves_original_evidence() {
         owner.abandon_cleaned_validation(OPERATION_ID).unwrap();
         let receipt = operation.join("cleanup-recovery.frames");
         let saved = fs::read(&receipt).unwrap();
+        // Windows locks exclude ordinary reads too. Snapshot all files only
+        // after the profile owner has released its permanent lock file.
+        drop(owner);
         let mut after = files(&fixture.0);
-        after.remove(&receipt).unwrap();
+        after.remove(&receipt.canonicalize().unwrap()).unwrap();
         assert_eq!(after, original);
+        let mut owner = gate(&fixture.0);
         owner.abandon_cleaned_validation(OPERATION_ID).unwrap();
         assert_eq!(fs::read(receipt).unwrap(), saved);
         assert_eq!(
@@ -149,6 +158,7 @@ fn incomplete_or_inconsistent_cleanup_never_changes_history_or_releases_admissio
             "{mode}"
         );
         assert!(owner.admit(SECOND).is_err(), "{mode}");
+        drop(owner);
         assert_eq!(files(&fixture.0), original, "{mode}");
     }
 }
@@ -239,7 +249,9 @@ fn changed_or_partial_recovery_receipts_cannot_bypass_original_history() {
                 _ => unreachable!(),
             }
         }
+        drop(owner);
         let original = files(&fixture.0);
+        let mut owner = gate(&fixture.0);
         let target = if mode == "other-operation" {
             SECOND
         } else {
@@ -247,6 +259,7 @@ fn changed_or_partial_recovery_receipts_cannot_bypass_original_history() {
         };
         assert!(owner.abandon_cleaned_validation(target).is_err(), "{mode}");
         assert!(owner.admit(SECOND).is_err(), "{mode}");
+        drop(owner);
         assert_eq!(files(&fixture.0), original, "{mode}");
     }
 }
