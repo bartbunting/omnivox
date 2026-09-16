@@ -400,3 +400,13 @@ success. Missing cleanup, damage before the validating record, damaged terminal
 prefixes and partial recovery receipts remain blocked. This extends recorded
 cleanup reconciliation without adding authority over processes after supervisor
 loss during native work.
+
+### Installation and activation priority
+
+On 2026-09-16 the maintainer explicitly moved implementation on to installation
+and activation. Further recovery for supervisor loss during active native work,
+damaged recovery receipts and stronger filesystem durability is additional
+hardening, not a prerequisite for the next delivery slices. Existing unresolved
+validation claims continue to block conflicting native work. This changes
+delivery order, not the requirement for verified inputs, explicit activation,
+matching evidence from both speech lanes or truthful failure reporting.

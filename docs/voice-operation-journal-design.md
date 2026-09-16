@@ -430,7 +430,7 @@ suite, evidence tests, native Clippy, the full silent Piper/Flite probe includin
 external Flite, and metadata command checks. Both verified explicit recovery of
 the torn final write and continued refusal when worker cleanup was missing.
 
-## Remaining recovery work
+## Additional recovery hardening
 
 Profile admission now blocks the spawn/record crash gap, and reports are bound to
 the operation and request. An independent supervisor now retains cleanup ownership
@@ -442,6 +442,8 @@ absence, not a reusable numeric PID or a matching report from another attempt. T
 also account for incomplete worker records, damaged receipts and journals without
 a verified validating prefix without inventing success.
 
-Only after those boundaries work should installation transactions and full
-candidate startup/activation use the journal. The voice-library capability
-remains unadvertised.
+On 2026-09-16 the maintainer prioritized installation and activation over this
+additional recovery hardening. Continue those features while retaining the
+existing refusal to reuse unresolved native work. Do not add force-clearing or
+treat missing cleanup as success. The voice-library capability remains
+unadvertised until the complete runtime and client activation contract works.
