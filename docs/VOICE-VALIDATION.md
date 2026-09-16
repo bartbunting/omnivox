@@ -206,3 +206,9 @@ It preserves the journal and any report, adds a separately verified abandonment
 receipt, and allows a fresh operation through normal admission. It does not count
 the old validation as successful. Missing cleanup records and damaged history
 remain blocked; see the operation-journal guide for the exact recovery boundary.
+
+The development run command keeps native ownership in a separate supervisor. If
+its manager process dies or disconnects, that supervisor can still cancel the
+workers, confirm cleanup and record the result while retaining both leases. A new
+manager must inspect history and use normal admission; manager exit alone does
+not prove cleanup. If the supervisor also dies, missing cleanup remains blocked.

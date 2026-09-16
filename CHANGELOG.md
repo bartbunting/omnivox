@@ -8,6 +8,9 @@ Versioning for published releases.
 
 ### Added
 
+- Development managed validation keeps a separate supervisor alive through
+  manager-process death so it can confirm native cleanup and persist cancellation.
+  Supervisor death or unconfirmed cleanup still blocks subsequent admission.
 - Development validation recovery can abandon an interrupted attempt using its
   complete worker cleanup records, allowing fresh validation through profile
   admission. It preserves and rechecks original evidence; unfinished workers and

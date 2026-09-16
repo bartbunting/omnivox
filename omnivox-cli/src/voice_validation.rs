@@ -10,6 +10,7 @@ pub fn requested(args: &[String]) -> bool {
             arg.as_str(),
             "--validate-voice-library"
                 | "--run-voice-validation-operation"
+                | "--internal-voice-validation-supervisor"
                 | "--internal-voice-validation-worker"
                 | "--internal-voice-validation-snapshot"
         )

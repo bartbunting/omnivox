@@ -14,6 +14,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 mod evidence;
 mod managed;
+mod manager;
 
 fn host() -> HostPlatform {
     if cfg!(windows) {
@@ -105,6 +106,12 @@ pub fn run(args: &[String]) -> Result<()> {
     if args
         .first()
         .is_some_and(|arg| arg == "--run-voice-validation-operation")
+    {
+        return manager::run(args);
+    }
+    if args
+        .first()
+        .is_some_and(|arg| arg == "--internal-voice-validation-supervisor")
     {
         return managed::run(args);
     }

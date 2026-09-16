@@ -371,3 +371,20 @@ no native process-identity API or authority to signal a saved PID. Missing clean
 events, malformed history and partial recovery receipts remain blocked and
 preserved. Provider-specific cleanup proof for those cases, power-loss recovery,
 installation transactions and activation remain separate work.
+
+### Preserve native cleanup ownership after client loss
+
+The development operation command now delegates validation to a separate
+supervisor invocation of the same executable. That process holds both admission
+leases and all live native ownership. A private startup/cancellation pipe lets it
+observe manager death and finish cancellation, cleanup and journal persistence
+before exiting. The initial gate prevents a manager lost before startup from
+admitting native work. Unix uses a separate process group; Windows starts the
+supervisor without the manager's console. Existing workers, helpers, engine
+protocols and memory/deadline policies are unchanged.
+
+This preserves the authority already held by a live supervisor. It does not
+reconstruct authority from saved PIDs or kernel-object names. A supervisor crash,
+whole-tree termination or unconfirmed cleanup still leaves history blocked;
+old incomplete histories are not cleared. There is no persistent daemon, new
+release artifact, automatic speech restart or voice-library capability added.

@@ -139,7 +139,8 @@ history blocks admission. A different UUID cannot bypass such history. A complet
 report beside an interrupted journal does not release the claim. Inspection
 acquires no cleanup authority and never edits history or signals stored PIDs.
 
-The run command checks the host platform and the planned validator against the
+The run command starts a separate supervisor from the same executable. That
+supervisor checks the host platform and the planned validator against the
 current executable, resolves the planned helpers and rejects unsupported runtime
 overrides. It records `validating` before native work and retains the original
 generation under the operation. The existing bounded supervisor performs input
@@ -166,11 +167,54 @@ digest. Same-generation evidence from another attempt fails operation binding.
 These records remain unauthenticated observations of the trusted supervisor.
 
 Normal failures or cancellation record terminal state only after confirmed
-cleanup. An interrupted manager leaves its claim blocked even if all workers
+cleanup. An interrupted supervisor leaves its claim blocked even if all workers
 subsequently exit. Worker PIDs describe the live supervisor's observed assignment;
 they are explicitly marked `live-supervisor-only`, not reusable boot/birth
 identities. There is no automatic restart, PID signalling or force-clear command.
 Missing cleanup observations still require provider-specific recovery evidence.
+
+## Keep cleanup ownership through manager death
+
+The development run command is a small manager. A separate invocation of the same
+executable owns the profile and operation leases, native process handles, output
+readers, deadlines and journal writes. It runs only the existing validation path,
+before audio or engine startup. Helpers retain their existing engine boundary.
+
+The manager starts that supervisor with a private stdin pipe and sends exactly
+`START` plus a newline. The internal supervisor entry rejects missing or malformed
+startup before acquiring admission or opening a saved request. Its existing
+cancellation watcher then observes EOF, unexpected input or read failure. The
+manager closes this pipe when its own input closes; process death closes it in
+the kernel. It keeps the write end private, forwards no voice-library bytes over
+the pipe, and waits for the supervisor's exit without forcibly terminating it.
+Native workers still have their own separate startup/cancellation gates.
+
+On Unix the supervisor starts in its own process group. On Windows it uses
+[`CREATE_NO_WINDOW`](https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags)
+so it is not attached to the manager's console. These isolate ordinary client
+lifetime; they do not bypass an enclosing Windows job or survive a whole-session,
+whole-tree or host shutdown. Progress and diagnostics inherit the manager's output
+destinations. A closed output pipe can still prevent progress reporting; recorded
+cleanup and retained history, rather than receipt of that text, govern admission.
+
+When the manager dies during validation, the surviving supervisor cancels native
+work, verifies tree and reader cleanup, records cancellation, then releases its
+leases and exits. Until then another manager sees the profile as busy. New work
+uses normal admission after confirmed cleanup. A caller that lost contact must
+inspect the retained result; client exit alone is not a cleanup acknowledgement.
+
+| Failure | Result |
+| --- | --- |
+| Manager disappears before `START` | Supervisor exits without admission or native work. |
+| Manager disappears during native work | Supervisor attempts bounded native cleanup and records the outcome. |
+| Native cleanup cannot be confirmed | Recovery-failed history continues to block admission. |
+| Supervisor also dies before completion | Existing recorded-cleanup recovery applies; incomplete cleanup remains blocked. |
+
+The internal supervisor switch is an implementation/test entry, not a negotiated
+management API or an independently restartable operation. This adds no daemon,
+installed service, new artifact, native process-identity authority or automatic
+speech restart. Existing incomplete histories cannot gain cleanup evidence merely
+because this manager/supervisor split was installed.
 
 ## Abandonment using recorded cleanup
 
@@ -308,8 +352,10 @@ The canonical-path comparison also handles macOS temporary-directory aliases.
 ## Remaining recovery work
 
 Profile admission now blocks the spawn/record crash gap, and reports are bound to
-the operation and request. Complete saved cleanup can release an interrupted
-claim through explicit abandonment. Work with missing cleanup records still needs
+the operation and request. An independent supervisor now retains cleanup ownership
+through manager death. Complete saved cleanup can release an interrupted claim
+through explicit abandonment. Work with missing cleanup records after supervisor
+death still needs
 provider-specific boot/process-tree identity and confirmed absence, not a reusable
 numeric PID or a matching report from another attempt. That reconciliation must
 also account for incomplete worker records and damaged journals/receipts without

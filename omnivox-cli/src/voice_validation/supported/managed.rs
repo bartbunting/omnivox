@@ -43,8 +43,9 @@ impl owned::Recorder for Recorder<'_> {
 pub(super) fn run(args: &[String]) -> Result<()> {
     anyhow::ensure!(
         args.len() == 4,
-        "expected --run-voice-validation-operation ROOT PROFILE_UUID OPERATION_UUID"
+        "expected internal supervisor ROOT PROFILE_UUID OPERATION_UUID"
     );
+    super::manager::await_start()?;
     let mut admission = Admission::try_open(Path::new(&args[1]), &args[2])?
         .context("profile validation is already owned")?;
     let mut admitted = admission.admit(&args[3])?;
