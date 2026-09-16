@@ -183,6 +183,8 @@ that normal owner retirement releases the lease without waiting for that child.
 
 ## Verification
 
+### Original per-operation foundation
+
 For the original per-operation foundation at source
 `f10a32f3b32c72ad9b79accd3019f49b7bee65b2`, Linux passed all 11 shared
 operation tests, the staged command probe and the locked workspace suite
@@ -203,6 +205,33 @@ These checks establish this storage slice's behavior, not persistent ownership
 of the native validator or full installation/activation recovery. Full Windows
 server/companion and MSVC acceptance remain separate, as recorded in
 [the validator guide](VOICE-VALIDATION.md).
+
+### Admitted native execution
+
+At `cdffab6533a8bfdce51d2b0137bb9d1787109984`, Linux passed the locked workspace
+suite (796 passed, one existing ignored test), including 20 operation/admission
+tests and seven supervisor/command tests. The staged native probe passed with
+Piper speakers, compiled-in SLT and an exported external Flite voice. It verifies
+sequential admitted runs, per-attempt evidence binding, confirmed cancellation,
+blocked admission after manager death and refusal to treat a report as completion
+when the final journal append is missing. Workspace Clippy with Piper features,
+formatting and local documentation-link checks passed.
+
+Native Windows x64 GNU passed all 18 applicable operation/admission tests and ten
+supervisor/command tests on its native temporary filesystem. These include killed
+profile owners and refusal to open START after an ownership-record failure.
+The subsequent import-only portability cleanup at `347684c` passed Windows-target
+Clippy for the shared library and CLI with Piper discovery enabled, plus a Linux
+shared-library compile check. Full Windows server/companion and MSVC acceptance,
+power-loss recovery, speech playback and activation remain separate.
+
+Native Intel and Apple Silicon macOS passed at `cdffab6` in
+[verification run 35048372336](https://github.com/bartbunting/omnivox/actions/runs/35048372336).
+Each host passed all 20 operation/admission tests, the repeated supervisor tests
+including refusal to open START after a recording failure, native Clippy, the
+full Piper/Flite probe including external Flite, and the preparation/inspection
+command checks. The probe verified both profile release after confirmed
+cancellation and blocked admission after manager death or a lost terminal append.
 
 ## Remaining recovery work
 
