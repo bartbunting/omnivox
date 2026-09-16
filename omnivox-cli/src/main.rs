@@ -35,6 +35,7 @@ mod text;
 mod transaction;
 mod voice_library;
 mod voice_observations;
+mod voice_operations;
 mod voice_validation;
 mod work_queue;
 
@@ -65,6 +66,9 @@ pub(crate) const SOUND_MAX_DEPTH: usize = 10;
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if voice_operations::requested(&args) {
+        return voice_operations::run(&args);
+    }
     if voice_validation::requested(&args) {
         return voice_validation::run(&args);
     }

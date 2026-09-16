@@ -50,6 +50,10 @@ jobs:
         run: >-
           cargo test --locked -p omnivox-tts voice_library::evidence:: -- --test-threads=1
 
+      - name: Check operation ownership and process crash recovery
+        run: >-
+          cargo test --locked -p omnivox-tts voice_library::operations:: -- --test-threads=1
+
       - name: Stage native companions and server
         run: |
           python tools/build_flite.py
@@ -88,6 +92,9 @@ jobs:
             --flite-helper target/debug/flite/omnivox-flite-helper \
             --piper-helper target/debug/piper/omnivox-piper-helper \
             --flite-tests "$FLITE_TEST_EXECUTABLE" 2>&1 | tee voice-validation.log
+
+      - name: Verify nonactivating operation commands
+        run: python -W error::ResourceWarning tools/verify_voice_operations.py target/debug/omnivox
 
       - name: Upload validation results
         if: always()

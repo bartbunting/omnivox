@@ -318,3 +318,19 @@ at `7ff386693701d8a7a50cb10be615f455062516ca`, including actual Piper/Flite load
 report creation/comparison, changed-input rejection and absence of a published
 report after cancellation or supervisor death. This does not establish full
 Windows server/MSVC acceptance, power-loss recovery or activation transactions.
+
+### Persistent validation-operation foundation
+
+The [operation-journal design](../voice-operation-journal-design.md) adds explicit
+preparation, per-operation ownership and recovery inspection. A bounded immutable
+validation request is paired with an append-only, checksummed state history and
+a permanent OS lock file. Each append rechecks prior inputs and synchronizes the
+new frame. Interrupted native work and damaged suffixes remain blocked after the
+owner exits; inspection never repairs bytes, signals a saved PID or restarts speech.
+
+This is a validation suboperation, not a complete installation/activation plan.
+The native validator is not wired into it yet. Profile-wide admission, persisted
+native-worker identities, report-to-operation binding and cleanup reconciliation
+must precede claims of cross-invocation native ownership. The development prepare
+and inspect commands change neither desired nor applied voice state. Durable
+multi-file publication and full provider recovery remain pending.

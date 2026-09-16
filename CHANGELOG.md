@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Development validation operations can preserve a frozen request and a
+  checksummed journal with exclusive ownership. Inspection distinguishes busy,
+  interrupted, completed and damaged records; incomplete work cannot be silently
+  reused. Native-validator admission and installation/activation remain pending.
 - Development voice validation can save bounded evidence and compare it with
   current voice assets, validator and staged companion files. Reports require
   successful native checks and cleanup, detect changed inputs, and never replace

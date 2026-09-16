@@ -187,3 +187,10 @@ interrupted operation ownership, reconcile failed cleanup across manager
 invocations, and validate full candidate startup/status
 with the exact overrides before activation. This command validates managed native
 loads; it does not implement those transaction guarantees or two-lane rollback.
+
+The [operation-journal foundation](voice-operation-journal-design.md) now provides
+separate development preparation and inspection commands. It preserves frozen
+requests and detects interrupted or damaged state under an exclusive lease.
+Ordinary `--validate-voice-library` is not connected to this journal yet; a
+profile admission owner and persisted native-worker evidence must govern that
+connection before it can coordinate recovery across invocations.
