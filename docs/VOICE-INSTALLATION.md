@@ -110,3 +110,25 @@ probe additionally installs admitted Piper and external Flite fixtures, verifies
 that both start disabled, rejects changed evidence/assets, saves enablement,
 and validates the resulting candidate with actual native helpers without playback.
 These checks do not establish live Emacs activation or audible acceptance.
+
+### Installation acceptance
+
+At source commit `f04184c8ac57194cb58c182a2989d5a995c96666`, Linux passed
+73 voice-library tests and the full locked workspace run (816 passed, one
+existing ignored test). Supported server staging, the silent Piper/Flite import
+and candidate-validation probe, the operation-command probe and workspace Clippy
+with the Piper features also passed.
+
+Native Windows x64 GNU passed all 70 applicable voice-library tests from its
+native temporary filesystem, including index replacement and candidate checks.
+Windows-target Clippy passed. This is shared storage/projection acceptance;
+full Windows server/companion installation validation and MSVC acceptance remain
+separate work.
+
+Native Intel and Apple Silicon macOS passed at the same source commit in
+[run 35056626404](https://github.com/bartbunting/omnivox/actions/runs/35056626404).
+Each host passed six installed-state tests, four projection tests, eight evidence
+tests, 26 operation tests and 13 supervision tests repeated five times. Supported
+native staging, Clippy, the full silent Piper/Flite import and candidate-validation
+probe and the operation-command probe also passed. The native voice probe retained
+the existing failure, cancellation and ownership-recovery checks on both hosts.

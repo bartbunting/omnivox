@@ -181,12 +181,13 @@ Full Windows server/companion validation and MSVC acceptance also remain separat
 work. The existing Windows GNU main staging limitation is recorded in
 [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md).
 
-The validator can now save and compare observed executable, companion and voice
-inputs. The storage service must still establish durable transactions, persist
-interrupted operation ownership, reconcile failed cleanup across manager
-invocations, and validate full candidate startup/status
-with the exact overrides before activation. This command validates managed native
-loads; it does not implement those transaction guarantees or two-lane rollback.
+The validator can save and compare observed executable, companion and voice
+inputs. The [installed-voice store](VOICE-INSTALLATION.md) now registers admitted,
+validated local imports, persists desired enablement and prepares immutable
+activation candidates. Apply must still validate full candidate startup/status
+with the exact overrides and coordinate both speech lanes with rollback. These
+validation commands do not activate a generation. Further recovery and
+power-loss hardening are recorded separately and do not block that integration.
 
 The [operation-journal foundation](voice-operation-journal-design.md) now provides
 separate development preparation and inspection commands. It preserves frozen
