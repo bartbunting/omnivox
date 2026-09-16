@@ -3,7 +3,7 @@ use super::storage::{new_file, open_file, ordinary};
 use super::{decode, digest, read_bounded, require, text, LibraryError, ValidationPlan};
 use crate::voice_library::evidence::ValidationEvidence;
 use serde::{Deserialize, Serialize};
-use std::fs::{self, File};
+use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
@@ -245,7 +245,7 @@ impl BoundValidationEvidence {
 
 fn sync_directory(path: &Path) -> Result<(), LibraryError> {
     #[cfg(unix)]
-    File::open(path)?.sync_all()?;
+    fs::File::open(path)?.sync_all()?;
     #[cfg(not(unix))]
     let _ = path;
     Ok(())
