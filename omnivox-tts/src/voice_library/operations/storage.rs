@@ -214,7 +214,7 @@ fn lock_error(error: TryLockError) -> LibraryError {
     }
 }
 
-pub(super) fn ordinary(path: &Path, file: bool) -> Result<(), LibraryError> {
+pub(in crate::voice_library) fn ordinary(path: &Path, file: bool) -> Result<(), LibraryError> {
     let metadata = fs::symlink_metadata(path)?;
     super::require(
         !metadata.file_type().is_symlink()
@@ -245,10 +245,10 @@ fn options() -> OpenOptions {
     }
     options
 }
-pub(super) fn new_file(path: &Path) -> Result<File, LibraryError> {
+pub(in crate::voice_library) fn new_file(path: &Path) -> Result<File, LibraryError> {
     Ok(options().create_new(true).open(path)?)
 }
-pub(super) fn open_file(path: &Path, write: bool) -> Result<File, LibraryError> {
+pub(in crate::voice_library) fn open_file(path: &Path, write: bool) -> Result<File, LibraryError> {
     ordinary(path, true)?;
     let file = OpenOptions::new().read(true).write(write).open(path)?;
     super::require(

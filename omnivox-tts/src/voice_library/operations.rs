@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 
-mod storage;
+pub(super) mod storage;
 pub use storage::{Inspection, Operation};
 mod admission;
 pub use admission::{Admission, AdmissionEntry, AdmittedOperation};

@@ -245,6 +245,21 @@ impl EvidenceSnapshot {
 }
 
 impl ValidationEvidence {
+    pub(super) fn installation_validation(
+        &self,
+        package: &super::PackageRevision,
+        target: &str,
+    ) -> Result<super::NativeValidation, LibraryError> {
+        Ok(super::NativeValidation {
+            // The digest identifies the exact validator observed by this report;
+            // it must not be replaced with the installing executable's version.
+            validator_version: format!("sha256:{}", self.snapshot.validator.sha256),
+            target_id: target.into(),
+            validated_at: installation_timestamp(self.completed_unix_seconds)?,
+            file_set_sha256: package.file_set_sha256()?,
+        })
+    }
+
     pub(super) fn matches_request(&self, plan: &super::operations::ValidationPlan) -> bool {
         let request = plan.document();
         self.snapshot.generation_json == request.generation_json
@@ -290,6 +305,53 @@ impl ValidationEvidence {
     pub fn matches(&self, current: &EvidenceSnapshot) -> bool {
         self.snapshot == *current
     }
+}
+
+fn installation_timestamp(seconds: u64) -> Result<String, LibraryError> {
+    require(
+        seconds <= 253_402_300_799,
+        "validation date exceeds year 9999",
+    )?;
+    let mut days = seconds / 86400;
+    let mut year = 1970u64;
+    let leap = |year: u64| {
+        year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400))
+    };
+    loop {
+        let count = if leap(year) { 366 } else { 365 };
+        if days < count {
+            break;
+        }
+        days -= count;
+        year += 1;
+    }
+    let months = [
+        31,
+        if leap(year) { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
+    let mut month = 0;
+    while days >= months[month] {
+        days -= months[month];
+        month += 1;
+    }
+    Ok(format!(
+        "{year:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        month + 1,
+        days + 1,
+        seconds % 86400 / 3600,
+        seconds % 3600 / 60,
+        seconds % 60
+    ))
 }
 
 fn path_text(path: &Path) -> Result<String, LibraryError> {

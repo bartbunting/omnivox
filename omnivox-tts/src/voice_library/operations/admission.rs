@@ -142,6 +142,36 @@ impl Admission {
         &self.identity.target_id
     }
 
+    /// Retain the operation lease while consuming one claimed native result.
+    /// This is installation evidence, never authority to restart old work.
+    pub(in crate::voice_library) fn completed_validation(
+        &self,
+        operation_id: &str,
+    ) -> Result<Operation, LibraryError> {
+        uuid(operation_id)?;
+        self.check_identity()?;
+        let claims = self.claims()?;
+        let claim = claims
+            .iter()
+            .find(|claim| claim.operation_id == operation_id)
+            .ok_or(LibraryError::Invalid(
+                "validation has no profile admission claim",
+            ))?;
+        let operation = Operation::try_open(&self.operations.join(operation_id))?.ok_or(
+            LibraryError::Invalid("validation operation is already owned"),
+        )?;
+        self.check_operation(&operation)?;
+        require(
+            operation.plan().sha256() == claim.plan_sha256,
+            "claimed validation plan changed",
+        )?;
+        require(
+            operation.inspection() == Inspection::Staged,
+            "installation requires successful staged validation",
+        )?;
+        Ok(operation)
+    }
+
     /// Read all claimed operations under the profile lock. Missing, changed or
     /// malformed history is an error, never evidence that the profile is clear.
     pub fn inspect(&self) -> Result<Vec<AdmissionEntry>, LibraryError> {

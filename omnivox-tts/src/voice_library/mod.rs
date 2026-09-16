@@ -17,7 +17,9 @@ use crate::contracts::PhysicalVoiceId;
 mod eligibility;
 pub mod evidence;
 mod index;
+pub mod installation;
 pub mod operations;
+mod projection;
 mod runtime;
 mod verification;
 

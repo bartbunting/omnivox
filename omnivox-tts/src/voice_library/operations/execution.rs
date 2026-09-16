@@ -243,6 +243,52 @@ impl BoundValidationEvidence {
     }
 }
 
+impl super::Operation {
+    pub(in crate::voice_library) fn verified_validation(
+        &self,
+    ) -> Result<ValidationEvidence, LibraryError> {
+        require(
+            self.inspection() == super::Inspection::Staged,
+            "validation is not staged",
+        )?;
+        self.check_unchanged()?;
+        let bytes = read_bounded(
+            open_file(&self.path().join("validation-evidence.json"), false)?,
+            MAX_BOUND_EVIDENCE_BYTES,
+        )?;
+        require(
+            self.journal()
+                .records()
+                .last()
+                .and_then(|record| record.transition.evidence_sha256.as_deref())
+                == Some(digest(&bytes).as_str()),
+            "staged validation evidence changed",
+        )?;
+        let bound = BoundValidationEvidence::read(bytes.as_slice(), self.plan())?;
+        let directory = self.path().join("workers");
+        ordinary(&directory, false)?;
+        // Reject later additions as well as changed/deleted retained events.
+        let entries = fs::read_dir(&directory)?
+            .take(bound.workers.len() + 1)
+            .collect::<std::io::Result<Vec<_>>>()?;
+        require(
+            entries.len() == bound.workers.len(),
+            "validation worker history changed",
+        )?;
+        for event in &bound.workers {
+            let bytes = read_bounded(
+                open_file(&directory.join(&event.name), false)?,
+                MAX_EVENT_BYTES,
+            )?;
+            require(
+                digest(&bytes) == event.sha256,
+                "validation worker history changed",
+            )?;
+        }
+        ValidationEvidence::read(bound.evidence_json.as_bytes())
+    }
+}
+
 fn sync_directory(path: &Path) -> Result<(), LibraryError> {
     #[cfg(unix)]
     fs::File::open(path)?.sync_all()?;

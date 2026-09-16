@@ -354,3 +354,14 @@ fn companion_symlinks_are_not_followed() {
     .unwrap();
     assert!(fixture.capture().is_err());
 }
+#[test]
+fn installation_dates_preserve_the_recorded_validation_instant() {
+    for (seconds, expected) in [
+        (1, "1970-01-01T00:00:01Z"),
+        (951_827_696, "2000-02-29T12:34:56Z"),
+        (253_402_300_799, "9999-12-31T23:59:59Z"),
+    ] {
+        assert_eq!(super::installation_timestamp(seconds).unwrap(), expected);
+    }
+    assert!(super::installation_timestamp(253_402_300_800).is_err());
+}
