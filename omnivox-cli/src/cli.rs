@@ -220,6 +220,7 @@ pub fn print_help() {
     println!("    --piper-model P  Piper .onnx model; keep its JSON config beside it");
     println!("    --voice-library P  Verified runtime generation (or OMNIVOX_VOICE_LIBRARY)");
     println!("    --voice-library-owner  Local owned speech worker (private stdio control)");
+    println!("    --voice-library-acquire  Verified local voice download (private stdio control)");
     println!("    --voice-library-service  Local installed-voice and Apply service");
     println!("    --validate-voice-library P  Development native validation; keep stdin open");
     println!("      --piper-helper P --flite-helper P  Exact helpers for projected providers");

@@ -58,6 +58,15 @@ impl Request {
 #[derive(Debug, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Reply {
+    Catalogue {
+        catalogue: super::catalogue::CatalogueDocument,
+    },
+    Acquisition {
+        progress: super::acquisition::Progress,
+    },
+    AcquisitionStatus {
+        events: Vec<super::acquisition::Progress>,
+    },
     Host {
         root: String,
         target_id: String,

@@ -154,7 +154,7 @@ impl Profile {
     }
 }
 
-fn file(role: FileRole, asset: &AssetFile) -> IndexedFile {
+pub(super) fn file(role: FileRole, asset: &AssetFile) -> IndexedFile {
     IndexedFile {
         role,
         path: asset.path.clone(),
@@ -163,7 +163,7 @@ fn file(role: FileRole, asset: &AssetFile) -> IndexedFile {
     }
 }
 
-fn row(
+pub(super) fn row(
     engine: &str,
     id: &str,
     name: &str,

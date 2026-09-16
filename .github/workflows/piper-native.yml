@@ -105,10 +105,14 @@ jobs:
         run: |
           cargo test --locked -p omnivox-tts voice_library::installation:: -- --test-threads=1
           cargo test --locked -p omnivox-tts voice_library::local:: -- --test-threads=1
+          cargo test --locked -p omnivox-tts voice_library::catalogue::
+          cargo test --locked -p omnivox-tts voice_library::acquisition::
           if [ "${{ runner.os }}" = Windows ]; then
             python -W error::ResourceWarning tools/verify_local_voice_owner.py target/release/omnivox.exe
+            python -W error::ResourceWarning tools/verify_voice_acquisition.py target/release/omnivox.exe
           else
             python -W error::ResourceWarning tools/verify_local_voice_owner.py target/release/omnivox
+            python -W error::ResourceWarning tools/verify_voice_acquisition.py target/release/omnivox
           fi
 
       - name: Upload verified companion candidate

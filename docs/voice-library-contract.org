@@ -397,3 +397,43 @@ Required behavioral checks include:
 - Real Windows WSL-provider activation and recovery; actual native model and
   speaker checks, then maintainer audible acceptance. Mock tests establish
   neither spoken identity nor measured memory recovery.
+
+* Reviewed acquisition implementation
+
+The local =--voice-library-acquire= entry point accepts one bounded private
+stdio request (=command: acquire=, =voice: catalogue entry ID=, =plan_json:
+exact catalogue JSON=). Emacsvox ships the reviewed catalogue; Omnivox
+validates it and owns HTTP, checksums, storage and native validation. This
+entry point is unavailable through the remote speech transport. It uses
+ureq 3.3 with rustls and does not add network access to engine helpers.
+
+Catalogue schema 1 records immutable source revisions, fixed file roles,
+exact SHA-256 hashes and sizes, expected native physical identities, and
+licence/model-card links. HTTPS is required except for the checksum-pinned
+upstream =http://festvox.org/flite/packed/= collection. Metadata and total
+download sizes are bounded. URL-derived filenames and archive extraction
+are not supported. Packages retain the exact catalogue and downloaded
+licence/model-card files alongside the voice assets.
+
+An acquisition lease serializes downloads for the profile. Private staging
+is promoted to an immutable package location before the existing isolated
+native validator runs. Only completed, verified native evidence allows
+publication into the installed index, initially disabled. Publication also
+checks the originally observed index hash. No acquisition changes the active
+pointer, starts a speech preview, or enables a voice automatically.
+
+Progress is emitted as bounded =OMNIVOX-LOCAL= JSON lines and retained under
+=acquisitions/OPERATION/events.jsonl=. Closing stdin requests cancellation;
+the acquisition process retains the native validation supervisor until its
+cleanup finishes. An interrupted connection is not proof of cancellation
+or publication. The service's =acquisition-status= command reads retained
+events for a known operation; nonterminal historical events are not proof
+that a worker is still alive. Failures retain operation files for inspection.
+Automatic resume, updates, deletion and crash/power-loss recovery beyond
+existing native admission checks remain further work.
+
+=tools/verify_voice_acquisition.py= exercises real HTTPS acquisition using
+the existing CI-only Piper model lock, failed-size and cancellation paths,
+native validation, disabled publication and duplicate rejection. An optional
+=--catalogue= path also checks Emacsvox's reviewed Flite/Piper entries. The
+Piper native matrix runs this check on Linux, Windows and both Mac targets.

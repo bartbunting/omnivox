@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 mod activation;
 mod imports;
+mod managed;
 pub use activation::Activation;
 #[cfg(test)]
 mod tests;

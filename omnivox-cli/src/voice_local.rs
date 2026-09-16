@@ -17,7 +17,10 @@ pub fn requested(args: &[String]) -> bool {
     args.first().is_some_and(|arg| {
         matches!(
             arg.as_str(),
-            "--voice-library-owner" | "--voice-library-service" | "--voice-library-local-version"
+            "--voice-library-owner"
+                | "--voice-library-service"
+                | "--voice-library-local-version"
+                | "--voice-library-acquire"
         )
     })
 }
@@ -31,6 +34,9 @@ pub fn run(args: &[String]) -> Result<()> {
         return Ok(());
     }
     let host = Host::open_default()?;
+    if args[0] == "--voice-library-acquire" {
+        return crate::voice_acquisition::run(host);
+    }
     if args[0] == "--voice-library-service" {
         service(host)
     } else {
@@ -38,7 +44,7 @@ pub fn run(args: &[String]) -> Result<()> {
     }
 }
 
-fn line(input: &mut impl BufRead) -> Result<Option<Vec<u8>>> {
+pub(crate) fn line(input: &mut impl BufRead) -> Result<Option<Vec<u8>>> {
     let mut bytes = Vec::new();
     loop {
         let buffer = input.fill_buf()?;
@@ -85,6 +91,22 @@ fn service(host: Host) -> Result<()> {
         let result = (|| -> Result<Reply> {
             match request.command.as_str() {
                 "host" => Ok(host.reply()),
+                "catalogue" if activation.is_none() => Ok(Reply::Catalogue {
+                    catalogue: omnivox_tts::voice_library::catalogue::Catalogue::parse(
+                        request.plan_json.as_bytes(),
+                    )?
+                    .document()
+                    .clone(),
+                }),
+                "acquisition-status" if activation.is_none() => {
+                    let events = omnivox_tts::voice_library::acquisition::inspect(
+                        &host,
+                        &request.operation,
+                    )?;
+                    Ok(Reply::AcquisitionStatus {
+                        events: events.into_iter().rev().take(64).collect(),
+                    })
+                }
                 "inspect" if activation.is_none() => {
                     let profile = host.profile()?;
                     Ok(Reply::Library {

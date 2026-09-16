@@ -33,6 +33,7 @@ mod routing;
 mod server;
 mod text;
 mod transaction;
+mod voice_acquisition;
 mod voice_installation;
 mod voice_library;
 #[cfg(any(target_os = "linux", target_os = "macos", windows))]

@@ -24,7 +24,7 @@ pub enum Provider {
 }
 
 impl Provider {
-    fn engine_id(self) -> &'static str {
+    pub(super) fn engine_id(self) -> &'static str {
         match self {
             Self::Piper => "piper",
             Self::Flite => "flite",

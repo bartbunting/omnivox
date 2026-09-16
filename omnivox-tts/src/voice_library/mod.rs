@@ -14,6 +14,8 @@ use thiserror::Error;
 
 use crate::contracts::PhysicalVoiceId;
 
+pub mod acquisition;
+pub mod catalogue;
 mod eligibility;
 pub mod evidence;
 mod index;
