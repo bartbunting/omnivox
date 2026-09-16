@@ -201,8 +201,11 @@ fn execute(
         operation_id: operation.plan.operation_id.clone(),
         platform: std::env::consts::OS.into(),
         generation_json: String::from_utf8(library.source_bytes().to_vec())?,
-        validator_path: executable.to_string_lossy().into(),
-        helpers: BTreeMap::from([(engine.into(), helper.to_string_lossy().into())]),
+        validator_path: omnivox_tts::voice_library::catalogue::metadata_path(&executable)?,
+        helpers: BTreeMap::from([(
+            engine.into(),
+            omnivox_tts::voice_library::catalogue::metadata_path(&helper)?,
+        )]),
         timeout_seconds: 120,
         memory_bytes: 4096 * 1024 * 1024,
         runtime_policy: "bundled-companions-v1".into(),

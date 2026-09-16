@@ -113,11 +113,47 @@ impl DownloadFile {
     }
     pub fn asset(&self, directory: &Path) -> Result<AssetFile, LibraryError> {
         Ok(AssetFile {
-            path: directory.join(self.filename()?).to_string_lossy().into(),
+            path: metadata_path(&directory.join(self.filename()?))?,
             bytes: self.bytes,
             sha256: self.sha256.clone(),
         })
     }
+}
+
+/// Serialize a native-selected path using the ordinary absolute path syntax
+/// accepted by voice metadata. Windows canonicalization adds a verbatim prefix;
+/// remove it only after proving that ordinary Win32 resolution is unchanged.
+pub fn metadata_path(path: &Path) -> Result<String, LibraryError> {
+    let value = path
+        .to_str()
+        .ok_or(LibraryError::Invalid("voice path is not UTF-8"))?
+        .to_owned();
+    #[cfg(windows)]
+    let value = {
+        let ordinary = if let Some(tail) = value.strip_prefix(r"\\?\UNC\") {
+            format!(r"\\{tail}")
+        } else if let Some(tail) = value.strip_prefix(r"\\?\") {
+            tail.to_owned()
+        } else {
+            value.to_owned()
+        };
+        if ordinary != value {
+            require(
+                Path::new(&ordinary).canonicalize()? == path.canonicalize()?,
+                "voice path requires unsupported verbatim Windows semantics",
+            )?;
+        }
+        ordinary
+    };
+    native_path(
+        &value,
+        if cfg!(windows) {
+            HostPlatform::Windows
+        } else {
+            HostPlatform::Posix
+        },
+    )?;
+    Ok(value)
 }
 
 /// HTTPS is required except for the upstream Flite repository, which currently

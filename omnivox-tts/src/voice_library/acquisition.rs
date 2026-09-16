@@ -260,6 +260,21 @@ mod tests {
         operation.place_files(&catalogue).unwrap();
         assert!(operation.package.join("catalogue.json").is_file());
         assert!(!operation.staging.exists());
+        // Windows canonical roots carry a verbatim prefix. Generation metadata
+        // must retain the same files using the contract's ordinary path syntax.
+        catalogue
+            .entry("flite-test")
+            .unwrap()
+            .generation(
+                &host.target_id,
+                &host.profile_id,
+                &operation.plan.generation_id,
+                &operation.package,
+            )
+            .unwrap()
+            .verify_assets(ProviderOverrides::default())
+            .unwrap();
+
         let mut profile = host.profile().unwrap();
         assert!(profile.index().document().voices.is_empty());
         // Exact hashes alone cannot publish a voice without native validation.
