@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "platform": "windows",
+  "corpus": "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet and helps compare speech rates.",
+  "helper_sha256": "37ac90a1bb7ffad01d5b47f32eaec9888586b9f9b76883d6c0d7152f232a3cda",
+  "manifest_sha256": "3e4c60af96ae31b0bd0b079dbcab628fc1212339187cfdc7eab59c206a422744",
+  "rates": [
+    {
+      "host_rate": 0.0,
+      "audio_seconds": 14.104081632653061,
+      "wall_seconds": 0.8157674690000931,
+      "pcm_sha256": "e68f5ff05f708fefff08377009709cdb8c888af162730dc717bbf8ae385b9e38"
+    },
+    {
+      "host_rate": 0.5,
+      "audio_seconds": 6.678956916099773,
+      "wall_seconds": 0.5550265949996174,
+      "pcm_sha256": "4b4eeeb8c797b4f8bda7ca07c917c813a8bf3c7b60dea8185f0b9f3998b54a35"
+    },
+    {
+      "host_rate": 1.0,
+      "audio_seconds": 2.957891156462585,
+      "wall_seconds": 0.5782622790002279,
+      "pcm_sha256": "baa3ba827304521c591d55f906227db640752e75d71cbc35a1b330b40091ae8c"
+    },
+    {
+      "host_rate": 1.5,
+      "audio_seconds": 2.181451247165533,
+      "wall_seconds": 0.48599224600002344,
+      "pcm_sha256": "93ba5a07aaf2ec382d2fc62fbc46b9d05202575ea4d659479ca7f3f287c40bc7"
+    },
+    {
+      "host_rate": 2.0,
+      "audio_seconds": 1.457142857142857,
+      "wall_seconds": 0.556355491999966,
+      "pcm_sha256": "a72a3c184096e1e015b5dce26766ec64deb8eddc97617fe3e500bea6dc639ce5"
+    }
+  ],
+  "cancellation_replacement_and_forced_retirement": "passed"
+}

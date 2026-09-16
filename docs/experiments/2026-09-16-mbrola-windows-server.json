@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "platform": "windows",
+  "corpus": "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet and helps compare speech rates.",
+  "helper_sha256": "37ac90a1bb7ffad01d5b47f32eaec9888586b9f9b76883d6c0d7152f232a3cda",
+  "manifest_sha256": "3e4c60af96ae31b0bd0b079dbcab628fc1212339187cfdc7eab59c206a422744",
+  "rates": [],
+  "server_sha256": "6090e2c285e7917a2c9a5a76cb4755bc9218e8ff3f3ad7c61fe74713411ecd54",
+  "two_lane_exact_preview_and_fallback": "passed"
+}

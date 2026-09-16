@@ -39,6 +39,13 @@ and accepts only this exact voice. Set `OMNIVOX_MBROLA_HELPER` to the absolute
 staged helper path to register it; use `--engine mbrola` to prefer it. Merely
 placing a helper next to Omnivox does not enable it. Native Windows needs a
 Windows path in that variable. Ordinary eSpeak fallback remains available.
+Keep the Windows runtime on a Windows drive, including when launching from WSL.
+The private file validation on a WSL UNC path was slow enough to exceed the
+fault probe's startup allowance. Copy the complete `windows/runtime` directory
+to a private Windows directory; retain its adjacent manifest, data and notices.
+The Emacsvox launcher forwards `OMNIVOX_MBROLA_HELPER` to native Windows workers.
+After an explicit restart of both lanes, existing inventory, exact preview and
+palette editing can select the compound voice without a new client protocol.
 
 Each speech lane owns its own helper. Calls serialize inside that helper;
 frontend and runtime processes are sequential and use bounded pipe capture.
@@ -57,3 +64,52 @@ provisional native rate map is 80, 175, 350 and 450 WPM controls at host rates
 0, 0.5, 1 and 2 respectively; these are controls, not measured output WPM or an
 Eloquence calibration. High-rate intelligibility and audible acceptance require
 listening. Linux and native Windows are the only intended prototype targets.
+
+## Acceptance evidence, 2026-09-16
+
+The [Linux report](experiments/2026-09-16-mbrola-linux.json),
+[native Windows report](experiments/2026-09-16-mbrola-windows.json) and
+[Windows server report](experiments/2026-09-16-mbrola-windows-server.json) retain
+artifact hashes and results. Windows used the fully verified development
+runtime `6aaa061807e433bc`, with the prototype staged separately on its native
+drive. All server probes owned their workers and used null audio output.
+
+`tools/verify_mbrola_prototype.py` checks native rate progression, pitch changes
+and exact mute. It injects a blocked frontend into a temporary bundle, confirms
+three cancellations and successful replacements, changes/restores the database,
+rejects an added unverified voice alias, kills the helper while a child is
+blocked, confirms child retirement and starts a working replacement helper.
+The real frontend/runtime also pass simultaneous two-lane inventory, exact
+preview, wrong-voice rejection and eSpeak fallback checks.
+
+For the retained 22-word corpus, both platforms produced these durations:
+
+| Host rate | Native frontend control | Audio seconds |
+| --- | --- | --- |
+| 0.0 | 80 | 14.104 |
+| 0.5 | 175 | 6.679 |
+| 1.0 | 350 | 2.958 |
+| 1.5 | 400 | 2.181 |
+| 2.0 | 450 | 1.457 |
+
+These are single-run smoke measurements of canonical helper PCM, not an
+Eloquence calibration, latency benchmark or intelligibility assessment.
+The ordinary CLI also generated a WAV through the main conversion/effects
+pipeline. Linux helper stress passed 12 varied syntheses. Verification included
+830 locked workspace tests (one pre-existing ignored test), workspace Clippy,
+Windows helper Clippy, formatting, documentation links and supported main builds.
+
+To repeat the complete Linux probe after `make dev` and the private build:
+
+```sh
+python3 tools/verify_mbrola_prototype.py \
+  target/mbrola-prototype/linux/runtime/omnivox-mbrola-helper \
+  --server target/debug/omnivox --report /tmp/mbrola-linux.json
+```
+
+For native Windows use its staged `.exe` paths, `--scratch-dir` on the Windows
+drive, and `--espeak-data` with the native parent of the launcher's shared
+`espeak-ng-data` tree. `--server-only` verifies a newly staged main server while
+reusing previously completed helper acceptance. Listening, extended soak,
+calibration, progressive output, broader databases, installation UX and release
+licensing/packaging remain outside this one-voice prototype.

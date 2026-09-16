@@ -180,29 +180,33 @@ def main():
     parser.add_argument("--espeak-data")
     parser.add_argument("--report", type=Path)
     parser.add_argument("--scratch-dir", type=Path, help="Native Windows tests should use a directory on the Windows drive")
+    parser.add_argument("--server-only", action="store_true", help="Check a newly staged server after native helper checks have passed")
     args = parser.parse_args()
+    if args.server_only and not args.server:
+        parser.error("--server-only requires --server")
     program = args.helper.resolve()
     windows = program.suffix == ".exe"
     report = dict(schema_version=1, platform="windows" if windows else "linux", corpus=TEXT,
                   helper_sha256=hashlib.sha256(program.read_bytes()).hexdigest(),
                   manifest_sha256=hashlib.sha256((program.parent / "prototype.json").read_bytes()).hexdigest(), rates=[])
-    with helper(program) as session:
-        for identifier, rate in enumerate((0.0, 0.5, 1.0, 1.5, 2.0), 10):
-            before = time.monotonic()
-            start(session, identifier, rate=rate)
-            pcm = finish(session, identifier)
-            seconds = len(pcm) / 4 / 44100
-            report["rates"].append(dict(host_rate=rate, audio_seconds=seconds,
-                                        wall_seconds=time.monotonic() - before,
-                                        pcm_sha256=hashlib.sha256(pcm).hexdigest()))
-        assert all(a["audio_seconds"] > b["audio_seconds"] for a, b in zip(report["rates"], report["rates"][1:]))
-        start(session, 20, volume=0)
-        assert not any(finish(session, 20))
-        start(session, 21, pitch=1.4)
-        assert hashlib.sha256(finish(session, 21)).hexdigest() != report["rates"][1]["pcm_sha256"]
-    print("Native rate, pitch and mute checks passed", flush=True)
-    faults(program, windows, args.scratch_dir)
-    report["cancellation_replacement_and_forced_retirement"] = "passed"
+    if not args.server_only:
+        with helper(program) as session:
+            for identifier, rate in enumerate((0.0, 0.5, 1.0, 1.5, 2.0), 10):
+                before = time.monotonic()
+                start(session, identifier, rate=rate)
+                pcm = finish(session, identifier)
+                seconds = len(pcm) / 4 / 44100
+                report["rates"].append(dict(host_rate=rate, audio_seconds=seconds,
+                                            wall_seconds=time.monotonic() - before,
+                                            pcm_sha256=hashlib.sha256(pcm).hexdigest()))
+            assert all(a["audio_seconds"] > b["audio_seconds"] for a, b in zip(report["rates"], report["rates"][1:]))
+            start(session, 20, volume=0)
+            assert not any(finish(session, 20))
+            start(session, 21, pitch=1.4)
+            assert hashlib.sha256(finish(session, 21)).hexdigest() != report["rates"][1]["pcm_sha256"]
+        print("Native rate, pitch and mute checks passed", flush=True)
+        faults(program, windows, args.scratch_dir)
+        report["cancellation_replacement_and_forced_retirement"] = "passed"
     if args.server:
         report["server_sha256"] = hashlib.sha256(args.server.read_bytes()).hexdigest()
         environment = {key: value for key, value in os.environ.items()

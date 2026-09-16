@@ -24,6 +24,16 @@ make docs-check
 
 ## Build and runtime staging
 
+`verify_espeak_variants.py SERVER` checks explicit bundled variants on two
+owned null-output workers. Pass `--espeak-data NATIVE_PARENT` when Windows uses
+the launcher's separately cached eSpeak tree.
+
+`build_mbrola_prototype.py` builds private pinned native inputs and an isolated
+helper; `verify_mbrola_prototype.py HELPER --server SERVER` checks its controls,
+native process retirement, data integrity, recovery and concurrent speech lanes.
+See the [MBROLA prototype guide](../docs/MBROLA-PROTOTYPE.md) for Windows paths,
+bounded-output limits, recorded acceptance and production boundaries.
+
 `verify_voice_library_startup.py` exercises staged main-server library startup,
 the unadvertised development status operation, exact previews, administrative
 exclusions, routing-policy generations, CLI/environment precedence and required
