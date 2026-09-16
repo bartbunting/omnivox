@@ -74,6 +74,11 @@ pub enum Reply {
     Retired {
         worker: String,
     },
+    Snapshot {
+        startup: String,
+        startup_sha256: String,
+        configuration: VoiceLibraryConfiguration,
+    },
     Library {
         index: IndexDocument,
         sha256: String,

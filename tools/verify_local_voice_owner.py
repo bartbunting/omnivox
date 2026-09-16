@@ -85,9 +85,10 @@ def main():
     environment = {key: value for key, value in os.environ.items()
                    if not key.startswith("OMNIVOX_") and key != "ESPEAK_NG_DATA"}
     environment.update(OMNIVOX_VOICE_ROOT=native_root, OMNIVOX_AUDIO_OUTPUT="null", OMNIVOX_ENGINE="espeak")
+    environment["OMNIVOX_TEST_LAUNCHER_SETTING"] = "candidate"
     # All these inputs are already native values; WSL must not translate them.
     forwarded = ["OMNIVOX_VOICE_ROOT", "OMNIVOX_AUDIO_OUTPUT", "OMNIVOX_ENGINE",
-                 "OMNIVOX_OWNED_STARTUP", "OMNIVOX_OWNED_STARTUP_SHA256"]
+                 "OMNIVOX_OWNED_STARTUP", "OMNIVOX_OWNED_STARTUP_SHA256", "OMNIVOX_TEST_LAUNCHER_SETTING"]
     environment["WSLENV"] = ":".join([entry for entry in environment.get("WSLENV", "").split(":")
                                       if entry and entry.split("/", 1)[0] not in forwarded] + forwarded)
     peers = []
@@ -113,15 +114,24 @@ def main():
         generation = str(uuid.uuid4())
         assert service.request("stage", generation=generation, flite=True,
                                expected_sha256=indexed["sha256"])["type"] == "candidate"
+        snapshot = service.request("snapshot", generation=generation)
+        assert snapshot["configuration"]["generation_id"] == generation
+
+        def startup(record):
+            filename = record["startup"].replace("\\", "/").rsplit("/", 1)[-1]
+            return json.loads((root / "sessions" / filename).read_text())
+
+        assert startup(snapshot)["environment"]["OMNIVOX_TEST_LAUNCHER_SETTING"] == "candidate"
         assert service.request("begin", generation=generation, operation=str(uuid.uuid4()), plan_json="{}")["type"] == "candidate"
         competitor = peer("--voice-library-service")
         assert competitor.request("inspect")["type"] == "error"
         assert service.request("finish", state="cancelled")["state"] == "cancelled"
         assert competitor.request("inspect")["active"] is None
 
-        owner = peer("--voice-library-owner")
+        owner = peer("--voice-library-owner", dict(environment, OMNIVOX_TEST_LAUNCHER_SETTING="previous"))
         description = owner.request("describe")
         assert description["type"] == "owner" and not description["retired"]
+        assert startup(description)["environment"]["OMNIVOX_TEST_LAUNCHER_SETTING"] == "previous"
         assert owner.request("retire", worker=str(uuid.uuid4()))["type"] == "error"
         capabilities = owner.request("capabilities", control=True)
         assert "voice_library_v1" in capabilities["features"]

@@ -47,6 +47,10 @@ the exact executable identity, arguments, working directory, environment and
 generation. The client retains only its path and hash. Restarts recheck the
 record and executable; rollback does not reconstruct settings from current
 Customize values or from an active pointer advanced by another session.
+Candidate snapshots are resolved separately through each lane's current
+launcher environment before review and admission. In particular, clearing a
+file override affects the candidate without changing the old worker's rollback
+record. A failed preflight leaves that old worker and its settings intact.
 The launcher distinguishes its Piper fallback from explicit file settings;
 a managed candidate may replace that fallback, while explicit overrides remain
 visible and must be resolved before the client's preflight permits retirement.

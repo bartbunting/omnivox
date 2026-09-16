@@ -144,6 +144,26 @@ fn service(host: Host) -> Result<()> {
                         state: "installed-disabled".into(),
                     })
                 }
+                "snapshot" if activation.is_none() => {
+                    let profile = host.profile()?;
+                    let candidate = profile.activation_candidate(&request.generation)?;
+                    let path = profile.generation_path(&request.generation);
+                    drop(profile);
+                    // Capture this launcher's current native inputs. The old
+                    // worker's separately retained snapshot is only for rollback.
+                    let mut startup = Startup::capture(&host)?;
+                    startup.candidate(&path)?;
+                    anyhow::ensure!(
+                        startup.configuration.as_ref() == Some(&candidate.configuration),
+                        "snapshot candidate changed"
+                    );
+                    let (path, digest) = startup.save(&host, &local::new_uuid()?)?;
+                    Ok(Reply::Snapshot {
+                        startup: path.to_string_lossy().into(),
+                        startup_sha256: digest,
+                        configuration: candidate.configuration,
+                    })
+                }
                 "begin" if activation.is_none() => {
                     let transaction = host.profile()?.begin_activation(
                         &request.operation,
