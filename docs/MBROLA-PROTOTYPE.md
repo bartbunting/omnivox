@@ -1,9 +1,10 @@
 # MBROLA prototype
 
 This is a local engineering experiment, not a supported companion or a release
-payload. ADR 0012 reserves production integration for a separate engine-boundary
-decision. The prototype uses the existing helper protocol, mixer, cancellation
-and fallback contracts without changing their wire formats.
+payload. [ADR 0013](adr/0013-mbrola-voice-library.md) adds managed English voice
+downloads to this explicitly configured companion. It retains the existing
+helper protocol, mixer, cancellation and fallback contracts. Library documents
+selecting MBROLA use schema 2; existing schema-1 libraries remain supported.
 
 The first voice is `mbrola:v1/mb-en1/en1` on engine `mbrola`: British English en1
 (Roger). `tools/build_mbrola_prototype.py` fetches SHA-256-checked source archives
@@ -34,10 +35,11 @@ python3 tools/build_mbrola_prototype.py
 python3 tools/build_mbrola_prototype.py --platform windows
 ```
 
-The helper reads its adjacent `prototype.json`, verifies required private files,
-and accepts only this exact voice. The builder stages only the English dictionary,
-phoneme tables, mb-en1 voice definition and en1 translation/database needed by
-this prototype. Each request still hashes every staged manifest file and rejects
+The helper reads its adjacent `prototype.json` and verifies required private
+files. Legacy startup exposes en1. Managed startup accepts `--voice-library PATH`
+and the parent's `--voice-library-sha256 DIGEST`, reporting only the selected
+voices. The builder stages the English dictionary, phoneme tables, four reviewed
+English voice definitions, their translation tables and the included en1 database. Each request still hashes every staged manifest file and rejects
 unlisted data files; reducing unrelated language data avoids repeated Windows
 filesystem work without weakening those checks. Set `OMNIVOX_MBROLA_HELPER` to the absolute
 staged helper path to register it; use `--engine mbrola` to prefer it. Merely
@@ -116,7 +118,7 @@ drive, and `--espeak-data` with the native parent of the launcher's shared
 `espeak-ng-data` tree. `--server-only` verifies a newly staged main server while
 reusing previously completed helper acceptance. Listening, extended soak,
 calibration, progressive output, broader databases, installation UX and release
-licensing/packaging remain outside this one-voice prototype.
+licensing/packaging remain separate from this development companion.
 
 ## Complete text and startup latency, 2026-09-17
 
@@ -146,3 +148,50 @@ commands above. `python3 tools/test_build_mbrola_prototype.py` also checks stale
 language removal and preserves the prior staging data if a required input is
 missing. Audible acceptance of the original focus interaction remains a separate
 listening check.
+
+## Managed English downloads
+
+Emacsvox's separate reviewed MBROLA catalogue offers US1, US2 and US3 from the
+same pinned voice repository revision. Each download retains that voice's
+`license.txt` as `LICENSE` and `README.txt` as `README`. These database licences
+permit MBROLA use and require the owner's permission for sale or incorporation
+in a sold product. Do not treat the runtime's AGPL terms as the database licence.
+The US1 README calls it male while the pinned frontend says female; the catalogue
+uses the unambiguous US1 name without asserting gender.
+
+Acquisition resolves the explicit `OMNIVOX_MBROLA_HELPER`, verifies its complete
+`SHA256SUMS` and `SOURCE-PROVENANCE.json`, synthesizes without playback in the
+bounded validator, and installs disabled. en1 keeps its existing physical ID
+and is retained in the index when the first optional database is installed.
+Enable or disable individual voices and use the existing two-lane Apply.
+Different palette choices and streams can select different enabled databases.
+Each request opens only its chosen database in the native synthesizer; the
+helper retains metadata rather than resident native database handles.
+
+`tools/verify_mbrola_library.py --server PATH --helper PATH --catalogue JSON
+--report JSON` runs explicit HTTPS acquisition in a retained private root,
+checks cancellation, all three downloads and notices, native validation,
+disabled installation, en1 preservation, alternating voices, two simultaneous
+streams, generation pinning, disabled exact previews and the final-text fix.
+Native Windows runs need `--scratch-dir` on the Windows drive. These checks do
+not prove audible acceptance or constitute release publication.
+
+### Library acceptance, 2026-09-17
+
+The [Linux library report](experiments/2026-09-17-mbrola-library-linux.json) and
+[Windows library report](experiments/2026-09-17-mbrola-library-windows.json) record
+all three real HTTPS downloads, retained notices, disabled installation, native
+validation, independent per-request voices, two simultaneous streams, pinned
+workers and disabled exact previews. Fresh compiled Emacs passed paired Apply,
+injected notification replacement failure with rollback, and independent US1
+disablement on both platforms. These used isolated voice roots and null audio.
+
+Windows short-word synthesis was 146–149 ms for en1 and 159–167 ms for the US
+voices in this small check; en1 retains the previous latency improvement. The
+existing full-text, rate/pitch/mute, tamper rejection, native cancellation,
+replacement and forced-retirement probes also passed on both platforms.
+Workspace tests passed 835 tests with one existing ignored test; Linux workspace
+and affected Windows Clippy passed. Emacs focused tests passed 85 with four
+GUI-only skips, and all 18 graphical tests passed separately. Full Windows
+coexistence with Piper still requires a newly built schema-2-aware native Piper
+companion before replacing the maintainer's working development launcher.

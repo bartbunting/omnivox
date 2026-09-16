@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "platform": "windows",
+  "server_sha256": "bf3aa71eba1ab77a3b39dd09fe40d5f98275a58ba2a36a0de53fe425ee480c2b",
+  "helper_sha256": "3fdd91bd34d5e3a575e421dad47994701b2b761de578b51b5471d9c45bbc2bbd",
+  "catalogue_sha256": "d04459c91c6790b35b7077a3ce8ce96eb9cadad284b009cf2147722e6d4e0d91",
+  "cancellation": true,
+  "native_downloads": 3,
+  "installed_disabled": true,
+  "en1_preserved": true,
+  "notices_retained": true,
+  "native_validation": true,
+  "per_request_switching": [
+    {
+      "voice": "mbrola:v1/mb-en1/en1",
+      "synthesis_ms": 148.595,
+      "pcm_sha256": "c258239ea5526275c9af2671bd3aa162497fb43d29b89dc2de061c2a2830f77b"
+    },
+    {
+      "voice": "mbrola:v1/mb-us1/us1",
+      "synthesis_ms": 159.486,
+      "pcm_sha256": "922e59a835032e77a25a6514214a6eeacc8d963bad362a31e82dbb02510ef7aa"
+    },
+    {
+      "voice": "mbrola:v1/mb-us2/us2",
+      "synthesis_ms": 160.355,
+      "pcm_sha256": "0dd34261b36fd38ac0800404ba0d2ac892878815c29b21485661ed782066f7d5"
+    },
+    {
+      "voice": "mbrola:v1/mb-us3/us3",
+      "synthesis_ms": 166.973,
+      "pcm_sha256": "44969b74adcbdd27d4d5137eb7177c1b98346296f6439c3a02fb1fa592996f99"
+    },
+    {
+      "voice": "mbrola:v1/mb-en1/en1",
+      "synthesis_ms": 145.639,
+      "pcm_sha256": "c258239ea5526275c9af2671bd3aa162497fb43d29b89dc2de061c2a2830f77b"
+    },
+    {
+      "voice": "mbrola:v1/mb-us1/us1",
+      "synthesis_ms": 158.794,
+      "pcm_sha256": "922e59a835032e77a25a6514214a6eeacc8d963bad362a31e82dbb02510ef7aa"
+    }
+  ],
+  "two_lane_distinct_voices": true,
+  "disabled_exact_preview": true,
+  "existing_workers_pinned": true,
+  "final_text_preserved": true,
+  "compiled_emacs_pair_apply": "passed; enable, injected notification failure with paired rollback, then disable",
+  "full_piper_coexistence": "Pending a new native Windows Piper companion"
+}

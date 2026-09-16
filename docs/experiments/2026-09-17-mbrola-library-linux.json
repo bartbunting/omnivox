@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "platform": "linux",
+  "server_sha256": "b45c1a6120cd7f385bba695a5211d05b78337637b4eee7e3da70455366ba19f9",
+  "helper_sha256": "888fc4ab7c9440d3515b5545860c4a06f521a18d3e150ae7485984ec5858873f",
+  "catalogue_sha256": "d04459c91c6790b35b7077a3ce8ce96eb9cadad284b009cf2147722e6d4e0d91",
+  "cancellation": true,
+  "native_downloads": 3,
+  "installed_disabled": true,
+  "en1_preserved": true,
+  "notices_retained": true,
+  "native_validation": true,
+  "per_request_switching": [
+    {
+      "voice": "mbrola:v1/mb-en1/en1",
+      "synthesis_ms": 36.16,
+      "pcm_sha256": "c258239ea5526275c9af2671bd3aa162497fb43d29b89dc2de061c2a2830f77b"
+    },
+    {
+      "voice": "mbrola:v1/mb-us1/us1",
+      "synthesis_ms": 41.883,
+      "pcm_sha256": "922e59a835032e77a25a6514214a6eeacc8d963bad362a31e82dbb02510ef7aa"
+    },
+    {
+      "voice": "mbrola:v1/mb-us2/us2",
+      "synthesis_ms": 41.883,
+      "pcm_sha256": "0dd34261b36fd38ac0800404ba0d2ac892878815c29b21485661ed782066f7d5"
+    },
+    {
+      "voice": "mbrola:v1/mb-us3/us3",
+      "synthesis_ms": 40.595,
+      "pcm_sha256": "44969b74adcbdd27d4d5137eb7177c1b98346296f6439c3a02fb1fa592996f99"
+    },
+    {
+      "voice": "mbrola:v1/mb-en1/en1",
+      "synthesis_ms": 27.139,
+      "pcm_sha256": "c258239ea5526275c9af2671bd3aa162497fb43d29b89dc2de061c2a2830f77b"
+    },
+    {
+      "voice": "mbrola:v1/mb-us1/us1",
+      "synthesis_ms": 36.411,
+      "pcm_sha256": "922e59a835032e77a25a6514214a6eeacc8d963bad362a31e82dbb02510ef7aa"
+    }
+  ],
+  "two_lane_distinct_voices": true,
+  "disabled_exact_preview": true,
+  "existing_workers_pinned": true,
+  "final_text_preserved": true,
+  "compiled_emacs_pair_apply": "passed; enable, injected notification failure with paired rollback, then disable",
+  "full_piper_coexistence": "Not part of this MBROLA-only acquisition fixture"
+}
