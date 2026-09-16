@@ -275,6 +275,36 @@ full Piper/Flite probe including external Flite, and the preparation/inspection
 command checks. The probe verified both profile release after confirmed
 cancellation and blocked admission after manager death or a lost terminal append.
 
+### Recorded-cleanup recovery verification
+
+The recovery implementation and native probe are committed in `a76d403` and
+`39ecbe2`; `eb8b376` fixes only preservation-test portability. Linux passed the
+locked workspace suite (800 passed, one existing ignored test), workspace Clippy
+with Piper features, formatting, documentation links and the metadata command
+probe. All 24 operation/admission tests passed again after the test-only fixes.
+The staged silent Piper/Flite probe, including an exported external Flite voice,
+verified explicit abandonment after a lost final journal append, preservation of
+the original report/history, idempotent recovery, refusal to reuse the old attempt
+and admission of fresh validation. Missing cleanup after manager death still
+blocks recovery and later admission even after the test observes those processes
+exit.
+
+At `eb8b376`, native Windows x64 GNU passed all 22 applicable operation/admission
+tests and ten supervisor/command tests. Windows-target and workspace Clippy passed.
+The preservation checks release the Windows lock before reading its file and
+compare canonical paths, including native extended path prefixes. Full Windows
+server/companion and MSVC acceptance, power-loss recovery, playback and activation
+remain separate.
+
+Native Intel and Apple Silicon macOS passed at
+`eb8b3768f11a54b054de4fd71ffed13b4c4d64e4` in
+[verification run 35050429897](https://github.com/bartbunting/omnivox/actions/runs/35050429897).
+Each host passed all 24 operation/admission tests, repeated supervisor tests,
+evidence checks, native Clippy, the full silent Piper/Flite probe including
+external Flite, and metadata command checks. Both verified recovery after a lost
+terminal append and continued refusal when worker cleanup had not been recorded.
+The canonical-path comparison also handles macOS temporary-directory aliases.
+
 ## Remaining recovery work
 
 Profile admission now blocks the spawn/record crash gap, and reports are bound to
