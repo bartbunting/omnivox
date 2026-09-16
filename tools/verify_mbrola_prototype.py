@@ -3,6 +3,7 @@
 import argparse
 import base64
 import contextlib
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import os
@@ -85,10 +86,10 @@ def assert_gone(pid, windows, utility):
         raise AssertionError(f"native process {pid} survived helper retirement")
 
 
-def faults(program, windows):
+def faults(program, windows, scratch_dir=None):
     # Substitute only an owned temporary frontend, retaining the real MBROLA
     # database/runtime. The normal builder never stages this fault executable.
-    with tempfile.TemporaryDirectory(prefix="omnivox-mbrola-fault-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="omnivox-mbrola-fault-", dir=scratch_dir) as temporary:
         root = Path(temporary)
         bundle = root / "bundle"
         shutil.copytree(program.parent, bundle)
@@ -123,6 +124,35 @@ def faults(program, windows):
                     assert time.monotonic() - before < 3
                     start(session, identifier + 2, "Replacement works.")
                     finish(session, identifier + 2)
+                database = bundle / manifest["database"]
+                original = database.read_bytes()
+                database.write_bytes(b"corrupt" + original[7:])
+                try:
+                    start(session, 35, "Changed data must fail before PCM.")
+                    assert session.receive(35)["type"] == "synthesis_started"
+                    try:
+                        session.receive(35)
+                    except RuntimeError as error:
+                        assert "hash mismatch" in str(error), error
+                    else:
+                        raise AssertionError("changed database produced output")
+                finally:
+                    database.write_bytes(original)
+                start(session, 36, "Valid data works after restoration.")
+                finish(session, 36)
+                extra = bundle / "espeak-ng-data/voices/mb-en1"
+                extra.write_text("name unexpected alias\nlanguage en\n")
+                try:
+                    start(session, 37, "An added native alias must fail.")
+                    assert session.receive(37)["type"] == "synthesis_started"
+                    try:
+                        session.receive(37)
+                    except RuntimeError as error:
+                        assert "unverified file" in str(error), error
+                    else:
+                        raise AssertionError("unverified alias produced output")
+                finally:
+                    extra.unlink()
                 # Forced helper death must also retire its currently blocked child.
                 pid_file.unlink(missing_ok=True)
                 start(session, 40, "Hang while the helper is killed.")
@@ -149,10 +179,13 @@ def main():
     parser.add_argument("--server", type=Path)
     parser.add_argument("--espeak-data")
     parser.add_argument("--report", type=Path)
+    parser.add_argument("--scratch-dir", type=Path, help="Native Windows tests should use a directory on the Windows drive")
     args = parser.parse_args()
     program = args.helper.resolve()
     windows = program.suffix == ".exe"
-    report = dict(platform="windows" if windows else "linux", rates=[])
+    report = dict(schema_version=1, platform="windows" if windows else "linux", corpus=TEXT,
+                  helper_sha256=hashlib.sha256(program.read_bytes()).hexdigest(),
+                  manifest_sha256=hashlib.sha256((program.parent / "prototype.json").read_bytes()).hexdigest(), rates=[])
     with helper(program) as session:
         for identifier, rate in enumerate((0.0, 0.5, 1.0, 1.5, 2.0), 10):
             before = time.monotonic()
@@ -167,9 +200,11 @@ def main():
         assert not any(finish(session, 20))
         start(session, 21, pitch=1.4)
         assert hashlib.sha256(finish(session, 21)).hexdigest() != report["rates"][1]["pcm_sha256"]
-    faults(program, windows)
+    print("Native rate, pitch and mute checks passed", flush=True)
+    faults(program, windows, args.scratch_dir)
     report["cancellation_replacement_and_forced_retirement"] = "passed"
     if args.server:
+        report["server_sha256"] = hashlib.sha256(args.server.read_bytes()).hexdigest()
         environment = {key: value for key, value in os.environ.items()
                        if not key.startswith("OMNIVOX_") and key != "ESPEAK_NG_DATA"}
         environment["OMNIVOX_MBROLA_HELPER"] = native(program, windows)
@@ -180,7 +215,7 @@ def main():
                                             if entry and entry.split("/")[0] not in forwarded] + forwarded)
         with contextlib.ExitStack() as stack:
             lanes = [stack.enter_context(server(args.server.resolve(), ["--engine", "mbrola"], environment)) for _ in range(2)]
-            for lane in lanes:
+            def check_lane(lane):
                 inventory = lane.control("inventory")
                 descriptor = next(e for e in inventory["engines"] if e["id"] == "mbrola")
                 assert descriptor["default_voice_id"] == VOICE
@@ -195,6 +230,8 @@ def main():
                                       disabled_engine_ids=[], fallback_policy=dict(preferred_engines=[],
                                       allow_same_language_on_requested_engine=False, global_default=None, fallback_engines=[]))
                 assert result["status"] == "completed" and result["realized"]["engine_id"] == "espeak", result
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                list(pool.map(check_lane, lanes))
         report["two_lane_exact_preview_and_fallback"] = "passed"
     if args.report:
         args.report.write_text(json.dumps(report, indent=2) + "\n")

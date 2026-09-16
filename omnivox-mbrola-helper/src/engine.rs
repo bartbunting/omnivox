@@ -116,6 +116,10 @@ impl Bundle {
     }
 
     fn verify(&self) -> io::Result<()> {
+        // Reject added voice files too: a new alias could change native lookup
+        // even if every file named by the manifest still has its original hash.
+        let mut remaining = 2048;
+        self.verify_data_paths("espeak-ng-data", 0, &mut remaining)?;
         let mut total = 0u64;
         for (relative, expected) in &self.manifest.files {
             let path = checked_path(&self.root, relative)?;
@@ -140,6 +144,32 @@ impl Bundle {
                     "private bundle hash mismatch: {relative}"
                 )));
             }
+        }
+        Ok(())
+    }
+
+    fn verify_data_paths(
+        &self,
+        relative: &str,
+        depth: usize,
+        remaining: &mut usize,
+    ) -> io::Result<()> {
+        if depth > 16 || *remaining == 0 {
+            return Err(io::Error::other("prototype data tree exceeds bounds"));
+        }
+        *remaining -= 1;
+        let path = checked_path(&self.root, relative)?;
+        if path.is_dir() {
+            for entry in path.read_dir()? {
+                let entry = entry?;
+                let name = entry
+                    .file_name()
+                    .into_string()
+                    .map_err(|_| io::Error::other("non-UTF-8 data path"))?;
+                self.verify_data_paths(&format!("{relative}/{name}"), depth + 1, remaining)?;
+            }
+        } else if !self.manifest.files.contains_key(relative) {
+            return Err(io::Error::other("unverified file in prototype data tree"));
         }
         Ok(())
     }
