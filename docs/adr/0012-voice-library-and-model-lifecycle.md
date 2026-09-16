@@ -410,3 +410,21 @@ hardening, not a prerequisite for the next delivery slices. Existing unresolved
 validation claims continue to block conflicting native work. This changes
 delivery order, not the requirement for verified inputs, explicit activation,
 matching evidence from both speech lanes or truthful failure reporting.
+
+### Local ownership and live Apply
+
+The native provider now supplies one dedicated local owner per speech lane and
+a separate stdio management service retaining the profile lease across Apply.
+It uses the existing native job/process-group machinery without loading engines
+in the owner or adding a network transport. A gated worker cannot initialize
+helpers before ownership. Partial startup remains owned; retirement checks the
+tree and output reader before acknowledging that owner UUID.
+
+Native target/profile identity and exact startup snapshots persist outside
+executable installations. The Apply journal retains the reviewed plan and both
+configuration proofs. Active-pointer publication follows paired verification;
+uncertain publication or cleanup remains blocking. The negotiated status feature
+is now advertised on speech connections with a library snapshot, including
+legacy startup with null configuration. Download catalogues, managed copying,
+legacy-ID adoption, richer reconciliation and stronger power-loss guarantees
+remain separate work. See `docs/VOICE-INSTALLATION.md` for commands and checks.

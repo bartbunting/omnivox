@@ -101,6 +101,11 @@ jobs:
       - name: Verify nonactivating operation commands
         run: python -W error::ResourceWarning tools/verify_voice_operations.py target/debug/omnivox
 
+      - name: Verify local voice ownership and profile leases
+        run: |
+          cargo test --locked -p omnivox-tts voice_library::local:: -- --test-threads=1
+          python -W error::ResourceWarning tools/verify_local_voice_owner.py target/debug/omnivox
+
       - name: Upload validation results
         if: always()
         uses: actions/upload-artifact@v7

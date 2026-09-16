@@ -1,6 +1,6 @@
 //! Development-only native validation. No activation or capability advertisement.
 #[cfg(any(target_os = "linux", target_os = "macos", windows))]
-mod owned;
+pub(crate) mod owned;
 #[cfg(any(target_os = "linux", target_os = "macos", windows))]
 mod supported;
 

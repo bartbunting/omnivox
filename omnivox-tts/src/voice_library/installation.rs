@@ -8,7 +8,9 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+mod activation;
 mod imports;
+pub use activation::Activation;
 #[cfg(test)]
 mod tests;
 
@@ -211,6 +213,41 @@ impl Profile {
         self.replace_index(document, expected)
     }
 
+    /// Explicitly include built-in Flite SLT in desired storage. Apply still
+    /// checks native availability before changing the invoking speech pair.
+    pub fn include_flite_slt(
+        &mut self,
+        revision: &str,
+        expected: &str,
+    ) -> Result<(), LibraryError> {
+        uuid(revision)?;
+        self.check_index(expected)?;
+        let mut document = self.index.document().clone();
+        require(
+            !document
+                .voices
+                .iter()
+                .any(|voice| voice.engine_id == "flite" && voice.physical_id == "cmu_us_slt"),
+            "built-in Flite SLT is already indexed; use enablement instead",
+        )?;
+        document.voices.push(IndexedVoice {
+            physical_id: "cmu_us_slt".into(),
+            engine_id: "flite".into(),
+            display_name: "SLT (built in)".into(),
+            language: Some("en-US".into()),
+            enabled: true,
+            package_id: None,
+            revision_id: None,
+            speaker_index: None,
+            legacy_physical_id: None,
+        });
+        document
+            .disabled_physical_ids
+            .retain(|id| id != &PhysicalVoiceId::new("flite", "cmu_us_slt"));
+        document.revision_id = revision.into();
+        self.replace_index(document, expected)
+    }
+
     /// Write an immutable enabled-only generation and a frozen activation plan.
     /// Native startup/status and the two-lane restart still belong to Apply.
     pub fn stage_activation(
@@ -283,13 +320,13 @@ impl Profile {
         Ok(candidate)
     }
 
-    fn generation_path(&self, generation: &str) -> PathBuf {
+    pub fn generation_path(&self, generation: &str) -> PathBuf {
         self.path
             .join("generations")
             .join(format!("{generation}.json"))
     }
 
-    fn active_json(&self) -> Result<Option<String>, LibraryError> {
+    pub fn active_json(&self) -> Result<Option<String>, LibraryError> {
         let path = self.path.join("active.json");
         match fs::symlink_metadata(&path) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),

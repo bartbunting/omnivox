@@ -46,6 +46,10 @@ pub fn configure(command: &mut Command, _: usize) {
     command.process_group(0);
 }
 
+pub fn configure_speech(command: &mut Command) {
+    command.process_group(0);
+}
+
 fn usage(pid: i32) -> io::Result<Usage> {
     let mut record = Usage::default();
     // SAFETY: the V0 flavor writes exactly the initialized V0 record above.
@@ -75,6 +79,9 @@ pub struct Tree {
     cleaned: bool,
 }
 impl Tree {
+    pub fn for_speech() -> io::Result<Self> {
+        Self::new(0)
+    }
     pub fn new(memory: usize) -> io::Result<Self> {
         Ok(Self {
             group: 0,

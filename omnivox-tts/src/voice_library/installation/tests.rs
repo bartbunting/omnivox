@@ -53,6 +53,34 @@ fn builtin(profile: &mut Profile) {
         .replace_index(document, &profile.index_sha256())
         .unwrap();
 }
+
+#[test]
+fn explicit_builtin_inclusion_and_disablement_are_pending_until_apply() {
+    let fixture = Fixture::new();
+    let mut profile = fixture.open();
+    profile
+        .include_flite_slt(SECOND, &profile.index_sha256())
+        .unwrap();
+    assert!(profile.index.document().voices[0].enabled);
+    assert!(profile.active_json().unwrap().is_none());
+    assert!(profile
+        .include_flite_slt(THIRD, &profile.index_sha256())
+        .is_err());
+    profile
+        .set_enabled(
+            &PhysicalVoiceId::new("flite", "cmu_us_slt"),
+            false,
+            THIRD,
+            &profile.index_sha256(),
+        )
+        .unwrap();
+    let candidate = profile
+        .index
+        .project(GENERATION, false, true, host())
+        .unwrap();
+    assert!(!candidate.document().flite.as_ref().unwrap().builtin_slt);
+    assert!(profile.active_json().unwrap().is_none());
+}
 fn old_active(profile: &Profile) -> Vec<u8> {
     let library = profile.index.project(OLD, false, true, host()).unwrap();
     save_new(&profile.generation_path(OLD), library.source_bytes()).unwrap();
@@ -67,6 +95,93 @@ fn old_active(profile: &Profile) -> Vec<u8> {
     let bytes = serde_json::to_vec(&pointer).unwrap();
     save_new(&profile.path.join("active.json"), &bytes).unwrap();
     bytes
+}
+
+fn ready_proofs(configuration: &VoiceLibraryConfiguration) -> String {
+    serde_json::to_string(
+        &["speaker", "notification"]
+            .iter()
+            .enumerate()
+            .map(|(i, role)| {
+                serde_json::json!({"role": role, "worker": if i == 0 { FIRST } else { SECOND },
+            "ready": true, "negotiated": true, "inventory_generation": i, "request_id": 9,
+            "status": {"protocol_version":1, "request_id":9, "type":"voice_library_status_v1",
+                "configuration": configuration, "overridden_engines":[], "eligible_voices":[],
+                "inventory_generation":i}})
+            })
+            .collect::<Vec<_>>(),
+    )
+    .unwrap()
+}
+
+#[test]
+fn apply_retains_lease_and_publishes_only_after_both_verified_lanes() {
+    let fixture = Fixture::new();
+    let profile = fixture.open();
+    let previous = old_active(&profile);
+    let candidate = profile
+        .stage_activation(GENERATION, false, true, &profile.index_sha256())
+        .unwrap();
+    let mut apply = profile.begin_activation(THIRD, GENERATION, "{}").unwrap();
+    assert!(Profile::open(&fixture.0, PROFILE).is_err());
+    assert!(apply
+        .commit(&ready_proofs(&candidate.configuration))
+        .is_err());
+    apply.activating().unwrap();
+    assert!(apply.commit("[]").is_err());
+    let mut wrong: serde_json::Value =
+        serde_json::from_str(&ready_proofs(&candidate.configuration)).unwrap();
+    wrong[1]["status"]["configuration"]["sha256"] = "0".repeat(64).into();
+    assert!(apply.commit(&wrong.to_string()).is_err());
+    assert_eq!(
+        fs::read(fixture.0.join("profiles").join(PROFILE).join("active.json")).unwrap(),
+        previous
+    );
+    apply
+        .commit(&ready_proofs(&candidate.configuration))
+        .unwrap();
+    assert!(apply.rolling_back().is_err());
+    apply.finish("succeeded").unwrap();
+    drop(apply);
+    let active =
+        ActivePointer::parse(fixture.open().active_json().unwrap().unwrap().as_bytes()).unwrap();
+    assert_eq!(active.generation_id, GENERATION);
+}
+
+#[test]
+fn interrupted_apply_is_retained_and_blocks_another_activation() {
+    let fixture = Fixture::new();
+    let profile = fixture.open();
+    profile
+        .stage_activation(GENERATION, true, false, &profile.index_sha256())
+        .unwrap();
+    let mut apply = profile.begin_activation(THIRD, GENERATION, "{}").unwrap();
+    apply.activating().unwrap();
+    drop(apply);
+    assert!(fixture
+        .open()
+        .begin_activation(SECOND, GENERATION, "{}")
+        .is_err());
+    assert!(fixture.open().active_json().unwrap().is_none());
+}
+
+#[test]
+fn rolled_back_apply_preserves_pointer_and_allows_a_new_reviewed_attempt() {
+    let fixture = Fixture::new();
+    let profile = fixture.open();
+    let previous = old_active(&profile);
+    profile
+        .stage_activation(GENERATION, true, false, &profile.index_sha256())
+        .unwrap();
+    let mut apply = profile.begin_activation(THIRD, GENERATION, "{}").unwrap();
+    apply.activating().unwrap();
+    apply.rolling_back().unwrap();
+    apply.finish("rolled-back").unwrap();
+    drop(apply);
+    let profile = fixture.open();
+    assert_eq!(profile.active_json().unwrap().unwrap().as_bytes(), previous);
+    let mut apply = profile.begin_activation(SECOND, GENERATION, "{}").unwrap();
+    apply.finish("cancelled").unwrap();
 }
 
 #[test]

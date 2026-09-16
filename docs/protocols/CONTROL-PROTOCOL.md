@@ -25,18 +25,21 @@ not need Tcl escaping and remain separate structured fields.
 
 ## Request Record
 
-### Unadvertised voice-library development operation
+### Negotiated voice-library status
 
-Development builds implement request and response `voice_library_status_v1`
+Servers advertising `voice_library_v1` implement request and response `voice_library_status_v1`
 in envelope version 1. The [voice-library contract](../voice-library-contract.org)
 defines its configuration digest, overridden engines, eligible physical IDs
 and inventory generation. The server derives eligibility from the same captured
 inventory and routing policy as inventory responses; runtime health does not
 remove administratively eligible IDs. Legacy startup reports null configuration.
 
-This operation is for owned development probes. `voice_library_v1` remains
-absent from capabilities until disposable native validation and confirmed
-cleanup are integrated. Production clients must continue to require the feature.
+Clients must negotiate `voice_library_v1` before requesting status. Contexts
+without a library-status snapshot omit the capability. A matching response
+establishes configuration and eligibility, not ordinary routing readiness,
+native process ownership, audible output, or permission to publish an active
+pointer. Local Apply obtains those other receipts separately; no installation
+or process-management operation is added to the remote speech transport.
 
 ### Ordinary request envelope
 

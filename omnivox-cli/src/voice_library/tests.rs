@@ -164,6 +164,22 @@ fn override_preserves_global_exclusions_and_status_matches_inventory_snapshot() 
     assert!(
         matches!(response.response, ControlResponse::Capabilities{features,..} if !features.contains(&"voice_library_v1".into()))
     );
+    let status = registry.voice_library_status(42, &[], &[]);
+    let response = process_control_request_with_library(
+        &payload,
+        "test",
+        42,
+        "espeak",
+        &[],
+        &[],
+        &mut logical,
+        &mut policy,
+        Some(&status),
+    );
+    assert!(
+        matches!(response.response, ControlResponse::Capabilities{features,..}
+        if features.contains(&"voice_library_v1".into()))
+    );
 }
 
 #[test]

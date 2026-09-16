@@ -11,13 +11,13 @@ use std::time::{Duration, Instant};
 
 #[cfg(target_os = "linux")]
 #[path = "linux.rs"]
-mod platform;
+pub(crate) mod platform;
 #[cfg(target_os = "macos")]
 #[path = "macos.rs"]
-mod platform;
+pub(crate) mod platform;
 #[cfg(windows)]
 #[path = "windows.rs"]
-mod platform;
+pub(crate) mod platform;
 
 pub use platform::initialize;
 pub const RECEIPT: &[u8] = b"OMNIVOX-VOICE-VALIDATION 1 OK\n";

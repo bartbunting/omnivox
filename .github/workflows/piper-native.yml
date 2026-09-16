@@ -100,6 +100,17 @@ jobs:
       - name: Verify real synthesis from relocated archive
         run: python tools/verify_piper_release.py --model target/piper-test-model/en_US-kristin-medium.onnx
 
+      - name: Verify native local voice management
+        shell: bash
+        run: |
+          cargo test --locked -p omnivox-tts voice_library::installation:: -- --test-threads=1
+          cargo test --locked -p omnivox-tts voice_library::local:: -- --test-threads=1
+          if [ "${{ runner.os }}" = Windows ]; then
+            python -W error::ResourceWarning tools/verify_local_voice_owner.py target/release/omnivox.exe
+          else
+            python -W error::ResourceWarning tools/verify_local_voice_owner.py target/release/omnivox
+          fi
+
       - name: Upload verified companion candidate
         uses: actions/upload-artifact@v7
         with:

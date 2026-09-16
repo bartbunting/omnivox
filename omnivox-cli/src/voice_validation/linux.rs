@@ -42,12 +42,19 @@ pub fn configure(command: &mut Command, memory: usize) {
     }
 }
 
+pub fn configure_speech(command: &mut Command) {
+    command.process_group(0);
+}
+
 pub struct Tree {
     group: i32,
     killed: bool,
     cleaned: bool,
 }
 impl Tree {
+    pub fn for_speech() -> io::Result<Self> {
+        Self::new(0)
+    }
     pub fn new(_: usize) -> io::Result<Self> {
         Ok(Self {
             group: 0,

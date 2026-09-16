@@ -451,7 +451,10 @@ pub fn process_control_request_with_library(
                         "stable_voice_ids".to_owned(),
                         "text_repertoire_routing_v1".to_owned(),
                         "tracked_playback_completion".to_owned(),
-                    ],
+                    ]
+                    .into_iter()
+                    .chain(voice_library.map(|_| "voice_library_v1".to_owned()))
+                    .collect(),
                     deprecated_commands: DEPRECATED_PROTOCOL_COMMANDS
                         .iter()
                         .map(|command| (*command).to_owned())

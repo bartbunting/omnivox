@@ -6,6 +6,7 @@ pub fn initialize() -> io::Result<()> {
     Ok(())
 }
 pub fn configure(_: &mut Command, _: usize) {}
+pub fn configure_speech(_: &mut Command) {}
 pub fn check_worker_group() -> io::Result<()> {
     Ok(())
 }
@@ -15,6 +16,9 @@ pub fn parent_closed() -> ! {
 
 pub struct Tree(Job);
 impl Tree {
+    pub fn for_speech() -> io::Result<Self> {
+        Job::new().map(Self).map_err(io::Error::other)
+    }
     pub fn new(memory: usize) -> io::Result<Self> {
         Job::for_validation(memory)
             .map(Self)

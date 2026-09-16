@@ -18,6 +18,7 @@ mod eligibility;
 pub mod evidence;
 mod index;
 pub mod installation;
+pub mod local;
 pub mod operations;
 mod projection;
 mod runtime;

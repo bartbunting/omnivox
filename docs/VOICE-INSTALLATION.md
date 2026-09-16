@@ -1,4 +1,4 @@
-# Installed voices and activation preparation
+# Installed voices and local activation
 
 These development commands implement the installed-state part of
 [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md) and the
@@ -9,8 +9,47 @@ prepare immutable generations for the client's explicit Apply operation.
 Installation does not restart speech. New imports start disabled. Enabling a
 voice changes desired state; the existing active pointer and speech processes
 retain their previous configuration. Download catalogues, managed asset copying,
-package updates, legacy adoption and the Emacsvox two-lane Apply controller remain
-separate implementation work. No voice-library capability is advertised yet.
+package updates and legacy voice-ID adoption remain separate implementation
+work. The local provider now supplies owned speech workers, retained Apply
+leases and active-pointer publication for Emacsvox's two-lane controller.
+Speech connections advertise `voice_library_v1` when status is available.
+
+## Local provider
+
+The bundled Emacsvox launcher uses `--voice-library-owner` when the selected
+binary's ordinary help advertises it. Each invocation owns one speech worker
+and all its helpers. The native child waits behind START until Windows job or
+Unix process-group ownership is established. The owner forwards speech and
+control traffic and accepts private `OMNIVOX-LOCAL` records on the same local
+stdin. Retirement acknowledges the exact native owner UUID only after the
+worker, descendants and output reader have exited. Startup failure retains
+the attempt, including a failure before any child was created, so the client
+can obtain cleanup evidence before rolling back. Closing stdin also retires
+the owned tree. No network listener or remote management command is added.
+
+`--voice-library-service` accepts bounded JSON records on private local stdin.
+It provisions persistent native target and default-profile UUIDs, independently
+of executable releases. Windows uses `%LOCALAPPDATA%\Emacsvox\Omnivox\voices`;
+POSIX uses `${XDG_DATA_HOME:-$HOME/.local/share}/emacsvox/omnivox/voices`.
+An explicit `OMNIVOX_VOICE_ROOT` is a native absolute path, useful for isolated
+tests. It is never inferred from the Emacs or WSL home directory. Existing or
+partial initialization is retained rather than overwritten.
+
+Private operations cover inspection, validated imports, desired enablement,
+explicit inclusion of built-in Flite SLT, candidate preparation, retained Apply
+ownership, activation, rollback and completion. `begin` holds the same OS lease
+used by validation through the final result. Unresolved validation or Apply
+records block another activation. Enabling a voice remains a separate desired
+edit and does not restart any speech process.
+
+Each owner saves a private native startup record below `sessions/`, containing
+the exact executable identity, arguments, working directory, environment and
+generation. The client retains only its path and hash. Restarts recheck the
+record and executable; rollback does not reconstruct settings from current
+Customize values or from an active pointer advanced by another session.
+The launcher distinguishes its Piper fallback from explicit file settings;
+a managed candidate may replace that fallback, while explicit overrides remain
+visible and must be resolved before the client's preflight permits retirement.
 
 ## Native profile ownership
 
@@ -29,6 +68,8 @@ The installer adds these files under `profiles/PROFILE_UUID/`:
 | `imports/INDEX_REVISION_UUID.json` | Import receipt binding the validation operation, package and before/after index digests. |
 | `generations/GENERATION_UUID.json` | Immutable runtime projection for selected providers. |
 | `candidates/GENERATION_UUID.json` | Preparation binding that generation, desired index and previous active-pointer bytes. |
+| `activations/OPERATION_UUID/` | Frozen reviewed plan, candidate, immutable state records, verified pair and completion receipt. |
+| `active.json` | Atomically published configuration after successful verification of both lanes. |
 
 Every edit names the expected SHA-256 of the exact current index and a fresh
 revision UUID. Stale edits fail without replacing current state. The new revision
@@ -97,9 +138,23 @@ preparation; disabled inputs need not be opened.
 The candidate records the exact generation identity/digest, desired index
 revision/digest and previous `active.json` bytes, or null when no active pointer
 exists. Reinspection rejects changes to any of them and rechecks enabled assets.
-It never creates or replaces `active.json`. The next client slice must add the
-session-specific restart impact, exact startup configuration, correlated status
-from both lanes, and rollback before it can commit activation.
+Preparation never creates or replaces `active.json`. The retained local Apply
+transaction rechecks it, the index and generation before retirement and again
+before publication. It requires both lane identities and correlated readiness,
+generation and eligibility receipts. The client binds these records to actual
+owned connections; JSON alone is not native process authority. The pointer is
+published by same-directory replacement only after both lanes verify. A failure
+after publication begins is uncertain until inspected, never an instruction to
+restart the old pair. Unfinished or failed-recovery journals remain blocking.
+
+`tools/verify_local_voice_owner.py SERVER` checks native identity persistence,
+profile exclusion, desired edits, owner identity, startup refusal and confirmed
+retirement without playback. Emacsvox's isolated live acceptance also exercises
+paired Apply and rollback through its ordinary routing/registration path. Native
+Windows staging and the native macOS CI jobs remain the platform acceptance
+paths; a Linux-only run does not establish those results. Additional power-loss
+durability, interrupted-Apply reconciliation and retention cleanup are follow-up
+hardening, rather than a prerequisite for ordinary installation and Apply.
 
 ## Verification scope
 

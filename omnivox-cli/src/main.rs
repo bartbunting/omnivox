@@ -35,6 +35,8 @@ mod text;
 mod transaction;
 mod voice_installation;
 mod voice_library;
+#[cfg(any(target_os = "linux", target_os = "macos", windows))]
+mod voice_local;
 mod voice_observations;
 mod voice_operations;
 mod voice_validation;
@@ -67,6 +69,10 @@ pub(crate) const SOUND_MAX_DEPTH: usize = 10;
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    #[cfg(any(target_os = "linux", target_os = "macos", windows))]
+    if voice_local::requested(&args) {
+        return voice_local::run(&args);
+    }
     if voice_installation::requested(&args) {
         return voice_installation::run(&args);
     }
