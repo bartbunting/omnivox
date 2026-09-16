@@ -8,6 +8,11 @@ Versioning for published releases.
 
 ### Added
 
+- Development voice validation can save bounded evidence and compare it with
+  current voice assets, validator and staged companion files. Reports require
+  successful native checks and cleanup, detect changed inputs, and never replace
+  an existing file. Matching evidence does not authorize activation or skipping
+  native checks; crash-recovery transactions remain pending.
 - Development native voice validation checks one Piper model or Flite voice at
   a time, silently, with process-tree ownership, memory limits, deadlines and
   confirmed cleanup before the next load. Installation and activation remain

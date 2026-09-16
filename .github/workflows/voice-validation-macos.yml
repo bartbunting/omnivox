@@ -46,6 +46,9 @@ jobs:
             cargo test --locked -p omnivox-cli voice_validation:: -- --test-threads=1
           done
 
+      - name: Check evidence parsing and staged file identity
+        run: cargo test --locked -p omnivox-tts voice_library::evidence:: -- --test-threads=1
+
       - name: Stage native companions and server
         run: |
           python tools/build_flite.py

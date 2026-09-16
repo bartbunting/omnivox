@@ -57,6 +57,36 @@ implementation uses the fixed V0 record in Apple's
 and the process-group enumeration in
 [libproc](https://github.com/apple-oss-distributions/xnu/blob/xnu-11215.81.4/libsyscall/wrappers/libproc/libproc.c).
 
+## Saving and comparing evidence
+
+Add `--validation-report /absolute/path/result.json` to save a completed run.
+The destination must not already exist. Omnivox verifies the generation's assets,
+the validator executable and every file in each selected staged companion before
+native loading and again after successful native checks and cleanup. Changed
+inputs, failed checks or cancellation prevent publication.
+
+Use the same generation, helpers, working directory and limits with
+`--check-validation-report /absolute/path/result.json` to compare saved evidence
+with current observations. This performs file verification without loading native
+voices. A matching report does not authorize activation or skipping future native
+validation. Saving and comparing are separate operations.
+
+Reports currently require bundled companion data and native libraries. Nonempty
+Piper/eSpeak data overrides or native-loader overrides are rejected with an
+explanation. Ordinary validation without a report retains its existing behavior.
+Both checksum observations run as owned workers with the configured memory
+budget and deadline, separately from each native load.
+
+Reports contain local paths, generation JSON, per-load voice identities,
+checksums, search configuration, limits and completion time. They are bounded
+local observations, not authenticated attestations. Publication uses a complete
+temporary file and a non-overwriting hard link in the destination directory;
+filesystems without hard links fail. This establishes complete-file visibility,
+not power-loss recovery or ownership of interrupted operations. Cancellation
+after publication cannot retract a report. See the
+[evidence design](voice-validation-evidence-design.md) for the precise scope,
+limits and excluded runtime dependencies.
+
 ## What is checked
 
 The supervisor parses the original generation once and retains its exact digest.
@@ -141,8 +171,9 @@ Full Windows server/companion validation and MSVC acceptance also remain separat
 work. The existing Windows GNU main staging limitation is recorded in
 [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md).
 
-The storage service must still bind durable validation evidence to executable and
-companion provenance, persist interrupted operation ownership, reconcile failed
+The validator can now save and compare observed executable, companion and voice
+inputs. The storage service must still establish durable transactions, persist
+interrupted operation ownership, reconcile failed
 cleanup across manager invocations, and validate full candidate startup/status
 with the exact overrides before activation. This command validates managed native
 loads; it does not implement those transaction guarantees or two-lane rollback.

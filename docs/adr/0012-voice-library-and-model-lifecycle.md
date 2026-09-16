@@ -292,3 +292,21 @@ response as cleanup success. A real unreaped-child regression covers both the
 termination attempt and absence check. These results establish native validator
 behavior on both Macs, not acoustic output, durable operation recovery or
 two-lane activation.
+
+### Saved validation observations
+
+The [evidence design](../voice-validation-evidence-design.md) settles the next
+boundary without changing the installed-index schema or advertising capability.
+Separate bounded reports bind exact generation bytes and native load identities
+to observed validator and complete staged companion files, search configuration,
+probe policy and limits. Before/after capture runs under owned-worker supervision.
+Only successful native checks, matching inputs and confirmed cleanup can publish
+a report, using a complete file and non-overwriting hard link.
+
+Saved metadata is unauthenticated evidence of observations, not a reusable native
+validation cache, loaded-module attestation or activation acknowledgement.
+Unsupported data/loader overrides fail explicitly. System dependencies and
+concurrent edits followed by reverts remain outside the guarantee. Publication
+does not establish power-loss durability or recovery ownership. The manager must
+still establish package/file-set correspondence before writing the accepted
+index summary; this slice does not populate `NativeValidation`.

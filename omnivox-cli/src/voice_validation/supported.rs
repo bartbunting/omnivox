@@ -12,6 +12,8 @@ use std::process::Command;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+mod evidence;
+
 fn host() -> HostPlatform {
     if cfg!(windows) {
         HostPlatform::Windows
@@ -24,6 +26,8 @@ struct Options {
     helpers: BTreeMap<String, PathBuf>,
     timeout: Duration,
     memory: usize,
+    report: Option<PathBuf>,
+    check_report: Option<PathBuf>,
 }
 impl Options {
     fn parse(args: &[String]) -> Result<Self> {
@@ -37,6 +41,8 @@ impl Options {
             helpers: BTreeMap::new(),
             timeout: Duration::from_secs(60),
             memory: 4096usize * 1024 * 1024,
+            report: None,
+            check_report: None,
         };
         let mut seen = std::collections::BTreeSet::new();
         let mut remaining = args[2..].chunks_exact(2);
@@ -47,6 +53,8 @@ impl Options {
                 "duplicate or empty validation option: {flag}"
             );
             match flag.as_str() {
+                "--validation-report" => options.report = Some(value.into()),
+                "--check-validation-report" => options.check_report = Some(value.into()),
                 "--piper-helper" | "--flite-helper" => {
                     let engine = if flag == "--piper-helper" {
                         "piper"
@@ -84,6 +92,10 @@ impl Options {
             remaining.remainder().is_empty(),
             "validation option requires a value"
         );
+        anyhow::ensure!(
+            options.report.is_none() || options.check_report.is_none(),
+            "saving and comparing validation evidence are separate operations"
+        );
         Ok(options)
     }
 }
@@ -91,11 +103,23 @@ impl Options {
 pub fn run(args: &[String]) -> Result<()> {
     if args
         .first()
+        .is_some_and(|arg| arg == "--internal-voice-validation-snapshot")
+    {
+        return evidence::worker(args);
+    }
+    if args
+        .first()
         .is_some_and(|arg| arg == "--internal-voice-validation-worker")
     {
         return worker(args);
     }
     let options = Options::parse(args)?;
+    if options.report.is_some() || options.check_report.is_some() {
+        evidence::check_environment()?;
+    }
+    if let Some(path) = &options.report {
+        evidence::check_destination(path)?;
+    }
     owned::initialize()?;
     let cancelled = owned::cancellation_input()?;
     let library = RuntimeLibrary::read(File::open(&options.path)?, host())?;
@@ -109,6 +133,32 @@ pub fn run(args: &[String]) -> Result<()> {
     }
     // Confirm all inputs and helpers before creating scratch or loading anything.
     let mut scratch = Scratch::new()?;
+    let before = if options.report.is_some() || options.check_report.is_some() {
+        Some(evidence::observe(
+            &options,
+            &library,
+            &mut scratch,
+            &cancelled,
+            "before",
+        )?)
+    } else {
+        None
+    };
+    if let Some(path) = &options.check_report {
+        let report =
+            omnivox_tts::voice_library::evidence::ValidationEvidence::read(File::open(path)?)?;
+        anyhow::ensure!(
+            report.matches(before.as_ref().unwrap()),
+            "saved validation observations differ from current inputs; run native validation again"
+        );
+        anyhow::ensure!(
+            !cancelled.load(Ordering::Acquire),
+            "voice validation cancelled"
+        );
+        scratch.remove()?;
+        println!("Saved validation observations match; native validation and activation checks are still required");
+        return Ok(());
+    }
     eprintln!("Validating {} native loads, one at a time; {} MiB budget, {} seconds per load. No audio playback.",
         targets.len(), options.memory / (1024 * 1024), options.timeout.as_secs());
     #[cfg(target_os = "macos")]
@@ -153,7 +203,27 @@ pub fn run(args: &[String]) -> Result<()> {
         !cancelled.load(Ordering::Acquire),
         "voice validation cancelled"
     );
+    let report = if let Some(before) = before {
+        let after = evidence::observe(&options, &library, &mut scratch, &cancelled, "after")?;
+        anyhow::ensure!(
+            before == after,
+            "validation inputs changed; no report saved"
+        );
+        Some(
+            omnivox_tts::voice_library::evidence::ValidationEvidence::after_success(
+                after,
+                SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
+            )
+            .to_bytes()?,
+        )
+    } else {
+        None
+    };
     scratch.remove()?;
+    if let (Some(path), Some(bytes)) = (&options.report, report) {
+        evidence::publish(path, &bytes, &cancelled)?;
+        println!("Saved validation evidence to {}", path.display());
+    }
     println!(
         "Validated generation {}: {} native loads; cleanup confirmed",
         library.sha256(),

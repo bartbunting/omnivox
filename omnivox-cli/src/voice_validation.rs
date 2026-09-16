@@ -8,7 +8,9 @@ pub fn requested(args: &[String]) -> bool {
     args.first().is_some_and(|arg| {
         matches!(
             arg.as_str(),
-            "--validate-voice-library" | "--internal-voice-validation-worker"
+            "--validate-voice-library"
+                | "--internal-voice-validation-worker"
+                | "--internal-voice-validation-snapshot"
         )
     })
 }

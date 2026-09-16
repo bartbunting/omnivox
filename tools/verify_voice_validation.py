@@ -96,7 +96,7 @@ def main():
         def finish(run, success):
             process, output, errors = run
             try:
-                result = process.wait(timeout=20)
+                result = process.wait(timeout=180)
                 output.seek(0); errors.seek(0)
                 text, diagnostics = output.read(), errors.read()
                 assert (result == 0) == success, (result, text, diagnostics)
@@ -110,14 +110,43 @@ def main():
         assert "cleanup confirmed" in text and "Validated piper" in text and "Validated flite" in text
         assert not list(root.glob("omnivox-voice-validation-*")), "successful scratch was retained"
         print("Piper speakers and Flite native probes passed without playback", flush=True)
+        report = root / "validation-report.json"
+        report_flags = [*native, "--validation-report", str(report)]
+        text, _ = finish(start(document, report_flags), True)
+        saved = report.read_bytes()
+        evidence = json.loads(saved)
+        assert evidence["cleanup_confirmed"] and evidence["snapshot"]["generation_sha256"] == asset(path)["sha256"]
+        assert len(evidence["snapshot"]["loads"][0]["voices"]) == 2
+        assert "Saved validation evidence" in text
+        compare_flags = [*native, "--check-validation-report", str(report)]
+        text, _ = finish(start(document, compare_flags), True)
+        assert "observations match" in text and "Validated generation" not in text
+        finish(start(document, report_flags), False)
+        assert report.read_bytes() == saved, "existing report was overwritten"
+        finish(start(document, compare_flags, timeout=59), False)
+        changed = copy.deepcopy(document)
+        changed["piper"]["models"][0]["voices"].pop()
+        finish(start(changed, compare_flags), False)
+        rejected_report = root / "rejected-report.json"
+        rejected_flags = [*native, "--validation-report", str(rejected_report)]
+        environment["OMNIVOX_PIPER_ESPEAK_DATA"] = str(root)
+        try:
+            _, diagnostics = finish(start(document, rejected_flags), False)
+            assert "runtime override" in diagnostics
+        finally:
+            del environment["OMNIVOX_PIPER_ESPEAK_DATA"]
+        assert not rejected_report.exists()
+        print("Saved native evidence matches exact inputs; changed policy, speakers and overrides are rejected", flush=True)
         bad = copy.deepcopy(document)
         bad["piper"]["models"][0]["model"]["sha256"] = "0" * 64
-        text, _ = finish(start(bad), False)
+        text, _ = finish(start(bad, rejected_flags), False)
+        assert not rejected_report.exists()
         assert "Validated flite" not in text and "Validated generation" not in text
         # Valid bytes and digest, invalid native ONNX: must fail and stop before Flite.
         model.write_bytes(b"invalid ONNX")
         bad["piper"]["models"][0]["model"] = asset(model)
-        text, _ = finish(start(bad), False)
+        text, _ = finish(start(bad, rejected_flags), False)
+        assert not rejected_report.exists()
         assert "Validated flite" not in text and "Validated generation" not in text
         model.write_bytes((source / "alpha.onnx").read_bytes())
         print("Hash and native model failures block the next load", flush=True)
@@ -128,8 +157,8 @@ def main():
         fake.chmod(0o700)
         environment["VALIDATION_PID_FILE"] = str(pidfile)
         flags = ["--piper-helper", str(fake), "--flite-helper", str(args.flite_helper.resolve())]
-        def await_pids():
-            deadline = time.monotonic() + 10
+        def await_pids(timeout=10):
+            deadline = time.monotonic() + timeout
             while time.monotonic() < deadline:
                 if pidfile.exists():
                     fields = pidfile.read_text().split()
@@ -204,6 +233,48 @@ def main():
                 print("unconfirmed-pipe: next load blocked; test owner retired escaped process", flush=True)
             else:
                 print(f"{action}: worker, helper and descendant reaped", flush=True)
+        # A deliberately synthetic companion exercises report cancellation after
+        # checksum observation, while the owned native load is still pending.
+        # Its editable provenance is identity metadata, not publisher trust.
+        staged = root / "fault-companion"
+        staged.mkdir()
+        staged_helper = staged / "omnivox-flite-helper"
+        staged_helper.write_text("#!/bin/sh\nsleep 60 &\nprintf '%s %s %s\\n' \"$PPID\" \"$$\" \"$!\" > \"$VALIDATION_PID_FILE\"\nwait\n")
+        staged_helper.chmod(0o700)
+        provenance = args.flite_helper.resolve().parent / "SOURCE-PROVENANCE.json"
+        (staged / provenance.name).write_bytes(provenance.read_bytes())
+        (staged / "SHA256SUMS").write_text("".join(
+            f"{asset(item)['sha256']}  {item.name}\n" for item in sorted(staged.iterdir())))
+        stalled = copy.deepcopy(document)
+        stalled["piper"] = None
+        stalled["flite"]["files"] = []
+        for action in ["cancel", "parent-death"]:
+            pidfile.unlink(missing_ok=True)
+            pending_report = root / f"{action}-report.json"
+            run = start(stalled, ["--flite-helper", str(staged_helper), "--validation-report", str(pending_report)])
+            pids = []
+            identities = {}
+            try:
+                pids = await_pids(timeout=90)
+                identities = {pid: identity(pid) for pid in pids}
+                if action == "cancel":
+                    run[0].stdin.close()
+                else:
+                    run[0].kill()
+                finish(run, False)
+                gone(pids, identities)
+                pids = []
+                assert not pending_report.exists(), "interrupted validation published success"
+            finally:
+                if run[0].poll() is None:
+                    run[0].kill(); run[0].wait(timeout=10)
+                run[0].stdin.close(); run[1].close(); run[2].close()
+                for pid in pids:
+                    if identities.get(pid) is not None and identity(pid) == identities[pid]:
+                        try: os.kill(pid, signal.SIGKILL)
+                        except ProcessLookupError: pass
+                gone(pids, identities)
+        print("Cancellation and supervisor death cannot publish pending evidence", flush=True)
         text, _ = finish(start(document), True)
         assert "cleanup confirmed" in text
         print("Fresh validation succeeds after failure cleanup", flush=True)
