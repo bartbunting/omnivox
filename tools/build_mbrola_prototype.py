@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tarfile
+import tempfile
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,6 +61,28 @@ def source(cache, archive, dest, child):
     return dest / child
 
 
+# This prototype exposes only mb-en1. Do not scan and hash hundreds of unused
+# language/voice files on every utterance, especially on native Windows.
+FRONTEND_DATA = (
+    "phontab", "phondata", "phonindex", "intonations", "en_dict",
+    "voices/mb/mb-en1", "mbrola_ph/en1_phtrans",
+)
+
+
+def stage_frontend_data(source, destination):
+    # Prepare the complete replacement before touching generated staging data.
+    # Rebuilding must also remove languages left by an earlier full-data build.
+    with tempfile.TemporaryDirectory(prefix="mbrola-data-", dir=destination.parent) as temporary:
+        prepared = Path(temporary)
+        for name in FRONTEND_DATA:
+            output = prepared / name
+            output.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source / name, output)
+        if destination.exists():
+            shutil.rmtree(destination)
+        shutil.copytree(prepared, destination)
+
+
 def build_native(platform, cache):
     work = WORK / platform
     work.mkdir(parents=True, exist_ok=True)
@@ -98,7 +121,7 @@ def build_native(platform, cache):
     shutil.copy2(runtime, stage / f"mbrola{suffix}")
     # Generated eSpeak data is architecture-independent, as in existing companions.
     data = WORK / "linux/frontend-build/espeak-ng-data"
-    shutil.copytree(data, stage / "espeak-ng-data", dirs_exist_ok=True)
+    stage_frontend_data(data, stage / "espeak-ng-data")
     (stage / "espeak-ng-data/mbrola").mkdir(exist_ok=True)
     shutil.copy2(cache / "en1", stage / "espeak-ng-data/mbrola/en1")
     notices = stage / "notices"

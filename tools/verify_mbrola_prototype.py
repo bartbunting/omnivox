@@ -62,6 +62,25 @@ def finish(session, identifier):
             assert response["type"] == "markers" and not response.get("markers"), response
 
 
+def text_endings(session):
+    """Compare complete words with terminated controls, and reject chopped forms."""
+    results = []
+    for index, text in enumerate(("focus", "lost focus", "test", "testing", "hello", "café")):
+        audio = []
+        for offset, candidate in enumerate((text, text + "\n", text[:-1] + "\n")):
+            identifier = 100 + index * 3 + offset
+            before = time.monotonic()
+            start(session, identifier, candidate)
+            audio.append(finish(session, identifier))
+            if offset == 0:
+                elapsed = (time.monotonic() - before) * 1000
+        assert audio[0] == audio[1], f"Unterminated input changed the last word: {text}"
+        assert audio[0] != audio[2], f"Final character was lost: {text}"
+        results.append(dict(text=text, synthesis_ms=round(elapsed, 3),
+                            pcm_sha256=hashlib.sha256(audio[0]).hexdigest()))
+    return results
+
+
 def wait_pid(path):
     deadline = time.monotonic() + 10
     while time.monotonic() < deadline:
@@ -204,6 +223,7 @@ def main():
             assert not any(finish(session, 20))
             start(session, 21, pitch=1.4)
             assert hashlib.sha256(finish(session, 21)).hexdigest() != report["rates"][1]["pcm_sha256"]
+            report["complete_text_endings"] = text_endings(session)
         print("Native rate, pitch and mute checks passed", flush=True)
         faults(program, windows, args.scratch_dir)
         report["cancellation_replacement_and_forced_retirement"] = "passed"

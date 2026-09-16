@@ -295,9 +295,14 @@ impl TtsEngine for MbrolaEngine {
             &pitch.to_string(),
         ]);
         frontend.arg(format!("--path={}", bundle.root.display()));
+        // This pinned frontend's bulk stdin reader replaces its final input
+        // byte with NUL. Supply that terminator ourselves so it cannot discard
+        // the last character (or part of a UTF-8 character) of spoken text.
+        let mut input = request.text.as_bytes().to_vec();
+        input.push(0);
         let pho = crate::process::capture(
             &mut frontend,
-            request.text.as_bytes().to_vec(),
+            input,
             MAX_PHO,
             Duration::from_secs(10),
             cancelled,
