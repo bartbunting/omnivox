@@ -1,8 +1,9 @@
-//! Validated voice-library metadata, without filesystem mutation or native loading.
+//! Voice-library metadata and explicit management primitives, without native loading.
 //!
 //! Parsing establishes structural consistency only. Explicit asset verification
 //! checks file contents; ownership, native compatibility and activation remain
 //! separate management-service responsibilities.
+//! Operation storage is explicit; parsing never mutates the filesystem.
 //! Keep the original bytes for generation hashing; never hash a reserialization.
 
 use std::collections::HashSet;
@@ -16,6 +17,7 @@ use crate::contracts::PhysicalVoiceId;
 mod eligibility;
 pub mod evidence;
 mod index;
+pub mod operations;
 mod runtime;
 mod verification;
 

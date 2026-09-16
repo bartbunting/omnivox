@@ -6,7 +6,7 @@ use sha2::{Digest, Sha256};
 
 use super::{AssetFile, LibraryError, PackageRevision, ProviderOverrides, RuntimeLibrary};
 
-fn digest(bytes: &[u8]) -> String {
+pub(super) fn digest(bytes: &[u8]) -> String {
     hex(&Sha256::digest(bytes))
 }
 
