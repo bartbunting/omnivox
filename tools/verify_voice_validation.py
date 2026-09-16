@@ -315,6 +315,16 @@ def main():
                 assert hashlib.sha256(body).hexdigest().encode() == checksum
             return [json.loads(body) for body in lines[::2]]
 
+        def recover(directory, operation, succeeds):
+            result = subprocess.run([str(server), "--recover-voice-validation-operation", str(directory),
+                                     document["profile_id"], operation.name], env=environment,
+                                    stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=20)
+            assert (result.returncode == 0) == succeeds, result.stdout + result.stderr
+            if succeeds:
+                assert "abandoned using recorded worker cleanup" in result.stdout
+            else:
+                assert "cleanup recovery refused" in result.stderr
+
         directory = admission_root("success")
         helpers = {"piper": args.piper_helper, "flite": args.flite_helper}
         completed = []
@@ -345,6 +355,20 @@ def main():
         assert journal(blocked)[-1]["transition"]["state"] == "prepared"
         assert not (blocked / "workers").exists()
         assert (operation / "validation-evidence.json").exists()
+        retained = {path: path.read_bytes() for path in operation.rglob("*") if path.is_file()}
+        recover(directory, operation, True)
+        receipt = (operation / "cleanup-recovery.frames").read_bytes()
+        recover(directory, operation, True)
+        assert (operation / "cleanup-recovery.frames").read_bytes() == receipt
+        assert all(path.read_bytes() == original for path, original in retained.items())
+        assert journal(operation)[-1]["transition"]["state"] == "validating"
+        inspected = subprocess.run([str(server), "--inspect-voice-admission", str(directory),
+                                    document["profile_id"]], env=environment, stdin=subprocess.DEVNULL,
+                                   capture_output=True, text=True, check=True, timeout=20)
+        assert "Abandoned" in inspected.stdout
+        finish(start_managed(directory, operation), False)
+        finish(start_managed(directory, blocked), True)
+        print("Explicit recovery preserves completed cleanup and the interrupted journal, abandons the old attempt, and permits fresh validation", flush=True)
 
         for action in ["cancel", "parent-death"]:
             directory = admission_root(action)
@@ -378,6 +402,12 @@ def main():
                 finish(start_managed(directory, following), action == "cancel")
                 if action == "parent-death":
                     assert not (following / "workers").exists()
+                    retained = {path: path.read_bytes() for path in operation.rglob("*") if path.is_file()}
+                    recover(directory, operation, False)
+                    assert not (operation / "cleanup-recovery.frames").exists()
+                    assert all(path.read_bytes() == original for path, original in retained.items())
+                    finish(start_managed(directory, following), False)
+                    assert not (following / "workers").exists()
             finally:
                 if run[0].poll() is None:
                     run[0].kill(); run[0].wait(timeout=10)
@@ -387,7 +417,7 @@ def main():
                         try: os.kill(pid, signal.SIGKILL)
                         except ProcessLookupError: pass
                 gone(pids, identities)
-        print("Confirmed cancellation releases profile admission; owner death or a lost terminal append blocks fresh operation IDs", flush=True)
+        print("Confirmed cancellation releases admission; unrecorded cleanup after owner death remains blocked even when those processes have exited", flush=True)
         text, _ = finish(start(document), True)
         assert "cleanup confirmed" in text
         print("Fresh validation succeeds after failure cleanup", flush=True)
