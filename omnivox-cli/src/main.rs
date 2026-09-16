@@ -33,6 +33,7 @@ mod routing;
 mod server;
 mod text;
 mod transaction;
+mod voice_installation;
 mod voice_library;
 mod voice_observations;
 mod voice_operations;
@@ -66,6 +67,9 @@ pub(crate) const SOUND_MAX_DEPTH: usize = 10;
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if voice_installation::requested(&args) {
+        return voice_installation::run(&args);
+    }
     if voice_operations::requested(&args) {
         return voice_operations::run(&args);
     }

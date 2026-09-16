@@ -14,6 +14,7 @@ import sys
 import tempfile
 import time
 import uuid
+from voice_installation_probe import verify_installation
 
 
 def asset(path):
@@ -329,8 +330,10 @@ def main():
             else:
                 assert "cleanup recovery refused" in result.stderr
 
-        directory = admission_root("success")
         helpers = {"piper": args.piper_helper, "flite": args.flite_helper}
+        verify_installation(server, root, document, helpers, environment,
+                            prepare_managed, start_managed, finish)
+        directory = admission_root("success")
         completed = []
         for _ in range(2):
             operation = prepare_managed(directory, document, helpers)

@@ -8,6 +8,12 @@ Versioning for published releases.
 
 ### Added
 
+- Development voice installation can register natively validated local Piper
+  models and external Flite voices, initially disabled, while retaining their
+  original files. Desired enablement is saved independently of active speech.
+  Immutable activation candidates contain only enabled voices and reject stale
+  index or active-pointer state. Downloads and the two-lane Apply controller
+  remain in development.
 - Development managed validation keeps a separate supervisor alive through
   manager-process death so it can confirm native cleanup and persist cancellation.
   Supervisor death with missing cleanup records still blocks subsequent admission.
