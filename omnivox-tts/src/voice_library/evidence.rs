@@ -245,6 +245,14 @@ impl EvidenceSnapshot {
 }
 
 impl ValidationEvidence {
+    pub(super) fn matches_request(&self, plan: &super::operations::ValidationPlan) -> bool {
+        let request = plan.document();
+        self.snapshot.generation_json == request.generation_json
+            && self.snapshot.os == request.platform
+            && self.snapshot.timeout_seconds == request.timeout_seconds
+            && self.snapshot.memory_bytes == request.memory_bytes
+    }
+
     /// The supervisor supplies the time after its final input/cleanup checks.
     /// This constructor cannot establish that native validation actually ran.
     pub fn after_success(snapshot: EvidenceSnapshot, completed_unix_seconds: u64) -> Self {

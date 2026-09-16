@@ -12,6 +12,10 @@ use std::io::Read;
 
 mod storage;
 pub use storage::{Inspection, Operation};
+mod admission;
+pub use admission::{Admission, AdmissionEntry, AdmittedOperation};
+mod execution;
+pub use execution::{BoundValidationEvidence, ExecutionRecords};
 #[cfg(test)]
 mod tests;
 

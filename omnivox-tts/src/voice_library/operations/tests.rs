@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+#[path = "admission_tests.rs"]
+mod admission_tests;
+
 const OPERATION_ID: &str = "44444444-4444-4444-8444-444444444444";
 
 fn plan() -> ValidationPlan {

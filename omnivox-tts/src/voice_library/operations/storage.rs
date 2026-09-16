@@ -127,7 +127,7 @@ impl Operation {
     pub fn inspect(path: &Path) -> Result<Inspection, LibraryError> {
         Ok(Self::try_open(path)?.map_or(Inspection::Busy, |operation| operation.inspection()))
     }
-    fn inspection(&self) -> Inspection {
+    pub(super) fn inspection(&self) -> Inspection {
         if self.poisoned || self.journal.damage().is_some() {
             return Inspection::Damaged;
         }
@@ -199,7 +199,7 @@ fn lock_error(error: TryLockError) -> LibraryError {
     }
 }
 
-fn ordinary(path: &Path, file: bool) -> Result<(), LibraryError> {
+pub(super) fn ordinary(path: &Path, file: bool) -> Result<(), LibraryError> {
     let metadata = fs::symlink_metadata(path)?;
     super::require(
         !metadata.file_type().is_symlink()
@@ -230,10 +230,10 @@ fn options() -> OpenOptions {
     }
     options
 }
-fn new_file(path: &Path) -> Result<File, LibraryError> {
+pub(super) fn new_file(path: &Path) -> Result<File, LibraryError> {
     Ok(options().create_new(true).open(path)?)
 }
-fn open_file(path: &Path, write: bool) -> Result<File, LibraryError> {
+pub(super) fn open_file(path: &Path, write: bool) -> Result<File, LibraryError> {
     ordinary(path, true)?;
     let file = OpenOptions::new().read(true).write(write).open(path)?;
     super::require(
