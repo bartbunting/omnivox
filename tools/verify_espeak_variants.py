@@ -13,11 +13,14 @@ from verify_voice_library_startup import server
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("server", type=Path)
+    parser.add_argument("--espeak-data", help="Native parent of a separate espeak-ng-data directory")
     args = parser.parse_args()
     program = args.server.resolve()
     environment = {key: value for key, value in os.environ.items()
                    if not key.startswith("OMNIVOX_") and key != "ESPEAK_NG_DATA"}
-    forwarded = ["OMNIVOX_ESPEAK_VARIANTS", "OMNIVOX_AUDIO_OUTPUT"]
+    forwarded = ["OMNIVOX_ESPEAK_VARIANTS", "OMNIVOX_AUDIO_OUTPUT", "ESPEAK_NG_DATA"]
+    if args.espeak_data:
+        environment["ESPEAK_NG_DATA"] = args.espeak_data
     environment["WSLENV"] = ":".join(
         [entry for entry in environment.get("WSLENV", "").split(":")
          if entry and entry.split("/", 1)[0] not in forwarded] + forwarded)

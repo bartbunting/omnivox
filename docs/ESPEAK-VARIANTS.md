@@ -44,4 +44,7 @@ two owned null-output workers, ordinary inventory/eligibility, exact previews,
 base switching, disabled rejection and full-chain fallback. Linux passed with
 141 base voices and 103 variants, alongside the locked workspace tests, workspace
 Clippy, formatting, documentation links and supported `make dev` staging.
-Native Windows and audible acceptance remain separate checks.
+Native Windows passed the same two-worker probe after full Emacsvox development
+staging. For a separately cached data tree, pass `--espeak-data NATIVE_PARENT`
+using the launcher's `ESPEAK_NG_DATA` value. These checks use null output;
+audible acceptance remains separate.
