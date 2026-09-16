@@ -192,6 +192,22 @@ existing full-text, rate/pitch/mute, tamper rejection, native cancellation,
 replacement and forced-retirement probes also passed on both platforms.
 Workspace tests passed 835 tests with one existing ignored test; Linux workspace
 and affected Windows Clippy passed. Emacs focused tests passed 85 with four
-GUI-only skips, and all 18 graphical tests passed separately. Full Windows
-coexistence with Piper still requires a newly built schema-2-aware native Piper
-companion before replacing the maintainer's working development launcher.
+GUI-only skips, and all 18 graphical tests passed separately.
+
+The subsequent [combined Windows report](experiments/2026-09-17-mbrola-piper-windows.json)
+records a fresh native Piper companion from commit `1d613c2` and complete Windows
+development staging. Its [Piper CI run](https://github.com/bartbunting/omnivox/actions/runs/35162878166)
+passed on Windows, Linux and both Mac architectures; this does not establish
+macOS MBROLA support. Native staging checked the Kristin Piper model. In a fresh
+compiled Emacs, a schema-2 library containing a Piper speaker fixture, Flite SLT
+and the four MBROLA voices passed paired Apply, injected notification failure
+with rollback, and US1 disablement. Exact synthesis from Piper, Flite, en1 and
+enabled US1 passed on both streams before and after those transitions, using
+null audio and an isolated library.
+
+To repeat the combined Emacs check, first produce a fresh private root with
+`verify_mbrola_library.py`, then run Emacsvox's `test/run-live-library-tests.py`
+with `--server`, `--omnivox-source`, `--emacs`, `--mbrola-root` and
+`--mbrola-helper`. Use the root before another Apply test commits its active
+pointer. The runner imports a validated Piper fixture and adds Flite SLT only
+to that private library.

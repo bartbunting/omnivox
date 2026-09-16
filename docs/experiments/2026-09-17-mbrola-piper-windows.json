@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "platform": "windows",
+  "server_sha256": "2105de928e6e03be8efa38c2b00feae039db8a697e0508ed8d3c539c928988fe",
+  "helper_sha256": "3fdd91bd34d5e3a575e421dad47994701b2b761de578b51b5471d9c45bbc2bbd",
+  "catalogue_sha256": "d04459c91c6790b35b7077a3ce8ce96eb9cadad284b009cf2147722e6d4e0d91",
+  "cancellation": true,
+  "native_downloads": 3,
+  "installed_disabled": true,
+  "en1_preserved": true,
+  "notices_retained": true,
+  "native_validation": true,
+  "per_request_switching": [
+    {
+      "voice": "mbrola:v1/mb-en1/en1",
+      "synthesis_ms": 136.165,
+      "pcm_sha256": "c258239ea5526275c9af2671bd3aa162497fb43d29b89dc2de061c2a2830f77b"
+    },
+    {
+      "voice": "mbrola:v1/mb-us1/us1",
+      "synthesis_ms": 134.088,
+      "pcm_sha256": "922e59a835032e77a25a6514214a6eeacc8d963bad362a31e82dbb02510ef7aa"
+    },
+    {
+      "voice": "mbrola:v1/mb-us2/us2",
+      "synthesis_ms": 154.778,
+      "pcm_sha256": "0dd34261b36fd38ac0800404ba0d2ac892878815c29b21485661ed782066f7d5"
+    },
+    {
+      "voice": "mbrola:v1/mb-us3/us3",
+      "synthesis_ms": 152.483,
+      "pcm_sha256": "44969b74adcbdd27d4d5137eb7177c1b98346296f6439c3a02fb1fa592996f99"
+    },
+    {
+      "voice": "mbrola:v1/mb-en1/en1",
+      "synthesis_ms": 126.821,
+      "pcm_sha256": "c258239ea5526275c9af2671bd3aa162497fb43d29b89dc2de061c2a2830f77b"
+    },
+    {
+      "voice": "mbrola:v1/mb-us1/us1",
+      "synthesis_ms": 147.185,
+      "pcm_sha256": "922e59a835032e77a25a6514214a6eeacc8d963bad362a31e82dbb02510ef7aa"
+    }
+  ],
+  "two_lane_distinct_voices": true,
+  "disabled_exact_preview": true,
+  "existing_workers_pinned": true,
+  "final_text_preserved": true,
+  "runtime_build_id": "3763b09a9bbc9394",
+  "source_commit": "1d613c2c969a32cfb49abe85129879724261fccf",
+  "piper_ci": {
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/35162878166",
+    "conclusion": "success",
+    "platforms": [
+      "linux-x64",
+      "windows-x64",
+      "macos-arm64",
+      "macos-x64"
+    ],
+    "windows_archive_sha256": "5bbbe9e467a1a3d36cfa9c79a35c035da2daa2f21883b07a4b2970ecdcb4a699"
+  },
+  "piper_helper_sha256": "707093018160f5df93f9f211725880889dce59e2aeefe55f6aca4b1f833ccf51",
+  "complete_windows_development_staging": true,
+  "native_piper_model_check": "en_US-kristin-medium",
+  "compiled_emacs_mixed_library": {
+    "runner": "Emacsvox test/run-live-library-tests.py with --mbrola-root and --mbrola-helper",
+    "piper_model": "piper-speakers/alpha.onnx fixture; one of two imported speakers enabled",
+    "engines": [
+      "piper",
+      "flite",
+      "mbrola"
+    ],
+    "schema_version": 2,
+    "apply": "succeeded",
+    "notification_failure": "rolled-back; previous active pointer and eligibility preserved",
+    "disable_us1": "succeeded; en1, Piper and Flite remain eligible",
+    "exact_synthesis_both_streams": "passed before and after rollback and US1 disablement",
+    "isolated_voice_root": true,
+    "audio_output": "null"
+  },
+  "scope": "Windows combined runtime acceptance; no audible or macOS MBROLA acceptance claimed"
+}

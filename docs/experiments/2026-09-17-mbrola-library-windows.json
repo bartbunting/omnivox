@@ -47,5 +47,5 @@
   "existing_workers_pinned": true,
   "final_text_preserved": true,
   "compiled_emacs_pair_apply": "passed; enable, injected notification failure with paired rollback, then disable",
-  "full_piper_coexistence": "Pending a new native Windows Piper companion"
+  "full_piper_coexistence": "Passed separately with the updated runtime; see 2026-09-17-mbrola-piper-windows.json"
 }
