@@ -167,13 +167,23 @@ then the full Piper/Flite probe and its ownership fault checks. Native Clippy
 also passed for the validator and its prepared dependencies. These are silent
 validation checks, not acoustic or coordinated-activation acceptance.
 
+Saved-evidence checks subsequently passed on both native Mac architectures in
+[run 35042369039](https://github.com/bartbunting/omnivox/actions/runs/35042369039)
+at source commit `7ff386693701d8a7a50cb10be615f455062516ca`. Each host passed seven
+shared evidence tests, repeated supervision tests, native Piper/Flite report
+creation and comparison, stale-input rejection, and refusal to publish after
+cancellation or supervisor death. Linux passed the same integration probe and
+the workspace/Clippy gates. Native Windows x64 GNU component tests passed six
+shared evidence checks and eight supervision/command checks, including report
+creation, non-overwriting publication and cancellation on its native filesystem.
+
 Full Windows server/companion validation and MSVC acceptance also remain separate
 work. The existing Windows GNU main staging limitation is recorded in
 [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md).
 
 The validator can now save and compare observed executable, companion and voice
 inputs. The storage service must still establish durable transactions, persist
-interrupted operation ownership, reconcile failed
-cleanup across manager invocations, and validate full candidate startup/status
+interrupted operation ownership, reconcile failed cleanup across manager
+invocations, and validate full candidate startup/status
 with the exact overrides before activation. This command validates managed native
 loads; it does not implement those transaction guarantees or two-lane rollback.

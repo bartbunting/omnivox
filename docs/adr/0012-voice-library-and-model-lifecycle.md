@@ -310,3 +310,11 @@ concurrent edits followed by reverts remain outside the guarantee. Publication
 does not establish power-loss durability or recovery ownership. The manager must
 still establish package/file-set correspondence before writing the accepted
 index summary; this slice does not populate `NativeValidation`.
+
+Linux native report checks and Windows GNU component/filesystem checks passed.
+Native Intel and Apple Silicon report acceptance then passed in
+[run 35042369039](https://github.com/bartbunting/omnivox/actions/runs/35042369039)
+at `7ff386693701d8a7a50cb10be615f455062516ca`, including actual Piper/Flite loads,
+report creation/comparison, changed-input rejection and absence of a published
+report after cancellation or supervisor death. This does not establish full
+Windows server/MSVC acceptance, power-loss recovery or activation transactions.

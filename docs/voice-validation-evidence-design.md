@@ -43,6 +43,8 @@ A completed report additionally records schema/kind, completion time as Unix
 seconds, and confirmed cleanup. Comparison requires equality of the whole input
 snapshot. Paths and search configuration are deliberately part of the identity:
 relocation requires a new observation even when file bytes are identical.
+Canonical path labels may include Windows' verbatim-path prefix. They are
+observations, not asset-path inputs for the runtime or installation index.
 
 Reports are limited to 8 MiB on read and serialization. Embedded generations
 retain their 1 MiB limit. Companion manifests and provenance are limited to
