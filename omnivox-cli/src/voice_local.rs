@@ -241,7 +241,10 @@ impl Worker {
         command
             .env_clear()
             .envs(&startup.environment)
-            .env("OMNIVOX_REMOTE_WORKER", "1")
+            // Local ownership needs the START barrier, not the remote
+            // broker's restriction to bundled icon identifiers.
+            .env_remove("OMNIVOX_REMOTE_WORKER")
+            .env("OMNIVOX_OWNED_WORKER", "1")
             .current_dir(&startup.working_directory)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

@@ -2093,9 +2093,9 @@ pub fn run_server(
     }
     let _ = input_handle.join();
 
-    // A broker disappearing must not turn a lost remote connection into a
-    // request to play its backlog. Ordinary stdio EOF still drains as before.
-    if std::env::var_os("OMNIVOX_REMOTE_WORKER").is_some() {
+    // A broker or local owner disappearing must not play its backlog.
+    // Ordinary unowned stdio EOF still drains as before.
+    if crate::remote::managed_worker() {
         interrupt(
             &mut current_gen,
             &gen_counter,

@@ -27,6 +27,14 @@ the attempt, including a failure before any child was created, so the client
 can obtain cleanup evidence before rolling back. Closing stdin also retires
 the owned tree. No network listener or remote management command is added.
 
+Local children use a distinct ownership flag for the START barrier and EOF
+cancellation. They retain local file-earcon access. The remote broker's
+bundled-icon restriction applies only to remote workers; otherwise a local
+speech-and-earcon timeline would fail as a whole during resource preparation.
+Check this against a complete staged server with
+`python3 omnivox-cli/tests/check_local_earcons.py PATH_TO_OMNIVOX`; it also
+verifies that remote workers continue to reject local file paths.
+
 `--voice-library-service` accepts bounded JSON records on private local stdin.
 It provisions persistent native target and default-profile UUIDs, independently
 of executable releases. Windows uses `%LOCALAPPDATA%\Emacsvox\Omnivox\voices`;

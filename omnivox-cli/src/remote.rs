@@ -260,14 +260,21 @@ impl Worker {
     }
 }
 
+/// Owned local workers share startup/EOF ownership with broker workers, but
+/// retain ordinary local audio-file access. Do not use this for remote policy.
+pub(crate) fn managed_worker() -> bool {
+    std::env::var_os("OMNIVOX_REMOTE_WORKER").is_some()
+        || std::env::var_os("OMNIVOX_OWNED_WORKER").is_some()
+}
+
 pub fn await_worker_start() -> Result<()> {
-    if std::env::var_os("OMNIVOX_REMOTE_WORKER").is_some() {
+    if managed_worker() {
         let mut start = [0u8; 6];
         io::stdin()
             .read_exact(&mut start)
-            .context("remote broker closed before worker startup")?;
+            .context("speech owner closed before worker startup")?;
         if &start != b"START\n" {
-            bail!("invalid remote worker startup");
+            bail!("invalid owned worker startup");
         }
     }
     Ok(())
