@@ -8,6 +8,13 @@ Versioning for published releases.
 
 ### Added
 
+- Development macOS system-voice streaming begins delivering bounded PCM
+  windows before complete synthesis. Cancellation wakes a blocked native queue,
+  late callbacks cannot reach a retired request, and missing completion fails
+  rather than treating a short pause as the end of speech. Full-result and
+  unsupported-anchor requests retain buffered handling; no new native markers
+  or calibrated macOS rates are claimed.
+
 - Opt-in MBROLA en1 prototype with a private source-pinned eSpeak frontend and
   MBROLA subprocess, bounded PCM capture, cancellation and exact voice preview.
   Its runtime and database remain outside generic release bundles; rates are

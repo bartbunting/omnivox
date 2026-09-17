@@ -78,25 +78,30 @@ bridge**, not from protocol admission or the surrounding Rust synthesis call:
 | `queue_wait_us` | Bridge entry to execution on the serial synthesis queue, including argument preparation. |
 | `write_started_us` | About to call Apple's `writeUtterance:toBufferCallback:` after voice selection and utterance setup. |
 | `first_buffer_us`, `last_buffer_us` | Arrival of the first and last nonempty float PCM buffers accepted by the bridge. |
-| `completion_signal_us` | Arrival of Apple's first zero-length completion buffer, if observed. |
-| `capture_completed_us` | The bridge exits its buffer collection loop. |
-| `bridge_elapsed_us` | The bridge is ready to return to Rust, after copying PCM and waking the caller. |
+| `completion_signal_us` | First explicit completion or failure observed by the native capture. |
+| `capture_completed_us` | The serial native capture owner acknowledges retirement. |
+| `bridge_elapsed_us` | Elapsed native-request lifetime when Rust records the final timing snapshot. |
 
 Unobserved callback offsets appear as `None`, never as zero latency.
 `buffers_received` counts accepted nonempty PCM buffers. `completion_reason`
-identifies the exit path: `empty_buffer` for Apple's completion signal,
-`inactivity_timeout` for the existing 200 ms fallback, or `deadline` for the
-existing 30-second deadline. These identify how capture ended, not successful
-playback; consult the surrounding synthesis and playback records for outcome.
+identifies the exit path: `empty_buffer` or `delegate_finished` for explicit
+completion; `cancelled`, `deadline`, `invalid_pcm`, `native_exception`,
+`voice_missing` or `pcm_limit` for failure. A 30-second lack of queue/native
+progress is a failure, including a stalled consumer. The old
+`inactivity_timeout` reason occurs only in historical buffered builds: current
+capture never treats a 200 ms gap as completion. These identify how capture
+ended, not successful playback; consult the surrounding synthesis and playback
+records for outcome.
 
 Two derived durations help assess streaming: `first_buffer_to_return_us` is
-the time from the first accepted buffer to bridge return, and
+the time from the first accepted buffer to the final timing snapshot, and
 `last_buffer_to_completion_us` isolates the wait after the last accepted buffer.
-The former measures time currently spent waiting with initial PCM available;
-it is not a promised streaming speedup or acoustic onset measurement. Initial
-silence, conversion, playback scheduling, and device buffering still matter.
-Rust audio conversion and result validation occur after the bridge timing and
-remain included in the surrounding `synthesis_elapsed_us` measurement.
+Records with `streaming=true` overlap native generation, Rust conversion and
+downstream consumption. Their first-buffer-to-return duration is therefore
+neither a playback wait nor a promised speedup. Initial silence, conversion,
+playback scheduling and device buffering still matter. Compare actual source
+start with native completion to establish progressive delivery; neither is
+physical acoustic onset.
 
 ### Server benchmarks
 

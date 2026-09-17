@@ -15,6 +15,12 @@ default archived layout; downloads fail if the service digest does not match.
 
 ## Native macOS voice validation
 
+[macOS Streaming Acceptance](macos-streaming.yml) runs the native callback/queue
+regressions, adapter tests, Clippy and a silent system-voice streaming probe on
+Intel and Apple Silicon. Push a `ci/macos-streaming-*` branch or dispatch it
+manually. It publishes no release and does not establish audible acceptance.
+See the [streaming guide](../../docs/MACOS-STREAMING.md) for bounds and limitations.
+
 [macOS Voice Validation](voice-validation-macos.yml) runs the development voice
 validator checks on native Intel and Apple Silicon runners. It checks process
 cleanup and the sampled memory-footprint cutoff, stages the main executable and

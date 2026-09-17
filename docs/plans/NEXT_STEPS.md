@@ -1,6 +1,7 @@
 # Omnivox Roadmap
 
 **Priorities reviewed:** 2026-09-07
+**Near-term additions:** 2026-09-17 (voice uninstallation and macOS streaming)
 
 This is the current project backlog. It intentionally does not repeat shipped
 architecture or a chronological implementation diary; see
@@ -39,7 +40,8 @@ not change the accepted architecture, helper boundaries, or release policy.
 
 | Rank | Feature | First useful outcome |
 | --- | --- | --- |
-| 1 | Responsive Linux speech under WSL | Reproducible Windows/Linux comparison launches, measured command-to-sound and stop-to-silence, and a native PulseAudio experiment against the current ALSA bridge. |
+| 1a | Responsive Linux speech under WSL | Reproducible Windows/Linux comparison launches, measured command-to-sound and stop-to-silence, and a native PulseAudio experiment against the current ALSA bridge. |
+| 1b | Streaming macOS system voices | Begin playback from AVSpeechSynthesizer callbacks before the complete utterance is synthesized, with bounded buffering, reliable cancellation and native Mac listening/latency acceptance. |
 | 2 | Voice selection and installation assistance | Browse, preview, install/import, test, and select additional voices through Emacsvox's Voice Workbench, with engine-specific installation support. |
 | 3 | Audio-device selection and recovery | Named devices, a deliberate follow-default policy, disconnect/reconnect recovery, and separate foreground/notification destinations. |
 | 4 | Speech and audio doctor | Explain the selected executable, backend, device, engine, voice, fallback reason, buffer settings, and recovery action. |
@@ -50,7 +52,8 @@ not change the accepted architecture, helper boundaries, or release policy.
 | 9 | Linux ARM64 main-server distribution | Native runtime acceptance and main-server archives/Debian packages, beyond existing ARM64 companion coverage. |
 | 10 | Another compact neural engine | Evaluate an isolated sherpa-onnx helper, including Kitten Nano, against latency, cancellation, memory, intelligibility, and model-licence requirements. |
 
-The earlier companion-manager proposal is part of feature 2. The earlier
+Features 1a and 1b share the top responsiveness priority, ahead of adding another
+engine. The earlier companion-manager proposal is part of feature 2. The earlier
 first-speech/navigation-latency proposal is part of feature 1 and the
 cross-platform evidence work below. Existing engine hardening remains a
 release requirement throughout this feature work.
@@ -94,6 +97,30 @@ accessible UI and guided installation workflow; Omnivox owns engine/voice
 inventory, capability reporting, test synthesis, and useful failure details.
 This milestone does not promise a particular release date or version.
 
+### macOS native voice streaming delivery slice
+
+Requested on 2026-09-17 alongside WSL responsiveness. The development adapter
+now connects AVSpeechSynthesizer callbacks to the existing progressive synthesis
+and playback path under [ADR 0006](../adr/0006-bounded-progressive-synthesis.md),
+with bounded buffering and continuous sample-rate conversion. Native adapter
+and full-server checks pass on Intel and Apple Silicon; the
+[streaming guide](../MACOS-STREAMING.md) records implementation and acceptance.
+
+Preserve stop, rapid replacement, late-callback cleanup, independent speech
+lanes, effects and truthful playback completion. Verify blocked-consumer and
+partial-output failure behavior, including the existing restriction on fallback
+after audio commitment. Investigate marker support separately and advertise only
+verified capabilities. Requests whose effects or positioned actions require the
+complete waveform may retain documented buffered handling; ordinary supported
+speech must not wait for complete synthesis.
+
+Acceptance requires real Intel and Apple Silicon Mac checks across available
+voices, short navigation and long utterances, both speech lanes, and repeated
+cancellation. Record bounded memory, command-to-first-audio and stop-to-silence,
+distinguishing callback/mixer timing from physical output, and obtain listening
+confirmation. The implementation does not establish audible acceptance; retain
+this entry until Emacsvox listening and physical-output measurements are complete.
+
 ### Remote workstation delivery slice
 
 The [2026-09-07 real SSH experiment](../experiments/2026-09-07-remote-ssh.md)
@@ -116,6 +143,17 @@ import, run real test synthesis, then select the usable voice. Show language,
 engine, download size, installed state, and voice-specific terms. Keep runtime,
 language data, model/voice data, and configuration identifiable so update and
 removal can preserve shared dependencies and the working fallback.
+
+**Near-term follow-up, requested 2026-09-17: voice uninstallation.** Add removal
+of downloaded Piper and Flite packages to reclaim disk space; current disable
+and Apply operations retain their files. Omnivox owns managed removal and
+Emacsvox owns the review and confirmation UI. Follow the
+[voice-library contract](../voice-library-contract.org): preserve imported
+files, shared model dependencies, saved palette references and revisions needed
+by active, rollback or live-session generations. Report blocked or partial
+cleanup and actual reclaimed space. Verify shared models, concurrent sessions,
+interrupted removal and reinstallation. This is planned work, not an available
+uninstall command.
 
 | Engine family | Proposed assistance and current constraint |
 | --- | --- |
