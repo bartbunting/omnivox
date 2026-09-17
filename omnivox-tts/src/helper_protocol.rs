@@ -11,6 +11,7 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
+pub mod parameters;
 mod wire;
 
 use crate::contracts::EngineDescriptor;

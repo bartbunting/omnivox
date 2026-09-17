@@ -81,7 +81,7 @@ fn take<T: DeserializeOwned, E: Error>(object: &mut Map<String, Value>, key: &st
     .map_err(E::custom)
 }
 
-fn envelope<'de, D: Deserializer<'de>, I: DeserializeOwned>(
+pub(super) fn envelope<'de, D: Deserializer<'de>, I: DeserializeOwned>(
     deserializer: D,
     unowned_error: bool,
 ) -> Result<(u16, I, Map<String, Value>), D::Error> {

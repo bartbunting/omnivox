@@ -296,3 +296,20 @@ stream to 44.1 kHz stereo. DECtalk retains one 512-sample native block so its
 occasionally late marker callback can still precede the corresponding audio.
 Both native wire PCM and expanded canonical PCM remain subject to the ordinary
 128 MiB synthesis limit.
+
+## Reserved native parameter messages
+
+The accepted [engine parameter contract](../engine-voice-parameters.md) reserves
+helper 6 for typed catalogues, native synthesis settings and application evidence.
+`omnivox_tts::helper_protocol::parameters` implements only those new/extended
+message codecs. It does not enable helper-6 negotiation or replace the existing
+readers for hello, PCM, markers, cancellation and terminal frames. Versions 1–5
+remain the supported live protocols; their readers reject the new members.
+
+Catalogue assembly validates each bounded page before changing accepted state.
+It checks voice, revision, runtime generation, profile and repeated mappings,
+then checks all cross-page references when the final page arrives. Correlated
+response validation rejects mismatched requests, voices, stale applied identities
+and a common-only confirmation for a strict native request. These checks validate
+wire claims; the native handler must still establish execution, query deadlines,
+owner-thread access and receipt-before-PCM ordering.

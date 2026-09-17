@@ -58,7 +58,7 @@ impl ValueType {
                     && *step > 0.0,
                 "invalid number constraints",
             ),
-            Self::Boolean => Ok(()),
+            Self::Boolean {} => Ok(()),
             Self::Enum { choices } => {
                 require(
                     !choices.is_empty() && choices.len() <= MAX_ENUM_CHOICES,
@@ -101,7 +101,7 @@ impl ValueType {
                 },
                 NativeValue::Integer(v),
             ) => (*minimum..=*maximum).contains(&(*v as f64)),
-            (Self::Boolean, NativeValue::Boolean(_)) => true,
+            (Self::Boolean {}, NativeValue::Boolean(_)) => true,
             (Self::Enum { choices }, NativeValue::Enum(v)) => choices.iter().any(|c| c.value == *v),
             _ => false,
         }

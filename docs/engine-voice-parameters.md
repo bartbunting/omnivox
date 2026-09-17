@@ -59,6 +59,14 @@ valid request shapes and unowned-error compatibility remain intact. The
 [wire-boundary report](benchmarks/2026-09-18-helper-native-wire-boundary.md)
 records the regression and compatibility checks; helper 6 is still unadvertised.
 
+`helper_protocol::parameters` now provides the reserved helper-6 parameter
+request/response codecs, correlated application evidence and atomic catalogue
+page assembly. It reuses the legacy duplicate-free envelope reader and common
+synthesis validation, while keeping the negotiated 1–5 readers unchanged.
+The [codec report](benchmarks/2026-09-18-helper6-parameter-codecs.md) records its
+scope. No live dispatcher uses these messages yet; parsing support is not a
+negotiated native execution capability.
+
 The Rust planner and native request path are not connected to public speech
 operations yet. Common mappings and capability advertisements remain unchanged.
 Next implement helper 6 native profiles, followed by

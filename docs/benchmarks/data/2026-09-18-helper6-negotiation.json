@@ -1,0 +1,201 @@
+{
+  "build_id": "b1b6060ef0dec0ab",
+  "engines": {
+    "flite": {
+      "sha256": "ba24b08361d2c0ec160126dcd6e4714f3473c37bac4f5d5c280a03e7fa7c302b",
+      "cases": {
+        "version6_only": {
+          "returncode": 0,
+          "responses": [
+            {
+              "protocol_version": 5,
+              "request_id": 1,
+              "type": "error",
+              "code": "unsupported_version",
+              "message": "unsupported helper protocol version 6",
+              "retryable": false
+            }
+          ]
+        },
+        "latest_supported": {
+          "returncode": 0,
+          "responses": [
+            {
+              "protocol_version": 5,
+              "request_id": 1,
+              "type": "hello",
+              "selected_protocol_version": 5,
+              "helper_name": "Omnivox Flite helper",
+              "helper_version": "1.11.0"
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 2,
+              "type": "descriptor"
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 3,
+              "type": "shutting_down"
+            }
+          ]
+        },
+        "reserved_version_on_live_session": {
+          "returncode": 1,
+          "responses": [
+            {
+              "protocol_version": 5,
+              "request_id": 1,
+              "type": "hello",
+              "selected_protocol_version": 5,
+              "helper_name": "Omnivox Flite helper",
+              "helper_version": "1.11.0"
+            },
+            {
+              "protocol_version": 5,
+              "request_id": null,
+              "type": "error",
+              "code": "invalid_request",
+              "message": "helper protocol JSON is invalid: unknown variant `get_engine_parameters_v1`, expected one of `hello`, `describe`, `synthesize`, `cancel`, `ping`, `shutdown`",
+              "retryable": false
+            }
+          ]
+        }
+      }
+    },
+    "eloquence": {
+      "sha256": "21498314db515ceb47ba85ce9b15c1fd497c4b2d68e61729d851214c9dbc2e53",
+      "cases": {
+        "version6_only": {
+          "returncode": 0,
+          "responses": [
+            {
+              "protocol_version": 5,
+              "request_id": 1,
+              "type": "error",
+              "code": "unsupported_version",
+              "message": "unsupported helper protocol version 6",
+              "retryable": false
+            }
+          ]
+        },
+        "latest_supported": {
+          "returncode": 0,
+          "responses": [
+            {
+              "protocol_version": 5,
+              "request_id": 1,
+              "type": "hello",
+              "selected_protocol_version": 5,
+              "helper_name": "Omnivox Eloquence x86 helper",
+              "helper_version": "0.1.0"
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 2,
+              "type": "descriptor"
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 3,
+              "type": "shutting_down"
+            }
+          ]
+        },
+        "reserved_version_on_live_session": {
+          "returncode": 0,
+          "responses": [
+            {
+              "protocol_version": 5,
+              "request_id": 1,
+              "type": "hello",
+              "selected_protocol_version": 5,
+              "helper_name": "Omnivox Eloquence x86 helper",
+              "helper_version": "0.1.0"
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 2,
+              "type": "error",
+              "code": "unsupported_version",
+              "message": "unsupported helper protocol version 6",
+              "retryable": false
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 3,
+              "type": "shutting_down"
+            }
+          ]
+        }
+      }
+    },
+    "dectalk": {
+      "sha256": "fbeb1f5c5a355d9e85c0d038c93fe7b8ba2fc76c90b47833398f6073c454fc82",
+      "cases": {
+        "version6_only": {
+          "returncode": 0,
+          "responses": [
+            {
+              "protocol_version": 5,
+              "request_id": 1,
+              "type": "error",
+              "code": "unsupported_version",
+              "message": "unsupported helper protocol version 6",
+              "retryable": false
+            }
+          ]
+        },
+        "latest_supported": {
+          "returncode": 0,
+          "responses": [
+            {
+              "protocol_version": 5,
+              "request_id": 1,
+              "type": "hello",
+              "selected_protocol_version": 5,
+              "helper_name": "Omnivox DECtalk x86 helper",
+              "helper_version": "0.1.0"
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 2,
+              "type": "descriptor"
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 3,
+              "type": "shutting_down"
+            }
+          ]
+        },
+        "reserved_version_on_live_session": {
+          "returncode": 0,
+          "responses": [
+            {
+              "protocol_version": 5,
+              "request_id": 1,
+              "type": "hello",
+              "selected_protocol_version": 5,
+              "helper_name": "Omnivox DECtalk x86 helper",
+              "helper_version": "0.1.0"
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 2,
+              "type": "error",
+              "code": "unsupported_version",
+              "message": "unsupported helper protocol version 6",
+              "retryable": false
+            },
+            {
+              "protocol_version": 5,
+              "request_id": 3,
+              "type": "shutting_down"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

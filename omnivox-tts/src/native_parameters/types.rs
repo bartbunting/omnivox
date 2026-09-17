@@ -35,7 +35,7 @@ pub enum ValueType {
         maximum: f64,
         step: f64,
     },
-    Boolean,
+    Boolean {},
     Enum {
         choices: Vec<EnumChoice>,
     },
