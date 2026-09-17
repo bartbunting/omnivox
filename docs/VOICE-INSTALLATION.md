@@ -165,8 +165,10 @@ retirement without playback. Emacsvox's isolated live acceptance also exercises
 paired Apply and rollback through its ordinary routing/registration path. Native
 Windows staging and the native macOS CI jobs remain the platform acceptance
 paths; a Linux-only run does not establish those results. Additional power-loss
-durability, interrupted-Apply reconciliation and retention cleanup are follow-up
+durability and interrupted-Apply reconciliation are follow-up
 hardening, rather than a prerequisite for ordinary installation and Apply.
+Explicit [managed voice uninstallation](VOICE-UNINSTALLATION.md) reviews package
+ownership and retained references before removing downloaded files.
 
 ## Verification scope
 

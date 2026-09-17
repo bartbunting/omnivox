@@ -130,6 +130,20 @@ fn service(host: Host) -> Result<()> {
                         state: "pending".into(),
                     })
                 }
+                "uninstall-preview" if activation.is_none() => Ok(Reply::RemovalReview {
+                    review: host.profile()?.prepare_removal(
+                        &PhysicalVoiceId::new(request.engine, request.voice),
+                        &request.expected_sha256,
+                    )?,
+                }),
+                "uninstall-pending" if activation.is_none() => Ok(Reply::Removals {
+                    reviews: host.profile()?.pending_removals()?,
+                }),
+                "uninstall" if activation.is_none() => Ok(Reply::Removal {
+                    result: host
+                        .profile()?
+                        .execute_removal(&request.operation, &request.expected_sha256)?,
+                }),
                 "include-flite-slt" if activation.is_none() => {
                     host.profile()?
                         .include_flite_slt(&local::new_uuid()?, &request.expected_sha256)?;
@@ -180,7 +194,7 @@ fn service(host: Host) -> Result<()> {
                         startup.configuration.as_ref() == Some(&candidate.configuration),
                         "snapshot candidate changed"
                     );
-                    let (path, digest) = startup.save(&host, &local::new_uuid()?)?;
+                    let (path, digest) = startup.save_prepared(&host, &local::new_uuid()?)?;
                     Ok(Reply::Snapshot {
                         startup: path.to_string_lossy().into(),
                         startup_sha256: digest,
@@ -250,6 +264,7 @@ struct Worker {
     tree: platform::Tree,
     readers: Vec<JoinHandle<Result<()>>>,
     cleaned: bool,
+    snapshot: Option<(Host, std::path::PathBuf, String)>,
 }
 impl Worker {
     fn spawn(
@@ -281,6 +296,7 @@ impl Worker {
             tree,
             readers: Vec::new(),
             cleaned: false,
+            snapshot: None,
         });
         // Retain the child before assignment, reader creation or START can
         // fail. The owner can then acknowledge cleanup of a partial attempt.
@@ -316,6 +332,7 @@ impl Worker {
     }
     fn cleanup(&mut self) -> Result<()> {
         if self.cleaned {
+            self.record_retirement()?;
             return Ok(());
         }
         let deadline = Instant::now() + Duration::from_secs(5);
@@ -342,6 +359,14 @@ impl Worker {
                 .map_err(|_| anyhow::anyhow!("speech reader panicked"))??;
         }
         self.cleaned = true;
+        self.record_retirement()?;
+        Ok(())
+    }
+    fn record_retirement(&mut self) -> Result<()> {
+        if let Some((host, path, hash)) = &self.snapshot {
+            omnivox_tts::voice_library::retention::retired(host, path, hash)?;
+            self.snapshot = None;
+        }
         Ok(())
     }
 }
@@ -375,7 +400,14 @@ fn owner(host: Host) -> Result<()> {
         }
         (path, digest) = startup.save(&host, &worker_id)?;
         configuration = startup.configuration.clone();
-        Worker::spawn(&startup, &output, &mut worker)
+        let result = Worker::spawn(&startup, &output, &mut worker);
+        if let Some(worker) = &mut worker {
+            worker.snapshot = Some((host.clone(), path.clone(), digest.clone()));
+        } else {
+            // No worker was created; this snapshot cannot own native assets.
+            omnivox_tts::voice_library::retention::retired(&host, &path, &digest)?;
+        }
+        result
     })();
     let mut startup_error = start.err().map(|error| format!("{error:#}"));
     if startup_error.is_some() {

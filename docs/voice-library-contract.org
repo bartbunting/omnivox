@@ -455,8 +455,14 @@ cleanup finishes. An interrupted connection is not proof of cancellation
 or publication. The service's =acquisition-status= command reads retained
 events for a known operation; nonterminal historical events are not proof
 that a worker is still alive. Failures retain operation files for inspection.
-Automatic resume, updates, deletion and crash/power-loss recovery beyond
+Automatic download resume, updates and crash/power-loss recovery beyond
 existing native admission checks remain further work.
+
+Explicit reviewed removal of managed Piper, Flite and MBROLA packages is
+specified in [[file:VOICE-UNINSTALLATION.md][the uninstallation guide]]. It preserves imported files,
+built-in voices, saved choices and uncertain live references. Package-wide
+removal requires disabled speakers and no active or rollback use; it has a
+retained review, repeated reference checks and resumable partial cleanup.
 
 =tools/verify_voice_acquisition.py= exercises real HTTPS acquisition using
 the existing CI-only Piper model lock, failed-size and cancellation paths,

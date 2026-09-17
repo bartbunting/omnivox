@@ -144,16 +144,15 @@ engine, download size, installed state, and voice-specific terms. Keep runtime,
 language data, model/voice data, and configuration identifiable so update and
 removal can preserve shared dependencies and the working fallback.
 
-**Near-term follow-up, requested 2026-09-17: voice uninstallation.** Add removal
-of downloaded Piper and Flite packages to reclaim disk space; current disable
-and Apply operations retain their files. Omnivox owns managed removal and
-Emacsvox owns the review and confirmation UI. Follow the
-[voice-library contract](../voice-library-contract.org): preserve imported
-files, shared model dependencies, saved palette references and revisions needed
-by active, rollback or live-session generations. Report blocked or partial
-cleanup and actual reclaimed space. Verify shared models, concurrent sessions,
-interrupted removal and reinstallation. This is planned work, not an available
-uninstall command.
+**Voice uninstallation, requested 2026-09-17.** The development local service
+now removes downloaded Piper, Flite and MBROLA packages after explicit review
+in Emacsvox. [Managed voice uninstallation](../VOICE-UNINSTALLATION.md) records
+ownership, shared-speaker checks, active/rollback/session retention, resumable
+cleanup and confirmed file-byte accounting. Imported files, built-in voices,
+engine dependencies and saved palette choices remain. Older snapshots without
+retirement evidence conservatively retain files; they have no force-cleanup
+path. Listening acceptance of the Emacsvox interaction remains separate from
+the native storage and lifecycle checks.
 
 | Engine family | Proposed assistance and current constraint |
 | --- | --- |

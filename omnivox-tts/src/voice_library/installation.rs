@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 mod activation;
 mod imports;
 mod managed;
+pub mod removal;
 pub use activation::Activation;
 #[cfg(test)]
 mod tests;

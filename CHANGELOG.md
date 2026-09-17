@@ -8,6 +8,11 @@ Versioning for published releases.
 
 ### Added
 
+- Reviewed local uninstallation of managed Piper, Flite and MBROLA packages,
+  including shared-speaker impact, active/session reference protection,
+  resumable partial cleanup and confirmed file-byte reporting. Built-in voices,
+  imported files, engine runtimes and saved physical-voice choices are retained.
+
 - Development macOS system-voice streaming begins delivering bounded PCM
   windows before complete synthesis. Cancellation wakes a blocked native queue,
   late callbacks cannot reach a retired request, and missing completion fails

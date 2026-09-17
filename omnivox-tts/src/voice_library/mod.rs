@@ -25,6 +25,7 @@ pub mod installation;
 pub mod local;
 pub mod operations;
 mod projection;
+pub mod retention;
 mod runtime;
 mod verification;
 

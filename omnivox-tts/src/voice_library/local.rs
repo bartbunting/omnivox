@@ -70,6 +70,7 @@ pub enum Reply {
         events: Vec<super::acquisition::Progress>,
     },
     Host {
+        removal_version: u32,
         catalogue_providers: Vec<String>,
         root: String,
         target_id: String,
@@ -95,6 +96,15 @@ pub enum Reply {
         index: IndexDocument,
         sha256: String,
         active: Option<ActivePointer>,
+    },
+    RemovalReview {
+        review: installation::removal::RemovalReview,
+    },
+    Removal {
+        result: installation::removal::RemovalResult,
+    },
+    Removals {
+        reviews: Vec<installation::removal::RemovalReview>,
     },
     Candidate {
         candidate: ActivationCandidate,
@@ -229,6 +239,7 @@ impl Host {
     }
     pub fn reply(&self) -> Reply {
         Reply::Host {
+            removal_version: 1,
             catalogue_providers: vec!["piper".into(), "flite".into(), "mbrola".into()],
             root: self.root.to_string_lossy().into(),
             target_id: self.target_id.clone(),
@@ -348,6 +359,20 @@ impl Startup {
         )
     }
     pub fn save(&self, host: &Host, worker: &str) -> Result<(PathBuf, String), LibraryError> {
+        let _gate = retention::Gate::acquire(&host.root)?;
+        self.save_locked(host, worker)
+    }
+    pub fn save_prepared(
+        &self,
+        host: &Host,
+        worker: &str,
+    ) -> Result<(PathBuf, String), LibraryError> {
+        let _gate = retention::Gate::acquire(&host.root)?;
+        let (path, hash) = self.save_locked(host, worker)?;
+        retention::prepared(host, &path, &hash)?;
+        Ok((path, hash))
+    }
+    fn save_locked(&self, host: &Host, worker: &str) -> Result<(PathBuf, String), LibraryError> {
         uuid(worker)?;
         let path = host.root.join("sessions").join(format!("{worker}.json"));
         let bytes = serde_json::to_vec(self)?;
