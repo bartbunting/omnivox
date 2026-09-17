@@ -11,6 +11,8 @@
 #import <Foundation/Foundation.h>
 #include <time.h>
 #include <math.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 
 // Persistent synthesizer instance
 static AVSpeechSynthesizer *_sharedSynth = nil;
@@ -205,7 +207,9 @@ static const uint64_t StreamIdleNanos = 30ULL * 1000 * 1000 * 1000;
             [condition lock];
             while (count == StreamWindows && !finished && !cancelled) {
                 if (clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - lastProgress > StreamIdleNanos) break;
-                [condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+                @autoreleasepool {
+                    [condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+                }
             }
             if (finished || cancelled) { [condition unlock]; return; }
             if (count == StreamWindows) {
@@ -284,8 +288,10 @@ void *omnivox_stream_open(const char *text, const char *voice_lang,
                                 [capture->condition unlock];
                                 if (done) break;
                                 if (timeout) { [capture finish:SynthCompletionDeadline]; break; }
-                                [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                    beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.005]];
+                                @autoreleasepool {
+                                    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                        beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.005]];
+                                }
                             }
                         }
                     }
@@ -383,17 +389,19 @@ void omnivox_stream_release(void *handle) {
 // work via the main queue; the main thread must be running its RunLoop for
 // those dispatches to be processed. Call this from main() after spawning the
 // reader thread, so synthesis (on the worker thread) doesn't deadlock.
-static volatile BOOL _runloopShouldStop = NO;
+static atomic_bool _runloopShouldStop = false;
 
 void omnivox_run_main_runloop(void) {
-    while (!_runloopShouldStop) {
-        [[NSRunLoop mainRunLoop] runMode:NSDefaultRunLoopMode
-                             beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
+    while (!atomic_load_explicit(&_runloopShouldStop, memory_order_acquire)) {
+        @autoreleasepool {
+            [[NSRunLoop mainRunLoop] runMode:NSDefaultRunLoopMode
+                                 beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
+        }
     }
 }
 
 void omnivox_stop_main_runloop(void) {
-    _runloopShouldStop = YES;
+    atomic_store_explicit(&_runloopShouldStop, true, memory_order_release);
     CFRunLoopStop(CFRunLoopGetMain());
 }
 
