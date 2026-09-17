@@ -5,11 +5,12 @@
 // thread with a live Cocoa RunLoop. Raw POSIX threads (std::thread in Rust)
 // don't qualify. All synthesis is dispatched through a private serial GCD
 // queue whose worker thread is a proper Cocoa-managed thread with a RunLoop.
-// Callers block via a semaphore until synthesis completes.
+// Rust polls a bounded request-owned queue while native synthesis remains active.
 
 #import <AVFoundation/AVFoundation.h>
 #import <Foundation/Foundation.h>
 #include <time.h>
+#include <math.h>
 
 // Persistent synthesizer instance
 static AVSpeechSynthesizer *_sharedSynth = nil;
@@ -95,168 +96,285 @@ static uint64_t elapsedMicroseconds(uint64_t startedAt) {
     return (clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - startedAt) / 1000;
 }
 
-// Result struct returned to Rust
-typedef struct {
-    float *samples;
-    uint32_t sample_count;
-    uint32_t sample_rate;
+// No callback borrows Rust memory. The native owner and any in-flight callback
+// retain this object; late callbacks hold only a weak reference and see a closed
+// capture. Queue entries are bounded independently of Apple's callback sizes.
+enum { StreamWindows = 8, WindowFrames = 512, WindowSamples = 1024 };
+enum {
+    StreamFinished = 1, StreamDelegateFinished = 4, StreamCancelled = 5,
+    StreamInvalidPcm = 6, StreamException = 7, StreamVoiceMissing = 8,
+    StreamLimit = 9,
+};
+static const uint64_t StreamIdleNanos = 30ULL * 1000 * 1000 * 1000;
+
+@interface OmnivoxCapture : NSObject <AVSpeechSynthesizerDelegate> {
+@public
+    NSCondition *condition;
+    NSLock *producerLock;
+    float windows[StreamWindows][WindowSamples];
+    uint32_t counts[StreamWindows];
+    unsigned head, count;
+    uint32_t sampleRate;
     uint16_t channels;
+    uint64_t totalSamples, startedAt, lastProgress;
+    BOOL finished, cancelled, retired;
+    uint32_t reason;
     SynthTimings timings;
-} SynthResult;
+    AVSpeechUtterance *expectedUtterance;
+}
+- (void)finish:(uint32_t)completion;
+- (void)consume:(AVAudioBuffer *)buffer;
+@end
 
-// Core synthesis — must be called on a GCD thread (synthQueue) so the RunLoop
-// pump picks up AVSpeechSynthesizer callbacks.
-static SynthResult do_synthesize(
-    NSString *nsText,
-    NSString *lang,
-    NSString *name,
-    float rate,
-    float pitch,
-    float volume,
-    uint64_t startedAt
-) {
-    SynthResult result = {0};
-    result.timings.queue_wait_us = elapsedMicroseconds(startedAt);
-
-    @autoreleasepool {
-        AVSpeechSynthesizer *synth = sharedSynthesizer();
-
-        // Stop any ongoing speech first
-        if (synth.isSpeaking) {
-            [synth stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
-            [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                     beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+@implementation OmnivoxCapture
+- (instancetype)init {
+    if ((self = [super init])) {
+        condition = [[NSCondition alloc] init];
+        producerLock = [[NSLock alloc] init];
+        startedAt = lastProgress = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+        timings.first_buffer_us = timings.last_buffer_us = UINT64_MAX;
+        timings.completion_signal_us = UINT64_MAX;
+    }
+    return self;
+}
+- (void)finish:(uint32_t)completion {
+    [condition lock];
+    if (!finished) {
+        finished = YES;
+        reason = completion;
+        timings.completion_reason = completion;
+        timings.completion_signal_us = elapsedMicroseconds(startedAt);
+        if (completion != StreamFinished && completion != StreamDelegateFinished) count = 0;
+    }
+    [condition broadcast];
+    [condition unlock];
+}
+- (void)speechSynthesizer:(AVSpeechSynthesizer *)synth didFinishSpeechUtterance:(AVSpeechUtterance *)utterance {
+    if (utterance != expectedUtterance) return;
+    // Serialize completion with a callback currently publishing its last window.
+    [producerLock lock];
+    [self finish:StreamDelegateFinished];
+    [producerLock unlock];
+}
+- (void)speechSynthesizer:(AVSpeechSynthesizer *)synth didCancelSpeechUtterance:(AVSpeechUtterance *)utterance {
+    if (utterance == expectedUtterance) [self finish:StreamCancelled];
+}
+- (void)consume:(AVAudioBuffer *)buffer {
+    [producerLock lock];
+    @try {
+        if (![buffer isKindOfClass:[AVAudioPCMBuffer class]]) {
+            [self finish:StreamInvalidPcm];
+            return;
         }
-
-        AVSpeechUtterance *utterance = [AVSpeechUtterance speechUtteranceWithString:nsText];
-
-        // Set voice
-        if (lang != nil) {
-            utterance.voice = cachedVoice(lang, name);
+        AVAudioPCMBuffer *pcm = (AVAudioPCMBuffer *)buffer;
+        if (pcm.frameLength == 0) {
+            [self finish:StreamFinished];
+            return;
         }
+        double rate = pcm.format.sampleRate;
+        uint32_t channelCount = pcm.format.channelCount;
+        float * const *data = pcm.floatChannelData;
+        if (!isfinite(rate) || rate < 1 || rate > 384000 || floor(rate) != rate ||
+            channelCount < 1 || channelCount > 2 || data == NULL) {
+            [self finish:StreamInvalidPcm];
+            return;
+        }
+        [condition lock];
+        if (finished || cancelled) { [condition unlock]; return; }
+        if (sampleRate != 0 && (sampleRate != (uint32_t)rate || channels != channelCount)) {
+            [condition unlock];
+            [self finish:StreamInvalidPcm];
+            return;
+        }
+        sampleRate = (uint32_t)rate;
+        channels = (uint16_t)channelCount;
+        uint64_t samples = (uint64_t)pcm.frameLength * channels;
+        if (samples > (128ULL * 1024 * 1024 / sizeof(float)) - totalSamples) {
+            [condition unlock];
+            [self finish:StreamLimit];
+            return;
+        }
+        totalSamples += samples;
+        uint64_t arrived = elapsedMicroseconds(startedAt);
+        if (timings.first_buffer_us == UINT64_MAX) timings.first_buffer_us = arrived;
+        timings.last_buffer_us = arrived;
+        timings.buffers_received++;
+        [condition unlock];
 
-        utterance.rate = rate;
-        utterance.pitchMultiplier = pitch;
-        utterance.volume = volume;
-
-        // Collect PCM chunks
-        NSMutableData *audioData = [NSMutableData data];
-        __block uint32_t sampleRate = 0;
-        __block uint16_t channelCount = 0;
-        __block BOOL synthesisComplete = NO;
-        __block uint32_t chunksReceived = 0;
-        __block uint64_t firstBufferUs = UINT64_MAX;
-        __block uint64_t lastBufferUs = UINT64_MAX;
-        __block uint64_t completionSignalUs = UINT64_MAX;
-
-        result.timings.write_started_us = elapsedMicroseconds(startedAt);
-        [synth writeUtterance:utterance toBufferCallback:^(AVAudioBuffer * _Nonnull buffer) {
-            uint64_t arrivedUs = elapsedMicroseconds(startedAt);
-            AVAudioPCMBuffer *pcm = (AVAudioPCMBuffer *)buffer;
-
-            if (pcm.frameLength == 0) {
-                if (completionSignalUs == UINT64_MAX) completionSignalUs = arrivedUs;
-                synthesisComplete = YES;
+        for (uint32_t first = 0; first < pcm.frameLength;) {
+            [condition lock];
+            while (count == StreamWindows && !finished && !cancelled) {
+                if (clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - lastProgress > StreamIdleNanos) break;
+                [condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+            }
+            if (finished || cancelled) { [condition unlock]; return; }
+            if (count == StreamWindows) {
+                [condition unlock];
+                [self finish:SynthCompletionDeadline];
                 return;
             }
-
-            sampleRate = (uint32_t)pcm.format.sampleRate;
-            channelCount = (uint16_t)pcm.format.channelCount;
-
-            float * const *floatData = pcm.floatChannelData;
-            if (floatData == NULL) return;
-
-            if (firstBufferUs == UINT64_MAX) firstBufferUs = arrivedUs;
-            lastBufferUs = arrivedUs;
-            for (uint32_t frame = 0; frame < pcm.frameLength; frame++) {
-                for (uint16_t ch = 0; ch < channelCount; ch++) {
-                    float sample = floatData[ch][frame];
-                    [audioData appendBytes:&sample length:sizeof(float)];
+            uint32_t frames = MIN(WindowFrames, pcm.frameLength - first);
+            unsigned tail = (head + count) % StreamWindows;
+            for (uint32_t frame = 0; frame < frames; frame++) {
+                for (uint16_t ch = 0; ch < channels; ch++) {
+                    windows[tail][frame * channels + ch] = pcm.format.isInterleaved
+                        ? data[0][(first + frame) * channels + ch] : data[ch][first + frame];
                 }
             }
-            chunksReceived++;
-        }];
+            counts[tail] = frames * channels;
+            count++;
+            lastProgress = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+            [condition broadcast];
+            [condition unlock];
+            first += frames;
+        }
+    } @catch (NSException *exception) {
+        [self finish:StreamException];
+    } @finally {
+        [producerLock unlock];
+    }
+}
+@end
 
-        // Pump this thread's RunLoop until callbacks arrive and synthesis finishes.
-        // On a GCD thread the RunLoop is properly initialized, so this works.
-        NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:30.0];
-        uint32_t lastChunkCount = 0;
-        NSDate *lastChunkTime = [NSDate date];
-        result.timings.completion_reason = SynthCompletionDeadline;
-
-        while ([[NSDate date] compare:deadline] == NSOrderedAscending) {
-            [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
-                                     beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
-
-            if (synthesisComplete) {
-                result.timings.completion_reason = SynthCompletionEmptyBuffer;
-                break;
-            }
-
-            // If chunks have stopped arriving for 200ms, consider synthesis done.
-            // (Some macOS versions omit the frameLength==0 completion signal.)
-            if (chunksReceived > 0) {
-                if (chunksReceived != lastChunkCount) {
-                    lastChunkCount = chunksReceived;
-                    lastChunkTime = [NSDate date];
-                } else if ([[NSDate date] timeIntervalSinceDate:lastChunkTime] > 0.2) {
-                    result.timings.completion_reason = SynthCompletionInactivity;
-                    break;
+void *omnivox_stream_open(const char *text, const char *voice_lang,
+                          const char *voice_name, const char *voice_identifier,
+                          float rate, float pitch, float volume) {
+    @autoreleasepool {
+        OmnivoxCapture *capture = [[OmnivoxCapture alloc] init];
+        NSString *nsText = [NSString stringWithUTF8String:text];
+        NSString *lang = voice_lang ? [NSString stringWithUTF8String:voice_lang] : nil;
+        NSString *name = voice_name ? [NSString stringWithUTF8String:voice_name] : nil;
+        NSString *identifier = voice_identifier ? [NSString stringWithUTF8String:voice_identifier] : nil;
+        dispatch_async(synthQueue(), ^{
+            @autoreleasepool {
+                AVSpeechSynthesizer *synth = nil;
+                @try {
+                    [capture->condition lock];
+                    BOOL cancelled = capture->cancelled;
+                    capture->timings.queue_wait_us = elapsedMicroseconds(capture->startedAt);
+                    [capture->condition unlock];
+                    if (!cancelled) {
+                        synth = sharedSynthesizer();
+                        AVSpeechUtterance *utterance = [AVSpeechUtterance speechUtteranceWithString:nsText];
+                        AVSpeechSynthesisVoice *voice = identifier
+                            ? [AVSpeechSynthesisVoice voiceWithIdentifier:identifier] : cachedVoice(lang, name);
+                        if (voice == nil && (identifier != nil || lang != nil)) {
+                            [capture finish:StreamVoiceMissing];
+                        } else {
+                            utterance.voice = voice;
+                            utterance.rate = rate;
+                            utterance.pitchMultiplier = pitch;
+                            utterance.volume = volume;
+                            capture->expectedUtterance = utterance;
+                            synth.delegate = capture;
+                            [capture->condition lock];
+                            capture->timings.write_started_us = elapsedMicroseconds(capture->startedAt);
+                            capture->lastProgress = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+                            [capture->condition unlock];
+                            __weak OmnivoxCapture *weakCapture = capture;
+                            [synth writeUtterance:utterance toBufferCallback:^(AVAudioBuffer *buffer) {
+                                OmnivoxCapture *active = weakCapture;
+                                if (active != nil) [active consume:buffer];
+                            }];
+                            for (;;) {
+                                [capture->condition lock];
+                                BOOL done = capture->finished || capture->cancelled;
+                                BOOL timeout = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - capture->lastProgress > StreamIdleNanos;
+                                [capture->condition unlock];
+                                if (done) break;
+                                if (timeout) { [capture finish:SynthCompletionDeadline]; break; }
+                                [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode
+                                    beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.005]];
+                            }
+                        }
+                    }
+                } @catch (NSException *exception) {
+                    [capture finish:StreamException];
+                } @finally {
+                    // Closing this request precedes native retirement. The next
+                    // request cannot reuse the synthesizer until Rust observes it.
+                    [capture->condition lock];
+                    BOOL succeeded = capture->finished && !capture->cancelled &&
+                        (capture->reason == StreamFinished || capture->reason == StreamDelegateFinished);
+                    [capture->condition unlock];
+                    if (!succeeded) [capture finish:StreamCancelled];
+                    @try {
+                        if (synth != nil) {
+                            if (!succeeded) [synth stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
+                            synth.delegate = nil;
+                        }
+                    } @catch (NSException *exception) {
+                        // Do not acknowledge retirement after a native stop failure.
+                        [capture finish:StreamException];
+                        return;
+                    }
+                    [capture->condition lock];
+                    capture->timings.capture_completed_us = elapsedMicroseconds(capture->startedAt);
+                    capture->retired = YES;
+                    [capture->condition broadcast];
+                    [capture->condition unlock];
                 }
             }
-        }
-
-        result.timings.capture_completed_us = elapsedMicroseconds(startedAt);
-        result.timings.first_buffer_us = firstBufferUs;
-        result.timings.last_buffer_us = lastBufferUs;
-        result.timings.completion_signal_us = completionSignalUs;
-        result.timings.buffers_received = chunksReceived;
-
-        if (audioData.length > 0) {
-            uint32_t totalSamples = (uint32_t)(audioData.length / sizeof(float));
-            result.samples = (float *)malloc(audioData.length);
-            memcpy(result.samples, audioData.bytes, audioData.length);
-            result.sample_count = totalSamples;
-            result.sample_rate = sampleRate;
-            result.channels = channelCount;
-        }
+        });
+        return (__bridge_retained void *)capture;
     }
-
-    return result;
 }
 
-SynthResult omnivox_synthesize(
-    const char *text,
-    const char *voice_lang,
-    const char *voice_name,
-    float rate,
-    float pitch,
-    float volume
-) {
-    uint64_t startedAt = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
-    // Convert C strings to NSStrings on the calling thread before dispatching.
-    NSString *nsText     = [NSString stringWithUTF8String:text];
-    NSString *nsLang     = voice_lang ? [NSString stringWithUTF8String:voice_lang] : nil;
-    NSString *nsName     = voice_name ? [NSString stringWithUTF8String:voice_name] : nil;
-
-    __block SynthResult result = {0};
-    dispatch_semaphore_t done = dispatch_semaphore_create(0);
-
-    dispatch_async(synthQueue(), ^{
-        result = do_synthesize(nsText, nsLang, nsName, rate, pitch, volume, startedAt);
-        dispatch_semaphore_signal(done);
-    });
-
-    dispatch_semaphore_wait(done, DISPATCH_TIME_FOREVER);
-    result.timings.bridge_elapsed_us = elapsedMicroseconds(startedAt);
-    return result;
+// 1: audio, 0: pending, 2: explicit native completion, -1: failure.
+int omnivox_stream_next(void *handle, float *samples, uint32_t *sample_count,
+                       uint32_t *sample_rate, uint16_t *channels, uint32_t *reason) {
+    @autoreleasepool {
+        OmnivoxCapture *capture = (__bridge OmnivoxCapture *)handle;
+        [capture->condition lock];
+        if (capture->count == 0 && !capture->finished && !capture->cancelled)
+            [capture->condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+        int status = 0;
+        *reason = capture->reason;
+        if (capture->cancelled) status = -1;
+        else if (capture->count > 0) {
+            *sample_count = capture->counts[capture->head];
+            *sample_rate = capture->sampleRate;
+            *channels = capture->channels;
+            memcpy(samples, capture->windows[capture->head], *sample_count * sizeof(float));
+            capture->head = (capture->head + 1) % StreamWindows;
+            capture->count--;
+            capture->lastProgress = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+            [capture->condition broadcast];
+            status = 1;
+        } else if (capture->finished) {
+            status = (capture->reason == StreamFinished || capture->reason == StreamDelegateFinished) ? 2 : -1;
+        }
+        [capture->condition unlock];
+        return status;
+    }
 }
 
-void omnivox_stop(void) {
-    AVSpeechSynthesizer *synth = sharedSynthesizer();
-    if (synth.isSpeaking) {
-        [synth stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
-    }
+void omnivox_stream_cancel(void *handle) {
+    OmnivoxCapture *capture = (__bridge OmnivoxCapture *)handle;
+    [capture->condition lock];
+    capture->cancelled = YES;
+    capture->count = 0;
+    [capture->condition broadcast];
+    [capture->condition unlock];
+}
+int omnivox_stream_retired(void *handle) {
+    OmnivoxCapture *capture = (__bridge OmnivoxCapture *)handle;
+    [capture->condition lock];
+    int retired = capture->retired;
+    [capture->condition unlock];
+    return retired;
+}
+SynthTimings omnivox_stream_timings(void *handle) {
+    OmnivoxCapture *capture = (__bridge OmnivoxCapture *)handle;
+    [capture->condition lock];
+    SynthTimings timings = capture->timings;
+    timings.bridge_elapsed_us = elapsedMicroseconds(capture->startedAt);
+    [capture->condition unlock];
+    return timings;
+}
+void omnivox_stream_release(void *handle) {
+    // In-flight native work retains its own owner, never a pointer into Rust.
+    (void)CFBridgingRelease(handle);
 }
 
 // Run the main NSRunLoop until omnivox_stop_main_runloop() is called.
@@ -276,16 +394,6 @@ void omnivox_run_main_runloop(void) {
 void omnivox_stop_main_runloop(void) {
     _runloopShouldStop = YES;
     CFRunLoopStop(CFRunLoopGetMain());
-}
-
-BOOL omnivox_is_speaking(void) {
-    return sharedSynthesizer().isSpeaking;
-}
-
-void omnivox_free_samples(float *samples) {
-    if (samples != NULL) {
-        free(samples);
-    }
 }
 
 // Voice listing

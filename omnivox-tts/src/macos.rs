@@ -4,8 +4,6 @@
 //! AVSpeechSynthesizer.write(_:toBufferCallback:). The bridge is compiled
 //! by build.rs and linked in statically.
 
-#[cfg(target_os = "macos")]
-use crate::contracts::PhysicalVoiceId;
 #[cfg(any(target_os = "macos", test))]
 use crate::contracts::VoiceDescriptor;
 use crate::contracts::{
@@ -14,12 +12,17 @@ use crate::contracts::{
     MarkerCapabilities,
 };
 #[cfg(target_os = "macos")]
-use crate::{AudioBuffer, VoiceQuality};
+use crate::VoiceQuality;
 use crate::{SynthesisRequest, SynthesisResult, TtsEngine, TtsError, VoiceInfo};
 #[cfg(any(target_os = "macos", test))]
 use std::sync::OnceLock;
 #[cfg(target_os = "macos")]
 use tracing::{debug, info};
+
+#[cfg(target_os = "macos")]
+mod native;
+#[cfg(any(target_os = "macos", test))]
+mod stream;
 
 fn macos_capabilities() -> EngineCapabilities {
     EngineCapabilities {
@@ -29,7 +32,7 @@ fn macos_capabilities() -> EngineCapabilities {
             volume: true,
             ..AcssCapabilities::default()
         },
-        audio_output: AudioOutputMode::BufferedPcm,
+        audio_output: AudioOutputMode::StreamingPcm,
         cancellation: CancellationSupport::SynthesisAndPlayback,
         concurrency: ConcurrencyModel::Serialized,
         markers: MarkerCapabilities::default(),
@@ -122,23 +125,24 @@ impl SynthTimings {
     }
 
     fn completion_reason_name(&self) -> &'static str {
-        match self.completion_reason {
-            1 => "empty_buffer",
-            2 => "inactivity_timeout",
-            3 => "deadline",
-            _ => "unknown",
-        }
+        completion_reason_name(self.completion_reason)
     }
 }
 
-#[cfg(target_os = "macos")]
-#[repr(C)]
-struct SynthResult {
-    samples: *mut f32,
-    sample_count: u32,
-    sample_rate: u32,
-    channels: u16,
-    timings: SynthTimings,
+#[cfg(any(target_os = "macos", test))]
+fn completion_reason_name(reason: u32) -> &'static str {
+    match reason {
+        1 => "empty_buffer",
+        2 => "inactivity_timeout", // Historical timing reports only.
+        3 => "deadline",
+        4 => "delegate_finished",
+        5 => "cancelled",
+        6 => "invalid_pcm",
+        7 => "native_exception",
+        8 => "voice_missing",
+        9 => "pcm_limit",
+        _ => "unknown",
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -158,18 +162,6 @@ struct VoiceList {
 
 #[cfg(target_os = "macos")]
 extern "C" {
-    fn omnivox_synthesize(
-        text: *const std::ffi::c_char,
-        voice_lang: *const std::ffi::c_char,
-        voice_name: *const std::ffi::c_char,
-        rate: f32,
-        pitch: f32,
-        volume: f32,
-    ) -> SynthResult;
-
-    fn omnivox_free_samples(samples: *mut f32);
-    fn omnivox_stop();
-    fn omnivox_is_speaking() -> bool;
     fn omnivox_list_voices() -> VoiceList;
     fn omnivox_free_voice_list(list: VoiceList);
     fn omnivox_run_main_runloop();
@@ -279,110 +271,27 @@ impl TtsEngine for MacOsTtsEngine {
     }
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
-        let text = request.text.as_str();
-        let settings = &request.settings;
-        debug!(
-            "Synthesizing: {} (rate: {}, pitch: {}, volume: {})",
-            text, settings.rate, settings.pitch, settings.volume
-        );
+        let mut collector = stream::Collector::default();
+        native::synthesize(request, &mut collector)?;
+        collector
+            .result
+            .ok_or_else(|| stream::failed("missing stream start"))
+    }
 
-        if text.is_empty() {
-            return Ok(SynthesisResult::audio("macos", None, AudioBuffer::empty()));
-        }
-
-        let voice_id = request.voice_id_for_engine("macos")?;
-        let selected_voice = VOICE_CACHE
-            .voices()
-            .iter()
-            .find(|voice| voice.identifier == voice_id);
-        let actual_voice = selected_voice
-            .as_ref()
-            .map(|voice| PhysicalVoiceId::new("macos", voice.identifier.clone()));
-
-        let c_text = std::ffi::CString::new(text)
-            .map_err(|_| TtsError::SynthesisFailed("Invalid text".to_string()))?;
-
-        let (lang, name) = selected_voice.map_or_else(
-            || Self::parse_voice_id(voice_id),
-            |voice| (Some(voice.language.clone()), Some(voice.name.clone())),
-        );
-
-        let c_lang = lang
-            .as_ref()
-            .and_then(|l| std::ffi::CString::new(l.as_str()).ok());
-        let c_name = name
-            .as_ref()
-            .and_then(|n| std::ffi::CString::new(n.as_str()).ok());
-
-        let lang_ptr = c_lang.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
-        let name_ptr = c_name.as_ref().map_or(std::ptr::null(), |c| c.as_ptr());
-
-        let result = unsafe {
-            omnivox_synthesize(
-                c_text.as_ptr(),
-                lang_ptr,
-                name_ptr,
-                settings.rate,
-                settings.pitch,
-                settings.volume,
-            )
-        };
-
-        // Log on the Rust caller so the existing speech_request span carries
-        // its dispatch identity. Avoid I/O in Apple's audio buffer callback.
-        let timings = &result.timings;
-        info!(
-            lifecycle_stage = "macos_buffer_capture",
-            engine_id = "macos",
-            queue_wait_us = timings.queue_wait_us,
-            write_started_us = timings.write_started_us,
-            first_buffer_us = ?SynthTimings::observed_us(timings.first_buffer_us),
-            last_buffer_us = ?SynthTimings::observed_us(timings.last_buffer_us),
-            completion_signal_us = ?SynthTimings::observed_us(timings.completion_signal_us),
-            capture_completed_us = timings.capture_completed_us,
-            bridge_elapsed_us = timings.bridge_elapsed_us,
-            first_buffer_to_return_us = ?timings.first_buffer_to_return_us(),
-            last_buffer_to_completion_us = ?timings.last_buffer_to_completion_us(),
-            buffers_received = timings.buffers_received,
-            completion_reason = timings.completion_reason_name(),
-            "macOS speech buffer capture timings"
-        );
-
-        if result.samples.is_null() || result.sample_count == 0 {
-            debug!("Synthesis produced no audio data");
-            return Err(TtsError::SynthesisFailed(
-                "AVSpeechSynthesizer produced no audio data".to_owned(),
-            ));
-        }
-
-        debug!(
-            "Collected {} samples at {}Hz, {} channels",
-            result.sample_count, result.sample_rate, result.channels
-        );
-
-        // Copy samples from C allocation into Rust Vec
-        let samples = unsafe {
-            let slice = std::slice::from_raw_parts(result.samples, result.sample_count as usize);
-            let vec = slice.to_vec();
-            omnivox_free_samples(result.samples);
-            vec
-        };
-
-        let buffer =
-            AudioBuffer::try_from_interleaved_f32(samples, result.sample_rate, result.channels)
-                .map_err(|error| {
-                    TtsError::SynthesisFailed(format!("could not canonicalize macOS PCM: {error}"))
-                })?;
-        Ok(SynthesisResult::audio("macos", actual_voice, buffer))
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn crate::SynthesisStreamSink,
+    ) -> Result<crate::SynthesisStreamCompletion, TtsError> {
+        native::synthesize(request, sink)
     }
 
     fn stop(&self) {
-        debug!("Stopping speech");
-        unsafe { omnivox_stop() };
+        native::stop();
     }
 
     fn is_speaking(&self) -> bool {
-        unsafe { omnivox_is_speaking() }
+        native::is_speaking()
     }
 
     fn available_voices(&self) -> Vec<VoiceInfo> {

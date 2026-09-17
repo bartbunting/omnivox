@@ -1,0 +1,45 @@
+name: macOS Streaming Acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['ci/macos-streaming-*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-streaming-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  streaming:
+    name: Streaming ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.97.1
+      - name: Native bridge lifecycle regressions
+        run: |
+          clang -fobjc-arc -fmodules -framework Foundation -framework AVFoundation \
+            tools/test_macos_streaming.m -o /tmp/omnivox-macos-bridge-tests
+          /tmp/omnivox-macos-bridge-tests
+      - name: Rust adapter regressions
+        run: cargo test --locked -p omnivox-tts --no-default-features macos::
+      - name: Lint native adapter and probe
+        run: cargo clippy --locked -p omnivox-tts --no-default-features --all-targets -- -D warnings
+      - name: Native speech acceptance without playback
+        run: |
+          set -o pipefail
+          cargo run --locked -p omnivox-tts --no-default-features --example macos_streaming_probe 2>&1 | tee macos-streaming.log
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: streaming-${{ matrix.os }}
+          path: macos-streaming.log
+          if-no-files-found: ignore
