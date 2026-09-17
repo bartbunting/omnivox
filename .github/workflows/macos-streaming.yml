@@ -35,12 +35,20 @@ jobs:
       - name: Lint native adapter and probe
         run: cargo clippy --locked -p omnivox-tts --no-default-features --all-targets -- -D warnings
       - name: Native speech acceptance without playback
+        timeout-minutes: 5
         run: |
           set -o pipefail
           cargo run --locked -p omnivox-tts --no-default-features --example macos_streaming_probe 2>&1 | tee macos-streaming.log
+      - name: Stage the complete native server payload
+        run: python3 tools/build.py --package omnivox-cli
+      - name: Full-server concurrent speech lanes
+        timeout-minutes: 8
+        run: python3 tools/verify_macos_streaming.py target/debug/omnivox macos-streaming.log macos-server-evidence
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: streaming-${{ matrix.os }}
-          path: macos-streaming.log
+          path: |
+            macos-streaming.log
+            macos-server-evidence/
           if-no-files-found: ignore

@@ -214,6 +214,24 @@ mod tests {
 
     #[test]
     fn audio_is_emitted_before_native_completion_and_anchors_remain_omitted() {
+        use std::cell::Cell;
+        struct Observed<'a>(&'a Cell<usize>, Collector);
+        impl SynthesisStreamSink for Observed<'_> {
+            fn start(&mut self, start: SynthesisStreamStart) -> Result<(), TtsError> {
+                self.1.start(start)
+            }
+            fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+                self.0.set(self.0.get() + audio.frame_count());
+                self.1.audio(audio)
+            }
+            fn markers(
+                &mut self,
+                markers: Vec<crate::SynthesisMarker>,
+                anchors: Vec<crate::ResolvedAnchor>,
+            ) -> Result<(), TtsError> {
+                self.1.markers(markers, anchors)
+            }
+        }
         let request = SynthesisRequest::new("test", TtsSettings::default())
             .with_anchors(vec![RequestedAnchor::new(
                 "anchor",
@@ -221,18 +239,20 @@ mod tests {
                 AnchorAffinity::Before,
             )])
             .unwrap();
-        let mut collector = Collector::default();
+        let observed = Cell::new(0);
+        let mut collector = Observed(&observed, Collector::default());
         let mut stream = Stream::new(&request, None, &mut collector);
         stream.push(&[0.25; 512], 44100, 1).unwrap();
+        assert_eq!(observed.get(), 512, "audio must arrive before finish");
         stream.finish().unwrap();
-        let result = collector.result.unwrap();
+        let result = collector.1.result.unwrap();
         assert_eq!(result.audio.frame_count(), 512);
         assert_eq!(result.anchors[0].resolution, AnchorResolution::Omitted);
         assert_eq!(result.anchors[0].frame_offset, None);
     }
 
     #[test]
-    fn format_change_and_invalid_pcm_cannot_be_reported_as_success() {
+    fn rejects_format_changes_and_invalid_pcm() {
         let request = SynthesisRequest::new("test", TtsSettings::default());
         let mut collector = Collector::default();
         let mut stream = Stream::new(&request, None, &mut collector);

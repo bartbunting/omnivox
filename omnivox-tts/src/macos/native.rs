@@ -234,5 +234,8 @@ pub(super) fn synthesize(
         "macOS speech buffer capture timings"
     );
     retired?;
+    if cancelled(request, epoch) {
+        return Err(stream::failed("cancelled during retirement"));
+    }
     outcome
 }

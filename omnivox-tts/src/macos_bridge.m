@@ -258,7 +258,8 @@ void *omnivox_stream_open(const char *text, const char *voice_lang,
                         AVSpeechUtterance *utterance = [AVSpeechUtterance speechUtteranceWithString:nsText];
                         AVSpeechSynthesisVoice *voice = identifier
                             ? [AVSpeechSynthesisVoice voiceWithIdentifier:identifier] : cachedVoice(lang, name);
-                        if (voice == nil && (identifier != nil || lang != nil)) {
+                        if ((voice == nil && (identifier != nil || lang != nil)) ||
+                            (identifier != nil && ![voice.identifier isEqualToString:identifier])) {
                             [capture finish:StreamVoiceMissing];
                         } else {
                             utterance.voice = voice;
