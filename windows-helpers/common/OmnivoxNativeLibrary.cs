@@ -126,6 +126,16 @@ internal sealed class OmnivoxNativeLibrary : IDisposable
             typeof(T));
     }
 
+    // Optional exports never become a requirement for ordinary synthesis.
+    internal T ResolveOptional<T>(string export) where T : class
+    {
+        if (module == IntPtr.Zero)
+            throw new ObjectDisposedException("OmnivoxNativeLibrary");
+        IntPtr address = GetProcAddress(module, export);
+        return address == IntPtr.Zero ? null :
+            (T)(object)Marshal.GetDelegateForFunctionPointer(address, typeof(T));
+    }
+
     public void Dispose()
     {
         if (module != IntPtr.Zero)

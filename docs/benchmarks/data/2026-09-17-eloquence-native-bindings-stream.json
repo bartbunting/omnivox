@@ -1,0 +1,184 @@
+{
+  "configuration": {
+    "cancel_every": 0,
+    "cancel_probe": false,
+    "engine_id": "eloquence",
+    "health_every": 5,
+    "helper_argument_count": 1,
+    "helper_name": "OmnivoxEloquenceHelper32.exe",
+    "iterations": 20,
+    "require_streaming": true,
+    "required_acss": [
+      "rate",
+      "average_pitch",
+      "pitch_range",
+      "stress",
+      "richness",
+      "volume"
+    ],
+    "resource_sample_every": 0,
+    "voice_id": "v1"
+  },
+  "created_at": "2026-09-17T12:51:50.041837+00:00",
+  "helper": {
+    "capabilities": {
+      "acss": {
+        "average_pitch": true,
+        "pitch_range": true,
+        "rate": true,
+        "richness": true,
+        "stress": true,
+        "volume": true
+      },
+      "audio_output": "streaming_pcm",
+      "cancellation": "synthesis_and_playback",
+      "concurrency": {
+        "mode": "serialized"
+      },
+      "language_switching": false,
+      "markers": {
+        "native_index": false,
+        "phoneme": false,
+        "requested_anchors": "exact",
+        "sentence": true,
+        "word": true
+      },
+      "native_extensions": [],
+      "text_repertoire": "windows_1252"
+    },
+    "engine_id": "eloquence",
+    "version": "6.1.0.0",
+    "voice_id": "v1"
+  },
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "report_version": 1,
+  "resources": {
+    "error": null,
+    "process_id": 19152,
+    "provider": "windows-cim",
+    "samples": [
+      {
+        "cpu_100ns": 3281250,
+        "elapsed_ms": 7860.98168999888,
+        "handle_count": 318,
+        "iteration": 0,
+        "phase": "started",
+        "private_bytes": 13086720,
+        "thread_count": 9,
+        "working_set_bytes": 22851584
+      },
+      {
+        "cpu_100ns": 4375000,
+        "elapsed_ms": 12303.419821997522,
+        "handle_count": 369,
+        "iteration": 0,
+        "phase": "ready",
+        "private_bytes": 17747968,
+        "thread_count": 10,
+        "working_set_bytes": 30289920
+      },
+      {
+        "cpu_100ns": 11093750,
+        "elapsed_ms": 17286.190165992593,
+        "handle_count": 403,
+        "iteration": 20,
+        "phase": "before_shutdown",
+        "private_bytes": 22876160,
+        "thread_count": 10,
+        "working_set_bytes": 36175872
+      }
+    ],
+    "steady_state_summary": {
+      "metrics": {
+        "cpu_100ns": {
+          "first": 4375000,
+          "growth": 6718750,
+          "last": 11093750,
+          "maximum": 11093750,
+          "minimum": 4375000
+        },
+        "handle_count": {
+          "first": 369,
+          "growth": 34,
+          "last": 403,
+          "maximum": 403,
+          "minimum": 369
+        },
+        "private_bytes": {
+          "first": 17747968,
+          "growth": 5128192,
+          "last": 22876160,
+          "maximum": 22876160,
+          "minimum": 17747968
+        },
+        "thread_count": {
+          "first": 10,
+          "growth": 0,
+          "last": 10,
+          "maximum": 10,
+          "minimum": 10
+        },
+        "working_set_bytes": {
+          "first": 30289920,
+          "growth": 5885952,
+          "last": 36175872,
+          "maximum": 36175872,
+          "minimum": 30289920
+        }
+      },
+      "sample_count": 2
+    },
+    "summary": {
+      "metrics": {
+        "cpu_100ns": {
+          "first": 3281250,
+          "growth": 7812500,
+          "last": 11093750,
+          "maximum": 11093750,
+          "minimum": 3281250
+        },
+        "handle_count": {
+          "first": 318,
+          "growth": 85,
+          "last": 403,
+          "maximum": 403,
+          "minimum": 318
+        },
+        "private_bytes": {
+          "first": 13086720,
+          "growth": 9789440,
+          "last": 22876160,
+          "maximum": 22876160,
+          "minimum": 13086720
+        },
+        "thread_count": {
+          "first": 9,
+          "growth": 1,
+          "last": 10,
+          "maximum": 10,
+          "minimum": 9
+        },
+        "working_set_bytes": {
+          "first": 22851584,
+          "growth": 13324288,
+          "last": 36175872,
+          "maximum": 36175872,
+          "minimum": 22851584
+        }
+      },
+      "sample_count": 3
+    }
+  },
+  "result": {
+    "cancellation_probes": 0,
+    "duration_seconds": 17.369891180002014,
+    "frames": 561539,
+    "markers": 293,
+    "pcm_bytes": 1123078,
+    "status": "completed",
+    "syntheses": 20
+  }
+}

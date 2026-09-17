@@ -28,6 +28,14 @@ unknown default values, separate choices for the same physical voice, stale
 runtime evidence and all-or-nothing native validation. They exercise planning;
 they do not establish native reset, actual synthesis fallback or cancellation.
 
+The Windows helpers now contain optional ECI voice APIs and DECtalk parameter
+readback. The [binding audit](benchmarks/2026-09-17-native-parameter-bindings.md)
+checks their endpoints, ordinary resets, unit-mode guards and missing bindings
+against the installed runtimes. These methods are not yet called by the speech
+protocol; helper 6 and native cancellation/failure acceptance remain pending.
+The binding audit also reproduces a pre-existing cancel-acknowledgement ordering
+race in the Windows host. Resolve that before connecting the native request path.
+
 This module is not connected to existing speech paths. Common speech behavior
 and capability advertisements remain unchanged. Next implement qualified helper
 execution and native profiles, followed by transport, receipts and the Emacs

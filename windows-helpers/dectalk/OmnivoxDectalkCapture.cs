@@ -41,6 +41,18 @@ internal sealed class OmnivoxNativeDectalk : IDisposable
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate uint VersionFunction(out IntPtr version);
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint GetSpeakerParamsFunction(IntPtr handle, uint index,
+        out IntPtr current, out IntPtr minimum, out IntPtr maximum,
+        out IntPtr defaults);
+
+    private readonly GetSpeakerParamsFunction getSpeakerParams;
+    // Initialized, documented SPDEFS fields only. Reserved slots are not data.
+    private static readonly int[] SpeakerFieldOffsets = {
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+        16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30
+    };
+
     private readonly OmnivoxNativeLibrary library;
     private readonly StartupFunction startup;
     private readonly HandleFunction shutdown;
@@ -83,6 +95,8 @@ internal sealed class OmnivoxNativeDectalk : IDisposable
             addBuffer = library.Resolve<AddBufferFunction>(
                 "TextToSpeechAddBuffer");
             version = library.Resolve<VersionFunction>("TextToSpeechVersion");
+            getSpeakerParams = library.ResolveOptional<GetSpeakerParamsFunction>(
+                "TextToSpeechGetSpeakerParams");
         }
         catch
         {
@@ -139,6 +153,44 @@ internal sealed class OmnivoxNativeDectalk : IDisposable
     internal uint TextToSpeechVersion(out IntPtr value)
     {
         return version(out value);
+    }
+
+    internal bool HasSpeakerParameterApi
+    {
+        get { return getSpeakerParams != null; }
+    }
+
+    // Rows: current, minimum, maximum, default. Values are copied while the
+    // caller owns the idle native instance; no runtime pointer escapes.
+    internal int[][] ReadSpeakerParameterFields(IntPtr handle)
+    {
+        if (!HasSpeakerParameterApi)
+            throw new NotSupportedException("DECtalk speaker parameter API is unavailable");
+        IntPtr current, minimum, maximum, defaults;
+        uint status = getSpeakerParams(handle, 0, out current, out minimum,
+            out maximum, out defaults);
+        if (status != 0)
+            throw new InvalidOperationException("TextToSpeechGetSpeakerParams failed: " + status);
+        IntPtr[] pointers = { current, minimum, maximum, defaults };
+        try
+        {
+            int[][] result = new int[4][];
+            for (int row = 0; row < pointers.Length; row++)
+            {
+                if (pointers[row] == IntPtr.Zero)
+                    throw new InvalidOperationException("DECtalk returned null speaker parameters");
+                result[row] = new int[SpeakerFieldOffsets.Length];
+                for (int field = 0; field < SpeakerFieldOffsets.Length; field++)
+                    result[row][field] = Marshal.ReadInt16(pointers[row],
+                        SpeakerFieldOffsets[field] * 2);
+            }
+            return result;
+        }
+        finally
+        {
+            foreach (IntPtr pointer in pointers)
+                if (pointer != IntPtr.Zero) Marshal.FreeCoTaskMem(pointer);
+        }
     }
 
     public void Dispose()

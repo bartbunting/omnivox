@@ -43,6 +43,27 @@ internal sealed class OmnivoxNativeEci : IDisposable
     private delegate bool SetOutputBufferFunction(IntPtr handle, int samples,
         IntPtr buffer);
 
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate int GetParamFunction(IntPtr handle, int parameter);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate int GetVoiceParamFunction(IntPtr handle, int voice,
+        int parameter);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate int SetVoiceParamFunction(IntPtr handle, int voice,
+        int parameter, int value);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private delegate bool CopyVoiceFunction(IntPtr handle, int source,
+        int destination);
+
+    private readonly GetParamFunction getParam;
+    private readonly GetVoiceParamFunction getVoiceParam;
+    private readonly SetVoiceParamFunction setVoiceParam;
+    private readonly CopyVoiceFunction copyVoice;
+    // ECI 6.x ABI value, also used by the maintained IBM ECI driver.
+    // The reference manual's abbreviated enum omits reserved entries.
+    private const int RealWorldUnits = 8;
+
     private readonly OmnivoxNativeLibrary library;
     private readonly VersionFunction version;
     private readonly NewExFunction newEx;
@@ -84,6 +105,12 @@ internal sealed class OmnivoxNativeEci : IDisposable
             insertIndex = library.Resolve<InsertIndexFunction>(
                 "eciInsertIndex");
             setParam = library.Resolve<SetParamFunction>("eciSetParam");
+            getParam = library.ResolveOptional<GetParamFunction>("eciGetParam");
+            getVoiceParam = library.ResolveOptional<GetVoiceParamFunction>(
+                "eciGetVoiceParam");
+            setVoiceParam = library.ResolveOptional<SetVoiceParamFunction>(
+                "eciSetVoiceParam");
+            copyVoice = library.ResolveOptional<CopyVoiceFunction>("eciCopyVoice");
             registerCallback = library.Resolve<RegisterCallbackFunction>(
                 "eciRegisterCallback");
             setOutputBuffer = library.Resolve<SetOutputBufferFunction>(
@@ -123,6 +150,57 @@ internal sealed class OmnivoxNativeEci : IDisposable
     internal bool SetOutputBuffer(IntPtr handle, int samples, IntPtr buffer)
     {
         return setOutputBuffer(handle, samples, buffer);
+    }
+
+    // Availability means bindings exist, not that this runtime is qualified.
+    internal bool HasVoiceParameterApi
+    {
+        get { return getParam != null && getVoiceParam != null &&
+            setVoiceParam != null && copyVoice != null; }
+    }
+
+    private void RequireEciUnits(IntPtr handle)
+    {
+        if (!HasVoiceParameterApi)
+            throw new NotSupportedException("ECI voice parameter APIs are unavailable");
+        if (getParam(handle, RealWorldUnits) != 0)
+            throw new NotSupportedException("Native voice parameters require verified ECI units");
+    }
+
+    internal int[] ReadActiveVoiceParameters(IntPtr handle)
+    {
+        RequireEciUnits(handle);
+        int[] values = new int[8];
+        for (int parameter = 0; parameter < values.Length; parameter++)
+        {
+            values[parameter] = getVoiceParam(handle, 0, parameter);
+            if (values[parameter] < 0)
+                throw new InvalidOperationException("eciGetVoiceParam failed");
+        }
+        return values;
+    }
+
+    internal int SetActiveVoiceParameter(IntPtr handle, int parameter, int value)
+    {
+        if (parameter < 0 || parameter >= 8)
+            throw new ArgumentOutOfRangeException("parameter");
+        int maximum = parameter == 0 ? 1 : parameter == 6 ? 250 : 100;
+        if (value < 0 || value > maximum)
+            throw new ArgumentOutOfRangeException("value");
+        RequireEciUnits(handle);
+        int previous = setVoiceParam(handle, 0, parameter, value);
+        if (previous < 0)
+            throw new InvalidOperationException("eciSetVoiceParam failed");
+        return previous;
+    }
+
+    internal void CopyPresetToActive(IntPtr handle, int preset)
+    {
+        if (preset < 1 || preset > 8)
+            throw new ArgumentOutOfRangeException("preset");
+        RequireEciUnits(handle);
+        if (!copyVoice(handle, preset, 0))
+            throw new InvalidOperationException("eciCopyVoice failed");
     }
 
     public void Dispose()

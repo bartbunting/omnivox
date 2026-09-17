@@ -6,27 +6,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
 public static class NativeVoiceParametersAudit
 {
     private const BindingFlags Hidden = BindingFlags.Public | BindingFlags.NonPublic |
         BindingFlags.Instance | BindingFlags.Static;
-    [DllImport("kernel32", CharSet = CharSet.Unicode)]
-    private static extern IntPtr GetModuleHandle(string path);
-    [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true)]
-    private static extern IntPtr GetProcAddress(IntPtr module, string name);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    private delegate int EciGet(IntPtr handle, int voice, int parameter);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    private delegate int EciSet(IntPtr handle, int voice, int parameter, int value);
-    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private delegate bool EciCopy(IntPtr handle, int source, int destination);
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    private delegate uint DtGet(IntPtr handle, uint index, out IntPtr current,
-        out IntPtr low, out IntPtr high, out IntPtr defaults);
-
     private static readonly string[] EciIds = {
         "gender", "head_size", "pitch_baseline", "pitch_fluctuation",
         "roughness", "breathiness", "speed", "volume"
@@ -40,18 +24,6 @@ public static class NativeVoiceParametersAudit
         "f4", "b4", "f5", "b5", "gf", "gh", "gv", "gn", "g1", "g2",
         "g3", "g4", "g5", "bf", "lx", "qu", "hr", "sr"
     };
-    private static readonly int[] DtOffsets = {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
-        16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30
-    };
-
-    private static T Bind<T>(IntPtr module, string name) where T : class
-    {
-        IntPtr address = GetProcAddress(module, name);
-        if (address == IntPtr.Zero) throw new Exception("Missing audit export: " + name);
-        return (T)(object)Marshal.GetDelegateForFunctionPointer(address, typeof(T));
-    }
-
     private static Dictionary<string, object> Record(params object[] fields)
     {
         var result = new Dictionary<string, object>();
@@ -60,36 +32,26 @@ public static class NativeVoiceParametersAudit
         return result;
     }
 
-    private static int[][] ReadDt(DtGet get, IntPtr handle)
+    private static object Invoke(object native, string method, params object[] args)
     {
-        IntPtr current, low, high, defaults;
-        uint status = get(handle, 0, out current, out low, out high, out defaults);
-        if (status != 0) throw new Exception("DECtalk query failed: " + status);
-        IntPtr[] pointers = { current, low, high, defaults };
-        try
-        {
-            int[][] result = new int[4][];
-            for (int p = 0; p < pointers.Length; p++)
-            {
-                if (pointers[p] == IntPtr.Zero) throw new Exception("Null DECtalk result");
-                result[p] = new int[DtOffsets.Length];
-                for (int i = 0; i < DtOffsets.Length; i++)
-                    result[p][i] = Marshal.ReadInt16(pointers[p], DtOffsets[i] * 2);
-            }
-            return result;
-        }
-        finally { foreach (IntPtr pointer in pointers) Marshal.FreeCoTaskMem(pointer); }
+        try { return native.GetType().GetMethod(method, Hidden).Invoke(native, args); }
+        catch (TargetInvocationException e) { throw e.InnerException; }
     }
 
-    private static int[] ReadEci(EciGet get, IntPtr handle)
+    private static int[][] ReadDt(object native, IntPtr handle)
     {
-        int[] values = new int[8];
-        for (int i = 0; i < values.Length; i++)
-        {
-            values[i] = get(handle, 0, i);
-            if (values[i] < 0) throw new Exception("ECI query failed: " + i);
-        }
-        return values;
+        return (int[][])Invoke(native, "ReadSpeakerParameterFields", handle);
+    }
+
+    private static int[] ReadEci(object native, IntPtr handle)
+    {
+        return (int[])Invoke(native, "ReadActiveVoiceParameters", handle);
+    }
+
+    private static bool Rejects(Action action, Type expected)
+    {
+        try { action(); return false; }
+        catch (Exception e) { return e.GetType() == expected; }
     }
 
     private static string[] Differences(int[] before, int[] after, string[] ids)
@@ -104,7 +66,10 @@ public static class NativeVoiceParametersAudit
     {
         helper = Path.GetFullPath(helper);
         dll = Path.GetFullPath(dll);
-        Assembly assembly = Assembly.LoadFrom(helper);
+        // Load the exact selected helper bytes for reflection-only capture tests.
+        // LoadFrom rejects a WSL UNC assembly as remote; no dependencies or
+        // entry point are selected from that path by this audit.
+        Assembly assembly = Assembly.Load(File.ReadAllBytes(helper));
         string prefix = eci ? "OmnivoxEloquence" : "OmnivoxDectalk";
         Type type = assembly.GetType(prefix + "Capture", true);
         Type adapter = assembly.GetType(prefix + "Adapter", true);
@@ -113,12 +78,10 @@ public static class NativeVoiceParametersAudit
         try
         {
             IntPtr handle = (IntPtr)type.GetField("handle", Hidden).GetValue(capture);
-            IntPtr module = GetModuleHandle(dll);
-            if (module == IntPtr.Zero) throw new Exception("Loaded runtime module not found");
-            EciGet eg = eci ? Bind<EciGet>(module, "eciGetVoiceParam") : null;
-            EciSet es = eci ? Bind<EciSet>(module, "eciSetVoiceParam") : null;
-            EciCopy ec = eci ? Bind<EciCopy>(module, "eciCopyVoice") : null;
-            DtGet dg = eci ? null : Bind<DtGet>(module, "TextToSpeechGetSpeakerParams");
+            object native = type.GetField("native", Hidden).GetValue(capture);
+            bool bindings = (bool)native.GetType().GetProperty(
+                eci ? "HasVoiceParameterApi" : "HasSpeakerParameterApi", Hidden).GetValue(native, null);
+            if (!bindings) throw new Exception("Optional parameter bindings are unavailable");
             MethodInfo synth = type.GetMethod("Synthesize", Hidden);
             Array anchors = Array.CreateInstance(assembly.GetType("OmnivoxHelperAnchor", true), 0);
             IDictionary voices = (IDictionary)adapter.GetField(
@@ -136,9 +99,8 @@ public static class NativeVoiceParametersAudit
                 int[] pristine = null;
                 if (eci)
                 {
-                    if (!ec(handle, Int32.Parse(voice.Substring(1)), 0))
-                        throw new Exception("ECI pristine copy failed");
-                    pristine = ReadEci(eg, handle);
+                    Invoke(native, "CopyPresetToActive", handle, Int32.Parse(voice.Substring(1)));
+                    pristine = ReadEci(native, handle);
                     pitch = pristine[2]; rate = pristine[6]; volume = pristine[7];
                 }
                 Func<string, int, int, int, int> speak = (commands, p, r, v) => {
@@ -153,8 +115,8 @@ public static class NativeVoiceParametersAudit
                     return pcm.Length;
                 };
                 speak("", pitch, rate, volume);
-                int[][] dt = eci ? null : ReadDt(dg, handle);
-                int[] baseline = eci ? ReadEci(eg, handle) : dt[0];
+                int[][] dt = eci ? null : ReadDt(native, handle);
+                int[] baseline = eci ? ReadEci(native, handle) : dt[0];
                 string[] ids = eci ? EciIds : DtIds;
                 var parameters = new List<object>();
                 for (int i = 0; i < ids.Length; i++)
@@ -182,10 +144,11 @@ public static class NativeVoiceParametersAudit
                     bool apiPassed = true;
                     if (eci)
                     {
-                        int previous = es(handle, 0, i, target);
-                        int[] changed = ReadEci(eg, handle);
-                        bool copied = ec(handle, Int32.Parse(voice.Substring(1)), 0);
-                        int[] restored = ReadEci(eg, handle);
+                        int previous = (int)Invoke(native, "SetActiveVoiceParameter", handle, i, target);
+                        int[] changed = ReadEci(native, handle);
+                        Invoke(native, "CopyPresetToActive", handle, Int32.Parse(voice.Substring(1)));
+                        bool copied = true;
+                        int[] restored = ReadEci(native, handle);
                         apiPassed = previous == baseline[i] && changed[i] == target &&
                             copied && Differences(pristine, restored, ids).Length == 0;
                         api = Record("previous", previous, "observed", changed[i],
@@ -194,27 +157,123 @@ public static class NativeVoiceParametersAudit
                     }
                     string command = eci ? " `" + EciCommands[i] + target : " " + ids[i] + " " + target;
                     int bytes = speak(command, pitch, rate, eci && i == 7 ? target : volume);
-                    int[] actual = eci ? ReadEci(eg, handle) : ReadDt(dg, handle)[0];
+                    int[] actual = eci ? ReadEci(native, handle) : ReadDt(native, handle)[0];
                     speak("", pitch, rate, volume);
-                    int[] reset = eci ? ReadEci(eg, handle) : ReadDt(dg, handle)[0];
+                    int[] reset = eci ? ReadEci(native, handle) : ReadDt(native, handle)[0];
                     if (actual[i] != target || Differences(baseline, reset, ids).Length != 0 || !apiPassed)
                         failedCases++;
+                    var boundaries = new List<object>();
+                    foreach (int boundary in new int[] { low, high })
+                    {
+                        bool boundaryApi = true;
+                        if (eci)
+                        {
+                            Invoke(native, "SetActiveVoiceParameter", handle, i, boundary);
+                            boundaryApi = ReadEci(native, handle)[i] == boundary;
+                            Invoke(native, "CopyPresetToActive", handle, Int32.Parse(voice.Substring(1)));
+                            boundaryApi &= Differences(pristine, ReadEci(native, handle), ids).Length == 0;
+                        }
+                        string boundaryCommand = eci ? " `" + EciCommands[i] + boundary :
+                            " " + ids[i] + " " + boundary;
+                        int boundaryBytes = speak(boundaryCommand, pitch, rate,
+                            eci && i == 7 ? boundary : volume);
+                        int[] observed = eci ? ReadEci(native, handle) : ReadDt(native, handle)[0];
+                        speak("", pitch, rate, volume);
+                        int[] restored = eci ? ReadEci(native, handle) : ReadDt(native, handle)[0];
+                        bool passed = boundaryApi && observed[i] == boundary &&
+                            Differences(baseline, restored, ids).Length == 0;
+                        if (!passed) failedCases++;
+                        boundaries.Add(Record("target", boundary, "observed", observed[i],
+                            "passed", passed, "voice_api_passed", eci ? (object)boundaryApi : null,
+                            "changed_ids", Differences(baseline, observed, ids),
+                            "reset_changed_ids", Differences(baseline, restored, ids),
+                            "pcm_bytes", boundaryBytes));
+                    }
+                    bool invalidRejected = true;
+                    if (eci)
+                    {
+                        foreach (int invalid in new int[] { low - 1, high + 1 })
+                            invalidRejected &= Rejects(() => Invoke(native,
+                                "SetActiveVoiceParameter", handle, i, invalid),
+                                typeof(ArgumentOutOfRangeException));
+                        invalidRejected &= Differences(baseline, ReadEci(native, handle), ids).Length == 0;
+                        if (!invalidRejected) failedCases++;
+                    }
                     parameters.Add(Record("id", ids[i], "status", "probed", "baseline", baseline[i],
                         "default", eci ? pristine[i] : dt[3][i], "low", low, "high", high,
                         "target", target, "observed", actual[i], "setter_matches", actual[i] == target,
                         "changed_ids", Differences(baseline, actual, ids),
                         "selection_reset_matches", Differences(baseline, reset, ids).Length == 0,
                         "reset_changed_ids", Differences(baseline, reset, ids), "pcm_bytes", bytes,
-                        "voice_api", api));
+                        "voice_api", api, "boundaries", boundaries,
+                        "invalid_api_values_rejected", eci ? (object)invalidRejected : null));
                 }
-                rows.Add(Record("voice_id", voice, "parameters", parameters));
+                var absentChecks = new List<object>();
+                foreach (string fieldName in eci ?
+                    new string[] { "getParam", "getVoiceParam", "setVoiceParam", "copyVoice" } :
+                    new string[] { "getSpeakerParams" })
+                {
+                    FieldInfo field = native.GetType().GetField(fieldName, Hidden);
+                    object bound = field.GetValue(native);
+                    object library = native.GetType().GetField("library", Hidden).GetValue(native);
+                    object absent = library.GetType().GetMethod("ResolveOptional", Hidden)
+                        .MakeGenericMethod(bound.GetType()).Invoke(library,
+                            new object[] { "OmnivoxAuditMissingOptionalExport" });
+                    bool lookupMissing = absent == null;
+                    bool unavailable, rejected;
+                    int ordinaryBytes;
+                    try
+                    {
+                        field.SetValue(native, null);
+                        unavailable = !(bool)native.GetType().GetProperty(
+                            eci ? "HasVoiceParameterApi" : "HasSpeakerParameterApi", Hidden).GetValue(native, null);
+                        rejected = Rejects(() => { if (eci) ReadEci(native, handle); else ReadDt(native, handle); },
+                            typeof(NotSupportedException));
+                        if (eci)
+                            rejected &= Rejects(() => Invoke(native, "SetActiveVoiceParameter", handle, 2, 50),
+                                typeof(NotSupportedException)) &&
+                                Rejects(() => Invoke(native, "CopyPresetToActive", handle, 1), typeof(NotSupportedException));
+                        ordinaryBytes = speak("", pitch, rate, volume);
+                    }
+                    finally { field.SetValue(native, bound); }
+                    if (!lookupMissing || !unavailable || !rejected) failedCases++;
+                    absentChecks.Add(Record("binding", fieldName, "missing_lookup_returns_null", lookupMissing,
+                        "reported_unavailable", unavailable,
+                        "native_operations_rejected", rejected, "ordinary_pcm_bytes", ordinaryBytes));
+                }
+                bool? invalidIndexesRejected = null;
+                if (eci)
+                {
+                    invalidIndexesRejected =
+                        Rejects(() => Invoke(native, "SetActiveVoiceParameter", handle, -1, 0), typeof(ArgumentOutOfRangeException)) &&
+                        Rejects(() => Invoke(native, "SetActiveVoiceParameter", handle, 8, 0), typeof(ArgumentOutOfRangeException)) &&
+                        Rejects(() => Invoke(native, "CopyPresetToActive", handle, 0), typeof(ArgumentOutOfRangeException)) &&
+                        Rejects(() => Invoke(native, "CopyPresetToActive", handle, 9), typeof(ArgumentOutOfRangeException));
+                    if (invalidIndexesRejected != true) failedCases++;
+                }
+                bool? unitsRejected = null;
+                if (eci)
+                {
+                    try
+                    {
+                        Invoke(native, "SetParam", handle, 8, 1);
+                        unitsRejected = Rejects(() => ReadEci(native, handle), typeof(NotSupportedException)) &&
+                            Rejects(() => Invoke(native, "SetActiveVoiceParameter", handle, 2, 50), typeof(NotSupportedException));
+                    }
+                    finally { Invoke(native, "SetParam", handle, 8, 0); }
+                    if (unitsRejected != true) failedCases++;
+                    Invoke(native, "CopyPresetToActive", handle, Int32.Parse(voice.Substring(1)));
+                }
+                rows.Add(Record("voice_id", voice, "parameters", parameters,
+                    "missing_binding_checks", absentChecks, "non_eci_units_rejected", unitsRejected,
+                    "invalid_api_indexes_rejected", invalidIndexesRejected));
             }
             return Record("engine_id", eci ? "eloquence" : "dectalk", "runtime_version",
                 type.GetProperty("Version", Hidden).GetValue(capture, null), "captures", captures,
                 "all_candidates_passed", failedCases == 0, "failed_cases", failedCases,
-                "range_evidence", eci ? "documented ECI units; boundaries not tested" :
-                    "runtime reported limits; boundaries not tested",
-                "scope", "single-parameter interior values; no cancellation or boundary qualification",
+                "range_evidence", eci ? "documented ECI units; both boundaries tested" :
+                    "runtime reported limits; both boundaries tested",
+                "scope", "helper bindings; interior and boundary values; ordinary reset; missing-binding and ECI-unit guards; no cancellation qualification",
                 "voices", rows);
         }
         finally { ((IDisposable)capture).Dispose(); }
