@@ -732,6 +732,7 @@ internal sealed class OmnivoxHelperHost
         ulong? requestId = null;
         try
         {
+            new JsonKeyCheck(line, json).Validate();
             IDictionary<string, object> request = json.DeserializeObject(line)
                 as IDictionary<string, object>;
             if (request == null)
@@ -1504,6 +1505,148 @@ internal sealed class OmnivoxHelperHost
         lock (outputLock)
         {
             output.WriteLine(line);
+        }
+    }
+
+    // JavaScriptSerializer overwrites duplicate members and accepts some
+    // JavaScript syntax that is not JSON. Check the bounded wire text before
+    // materializing a dictionary or trusting a request ID.
+    private sealed class JsonKeyCheck
+    {
+        private readonly string text;
+        private readonly JavaScriptSerializer serializer;
+        private int position;
+
+        internal JsonKeyCheck(string text, JavaScriptSerializer serializer)
+        {
+            this.text = text;
+            this.serializer = serializer;
+        }
+
+        internal void Validate()
+        {
+            Value(0);
+            Space();
+            if (position != text.Length) Invalid();
+        }
+
+        private static void Invalid()
+        {
+            throw Fault("invalid_request", "invalid or duplicate-key helper JSON", false);
+        }
+
+        private void Space()
+        {
+            while (position < text.Length &&
+                (text[position] == ' ' || text[position] == '\t' ||
+                 text[position] == '\r' || text[position] == '\n')) position++;
+        }
+
+        private bool Take(char value)
+        {
+            Space();
+            if (position >= text.Length || text[position] != value) return false;
+            position++;
+            return true;
+        }
+
+        private void Require(char value)
+        {
+            if (!Take(value)) Invalid();
+        }
+
+        private string String(bool key)
+        {
+            Space();
+            int start = position;
+            Require('"');
+            while (position < text.Length)
+            {
+                char value = text[position++];
+                if (value == '"')
+                    return key ? serializer.Deserialize<string>(text.Substring(start, position - start)) : null;
+                if (value < 0x20) Invalid();
+                if (value != '\\') continue;
+                if (position == text.Length) Invalid();
+                char escaped = text[position++];
+                if (escaped == 'u')
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (position == text.Length) Invalid();
+                        char digit = text[position++];
+                        if (!(digit >= '0' && digit <= '9') &&
+                            !(digit >= 'a' && digit <= 'f') &&
+                            !(digit >= 'A' && digit <= 'F')) Invalid();
+                    }
+                }
+                else if ("\"\\/bfnrt".IndexOf(escaped) < 0) Invalid();
+            }
+            Invalid();
+            return null;
+        }
+
+        private void Digits()
+        {
+            int start = position;
+            while (position < text.Length && text[position] >= '0' && text[position] <= '9') position++;
+            if (position == start) Invalid();
+        }
+
+        private void Number()
+        {
+            if (position < text.Length && text[position] == '-') position++;
+            if (position < text.Length && text[position] == '0') position++;
+            else Digits();
+            if (position < text.Length && text[position] == '.') { position++; Digits(); }
+            if (position < text.Length && (text[position] == 'e' || text[position] == 'E'))
+            {
+                position++;
+                if (position < text.Length && (text[position] == '+' || text[position] == '-')) position++;
+                Digits();
+            }
+        }
+
+        private void Value(int depth)
+        {
+            if (depth > 32) Invalid();
+            Space();
+            if (position == text.Length) Invalid();
+            char value = text[position];
+            if (value == '{')
+            {
+                position++;
+                HashSet<string> keys = new HashSet<string>(StringComparer.Ordinal);
+                if (Take('}')) return;
+                do
+                {
+                    if (!keys.Add(String(true))) Invalid();
+                    Require(':');
+                    Value(depth + 1);
+                    if (Take('}')) return;
+                } while (Take(','));
+                Invalid();
+            }
+            else if (value == '[')
+            {
+                position++;
+                if (Take(']')) return;
+                do
+                {
+                    Value(depth + 1);
+                    if (Take(']')) return;
+                } while (Take(','));
+                Invalid();
+            }
+            else if (value == '"') String(false);
+            else if (value == 't' || value == 'f' || value == 'n')
+            {
+                string literal = value == 't' ? "true" : value == 'f' ? "false" : "null";
+                if (position + literal.Length > text.Length ||
+                    System.String.CompareOrdinal(text, position, literal, 0, literal.Length) != 0) Invalid();
+                position += literal.Length;
+            }
+            else Number();
         }
     }
 

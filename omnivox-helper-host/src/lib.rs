@@ -1673,6 +1673,57 @@ mod tests {
     }
 
     #[test]
+    fn unknown_native_fields_never_reach_the_engine() {
+        struct CountedEngine(std::sync::atomic::AtomicUsize);
+        impl TtsEngine for CountedEngine {
+            fn descriptor(&self) -> EngineDescriptor {
+                descriptor()
+            }
+            fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+                self.0.fetch_add(1, Ordering::SeqCst);
+                ImmediateEngine.synthesize(request)
+            }
+            fn stop(&self) {}
+            fn is_speaking(&self) -> bool {
+                false
+            }
+            fn available_voices(&self) -> Vec<VoiceInfo> {
+                Vec::new()
+            }
+            fn voice_info(&self, _: &str) -> Option<VoiceInfo> {
+                None
+            }
+        }
+        for version in 1..=5 {
+            let writer = SharedWriter::default();
+            let engine = Arc::new(CountedEngine(std::sync::atomic::AtomicUsize::new(0)));
+            let input = format!(
+                "{{\"protocol_version\":{version},\"request_id\":1,\"type\":\"hello\",\"supported_protocol_versions\":[{version}]}}\n\
+                 {{\"protocol_version\":{version},\"request_id\":2,\"type\":\"synthesize\",\"text\":\"hello\",\"settings\":{{\"voice_id\":null,\"rate\":0.5,\"pitch\":1,\"volume\":1}},\"voice_parameters\":null{}}}\n",
+                if version >= 2 { ",\"anchors\":[]" } else { "" }
+            );
+            let result = run_helper(
+                BufReader::new(Cursor::new(input)),
+                writer.clone(),
+                engine.clone(),
+                "Test helper",
+                "1",
+            );
+            assert!(matches!(result, Err(HelperServerError::Protocol(_))));
+            assert_eq!(engine.0.load(Ordering::SeqCst), 0);
+            let responses = writer.responses();
+            assert_eq!(responses.len(), 2);
+            assert!(matches!(
+                responses[1].body,
+                HelperResponseBody::Error {
+                    code: HelperErrorCode::InvalidRequest,
+                    ..
+                }
+            ));
+        }
+    }
+
+    #[test]
     fn unavailable_engine_negotiates_and_reports_runtime_diagnostics() {
         let writer = SharedWriter::default();
         let engine: Arc<dyn TtsEngine> = Arc::new(UnavailableEngine);

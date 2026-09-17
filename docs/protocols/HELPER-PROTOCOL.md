@@ -17,6 +17,17 @@ writes diagnostics only to standard error. Each frame contains
 an error caused before an input request ID can be trusted may omit it. A frame
 is limited to 1 MiB.
 
+Readers reject duplicate object members, including names equal after JSON
+escape decoding. Request envelopes, synthesis settings and requested anchors
+reject unknown members. Response envelopes and helper-specific audio/marker
+payloads also reject unknown members; shared engine descriptors retain their
+existing discovery schema. Version-specific members are rejected on earlier
+versions even when null. In particular, protocols 1–5 cannot accept or silently
+discard `voice_parameters` or `native_application` from the reserved helper 6
+contract. The Windows reader validates JSON syntax before its dictionary parser
+can overwrite duplicate keys. Strings containing JSON-like text remain ordinary
+speech text.
+
 The host starts every session with `hello` and supplies the versions it
 supports:
 

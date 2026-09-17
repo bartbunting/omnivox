@@ -123,6 +123,7 @@ public static class WindowsHelperCancellationTests
         internal string Mode;
         internal bool Progressive;
         internal int RejectedCallbacks;
+        internal int SynthesisCalls;
         public string EngineId { get { return "test"; } }
         public string DisplayName { get { return "Test"; } }
         public string Version { get { return "1"; } }
@@ -145,6 +146,7 @@ public static class WindowsHelperCancellationTests
             double? richness, double volume, OmnivoxHelperAnchor[] anchors,
             Func<bool> cancelled, IOmnivoxCaptureSink sink)
         {
+            Interlocked.Increment(ref SynthesisCalls);
             byte[] audio = new byte[8];
             if (sink != null) sink.Audio(audio, 0, audio.Length);
             if (text == "hold")
@@ -350,6 +352,77 @@ public static class WindowsHelperCancellationTests
         }
     }
 
+    private static int WireValidation(int version)
+    {
+        string baseline = "{\"protocol_version\":" + version +
+            ",\"request_id\":2,\"type\":\"synthesize\",\"text\":\"hello\"," +
+            "\"settings\":{\"voice_id\":null,\"rate\":0.5,\"pitch\":1,\"volume\":1}" +
+            (version >= 2 ? ",\"anchors\":[]" : "") + "}";
+        List<string> ambiguous = new List<string> {
+            baseline.Replace("\"request_id\":2", "\"request_id\":2,\"request_id\":3"),
+            baseline.Replace("\"type\":\"synthesize\"", "\"type\":\"ping\",\"type\":\"synthesize\""),
+            baseline.Replace("\"rate\":0.5", "\"rate\":0.1,\"rate\":0.5"),
+            baseline.Replace("\"rate\":0.5", "\"rate\":0.1,\"\\u0072ate\":0.5"),
+            baseline.Replace("\"type\"", "type"),
+            baseline.Replace("\"type\"", "'type'"),
+            baseline.Substring(0, baseline.Length - 1) + ",}",
+            baseline.Replace("0.5", "01"),
+            baseline.Replace("0.5", ".5"),
+            baseline.Replace("0.5", "1."),
+            baseline.Replace("0.5", "1e"),
+            baseline + " false",
+            baseline.Replace("hello", "bad\\x41"),
+            baseline.Replace("hello", "bad\\u00xz"),
+            baseline.Replace("hello", "bad\tcontrol")
+        };
+        if (version >= 2)
+            ambiguous.Add(baseline.Replace("\"anchors\":[]",
+                "\"anchors\":[{\"id\":\"a\",\"id\":\"b\",\"text_offset\":0,\"affinity\":\"before\"}]"));
+        List<string> unknown = new List<string> {
+            baseline.Substring(0, baseline.Length - 1) + ",\"voice_parameters\":null}",
+            baseline.Substring(0, baseline.Length - 1) + ",\"voice_parameters\":{\"native\":{\"sm\":55}}}",
+            baseline.Replace("\"voice_id\":null", "\"voice_id\":null,\"native\":{\"sm\":55}")
+        };
+        if (version == 1) unknown.Add(baseline.Substring(0, baseline.Length - 1) + ",\"anchors\":null}");
+        if (version < 3)
+            foreach (string field in new[] { "pitch_range", "stress", "richness" })
+                unknown.Add(baseline.Replace("\"voice_id\":null", "\"voice_id\":null,\"" + field + "\":null"));
+        if (version >= 2)
+            unknown.Add(baseline.Replace("\"anchors\":[]",
+                "\"anchors\":[{\"id\":\"a\",\"text_offset\":0,\"affinity\":\"before\",\"native\":null}]"));
+        int cases = 0;
+        foreach (List<string> group in new[] { ambiguous, unknown })
+        {
+            foreach (string invalid in group)
+            {
+                using (Session session = new Session(version, version == 5, "return"))
+                {
+                    session.Input.Send(invalid);
+                    session.Output.Await(group == ambiguous ? 0 : 2, "error");
+                    Check(session.Engine.SynthesisCalls == 0, "malformed input reached native synthesis");
+                    foreach (var frame in session.Output.Snapshot())
+                        if ((string)frame["type"] == "error")
+                            Check((string)frame["code"] == "invalid_request", "wrong malformed-input error");
+                    session.Speak(5, "next");
+                    session.Output.Await(5, "synthesis_completed");
+                    Check(session.Engine.SynthesisCalls == 1, "valid recovery did not synthesize exactly once");
+                }
+                cases++;
+            }
+        }
+        using (Session session = new Session(version, version == 5, "return"))
+        {
+            string escapedText = new JavaScriptSerializer().Serialize("\"rate\":1,\"rate\":2; {} [] \\ \n λ 🍕");
+            string valid = baseline.Replace("\"hello\"", escapedText).Replace("0.5", "5e-1");
+            session.Input.Send(valid);
+            session.Output.Await(2, "synthesis_completed");
+            session.Input.Send("{\"protocol_version\":" + version + ",\"request_id\":8,\"t\\u0079pe\":\"ping\"}");
+            session.Output.Await(8, "pong");
+            Check(session.Engine.SynthesisCalls == 1, "valid escaped input did not synthesize");
+        }
+        return cases + 1;
+    }
+
     public static int Main()
     {
         int cases = 0;
@@ -369,6 +442,9 @@ public static class WindowsHelperCancellationTests
             CancelDuringNativeStop(5, false, "return"); ++cases;
             CancelWhileAcknowledgementBlocked(5, false); ++cases;
             Console.WriteLine("PASS: {0} deterministic Windows helper cancellation cases", cases);
+            int wireCases = 0;
+            for (int version = 1; version <= 5; version++) wireCases += WireValidation(version);
+            Console.WriteLine("PASS: {0} Windows helper wire validation and recovery cases", wireCases);
             return 0;
         }
         catch (Exception error)

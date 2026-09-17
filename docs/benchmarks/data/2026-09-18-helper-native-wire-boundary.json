@@ -1,0 +1,102 @@
+{
+  "date": "2026-09-18",
+  "build_id": "1a7bd0803c404f6c",
+  "baseline_build_id": "c5fc6d3ff8960930",
+  "desktop_build_id": "e1ecdb481ee08fd0",
+  "flite_before": {
+    "types": [
+      "synthesis_started",
+      "markers",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "audio_chunk",
+      "synthesis_completed"
+    ],
+    "terminal": {
+      "protocol_version": 5,
+      "request_id": 2,
+      "type": "synthesis_completed",
+      "frame_count": 59535
+    },
+    "native_fields_rejected": false
+  },
+  "flite_after": {
+    "types": [
+      "error"
+    ],
+    "terminal": {
+      "protocol_version": 5,
+      "request_id": null,
+      "type": "error",
+      "code": "invalid_request",
+      "message": "helper protocol JSON is invalid: unknown field `voice_parameters`, expected one of `text`, `settings`, `anchors`",
+      "retryable": false
+    },
+    "native_fields_rejected": true
+  },
+  "server_synthesis": {
+    "eloquence": {
+      "voice_id": "v1",
+      "helper_sha256": "21498314db515ceb47ba85ce9b15c1fd497c4b2d68e61729d851214c9dbc2e53",
+      "frames": 74943,
+      "sample_rate": 44100,
+      "channels": 2,
+      "sample_format": "float32",
+      "wav_sha256": "3ea89b74196a7edafffc6fa45c40f36e8c478c10e9245680dada3c71039c95b1"
+    },
+    "dectalk": {
+      "voice_id": "paul",
+      "helper_sha256": "fbeb1f5c5a355d9e85c0d038c93fe7b8ba2fc76c90b47833398f6073c454fc82",
+      "frames": 80508,
+      "sample_rate": 44100,
+      "channels": 2,
+      "sample_format": "float32",
+      "wav_sha256": "7baddcb1b90965216dce5295ef1369d9de5c945378af08984555d43fd9da8d49"
+    }
+  },
+  "limits": [
+    "Silent capture only; no acoustic acceptance.",
+    "Initial server capture to WSL UNC timed out after 60 seconds; Windows-local output passed.",
+    "Full development staging includes concurrent RHVoice changes in dirty provenance."
+  ]
+}

@@ -53,7 +53,10 @@ PowerShell. The runner compiles a temporary x86 test executable and removes it
 on completion. Its event barriers cover acknowledgement before native stop,
 blocked output, terminal retirement, callback suppression, native failures,
 shutdown and subsequent speech under protocols 1–5. Native-runtime stress tests
-remain necessary to check the adapters themselves.
+remain necessary to check the adapters themselves. The same suite also exercises
+wire validation and recovery across versions 1–5: duplicate/escaped keys,
+unknown native fields, invalid JSON syntax, and valid follow-up speech. No native
+speech call may run for rejected input.
 
 The internal Eloquence native-parameter path has a separate installed-runtime
 probe, [`tools/check_eloquence_execution.ps1`](../tools/check_eloquence_execution.ps1).

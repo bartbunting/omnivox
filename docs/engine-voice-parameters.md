@@ -52,6 +52,13 @@ Its [execution report](benchmarks/2026-09-18-dectalk-native-execution.md) record
 the accepted runtime and verification scope. Ordinary common mappings remain
 unchanged, including clamping performed by DECtalk itself.
 
+The legacy helper wire boundary now rejects duplicate members and unknown
+request/synthesis fields instead of silently discarding future native controls.
+The Windows host checks strict JSON before dictionary parsing. Existing versions,
+valid request shapes and unowned-error compatibility remain intact. The
+[wire-boundary report](benchmarks/2026-09-18-helper-native-wire-boundary.md)
+records the regression and compatibility checks; helper 6 is still unadvertised.
+
 The Rust planner and native request path are not connected to public speech
 operations yet. Common mappings and capability advertisements remain unchanged.
 Next implement helper 6 native profiles, followed by

@@ -11,6 +11,8 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
+mod wire;
+
 use crate::contracts::EngineDescriptor;
 use crate::{
     AnchorResolution, RequestedAnchor, MAX_SYNTHESIS_ANCHORS, MAX_SYNTHESIS_ANCHOR_ID_BYTES,
@@ -130,7 +132,7 @@ pub fn read_frame<R: BufRead, T: DeserializeOwned>(
     Ok(Some(serde_json::from_slice(&frame)?))
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct HelperRequest {
     pub protocol_version: u16,
     pub request_id: u64,
@@ -210,7 +212,7 @@ impl HelperRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum HelperRequestBody {
     Hello {
         supported_protocol_versions: Vec<u16>,
@@ -231,6 +233,7 @@ pub enum HelperRequestBody {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct HelperSynthesisSettings {
     pub voice_id: Option<String>,
     pub rate: f32,
@@ -283,7 +286,7 @@ impl HelperSynthesisSettings {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct HelperResponse {
     pub protocol_version: u16,
     pub request_id: Option<u64>,
@@ -377,7 +380,7 @@ impl HelperResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 #[allow(clippy::large_enum_variant)] // Mirrors bounded JSON frames; boxing would alter every host adapter.
 pub enum HelperResponseBody {
     Hello {
@@ -430,6 +433,7 @@ pub enum HelperSampleFormat {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct HelperAudioFormat {
     pub sample_rate: u32,
     pub channels: u16,
@@ -449,6 +453,7 @@ impl HelperAudioFormat {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct HelperPcmChunk {
     pub sequence: u32,
     pub data_base64: String,
@@ -507,6 +512,7 @@ pub enum HelperMarkerKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct HelperMarker {
     pub kind: HelperMarkerKind,
     pub frame_offset: u64,
@@ -953,3 +959,7 @@ mod tests {
         .is_synthesis_terminal());
     }
 }
+
+#[cfg(test)]
+#[path = "helper_protocol/wire_tests.rs"]
+mod wire_tests;
