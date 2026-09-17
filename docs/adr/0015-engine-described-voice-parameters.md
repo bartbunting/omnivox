@@ -43,7 +43,9 @@ projection with explicit native degradation. Strict customized previews cannot
 drop unsupported native settings. Missing runtimes preserve saved inert data.
 Main and notification workers acknowledge application independently.
 
-No new capability is implemented or advertised by this contract/audit slice.
+Typed metadata, validation and pure native planning are implemented in
+`omnivox-tts::native_parameters`. Native helper execution and public operations
+remain pending; no new wire capability is advertised.
 Native helper/protocol implementation will require full development staging
 through Emacsvox under ADR 0010. No dependency, runtime distribution, release
 pin or publication change is authorized by this decision.

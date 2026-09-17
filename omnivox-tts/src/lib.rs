@@ -14,6 +14,7 @@ pub mod helper_protocol;
 pub mod logical_voices;
 pub mod macos;
 pub mod marker_protocol;
+pub mod native_parameters;
 #[cfg(feature = "piper")]
 pub mod piper;
 pub mod presentation;

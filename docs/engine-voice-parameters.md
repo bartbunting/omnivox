@@ -3,10 +3,37 @@
 Accepted implementation boundary, 2026-09-17. This mirrors the semantic design
 in Emacsvox commit `e0e83d71d`, under [ADR 0015](adr/0015-engine-described-voice-parameters.md).
 The [JSON fixtures](protocol-fixtures/engine-voice-parameters.json) are independent
-examples for future codecs/planners, not proof that these operations already
-exist. No feature is advertised in this slice. The
+examples for codecs and composition. The typed metadata and pure planner now
+consume the parameter and composition examples; the public operations described
+below remain reserved. No feature is advertised yet. The
 [native audit](benchmarks/2026-09-17-native-voice-parameters.md) does not replace
 the remaining execution and cancellation tests.
+
+## Implementation status
+
+`omnivox-tts::native_parameters` implements bounded typed catalogues and sparse
+native blocks, runtime/voice identity checks, range and scope validation, value
+provenance, contextual masking and deterministic side-effect ordering. Its JSON
+readers reject duplicate keys and unknown fields. Unknown schemas can survive
+an inert save/load round trip but cannot execute against a different catalogue.
+The generic planner rejects dependency cycles and side effects whose target has
+no restorable value; an adapter-specific execution plan is still required for
+profiles with those dependencies.
+
+Adapters supply their already composed and mapped common values. The independent
+fixtures include those inputs and expected results, preserving the existing
+mapping formulas rather than introducing a second calibration here. Unit tests
+cover equal-value context (including zero rate offset), omission/default/zero,
+unknown default values, separate choices for the same physical voice, stale
+runtime evidence and all-or-nothing native validation. They exercise planning;
+they do not establish native reset, actual synthesis fallback or cancellation.
+
+This module is not connected to existing speech paths. Common speech behavior
+and capability advertisements remain unchanged. Next implement qualified helper
+execution and native profiles, followed by transport, receipts and the Emacs
+editor. Adapter integration must preserve the old common path, including its
+existing clamps; native edit ranges are separately qualified and must not
+silently recalibrate common controls.
 
 ## Shared rules
 
