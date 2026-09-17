@@ -87,8 +87,9 @@ both engines, demonstrating why a short successful run cannot exclude the race.
 Stop, and only then writes the acknowledgement. The worker can observe the flag
 and publish its terminal event first. This is a pre-existing ordering failure,
 not evidence that the new native parameter state resets after cancellation.
-Fix and test acknowledgement/output ordering before wiring helper 6. Keep this
-failure separate from the successful field/readback and ordinary-reset matrix.
+The [cancellation follow-up](2026-09-17-windows-helper-cancellation.md) fixes and
+tests acknowledgement/output ordering before wiring helper 6. Keep that work
+separate from the successful field/readback and ordinary-reset matrix.
 
 ## Reproduction and limits
 

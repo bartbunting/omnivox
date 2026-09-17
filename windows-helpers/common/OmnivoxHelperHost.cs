@@ -452,7 +452,7 @@ internal sealed class OmnivoxHelperHost
                     marker.Value, marker.Resolution);
             }
             markerCount += markers.Length;
-            host.WriteMarkers(synthesis.RequestId, converted);
+            host.WriteMarkers(synthesis, converted);
         }
 
         internal ulong Complete()
@@ -494,7 +494,7 @@ internal sealed class OmnivoxHelperHost
                 chunk["data_base64"] = Convert.ToBase64String(audio,
                     offset, count);
                 response["chunk"] = chunk;
-                host.WriteFrame(response);
+                host.WriteSynthesisFrame(synthesis, response, false);
                 frameCount += frames;
             }
         }
@@ -553,10 +553,13 @@ internal sealed class OmnivoxHelperHost
     private readonly string displayName;
     private readonly string helperName;
     private readonly string runtimeUnavailableReason;
-    private readonly StreamReader input;
-    private readonly StreamWriter output;
+    private readonly TextReader input;
+    private readonly TextWriter output;
     private readonly JavaScriptSerializer json;
     private readonly object outputLock = new object();
+    // Lock order is stateLock, then outputLock. Publish cancellation, speech
+    // frames and terminal retirement under this same guard. Native Stop must
+    // run outside it: native callbacks may be waiting to publish speech.
     private readonly object stateLock = new object();
     private ActiveSynthesis active;
     private bool negotiated;
@@ -564,20 +567,26 @@ internal sealed class OmnivoxHelperHost
     private bool shuttingDown;
 
     internal OmnivoxHelperHost(IOmnivoxCaptureEngine engine)
-        : this(engine, null, null, null, null)
+        : this(engine, null, null, null, null, null, null)
     {
     }
 
     internal OmnivoxHelperHost(string engineId, string displayName,
         string helperName, string runtimeUnavailableReason)
         : this(null, engineId, displayName, helperName,
-            runtimeUnavailableReason)
+            runtimeUnavailableReason, null, null)
+    {
+    }
+
+    internal OmnivoxHelperHost(IOmnivoxCaptureEngine engine,
+        TextReader input, TextWriter output)
+        : this(engine, null, null, null, null, input, output)
     {
     }
 
     private OmnivoxHelperHost(IOmnivoxCaptureEngine engine, string engineId,
         string displayName, string helperName,
-        string runtimeUnavailableReason)
+        string runtimeUnavailableReason, TextReader input, TextWriter output)
     {
         if (engine != null)
         {
@@ -625,11 +634,16 @@ internal sealed class OmnivoxHelperHost
                 .Substring(0, MaximumStringLength);
         }
 
-        input = new StreamReader(Console.OpenStandardInput(),
+        this.input = input ?? new StreamReader(Console.OpenStandardInput(),
             new UTF8Encoding(false, true), false, 4096);
-        output = new StreamWriter(Console.OpenStandardOutput(),
-            new UTF8Encoding(false), 4096);
-        output.AutoFlush = true;
+        if (output == null)
+        {
+            StreamWriter standardOutput = new StreamWriter(
+                Console.OpenStandardOutput(), new UTF8Encoding(false), 4096);
+            standardOutput.AutoFlush = true;
+            output = standardOutput;
+        }
+        this.output = output;
         json = new JavaScriptSerializer();
         json.MaxJsonLength = MaximumFrameBytes;
         json.RecursionLimit = 32;
@@ -972,7 +986,8 @@ internal sealed class OmnivoxHelperHost
             OmnivoxHelperLog.Event("native_synthesis_started", request);
             if (synthesis.Cancelled)
             {
-                WriteSimple(synthesis.RequestId, "synthesis_cancelled");
+                WriteSynthesisFrame(synthesis,
+                    Response(synthesis.RequestId, "synthesis_cancelled"), true);
                 return;
             }
             ProgressiveWireSink progressiveSink = synthesis.Progressive ?
@@ -999,13 +1014,17 @@ internal sealed class OmnivoxHelperHost
                         CultureInfo.InvariantCulture));
                 if (synthesis.Cancelled)
                 {
-                    WriteSimple(synthesis.RequestId, "synthesis_cancelled");
+                    WriteSynthesisFrame(synthesis,
+                        Response(synthesis.RequestId, "synthesis_cancelled"), true);
                     return;
                 }
                 Dictionary<string, object> progressiveCompleted = Response(
                     synthesis.RequestId, "synthesis_completed");
                 progressiveCompleted["frame_count"] = progressiveFrames;
-                WriteFrame(progressiveCompleted);
+                if (!WriteSynthesisFrame(synthesis, progressiveCompleted, true))
+                {
+                    return;
+                }
                 OmnivoxHelperLog.Event("request_completed",
                     request + " elapsed_ms=" +
                     elapsed.ElapsedMilliseconds.ToString(
@@ -1032,7 +1051,8 @@ internal sealed class OmnivoxHelperHost
                     CultureInfo.InvariantCulture));
             if (synthesis.Cancelled)
             {
-                WriteSimple(synthesis.RequestId, "synthesis_cancelled");
+                WriteSynthesisFrame(synthesis,
+                    Response(synthesis.RequestId, "synthesis_cancelled"), true);
                 return;
             }
 
@@ -1050,16 +1070,19 @@ internal sealed class OmnivoxHelperHost
                 chunk["data_base64"] = Convert.ToBase64String(audio,
                     offset, count);
                 response["chunk"] = chunk;
-                WriteFrame(response);
+                WriteSynthesisFrame(synthesis, response, false);
             }
             if (markers.Length > 0)
             {
-                WriteMarkers(synthesis.RequestId, markers);
+                WriteMarkers(synthesis, markers);
             }
             Dictionary<string, object> completed = Response(
                 synthesis.RequestId, "synthesis_completed");
             completed["frame_count"] = frameCount;
-            WriteFrame(completed);
+            if (!WriteSynthesisFrame(synthesis, completed, true))
+            {
+                return;
+            }
             OmnivoxHelperLog.Event("request_completed",
                 request + " elapsed_ms=" + elapsed.ElapsedMilliseconds.ToString(
                     CultureInfo.InvariantCulture));
@@ -1070,15 +1093,9 @@ internal sealed class OmnivoxHelperHost
                 request + " elapsed_ms=" + elapsed.ElapsedMilliseconds.ToString(
                     CultureInfo.InvariantCulture) + " error=\"" +
                 OmnivoxHelperLog.ExceptionDetails(error) + "\"");
-            if (synthesis.Cancelled)
-            {
-                WriteSimple(synthesis.RequestId, "synthesis_cancelled");
-            }
-            else
-            {
-                WriteError(synthesis.RequestId, "synthesis_failed",
-                    BoundedMessage(error), true);
-            }
+            WriteSynthesisFrame(synthesis,
+                ErrorResponse(synthesis.RequestId, "synthesis_failed",
+                    BoundedMessage(error), true), true);
         }
         finally
         {
@@ -1147,7 +1164,7 @@ internal sealed class OmnivoxHelperHost
         }
     }
 
-    private void WriteMarkers(ulong requestId,
+    private void WriteMarkers(ActiveSynthesis synthesis,
         OmnivoxHelperMarker[] markers)
     {
         object[] values = new object[markers.Length];
@@ -1173,9 +1190,10 @@ internal sealed class OmnivoxHelperHost
             }
             values[index] = value;
         }
-        Dictionary<string, object> response = Response(requestId, "markers");
+        Dictionary<string, object> response = Response(synthesis.RequestId,
+            "markers");
         response["markers"] = values;
-        WriteFrame(response);
+        WriteSynthesisFrame(synthesis, response, false);
     }
 
     private static OmnivoxHelperAnchor[] ReadAnchors(
@@ -1259,17 +1277,29 @@ internal sealed class OmnivoxHelperHost
                     "target synthesis is not active", false);
             }
             synthesis.Cancelled = true;
+            Dictionary<string, object> response = Response(requestId,
+                "cancel_accepted");
+            response["target_request_id"] = targetRequestId;
+            WriteFrame(response);
         }
-        engine.Stop();
         OmnivoxHelperLog.Event("cancel_requested",
             "request_id=" + requestId.ToString(CultureInfo.InvariantCulture) +
             " target_request_id=" + targetRequestId.ToString(
                 CultureInfo.InvariantCulture));
-
-        Dictionary<string, object> response = Response(requestId,
-            "cancel_accepted");
-        response["target_request_id"] = targetRequestId;
-        WriteFrame(response);
+        try
+        {
+            engine.Stop();
+        }
+        catch (Exception error)
+        {
+            // Cancellation is already accepted. Keep suppressing output and
+            // leave completion to the worker (or the parent's watchdog),
+            // rather than send a second response for the cancel request.
+            OmnivoxHelperLog.Event("native_stop_failed",
+                "target_request_id=" + targetRequestId.ToString(
+                    CultureInfo.InvariantCulture) + " error=\"" +
+                OmnivoxHelperLog.ExceptionDetails(error) + "\"");
+        }
     }
 
     private void StopAndJoinActive()
@@ -1415,6 +1445,12 @@ internal sealed class OmnivoxHelperHost
     private void WriteError(ulong? requestId, string code, string message,
         bool retryable)
     {
+        WriteFrame(ErrorResponse(requestId, code, message, retryable));
+    }
+
+    private Dictionary<string, object> ErrorResponse(ulong? requestId,
+        string code, string message, bool retryable)
+    {
         Dictionary<string, object> response =
             new Dictionary<string, object>();
         response["protocol_version"] = selectedProtocolVersion == 0 ?
@@ -1425,7 +1461,36 @@ internal sealed class OmnivoxHelperHost
         response["code"] = code;
         response["message"] = message;
         response["retryable"] = retryable;
-        WriteFrame(response);
+        return response;
+    }
+
+    private bool WriteSynthesisFrame(ActiveSynthesis synthesis,
+        Dictionary<string, object> response, bool terminal)
+    {
+        lock (stateLock)
+        {
+            if (!Object.ReferenceEquals(active, synthesis))
+            {
+                return false;
+            }
+            if (synthesis.Cancelled)
+            {
+                if (!terminal)
+                {
+                    throw new OperationCanceledException(
+                        "synthesis output was cancelled");
+                }
+                response = Response(synthesis.RequestId, "synthesis_cancelled");
+            }
+            WriteFrame(response);
+            if (terminal)
+            {
+                // A cancel arriving after this terminal must not be accepted,
+                // even if the worker has not reached its finally block yet.
+                active = null;
+            }
+            return !synthesis.Cancelled;
+        }
     }
 
     private void WriteFrame(Dictionary<string, object> response)

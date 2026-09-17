@@ -41,6 +41,20 @@ protocol and reports a deliberately absent runtime without exiting early:
 make windows-helpers-startup-test
 ```
 
+Exercise cancellation ordering against the real protocol loop with a controlled
+fake engine, without proprietary DLLs or audio playback:
+
+```sh
+make windows-helpers-cancellation-test
+```
+
+On Windows directly, run `tools/test_windows_helper_cancellation.ps1` in Windows
+PowerShell. The runner compiles a temporary x86 test executable and removes it
+on completion. Its event barriers cover acknowledgement before native stop,
+blocked output, terminal retirement, callback suppression, native failures,
+shutdown and subsequent speech under protocols 1–5. Native-runtime stress tests
+remain necessary to check the adapters themselves.
+
 ## Runtime requirements and installation
 
 Beginning with v1.7.1, generic Omnivox Windows release archives contain these
