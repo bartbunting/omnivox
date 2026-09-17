@@ -55,6 +55,14 @@ blocked output, terminal retirement, callback suppression, native failures,
 shutdown and subsequent speech under protocols 1–5. Native-runtime stress tests
 remain necessary to check the adapters themselves.
 
+The internal Eloquence native-parameter path has a separate installed-runtime
+probe, [`tools/check_eloquence_execution.ps1`](../tools/check_eloquence_execution.ps1).
+Run it in x86 Windows PowerShell with `-Sta`, `-Helper` naming the built Eloquence
+helper and `-RuntimeDll` naming the installed ECI DLL. `-PlanningOnly` checks
+composition fixtures and invalid edits without loading a speech DLL. The
+[execution report](../docs/benchmarks/2026-09-18-eloquence-native-execution.md)
+distinguishes this internal path from the still-pending helper 6 interface.
+
 ## Runtime requirements and installation
 
 Beginning with v1.7.1, generic Omnivox Windows release archives contain these

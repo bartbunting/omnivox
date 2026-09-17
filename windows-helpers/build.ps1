@@ -49,6 +49,7 @@ if ($Engine -eq "all" -or $Engine -eq "eloquence") {
         "/out:$Bin\OmnivoxEloquenceHelper32.exe" `
         (Join-Path $Root "eloquence\OmnivoxEloquenceCapture.cs") `
         (Join-Path $Root "eloquence\OmnivoxEloquenceHelper.cs") `
+        (Join-Path $Root "eloquence\OmnivoxEloquenceParameters.cs") `
         (Join-Path $Common "OmnivoxNativeLibrary.cs") `
         (Join-Path $Common "OmnivoxHelperHost.cs")
     if ($LASTEXITCODE -ne 0) {

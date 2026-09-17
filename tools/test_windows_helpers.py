@@ -24,6 +24,7 @@ class WindowsHelperSourceTests(unittest.TestCase):
             "common/OmnivoxNativeLibrary.cs",
             "eloquence/OmnivoxEloquenceCapture.cs",
             "eloquence/OmnivoxEloquenceHelper.cs",
+            "eloquence/OmnivoxEloquenceParameters.cs",
             "dectalk/OmnivoxDectalkCapture.cs",
             "dectalk/OmnivoxDectalkHelper.cs",
         ):

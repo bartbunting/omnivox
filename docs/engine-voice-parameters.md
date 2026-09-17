@@ -32,16 +32,25 @@ The Windows helpers now contain optional ECI voice APIs and DECtalk parameter
 readback. The [binding audit](benchmarks/2026-09-17-native-parameter-bindings.md)
 checks their endpoints, ordinary resets, unit-mode guards and missing bindings
 against the installed runtimes. These methods are not yet called by the speech
-protocol; helper 6 and native cancellation/failure acceptance remain pending.
-The binding audit also reproduces a pre-existing cancel-acknowledgement ordering
-race in the Windows host. Resolve that before connecting the native request path.
+protocol; helper 6 integration and DECtalk execution acceptance remain pending.
+The pre-existing Windows cancellation ordering race was fixed and qualified in
+[the cancellation follow-up](benchmarks/2026-09-17-windows-helper-cancellation.md).
 
-This module is not connected to existing speech paths. Common speech behavior
-and capability advertisements remain unchanged. Next implement qualified helper
-execution and native profiles, followed by transport, receipts and the Emacs
-editor. Adapter integration must preserve the old common path, including its
-existing clamps; native edit ranges are separately qualified and must not
-silently recalibrate common controls.
+Eloquence now has an internal native execution path for its qualified Windows
+ECI 6.1 American English runtime. It validates and freezes sparse integer/default
+edits, composes them with existing common mappings and explicit context, applies
+on its STA owner thread, verifies readback before PCM, and restores the pristine
+preset on success, cancellation and failure. The
+[execution audit](benchmarks/2026-09-18-eloquence-native-execution.md) exercises the
+actual helper bytes. This path is not yet exposed through helper 6; DECtalk
+execution, catalogues, receipts and public transport remain pending.
+
+The Rust planner and native request path are not connected to public speech
+operations yet. Common mappings and capability advertisements remain unchanged.
+Next complete DECtalk execution and helper 6 native profiles, followed by
+transport, receipts and the Emacs editor. Adapter integration must preserve the
+old common path, including its existing clamps; native edit ranges are separately
+qualified and must not silently recalibrate common controls.
 
 ## Shared rules
 

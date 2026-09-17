@@ -240,6 +240,8 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
     internal const int MaximumAudioBytes = 128 * 1024 * 1024;
 
     private readonly Encoding textEncoding;
+    private readonly string runtimePath;
+    private bool nativeParametersQualified;
     private readonly object synthesisLock = new object();
     private OmnivoxNativeEci native;
     private string runtimeVersion;
@@ -257,6 +259,7 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
     internal OmnivoxEloquenceCapture(string dllPath)
     {
         native = new OmnivoxNativeEci(dllPath);
+        runtimePath = Path.GetFullPath(dllPath);
         try
         {
             handle = native.NewEx(GeneralAmericanEnglish);
@@ -303,6 +306,71 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
         OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
         IOmnivoxCaptureSink sink)
     {
+        return SynthesizeCore(text, anchors, cancellationRequested, sink,
+            delegate() {
+                AddText(" `" + voiceId + " `vs" +
+                    rate.ToString(CultureInfo.InvariantCulture) + " `vb" +
+                    pitch.ToString(CultureInfo.InvariantCulture) +
+                    voiceParameters + " `vv" +
+                    volume.ToString(CultureInfo.InvariantCulture) + " ");
+            }, null);
+    }
+
+    internal OmnivoxCaptureResult SynthesizeNative(string text, string voiceId,
+        int?[] common, OmnivoxEloquenceParameters edits,
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
+        IOmnivoxCaptureSink sink, Action<int[]> applied)
+    {
+        if (voiceId == null || voiceId.Length != 2 || voiceId[0] != 'v' ||
+            voiceId[1] < '1' || voiceId[1] > '8')
+            throw new ArgumentException("Unknown ECI preset", "voiceId");
+        if (edits == null || common == null || common.Length != 8)
+            throw new ArgumentException("Incomplete ECI native request");
+        // Freeze and check all mapped inputs before any native mutation.
+        common = (int?[])common.Clone();
+        for (int index = 0; index < common.Length; index++)
+            if (common[index].HasValue)
+                OmnivoxEloquenceParameters.ValidateValue(index, common[index].Value);
+        if (!native.HasVoiceParameterApi)
+            throw new NotSupportedException("ECI voice parameter APIs are unavailable");
+        if (!nativeParametersQualified)
+        {
+            OmnivoxEloquenceParameters.RequireQualifiedRuntime(Version, runtimePath);
+            nativeParametersQualified = true;
+        }
+        int preset = voiceId[1] - '0';
+        int[] pristine = null;
+        bool restore = false;
+        return SynthesizeCore(text, anchors, cancellationRequested, sink,
+            delegate() {
+                restore = true;
+                native.CopyPresetToActive(handle, preset);
+                pristine = native.ReadActiveVoiceParameters(handle);
+                int[] plan = edits.Compose(pristine, common);
+                for (int index = 0; index < plan.Length; index++)
+                {
+                    if (cancellationRequested()) throw new OperationCanceledException();
+                    native.SetActiveVoiceParameter(handle, index, plan[index]);
+                }
+                int[] actual = native.ReadActiveVoiceParameters(handle);
+                OmnivoxEloquenceParameters.RequireReadback(plan, actual);
+                if (applied != null) applied((int[])actual.Clone());
+            },
+            delegate() {
+                if (!restore) return;
+                native.Stop(handle);
+                Check(native.ClearInput(handle), "eciClearInput");
+                native.CopyPresetToActive(handle, preset);
+                if (pristine != null)
+                    OmnivoxEloquenceParameters.RequireReadback(pristine,
+                        native.ReadActiveVoiceParameters(handle));
+            });
+    }
+
+    private OmnivoxCaptureResult SynthesizeCore(string text,
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
+        IOmnivoxCaptureSink sink, Action prepare, Action restore)
+    {
         lock (synthesisLock)
         {
             if (cancellationRequested())
@@ -324,11 +392,8 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
                 native.Stop(handle);
                 Check(native.ClearInput(handle), "eciClearInput");
                 Configure();
-                AddText(" `" + voiceId + " `vs" +
-                    rate.ToString(CultureInfo.InvariantCulture) + " `vb" +
-                    pitch.ToString(CultureInfo.InvariantCulture) +
-                    voiceParameters + " `vv" +
-                    volume.ToString(CultureInfo.InvariantCulture) + " ");
+                prepare();
+                if (cancellationRequested()) throw new OperationCanceledException();
                 AddTextWithIndexes(text, anchors);
                 Check(native.Synthesize(handle), "eciSynthesize");
                 OmnivoxHelperLog.Event("native_call_started",
@@ -355,16 +420,23 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
             }
             finally
             {
-                if (capture != null)
+                try
                 {
-                    capture.Dispose();
+                    if (restore != null) restore();
                 }
-                capture = null;
-                pendingMarkers = null;
-                reachedMarkers = null;
-                this.cancellationRequested = null;
-                progressiveSink = null;
-                native.ClearInput(handle);
+                finally
+                {
+                    if (capture != null)
+                    {
+                        capture.Dispose();
+                    }
+                    capture = null;
+                    pendingMarkers = null;
+                    reachedMarkers = null;
+                    this.cancellationRequested = null;
+                    progressiveSink = null;
+                    native.ClearInput(handle);
+                }
             }
         }
     }

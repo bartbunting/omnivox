@@ -1,0 +1,109 @@
+{
+    "runtime":  {
+                    "status":  "passed",
+                    "voices":  [
+                                   {
+                                       "voice_id":  "v1",
+                                       "endpoint_cases":  16,
+                                       "combined_edits":  true,
+                                       "explicit_defaults":  true,
+                                       "cancellation_phases":  4,
+                                       "failure_reset":  true,
+                                       "progressive_cases":  3
+                                   },
+                                   {
+                                       "voice_id":  "v2",
+                                       "endpoint_cases":  16,
+                                       "combined_edits":  true,
+                                       "explicit_defaults":  true,
+                                       "cancellation_phases":  4,
+                                       "failure_reset":  true,
+                                       "progressive_cases":  3
+                                   },
+                                   {
+                                       "voice_id":  "v3",
+                                       "endpoint_cases":  16,
+                                       "combined_edits":  true,
+                                       "explicit_defaults":  true,
+                                       "cancellation_phases":  4,
+                                       "failure_reset":  true,
+                                       "progressive_cases":  3
+                                   },
+                                   {
+                                       "voice_id":  "v4",
+                                       "endpoint_cases":  16,
+                                       "combined_edits":  true,
+                                       "explicit_defaults":  true,
+                                       "cancellation_phases":  4,
+                                       "failure_reset":  true,
+                                       "progressive_cases":  3
+                                   },
+                                   {
+                                       "voice_id":  "v5",
+                                       "endpoint_cases":  16,
+                                       "combined_edits":  true,
+                                       "explicit_defaults":  true,
+                                       "cancellation_phases":  4,
+                                       "failure_reset":  true,
+                                       "progressive_cases":  3
+                                   },
+                                   {
+                                       "voice_id":  "v6",
+                                       "endpoint_cases":  16,
+                                       "combined_edits":  true,
+                                       "explicit_defaults":  true,
+                                       "cancellation_phases":  4,
+                                       "failure_reset":  true,
+                                       "progressive_cases":  3
+                                   },
+                                   {
+                                       "voice_id":  "v7",
+                                       "endpoint_cases":  16,
+                                       "combined_edits":  true,
+                                       "explicit_defaults":  true,
+                                       "cancellation_phases":  4,
+                                       "failure_reset":  true,
+                                       "progressive_cases":  3
+                                   },
+                                   {
+                                       "voice_id":  "v8",
+                                       "endpoint_cases":  16,
+                                       "combined_edits":  true,
+                                       "explicit_defaults":  true,
+                                       "cancellation_phases":  4,
+                                       "failure_reset":  true,
+                                       "progressive_cases":  3
+                                   }
+                               ],
+                    "successful_captures":  360,
+                    "ordinary_reset_checks":  200,
+                    "cancellation_cases":  40,
+                    "receipt_failure_cases":  8,
+                    "progressive_pcm_failures":  8,
+                    "progressive_cases":  24,
+                    "owner_thread_fixtures":  2,
+                    "scope":  "native execution, pre-PCM readback and reset; no helper-6 wire or UI"
+                },
+    "planning":  {
+                     "status":  "passed",
+                     "fixtures":  [
+                                      {
+                                          "case":  "breathiness_does_not_remap_volume",
+                                          "passed":  true
+                                      },
+                                      {
+                                          "case":  "context_richness_masks_both_outputs",
+                                          "passed":  true
+                                      },
+                                      {
+                                          "case":  "atomic_validation_and_frozen_edits",
+                                          "passed":  true
+                                      }
+                                  ],
+                     "invalid_values_rejected":  16,
+                     "profile_id":  "eloquence.windows.6_1.en_us.v1"
+                 },
+    "runtime_sha256":  "da99080288cdca14a7effba20274af1d6d5878840e32be5a315bd8691124703b",
+    "probe_sha256":  "5c4124afb701f8195be9fef828e429cea8c029467a5f5fa41b3826deaa139926",
+    "helper_sha256":  "2658d9644523d175aff60417e7d4e0f5dec865614b372c7b594b62fdc5d385d4"
+}

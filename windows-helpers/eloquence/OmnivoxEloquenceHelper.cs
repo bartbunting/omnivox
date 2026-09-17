@@ -18,6 +18,9 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         internal int Pitch;
         internal string VoiceParameters;
         internal int Volume;
+        internal OmnivoxEloquenceParameters NativeEdits;
+        internal int?[] CommonParameters;
+        internal Action<int[]> Applied;
         internal OmnivoxHelperAnchor[] Anchors;
         internal IOmnivoxCaptureSink Sink;
         internal Func<bool> CancellationRequested;
@@ -97,6 +100,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         owner = new Thread(delegate() { OwnerLoop(dllPath); });
         owner.Name = "omnivox-eloquence-owner";
         owner.IsBackground = true;
+        owner.SetApartmentState(ApartmentState.STA);
         owner.Start();
         initialized.WaitOne();
         if (ownerError != null)
@@ -131,6 +135,29 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
         IOmnivoxCaptureSink sink)
     {
+        return SynthesizeCore(text, voiceId, rate, pitch, pitchRange, stress,
+            richness, volume, anchors, cancellationRequested, sink, null, null);
+    }
+
+    internal OmnivoxCaptureResult SynthesizeWithParameters(string text,
+        string voiceId, double rate, double pitch, double? pitchRange,
+        double? stress, double? richness, double volume,
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
+        IOmnivoxCaptureSink sink, IDictionary<string, int?> parameters,
+        IEnumerable<string> contextDimensions, Action<int[]> applied)
+    {
+        OmnivoxEloquenceParameters edits = new OmnivoxEloquenceParameters(
+            parameters, contextDimensions);
+        return SynthesizeCore(text, voiceId, rate, pitch, pitchRange, stress,
+            richness, volume, anchors, cancellationRequested, sink, edits, applied);
+    }
+
+    private OmnivoxCaptureResult SynthesizeCore(string text, string voiceId,
+        double rate, double pitch, double? pitchRange, double? stress,
+        double? richness, double volume, OmnivoxHelperAnchor[] anchors,
+        Func<bool> cancellationRequested, IOmnivoxCaptureSink sink,
+        OmnivoxEloquenceParameters edits, Action<int[]> applied)
+    {
         // Existing Emacsvox Eloquence operation treats 75 as its normal
         // speed. Protocol v4's 2.0 maximum maps to 240, within ECI's native
         // 0-through-250 speed range.
@@ -140,7 +167,8 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
             VoicePitchBaselines[voiceId] * pitch,
             MidpointRounding.AwayFromZero);
         nativePitch = Math.Max(0, Math.Min(100, nativePitch));
-        string voiceParameters = MapExtendedAcss(pitchRange, stress, richness);
+        string voiceParameters = edits == null ?
+            MapExtendedAcss(pitchRange, stress, richness) : null;
         int nativeVolume = MapVolume(volume, richness);
         SynthesisJob job = new SynthesisJob();
         job.Text = text;
@@ -149,6 +177,18 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         job.Pitch = nativePitch;
         job.VoiceParameters = voiceParameters;
         job.Volume = nativeVolume;
+        job.NativeEdits = edits;
+        job.Applied = applied;
+        if (edits != null)
+        {
+            job.CommonParameters = new int?[] {
+                null, null, nativePitch,
+                pitchRange.HasValue ? (int?)MapNormalized(pitchRange.Value, PitchRange) : null,
+                stress.HasValue ? (int?)MapNormalized(stress.Value, Roughness) : null,
+                richness.HasValue ? (int?)MapNormalized(richness.Value, Breathiness) : null,
+                nativeRate, nativeVolume
+            };
+        }
         job.Anchors = anchors;
         job.Sink = sink;
         job.CancellationRequested = cancellationRequested;
@@ -279,13 +319,21 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
                     bool stop = false;
                     try
                     {
-                        job.Result = capture.Synthesize(job.Text, job.VoiceId,
-                            job.Rate, job.Pitch, job.VoiceParameters,
-                            job.Volume, job.Anchors,
-                            delegate() {
-                                return job.Cancelled ||
-                                    job.CancellationRequested();
-                            }, job.Sink);
+                        Func<bool> cancelled = delegate() {
+                            return job.Cancelled || job.CancellationRequested();
+                        };
+                        if (job.NativeEdits == null)
+                        {
+                            job.Result = capture.Synthesize(job.Text, job.VoiceId,
+                                job.Rate, job.Pitch, job.VoiceParameters,
+                                job.Volume, job.Anchors, cancelled, job.Sink);
+                        }
+                        else
+                        {
+                            job.Result = capture.SynthesizeNative(job.Text,
+                                job.VoiceId, job.CommonParameters, job.NativeEdits,
+                                job.Anchors, cancelled, job.Sink, job.Applied);
+                        }
                     }
                     catch (Exception error)
                     {
