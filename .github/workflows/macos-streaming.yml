@@ -30,7 +30,8 @@ jobs:
             tools/test_macos_streaming.m -o /tmp/omnivox-macos-bridge-tests
           /tmp/omnivox-macos-bridge-tests
       - name: Rust adapter regressions
-        run: cargo test --locked -p omnivox-tts --no-default-features macos::
+        run: >-
+          cargo test --locked -p omnivox-tts --no-default-features macos::
       - name: Lint native adapter and probe
         run: cargo clippy --locked -p omnivox-tts --no-default-features --all-targets -- -D warnings
       - name: Native speech acceptance without playback
