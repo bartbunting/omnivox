@@ -1,0 +1,1004 @@
+{
+  "producer": "Eloquence helper 6; real ECI 6.1 runtime",
+  "helper_sha256": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8",
+  "exchanges": [
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 2,
+        "type": "get_engine_parameters_v1",
+        "engine_id": "eloquence",
+        "voice_id": null,
+        "cursor": null,
+        "expected_catalogue_revision": null
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 2,
+        "type": "engine_parameters_v1",
+        "engine_id": "eloquence",
+        "result": {
+          "status": "busy",
+          "retry_after_ms": 50
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 3,
+        "type": "get_engine_parameters_v1",
+        "engine_id": "eloquence",
+        "voice_id": null,
+        "cursor": null,
+        "expected_catalogue_revision": null
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 3,
+        "type": "engine_parameters_v1",
+        "engine_id": "eloquence",
+        "result": {
+          "status": "ready",
+          "identity": {
+            "schema_id": "eloquence.eci-units.v1",
+            "profile_id": "eloquence.windows.6_1.en_us.v1",
+            "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+            "runtime_generation": 1389852172361316401
+          },
+          "voice_id": null,
+          "parameters": [
+            {
+              "id": "gender",
+              "label": "Gender",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 0,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 1,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "head_size",
+              "label": "Head size",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 1,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "pitch_baseline",
+              "label": "Pitch baseline",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 2,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "pitch_fluctuation",
+              "label": "Pitch fluctuation",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 3,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "roughness",
+              "label": "Roughness",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 4,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "breathiness",
+              "label": "Breathiness",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 5,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "speed",
+              "label": "Speed",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 6,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 250,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "volume",
+              "label": "Volume",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 7,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            }
+          ],
+          "mappings": [
+            {
+              "common_inputs": [
+                "rate",
+                "rate_offset"
+              ],
+              "native_outputs": [
+                "speed"
+              ]
+            },
+            {
+              "common_inputs": [
+                "average_pitch"
+              ],
+              "native_outputs": [
+                "pitch_baseline"
+              ]
+            },
+            {
+              "common_inputs": [
+                "pitch_range"
+              ],
+              "native_outputs": [
+                "pitch_fluctuation"
+              ]
+            },
+            {
+              "common_inputs": [
+                "stress"
+              ],
+              "native_outputs": [
+                "roughness"
+              ]
+            },
+            {
+              "common_inputs": [
+                "richness"
+              ],
+              "native_outputs": [
+                "breathiness",
+                "volume"
+              ]
+            },
+            {
+              "common_inputs": [
+                "volume"
+              ],
+              "native_outputs": [
+                "volume"
+              ]
+            }
+          ],
+          "next_cursor": null
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 4,
+        "type": "get_engine_parameters_v1",
+        "engine_id": "eloquence",
+        "voice_id": "v1",
+        "cursor": null,
+        "expected_catalogue_revision": null
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 4,
+        "type": "engine_parameters_v1",
+        "engine_id": "eloquence",
+        "result": {
+          "status": "ready",
+          "identity": {
+            "schema_id": "eloquence.eci-units.v1",
+            "profile_id": "eloquence.windows.6_1.en_us.v1",
+            "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+            "runtime_generation": 1389852172361316401
+          },
+          "voice_id": "v1",
+          "parameters": [
+            {
+              "id": "gender",
+              "label": "Gender",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 0,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 1,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "head_size",
+              "label": "Head size",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 1,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "pitch_baseline",
+              "label": "Pitch baseline",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 2,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "pitch_fluctuation",
+              "label": "Pitch fluctuation",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 3,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "roughness",
+              "label": "Roughness",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 4,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "breathiness",
+              "label": "Breathiness",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 5,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "speed",
+              "label": "Speed",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 6,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 250,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "volume",
+              "label": "Volume",
+              "help": "ECI voice parameter in native units. Default restores the selected preset.",
+              "group": "voice",
+              "order": 7,
+              "unit": "eci",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            }
+          ],
+          "mappings": [
+            {
+              "common_inputs": [
+                "rate",
+                "rate_offset"
+              ],
+              "native_outputs": [
+                "speed"
+              ]
+            },
+            {
+              "common_inputs": [
+                "average_pitch"
+              ],
+              "native_outputs": [
+                "pitch_baseline"
+              ]
+            },
+            {
+              "common_inputs": [
+                "pitch_range"
+              ],
+              "native_outputs": [
+                "pitch_fluctuation"
+              ]
+            },
+            {
+              "common_inputs": [
+                "stress"
+              ],
+              "native_outputs": [
+                "roughness"
+              ]
+            },
+            {
+              "common_inputs": [
+                "richness"
+              ],
+              "native_outputs": [
+                "breathiness",
+                "volume"
+              ]
+            },
+            {
+              "common_inputs": [
+                "volume"
+              ],
+              "native_outputs": [
+                "volume"
+              ]
+            }
+          ],
+          "next_cursor": null
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 5,
+        "type": "synthesize",
+        "text": "Native parameter test.",
+        "settings": {
+          "voice_id": "v1",
+          "rate": 0.5,
+          "pitch": 1.0,
+          "pitch_range": null,
+          "stress": null,
+          "richness": null,
+          "volume": 1.0
+        },
+        "anchors": [],
+        "voice_parameters": null
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 5,
+        "type": "synthesis_started",
+        "format": {
+          "sample_rate": 11025,
+          "channels": 1,
+          "sample_format": "pcm_s16_le"
+        },
+        "actual_voice_id": "v1",
+        "native_application": null
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 6,
+        "type": "explain_voice_parameters_v1",
+        "source": {
+          "mode": "draft",
+          "settings": {
+            "voice_id": "v1",
+            "rate": 0.5,
+            "pitch": 1.0,
+            "pitch_range": null,
+            "stress": null,
+            "richness": 0.5,
+            "volume": 1.0
+          },
+          "voice_parameters": {
+            "native": {
+              "engine_id": "eloquence",
+              "schema_id": "eloquence.eci-units.v1",
+              "parameters": {
+                "head_size": {
+                  "op": "set",
+                  "value": 70
+                },
+                "speed": {
+                  "op": "set",
+                  "value": 80
+                },
+                "volume": {
+                  "op": "set",
+                  "value": 10
+                }
+              }
+            },
+            "context_dimensions": [
+              "richness"
+            ],
+            "expected_identity": {
+              "schema_id": "eloquence.eci-units.v1",
+              "profile_id": "eloquence.windows.6_1.en_us.v1",
+              "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+              "runtime_generation": 1389852172361316401
+            },
+            "unavailable_policy": "require"
+          }
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 6,
+        "type": "voice_parameters_explained_v1",
+        "result": {
+          "status": "ready",
+          "evidence": "planned",
+          "plan_id": null,
+          "realized": {
+            "engine_id": "eloquence",
+            "voice_id": "v1"
+          },
+          "identity": {
+            "schema_id": "eloquence.eci-units.v1",
+            "profile_id": "eloquence.windows.6_1.en_us.v1",
+            "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+            "runtime_generation": 1389852172361316401
+          },
+          "parameters": [
+            {
+              "id": "gender",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "head_size",
+              "value": 70,
+              "origin": "native_set",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "pitch_baseline",
+              "value": 65,
+              "origin": "common_mapping",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "pitch_fluctuation",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "roughness",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "breathiness",
+              "value": 18,
+              "origin": "context_mapping",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "speed",
+              "value": 80,
+              "origin": "native_set",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "volume",
+              "value": 90,
+              "origin": "context_mapping",
+              "masked_native": true,
+              "read_back": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 8,
+        "type": "synthesize",
+        "text": "Native parameter test.",
+        "settings": {
+          "voice_id": "v1",
+          "rate": 0.5,
+          "pitch": 1.0,
+          "pitch_range": null,
+          "stress": null,
+          "richness": 0.5,
+          "volume": 1.0
+        },
+        "anchors": [],
+        "voice_parameters": {
+          "native": {
+            "engine_id": "eloquence",
+            "schema_id": "eloquence.eci-units.v1",
+            "parameters": {
+              "head_size": {
+                "op": "set",
+                "value": 70
+              },
+              "speed": {
+                "op": "set",
+                "value": 80
+              },
+              "volume": {
+                "op": "set",
+                "value": 10
+              }
+            }
+          },
+          "context_dimensions": [
+            "richness"
+          ],
+          "expected_identity": {
+            "schema_id": "eloquence.eci-units.v1",
+            "profile_id": "eloquence.windows.6_1.en_us.v1",
+            "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+            "runtime_generation": 1389852172361316401
+          },
+          "unavailable_policy": "require"
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 8,
+        "type": "synthesis_started",
+        "format": {
+          "sample_rate": 11025,
+          "channels": 1,
+          "sample_format": "pcm_s16_le"
+        },
+        "actual_voice_id": "v1",
+        "native_application": {
+          "status": "applied",
+          "plan_id": "eci-57a22e73dd7245c194eb7e33a6a6927a",
+          "identity": {
+            "schema_id": "eloquence.eci-units.v1",
+            "profile_id": "eloquence.windows.6_1.en_us.v1",
+            "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+            "runtime_generation": 1389852172361316401
+          },
+          "masked_parameters": [
+            "volume"
+          ],
+          "reason": null
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 9,
+        "type": "explain_voice_parameters_v1",
+        "source": {
+          "mode": "applied",
+          "plan_id": "eci-57a22e73dd7245c194eb7e33a6a6927a"
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 9,
+        "type": "voice_parameters_explained_v1",
+        "result": {
+          "status": "ready",
+          "evidence": "adapter_applied",
+          "plan_id": "eci-57a22e73dd7245c194eb7e33a6a6927a",
+          "realized": {
+            "engine_id": "eloquence",
+            "voice_id": "v1"
+          },
+          "identity": {
+            "schema_id": "eloquence.eci-units.v1",
+            "profile_id": "eloquence.windows.6_1.en_us.v1",
+            "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+            "runtime_generation": 1389852172361316401
+          },
+          "parameters": [
+            {
+              "id": "gender",
+              "value": 0,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "head_size",
+              "value": 70,
+              "origin": "native_set",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "pitch_baseline",
+              "value": 65,
+              "origin": "common_mapping",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "pitch_fluctuation",
+              "value": 30,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "roughness",
+              "value": 0,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "breathiness",
+              "value": 18,
+              "origin": "context_mapping",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "speed",
+              "value": 80,
+              "origin": "native_set",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "volume",
+              "value": 90,
+              "origin": "context_mapping",
+              "masked_native": true,
+              "read_back": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 77,
+        "type": "synthesize",
+        "text": "Native parameter test.",
+        "settings": {
+          "voice_id": "v1",
+          "rate": 0.5,
+          "pitch": 1.0,
+          "pitch_range": null,
+          "stress": null,
+          "richness": null,
+          "volume": 1.0
+        },
+        "anchors": [],
+        "voice_parameters": {
+          "native": {
+            "engine_id": "eloquence",
+            "schema_id": "eloquence.eci-units.v1",
+            "parameters": {
+              "head_size": {
+                "op": "set",
+                "value": 70
+              }
+            }
+          },
+          "context_dimensions": [],
+          "expected_identity": {
+            "schema_id": "eloquence.eci-units.v1",
+            "profile_id": "eloquence.windows.6_1.en_us.v1",
+            "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+            "runtime_generation": 1389852172361316403
+          },
+          "unavailable_policy": "common_only"
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 77,
+        "type": "synthesis_started",
+        "format": {
+          "sample_rate": 11025,
+          "channels": 1,
+          "sample_format": "pcm_s16_le"
+        },
+        "actual_voice_id": "v1",
+        "native_application": {
+          "status": "common_only",
+          "plan_id": null,
+          "identity": null,
+          "masked_parameters": [],
+          "reason": "Native parameter catalogue identity is stale"
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 78,
+        "type": "explain_voice_parameters_v1",
+        "source": {
+          "mode": "applied",
+          "plan_id": "expired"
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 78,
+        "type": "voice_parameters_explained_v1",
+        "result": {
+          "status": "unavailable",
+          "reason": "plan_expired",
+          "message": "Applied plan is no longer retained"
+        }
+      }
+    }
+  ]
+}

@@ -240,8 +240,19 @@ reported as `not_available` through the helper protocol.
 
 ## Source and licensing
 
-`common/OmnivoxHelperHost.cs` owns the bounded versions 1 through 5 protocol
-loop. Each engine directory owns only its adapter, native capture boundary, and
-entry point. These helper sources retain their original copyright and
+`common/OmnivoxHelperHost.cs` owns the bounded versions 1 through 6 protocol
+loop; engines opt into 6 through `common/OmnivoxHelperParameters.cs`. Eloquence
+implements that interface; DECtalk and missing-runtime hosts retain 1–5. Each
+engine owns its native parameter metadata, mapping, capture and readback.
+The Rust parent continues to request version 5 until its integration is complete.
+
+For silent direct helper-6 acceptance against a locally installed qualified ECI
+runtime, run `python3 tools/test_helper6_eloquence.py
+windows-helpers/bin/OmnivoxEloquenceHelper32.exe --output /tmp/eloquence-helper6.json`
+from the repository root. It captures PCM without playing it or installing DLLs.
+The shared host's deterministic fake-engine suite remains
+`make windows-helpers-cancellation-test`.
+
+These helper sources retain their original copyright and
 `GPL-2.0-or-later` notices; [COPYING](COPYING) contains the applicable GPL
 version 2 text. The repository's default MIT license does not relicense them.

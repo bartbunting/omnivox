@@ -14,7 +14,8 @@ try {
     $Executable = Join-Path $Scratch 'CancellationTests.exe'
     & $Compiler /nologo /target:exe /platform:x86 /reference:System.Web.Extensions.dll `
         "/out:$Executable" (Join-Path $PSScriptRoot 'WindowsHelperCancellationTests.cs') `
-        $HostSource (Join-Path $Root 'windows-helpers\common\OmnivoxNativeLibrary.cs')
+        $HostSource (Join-Path $Root 'windows-helpers\common\OmnivoxNativeLibrary.cs') `
+        (Join-Path $Root 'windows-helpers\common\OmnivoxHelperParameters.cs')
     if ($LASTEXITCODE -ne 0) { throw 'Cancellation test build failed' }
     $Process = New-Object System.Diagnostics.Process
     $Process.StartInfo.FileName = $Executable

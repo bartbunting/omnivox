@@ -159,7 +159,7 @@ internal sealed class OmnivoxNativeEci : IDisposable
             setVoiceParam != null && copyVoice != null; }
     }
 
-    private void RequireEciUnits(IntPtr handle)
+    internal void RequireEciUnits(IntPtr handle)
     {
         if (!HasVoiceParameterApi)
             throw new NotSupportedException("ECI voice parameter APIs are unavailable");
@@ -290,6 +290,16 @@ internal sealed class OmnivoxEloquenceCapture : IDisposable
         {
             Dispose();
             throw;
+        }
+    }
+
+    internal bool HasNativeParameterUnits
+    {
+        get
+        {
+            try { native.RequireEciUnits(handle); return true; }
+            catch (NotSupportedException) { return false; }
+            catch (InvalidOperationException) { return false; }
         }
     }
 

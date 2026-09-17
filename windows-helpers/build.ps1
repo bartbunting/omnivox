@@ -50,8 +50,10 @@ if ($Engine -eq "all" -or $Engine -eq "eloquence") {
         (Join-Path $Root "eloquence\OmnivoxEloquenceCapture.cs") `
         (Join-Path $Root "eloquence\OmnivoxEloquenceHelper.cs") `
         (Join-Path $Root "eloquence\OmnivoxEloquenceParameters.cs") `
+        (Join-Path $Root "eloquence\OmnivoxEloquenceParameterService.cs") `
         (Join-Path $Common "OmnivoxNativeLibrary.cs") `
-        (Join-Path $Common "OmnivoxHelperHost.cs")
+        (Join-Path $Common "OmnivoxHelperHost.cs") `
+        (Join-Path $Common "OmnivoxHelperParameters.cs")
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to build OmnivoxEloquenceHelper32.exe"
     }
@@ -64,7 +66,8 @@ if ($Engine -eq "all" -or $Engine -eq "dectalk") {
         (Join-Path $Root "dectalk\OmnivoxDectalkHelper.cs") `
         (Join-Path $Root "dectalk\OmnivoxDectalkParameters.cs") `
         (Join-Path $Common "OmnivoxNativeLibrary.cs") `
-        (Join-Path $Common "OmnivoxHelperHost.cs")
+        (Join-Path $Common "OmnivoxHelperHost.cs") `
+        (Join-Path $Common "OmnivoxHelperParameters.cs")
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to build OmnivoxDectalkHelper32.exe"
     }

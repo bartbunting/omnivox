@@ -114,7 +114,7 @@ public static class WindowsHelperCancellationTests
         }
     }
 
-    private sealed class Engine : IOmnivoxCaptureEngine
+    private class Engine : IOmnivoxCaptureEngine
     {
         internal readonly ManualResetEvent Entered = new ManualResetEvent(false);
         internal readonly ManualResetEvent Release = new ManualResetEvent(false);
@@ -178,11 +178,34 @@ public static class WindowsHelperCancellationTests
         public void Dispose() { }
     }
 
+    private sealed class ParameterEngine : Engine, IOmnivoxParameterEngine, IOmnivoxParameterSynthesis
+    {
+        public Dictionary<string, object> GetParameters(IDictionary<string, object> query)
+        { return OmnivoxParameterWire.Map("status", "busy", "retry_after_ms", 50); }
+        public Dictionary<string, object> ExplainParameters(object source)
+        { return OmnivoxParameterWire.Map("status", "busy", "retry_after_ms", 50); }
+        public IOmnivoxParameterSynthesis PrepareParameters(IDictionary<string, object> settings, object parameters)
+        { return this; }
+        public OmnivoxCaptureResult Synthesize(string text, OmnivoxHelperAnchor[] anchors,
+            Func<bool> cancelled, IOmnivoxCaptureSink sink, Action<Dictionary<string, object>> applied)
+        {
+            Interlocked.Increment(ref SynthesisCalls);
+            byte[] audio = new byte[8];
+            if (Mode == "early_audio") sink.Audio(audio, 0, audio.Length);
+            if (Mode == "omitted_receipt")
+                return new OmnivoxCaptureResult(audio, new OmnivoxHelperMarker[0]);
+            if (text == "hold") { Entered.Set(); Wait(Release, "release native preparation"); }
+            applied(OmnivoxParameterWire.Map("status", "applied", "plan_id", "test-plan"));
+            if (sink != null) sink.Audio(audio, 0, audio.Length);
+            return new OmnivoxCaptureResult(sink == null ? audio : new byte[0], new OmnivoxHelperMarker[0]);
+        }
+    }
+
     private sealed class Session : IDisposable
     {
         internal readonly Input Input = new Input();
         internal readonly Output Output = new Output();
-        internal readonly Engine Engine = new Engine();
+        internal readonly Engine Engine;
         private readonly int version;
         private readonly Thread loop;
         private Exception failure;
@@ -190,6 +213,7 @@ public static class WindowsHelperCancellationTests
         internal Session(int version, bool progressive, string mode)
         {
             this.version = version;
+            Engine = version == 6 ? new ParameterEngine() : new Engine();
             Engine.Progressive = progressive;
             Engine.Mode = mode;
             OmnivoxHelperHost host = new OmnivoxHelperHost(Engine, Input, Output);
@@ -217,7 +241,8 @@ public static class WindowsHelperCancellationTests
                 "\",\"settings\":{\"voice_id\":null,\"rate\":0.5," +
                 "\"pitch\":1.0,\"volume\":1.0" +
                 (version >= 3 ? ",\"pitch_range\":null,\"stress\":null,\"richness\":null" : "") +
-                "}" + (version >= 2 ? ",\"anchors\":[]" : ""));
+                "}" + (version >= 2 ? ",\"anchors\":[]" : "") +
+                (version == 6 ? ",\"voice_parameters\":null" : ""));
         }
 
         internal void CheckCancellation()
@@ -423,6 +448,65 @@ public static class WindowsHelperCancellationTests
         return cases + 1;
     }
 
+    private static void NativeSpeak(Session session, int id, string text)
+    {
+        session.Send(id, "synthesize", "\"text\":\"" + text + "\",\"settings\":{" +
+            "\"voice_id\":null,\"rate\":0.5,\"pitch\":1,\"volume\":1," +
+            "\"pitch_range\":null,\"stress\":null,\"richness\":null},\"anchors\":[],\"voice_parameters\":{}");
+    }
+
+    private static int ParameterReceiptOrdering()
+    {
+        foreach (bool progressive in new[] { false, true })
+        {
+            using (Session session = new Session(6, progressive, "return"))
+            {
+                NativeSpeak(session, 2, "hold");
+                Wait(session.Engine.Entered, "native preparation");
+                Check(!session.Output.Has(2, "synthesis_started"), "receipt preceded native application");
+                session.Send(7, "get_engine_parameters_v1", "\"engine_id\":\"test\",\"voice_id\":null," +
+                    "\"cursor\":null,\"expected_catalogue_revision\":null");
+                session.Output.Await(7, "engine_parameters_v1");
+                session.Send(3, "cancel", "\"target_request_id\":2");
+                session.Output.Await(3, "cancel_accepted");
+                session.Engine.Release.Set();
+                session.Output.Await(2, "synthesis_cancelled");
+                session.CheckCancellation();
+                Check(!session.Output.Has(2, "synthesis_started"), "cancelled native plan published receipt");
+                session.FollowUp();
+            }
+            using (Session session = new Session(6, progressive, "return"))
+            {
+                NativeSpeak(session, 2, "next");
+                session.Output.Await(2, "synthesis_completed");
+                bool started = false;
+                foreach (var frame in session.Output.Snapshot())
+                {
+                    if (Convert.ToInt32(frame["request_id"]) != 2) continue;
+                    string type = (string)frame["type"];
+                    if (type == "synthesis_started")
+                    {
+                        Check(!started && frame["native_application"] != null, "missing or duplicate receipt");
+                        started = true;
+                    }
+                    else Check(started, "native output preceded receipt");
+                }
+            }
+        }
+        foreach (string mode in new[] { "early_audio", "omitted_receipt" })
+        {
+            using (Session session = new Session(6, mode == "early_audio", mode))
+            {
+                NativeSpeak(session, 2, "next");
+                session.Output.Await(2, "error");
+                Check(!session.Output.Has(2, "audio_chunk") && !session.Output.Has(2, "synthesis_started"),
+                    "failed application leaked receipt or PCM");
+                session.FollowUp();
+            }
+        }
+        return 6;
+    }
+
     public static int Main()
     {
         int cases = 0;
@@ -441,6 +525,9 @@ public static class WindowsHelperCancellationTests
             }
             CancelDuringNativeStop(5, false, "return"); ++cases;
             CancelWhileAcknowledgementBlocked(5, false); ++cases;
+            Console.WriteLine("PASS: {0} helper-6 native receipt ordering cases", ParameterReceiptOrdering());
+            CancelDuringNativeStop(6, true, "callbacks"); ++cases;
+            CancelWhileAcknowledgementBlocked(6, true); ++cases;
             Console.WriteLine("PASS: {0} deterministic Windows helper cancellation cases", cases);
             int wireCases = 0;
             for (int version = 1; version <= 5; version++) wireCases += WireValidation(version);

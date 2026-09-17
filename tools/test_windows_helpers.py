@@ -21,10 +21,12 @@ class WindowsHelperSourceTests(unittest.TestCase):
         self.assertTrue((HELPERS / "COPYING").is_file())
         for relative in (
             "common/OmnivoxHelperHost.cs",
+            "common/OmnivoxHelperParameters.cs",
             "common/OmnivoxNativeLibrary.cs",
             "eloquence/OmnivoxEloquenceCapture.cs",
             "eloquence/OmnivoxEloquenceHelper.cs",
             "eloquence/OmnivoxEloquenceParameters.cs",
+            "eloquence/OmnivoxEloquenceParameterService.cs",
             "dectalk/OmnivoxDectalkCapture.cs",
             "dectalk/OmnivoxDectalkHelper.cs",
             "dectalk/OmnivoxDectalkParameters.cs",
@@ -59,10 +61,10 @@ class WindowsHelperSourceTests(unittest.TestCase):
 
     def test_windows_helpers_offer_bounded_native_progressive_pcm_in_v5(self) -> None:
         host = source("common/OmnivoxHelperHost.cs")
-        self.assertIn("LatestProtocolVersion = 5", host)
+        self.assertIn("engine is IOmnivoxParameterEngine ? 6 : 5", host)
         self.assertIn('"streaming_pcm" : "buffered_pcm"', host)
-        self.assertIn('format["sample_rate"] = engine.SampleRate', host)
-        self.assertIn('format["channels"] = engine.Channels', host)
+        self.assertIn('"sample_rate", engine.SampleRate', host)
+        self.assertIn('"channels", engine.Channels', host)
         self.assertIn("MaximumAudioChunkBytes", host)
         self.assertNotIn("interpolationFactor", host)
         for relative in (

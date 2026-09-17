@@ -68,11 +68,13 @@ class ReleaseLayoutTests(unittest.TestCase):
             "README.md",
             "build.ps1",
             "common/OmnivoxHelperHost.cs",
+            "common/OmnivoxHelperParameters.cs",
             "common/OmnivoxNativeLibrary.cs",
             "dectalk/OmnivoxDectalkCapture.cs",
             "dectalk/OmnivoxDectalkHelper.cs",
             "eloquence/OmnivoxEloquenceCapture.cs",
             "eloquence/OmnivoxEloquenceHelper.cs",
+            "eloquence/OmnivoxEloquenceParameterService.cs",
         ):
             path = source / name
             path.parent.mkdir(parents=True, exist_ok=True)

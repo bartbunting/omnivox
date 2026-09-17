@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
+internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine, IOmnivoxParameterEngine
 {
     private sealed class SynthesisJob
     {
@@ -89,6 +89,8 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
     private SynthesisJob active;
     private Exception ownerError;
     private string version;
+    private bool nativeBindingsAvailable;
+    private readonly OmnivoxEloquenceParameterService parameterService;
     private bool shuttingDown;
 
     // ECI instances use a single-threaded-apartment contract.  OwnerLoop is
@@ -110,7 +112,15 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
             throw new InvalidOperationException(
                 "Eloquence owner thread failed to initialize", ownerError);
         }
+        parameterService = new OmnivoxEloquenceParameterService(this, dllPath, nativeBindingsAvailable);
     }
+
+    public Dictionary<string, object> GetParameters(IDictionary<string, object> query)
+    { return parameterService.Catalogue(query); }
+    public Dictionary<string, object> ExplainParameters(object source)
+    { return parameterService.Explain(source); }
+    public IOmnivoxParameterSynthesis PrepareParameters(IDictionary<string, object> settings, object parameters)
+    { return parameterService.Prepare(settings, parameters); }
 
     public string EngineId { get { return "eloquence"; } }
     public string DisplayName { get { return "Eloquence"; } }
@@ -158,18 +168,11 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         Func<bool> cancellationRequested, IOmnivoxCaptureSink sink,
         OmnivoxEloquenceParameters edits, Action<int[]> applied)
     {
-        // Existing Emacsvox Eloquence operation treats 75 as its normal
-        // speed. Protocol v4's 2.0 maximum maps to 240, within ECI's native
-        // 0-through-250 speed range.
-        int nativeRate = (int)Math.Round(20.0 + rate * 110.0,
-            MidpointRounding.AwayFromZero);
-        int nativePitch = (int)Math.Round(
-            VoicePitchBaselines[voiceId] * pitch,
-            MidpointRounding.AwayFromZero);
-        nativePitch = Math.Max(0, Math.Min(100, nativePitch));
-        string voiceParameters = edits == null ?
-            MapExtendedAcss(pitchRange, stress, richness) : null;
-        int nativeVolume = MapVolume(volume, richness);
+        int?[] common = MapCommonParameters(voiceId, rate, pitch, pitchRange, stress, richness, volume);
+        int nativeRate = common[6].Value;
+        int nativePitch = common[2].Value;
+        int nativeVolume = common[7].Value;
+        string voiceParameters = edits == null ? MapExtendedAcss(pitchRange, stress, richness) : null;
         SynthesisJob job = new SynthesisJob();
         job.Text = text;
         job.VoiceId = voiceId;
@@ -179,16 +182,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
         job.Volume = nativeVolume;
         job.NativeEdits = edits;
         job.Applied = applied;
-        if (edits != null)
-        {
-            job.CommonParameters = new int?[] {
-                null, null, nativePitch,
-                pitchRange.HasValue ? (int?)MapNormalized(pitchRange.Value, PitchRange) : null,
-                stress.HasValue ? (int?)MapNormalized(stress.Value, Roughness) : null,
-                richness.HasValue ? (int?)MapNormalized(richness.Value, Breathiness) : null,
-                nativeRate, nativeVolume
-            };
-        }
+        if (edits != null) job.CommonParameters = common;
         job.Anchors = anchors;
         job.Sink = sink;
         job.CancellationRequested = cancellationRequested;
@@ -216,6 +210,28 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
             throw job.Error;
         }
         return job.Result;
+    }
+
+    internal static int?[] MapCommonParameters(string voiceId, double rate, double pitch,
+        double? pitchRange, double? stress, double? richness, double volume)
+    {
+        // Existing Emacsvox Eloquence operation treats 75 as its normal
+        // speed. Protocol v4's 2.0 maximum maps to 240, within ECI's native
+        // 0-through-250 speed range.
+        int nativeRate = (int)Math.Round(20.0 + rate * 110.0,
+            MidpointRounding.AwayFromZero);
+        int nativePitch = (int)Math.Round(
+            VoicePitchBaselines[voiceId] * pitch,
+            MidpointRounding.AwayFromZero);
+        nativePitch = Math.Max(0, Math.Min(100, nativePitch));
+        int nativeVolume = MapVolume(volume, richness);
+        return new int?[] {
+            null, null, nativePitch,
+            pitchRange.HasValue ? (int?)MapNormalized(pitchRange.Value, PitchRange) : null,
+            stress.HasValue ? (int?)MapNormalized(stress.Value, Roughness) : null,
+            richness.HasValue ? (int?)MapNormalized(richness.Value, Breathiness) : null,
+            nativeRate, nativeVolume
+        };
     }
 
     internal static string MapExtendedAcss(double? pitchRange,
@@ -299,6 +315,7 @@ internal sealed class OmnivoxEloquenceAdapter : IOmnivoxCaptureEngine
                 new OmnivoxEloquenceCapture(dllPath))
             {
                 version = capture.Version;
+                nativeBindingsAvailable = capture.HasNativeParameterUnits;
                 initialized.Set();
                 while (true)
                 {

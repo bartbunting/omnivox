@@ -10,7 +10,7 @@ fallback, effects, mixing, playback completion, and runtime health policy.
 
 ## Transport and Compatibility
 
-Versions 1 through 5 use a bidirectional stream of newline-terminated UTF-8
+Versions 1 through 6 use a bidirectional stream of newline-terminated UTF-8
 JSON objects. The helper reserves standard output for protocol frames and
 writes diagnostics only to standard error. Each frame contains
 `protocol_version`, a tagged `type`, and normally a positive `request_id`; only
@@ -23,7 +23,7 @@ reject unknown members. Response envelopes and helper-specific audio/marker
 payloads also reject unknown members; shared engine descriptors retain their
 existing discovery schema. Version-specific members are rejected on earlier
 versions even when null. In particular, protocols 1–5 cannot accept or silently
-discard `voice_parameters` or `native_application` from the reserved helper 6
+discard `voice_parameters` or `native_application` from the helper 6
 contract. The Windows reader validates JSON syntax before its dictionary parser
 can overwrite duplicate keys. Strings containing JSON-like text remain ordinary
 speech text.
@@ -297,19 +297,44 @@ occasionally late marker callback can still precede the corresponding audio.
 Both native wire PCM and expanded canonical PCM remain subject to the ordinary
 128 MiB synthesis limit.
 
-## Reserved native parameter messages
+## Native parameter messages (helper 6)
 
-The accepted [engine parameter contract](../engine-voice-parameters.md) reserves
-helper 6 for typed catalogues, native synthesis settings and application evidence.
-`omnivox_tts::helper_protocol::parameters` implements only those new/extended
-message codecs. It does not enable helper-6 negotiation or replace the existing
-readers for hello, PCM, markers, cancellation and terminal frames. Versions 1–5
-remain the supported live protocols; their readers reject the new members.
+The accepted [engine parameter contract](../engine-voice-parameters.md) defines
+helper 6 catalogue queries, native synthesis settings and application evidence.
+The Eloquence Windows helper can negotiate 6 explicitly. DECtalk, other helpers
+and the Rust parent dispatcher still negotiate 1–5. The parent therefore does
+not expose native controls to public speech or Emacs yet. Missing-runtime
+Windows hosts also retain 1–5; ordinary speech does not depend on native support.
+
+`omnivox_tts::helper_protocol::parameters` provides the new/extended Rust message
+codecs and catalogue assembly. The parent readers for hello, PCM, markers,
+cancellation and terminal frames have not switched to 6. Existing 1–5 readers
+reject the new operations and members, even when null.
+
+Eloquence 6 adds `get_engine_parameters_v1`, `explain_voice_parameters_v1`,
+required nullable `voice_parameters` on synthesis and required nullable
+`native_application` on `synthesis_started`. Native readback must complete
+before that start frame and any PCM. The shared host guards receipt, audio and
+cancellation publication under the same state lock, rejecting early native PCM.
+
+Catalogue metadata is read-only and fits one page of eight ECI controls. It
+reports unknown preset defaults with verified reset support. Browsing neither
+selects a preset nor waits on active synthesis. Runtime qualification hashes the
+DLL once on a background worker; queries return bounded `busy` responses while
+it runs, and unavailable after ten seconds if it has not finished. Native
+execution independently retains its unit, runtime and readback guards.
+
+Draft explanations never claim readback. Applied explanations retain up to 64
+plans and 256 KiB per helper process; old or foreign plan IDs return
+`plan_expired`. Descriptor revisions hash canonically ordered content, and a new
+helper instance has a new positive runtime generation. Stale identities reject
+strict requests; explicit `common_only` may use ordinary speech with a reason.
+Malformed native data is rejected before either path starts.
 
 Catalogue assembly validates each bounded page before changing accepted state.
 It checks voice, revision, runtime generation, profile and repeated mappings,
 then checks all cross-page references when the final page arrives. Correlated
 response validation rejects mismatched requests, voices, stale applied identities
-and a common-only confirmation for a strict native request. These checks validate
-wire claims; the native handler must still establish execution, query deadlines,
-owner-thread access and receipt-before-PCM ordering.
+and a common-only confirmation for a strict native request. The
+[Eloquence handler report](../benchmarks/2026-09-18-eloquence-helper6.md) separates
+direct helper qualification from the remaining parent/client integration.

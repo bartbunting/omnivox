@@ -1,0 +1,141 @@
+{
+  "cases": 57,
+  "helper_sha256": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8",
+  "streaming": {
+    "anchors": [
+      {
+        "kind": "requested_anchor",
+        "frame_offset": 0,
+        "text_start": 0,
+        "text_length": 0,
+        "value": "start"
+      },
+      {
+        "kind": "requested_anchor",
+        "frame_offset": 11770,
+        "text_start": 19,
+        "text_length": 0,
+        "value": "end"
+      }
+    ],
+    "cancellation_frames": [
+      "cancel_accepted",
+      "synthesis_cancelled"
+    ],
+    "followup_applied": {
+      "status": "ready",
+      "evidence": "adapter_applied",
+      "plan_id": "eci-16fe4aa0d55d4aea8ec70940484a83d0",
+      "realized": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "identity": {
+        "schema_id": "eloquence.eci-units.v1",
+        "profile_id": "eloquence.windows.6_1.en_us.v1",
+        "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+        "runtime_generation": 5558916386404071755
+      },
+      "parameters": [
+        {
+          "id": "gender",
+          "value": 0,
+          "origin": "engine_default",
+          "masked_native": false,
+          "read_back": true
+        },
+        {
+          "id": "head_size",
+          "value": 50,
+          "origin": "engine_default",
+          "masked_native": false,
+          "read_back": true
+        },
+        {
+          "id": "pitch_baseline",
+          "value": 65,
+          "origin": "common_mapping",
+          "masked_native": false,
+          "read_back": true
+        },
+        {
+          "id": "pitch_fluctuation",
+          "value": 30,
+          "origin": "engine_default",
+          "masked_native": false,
+          "read_back": true
+        },
+        {
+          "id": "roughness",
+          "value": 0,
+          "origin": "engine_default",
+          "masked_native": false,
+          "read_back": true
+        },
+        {
+          "id": "breathiness",
+          "value": 0,
+          "origin": "engine_default",
+          "masked_native": false,
+          "read_back": true
+        },
+        {
+          "id": "speed",
+          "value": 75,
+          "origin": "common_mapping",
+          "masked_native": false,
+          "read_back": true
+        },
+        {
+          "id": "volume",
+          "value": 100,
+          "origin": "common_mapping",
+          "masked_native": false,
+          "read_back": true
+        }
+      ]
+    },
+    "ordinary_followup_frames": 13442
+  },
+  "catalogue_identity": {
+    "schema_id": "eloquence.eci-units.v1",
+    "profile_id": "eloquence.windows.6_1.en_us.v1",
+    "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+    "runtime_generation": 5558916386404071755
+  },
+  "parameter_count": 8,
+  "scope": "Silent direct helper-6 acceptance; parent remains on helper 5",
+  "legacy_helper_5": {
+    "eloquence": {
+      "helper_sha256": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8",
+      "result": {
+        "cancellation_probes": 4,
+        "duration_seconds": 17.799881630999153,
+        "frames": 561539,
+        "markers": 293,
+        "pcm_bytes": 1123078,
+        "status": "completed",
+        "syntheses": 20
+      }
+    },
+    "dectalk": {
+      "helper_sha256": "aeba4bdfd2cf67e85f2e73efeec8a9b60704aa3cd1d1e62d7a2c31bb2dd9a641",
+      "result": {
+        "cancellation_probes": 4,
+        "duration_seconds": 18.390716768000857,
+        "frames": 588022,
+        "markers": 1202,
+        "pcm_bytes": 1176044,
+        "status": "completed",
+        "syntheses": 20
+      }
+    }
+  },
+  "staging": {
+    "build_id": "1092ac6518d5e78d",
+    "helper_6_cases": 57,
+    "eloquence_sha256": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8",
+    "dectalk_sha256": "aeba4bdfd2cf67e85f2e73efeec8a9b60704aa3cd1d1e62d7a2c31bb2dd9a641",
+    "desktop_runtime_unchanged": "e1ecdb481ee08fd0"
+  }
+}

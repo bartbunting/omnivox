@@ -296,11 +296,13 @@ def verify_windows_helper_source(source: Path) -> None:
         "README.md",
         "build.ps1",
         "common/OmnivoxHelperHost.cs",
+        "common/OmnivoxHelperParameters.cs",
         "common/OmnivoxNativeLibrary.cs",
         "dectalk/OmnivoxDectalkCapture.cs",
         "dectalk/OmnivoxDectalkHelper.cs",
         "eloquence/OmnivoxEloquenceCapture.cs",
         "eloquence/OmnivoxEloquenceHelper.cs",
+        "eloquence/OmnivoxEloquenceParameterService.cs",
     }
     require(source.is_dir(), "Windows helper corresponding source is missing")
     actual = {

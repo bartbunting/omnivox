@@ -11,7 +11,8 @@ using System.Security.Cryptography;
 
 // Engine-owned, immutable edits in ECI units. Null means the selected preset's
 // pristine value; an absent key inherits the common mapping. Wire decoding and
-// catalogue/receipt publication remain separate from this native execution layer.
+// catalogue publication live in the helper service; readback evidence uses the
+// same frozen edits as this native execution layer.
 internal sealed class OmnivoxEloquenceParameters
 {
     internal const string SchemaId = "eloquence.eci-units.v1";
@@ -93,6 +94,27 @@ internal sealed class OmnivoxEloquenceParameters
                 if (selected[index] && contextual[index]) masked.Add(Ids[index]);
             return masked.ToArray();
         }
+    }
+
+    internal static string Id(int index) { return Ids[index]; }
+
+    internal object[] Explain(int?[] common, int[] actual)
+    {
+        object[] rows = new object[8];
+        for (int i = 0; i < 8; i++)
+        {
+            int? value = common[i];
+            string origin = value.HasValue ? (contextual[i] ? "context_mapping" : "common_mapping") : "engine_default";
+            if (selected[i] && !contextual[i])
+            {
+                value = values[i];
+                origin = value.HasValue ? "native_set" : "native_default";
+            }
+            rows[i] = OmnivoxParameterWire.Map("id", Ids[i],
+                "value", actual == null ? (object)value : actual[i], "origin", origin,
+                "masked_native", selected[i] && contextual[i], "read_back", actual != null);
+        }
+        return rows;
     }
 
     internal static void ValidateValue(int index, int value)

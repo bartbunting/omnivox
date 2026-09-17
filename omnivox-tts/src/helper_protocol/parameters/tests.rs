@@ -504,3 +504,30 @@ fn response_shape_and_nested_null_fields_are_strict() {
         assert!(response(&v).is_err());
     }
 }
+
+#[test]
+fn eloquence_runtime_exchanges_match_rust_codec_and_catalogue() {
+    let captured: Value = serde_json::from_str(include_str!(
+        "../../../../docs/protocol-fixtures/eloquence-helper6-runtime.json"
+    ))
+    .unwrap();
+    for exchange in captured["exchanges"].as_array().unwrap() {
+        let sent = request(&exchange["request"]).unwrap();
+        let received = response(&exchange["response"]).unwrap();
+        received.validate_for(&sent, "eloquence").unwrap();
+        if let (
+            RequestBody::GetEngineParametersV1(query),
+            ResponseBody::EngineParametersV1 {
+                result: page @ CatalogueResult::Ready { .. },
+                ..
+            },
+        ) = (&sent.body, &received.body)
+        {
+            let mut assembly = CatalogueAssembly::new(query.clone()).unwrap();
+            assembly.push(query, page).unwrap();
+            let catalogue = assembly.finish().unwrap();
+            assert_eq!(catalogue.parameters.len(), 8);
+            assert_eq!(catalogue.identity.schema_id, "eloquence.eci-units.v1");
+        }
+    }
+}
