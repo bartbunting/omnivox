@@ -272,6 +272,11 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
 
     private readonly object synthesisLock = new object();
     private readonly object stateLock = new object();
+    // Never hold stateLock during native reset/sync: callbacks need it.
+    // Stop may overlap synthesis, but cannot overlap preparation or restoration.
+    private readonly object resetLock = new object();
+    private readonly string runtimePath;
+    private bool nativeParametersQualified;
     private readonly Encoding textEncoding;
     private readonly List<BufferSlot> buffers = new List<BufferSlot>();
     private OmnivoxNativeDectalk native;
@@ -299,6 +304,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
     {
         native = new OmnivoxNativeDectalk(dllPath);
         dllPath = Path.GetFullPath(dllPath);
+        runtimePath = dllPath;
         string directory = Path.GetDirectoryName(dllPath);
         string dictionary = Path.Combine(directory, "dtalk_us.dic");
         if (!File.Exists(dictionary))
@@ -366,42 +372,103 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         OmnivoxHelperAnchor[] anchors,
         Func<bool> cancellationRequested, IOmnivoxCaptureSink sink)
     {
+        return SynthesizeCore(text, voiceCode, rate, pitch, voiceParameters,
+            volume, anchors, cancellationRequested, sink, null, null);
+    }
+
+    internal OmnivoxCaptureResult SynthesizeNative(string text, string voiceCode,
+        int rate, int pitch, string voiceParameters, double volume,
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
+        IOmnivoxCaptureSink sink, OmnivoxDectalkParameters edits, Action<int[]> applied)
+    {
+        if (edits == null) throw new ArgumentNullException("edits");
+        if (Array.IndexOf(new[] { ":np", ":nb", ":nh", ":nf", ":nk", ":nr", ":nu", ":nd", ":nw" }, voiceCode) < 0)
+            throw new ArgumentException("Unknown DECtalk preset", "voiceCode");
+        return SynthesizeCore(text, voiceCode, rate, pitch, voiceParameters,
+            volume, anchors, cancellationRequested, sink, edits, applied);
+    }
+
+    // Command-only batches are synchronized before readback. They emit no PCM
+    // on the qualified runtime and remain wholly inside the reset boundary.
+    private void ParameterCommands(string commands)
+    {
+        if (commands.Length == 0) return;
+        Speak(commands);
+        Check(native.TextToSpeechSync(handle), "TextToSpeechSync parameters");
+        ThrowCallbackError();
+        if (capturedFrames != 0)
+            throw new InvalidOperationException("DECtalk parameter commands emitted audio");
+    }
+
+    private OmnivoxCaptureResult SynthesizeCore(string text, string voiceCode,
+        int rate, int pitch, string voiceParameters, double volume,
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
+        IOmnivoxCaptureSink sink, OmnivoxDectalkParameters edits, Action<int[]> applied)
+    {
         lock (synthesisLock)
         {
             ThrowIfCancellationRequested(cancellationRequested);
-            BeginCapture(sink, volume);
+            if (edits != null)
+            {
+                if (!native.HasSpeakerParameterApi)
+                    throw new NotSupportedException("DECtalk speaker parameter API is unavailable");
+                if (!nativeParametersQualified)
+                {
+                    OmnivoxDectalkParameters.RequireQualifiedRuntime(Version, runtimePath);
+                    nativeParametersQualified = true;
+                }
+            }
+            int[] pristine = null;
+            bool restore = false;
+            bool synchronized = false;
+            lock (resetLock) BeginCapture(sink, volume);
             try
             {
-                ThrowIfCancellationRequested(cancellationRequested);
-                Check(native.TextToSpeechSetRate(handle,
-                    (uint)rate), "TextToSpeechSetRate");
-                ThrowIfCancellationRequested(cancellationRequested);
+                string prefix = "[" + voiceCode + " :dv ap " +
+                    pitch.ToString(CultureInfo.InvariantCulture) + voiceParameters + "] ";
+                lock (resetLock)
+                {
+                    ThrowIfCancellationRequested(cancellationRequested);
+                    Check(native.TextToSpeechSetRate(handle, (uint)rate), "TextToSpeechSetRate");
+                    if (edits != null)
+                    {
+                        restore = true;
+                        ParameterCommands("[" + voiceCode + "]");
+                        int[][] rows = native.ReadSpeakerParameterFields(handle);
+                        OmnivoxDectalkParameters.RequireLimits(rows);
+                        pristine = rows[0];
+                        ThrowIfCancellationRequested(cancellationRequested);
+                        // Retain the ordinary mapping commands, including vendor
+                        // clamping of legacy common values outside native edit limits.
+                        ParameterCommands(prefix);
+                        int[] plan = edits.Compose(pristine, native.ReadSpeakerParameterFields(handle)[0]);
+                        ThrowIfCancellationRequested(cancellationRequested);
+                        ParameterCommands(edits.Commands(plan));
+                        int[] actual = native.ReadSpeakerParameterFields(handle)[0];
+                        OmnivoxDectalkParameters.RequireReadback(plan, actual);
+                        ThrowIfCancellationRequested(cancellationRequested);
+                        if (applied != null) applied((int[])actual.Clone());
+                        prefix = "";
+                    }
+                    ThrowIfCancellationRequested(cancellationRequested);
+                    lock (stateLock) nativeSynthesisActive = true;
+                }
                 string indexedText = BuildTextWithIndexes(text,
                     sink == null ? new OmnivoxHelperAnchor[0] : anchors);
                 EmitProgressiveAnchorMarkers(leadingAnchorMarkers, 0);
-                Speak("[" + voiceCode + " :dv ap " +
-                    pitch.ToString(CultureInfo.InvariantCulture) +
-                    voiceParameters + "] " +
-                    indexedText);
+                Speak(prefix + indexedText);
                 ThrowIfCancellationRequested(cancellationRequested);
-                lock (stateLock)
-                {
-                    nativeSynthesisActive = true;
-                }
-                OmnivoxHelperLog.Event("native_call_started",
-                    "engine=dectalk call=TextToSpeechSync");
-                Check(native.TextToSpeechSync(handle),
-                    "TextToSpeechSync");
-                OmnivoxHelperLog.Event("native_call_completed",
-                    "engine=dectalk call=TextToSpeechSync");
+                OmnivoxHelperLog.Event("native_call_started", "engine=dectalk call=TextToSpeechSync");
+                Check(native.TextToSpeechSync(handle), "TextToSpeechSync");
+                synchronized = true;
+                OmnivoxHelperLog.Event("native_call_completed", "engine=dectalk call=TextToSpeechSync");
+                ThrowIfCancellationRequested(cancellationRequested);
                 ThrowCallbackError();
-                EmitProgressiveAnchorMarkers(trailingAnchorMarkers,
-                    capturedFrames);
+                EmitProgressiveAnchorMarkers(trailingAnchorMarkers, capturedFrames);
                 FlushProgressiveAudio();
                 lock (stateLock)
                 {
-                    byte[] audio = capture == null ? new byte[0] :
-                        capture.ToArray();
+                    byte[] audio = capture == null ? new byte[0] : capture.ToArray();
                     if (capture != null)
                     {
                         markers.Sort(CompareMarkers);
@@ -412,21 +479,43 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             }
             finally
             {
-                lock (stateLock)
+                lock (resetLock)
                 {
-                    nativeSynthesisActive = false;
-                    if (capture != null)
+                    lock (stateLock)
                     {
-                        capture.Dispose();
-                        capture = null;
+                        nativeSynthesisActive = false;
+                        discardAudio = true;
                     }
-                    markers = null;
-                    pendingTextMarkers = null;
-                    pendingAnchorMarkers = null;
-                    leadingAnchorMarkers = null;
-                    trailingAnchorMarkers = null;
-                    progressiveSink = null;
-                    pendingProgressiveAudio = null;
+                    try
+                    {
+                        // Drain pending native callbacks before freeing capture state.
+                        // Stop cannot reset after the preset has been restored.
+                        if (restore || !synchronized)
+                            Check(native.TextToSpeechReset(handle, false), "TextToSpeechReset cleanup");
+                        if (restore)
+                        {
+                            Speak("[" + voiceCode + "]");
+                            Check(native.TextToSpeechSync(handle), "TextToSpeechSync restore");
+                            if (pristine != null)
+                                OmnivoxDectalkParameters.RequireReadback(pristine,
+                                    native.ReadSpeakerParameterFields(handle)[0]);
+                        }
+                    }
+                    finally
+                    {
+                        lock (stateLock)
+                        {
+                            if (capture != null) capture.Dispose();
+                            capture = null;
+                            markers = null;
+                            pendingTextMarkers = null;
+                            pendingAnchorMarkers = null;
+                            leadingAnchorMarkers = null;
+                            trailingAnchorMarkers = null;
+                            progressiveSink = null;
+                            pendingProgressiveAudio = null;
+                        }
+                    }
                 }
             }
         }
@@ -444,33 +533,17 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
 
     internal void Stop()
     {
-        bool shouldReset;
-        lock (stateLock)
-        {
-            shouldReset = nativeSynthesisActive;
-            if (shouldReset)
-            {
-                discardAudio = true;
-            }
-        }
-        if (!shouldReset)
-        {
-            return;
-        }
-        try
-        {
-            if (handle != IntPtr.Zero)
-            {
-                native.TextToSpeechReset(handle, false);
-            }
-        }
-        finally
+        lock (resetLock)
         {
             lock (stateLock)
             {
-                discardAudio = false;
-                callbackError = null;
+                if (!nativeSynthesisActive) return;
+                discardAudio = true;
             }
+            // Keep output suppressed until the next BeginCapture. Reset runs
+            // outside stateLock so native callbacks can return their buffers.
+            if (handle != IntPtr.Zero)
+                Check(native.TextToSpeechReset(handle, false), "TextToSpeechReset stop");
         }
     }
 

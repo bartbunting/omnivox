@@ -62,6 +62,7 @@ if ($Engine -eq "all" -or $Engine -eq "dectalk") {
         "/out:$Bin\OmnivoxDectalkHelper32.exe" `
         (Join-Path $Root "dectalk\OmnivoxDectalkCapture.cs") `
         (Join-Path $Root "dectalk\OmnivoxDectalkHelper.cs") `
+        (Join-Path $Root "dectalk\OmnivoxDectalkParameters.cs") `
         (Join-Path $Common "OmnivoxNativeLibrary.cs") `
         (Join-Path $Common "OmnivoxHelperHost.cs")
     if ($LASTEXITCODE -ne 0) {

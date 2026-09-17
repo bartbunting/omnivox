@@ -32,7 +32,7 @@ The Windows helpers now contain optional ECI voice APIs and DECtalk parameter
 readback. The [binding audit](benchmarks/2026-09-17-native-parameter-bindings.md)
 checks their endpoints, ordinary resets, unit-mode guards and missing bindings
 against the installed runtimes. These methods are not yet called by the speech
-protocol; helper 6 integration and DECtalk execution acceptance remain pending.
+protocol; helper 6 integration remains pending.
 The pre-existing Windows cancellation ordering race was fixed and qualified in
 [the cancellation follow-up](benchmarks/2026-09-17-windows-helper-cancellation.md).
 
@@ -42,12 +42,19 @@ edits, composes them with existing common mappings and explicit context, applies
 on its STA owner thread, verifies readback before PCM, and restores the pristine
 preset on success, cancellation and failure. The
 [execution audit](benchmarks/2026-09-18-eloquence-native-execution.md) exercises the
-actual helper bytes. This path is not yet exposed through helper 6; DECtalk
-execution, catalogues, receipts and public transport remain pending.
+actual helper bytes. This path is not yet exposed through helper 6;
+catalogues, receipts and public transport remain pending.
+
+DECtalk now also has an internal execution path for its 28 qualified design
+voice controls. It synchronizes command-only preparation, verifies readback
+before PCM, and coordinates native cancellation with pristine restoration.
+Its [execution report](benchmarks/2026-09-18-dectalk-native-execution.md) records
+the accepted runtime and verification scope. Ordinary common mappings remain
+unchanged, including clamping performed by DECtalk itself.
 
 The Rust planner and native request path are not connected to public speech
 operations yet. Common mappings and capability advertisements remain unchanged.
-Next complete DECtalk execution and helper 6 native profiles, followed by
+Next implement helper 6 native profiles, followed by
 transport, receipts and the Emacs editor. Adapter integration must preserve the
 old common path, including its existing clamps; native edit ranges are separately
 qualified and must not silently recalibrate common controls.

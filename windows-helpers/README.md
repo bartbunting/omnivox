@@ -63,6 +63,12 @@ composition fixtures and invalid edits without loading a speech DLL. The
 [execution report](../docs/benchmarks/2026-09-18-eloquence-native-execution.md)
 distinguishes this internal path from the still-pending helper 6 interface.
 
+DECtalk's internal execution path has a corresponding
+[`tools/check_dectalk_execution.ps1`](../tools/check_dectalk_execution.ps1) probe
+with the same arguments and a six-minute outer timeout for its full matrix.
+The [DECtalk execution report](../docs/benchmarks/2026-09-18-dectalk-native-execution.md)
+covers all 28 controls, command readback, and native reset/restoration overlap.
+
 ## Runtime requirements and installation
 
 Beginning with v1.7.1, generic Omnivox Windows release archives contain these

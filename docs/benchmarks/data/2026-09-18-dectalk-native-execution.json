@@ -1,0 +1,96 @@
+{
+    "runtime":  {
+                    "status":  "passed",
+                    "voices":  [
+                                   {
+                                       "voice_id":  "paul",
+                                       "endpoints":  56,
+                                       "reset_overlap":  true
+                                   },
+                                   {
+                                       "voice_id":  "betty",
+                                       "endpoints":  56,
+                                       "reset_overlap":  true
+                                   },
+                                   {
+                                       "voice_id":  "harry",
+                                       "endpoints":  56,
+                                       "reset_overlap":  true
+                                   },
+                                   {
+                                       "voice_id":  "frank",
+                                       "endpoints":  56,
+                                       "reset_overlap":  true
+                                   },
+                                   {
+                                       "voice_id":  "kit",
+                                       "endpoints":  56,
+                                       "reset_overlap":  true
+                                   },
+                                   {
+                                       "voice_id":  "rita",
+                                       "endpoints":  56,
+                                       "reset_overlap":  true
+                                   },
+                                   {
+                                       "voice_id":  "ursula",
+                                       "endpoints":  56,
+                                       "reset_overlap":  true
+                                   },
+                                   {
+                                       "voice_id":  "dennis",
+                                       "endpoints":  56,
+                                       "reset_overlap":  true
+                                   },
+                                   {
+                                       "voice_id":  "wendy",
+                                       "endpoints":  56,
+                                       "reset_overlap":  true
+                                   }
+                               ],
+                    "successful_captures":  1135,
+                    "ordinary_reset_checks":  585,
+                    "cancellations":  45,
+                    "delivery_failures":  18,
+                    "progressive_cases":  27,
+                    "reset_overlap_cases":  9,
+                    "composition_fixtures":  7
+                },
+    "planning":  {
+                     "status":  "passed",
+                     "fixtures":  [
+                                      {
+                                          "case":  "common_only",
+                                          "passed":  true
+                                      },
+                                      {
+                                          "case":  "native_smoothness",
+                                          "passed":  true
+                                      },
+                                      {
+                                          "case":  "common_changes_keep_native",
+                                          "passed":  true
+                                      },
+                                      {
+                                          "case":  "explicit_equal_context_wins",
+                                          "passed":  true
+                                      },
+                                      {
+                                          "case":  "engine_default_over_base",
+                                          "passed":  true
+                                      },
+                                      {
+                                          "case":  "context_masks_default",
+                                          "passed":  true
+                                      },
+                                      {
+                                          "case":  "zero_is_value",
+                                          "passed":  true
+                                      }
+                                  ],
+                     "invalid_values_rejected":  56
+                 },
+    "runtime_sha256":  "af25879d858846aaaa80b8f9626b1cbf4e57a1ab0467e8e2d82990558033c852",
+    "probe_sha256":  "301f49af3262342054a5fee9c64424b55cfaa3aa9619e93bcc8a8d40c6c9a780",
+    "helper_sha256":  "e7d7e6d015b5f9070ce5b01fcdb8c317cd350123d99d572e2331847f06c95a46"
+}

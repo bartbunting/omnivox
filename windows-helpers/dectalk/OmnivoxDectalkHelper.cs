@@ -124,6 +124,28 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
         OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
         IOmnivoxCaptureSink sink)
     {
+        return SynthesizeCore(text, voiceId, rate, pitch, pitchRange, stress,
+            richness, volume, anchors, cancellationRequested, sink, null, null);
+    }
+
+    internal OmnivoxCaptureResult SynthesizeWithParameters(string text,
+        string voiceId, double rate, double pitch, double? pitchRange,
+        double? stress, double? richness, double volume,
+        OmnivoxHelperAnchor[] anchors, Func<bool> cancellationRequested,
+        IOmnivoxCaptureSink sink, IDictionary<string, int?> parameters,
+        IEnumerable<string> contextDimensions, Action<int[]> applied)
+    {
+        OmnivoxDectalkParameters edits = new OmnivoxDectalkParameters(parameters, contextDimensions);
+        return SynthesizeCore(text, voiceId, rate, pitch, pitchRange, stress,
+            richness, volume, anchors, cancellationRequested, sink, edits, applied);
+    }
+
+    private OmnivoxCaptureResult SynthesizeCore(string text, string voiceId,
+        double rate, double pitch, double? pitchRange, double? stress,
+        double? richness, double volume, OmnivoxHelperAnchor[] anchors,
+        Func<bool> cancellationRequested, IOmnivoxCaptureSink sink,
+        OmnivoxDectalkParameters edits, Action<int[]> applied)
+    {
         string voiceCode;
         if (!VoiceCodes.TryGetValue(voiceId, out voiceCode))
         {
@@ -136,6 +158,9 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
             MidpointRounding.AwayFromZero);
         nativePitch = Math.Max(50, Math.Min(500, nativePitch));
         string voiceParameters = MapExtendedAcss(pitchRange, stress, richness);
+        if (edits != null)
+            return capture.SynthesizeNative(text, voiceCode, nativeRate, nativePitch,
+                voiceParameters, volume, anchors, cancellationRequested, sink, edits, applied);
         return capture.Synthesize(text, voiceCode, nativeRate, nativePitch,
             voiceParameters, volume, anchors, cancellationRequested, sink);
     }
