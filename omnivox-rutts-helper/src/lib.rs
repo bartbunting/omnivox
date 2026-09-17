@@ -470,6 +470,7 @@ fn descriptor() -> EngineDescriptor {
         availability: Availability::Available,
         health: EngineHealth::Healthy,
         capabilities: capabilities(),
+        espeak_variants: Vec::new(),
         default_voice_id: Some(MALE_VOICE_ID.to_owned()),
         voices,
     }

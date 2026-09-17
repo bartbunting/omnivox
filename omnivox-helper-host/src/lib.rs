@@ -1172,6 +1172,7 @@ mod tests {
                 native_extensions: Vec::new(),
             },
             voices: vec![VoiceDescriptor::from_voice_info("mock", voice)],
+            espeak_variants: Vec::new(),
             default_voice_id: Some("mock:test".to_owned()),
         }
     }

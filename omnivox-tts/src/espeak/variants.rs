@@ -14,11 +14,7 @@ pub struct EspeakVariantChoice {
     pub enabled: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct EspeakVariant {
-    pub id: String,
-    pub display_name: String,
-}
+pub use crate::contracts::EspeakVariantDescriptor as EspeakVariant;
 
 #[derive(Debug, Serialize)]
 pub struct EspeakVariantCatalogue {
@@ -212,9 +208,8 @@ impl EspeakTtsEngine {
         if voice_id.contains('+')
             && !self
                 .descriptor
-                .voices
-                .iter()
-                .any(|v| v.id.voice_id == voice_id && v.availability == Availability::Available)
+                .voice(voice_id)
+                .is_some_and(|v| v.availability == Availability::Available)
         {
             return Err(TtsError::VoiceNotFound(voice_id.into()));
         }
@@ -329,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn native_variants_are_explicit_exact_and_disabled_without_losing_base() {
+    fn native_variants_resolve_on_demand_without_losing_base() {
         let plain = EspeakTtsEngine::with_variant_choices(&[]).unwrap();
         let catalogue = plain.variant_catalogue().unwrap();
         assert!(catalogue.variants.iter().any(|v| v.id == "m1"));
@@ -373,7 +368,20 @@ mod tests {
         let fast_result = engine.synthesize(&faster).unwrap();
         assert_eq!(fast_result.actual_voice, result.actual_voice);
         assert!(fast_result.audio.samples.len() < result.audio.samples.len());
-        for suffix in ["f1", "no-such-variant", "m2"] {
+        // Neither an old disabled entry nor an unlisted combination needs enabling.
+        for suffix in ["f1", "m2"] {
+            let id = PhysicalVoiceId::new("espeak", format!("{}+{suffix}", base.id.voice_id));
+            let request = request.clone().with_route("variant-test", id.clone());
+            assert_eq!(
+                plain.synthesize(&request).unwrap().actual_voice,
+                Some(id.clone())
+            );
+            let mut stream = Capture::default();
+            engine.synthesize_stream(&request, &mut stream).unwrap();
+            assert_eq!(stream.voice, Some(id));
+            assert!(stream.samples > 0);
+        }
+        for suffix in ["no-such-variant", "../m1", "m1+f1", "1", "m1\0"] {
             let request = request.clone().with_route(
                 "variant-test",
                 PhysicalVoiceId::new("espeak", format!("{}+{suffix}", base.id.voice_id)),
@@ -397,6 +405,14 @@ mod tests {
             engine.synthesize(&missing),
             Err(TtsError::VoiceNotFound(_))
         ));
-        assert!(plain.synthesize(&request).is_err());
+        assert_eq!(
+            plain.synthesize(&request).unwrap().actual_voice,
+            result.actual_voice
+        );
+        assert_eq!(plain.descriptor.voices.len(), catalogue.bases.len());
+        assert_eq!(
+            engine.synthesize(&base_request).unwrap().actual_voice,
+            Some(base.id.clone())
+        );
     }
 }

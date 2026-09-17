@@ -82,6 +82,7 @@ impl MacOsVoiceCache {
                     .cloned()
                     .map(|voice| VoiceDescriptor::from_voice_info("macos", voice))
                     .collect(),
+                espeak_variants: Vec::new(),
                 default_voice_id: None,
             })
             .clone()
@@ -333,6 +334,7 @@ impl TtsEngine for MacOsTtsEngine {
             },
             capabilities: macos_capabilities(),
             voices: Vec::new(),
+            espeak_variants: Vec::new(),
             default_voice_id: None,
         }
     }

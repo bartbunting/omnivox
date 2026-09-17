@@ -844,3 +844,21 @@ emits adjacent start and choice records through one reporter message, before
 other frame-zero events. Legacy spans emit no choice receipt. No receipt is
 emitted for empty or unconsumed cancelled output. The receipt is at most 32 KiB
 decoded and every version-3 marker line is at most 512 KiB, including framing.
+
+## Bundled eSpeak variants
+
+`espeak_variants_v1` advertises on-demand exact selection of bundled eSpeak
+base-plus-variant combinations in ordinary speech and all preview operations.
+The eSpeak engine descriptor includes optional `espeak_variants`, an array of
+`{"id":"m1","display_name":"male1"}` records (at most 512; unique safe suffixes;
+labels at most 512 UTF-8 bytes). Other engines omit this field. Older descriptors
+without it retain their existing explicit-voice behavior. No request shape or
+control envelope version changes.
+
+Combine an advertised base ID and suffix, for example `espeak:gmw/en-US+m1`.
+The part following `espeak:` must fit 39 bytes, with no aliases, traversal or
+nested variants. Exact selection validates the base and suffix independently;
+the complete Cartesian product is never added to the ordinary inventory.
+Explicit unavailable rows, disabled engines and library exclusions still win.
+Automatic and property selection continue using the ordinary voice inventory.
+Neither preview nor palette selection needs a speech-worker restart.

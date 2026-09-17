@@ -562,6 +562,7 @@ fn descriptor(
         health: EngineHealth::Healthy,
         capabilities: capabilities(sample_rate),
         voices,
+        espeak_variants: Vec::new(),
         default_voice_id: Some(default_voice_id),
     }
 }

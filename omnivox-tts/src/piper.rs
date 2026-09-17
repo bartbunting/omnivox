@@ -301,6 +301,7 @@ impl TtsEngine for PiperTtsEngine {
             health: EngineHealth::Healthy,
             capabilities: Self::capabilities(),
             voices,
+            espeak_variants: Vec::new(),
             default_voice_id,
         }
     }

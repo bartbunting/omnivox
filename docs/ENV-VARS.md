@@ -233,9 +233,10 @@ profiles, controls, and limitations.
 
 `OMNIVOX_ESPEAK_VARIANTS`
 
-- Bounded JSON startup choices for bundled [eSpeak variants](ESPEAK-VARIANTS.md).
+- Legacy optional inventory rows for bundled [eSpeak variants](ESPEAK-VARIANTS.md).
 - Each entry has exact `base_voice_id`, `variant_id` and Boolean `enabled`.
-  Changes take effect in newly started workers; existing base voices are retained.
+  New workers retain enabled rows, but valid combinations are available on demand
+  regardless of this list. Ordinary preview and palette use need no setting or restart.
 
 ### Audio routing
 

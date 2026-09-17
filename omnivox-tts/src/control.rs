@@ -429,6 +429,7 @@ pub fn process_control_request_with_library(
                         "engine_recovery_probe".to_owned(),
                         "startup_engine_rescan".to_owned(),
                         "exact_voice_preview".to_owned(),
+                        "espeak_variants_v1".to_owned(),
                         "voice_chain_preview_v1".to_owned(),
                         "legacy_commands".to_owned(),
                         "logical_voice_registration".to_owned(),
@@ -921,6 +922,7 @@ mod tests {
                 quality: VoiceQuality::Enhanced,
                 availability: Availability::Available,
             }],
+            espeak_variants: Vec::new(),
             default_voice_id: Some("winrt:David".to_owned()),
         }]
     }

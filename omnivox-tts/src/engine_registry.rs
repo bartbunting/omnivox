@@ -14,6 +14,9 @@ pub enum EngineRegistryError {
     #[error("engine descriptor has an empty ID")]
     EmptyEngineId,
 
+    #[error("engine {engine_id} has an invalid eSpeak variant catalogue")]
+    InvalidVariantCatalogue { engine_id: String },
+
     #[error("engine {engine_id} is already registered")]
     DuplicateEngine { engine_id: String },
 
@@ -361,6 +364,19 @@ pub(crate) fn validate_descriptor(
         return Err(EngineRegistryError::EmptyEngineId);
     }
 
+    let mut variants = HashSet::new();
+    if descriptor.espeak_variants.len() > 512
+        || descriptor.espeak_variants.iter().any(|variant| {
+            descriptor.id != "espeak"
+                || variant.display_name.len() > 512
+                || !crate::contracts::valid_espeak_combination(&format!("espeak:en+{}", variant.id))
+                || !variants.insert(&variant.id)
+        })
+    {
+        return Err(EngineRegistryError::InvalidVariantCatalogue {
+            engine_id: descriptor.id.clone(),
+        });
+    }
     let mut voice_ids = HashSet::with_capacity(descriptor.voices.len());
     for voice in &descriptor.voices {
         if voice.id.engine_id != descriptor.id {
@@ -478,6 +494,7 @@ mod tests {
                 quality: VoiceQuality::Compact,
                 availability: Availability::Available,
             }],
+            espeak_variants: Vec::new(),
             default_voice_id: Some(voice_id),
         }
     }

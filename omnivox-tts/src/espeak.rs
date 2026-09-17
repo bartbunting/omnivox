@@ -666,6 +666,8 @@ impl EspeakTtsEngine {
         let mut engine = Self {
             descriptor: Self::discover_descriptor(data_parent.as_deref()),
         };
+        engine.descriptor.espeak_variants = engine.variant_catalogue()?.variants;
+        // Retain old explicit inventory rows, but they no longer gate other combinations.
         engine.add_variant_choices(choices)?;
         Ok(engine)
     }
@@ -823,6 +825,7 @@ impl EspeakTtsEngine {
             health: EngineHealth::Healthy,
             capabilities: Self::capabilities(),
             voices,
+            espeak_variants: Vec::new(),
             default_voice_id,
         }
     }
@@ -1547,6 +1550,14 @@ impl TtsEngine for EspeakTtsEngine {
     }
 
     fn voice_info(&self, identifier: &str) -> Option<VoiceInfo> {
+        if let Some(voice) = self.descriptor.voice(identifier) {
+            return Some(VoiceInfo {
+                identifier: voice.id.voice_id,
+                name: voice.display_name,
+                language: voice.language.unwrap_or_default(),
+                quality: voice.quality,
+            });
+        }
         let search = identifier.strip_prefix("espeak:").unwrap_or(identifier);
         self.available_voices().into_iter().find(|v| {
             v.identifier == identifier

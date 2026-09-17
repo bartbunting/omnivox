@@ -94,6 +94,20 @@ impl VoiceEligibility {
     /// Preserve excluded rows for saved palette references while replacing
     /// defaults that could bypass eligibility. Native failures remain intact.
     pub fn project_descriptor(&self, mut descriptor: EngineDescriptor) -> EngineDescriptor {
+        // Preserve explicit exclusions of combinations absent from the flat inventory.
+        let mut excluded: Vec<_> = self
+            .disabled
+            .iter()
+            .filter(|id| id.engine_id == descriptor.id)
+            .collect();
+        excluded.sort_by(|a, b| a.voice_id.cmp(&b.voice_id));
+        for id in excluded {
+            if !descriptor.voices.iter().any(|voice| voice.id == *id) {
+                if let Some(voice) = descriptor.voice(&id.voice_id) {
+                    descriptor.voices.push(voice);
+                }
+            }
+        }
         let all_excluded = self.excludes_provider(&descriptor.id)
             || (!descriptor.voices.is_empty()
                 && descriptor
@@ -182,12 +196,8 @@ impl EligibleEngine {
         {
             return Err(TtsError::VoiceNotFound(EXCLUDED.to_owned()));
         }
-        let descriptor = self.engine.descriptor();
-        match descriptor
-            .voices
-            .iter()
-            .find(|voice| voice.id.voice_id == id)
-        {
+        let descriptor = self.policy.project_descriptor(self.engine.descriptor());
+        match descriptor.voice(id) {
             Some(voice) => match &voice.availability {
                 Availability::Available => Ok(()),
                 Availability::Unavailable { reason } => {

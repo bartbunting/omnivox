@@ -407,6 +407,7 @@ mod tests {
                 quality: VoiceQuality::Enhanced,
                 availability: Availability::Available,
             }],
+            espeak_variants: Vec::new(),
             default_voice_id: Some("winrt:David".to_owned()),
         }]
     }

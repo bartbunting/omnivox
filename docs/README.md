@@ -63,7 +63,7 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 ## Operations and releases
 
-- [eSpeak variants](ESPEAK-VARIANTS.md) — native discovery, explicit combinations,
+- [eSpeak variants](ESPEAK-VARIANTS.md) — live discovery, on-demand combinations,
   startup enablement, exact identity and development acceptance limits.
 - [MBROLA prototype](MBROLA-PROTOTYPE.md) — private pinned frontend/runtime,
   opt-in setup, test evidence and production boundaries.

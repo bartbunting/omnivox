@@ -2670,6 +2670,7 @@ mod tests {
                 quality: VoiceQuality::Compact,
                 availability: Availability::Available,
             }],
+            espeak_variants: Vec::new(),
             default_voice_id: Some("reed".to_owned()),
         }
     }

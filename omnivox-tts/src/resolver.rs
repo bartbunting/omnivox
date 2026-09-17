@@ -301,9 +301,7 @@ fn evaluate_exact(
 ) -> Result<PhysicalVoiceId, ResolutionFailure> {
     let engine = find_usable_engine(engines, &id.engine_id)?;
     let voice = engine
-        .voices
-        .iter()
-        .find(|voice| voice.id.voice_id == id.voice_id)
+        .voice(&id.voice_id)
         .ok_or_else(|| ResolutionFailure::VoiceNotFound { id: id.clone() })?;
 
     match &voice.availability {
@@ -488,6 +486,7 @@ mod tests {
                 native_extensions: Vec::new(),
             },
             voices,
+            espeak_variants: Vec::new(),
             default_voice_id: Some(default_voice_id.to_owned()),
         }
     }
@@ -771,5 +770,38 @@ mod tests {
             error.attempts[0].failure,
             ResolutionFailure::EngineNotFound { .. }
         ));
+    }
+    #[test]
+    fn exact_espeak_variants_resolve_without_enumerating_combinations() {
+        let mut engine = engine(
+            "espeak",
+            "espeak:en",
+            vec![voice("espeak", "espeak:en", "en")],
+        );
+        engine.espeak_variants = vec![crate::contracts::EspeakVariantDescriptor {
+            id: "m1".into(),
+            display_name: "Male one".into(),
+        }];
+        let definition = logical(vec![exact("espeak", "espeak:en+m1")]);
+        let policy = FallbackPolicy::default();
+        let result = resolve_voice(&[engine.clone()], &definition, &policy).unwrap();
+        assert_eq!(result.realized.voice_id, "espeak:en+m1");
+        assert_eq!(engine.voices.len(), 1);
+        for id in [
+            "espeak:missing+m1",
+            "espeak:en+missing",
+            "espeak:en+../m1",
+            "espeak:en+m1+f1",
+            "en+m1",
+        ] {
+            assert!(engine.voice(id).is_none(), "{id}");
+        }
+        engine.availability = Availability::Unavailable {
+            reason: "disabled".into(),
+        };
+        assert!(resolve_voice(&[engine.clone()], &definition, &policy).is_err());
+        engine.availability = Availability::Available;
+        engine.espeak_variants.clear(); // An older descriptor cannot promise variant support.
+        assert!(resolve_voice(&[engine], &definition, &policy).is_err());
     }
 }

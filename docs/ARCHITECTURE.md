@@ -460,3 +460,9 @@ and exits with status 70 so Emacs can replace the whole server rather than keep
 a live control channel attached to a dead worker.
 
 See [DIAGNOSTICS.md](DIAGNOSTICS.md) for evidence collection.
+
+Bundled eSpeak variants follow [ADR 0014](adr/0014-on-demand-espeak-variants.md):
+the live descriptor contains a bounded suffix catalogue alongside its base voices.
+Exact resolution derives only the requested combination and shares validation
+between registration, preview, normal speech and guarded direct synthesis.
+Variant preview and selection do not mutate a load set or restart workers.

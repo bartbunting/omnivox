@@ -316,6 +316,7 @@ mod impl_windows {
                 health: EngineHealth::Healthy,
                 capabilities: windows_capabilities(),
                 voices,
+                espeak_variants: Vec::new(),
                 default_voice_id,
             }
         }
@@ -642,6 +643,7 @@ impl crate::TtsEngine for WindowsTtsEngine {
             },
             capabilities: windows_capabilities(),
             voices: Vec::new(),
+            espeak_variants: Vec::new(),
             default_voice_id: None,
         }
     }

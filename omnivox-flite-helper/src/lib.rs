@@ -715,6 +715,7 @@ fn descriptor(voices: &[NativeVoice], warnings: &[String]) -> EngineDescriptor {
             }
         },
         capabilities: capabilities(),
+        espeak_variants: Vec::new(),
         default_voice_id: voices.first().map(|voice| voice.id.voice_id.clone()),
         voices,
     }

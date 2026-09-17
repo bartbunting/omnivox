@@ -269,6 +269,7 @@ impl TtsEngine for MbrolaEngine {
             availability: Availability::Available,
             health: EngineHealth::Healthy,
             capabilities: capabilities(),
+            espeak_variants: Vec::new(),
             default_voice_id: self
                 .voices
                 .first()

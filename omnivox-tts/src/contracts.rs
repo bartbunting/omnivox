@@ -546,6 +546,33 @@ impl VoiceDescriptor {
     }
 }
 
+/// One bundled eSpeak variant, combined with an existing base on demand.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EspeakVariantDescriptor {
+    pub id: String,
+    pub display_name: String,
+}
+
+/// Validate the exact native identifier without filesystem access or aliases.
+pub fn valid_espeak_combination(id: &str) -> bool {
+    let Some(native) = id.strip_prefix("espeak:") else {
+        return false;
+    };
+    let Some((base, variant)) = native.split_once('+') else {
+        return false;
+    };
+    let safe = |part: &str| {
+        !part.is_empty()
+            && part
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    };
+    native.len() <= 39
+        && base.split(['/', '\\']).all(safe)
+        && safe(variant)
+        && !variant.as_bytes()[0].is_ascii_digit()
+}
+
 /// Complete runtime description of one speech engine.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EngineDescriptor {
@@ -557,9 +584,37 @@ pub struct EngineDescriptor {
     pub capabilities: EngineCapabilities,
     pub voices: Vec<VoiceDescriptor>,
     pub default_voice_id: Option<String>,
+    /// Bundled suffixes for exact eSpeak selectors; never a Cartesian voice list.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub espeak_variants: Vec<EspeakVariantDescriptor>,
 }
 
 impl EngineDescriptor {
+    /// Resolve an advertised voice or a validated bundled eSpeak combination.
+    /// Explicit rows take precedence, including administrative/runtime exclusions.
+    pub fn voice(&self, id: &str) -> Option<VoiceDescriptor> {
+        if let Some(voice) = self.voices.iter().find(|voice| voice.id.voice_id == id) {
+            return Some(voice.clone());
+        }
+        if self.id != "espeak" || !valid_espeak_combination(id) {
+            return None;
+        }
+        let (base, suffix) = id.split_once('+')?;
+        let variant = self
+            .espeak_variants
+            .iter()
+            .find(|variant| variant.id == suffix)?;
+        let mut voice = self
+            .voices
+            .iter()
+            .find(|voice| voice.id.voice_id == base)?
+            .clone();
+        voice.id.voice_id = id.to_owned();
+        voice.display_name = format!("{} + {}", voice.display_name, variant.display_name);
+        voice.gender = None;
+        Some(voice)
+    }
+
     /// Describe a configured engine whose runtime could not be initialized.
     /// Voices and optional capabilities remain unadvertised until discovery succeeds.
     pub fn unavailable(id: impl Into<String>, reason: impl Into<String>) -> Self {
@@ -585,6 +640,7 @@ impl EngineDescriptor {
                 native_extensions: Vec::new(),
             },
             voices: Vec::new(),
+            espeak_variants: Vec::new(),
             default_voice_id: None,
         }
     }

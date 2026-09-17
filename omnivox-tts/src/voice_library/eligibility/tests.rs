@@ -345,3 +345,41 @@ fn empty_load_sets_cannot_rescan_and_late_discovery_retains_exclusions() {
         Some("v1")
     );
 }
+
+#[test]
+fn on_demand_variants_preserve_library_exclusions_and_direct_synthesis_guards() {
+    let native = Native::new("espeak", &["espeak:en"]);
+    native.descriptor.lock().unwrap().espeak_variants =
+        vec![crate::contracts::EspeakVariantDescriptor {
+            id: "m1".into(),
+            display_name: "Male one".into(),
+        }];
+    let id = PhysicalVoiceId::new("espeak", "espeak:en+m1");
+    let request =
+        SynthesisRequest::new("Sample", TtsSettings::default()).with_route("test", id.clone());
+    let allowed = Arc::new(VoiceEligibility::default()).guard_engine(native.clone());
+    assert_eq!(
+        allowed.synthesize(&request).unwrap().actual_voice,
+        Some(id.clone())
+    );
+    let mut policy = VoiceEligibility::default();
+    policy.disabled.insert(id.clone());
+    let guarded = Arc::new(policy).guard_engine(native.clone());
+    assert!(!guarded
+        .descriptor()
+        .voice(&id.voice_id)
+        .unwrap()
+        .availability
+        .is_available());
+    assert!(guarded.synthesize(&request).is_err());
+    assert!(guarded
+        .synthesize_stream(&request, &mut Sink::default())
+        .is_err());
+    assert_eq!(native.calls.load(Ordering::SeqCst), 1);
+    let mut policy = VoiceEligibility::default();
+    policy
+        .disabled
+        .insert(PhysicalVoiceId::new("espeak", "espeak:en"));
+    let guarded = Arc::new(policy).guard_engine(native.clone());
+    assert!(guarded.synthesize(&request).is_err());
+}

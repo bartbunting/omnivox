@@ -370,6 +370,7 @@ mod tests {
                 native_extensions: Vec::new(),
             },
             voices: Vec::new(),
+            espeak_variants: Vec::new(),
             default_voice_id: None,
         }
     }

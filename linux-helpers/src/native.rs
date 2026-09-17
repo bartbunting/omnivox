@@ -403,6 +403,7 @@ pub(super) fn descriptor(
             post_synthesis_dimensions: buffered_post_synthesis_dimensions(),
             native_extensions: Vec::new(),
         },
+        espeak_variants: Vec::new(),
         default_voice_id: Some(voices[0].0.to_owned()),
         voices: voices
             .iter()

@@ -70,6 +70,7 @@ impl PreviewEngine {
                     quality: VoiceQuality::Compact,
                     availability: Availability::Available,
                 }],
+                espeak_variants: Vec::new(),
                 default_voice_id: Some(voice.to_owned()),
             },
             behavior,

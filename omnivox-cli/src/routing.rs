@@ -451,6 +451,14 @@ fn engine_descriptor_payload_bytes(descriptor: &EngineDescriptor) -> usize {
         .saturating_add(descriptor.version.as_ref().map_or(0, String::len))
         .saturating_add(availability_payload_bytes(&descriptor.availability))
         .saturating_add(engine_health_payload_bytes(&descriptor.health))
+        .saturating_add(std::mem::size_of_val(descriptor.espeak_variants.as_slice()))
+        .saturating_add(
+            descriptor
+                .espeak_variants
+                .iter()
+                .map(|v| v.id.len().saturating_add(v.display_name.len()))
+                .fold(0usize, usize::saturating_add),
+        )
         .saturating_add(
             descriptor
                 .capabilities
@@ -508,6 +516,12 @@ fn string_vec_payload_bytes(values: &[String]) -> usize {
 /// physical ID, and otherwise degrade to that engine's advertised default.
 pub(crate) fn legacy_voice_for_engine(engine: &dyn TtsEngine, requested: &str) -> String {
     let descriptor = engine.descriptor();
+    if let Some(voice) = descriptor
+        .voice(requested)
+        .filter(|v| v.availability.is_available())
+    {
+        return voice.id.voice_id;
+    }
     let engine_prefix = format!("{}:", descriptor.id);
     let requested_without_prefix = requested.strip_prefix(&engine_prefix);
     let exact = descriptor
@@ -1487,6 +1501,11 @@ fn record_runtime_failure(
 
     match error {
         TtsError::VoiceNotFound(reason) => {
+            if !engine.voices.iter().any(|voice| voice.id == *realized) {
+                if let Some(voice) = engine.voice(&realized.voice_id) {
+                    engine.voices.push(voice);
+                }
+            }
             let Some(voice) = engine.voices.iter_mut().find(|voice| voice.id == *realized) else {
                 return false;
             };
@@ -1722,6 +1741,7 @@ mod tests {
                     availability: Availability::Available,
                 })
                 .collect(),
+            espeak_variants: Vec::new(),
             default_voice_id: voice_ids.first().map(|voice_id| (*voice_id).to_owned()),
         }
     }
