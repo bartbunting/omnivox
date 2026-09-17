@@ -14,6 +14,7 @@ static QUARANTINED: AtomicBool = AtomicBool::new(false);
 // The pointer is used only while this lock is held. Retirement removes it
 // before releasing the native reference, including on error or panic.
 static ACTIVE: Mutex<Option<usize>> = Mutex::new(None);
+const PROGRESS_TIMEOUT: Duration = Duration::from_secs(30);
 
 extern "C" {
     fn omnivox_stream_open(
@@ -104,6 +105,7 @@ pub(super) fn synthesize(
     sink: &mut dyn SynthesisStreamSink,
 ) -> Result<SynthesisStreamCompletion, TtsError> {
     let epoch = STOP_EPOCH.load(Ordering::Acquire);
+    let waiting_since = Instant::now();
     let _serial = loop {
         if cancelled(request, epoch) {
             return Err(stream::failed("cancelled before native startup"));
@@ -115,7 +117,12 @@ pub(super) fn synthesize(
         }
         match SERIAL.try_lock() {
             Ok(guard) => break guard,
-            Err(TryLockError::WouldBlock) => std::thread::sleep(Duration::from_millis(2)),
+            Err(TryLockError::WouldBlock) => {
+                if waiting_since.elapsed() >= PROGRESS_TIMEOUT {
+                    return Err(stream::failed("timed out waiting for native ownership"));
+                }
+                std::thread::sleep(Duration::from_millis(2));
+            }
             Err(TryLockError::Poisoned(_)) => return Err(stream::failed("native owner panicked")),
         }
     };
@@ -181,6 +188,7 @@ pub(super) fn synthesize(
     let mut converter =
         stream::Stream::new(request, actual_voice, sink).with_stop_check(&interrupted);
     let outcome = (|| {
+        let mut progress = Instant::now();
         loop {
             if cancelled(request, epoch) {
                 return Err(stream::failed("cancelled"));
@@ -201,12 +209,19 @@ pub(super) fn synthesize(
                 return Err(stream::failed("cancelled"));
             }
             match status {
-                0 => (),
+                0 => {
+                    // Independent of Cocoa's owner/run loop, including an
+                    // opaque writeUtterance call that never returns.
+                    if progress.elapsed() >= PROGRESS_TIMEOUT {
+                        return Err(stream::failed("native capture made no progress"));
+                    }
+                }
                 1 => {
                     let window = samples
                         .get(..count as usize)
                         .ok_or_else(|| stream::failed("invalid native window"))?;
                     converter.push(window, rate, channels)?;
+                    progress = Instant::now();
                 }
                 2 => break,
                 _ => {

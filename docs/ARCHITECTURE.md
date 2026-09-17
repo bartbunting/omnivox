@@ -295,6 +295,19 @@ native SSML marks for exact timing, with generated-markup positions mapped back
 to the original UTF-8 source ranges. Plain speech remains on eSpeak's ordinary
 text path.
 
+The in-process macOS adapter feeds AVSpeechSynthesizer callbacks through eight
+native windows of at most 512 mono/stereo frames. Cocoa owns the capture and
+serializes native requests; no callback borrows Rust memory. Rust drains the
+queue through the common continuous converter, allowing playback before native
+completion. Backpressure waits on a condition that cancellation can wake without
+waiting for the synthesis owner. Explicit native completion closes production;
+a gap between callbacks is never treated as success. Late callbacks see a closed
+capture or an expired weak reference. Unconfirmed native-owner retirement
+quarantines the adapter until process restart. Full-result synthesis collects
+the same stream within the common synthesis byte limit. Marker and native rate
+capabilities are unchanged. See [macOS streaming](MACOS-STREAMING.md) for checks
+and remaining acceptance.
+
 The shared 32-bit Windows C# host forwards native Eloquence and DECtalk callback
 PCM for protocol v5 without retaining the complete waveform. The Rust receiver
 uses one continuous high-quality conversion rather than changing the signal at

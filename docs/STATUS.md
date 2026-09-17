@@ -36,8 +36,11 @@ the matching verified GitHub release.
 - macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
 - macOS reuses its voice inventory, engine descriptor, and native voice
   selections for the process lifetime. Restart Omnivox after installing voices.
-  Buffer timing logs identify first/last PCM, completion, and bridge return;
-  macOS synthesis remains buffered.
+  Development synthesis streams native PCM through a bounded queue and one
+  continuous converter. Buffer timing logs identify first/last PCM, explicit
+  completion and capture retirement. Full-result callers collect the same
+  stream; requests requiring unavailable anchors remain buffered. Native
+  markers are not advertised. See the [streaming acceptance guide](MACOS-STREAMING.md).
 - Optional out-of-process Piper, RHVoice, Flite, RuTTS, Eloquence, DECtalk,
   and experimental TGSpeechBox engines.
 - Structured engine/voice inventory and deterministic per-span logical routing.
