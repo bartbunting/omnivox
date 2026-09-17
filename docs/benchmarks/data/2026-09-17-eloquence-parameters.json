@@ -1,0 +1,1526 @@
+{
+  "engine_id": "eloquence",
+  "runtime_version": "6.1.0.0",
+  "runtime_sha256": "da99080288cdca14a7effba20274af1d6d5878840e32be5a315bd8691124703b",
+  "helper_sha256": "2754a50a2e71d5ae70fbc727a2e80a8466348acce1f1141de15b82393b2d4bf3",
+  "audit_source_sha256": "60aa9c5cd468050691e6c140390d975c36e47819084bbb2b45989a098023d3b2",
+  "captures": 136,
+  "range_evidence": "documented ECI units; boundaries not tested",
+  "scope": "single-parameter interior values; no cancellation or boundary qualification",
+  "all_candidates_passed": true,
+  "failed_cases": 0,
+  "voices": [
+    {
+      "voice_id": "v1",
+      "parameters": [
+        {
+          "id": "gender",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 1,
+          "target": 1,
+          "observed": 1,
+          "setter_matches": true,
+          "changed_ids": [
+            "gender"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 1,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "head_size",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 100,
+          "target": 60,
+          "observed": 60,
+          "setter_matches": true,
+          "changed_ids": [
+            "head_size"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 50,
+            "observed": 60,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_baseline",
+          "status": "probed",
+          "baseline": 65,
+          "default": 65,
+          "low": 0,
+          "high": 100,
+          "target": 75,
+          "observed": 75,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_baseline"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 65,
+            "observed": 75,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_fluctuation",
+          "status": "probed",
+          "baseline": 30,
+          "default": 30,
+          "low": 0,
+          "high": 100,
+          "target": 40,
+          "observed": 40,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_fluctuation"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 30,
+            "observed": 40,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "roughness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "roughness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "breathiness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "breathiness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "speed",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 250,
+          "target": 75,
+          "observed": 75,
+          "setter_matches": true,
+          "changed_ids": [
+            "speed"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 47168,
+          "voice_api": {
+            "previous": 50,
+            "observed": 75,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "volume",
+          "status": "probed",
+          "baseline": 92,
+          "default": 92,
+          "low": 0,
+          "high": 100,
+          "target": 82,
+          "observed": 82,
+          "setter_matches": true,
+          "changed_ids": [
+            "volume"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 92,
+            "observed": 82,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        }
+      ]
+    },
+    {
+      "voice_id": "v2",
+      "parameters": [
+        {
+          "id": "gender",
+          "status": "probed",
+          "baseline": 1,
+          "default": 1,
+          "low": 0,
+          "high": 1,
+          "target": 0,
+          "observed": 0,
+          "setter_matches": true,
+          "changed_ids": [
+            "gender"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 1,
+            "observed": 0,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "head_size",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 100,
+          "target": 60,
+          "observed": 60,
+          "setter_matches": true,
+          "changed_ids": [
+            "head_size"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 50,
+            "observed": 60,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_baseline",
+          "status": "probed",
+          "baseline": 81,
+          "default": 81,
+          "low": 0,
+          "high": 100,
+          "target": 91,
+          "observed": 91,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_baseline"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 81,
+            "observed": 91,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_fluctuation",
+          "status": "probed",
+          "baseline": 30,
+          "default": 30,
+          "low": 0,
+          "high": 100,
+          "target": 40,
+          "observed": 40,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_fluctuation"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 30,
+            "observed": 40,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "roughness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "roughness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "breathiness",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 100,
+          "target": 60,
+          "observed": 60,
+          "setter_matches": true,
+          "changed_ids": [
+            "breathiness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 50,
+            "observed": 60,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "speed",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 250,
+          "target": 75,
+          "observed": 75,
+          "setter_matches": true,
+          "changed_ids": [
+            "speed"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 47168,
+          "voice_api": {
+            "previous": 50,
+            "observed": 75,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "volume",
+          "status": "probed",
+          "baseline": 100,
+          "default": 100,
+          "low": 0,
+          "high": 100,
+          "target": 90,
+          "observed": 90,
+          "setter_matches": true,
+          "changed_ids": [
+            "volume"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 100,
+            "observed": 90,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        }
+      ]
+    },
+    {
+      "voice_id": "v3",
+      "parameters": [
+        {
+          "id": "gender",
+          "status": "probed",
+          "baseline": 1,
+          "default": 1,
+          "low": 0,
+          "high": 1,
+          "target": 0,
+          "observed": 0,
+          "setter_matches": true,
+          "changed_ids": [
+            "gender"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 1,
+            "observed": 0,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "head_size",
+          "status": "probed",
+          "baseline": 22,
+          "default": 22,
+          "low": 0,
+          "high": 100,
+          "target": 32,
+          "observed": 32,
+          "setter_matches": true,
+          "changed_ids": [
+            "head_size"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 22,
+            "observed": 32,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_baseline",
+          "status": "probed",
+          "baseline": 93,
+          "default": 93,
+          "low": 0,
+          "high": 100,
+          "target": 83,
+          "observed": 83,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_baseline"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 93,
+            "observed": 83,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_fluctuation",
+          "status": "probed",
+          "baseline": 35,
+          "default": 35,
+          "low": 0,
+          "high": 100,
+          "target": 45,
+          "observed": 45,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_fluctuation"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 35,
+            "observed": 45,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "roughness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "roughness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "breathiness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "breathiness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "speed",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 250,
+          "target": 75,
+          "observed": 75,
+          "setter_matches": true,
+          "changed_ids": [
+            "speed"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 47168,
+          "voice_api": {
+            "previous": 50,
+            "observed": 75,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "volume",
+          "status": "probed",
+          "baseline": 90,
+          "default": 90,
+          "low": 0,
+          "high": 100,
+          "target": 100,
+          "observed": 100,
+          "setter_matches": true,
+          "changed_ids": [
+            "volume"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 90,
+            "observed": 100,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        }
+      ]
+    },
+    {
+      "voice_id": "v4",
+      "parameters": [
+        {
+          "id": "gender",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 1,
+          "target": 1,
+          "observed": 1,
+          "setter_matches": true,
+          "changed_ids": [
+            "gender"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 1,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "head_size",
+          "status": "probed",
+          "baseline": 86,
+          "default": 86,
+          "low": 0,
+          "high": 100,
+          "target": 96,
+          "observed": 96,
+          "setter_matches": true,
+          "changed_ids": [
+            "head_size"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 86,
+            "observed": 96,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_baseline",
+          "status": "probed",
+          "baseline": 56,
+          "default": 56,
+          "low": 0,
+          "high": 100,
+          "target": 66,
+          "observed": 66,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_baseline"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 56,
+            "observed": 66,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_fluctuation",
+          "status": "probed",
+          "baseline": 47,
+          "default": 47,
+          "low": 0,
+          "high": 100,
+          "target": 57,
+          "observed": 57,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_fluctuation"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 47,
+            "observed": 57,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "roughness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "roughness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "breathiness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "breathiness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "speed",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 250,
+          "target": 75,
+          "observed": 75,
+          "setter_matches": true,
+          "changed_ids": [
+            "speed"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 47168,
+          "voice_api": {
+            "previous": 50,
+            "observed": 75,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "volume",
+          "status": "probed",
+          "baseline": 93,
+          "default": 93,
+          "low": 0,
+          "high": 100,
+          "target": 83,
+          "observed": 83,
+          "setter_matches": true,
+          "changed_ids": [
+            "volume"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 93,
+            "observed": 83,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        }
+      ]
+    },
+    {
+      "voice_id": "v5",
+      "parameters": [
+        {
+          "id": "gender",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 1,
+          "target": 1,
+          "observed": 1,
+          "setter_matches": true,
+          "changed_ids": [
+            "gender"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 0,
+            "observed": 1,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "head_size",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 100,
+          "target": 60,
+          "observed": 60,
+          "setter_matches": true,
+          "changed_ids": [
+            "head_size"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 50,
+            "observed": 60,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_baseline",
+          "status": "probed",
+          "baseline": 69,
+          "default": 69,
+          "low": 0,
+          "high": 100,
+          "target": 79,
+          "observed": 79,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_baseline"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 69,
+            "observed": 79,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_fluctuation",
+          "status": "probed",
+          "baseline": 34,
+          "default": 34,
+          "low": 0,
+          "high": 100,
+          "target": 44,
+          "observed": 44,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_fluctuation"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 34,
+            "observed": 44,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "roughness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "roughness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "breathiness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "breathiness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "speed",
+          "status": "probed",
+          "baseline": 70,
+          "default": 70,
+          "low": 0,
+          "high": 250,
+          "target": 95,
+          "observed": 95,
+          "setter_matches": true,
+          "changed_ids": [
+            "speed"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 31394,
+          "voice_api": {
+            "previous": 70,
+            "observed": 95,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "volume",
+          "status": "probed",
+          "baseline": 92,
+          "default": 92,
+          "low": 0,
+          "high": 100,
+          "target": 82,
+          "observed": 82,
+          "setter_matches": true,
+          "changed_ids": [
+            "volume"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 92,
+            "observed": 82,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        }
+      ]
+    },
+    {
+      "voice_id": "v6",
+      "parameters": [
+        {
+          "id": "gender",
+          "status": "probed",
+          "baseline": 1,
+          "default": 1,
+          "low": 0,
+          "high": 1,
+          "target": 0,
+          "observed": 0,
+          "setter_matches": true,
+          "changed_ids": [
+            "gender"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 1,
+            "observed": 0,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "head_size",
+          "status": "probed",
+          "baseline": 56,
+          "default": 56,
+          "low": 0,
+          "high": 100,
+          "target": 66,
+          "observed": 66,
+          "setter_matches": true,
+          "changed_ids": [
+            "head_size"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 56,
+            "observed": 66,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_baseline",
+          "status": "probed",
+          "baseline": 89,
+          "default": 89,
+          "low": 0,
+          "high": 100,
+          "target": 99,
+          "observed": 99,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_baseline"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 89,
+            "observed": 99,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_fluctuation",
+          "status": "probed",
+          "baseline": 35,
+          "default": 35,
+          "low": 0,
+          "high": 100,
+          "target": 45,
+          "observed": 45,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_fluctuation"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 35,
+            "observed": 45,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "roughness",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 100,
+          "target": 10,
+          "observed": 10,
+          "setter_matches": true,
+          "changed_ids": [
+            "roughness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 0,
+            "observed": 10,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "breathiness",
+          "status": "probed",
+          "baseline": 40,
+          "default": 40,
+          "low": 0,
+          "high": 100,
+          "target": 50,
+          "observed": 50,
+          "setter_matches": true,
+          "changed_ids": [
+            "breathiness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 40,
+            "observed": 50,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "speed",
+          "status": "probed",
+          "baseline": 70,
+          "default": 70,
+          "low": 0,
+          "high": 250,
+          "target": 95,
+          "observed": 95,
+          "setter_matches": true,
+          "changed_ids": [
+            "speed"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 31394,
+          "voice_api": {
+            "previous": 70,
+            "observed": 95,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "volume",
+          "status": "probed",
+          "baseline": 95,
+          "default": 95,
+          "low": 0,
+          "high": 100,
+          "target": 85,
+          "observed": 85,
+          "setter_matches": true,
+          "changed_ids": [
+            "volume"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 51150,
+          "voice_api": {
+            "previous": 95,
+            "observed": 85,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        }
+      ]
+    },
+    {
+      "voice_id": "v7",
+      "parameters": [
+        {
+          "id": "gender",
+          "status": "probed",
+          "baseline": 1,
+          "default": 1,
+          "low": 0,
+          "high": 1,
+          "target": 0,
+          "observed": 0,
+          "setter_matches": true,
+          "changed_ids": [
+            "gender"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 1,
+            "observed": 0,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "head_size",
+          "status": "probed",
+          "baseline": 45,
+          "default": 45,
+          "low": 0,
+          "high": 100,
+          "target": 55,
+          "observed": 55,
+          "setter_matches": true,
+          "changed_ids": [
+            "head_size"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 45,
+            "observed": 55,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_baseline",
+          "status": "probed",
+          "baseline": 68,
+          "default": 68,
+          "low": 0,
+          "high": 100,
+          "target": 78,
+          "observed": 78,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_baseline"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 68,
+            "observed": 78,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_fluctuation",
+          "status": "probed",
+          "baseline": 30,
+          "default": 30,
+          "low": 0,
+          "high": 100,
+          "target": 40,
+          "observed": 40,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_fluctuation"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 30,
+            "observed": 40,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "roughness",
+          "status": "probed",
+          "baseline": 3,
+          "default": 3,
+          "low": 0,
+          "high": 100,
+          "target": 13,
+          "observed": 13,
+          "setter_matches": true,
+          "changed_ids": [
+            "roughness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 3,
+            "observed": 13,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "breathiness",
+          "status": "probed",
+          "baseline": 40,
+          "default": 40,
+          "low": 0,
+          "high": 100,
+          "target": 50,
+          "observed": 50,
+          "setter_matches": true,
+          "changed_ids": [
+            "breathiness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 40,
+            "observed": 50,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "speed",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 250,
+          "target": 75,
+          "observed": 75,
+          "setter_matches": true,
+          "changed_ids": [
+            "speed"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 47168,
+          "voice_api": {
+            "previous": 50,
+            "observed": 75,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "volume",
+          "status": "probed",
+          "baseline": 90,
+          "default": 90,
+          "low": 0,
+          "high": 100,
+          "target": 100,
+          "observed": 100,
+          "setter_matches": true,
+          "changed_ids": [
+            "volume"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 90,
+            "observed": 100,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        }
+      ]
+    },
+    {
+      "voice_id": "v8",
+      "parameters": [
+        {
+          "id": "gender",
+          "status": "probed",
+          "baseline": 0,
+          "default": 0,
+          "low": 0,
+          "high": 1,
+          "target": 1,
+          "observed": 1,
+          "setter_matches": true,
+          "changed_ids": [
+            "gender"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 0,
+            "observed": 1,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "head_size",
+          "status": "probed",
+          "baseline": 30,
+          "default": 30,
+          "low": 0,
+          "high": 100,
+          "target": 40,
+          "observed": 40,
+          "setter_matches": true,
+          "changed_ids": [
+            "head_size"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 30,
+            "observed": 40,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_baseline",
+          "status": "probed",
+          "baseline": 61,
+          "default": 61,
+          "low": 0,
+          "high": 100,
+          "target": 71,
+          "observed": 71,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_baseline"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 61,
+            "observed": 71,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "pitch_fluctuation",
+          "status": "probed",
+          "baseline": 44,
+          "default": 44,
+          "low": 0,
+          "high": 100,
+          "target": 54,
+          "observed": 54,
+          "setter_matches": true,
+          "changed_ids": [
+            "pitch_fluctuation"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 44,
+            "observed": 54,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "roughness",
+          "status": "probed",
+          "baseline": 18,
+          "default": 18,
+          "low": 0,
+          "high": 100,
+          "target": 28,
+          "observed": 28,
+          "setter_matches": true,
+          "changed_ids": [
+            "roughness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 18,
+            "observed": 28,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "breathiness",
+          "status": "probed",
+          "baseline": 20,
+          "default": 20,
+          "low": 0,
+          "high": 100,
+          "target": 30,
+          "observed": 30,
+          "setter_matches": true,
+          "changed_ids": [
+            "breathiness"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 20,
+            "observed": 30,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "speed",
+          "status": "probed",
+          "baseline": 50,
+          "default": 50,
+          "low": 0,
+          "high": 250,
+          "target": 75,
+          "observed": 75,
+          "setter_matches": true,
+          "changed_ids": [
+            "speed"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 47168,
+          "voice_api": {
+            "previous": 50,
+            "observed": 75,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        },
+        {
+          "id": "volume",
+          "status": "probed",
+          "baseline": 90,
+          "default": 90,
+          "low": 0,
+          "high": 100,
+          "target": 100,
+          "observed": 100,
+          "setter_matches": true,
+          "changed_ids": [
+            "volume"
+          ],
+          "selection_reset_matches": true,
+          "reset_changed_ids": [],
+          "pcm_bytes": 76318,
+          "voice_api": {
+            "previous": 90,
+            "observed": 100,
+            "copy_succeeded": true,
+            "copy_restored_pristine": true
+          }
+        }
+      ]
+    }
+  ]
+}
