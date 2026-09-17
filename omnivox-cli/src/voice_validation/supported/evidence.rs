@@ -95,7 +95,7 @@ pub(super) fn observe(
 
 pub(super) fn worker(args: &[String]) -> Result<()> {
     anyhow::ensure!(
-        args.len() >= 7 && args.len() <= 13 && (args.len() - 7).is_multiple_of(2),
+        args.len() >= 7 && args.len() <= 15 && (args.len() - 7).is_multiple_of(2),
         "invalid internal evidence arguments"
     );
     owned::worker_gate()?;
@@ -104,7 +104,7 @@ pub(super) fn worker(args: &[String]) -> Result<()> {
     let mut helpers = BTreeMap::new();
     for pair in args[7..].chunks_exact(2) {
         anyhow::ensure!(
-            matches!(pair[0].as_str(), "piper" | "flite" | "mbrola")
+            matches!(pair[0].as_str(), "piper" | "flite" | "mbrola" | "rhvoice")
                 && helpers
                     .insert(pair[0].clone(), PathBuf::from(&pair[1]))
                     .is_none(),

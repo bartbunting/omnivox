@@ -94,7 +94,12 @@ impl ValidationPlan {
             "invalid validation plan memory budget",
         )?;
         require(
-            document.runtime_policy == "bundled-companions-v1",
+            document.runtime_policy
+                == if engines.contains("rhvoice") {
+                    "rhvoice-external-v1"
+                } else {
+                    "bundled-companions-v1"
+                },
             "unknown validation runtime policy",
         )?;
         Ok(Self {

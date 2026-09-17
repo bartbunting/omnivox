@@ -258,12 +258,13 @@ impl Profile {
         piper: bool,
         flite: bool,
         mbrola: bool,
+        rhvoice: bool,
         expected: &str,
     ) -> Result<ActivationCandidate, LibraryError> {
         self.check_index(expected)?;
         let library = self
             .index
-            .project(generation, piper, flite, mbrola, host())?;
+            .project(generation, piper, flite, mbrola, rhvoice, host())?;
         library.verify_assets(ProviderOverrides::default())?;
         let candidate = ActivationCandidate {
             schema_version: 1,

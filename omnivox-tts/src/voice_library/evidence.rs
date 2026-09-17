@@ -29,6 +29,8 @@ struct FileIdentity {
 struct Companion {
     helper: String,
     files: BTreeMap<String, FileIdentity>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    external_runtime: Option<super::AssetFile>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -137,7 +139,11 @@ impl EvidenceSnapshot {
         }
         let validator = validator.canonicalize()?;
         let snapshot = Self {
-            schema_version: 1,
+            schema_version: if library.document().rhvoice.is_some() {
+                2
+            } else {
+                1
+            },
             policy: POLICY.into(),
             os: std::env::consts::OS.into(),
             arch: std::env::consts::ARCH.into(),
@@ -174,7 +180,7 @@ impl EvidenceSnapshot {
 
     fn validate(&self) -> Result<(), LibraryError> {
         require(
-            self.schema_version == 1 && self.policy == POLICY,
+            matches!(self.schema_version, 1 | 2) && self.policy == POLICY,
             "unknown evidence policy",
         )?;
         text(&self.arch, 64)?;
@@ -224,7 +230,7 @@ impl EvidenceSnapshot {
             self.companions.keys().eq(engines.iter()),
             "evidence companion set mismatch",
         )?;
-        for companion in self.companions.values() {
+        for (engine, companion) in &self.companions {
             text(&companion.helper, 4096)?;
             require(
                 !companion.files.is_empty() && companion.files.len() <= companion::MAX_FILES,
@@ -234,6 +240,26 @@ impl EvidenceSnapshot {
                 companion::relative_path(path)?;
                 sha256(&file.sha256)?;
             }
+            if engine == "rhvoice" {
+                require(
+                    self.schema_version == 2,
+                    "RHVoice requires evidence schema 2",
+                )?;
+                let runtime = companion
+                    .external_runtime
+                    .as_ref()
+                    .ok_or(LibraryError::Invalid("missing RHVoice runtime observation"))?;
+                runtime.validate(host(&self.os)?)?;
+                require(
+                    companion.files.len() == 1 && companion.files.contains_key("helper"),
+                    "invalid RHVoice helper observation",
+                )?;
+                continue;
+            }
+            require(
+                companion.external_runtime.is_none(),
+                "unexpected external runtime observation",
+            )?;
             require(
                 companion.files.contains_key("SHA256SUMS")
                     && companion.files.contains_key("SOURCE-PROVENANCE.json"),

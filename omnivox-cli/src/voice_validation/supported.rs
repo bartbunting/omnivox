@@ -57,7 +57,7 @@ impl Options {
             match flag.as_str() {
                 "--validation-report" => options.report = Some(value.into()),
                 "--check-validation-report" => options.check_report = Some(value.into()),
-                "--piper-helper" | "--flite-helper" | "--mbrola-helper" => {
+                "--piper-helper" | "--flite-helper" | "--mbrola-helper" | "--rhvoice-helper" => {
                     let engine = flag
                         .strip_prefix("--")
                         .unwrap()
@@ -279,7 +279,7 @@ fn worker(args: &[String]) -> Result<()> {
             .iter()
             .map(|voice| PhysicalVoiceId::new("piper", &voice.physical_id))
             .collect(),
-        "flite" | "mbrola" => targets,
+        "flite" | "mbrola" | "rhvoice" => targets,
         _ => anyhow::bail!("unsupported validation engine"),
     };
     let mut config = HelperEngineConfig::new(&args[3], &args[4]);

@@ -101,6 +101,15 @@ impl Acquisition {
         create_directory(&directory)?;
         let staging = host.root.join("staging").join(&plan.operation_id);
         create_directory(&staging)?;
+        for file in &entry.files {
+            let path = staging.join(file.filename()?);
+            let relative = path.parent().unwrap().strip_prefix(&staging).unwrap();
+            let mut directory = staging.clone();
+            for component in relative.components() {
+                directory.push(component);
+                ensure_directory(&directory)?;
+            }
+        }
         let package_parent = host.root.join("packages").join(&plan.package_id);
         create_directory(&package_parent)?;
         let package = package_parent.join(&plan.revision_id);

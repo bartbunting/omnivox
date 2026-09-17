@@ -213,6 +213,26 @@ voices start disabled; first installation adds en1 as an included index row,
 preserving any explicit exclusion. The current import command remains limited
 to Piper and Flite; MBROLA acquisition uses reviewed catalogue entries.
 
+Schema 3 adds =rhvoice=, either null (legacy external configuration) or an
+object with =inherit_external= and =voices=. Each voice has =physical_id=,
+=display_name=, nullable =language= and verified =files= records. The initial
+catalogue covers Alan, Bdl, Clb and Ksp, with a private copy of the same English
+language data in each package. Catalogue resource roles use the bounded
+=rhvoice/language/= and =rhvoice/voice/= path allowlists; installed native files
+have the =rhvoice_data= role. Retained notices remain separate from native files.
+
+Ordinary projection sets =inherit_external= true, combines enabled managed
+voices with external discovery and applies physical exclusions to both. An
+empty managed list preserves external voices. Duplicate managed/external IDs
+and incompatible English data are errors. Isolated validation sets it false,
+disables external data and configuration discovery, and requires exactly the
+selected voice. RHVoice acquisition uses an explicit external native library;
+evidence schema 2 observes its identity and the helper under
+=rhvoice-external-v1= instead of claiming a bundled runtime. Clients submit the
+separate RHVoice catalogue only when =catalogue_providers= advertises support.
+Nested uninstallation remains restricted to the exact owned, verified files
+and their empty parent directories. It preserves external data and runtimes.
+
 Projection is the intersection of enabled records and installed, validated
 inputs. A missing enabled input is an error with an impact report, not an
 implicit fallback to legacy mode. Policy-disabled engines need not spawn

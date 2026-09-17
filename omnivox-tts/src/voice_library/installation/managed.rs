@@ -69,6 +69,7 @@ impl Profile {
                 "config" => FileRole::Config,
                 "voice" => FileRole::Voice,
                 "database" => FileRole::Database,
+                name if name.starts_with("rhvoice/") => FileRole::RhvoiceData,
                 _ => continue,
             };
             files.push(imports::file(role, &file.asset(&directory)?));
@@ -91,7 +92,10 @@ impl Profile {
         let mut document = self.index.document().clone();
         document.packages.push(package);
         if entry.provider == Provider::Mbrola {
-            document.schema_version = 2;
+            document.schema_version = document.schema_version.max(2);
+        }
+        if entry.provider == Provider::Rhvoice {
+            document.schema_version = 3;
         }
         // First managed download must not remove the already included en1.
         // Preserve an explicit exclusion and any existing built-in row.

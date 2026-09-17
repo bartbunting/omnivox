@@ -76,12 +76,21 @@ impl StartupLibrary {
             "piper" => self.library.document().piper.is_some() && !self.overrides.piper,
             "flite" => self.library.document().flite.is_some() && !self.overrides.flite,
             "mbrola" => self.library.document().mbrola.is_some(),
+            "rhvoice" => self.library.document().rhvoice.is_some(),
             _ => false,
         }
     }
 
     pub fn requires(&self, engine: &str) -> bool {
-        self.manages(engine) && !self.eligibility.excludes_provider(engine)
+        self.manages(engine)
+            && !self.eligibility.excludes_provider(engine)
+            && (engine != "rhvoice"
+                || self
+                    .library
+                    .document()
+                    .rhvoice
+                    .as_ref()
+                    .is_some_and(|r| !r.voices.is_empty()))
     }
 
     pub fn configure(&self, config: &mut HelperEngineConfig) {
@@ -127,6 +136,16 @@ impl StartupLibrary {
                 .unwrap()
                 .voice_ids()
                 .collect(),
+            "rhvoice" => self
+                .library
+                .document()
+                .rhvoice
+                .as_ref()
+                .unwrap()
+                .voices
+                .iter()
+                .map(|v| v.physical_id.as_str())
+                .collect(),
             _ => unreachable!(),
         };
         let actual: std::collections::BTreeSet<&str> = descriptor
@@ -135,9 +154,19 @@ impl StartupLibrary {
             .map(|voice| voice.id.voice_id.as_str())
             .collect();
         anyhow::ensure!(
-            actual == expected
-                && descriptor.voices.len() == expected.len()
-                && descriptor.can_synthesize()
+            (if descriptor.id == "rhvoice"
+                && self
+                    .library
+                    .document()
+                    .rhvoice
+                    .as_ref()
+                    .unwrap()
+                    .inherit_external
+            {
+                expected.is_subset(&actual)
+            } else {
+                actual == expected && descriptor.voices.len() == expected.len()
+            }) && descriptor.can_synthesize()
                 && descriptor
                     .voices
                     .iter()
@@ -151,7 +180,7 @@ impl StartupLibrary {
 
     pub fn registry(&self) -> Result<EngineRegistry> {
         let mut registry = EngineRegistry::with_voice_library(&self.library, self.overrides);
-        for engine in ["piper", "flite", "mbrola"] {
+        for engine in ["piper", "flite", "mbrola", "rhvoice"] {
             if self.eligibility.excludes_provider(engine) {
                 registry.register_unavailable(
                     EngineDescriptor::unavailable(

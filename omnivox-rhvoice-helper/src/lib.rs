@@ -8,6 +8,8 @@ use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+mod managed;
+
 use libloading::Library;
 use omnivox_audio::ProgressivePcmCanonicalizer;
 use omnivox_tts::contracts::{
@@ -156,7 +158,7 @@ enum RhVoiceError {
     Runtime(String),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct RuntimeConfig {
     library: Option<PathBuf>,
     data: Option<PathBuf>,

@@ -14,6 +14,7 @@ import threading
 import uuid
 
 from verify_local_voice_owner import Peer
+from verify_release import read_wav
 from verify_voice_library_startup import native
 
 
@@ -23,6 +24,8 @@ def main():
     parser.add_argument("--catalogue", type=Path, required=True)
     parser.add_argument("--entry", action="append")
     parser.add_argument("--mbrola-helper", type=Path)
+    parser.add_argument("--rhvoice-library", type=Path)
+    parser.add_argument("--rhvoice-data", type=Path)
     parser.add_argument("--scratch-dir", type=Path)
     parser.add_argument("--report", type=Path, required=True)
     args = parser.parse_args()
@@ -35,7 +38,11 @@ def main():
     environment.update(OMNIVOX_VOICE_ROOT=native(root, windows), OMNIVOX_ENGINE="espeak", OMNIVOX_AUDIO_OUTPUT="null")
     if args.mbrola_helper:
         environment["OMNIVOX_MBROLA_HELPER"] = native(args.mbrola_helper.resolve(), windows)
-    forwarded = ["OMNIVOX_VOICE_ROOT", "OMNIVOX_ENGINE", "OMNIVOX_AUDIO_OUTPUT", "OMNIVOX_MBROLA_HELPER", "OMNIVOX_VOICE_LIBRARY"]
+    if args.rhvoice_library:
+        environment["OMNIVOX_RHVOICE_LIBRARY"] = native(args.rhvoice_library.resolve(), windows)
+    if args.rhvoice_data:
+        environment["OMNIVOX_RHVOICE_DATA"] = native(args.rhvoice_data.resolve(), windows)
+    forwarded = ["OMNIVOX_RHVOICE_LIBRARY", "OMNIVOX_RHVOICE_DATA", "OMNIVOX_VOICE_ROOT", "OMNIVOX_ENGINE", "OMNIVOX_AUDIO_OUTPUT", "OMNIVOX_MBROLA_HELPER", "OMNIVOX_VOICE_LIBRARY"]
     environment["WSLENV"] = ":".join([item for item in environment.get("WSLENV", "").split(":")
                                        if item and item.split("/")[0] not in forwarded] + forwarded)
     catalogue = json.loads(args.catalogue.read_text())
@@ -101,6 +108,15 @@ def main():
 
     host = service("host")
     assert host["removal_version"] == 1
+    external_rhvoice = None
+    if all(entry["provider"] == "rhvoice" for entry in entries):
+        owner = Peer(server, "--voice-library-owner", environment)
+        try:
+            status = owner.request("voice_library_status_v1", control=True)
+            external_rhvoice = {voice["voice_id"] for voice in status["eligible_voices"]
+                                if voice["engine_id"] == "rhvoice"}
+        finally:
+            owner.close()
     results = []
     for entry in entries:
         acquire(entry)
@@ -124,10 +140,13 @@ def main():
         candidate = service("stage", generation=generation, expected_sha256=service("inspect")["sha256"], **{engine: True})
         owned_environment = dict(environment, OMNIVOX_VOICE_LIBRARY=candidate["path"])
         owners = []
+        identities = []
         try:
             for _ in range(2):
                 owners.append(Peer(server, "--voice-library-owner", owned_environment))
-            identities = [owner.request("describe") for owner in owners]
+                # Initial admission briefly owns storage; acknowledge it before
+                # starting the next lane, as the coordinated Apply flow does.
+                identities.append(owners[-1].request("describe"))
             assert all(not owner["retired"] and not owner["startup_error"] for owner in identities), identities
             enable(False)
             pinned = review()
@@ -170,6 +189,52 @@ def main():
         args.report.write_text(json.dumps(dict(binary_sha256=hashlib.sha256(server.read_bytes()).hexdigest(),
                                               catalogue_sha256=hashlib.sha256(args.catalogue.read_bytes()).hexdigest(),
                                               native_windows=windows, results=results), indent=2) + "\n")
+
+    if external_rhvoice is not None:
+        managed = {voice["physical_id"] for entry in entries for voice in entry["voices"]}
+        for physical in sorted(managed):
+            service("enable", engine="rhvoice", voice=physical, enabled=True,
+                    expected_sha256=service("inspect")["sha256"])
+
+        def check_rhvoice_set(expected):
+            candidate = service("stage", generation=str(uuid.uuid4()), rhvoice=True,
+                                expected_sha256=service("inspect")["sha256"])
+            owned = dict(environment, OMNIVOX_VOICE_LIBRARY=candidate["path"])
+            owner = Peer(server, "--voice-library-owner", owned)
+            try:
+                identity = owner.request("describe")
+                assert not identity["retired"] and not identity["startup_error"], identity
+                status = owner.request("voice_library_status_v1", control=True)
+                actual = {voice["voice_id"] for voice in status["eligible_voices"]
+                          if voice["engine_id"] == "rhvoice"}
+                assert actual == expected | external_rhvoice, (actual, expected, external_rhvoice)
+            finally:
+                owner.close()
+            for physical in sorted(expected | external_rhvoice):
+                wav = root / (physical.split(":")[-1] + ".wav")
+                result = subprocess.run([str(server), "--engine", "rhvoice", "--dump-wav",
+                                         physical, native(wav, windows), "Managed RHVoice acceptance."],
+                                        env=owned, capture_output=True, text=True, timeout=120)
+                assert result.returncode == 0, result.stderr
+                read_wav(wav, canonical=True)
+
+        check_rhvoice_set(managed)
+        removed = sorted(managed)[0]
+        service("enable", engine="rhvoice", voice=removed, enabled=False,
+                expected_sha256=service("inspect")["sha256"])
+        ready = service("uninstall-preview", engine="rhvoice", voice=removed,
+                        expected_sha256=service("inspect")["sha256"])["review"]
+        assert not ready["blockers"], ready
+        result = service("uninstall", operation=ready["operation_id"],
+                         expected_sha256=ready["plan_sha256"])["result"]
+        assert result["status"] == "complete", result
+        check_rhvoice_set(managed - {removed})
+        report = json.loads(args.report.read_text())
+        report["rhvoice_combined"] = dict(external_voices=sorted(external_rhvoice),
+                                          managed_voices=sorted(managed), removed_voice=removed,
+                                          remaining_voices_synthesize=True)
+        args.report.write_text(json.dumps(report, indent=2) + "\n")
+        print("PASS RHVoice: combined synthesis, external voices and independent removal", flush=True)
 
 
 if __name__ == "__main__":

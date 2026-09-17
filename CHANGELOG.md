@@ -8,6 +8,11 @@ Versioning for published releases.
 
 ### Added
 
+- Managed RHVoice voice and language data through the existing local catalogue,
+  native validation, Enable/Apply and resumable uninstall services. Downloads
+  start disabled and preserve externally installed voices and runtimes. Resource
+  files use pinned hashes and bounded paths; RHVoice requires schema 3 metadata.
+
 - Reviewed local uninstallation of managed Piper, Flite and MBROLA packages,
   including shared-speaker impact, active/session reference protection,
   resumable partial cleanup and confirmed file-byte reporting. Built-in voices,

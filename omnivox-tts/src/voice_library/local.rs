@@ -42,6 +42,8 @@ pub struct Request {
     #[serde(default)]
     pub mbrola: bool,
     #[serde(default)]
+    pub rhvoice: bool,
+    #[serde(default)]
     pub package: String,
     #[serde(default)]
     pub revision: String,
@@ -240,7 +242,12 @@ impl Host {
     pub fn reply(&self) -> Reply {
         Reply::Host {
             removal_version: 1,
-            catalogue_providers: vec!["piper".into(), "flite".into(), "mbrola".into()],
+            catalogue_providers: vec![
+                "piper".into(),
+                "flite".into(),
+                "mbrola".into(),
+                "rhvoice".into(),
+            ],
             root: self.root.to_string_lossy().into(),
             target_id: self.target_id.clone(),
             profile_id: self.profile_id.clone(),
@@ -505,7 +512,14 @@ mod tests {
         let profile = host.profile().unwrap();
         let generation = new_uuid().unwrap();
         profile
-            .stage_activation(&generation, true, false, false, &profile.index_sha256())
+            .stage_activation(
+                &generation,
+                true,
+                false,
+                false,
+                false,
+                &profile.index_sha256(),
+            )
             .unwrap();
         let mut startup = Startup {
             executable: identify(&std::env::current_exe().unwrap()).unwrap(),

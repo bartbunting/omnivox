@@ -57,7 +57,7 @@ impl Catalogue {
     pub fn parse(bytes: &[u8]) -> Result<Self, LibraryError> {
         let document: CatalogueDocument = decode(bytes, MAX_CATALOGUE_BYTES)?;
         require(
-            matches!(document.schema_version, 1 | 2),
+            matches!(document.schema_version, 1..=3),
             "unknown voice catalogue schema",
         )?;
         text(&document.revision, 128)?;
@@ -69,8 +69,12 @@ impl Catalogue {
         let mut physical = HashSet::new();
         for entry in &document.entries {
             require(
-                entry.provider != Provider::Mbrola || document.schema_version == 2,
+                entry.provider != Provider::Mbrola || document.schema_version >= 2,
                 "MBROLA requires catalogue schema 2",
+            )?;
+            require(
+                entry.provider != Provider::Rhvoice || document.schema_version == 3,
+                "RHVoice requires catalogue schema 3",
             )?;
             entry.validate()?;
             require(ids.insert(&entry.id), "duplicate catalogue identity")?;
@@ -105,7 +109,11 @@ impl Catalogue {
 
 impl DownloadFile {
     /// Fixed role names, never a filename or path supplied by remote metadata.
-    pub fn filename(&self) -> Result<&'static str, LibraryError> {
+    pub fn filename(&self) -> Result<&str, LibraryError> {
+        if self.role.starts_with("rhvoice/") {
+            rhvoice::resource_path(&self.role)?;
+            return Ok(&self.role);
+        }
         match self.role.as_str() {
             "model" => Ok("model.onnx"),
             "config" => Ok("model.onnx.json"),
@@ -118,8 +126,14 @@ impl DownloadFile {
         }
     }
     pub fn asset(&self, directory: &Path) -> Result<AssetFile, LibraryError> {
+        // Join each reviewed component so ordinary and verbatim Windows roots
+        // produce the same native separators in persisted ownership records.
+        let path = self
+            .filename()?
+            .split('/')
+            .fold(directory.to_path_buf(), |path, part| path.join(part));
         Ok(AssetFile {
-            path: metadata_path(&directory.join(self.filename()?))?,
+            path: metadata_path(&path)?,
             bytes: self.bytes,
             sha256: self.sha256.clone(),
         })
@@ -217,7 +231,12 @@ impl Entry {
         source_url(&self.source)?;
         source_url(&self.licence_url)?;
         require(
-            (1..=5).contains(&self.files.len()),
+            (1..=if self.provider == Provider::Rhvoice {
+                rhvoice::MAX_RHVOICE_FILES + 2
+            } else {
+                5
+            })
+                .contains(&self.files.len()),
             "invalid catalogue file count",
         )?;
         let mut roles = HashSet::new();
@@ -252,6 +271,17 @@ impl Entry {
             "invalid catalogue voice count",
         )?;
         match self.provider {
+            Provider::Rhvoice => require(
+                self.voices.len() == 1
+                    && roles.contains("licence")
+                    && roles.contains("readme")
+                    && roles.contains("rhvoice/voice/voice.info")
+                    && roles.contains("rhvoice/language/language.info")
+                    && roles
+                        .iter()
+                        .all(|r| r.starts_with("rhvoice/") || matches!(*r, "licence" | "readme")),
+                "invalid RHVoice catalogue package",
+            )?,
             Provider::Piper => require(
                 roles.contains("model")
                     && roles.contains("config")
@@ -277,9 +307,20 @@ impl Entry {
                 "invalid Flite catalogue package",
             )?,
         }
+        require(
+            self.provider == Provider::Rhvoice || !roles.iter().any(|r| r.starts_with("rhvoice/")),
+            "RHVoice resources require RHVoice provider",
+        )?;
         for voice in &self.voices {
             text(&voice.name, 256)?;
             match self.provider {
+                Provider::Rhvoice => {
+                    rhvoice::rhvoice_id(&voice.physical_id)?;
+                    require(
+                        voice.speaker_index.is_none(),
+                        "RHVoice has no speaker index",
+                    )?;
+                }
                 Provider::Piper => require(
                     voice.speaker_index.is_some_and(|index| {
                         self.identity()
@@ -334,7 +375,9 @@ impl Entry {
                 .asset(directory)
         };
         let mut document = RuntimeDocument {
-            schema_version: if self.provider == Provider::Mbrola {
+            schema_version: if self.provider == Provider::Rhvoice {
+                3
+            } else if self.provider == Provider::Mbrola {
                 2
             } else {
                 1
@@ -346,8 +389,25 @@ impl Entry {
             piper: None,
             flite: None,
             mbrola: None,
+            rhvoice: None,
         };
         match self.provider {
+            Provider::Rhvoice => {
+                document.rhvoice = Some(RhvoiceLibrary {
+                    inherit_external: false,
+                    voices: vec![RhvoiceVoice {
+                        physical_id: self.voices[0].physical_id.clone(),
+                        display_name: self.voices[0].name.clone(),
+                        language: Some(self.language.clone()),
+                        files: self
+                            .files
+                            .iter()
+                            .filter(|f| f.role.starts_with("rhvoice/"))
+                            .map(|f| f.asset(directory))
+                            .collect::<Result<_, _>>()?,
+                    }],
+                });
+            }
             Provider::Piper => {
                 document.piper = Some(PiperLibrary {
                     models: vec![PiperModel {

@@ -44,6 +44,11 @@ impl RuntimeLibrary {
                 voice.database.open_verified()?;
             }
         }
+        if let Some(rhvoice) = &self.document().rhvoice {
+            for voice in &rhvoice.voices {
+                voice.verify_files()?;
+            }
+        }
         Ok(())
     }
 }

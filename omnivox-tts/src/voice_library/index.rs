@@ -22,6 +22,7 @@ pub enum Provider {
     Piper,
     Flite,
     Mbrola,
+    Rhvoice,
 }
 
 impl Provider {
@@ -30,6 +31,7 @@ impl Provider {
             Self::Piper => "piper",
             Self::Flite => "flite",
             Self::Mbrola => "mbrola",
+            Self::Rhvoice => "rhvoice",
         }
     }
 }
@@ -63,6 +65,7 @@ pub enum FileRole {
     Config,
     Voice,
     Database,
+    RhvoiceData,
 }
 
 // Deliberately not flattened: serde flattening would weaken strict field checks.
@@ -155,17 +158,25 @@ impl LibraryIndex {
 impl IndexDocument {
     fn validate(&self, host: HostPlatform) -> Result<(), LibraryError> {
         require(
-            matches!(self.schema_version, 1 | 2),
+            matches!(self.schema_version, 1..=3),
             "unsupported index schema",
         )?;
         require(
-            self.schema_version == 2
+            self.schema_version >= 2
                 || (!self
                     .packages
                     .iter()
                     .any(|package| package.provider == Provider::Mbrola)
                     && !self.voices.iter().any(|voice| voice.engine_id == "mbrola")),
             "MBROLA requires index schema 2",
+        )?;
+        require(
+            self.schema_version == 3
+                || !self
+                    .packages
+                    .iter()
+                    .any(|p| p.provider == Provider::Rhvoice),
+            "RHVoice requires index schema 3",
         )?;
         uuid(&self.target_id)?;
         uuid(&self.profile_id)?;
@@ -265,6 +276,17 @@ impl IndexDocument {
                                 "MBROLA package exposes more than one voice",
                             )?;
                         }
+                        Provider::Rhvoice => {
+                            rhvoice::rhvoice_id(&voice.physical_id)?;
+                            require(
+                                voice.speaker_index.is_none() && voice.legacy_physical_id.is_none(),
+                                "RHVoice has no speaker index or legacy alias",
+                            )?;
+                            require(
+                                bindings.insert((&package.identity, 0)),
+                                "RHVoice package exposes more than one voice",
+                            )?;
+                        }
                         Provider::Flite => {
                             runtime::flite_id(&voice.physical_id)?;
                             require(
@@ -318,16 +340,22 @@ impl PackageRevision {
             Provider::Piper => &[FileRole::Model, FileRole::Config],
             Provider::Flite => &[FileRole::Voice],
             Provider::Mbrola => &[FileRole::Database],
+            Provider::Rhvoice => &[FileRole::RhvoiceData],
         };
         require(
-            self.files.len() == expected.len(),
+            if self.provider == Provider::Rhvoice {
+                (1..=rhvoice::MAX_RHVOICE_FILES).contains(&self.files.len())
+            } else {
+                self.files.len() == expected.len()
+            },
             "wrong number of package files",
         )?;
         let mut roles = HashSet::new();
         let mut paths = HashSet::new();
         for file in &self.files {
             require(
-                expected.contains(&file.role) && roles.insert(file.role),
+                expected.contains(&file.role)
+                    && (roles.insert(file.role) || self.provider == Provider::Rhvoice),
                 "wrong or repeated asset role",
             )?;
             require(paths.insert(&file.path), "package asset paths must differ")?;
@@ -352,7 +380,11 @@ impl PackageRevision {
             FileRole::Model => "model",
             FileRole::Voice => "voice",
             FileRole::Database => "database",
+            FileRole::RhvoiceData => "rhvoice_data",
         });
+        if self.provider == Provider::Rhvoice {
+            files.sort_by(|a, b| a.path.cmp(&b.path));
+        }
         Ok(serde_json::to_vec(&files)?)
     }
 }

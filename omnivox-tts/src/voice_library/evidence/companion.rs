@@ -201,6 +201,25 @@ fn native_target(target: &str) -> bool {
 
 pub(super) fn capture(helper: &Path, engine: &str) -> Result<Companion, LibraryError> {
     let helper = helper.canonicalize()?;
+    if engine == "rhvoice" {
+        let runtime = std::env::var_os("OMNIVOX_RHVOICE_LIBRARY")
+            .map(std::path::PathBuf::from)
+            .ok_or(LibraryError::Invalid(
+                "RHVoice validation requires an explicit runtime library",
+            ))?;
+        require(runtime.is_absolute(), "RHVoice runtime must be absolute")?;
+        let runtime = runtime.canonicalize()?;
+        let identity = file_identity(&runtime)?;
+        return Ok(Companion {
+            helper: path_text(&helper)?,
+            files: BTreeMap::from([("helper".into(), file_identity(&helper)?)]),
+            external_runtime: Some(super::super::AssetFile {
+                path: super::super::catalogue::metadata_path(&runtime)?,
+                bytes: identity.bytes,
+                sha256: identity.sha256,
+            }),
+        });
+    }
     let root = helper
         .parent()
         .ok_or(LibraryError::Invalid("helper has no parent"))?;
@@ -265,6 +284,7 @@ pub(super) fn capture(helper: &Path, engine: &str) -> Result<Companion, LibraryE
         require(native, "evidence requires bundled Piper native libraries")?;
     }
     Ok(Companion {
+        external_runtime: None,
         helper: path_text(&helper)?,
         files,
     })

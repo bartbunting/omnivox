@@ -254,7 +254,7 @@ mod tests {
         let project = |document: &IndexDocument| {
             LibraryIndex::parse(&serde_json::to_vec(document).unwrap(), HostPlatform::Posix)
                 .unwrap()
-                .project(GENERATION, false, false, true, HostPlatform::Posix)
+                .project(GENERATION, false, false, true, false, HostPlatform::Posix)
         };
         assert_eq!(
             project(&document).unwrap().validation_targets(),

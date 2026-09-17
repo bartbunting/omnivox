@@ -9,11 +9,16 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
+        Self::with_catalogue(catalogue::tests::fixture())
+    }
+    fn rhvoice() -> Self {
+        Self::with_catalogue(crate::voice_library::rhvoice::tests::catalogue_fixture())
+    }
+    fn with_catalogue(value: serde_json::Value) -> Self {
         let root =
             std::env::temp_dir().join(format!("omnivox-removal-{}", local::new_uuid().unwrap()));
         let host = Host::open(&root).unwrap();
-        let catalogue =
-            Catalogue::parse(catalogue::tests::fixture().to_string().as_bytes()).unwrap();
+        let catalogue = Catalogue::parse(value.to_string().as_bytes()).unwrap();
         let package = local::new_uuid().unwrap();
         let revision = local::new_uuid().unwrap();
         let directory = package_directory(
@@ -23,29 +28,47 @@ impl Fixture {
         )
         .unwrap();
         fs::create_dir_all(&directory).unwrap();
-        let entry = catalogue.entry("flite-test").unwrap();
-        let file = entry.files[0].asset(&directory).unwrap();
-        fs::write(&file.path, b"abc").unwrap();
+        // Acquisition publishes from a canonical root; removal reconstructs
+        // its ordinary Windows path from the reviewed ownership record.
+        let directory = directory.canonicalize().unwrap();
+        let entry = &catalogue.document().entries[0];
+        let mut files = Vec::new();
+        for file in &entry.files {
+            let asset = file.asset(&directory).unwrap();
+            fs::create_dir_all(Path::new(&asset.path).parent().unwrap()).unwrap();
+            fs::write(&asset.path, b"abc").unwrap();
+            if file.role == "voice" || file.role.starts_with("rhvoice/") {
+                files.push(imports::file(
+                    if entry.provider == Provider::Rhvoice {
+                        FileRole::RhvoiceData
+                    } else {
+                        FileRole::Voice
+                    },
+                    &asset,
+                ));
+            }
+        }
         fs::write(directory.join("catalogue.json"), catalogue.source_bytes()).unwrap();
         let mut profile = host.profile().unwrap();
         let mut doc = profile.index.document().clone();
         doc.revision_id = local::new_uuid().unwrap();
+        doc.schema_version = catalogue.document().schema_version;
         doc.packages.push(PackageRevision {
             package_id: package.clone(),
             revision_id: revision.clone(),
-            provider: Provider::Flite,
+            provider: entry.provider,
             ownership: Ownership::Managed,
             identity: entry.identity(),
-            files: vec![imports::file(FileRole::Voice, &file)],
+            files,
             validation: None,
             catalogue: Some(CatalogueReference {
                 revision: catalogue.document().revision.clone(),
                 entry_id: entry.id.clone(),
             }),
         });
-        let voice = PhysicalVoiceId::new("flite", "flitevox:test");
+        let voice = PhysicalVoiceId::new(entry.engine_id(), &entry.voices[0].physical_id);
         doc.voices.push(imports::row(
-            "flite",
+            entry.engine_id(),
             &voice.voice_id,
             "Test",
             &None,
@@ -289,7 +312,14 @@ fn active_and_unresolved_rollback_generations_retain_packages() {
         .unwrap();
     let generation = local::new_uuid().unwrap();
     let candidate = profile
-        .stage_activation(&generation, false, true, false, &profile.index_sha256())
+        .stage_activation(
+            &generation,
+            false,
+            true,
+            false,
+            false,
+            &profile.index_sha256(),
+        )
         .unwrap();
     let cfg = candidate.configuration;
     let active = serde_json::json!({"schema_version":1,"target_id":cfg.target_id,"profile_id":cfg.profile_id,
@@ -556,4 +586,32 @@ fn symlinks_and_shared_hardlinks_never_become_cleanup_authority() {
         assert_eq!(fixture.execute(&review).status, "blocked");
         assert_eq!(fs::read(external).unwrap(), b"abc");
     }
+}
+
+#[test]
+fn rhvoice_removal_rejects_unowned_nested_files_and_removes_only_its_package() {
+    let fixture = Fixture::rhvoice();
+    let outside = fixture.host.root.join("external-rhvoice");
+    fs::create_dir(&outside).unwrap();
+    fs::write(outside.join("SLT"), b"external voice").unwrap();
+    let extra = fixture.directory.join("rhvoice/voice/personal-note");
+    fs::write(&extra, b"preserve").unwrap();
+    let profile = fixture.host.profile().unwrap();
+    assert!(!profile
+        .prepare_removal(&fixture.voice, &profile.index_sha256())
+        .unwrap()
+        .blockers
+        .is_empty());
+    drop(profile);
+    assert!(extra.exists());
+    fs::remove_file(extra).unwrap();
+    let review = fixture.review();
+    assert!(review.blockers.is_empty());
+    let removed = fixture.execute(&review);
+    assert_eq!(removed.status, "complete");
+    assert_eq!(removed.remaining_bytes, 0);
+    assert_eq!(removed.unconfirmed_bytes, 0);
+    assert!(!fixture.directory.exists());
+    assert_eq!(fs::read(outside.join("SLT")).unwrap(), b"external voice");
+    assert_eq!(fixture.execute(&review).status, "complete");
 }

@@ -4,7 +4,8 @@ use std::collections::BTreeMap;
 
 impl LibraryIndex {
     /// Project only selected providers. An unselected provider retains legacy
-    /// startup; a selected provider with no enabled voices has an empty load set.
+    /// startup; a selected provider with no enabled voices has an empty managed
+    /// load set. RHVoice additionally retains separately installed voices.
     /// This checks recorded validation identity, not current native readiness.
     pub fn project(
         &self,
@@ -12,6 +13,7 @@ impl LibraryIndex {
         piper: bool,
         flite: bool,
         mbrola: bool,
+        rhvoice: bool,
         host: HostPlatform,
     ) -> Result<RuntimeLibrary, LibraryError> {
         uuid(generation_id)?;
@@ -22,10 +24,12 @@ impl LibraryIndex {
         let mut builtin_slt = false;
         let mut builtin_en1 = false;
         let mut databases = Vec::new();
+        let mut resources = Vec::new();
         for voice in index.voices.iter().filter(|voice| voice.enabled) {
             if !((piper && voice.engine_id == "piper")
                 || (flite && voice.engine_id == "flite")
-                || (mbrola && voice.engine_id == "mbrola"))
+                || (mbrola && voice.engine_id == "mbrola")
+                || (rhvoice && voice.engine_id == "rhvoice" && voice.package_id.is_some()))
             {
                 continue;
             }
@@ -71,6 +75,21 @@ impl LibraryIndex {
                     display_name: voice.display_name.clone(),
                     language: voice.language.clone(),
                 });
+            } else if voice.engine_id == "rhvoice" {
+                resources.push(RhvoiceVoice {
+                    physical_id: voice.physical_id.clone(),
+                    display_name: voice.display_name.clone(),
+                    language: voice.language.clone(),
+                    files: package
+                        .files
+                        .iter()
+                        .map(|file| AssetFile {
+                            path: file.path.clone(),
+                            bytes: file.bytes,
+                            sha256: file.sha256.clone(),
+                        })
+                        .collect(),
+                });
             } else if voice.engine_id == "mbrola" {
                 databases.push(MbrolaVoice {
                     physical_id: voice.physical_id.clone(),
@@ -99,14 +118,25 @@ impl LibraryIndex {
         }
         files.sort_by(|a, b| a.physical_id.cmp(&b.physical_id));
         databases.sort_by(|a, b| a.physical_id.cmp(&b.physical_id));
+        resources.sort_by(|a, b| a.physical_id.cmp(&b.physical_id));
         let document = RuntimeDocument {
-            schema_version: if mbrola { 2 } else { 1 },
+            schema_version: if rhvoice {
+                3
+            } else if mbrola {
+                2
+            } else {
+                1
+            },
             target_id: index.target_id.clone(),
             profile_id: index.profile_id.clone(),
             generation_id: generation_id.into(),
             disabled_physical_ids: index.disabled_physical_ids.clone(),
             piper: piper.then_some(PiperLibrary { models: projected }),
             flite: flite.then_some(FliteLibrary { builtin_slt, files }),
+            rhvoice: rhvoice.then_some(RhvoiceLibrary {
+                inherit_external: true,
+                voices: resources,
+            }),
             mbrola: mbrola.then_some(MbrolaLibrary {
                 builtin_en1,
                 files: databases,

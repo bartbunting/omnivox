@@ -2,8 +2,8 @@
 
 Omnivox uses RHVoice through the isolated `omnivox-rhvoice-helper` process. The
 helper is portable Rust code, but it does not contain RHVoice itself. Install a
-compatible RHVoice native library, at least one language, and at least one
-voice separately.
+compatible RHVoice native library separately. Voice and language data may be
+installed separately or acquired through the reviewed local voice catalogue.
 
 This boundary is deliberate:
 
@@ -40,6 +40,27 @@ map removes generated tags and XML escaping from RHVoice's word and sentence
 offsets, so their ranges continue to identify the caller's original UTF-8
 text. Plain requests remain plain-text RHVoice messages. Older helper protocol
 peers retain whole-result buffered delivery.
+
+## Managed English voices
+
+The development catalogue in Emacsvox offers Alan, Bdl, Clb and Ksp. Each package
+contains pinned upstream voice files, its own English language data and notices.
+Acquisition requires an explicit `OMNIVOX_RHVOICE_LIBRARY`, validates synthesis
+without playback and installs disabled. Enable and review Apply to add it to both
+speech lanes. External voices such as SLT remain available; a duplicate physical
+voice in external and managed data is rejected rather than silently shadowed.
+
+Each enabled package supplies only its reviewed resource directories to the helper.
+Native validation suppresses external language, voice and configuration fallback.
+Ordinary startup preserves external configuration. The helper checks all package
+files and rejects unexpected resource files; the runtime is still supplied by the
+user and is not installed or updated by a voice download.
+
+Disable and Apply before using the existing uninstall review. Active and unretired
+sessions retain their resources. Resumable deletion handles the package's nested
+files and never removes external voices or the runtime. Each package owns its
+language copy, so uninstalling one does not affect another. Runtime, installed
+index and catalogue schemas use version 3; older binaries reject them explicitly.
 
 ## Build and layout
 

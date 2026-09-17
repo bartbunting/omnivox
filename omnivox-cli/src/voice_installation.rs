@@ -74,15 +74,19 @@ pub fn run(args: &[String]) -> Result<()> {
             );
         }
         "--stage-voice-library-activation" => {
-            let (piper, flite, mbrola) = match args[4].as_str() {
-                "piper" => (true, false, false),
-                "flite" => (false, true, false),
-                "mbrola" => (false, false, true),
-                "both" => (true, true, false),
-                "all" => (true, true, true),
-                _ => anyhow::bail!("managed providers must be piper, flite, mbrola, both, or all"),
+            let (piper, flite, mbrola, rhvoice) = match args[4].as_str() {
+                "piper" => (true, false, false, false),
+                "flite" => (false, true, false, false),
+                "rhvoice" => (false, false, false, true),
+                "mbrola" => (false, false, true, false),
+                "both" => (true, true, false, false),
+                "all" => (true, true, true, true),
+                _ => anyhow::bail!(
+                    "managed providers must be piper, flite, mbrola, rhvoice, both, or all"
+                ),
             };
-            let candidate = profile.stage_activation(&args[3], piper, flite, mbrola, &args[5])?;
+            let candidate =
+                profile.stage_activation(&args[3], piper, flite, mbrola, rhvoice, &args[5])?;
             std::io::stdout().write_all(&candidate.to_bytes()?)?;
             println!();
         }

@@ -127,6 +127,16 @@ pub(super) fn check(
             referenced |= std::env::split_paths(voices)
                 .any(|path| uses(&path.to_string_lossy(), &removal.directory));
         }
+        for name in [
+            "OMNIVOX_RHVOICE_DATA",
+            "OMNIVOX_RHVOICE_RESOURCES",
+            "RHVOICE_DATA_PATH",
+        ] {
+            if let Some(paths) = startup.environment.get(name) {
+                referenced |= std::env::split_paths(paths)
+                    .any(|p| uses(&p.to_string_lossy(), &removal.directory));
+            }
+        }
         if referenced {
             reasons.push(format!(
                 "Session {} has no confirmed retirement; its files are retained",
@@ -159,7 +169,11 @@ fn uses(path: &str, directory: &Path) -> bool {
 }
 fn library_uses(library: &RuntimeLibrary, directory: &Path) -> bool {
     let doc = library.document();
-    doc.piper.as_ref().is_some_and(|piper| {
+    doc.rhvoice.as_ref().is_some_and(|r| {
+        r.voices
+            .iter()
+            .any(|v| v.files.iter().any(|f| uses(&f.path, directory)))
+    }) || doc.piper.as_ref().is_some_and(|piper| {
         piper
             .models
             .iter()

@@ -261,7 +261,7 @@ fn duplicate_keys_unknown_fields_and_missing_nullable_members_are_rejected() {
 #[test]
 fn malformed_versions_identities_and_asset_records_are_rejected() {
     for (pointer, value) in [
-        ("/schema_version", json!(3)),
+        ("/schema_version", json!(4)),
         ("/target_id", json!("11111111-1111-4111-8111-11111111111Z")),
         (
             "/piper/models/0/identity",

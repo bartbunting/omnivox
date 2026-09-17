@@ -158,6 +158,7 @@ fn service(host: Host) -> Result<()> {
                         request.piper,
                         request.flite,
                         request.mbrola,
+                        request.rhvoice,
                         &request.expected_sha256,
                     )?;
                     Ok(Reply::Candidate {

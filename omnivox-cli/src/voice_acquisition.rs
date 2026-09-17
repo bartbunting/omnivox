@@ -148,6 +148,16 @@ fn execute(
             .context("MBROLA downloads require the configured MBROLA development companion")?;
         anyhow::ensure!(path.is_absolute(), "MBROLA helper path must be absolute");
         path
+    } else if engine == "rhvoice" {
+        let path = std::env::var_os("OMNIVOX_RHVOICE_HELPER")
+            .map(std::path::PathBuf::from)
+            .unwrap_or(bundled_helper);
+        anyhow::ensure!(path.is_absolute(), "RHVoice helper path must be absolute");
+        anyhow::ensure!(
+            std::env::var_os("OMNIVOX_RHVOICE_LIBRARY").is_some(),
+            "RHVoice downloads require an explicit compatible OMNIVOX_RHVOICE_LIBRARY"
+        );
+        path
     } else {
         bundled_helper
     };
@@ -217,7 +227,12 @@ fn execute(
         )]),
         timeout_seconds: 120,
         memory_bytes: 4096 * 1024 * 1024,
-        runtime_policy: "bundled-companions-v1".into(),
+        runtime_policy: if engine == "rhvoice" {
+            "rhvoice-external-v1"
+        } else {
+            "bundled-companions-v1"
+        }
+        .into(),
     };
     drop(Operation::create(
         &host.root.join("operations"),

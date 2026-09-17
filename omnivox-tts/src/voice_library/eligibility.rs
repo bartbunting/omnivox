@@ -70,6 +70,18 @@ impl VoiceEligibility {
                 mbrola.voice_ids().map(str::to_owned).collect(),
             );
         }
+        if let Some(rhvoice) = &document.rhvoice {
+            if !rhvoice.inherit_external {
+                policy.managed.insert(
+                    "rhvoice".into(),
+                    rhvoice
+                        .voices
+                        .iter()
+                        .map(|v| v.physical_id.clone())
+                        .collect(),
+                );
+            }
+        }
         policy.overridden.sort();
         policy
     }

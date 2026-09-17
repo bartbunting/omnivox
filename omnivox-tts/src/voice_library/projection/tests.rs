@@ -40,7 +40,7 @@ fn enabled_speakers_share_one_model_and_unselected_providers_keep_legacy_mode() 
     document.disabled_physical_ids.clear();
     document.voices.reverse();
     let library = parse(&document)
-        .project(GENERATION, true, false, false, HostPlatform::Windows)
+        .project(GENERATION, true, false, false, false, HostPlatform::Windows)
         .unwrap();
     let models = &library.document().piper.as_ref().unwrap().models;
     assert_eq!(models.len(), 1);
@@ -54,7 +54,14 @@ fn enabled_speakers_share_one_model_and_unselected_providers_keep_legacy_mode() 
     );
     assert!(library.document().flite.is_none());
     assert!(parse(&document)
-        .project(GENERATION, false, false, false, HostPlatform::Windows)
+        .project(
+            GENERATION,
+            false,
+            false,
+            false,
+            false,
+            HostPlatform::Windows
+        )
         .unwrap()
         .document()
         .piper
@@ -76,7 +83,7 @@ fn disabled_assets_need_no_validation_or_loading_and_empty_is_not_legacy() {
         .sort_by(|a, b| (&a.engine_id, &a.voice_id).cmp(&(&b.engine_id, &b.voice_id)));
     document.packages[0].validation = None;
     let library = parse(&document)
-        .project(GENERATION, true, true, false, HostPlatform::Windows)
+        .project(GENERATION, true, true, false, false, HostPlatform::Windows)
         .unwrap();
     assert!(library.validation_targets().is_empty());
     assert!(library.document().piper.as_ref().unwrap().models.is_empty());
@@ -115,7 +122,7 @@ fn enabled_inputs_require_matching_validation_and_one_revision_per_model() {
         }
         assert!(
             parse(&document)
-                .project(GENERATION, true, false, false, HostPlatform::Windows)
+                .project(GENERATION, true, false, false, false, HostPlatform::Windows)
                 .is_err(),
             "{mode}"
         );
@@ -137,7 +144,7 @@ fn flite_builtin_selection_and_global_exclusions_survive_projection() {
         legacy_physical_id: None,
     });
     let library = parse(&document)
-        .project(GENERATION, false, true, false, HostPlatform::Windows)
+        .project(GENERATION, false, true, false, false, HostPlatform::Windows)
         .unwrap();
     assert!(library.document().piper.is_none());
     assert!(library.document().flite.as_ref().unwrap().builtin_slt);

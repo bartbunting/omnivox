@@ -261,14 +261,15 @@ impl Profile {
                 matches!(
                     file.role.as_str(),
                     "model" | "config" | "voice" | "database"
-                )
+                ) || file.role.starts_with("rhvoice/")
             })
             .map(|file| {
                 let role = match file.role.as_str() {
                     "model" => FileRole::Model,
                     "config" => FileRole::Config,
                     "voice" => FileRole::Voice,
-                    _ => FileRole::Database,
+                    "database" => FileRole::Database,
+                    _ => FileRole::RhvoiceData,
                 };
                 Ok(imports::file(role, &file.asset(&directory)?))
             })
@@ -478,13 +479,7 @@ impl Removal {
             return Ok(());
         }
         check_directory(root, &self.directory)?;
-        for path in retention::entries(&self.directory, 16)? {
-            ordinary(&path, true)?;
-            require(
-                self.files.iter().any(|file| Path::new(&file.path) == path),
-                "unexpected package file; cleanup refused",
-            )?;
-        }
+        self.check_tree(&self.directory)?;
         for (index, file) in self.files.iter().enumerate() {
             let path = Path::new(&file.path);
             if detached && !path.try_exists()? {
@@ -507,6 +502,39 @@ impl Removal {
         }
         Ok(())
     }
+    fn directories(&self) -> std::collections::BTreeSet<PathBuf> {
+        let mut directories = std::collections::BTreeSet::new();
+        for file in &self.files {
+            let mut parent = Path::new(&file.path).parent();
+            while let Some(path) = parent {
+                if path == self.directory {
+                    break;
+                }
+                if !path.starts_with(&self.directory) {
+                    break;
+                }
+                directories.insert(path.to_owned());
+                parent = path.parent();
+            }
+        }
+        directories
+    }
+    fn check_tree(&self, directory: &Path) -> Result<(), LibraryError> {
+        let directories = self.directories();
+        for path in retention::entries(directory, 256)? {
+            if directories.contains(&path) {
+                ordinary(&path, false)?;
+                self.check_tree(&path)?;
+            } else {
+                ordinary(&path, true)?;
+                require(
+                    self.files.iter().any(|file| Path::new(&file.path) == path),
+                    "unexpected package file; cleanup refused",
+                )?;
+            }
+        }
+        Ok(())
+    }
     fn receipt(&self, index: usize) -> PathBuf {
         self.path.join(format!("deleted-{index:02}.json"))
     }
@@ -516,11 +544,22 @@ impl Removal {
                 continue;
             }
             check_directory(root, &self.directory)?;
+            for directory in self.directories() {
+                if Path::new(&file.path).starts_with(&directory) {
+                    ordinary(&directory, false)?;
+                }
+            }
             ordinary(Path::new(&file.path), true)?;
             drop(file.open_verified()?);
             fs::remove_file(&file.path)?;
-            sync_directory(&self.directory)?;
+            sync_directory(Path::new(&file.path).parent().unwrap())?;
             save_new(&self.receipt(index), &serde_json::to_vec(file)?)?;
+        }
+        for directory in self.directories().iter().rev() {
+            if directory.try_exists()? {
+                ordinary(directory, false)?;
+                fs::remove_dir(directory)?;
+            }
         }
         if self.directory.try_exists()? {
             fs::remove_dir(&self.directory)?;
