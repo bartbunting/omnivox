@@ -62,13 +62,13 @@ valid request shapes and unowned-error compatibility remain intact. The
 [wire-boundary report](benchmarks/2026-09-18-helper-native-wire-boundary.md)
 records the regression and compatibility checks for versions 1–5.
 
-`helper_protocol::parameters` now provides the reserved helper-6 parameter
+`helper_protocol::parameters` now provides the helper-6 parameter
 request/response codecs, correlated application evidence and atomic catalogue
 page assembly. It reuses the legacy duplicate-free envelope reader and common
 synthesis validation, while keeping the negotiated 1–5 readers unchanged.
 The [codec report](benchmarks/2026-09-18-helper6-parameter-codecs.md) records its
 scope. Both Windows helpers now execute these messages when 6 is explicitly
-negotiated; the Rust parent still uses 5. The
+negotiated, and the Rust parent now offers 6 before the unchanged older versions. The
 [handler report](benchmarks/2026-09-18-eloquence-helper6.md) records direct wire
 and native acceptance. Catalogue reads use immutable metadata and unknown
 preset defaults, avoiding owner-thread waits or voice changes. Verified native
@@ -76,8 +76,11 @@ readback is retained only as applied-plan evidence.
 
 The Rust planner and native request path are not connected to public speech
 operations yet. Common mappings and capability advertisements remain unchanged.
-Next connect the parent dispatcher, followed by
-public transport, receipts and the Emacs editor. Adapter integration must preserve the
+The [parent integration](benchmarks/2026-09-18-helper6-parent.md) connects strict
+negotiation, ordinary and native synthesis, per-request application evidence,
+and bounded catalogue/explanation queries. Queries return busy during speech;
+they never connect a deferred helper or restart one to obtain metadata.
+Next connect public transport, routed receipts and the Emacs editor. Adapter integration must preserve the
 old common path, including its existing clamps; native edit ranges are separately
 qualified and must not silently recalibrate common controls.
 

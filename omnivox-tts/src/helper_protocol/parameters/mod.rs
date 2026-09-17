@@ -1,8 +1,8 @@
-//! Reserved helper-6 parameter messages. Live negotiation still supports 1–5.
+//! Helper-6 parameter messages, correlated evidence and catalogue assembly.
 //!
-//! These codecs cover the new/extended operations, not hello, ordinary PCM or
-//! terminal frames. Native handlers and their negotiated dispatcher are separate
-//! work. Parsing a message here grants no permission to send it to an old helper.
+//! These codecs cover new/extended operations. The parent session dispatcher
+//! handles shared hello, PCM and terminal frames after version negotiation.
+//! Parsing a message here grants no permission to send it to an old helper.
 mod catalogue;
 #[cfg(test)]
 mod tests;

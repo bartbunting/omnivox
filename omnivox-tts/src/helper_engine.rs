@@ -1,6 +1,6 @@
 //! Host-side support for TTS engines backed by helper processes.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::ffi::OsString;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read};
@@ -25,13 +25,19 @@ use crate::helper_protocol::{
     read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
     HelperRequest, HelperRequestBody, HelperResponse, HelperResponseBody, HelperSynthesisSettings,
     HELPER_PROTOCOL_V2, HELPER_PROTOCOL_V3, HELPER_PROTOCOL_V4, HELPER_PROTOCOL_V5,
-    MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES, SUPPORTED_HELPER_PROTOCOL_VERSIONS,
+    MAX_HELPER_MARKERS, MAX_HELPER_SYNTHESIS_BYTES,
 };
 use crate::{
     AnchorResolution, AudioBuffer, ResolvedAnchor, SynthesisMarker, SynthesisMarkerKind,
     SynthesisRequest, SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink,
     SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, STANDARD_CHANNELS,
 };
+
+use crate::helper_protocol::{parameters, session};
+
+#[path = "helper_engine/parameters.rs"]
+mod native;
+use native::{AppliedPlan, ParameterExchange};
 
 const HELPER_CANCEL_GRACE: Duration = Duration::from_millis(250);
 pub const HELPER_DESCRIPTOR_CACHE_FILE_NAME: &str = "VOICE-INVENTORY.json";
@@ -264,6 +270,14 @@ fn validate_helper_descriptor(
 trait HelperConnection: Send + Sync {
     fn send(&self, request: &HelperRequest) -> Result<(), HelperEngineError>;
     fn receive(&self, timeout: Duration) -> Result<HelperResponse, HelperEngineError>;
+    fn send_parameters(&self, _request: &parameters::Request) -> Result<(), HelperEngineError> {
+        Err(HelperEngineError::UnexpectedResponse(
+            "connection does not support helper 6",
+        ))
+    }
+    fn receive_message(&self, timeout: Duration) -> Result<session::Response, HelperEngineError> {
+        self.receive(timeout).map(session::Response::Common)
+    }
     /// Success confirms child reaping and reader completion. Failure must block replacement.
     fn terminate(&self) -> Result<(), HelperEngineError>;
 }
@@ -298,7 +312,7 @@ impl HelperConnector for ProcessHelperConnector {
     }
 }
 
-type HelperReadResult = Result<HelperResponse, HelperEngineError>;
+type HelperReadResult = Result<session::Response, HelperEngineError>;
 
 struct ProcessHelperConnection {
     engine_id: String,
@@ -404,7 +418,7 @@ impl ProcessHelperConnection {
 
 impl HelperConnection for ProcessHelperConnection {
     fn send(&self, request: &HelperRequest) -> Result<(), HelperEngineError> {
-        request.validate()?;
+        session::validate_common_request(request)?;
         let mut writer = self.writer.lock().unwrap();
         if self.terminated.load(Ordering::Acquire) {
             return Err(HelperEngineError::Exited);
@@ -414,7 +428,26 @@ impl HelperConnection for ProcessHelperConnection {
         Ok(())
     }
 
+    fn send_parameters(&self, request: &parameters::Request) -> Result<(), HelperEngineError> {
+        request.validate()?;
+        let mut writer = self.writer.lock().unwrap();
+        if self.terminated.load(Ordering::Acquire) {
+            return Err(HelperEngineError::Exited);
+        }
+        write_frame(writer.as_mut().ok_or(HelperEngineError::Exited)?, request)?;
+        Ok(())
+    }
+
     fn receive(&self, timeout: Duration) -> Result<HelperResponse, HelperEngineError> {
+        match self.receive_message(timeout)? {
+            session::Response::Common(response) => Ok(response),
+            _ => Err(HelperEngineError::UnexpectedResponse(
+                "expected common helper response",
+            )),
+        }
+    }
+
+    fn receive_message(&self, timeout: Duration) -> Result<session::Response, HelperEngineError> {
         let responses = self.responses.lock().unwrap();
         let responses = responses.as_ref().ok_or(HelperEngineError::Exited)?;
         let deadline = Instant::now() + timeout;
@@ -1200,6 +1233,7 @@ pub struct HelperTtsEngine {
     cancellations_by_target: Mutex<HashMap<u64, Arc<TargetCancellation>>>,
     lifecycle: Mutex<()>,
     dispatch: Mutex<()>,
+    applied_plans: Mutex<VecDeque<AppliedPlan>>,
 }
 
 impl HelperTtsEngine {
@@ -1269,6 +1303,7 @@ impl HelperTtsEngine {
             cancellations_by_target: Mutex::new(HashMap::new()),
             lifecycle: Mutex::new(()),
             dispatch: Mutex::new(()),
+            applied_plans: Mutex::new(VecDeque::new()),
         })
     }
 
@@ -1315,6 +1350,7 @@ impl HelperTtsEngine {
         }
         *retiring = None;
         self.cancellations_by_target.lock().unwrap().clear();
+        self.applied_plans.lock().unwrap().clear();
 
         let connection = self.connector.connect()?;
         // A failed greeting also owns a process that must be reaped before retrying.
@@ -1358,14 +1394,13 @@ impl HelperTtsEngine {
         connection: &Arc<dyn HelperConnection>,
     ) -> Result<(EngineDescriptor, u16), HelperEngineError> {
         let mut negotiated_response = None;
-        for (index, protocol_version) in SUPPORTED_HELPER_PROTOCOL_VERSIONS.iter().enumerate() {
+        for (index, protocol_version) in session::VERSIONS.iter().enumerate() {
             let hello_id = self.allocate_request_id();
             connection.send(&HelperRequest::with_version(
                 *protocol_version,
                 hello_id,
                 HelperRequestBody::Hello {
-                    supported_protocol_versions: SUPPORTED_HELPER_PROTOCOL_VERSIONS[index..]
-                        .to_vec(),
+                    supported_protocol_versions: session::VERSIONS[index..].to_vec(),
                 },
             ))?;
             let response =
@@ -1376,7 +1411,7 @@ impl HelperTtsEngine {
                     code: HelperErrorCode::UnsupportedVersion,
                     ..
                 }
-            ) && index + 1 < SUPPORTED_HELPER_PROTOCOL_VERSIONS.len();
+            ) && index + 1 < session::VERSIONS.len();
             if try_older {
                 continue;
             }
@@ -1389,7 +1424,7 @@ impl HelperTtsEngine {
             HelperResponseBody::Hello {
                 selected_protocol_version,
                 ..
-            } if SUPPORTED_HELPER_PROTOCOL_VERSIONS.contains(&selected_protocol_version)
+            } if session::VERSIONS.contains(&selected_protocol_version)
                 && selected_protocol_version == response_version =>
             {
                 selected_protocol_version
@@ -1599,13 +1634,345 @@ impl HelperTtsEngine {
     }
 }
 
+impl HelperTtsEngine {
+    fn synthesize_inner(
+        &self,
+        request: &SynthesisRequest,
+        parameters: Option<&parameters::VoiceParameters>,
+        application: &mut dyn FnMut(&parameters::NativeApplication),
+    ) -> Result<SynthesisResult, TtsError> {
+        let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
+        let _lifecycle = self.lifecycle.lock().unwrap();
+        let connection = self.connection_for_synthesis().map_err(Self::map_error)?;
+        let descriptor = self.descriptor();
+        let protocol_version = self.protocol_version.load(Ordering::Acquire) as u16;
+        let request_id = self.allocate_request_id();
+        let started_at = Instant::now();
+        let voice_id = request.voice_id_for_engine(&descriptor.id)?;
+        let requested_voice_id = if voice_id.is_empty() {
+            None
+        } else {
+            Some(voice_id.to_owned())
+        };
+        let acss = &request.normalized_acss;
+        let supported_acss = &descriptor.capabilities.acss;
+        let extended_acss = protocol_version >= HELPER_PROTOCOL_V3;
+        let maximum_rate = if protocol_version >= HELPER_PROTOCOL_V4 {
+            2.0
+        } else {
+            1.0
+        };
+        let helper_rate = if request.settings.rate > maximum_rate {
+            maximum_rate
+        } else {
+            request.settings.rate
+        };
+        let helper_request = HelperRequest::with_version(
+            protocol_version.min(HELPER_PROTOCOL_V5),
+            request_id,
+            HelperRequestBody::Synthesize {
+                text: request.text.clone(),
+                settings: HelperSynthesisSettings {
+                    voice_id: requested_voice_id.clone(),
+                    rate: helper_rate,
+                    pitch: request.settings.pitch,
+                    volume: request.settings.volume,
+                    pitch_range: (extended_acss && supported_acss.pitch_range)
+                        .then_some(acss.pitch_range)
+                        .flatten(),
+                    stress: (extended_acss && supported_acss.stress)
+                        .then_some(acss.stress)
+                        .flatten(),
+                    richness: (extended_acss && supported_acss.richness)
+                        .then_some(acss.richness)
+                        .flatten(),
+                },
+                anchors: (protocol_version >= HELPER_PROTOCOL_V2).then(|| request.anchors.clone()),
+            },
+        );
+        helper_request.validate().map_err(|error| {
+            TtsError::InvalidParameter(format!("invalid helper synthesis request: {error}"))
+        })?;
+        let mut exchange = ParameterExchange::new(protocol_version, &helper_request, parameters)
+            .map_err(Self::map_error)?;
+        info!(
+            engine_id = self.config.engine_id,
+            request_id,
+            voice_id,
+            text_bytes = request.text.len(),
+            anchors = request.anchors.len(),
+            "Sending TTS helper synthesis request"
+        );
+
+        {
+            let _dispatch = self.dispatch.lock().unwrap();
+            if self.stop_epoch.load(Ordering::Acquire) != stop_epoch {
+                return Err(TtsError::SynthesisFailed(
+                    "helper synthesis cancelled before dispatch".to_owned(),
+                ));
+            }
+            if let Err(error) = exchange.send(&connection) {
+                return Err(self.synthesis_error(&connection, request_id, error));
+            }
+            self.active_request_id.store(request_id, Ordering::Release);
+        }
+        let active = ActiveRequestGuard {
+            request_id,
+            active_request_id: &self.active_request_id,
+            cancellations_by_target: &self.cancellations_by_target,
+            dispatch: &self.dispatch,
+        };
+        let mut collector = if descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm
+        {
+            HelperSynthesisCollector::new_progressive(
+                protocol_version.min(HELPER_PROTOCOL_V5),
+                request_id,
+                requested_voice_id,
+            )
+        } else {
+            HelperSynthesisCollector::new(
+                protocol_version.min(HELPER_PROTOCOL_V5),
+                request_id,
+                requested_voice_id,
+            )
+        };
+        loop {
+            let response =
+                match self.receive_synthesis_response(&connection, &mut exchange, application) {
+                    Ok(response) => response,
+                    Err(error) => return Err(self.synthesis_error(&connection, request_id, error)),
+                };
+            let target_is_terminal = response.body.is_synthesis_terminal();
+            let progress = match collector.accept(response) {
+                Ok(progress) => progress,
+                Err(error) => {
+                    if target_is_terminal {
+                        active.mark_target_terminal();
+                    }
+                    return Err(self.synthesis_error(&connection, request_id, error));
+                }
+            };
+            if target_is_terminal {
+                active.mark_target_terminal();
+            }
+            match progress {
+                Some(HelperSynthesisResult::Completed(completed)) => {
+                    let actual_voice =
+                        PhysicalVoiceId::new(descriptor.id.clone(), completed.actual_voice_id);
+                    let (markers, anchors) = split_helper_markers(completed.markers);
+                    let mut result = SynthesisResult::from_native_i16(
+                        descriptor.id.clone(),
+                        Some(actual_voice),
+                        &completed.samples,
+                        completed.sample_rate,
+                        completed.channels,
+                        markers,
+                        anchors,
+                    )?;
+                    result.resolve_anchors(
+                        request,
+                        descriptor.capabilities.markers.requested_anchors,
+                    );
+                    result.validate(request)?;
+                    info!(
+                        engine_id = self.config.engine_id,
+                        request_id,
+                        frames = result.audio.frame_count(),
+                        markers = result.markers.len(),
+                        elapsed_ms = started_at.elapsed().as_millis(),
+                        "TTS helper synthesis completed"
+                    );
+                    return Ok(result);
+                }
+                Some(HelperSynthesisResult::Cancelled) => {
+                    return Err(TtsError::SynthesisFailed(
+                        "helper synthesis cancelled".to_owned(),
+                    ));
+                }
+                None => {}
+            }
+        }
+    }
+
+    fn synthesize_stream_inner(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+        parameters: Option<&parameters::VoiceParameters>,
+        application: &mut dyn FnMut(&parameters::NativeApplication),
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        if self.descriptor().capabilities.audio_output != AudioOutputMode::StreamingPcm {
+            let result = self.synthesize_inner(request, parameters, application)?;
+            return crate::synthesis::stream_buffered_result(
+                request,
+                self.descriptor().capabilities.markers.requested_anchors,
+                result,
+                sink,
+            );
+        }
+
+        let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
+        let _lifecycle = self.lifecycle.lock().unwrap();
+        let connection = self.connection_for_synthesis().map_err(Self::map_error)?;
+        let descriptor = self.descriptor();
+        let protocol_version = self.protocol_version.load(Ordering::Acquire) as u16;
+        if protocol_version < HELPER_PROTOCOL_V5 {
+            return Err(TtsError::SynthesisFailed(
+                "progressive helper did not negotiate protocol version 5".to_owned(),
+            ));
+        }
+        let request_id = self.allocate_request_id();
+        let started_at = Instant::now();
+        let voice_id = request.voice_id_for_engine(&descriptor.id)?;
+        let requested_voice_id = if voice_id.is_empty() {
+            None
+        } else {
+            Some(voice_id.to_owned())
+        };
+        let acss = &request.normalized_acss;
+        let supported_acss = &descriptor.capabilities.acss;
+        let helper_request = HelperRequest::with_version(
+            protocol_version.min(HELPER_PROTOCOL_V5),
+            request_id,
+            HelperRequestBody::Synthesize {
+                text: request.text.clone(),
+                settings: HelperSynthesisSettings {
+                    voice_id: requested_voice_id.clone(),
+                    rate: request.settings.rate.min(2.0),
+                    pitch: request.settings.pitch,
+                    volume: request.settings.volume,
+                    pitch_range: supported_acss
+                        .pitch_range
+                        .then_some(acss.pitch_range)
+                        .flatten(),
+                    stress: supported_acss.stress.then_some(acss.stress).flatten(),
+                    richness: supported_acss.richness.then_some(acss.richness).flatten(),
+                },
+                anchors: Some(request.anchors.clone()),
+            },
+        );
+        helper_request.validate().map_err(|error| {
+            TtsError::InvalidParameter(format!("invalid helper synthesis request: {error}"))
+        })?;
+        let mut exchange = ParameterExchange::new(protocol_version, &helper_request, parameters)
+            .map_err(Self::map_error)?;
+        info!(
+            engine_id = self.config.engine_id,
+            request_id,
+            voice_id,
+            text_bytes = request.text.len(),
+            anchors = request.anchors.len(),
+            "Sending progressive TTS helper synthesis request"
+        );
+
+        {
+            let _dispatch = self.dispatch.lock().unwrap();
+            if self.stop_epoch.load(Ordering::Acquire) != stop_epoch {
+                return Err(TtsError::SynthesisFailed(
+                    "helper synthesis cancelled before dispatch".to_owned(),
+                ));
+            }
+            if let Err(error) = exchange.send(&connection) {
+                return Err(self.synthesis_error(&connection, request_id, error));
+            }
+            self.active_request_id.store(request_id, Ordering::Release);
+        }
+        let active = ActiveRequestGuard {
+            request_id,
+            active_request_id: &self.active_request_id,
+            cancellations_by_target: &self.cancellations_by_target,
+            dispatch: &self.dispatch,
+        };
+        let degraded_acss = request
+            .normalized_acss
+            .clone()
+            .degrade_for(&descriptor.capabilities.acss)
+            .omitted;
+        let mut collector = ProgressiveHelperCollector::new(
+            request_id,
+            protocol_version.min(HELPER_PROTOCOL_V5),
+            descriptor.id.clone(),
+            requested_voice_id,
+            degraded_acss,
+            sink,
+        );
+        let mut draining_cancelled_output = false;
+        loop {
+            let response =
+                match self.receive_synthesis_response(&connection, &mut exchange, application) {
+                    Ok(response) => response,
+                    Err(error) => return Err(self.synthesis_error(&connection, request_id, error)),
+                };
+            let target_is_terminal = response.body.is_synthesis_terminal();
+            let progress = match collector.accept(response) {
+                Ok(progress) => progress,
+                Err(error) => {
+                    if target_is_terminal {
+                        active.mark_target_terminal();
+                    }
+                    return Err(self.synthesis_error(&connection, request_id, error));
+                }
+            };
+            if target_is_terminal {
+                active.mark_target_terminal();
+            }
+            if let Some(error) = collector.take_consumer_error() {
+                if self.stop_epoch.load(Ordering::Acquire) == stop_epoch {
+                    return Err(self.synthesis_error(
+                        &connection,
+                        request_id,
+                        HelperEngineError::Transport(format!(
+                            "progressive synthesis consumer stopped: {error}"
+                        )),
+                    ));
+                }
+                draining_cancelled_output = true;
+                info!(
+                    engine_id = self.config.engine_id,
+                    request_id, "Draining cancelled progressive TTS helper response"
+                );
+            }
+            match progress {
+                Some(ProgressiveHelperSynthesisResult::Completed) => {
+                    if draining_cancelled_output {
+                        return Err(TtsError::SynthesisFailed(
+                            "helper synthesis cancelled".to_owned(),
+                        ));
+                    }
+                    info!(
+                        engine_id = self.config.engine_id,
+                        request_id,
+                        frames = collector.frame_count,
+                        elapsed_ms = started_at.elapsed().as_millis(),
+                        "Progressive TTS helper synthesis completed"
+                    );
+                    return Ok(SynthesisStreamCompletion {
+                        frame_count: collector.frame_count,
+                    });
+                }
+                Some(ProgressiveHelperSynthesisResult::Cancelled) => {
+                    return Err(TtsError::SynthesisFailed(
+                        "helper synthesis cancelled".to_owned(),
+                    ));
+                }
+                None => {}
+            }
+        }
+    }
+}
+
 fn receive_owned_response(
     connection: &Arc<dyn HelperConnection>,
     request_id: u64,
     timeout: Duration,
 ) -> Result<HelperResponse, HelperEngineError> {
-    let response = connection.receive(timeout)?;
-    response.validate()?;
+    let message = connection.receive_message(timeout)?;
+    message.validate()?;
+    let session::Response::Common(response) = message else {
+        return Err(HelperEngineError::UnexpectedResponse(
+            "expected common helper response",
+        ));
+    };
     if response.request_id != Some(request_id) {
         return Err(HelperEngineError::RequestMismatch {
             expected: request_id,
@@ -1677,181 +2044,7 @@ impl TtsEngine for HelperTtsEngine {
     }
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
-        let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
-        let _lifecycle = self.lifecycle.lock().unwrap();
-        let connection = self.connection_for_synthesis().map_err(Self::map_error)?;
-        let descriptor = self.descriptor();
-        let protocol_version = self.protocol_version.load(Ordering::Acquire) as u16;
-        let request_id = self.allocate_request_id();
-        let started_at = Instant::now();
-        let voice_id = request.voice_id_for_engine(&descriptor.id)?;
-        let requested_voice_id = if voice_id.is_empty() {
-            None
-        } else {
-            Some(voice_id.to_owned())
-        };
-        let acss = &request.normalized_acss;
-        let supported_acss = &descriptor.capabilities.acss;
-        let extended_acss = protocol_version >= HELPER_PROTOCOL_V3;
-        let maximum_rate = if protocol_version >= HELPER_PROTOCOL_V4 {
-            2.0
-        } else {
-            1.0
-        };
-        let helper_rate = if request.settings.rate > maximum_rate {
-            maximum_rate
-        } else {
-            request.settings.rate
-        };
-        let helper_request = HelperRequest::with_version(
-            protocol_version,
-            request_id,
-            HelperRequestBody::Synthesize {
-                text: request.text.clone(),
-                settings: HelperSynthesisSettings {
-                    voice_id: requested_voice_id.clone(),
-                    rate: helper_rate,
-                    pitch: request.settings.pitch,
-                    volume: request.settings.volume,
-                    pitch_range: (extended_acss && supported_acss.pitch_range)
-                        .then_some(acss.pitch_range)
-                        .flatten(),
-                    stress: (extended_acss && supported_acss.stress)
-                        .then_some(acss.stress)
-                        .flatten(),
-                    richness: (extended_acss && supported_acss.richness)
-                        .then_some(acss.richness)
-                        .flatten(),
-                },
-                anchors: (protocol_version >= HELPER_PROTOCOL_V2).then(|| request.anchors.clone()),
-            },
-        );
-        helper_request.validate().map_err(|error| {
-            TtsError::InvalidParameter(format!("invalid helper synthesis request: {error}"))
-        })?;
-        info!(
-            engine_id = self.config.engine_id,
-            request_id,
-            voice_id,
-            text_bytes = request.text.len(),
-            anchors = request.anchors.len(),
-            "Sending TTS helper synthesis request"
-        );
-
-        {
-            let _dispatch = self.dispatch.lock().unwrap();
-            if self.stop_epoch.load(Ordering::Acquire) != stop_epoch {
-                return Err(TtsError::SynthesisFailed(
-                    "helper synthesis cancelled before dispatch".to_owned(),
-                ));
-            }
-            if let Err(error) = connection.send(&helper_request) {
-                return Err(self.synthesis_error(&connection, request_id, error));
-            }
-            self.active_request_id.store(request_id, Ordering::Release);
-        }
-        let active = ActiveRequestGuard {
-            request_id,
-            active_request_id: &self.active_request_id,
-            cancellations_by_target: &self.cancellations_by_target,
-            dispatch: &self.dispatch,
-        };
-        let mut collector = if descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm
-        {
-            HelperSynthesisCollector::new_progressive(
-                protocol_version,
-                request_id,
-                requested_voice_id,
-            )
-        } else {
-            HelperSynthesisCollector::new(protocol_version, request_id, requested_voice_id)
-        };
-        loop {
-            let response = match connection.receive(self.config.synthesis_idle_timeout) {
-                Ok(response) => response,
-                Err(error) => {
-                    return Err(self.synthesis_error(&connection, request_id, error));
-                }
-            };
-            if response.protocol_version != protocol_version {
-                return Err(self.synthesis_error(
-                    &connection,
-                    request_id,
-                    HelperEngineError::UnexpectedResponse(
-                        "response uses a different negotiated protocol version",
-                    ),
-                ));
-            }
-            if response.request_id != Some(request_id) {
-                if let Err(error) = response.validate() {
-                    return Err(self.synthesis_error(&connection, request_id, error.into()));
-                }
-                match self.consume_cancel_response(&response) {
-                    Ok(true) => continue,
-                    Ok(false) => {}
-                    Err(error) => {
-                        return Err(self.synthesis_error(&connection, request_id, error));
-                    }
-                }
-                return Err(self.synthesis_error(
-                    &connection,
-                    request_id,
-                    HelperEngineError::RequestMismatch {
-                        expected: request_id,
-                        received: response.request_id,
-                    },
-                ));
-            }
-            let target_is_terminal = response.body.is_synthesis_terminal();
-            let progress = match collector.accept(response) {
-                Ok(progress) => progress,
-                Err(error) => {
-                    if target_is_terminal {
-                        active.mark_target_terminal();
-                    }
-                    return Err(self.synthesis_error(&connection, request_id, error));
-                }
-            };
-            if target_is_terminal {
-                active.mark_target_terminal();
-            }
-            match progress {
-                Some(HelperSynthesisResult::Completed(completed)) => {
-                    let actual_voice =
-                        PhysicalVoiceId::new(descriptor.id.clone(), completed.actual_voice_id);
-                    let (markers, anchors) = split_helper_markers(completed.markers);
-                    let mut result = SynthesisResult::from_native_i16(
-                        descriptor.id.clone(),
-                        Some(actual_voice),
-                        &completed.samples,
-                        completed.sample_rate,
-                        completed.channels,
-                        markers,
-                        anchors,
-                    )?;
-                    result.resolve_anchors(
-                        request,
-                        descriptor.capabilities.markers.requested_anchors,
-                    );
-                    result.validate(request)?;
-                    info!(
-                        engine_id = self.config.engine_id,
-                        request_id,
-                        frames = result.audio.frame_count(),
-                        markers = result.markers.len(),
-                        elapsed_ms = started_at.elapsed().as_millis(),
-                        "TTS helper synthesis completed"
-                    );
-                    return Ok(result);
-                }
-                Some(HelperSynthesisResult::Cancelled) => {
-                    return Err(TtsError::SynthesisFailed(
-                        "helper synthesis cancelled".to_owned(),
-                    ));
-                }
-                None => {}
-            }
-        }
+        self.synthesize_inner(request, None, &mut |_| {})
     }
 
     fn synthesize_stream(
@@ -1859,191 +2052,7 @@ impl TtsEngine for HelperTtsEngine {
         request: &SynthesisRequest,
         sink: &mut dyn SynthesisStreamSink,
     ) -> Result<SynthesisStreamCompletion, TtsError> {
-        if self.descriptor().capabilities.audio_output != AudioOutputMode::StreamingPcm {
-            let result = self.synthesize(request)?;
-            return crate::synthesis::stream_buffered_result(
-                request,
-                self.descriptor().capabilities.markers.requested_anchors,
-                result,
-                sink,
-            );
-        }
-
-        let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
-        let _lifecycle = self.lifecycle.lock().unwrap();
-        let connection = self.connection_for_synthesis().map_err(Self::map_error)?;
-        let descriptor = self.descriptor();
-        let protocol_version = self.protocol_version.load(Ordering::Acquire) as u16;
-        if protocol_version < HELPER_PROTOCOL_V5 {
-            return Err(TtsError::SynthesisFailed(
-                "progressive helper did not negotiate protocol version 5".to_owned(),
-            ));
-        }
-        let request_id = self.allocate_request_id();
-        let started_at = Instant::now();
-        let voice_id = request.voice_id_for_engine(&descriptor.id)?;
-        let requested_voice_id = if voice_id.is_empty() {
-            None
-        } else {
-            Some(voice_id.to_owned())
-        };
-        let acss = &request.normalized_acss;
-        let supported_acss = &descriptor.capabilities.acss;
-        let helper_request = HelperRequest::with_version(
-            protocol_version,
-            request_id,
-            HelperRequestBody::Synthesize {
-                text: request.text.clone(),
-                settings: HelperSynthesisSettings {
-                    voice_id: requested_voice_id.clone(),
-                    rate: request.settings.rate.min(2.0),
-                    pitch: request.settings.pitch,
-                    volume: request.settings.volume,
-                    pitch_range: supported_acss
-                        .pitch_range
-                        .then_some(acss.pitch_range)
-                        .flatten(),
-                    stress: supported_acss.stress.then_some(acss.stress).flatten(),
-                    richness: supported_acss.richness.then_some(acss.richness).flatten(),
-                },
-                anchors: Some(request.anchors.clone()),
-            },
-        );
-        helper_request.validate().map_err(|error| {
-            TtsError::InvalidParameter(format!("invalid helper synthesis request: {error}"))
-        })?;
-        info!(
-            engine_id = self.config.engine_id,
-            request_id,
-            voice_id,
-            text_bytes = request.text.len(),
-            anchors = request.anchors.len(),
-            "Sending progressive TTS helper synthesis request"
-        );
-
-        {
-            let _dispatch = self.dispatch.lock().unwrap();
-            if self.stop_epoch.load(Ordering::Acquire) != stop_epoch {
-                return Err(TtsError::SynthesisFailed(
-                    "helper synthesis cancelled before dispatch".to_owned(),
-                ));
-            }
-            if let Err(error) = connection.send(&helper_request) {
-                return Err(self.synthesis_error(&connection, request_id, error));
-            }
-            self.active_request_id.store(request_id, Ordering::Release);
-        }
-        let active = ActiveRequestGuard {
-            request_id,
-            active_request_id: &self.active_request_id,
-            cancellations_by_target: &self.cancellations_by_target,
-            dispatch: &self.dispatch,
-        };
-        let degraded_acss = request
-            .normalized_acss
-            .clone()
-            .degrade_for(&descriptor.capabilities.acss)
-            .omitted;
-        let mut collector = ProgressiveHelperCollector::new(
-            request_id,
-            protocol_version,
-            descriptor.id.clone(),
-            requested_voice_id,
-            degraded_acss,
-            sink,
-        );
-        let mut draining_cancelled_output = false;
-        loop {
-            let response = match connection.receive(self.config.synthesis_idle_timeout) {
-                Ok(response) => response,
-                Err(error) => {
-                    return Err(self.synthesis_error(&connection, request_id, error));
-                }
-            };
-            if response.protocol_version != protocol_version {
-                return Err(self.synthesis_error(
-                    &connection,
-                    request_id,
-                    HelperEngineError::UnexpectedResponse(
-                        "response uses a different negotiated protocol version",
-                    ),
-                ));
-            }
-            if response.request_id != Some(request_id) {
-                if let Err(error) = response.validate() {
-                    return Err(self.synthesis_error(&connection, request_id, error.into()));
-                }
-                match self.consume_cancel_response(&response) {
-                    Ok(true) => continue,
-                    Ok(false) => {}
-                    Err(error) => {
-                        return Err(self.synthesis_error(&connection, request_id, error));
-                    }
-                }
-                return Err(self.synthesis_error(
-                    &connection,
-                    request_id,
-                    HelperEngineError::RequestMismatch {
-                        expected: request_id,
-                        received: response.request_id,
-                    },
-                ));
-            }
-            let target_is_terminal = response.body.is_synthesis_terminal();
-            let progress = match collector.accept(response) {
-                Ok(progress) => progress,
-                Err(error) => {
-                    if target_is_terminal {
-                        active.mark_target_terminal();
-                    }
-                    return Err(self.synthesis_error(&connection, request_id, error));
-                }
-            };
-            if target_is_terminal {
-                active.mark_target_terminal();
-            }
-            if let Some(error) = collector.take_consumer_error() {
-                if self.stop_epoch.load(Ordering::Acquire) == stop_epoch {
-                    return Err(self.synthesis_error(
-                        &connection,
-                        request_id,
-                        HelperEngineError::Transport(format!(
-                            "progressive synthesis consumer stopped: {error}"
-                        )),
-                    ));
-                }
-                draining_cancelled_output = true;
-                info!(
-                    engine_id = self.config.engine_id,
-                    request_id, "Draining cancelled progressive TTS helper response"
-                );
-            }
-            match progress {
-                Some(ProgressiveHelperSynthesisResult::Completed) => {
-                    if draining_cancelled_output {
-                        return Err(TtsError::SynthesisFailed(
-                            "helper synthesis cancelled".to_owned(),
-                        ));
-                    }
-                    info!(
-                        engine_id = self.config.engine_id,
-                        request_id,
-                        frames = collector.frame_count,
-                        elapsed_ms = started_at.elapsed().as_millis(),
-                        "Progressive TTS helper synthesis completed"
-                    );
-                    return Ok(SynthesisStreamCompletion {
-                        frame_count: collector.frame_count,
-                    });
-                }
-                Some(ProgressiveHelperSynthesisResult::Cancelled) => {
-                    return Err(TtsError::SynthesisFailed(
-                        "helper synthesis cancelled".to_owned(),
-                    ));
-                }
-                None => {}
-            }
-        }
+        self.synthesize_stream_inner(request, sink, None, &mut |_| {})
     }
 
     fn stop(&self) {
@@ -2168,6 +2177,7 @@ impl Drop for HelperTtsEngine {
 
 #[cfg(test)]
 mod tests {
+    include!("helper_engine/native_tests.rs");
     use std::collections::VecDeque;
     use std::fs;
     use std::sync::atomic::{AtomicBool, AtomicUsize};
@@ -2250,7 +2260,7 @@ mod tests {
 
     impl HelperConnection for MockConnection {
         fn send(&self, request: &HelperRequest) -> Result<(), HelperEngineError> {
-            request.validate()?;
+            session::validate_common_request(request)?;
             self.sent.lock().unwrap().push(request.clone());
             let mode = *self.mode.lock().unwrap();
             if request.protocol_version != self.protocol_version {
@@ -3254,8 +3264,8 @@ mod tests {
 
         let sent = connection.sent.lock().unwrap();
         assert!(matches!(sent[0].body, HelperRequestBody::Hello { .. }));
-        assert_eq!(sent[1].body, HelperRequestBody::Describe);
-        let HelperRequestBody::Synthesize { settings, .. } = &sent[2].body else {
+        assert_eq!(sent[2].body, HelperRequestBody::Describe);
+        let HelperRequestBody::Synthesize { settings, .. } = &sent[3].body else {
             panic!("expected synthesis request");
         };
         assert_eq!(settings.voice_id.as_deref(), Some("reed"));
@@ -3292,7 +3302,7 @@ mod tests {
             }]
         );
         let sent = connection.sent.lock().unwrap();
-        let HelperRequestBody::Synthesize { anchors, .. } = &sent[2].body else {
+        let HelperRequestBody::Synthesize { anchors, .. } = &sent[3].body else {
             panic!("expected synthesis request");
         };
         assert_eq!(anchors.as_deref(), Some(request.anchors.as_slice()));
@@ -3367,15 +3377,16 @@ mod tests {
             AnchorSupport::None
         );
         let sent = connection.sent.lock().unwrap();
-        assert_eq!(sent[0].protocol_version, HELPER_PROTOCOL_VERSION);
-        assert_eq!(sent[1].protocol_version, HELPER_PROTOCOL_V4);
-        assert_eq!(sent[2].protocol_version, HELPER_PROTOCOL_V3);
-        assert_eq!(sent[3].protocol_version, HELPER_PROTOCOL_V2);
-        assert_eq!(sent[4].protocol_version, HELPER_PROTOCOL_V1);
-        assert_eq!(sent[5].body, HelperRequestBody::Describe);
+        assert_eq!(sent[0].protocol_version, 6);
+        assert_eq!(sent[1].protocol_version, HELPER_PROTOCOL_VERSION);
+        assert_eq!(sent[2].protocol_version, HELPER_PROTOCOL_V4);
+        assert_eq!(sent[3].protocol_version, HELPER_PROTOCOL_V3);
+        assert_eq!(sent[4].protocol_version, HELPER_PROTOCOL_V2);
+        assert_eq!(sent[5].protocol_version, HELPER_PROTOCOL_V1);
+        assert_eq!(sent[6].body, HelperRequestBody::Describe);
         let HelperRequestBody::Synthesize {
             anchors, settings, ..
-        } = &sent[6].body
+        } = &sent[7].body
         else {
             panic!("expected synthesis request");
         };
@@ -3833,8 +3844,8 @@ mod tests {
 
         let sent = connection.sent.lock().unwrap();
         assert!(matches!(sent[0].body, HelperRequestBody::Hello { .. }));
-        assert!(matches!(sent[1].body, HelperRequestBody::Describe));
-        assert!(matches!(sent[2].body, HelperRequestBody::Synthesize { .. }));
+        assert!(matches!(sent[2].body, HelperRequestBody::Describe));
+        assert!(matches!(sent[3].body, HelperRequestBody::Synthesize { .. }));
     }
 
     #[test]
@@ -3855,14 +3866,14 @@ mod tests {
         assert!(!engine.prewarm_connection().unwrap());
         {
             let sent = connection.sent.lock().unwrap();
-            assert_eq!(sent.len(), 2);
+            assert_eq!(sent.len(), 3);
             assert!(matches!(sent[0].body, HelperRequestBody::Hello { .. }));
-            assert!(matches!(sent[1].body, HelperRequestBody::Describe));
+            assert!(matches!(sent[2].body, HelperRequestBody::Describe));
         }
 
         engine.synthesize(&synthesis_request("warmed")).unwrap();
         assert!(matches!(
-            connection.sent.lock().unwrap()[2].body,
+            connection.sent.lock().unwrap()[3].body,
             HelperRequestBody::Synthesize { .. }
         ));
     }

@@ -301,15 +301,17 @@ Both native wire PCM and expanded canonical PCM remain subject to the ordinary
 
 The accepted [engine parameter contract](../engine-voice-parameters.md) defines
 helper 6 catalogue queries, native synthesis settings and application evidence.
-The Eloquence and DECtalk Windows helpers can negotiate 6 explicitly. Other
-helpers and the Rust parent dispatcher still negotiate 1–5. The parent therefore does
-not expose native controls to public speech or Emacs yet. Missing-runtime
-Windows hosts also retain 1–5; ordinary speech does not depend on native support.
+The Rust parent offers 6 first; Eloquence and DECtalk can select it. Other
+helpers and missing-runtime Windows hosts retain 1–5 with unchanged request
+shapes. Ordinary speech does not depend on native support. Public native speech
+operations and the Emacs editor are not exposed yet.
 
 `omnivox_tts::helper_protocol::parameters` provides the new/extended Rust message
-codecs and catalogue assembly. The parent readers for hello, PCM, markers,
-cancellation and terminal frames have not switched to 6. Existing 1–5 readers
-reject the new operations and members, even when null.
+codecs and catalogue assembly. A separate parent session decoder handles shared
+hello, PCM, marker, cancellation and terminal frames under version 6. It requires
+the native application member before handing validated starts to the existing
+PCM collectors. Existing 1–5 readers reject new operations and members, even
+when null. Helper-side defaults remain 5 unless that adapter implements 6.
 
 Windows helper 6 adds `get_engine_parameters_v1`, `explain_voice_parameters_v1`,
 required nullable `voice_parameters` on synthesis and required nullable
@@ -342,4 +344,22 @@ response validation rejects mismatched requests, voices, stale applied identitie
 and a common-only confirmation for a strict native request. The
 [Eloquence](../benchmarks/2026-09-18-eloquence-helper6.md) and
 [DECtalk](../benchmarks/2026-09-18-dectalk-helper6.md) handler reports separate
-direct helper qualification from the remaining parent/client integration.
+direct helper qualification from [parent integration](../benchmarks/2026-09-18-helper6-parent.md)
+and the remaining public/client work.
+
+Parent catalogue and explanation APIs use nonblocking lifecycle admission: active
+speech, startup or recovery yields `busy` immediately. An absent connection is
+unavailable; reading metadata cannot create one. Admitted query writes and replies have a 200 ms
+transaction deadline (or a shorter configured timeout); mismatched, malformed or late
+responses retire the connection under the existing bounded cleanup rules so they
+cannot contaminate later speech. Cleanup time is separate from the response
+deadline. A joined watchdog covers blocked writes without accumulating timer
+threads. Native query validation errors do not poison speech health.
+
+The parent retains at most 64 applied plan references, checks both runtime
+identity and realized voice on detail lookup, and clears references when replacing
+a worker. Native synthesis APIs preserve the complete block and explicit context.
+Strict requests to old helpers fail before dispatch; explicit common-only requests
+return a degradation receipt. Application callbacks precede sink start and PCM but
+remain tentative evidence: routing must still distinguish accepted PCM from actual
+playback, and discard failed-attempt metadata before fallback.

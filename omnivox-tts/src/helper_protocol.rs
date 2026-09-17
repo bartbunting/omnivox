@@ -12,6 +12,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
 pub mod parameters;
+pub(crate) mod session;
 mod wire;
 
 use crate::contracts::EngineDescriptor;
