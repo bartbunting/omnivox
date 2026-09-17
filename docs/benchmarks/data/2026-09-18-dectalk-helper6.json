@@ -1,0 +1,85 @@
+{
+  "cases": 121,
+  "helper_sha256": "061b83a3743f40430740c893d833722b7f9ea2d53afd8734f292f0b45b4816f4",
+  "streaming": {
+    "anchors": [
+      {
+        "kind": "requested_anchor",
+        "frame_offset": 71,
+        "text_start": 0,
+        "text_length": 0,
+        "value": "start",
+        "resolution": "word_boundary"
+      },
+      {
+        "kind": "requested_anchor",
+        "frame_offset": 6958,
+        "text_start": 19,
+        "text_length": 0,
+        "value": "end",
+        "resolution": "word_boundary"
+      }
+    ],
+    "cancellation_frames": [
+      "engine_parameters_v1",
+      "cancel_accepted",
+      "synthesis_cancelled"
+    ],
+    "ordinary_followup_frames": 14058,
+    "followup_readback_count": 28
+  },
+  "catalogue_identity": {
+    "schema_id": "dectalk.design-voice.v1",
+    "profile_id": "dectalk.windows.4_99.v1",
+    "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+    "runtime_generation": 1754486825466588715
+  },
+  "parameter_count": 28,
+  "legacy_helper_5": {
+    "cancellation_probes": 4,
+    "duration_seconds": 15.92622083000606,
+    "frames": 588022,
+    "markers": 1202,
+    "pcm_bytes": 1176044,
+    "status": "completed",
+    "syntheses": 20
+  },
+  "staging": {
+    "build_id": "7e111b38b3f5c8a3",
+    "cases": 121,
+    "helper_sha256": "061b83a3743f40430740c893d833722b7f9ea2d53afd8734f292f0b45b4816f4",
+    "streaming": {
+      "anchors": [
+        {
+          "kind": "requested_anchor",
+          "frame_offset": 71,
+          "text_start": 0,
+          "text_length": 0,
+          "value": "start",
+          "resolution": "word_boundary"
+        },
+        {
+          "kind": "requested_anchor",
+          "frame_offset": 6958,
+          "text_start": 19,
+          "text_length": 0,
+          "value": "end",
+          "resolution": "word_boundary"
+        }
+      ],
+      "cancellation_frames": [
+        "engine_parameters_v1",
+        "markers",
+        "markers",
+        "cancel_accepted",
+        "synthesis_cancelled"
+      ],
+      "ordinary_followup_frames": 14058,
+      "followup_readback_count": 28
+    },
+    "eloquence_helper_sha256": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8",
+    "eloquence_unchanged": true,
+    "desktop_runtime_unchanged": "e1ecdb481ee08fd0",
+    "emacsvox_documentation_gate": "passed"
+  }
+}

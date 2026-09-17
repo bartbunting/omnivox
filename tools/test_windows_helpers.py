@@ -29,6 +29,7 @@ class WindowsHelperSourceTests(unittest.TestCase):
             "eloquence/OmnivoxEloquenceParameterService.cs",
             "dectalk/OmnivoxDectalkCapture.cs",
             "dectalk/OmnivoxDectalkHelper.cs",
+            "dectalk/OmnivoxDectalkParameterService.cs",
             "dectalk/OmnivoxDectalkParameters.cs",
         ):
             with self.subTest(source=relative):

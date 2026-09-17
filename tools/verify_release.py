@@ -300,6 +300,7 @@ def verify_windows_helper_source(source: Path) -> None:
         "common/OmnivoxNativeLibrary.cs",
         "dectalk/OmnivoxDectalkCapture.cs",
         "dectalk/OmnivoxDectalkHelper.cs",
+        "dectalk/OmnivoxDectalkParameterService.cs",
         "eloquence/OmnivoxEloquenceCapture.cs",
         "eloquence/OmnivoxEloquenceHelper.cs",
         "eloquence/OmnivoxEloquenceParameterService.cs",

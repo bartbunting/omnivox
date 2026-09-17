@@ -31,8 +31,8 @@ they do not establish native reset, actual synthesis fallback or cancellation.
 The Windows helpers now contain optional ECI voice APIs and DECtalk parameter
 readback. The [binding audit](benchmarks/2026-09-17-native-parameter-bindings.md)
 checks their endpoints, ordinary resets, unit-mode guards and missing bindings
-against the installed runtimes. Eloquence now connects them to helper 6;
-DECtalk helper-6 integration remains pending.
+against the installed runtimes. Both Windows adapters now connect their
+qualified native controls to helper 6.
 The pre-existing Windows cancellation ordering race was fixed and qualified in
 [the cancellation follow-up](benchmarks/2026-09-17-windows-helper-cancellation.md).
 
@@ -50,7 +50,10 @@ voice controls. It synchronizes command-only preparation, verifies readback
 before PCM, and coordinates native cancellation with pristine restoration.
 Its [execution report](benchmarks/2026-09-18-dectalk-native-execution.md) records
 the accepted runtime and verification scope. Ordinary common mappings remain
-unchanged, including clamping performed by DECtalk itself.
+unchanged, including clamping performed by DECtalk itself. Its
+[helper-6 handler](benchmarks/2026-09-18-dectalk-helper6.md) now exposes all 28
+controls, planned explanations that account for those clamps, and verified
+applied receipts. Catalogue queries do not touch the active native voice.
 
 The legacy helper wire boundary now rejects duplicate members and unknown
 request/synthesis fields instead of silently discarding future native controls.
@@ -64,7 +67,7 @@ request/response codecs, correlated application evidence and atomic catalogue
 page assembly. It reuses the legacy duplicate-free envelope reader and common
 synthesis validation, while keeping the negotiated 1–5 readers unchanged.
 The [codec report](benchmarks/2026-09-18-helper6-parameter-codecs.md) records its
-scope. The Eloquence helper now executes these messages when 6 is explicitly
+scope. Both Windows helpers now execute these messages when 6 is explicitly
 negotiated; the Rust parent still uses 5. The
 [handler report](benchmarks/2026-09-18-eloquence-helper6.md) records direct wire
 and native acceptance. Catalogue reads use immutable metadata and unknown
@@ -73,7 +76,7 @@ readback is retained only as applied-plan evidence.
 
 The Rust planner and native request path are not connected to public speech
 operations yet. Common mappings and capability advertisements remain unchanged.
-Next connect DECtalk helper 6 and the parent dispatcher, followed by
+Next connect the parent dispatcher, followed by
 public transport, receipts and the Emacs editor. Adapter integration must preserve the
 old common path, including its existing clamps; native edit ranges are separately
 qualified and must not silently recalibrate common controls.

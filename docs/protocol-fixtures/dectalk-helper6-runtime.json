@@ -1,0 +1,2545 @@
+{
+  "producer": "DECtalk helper 6; real qualified 4.99 runtime",
+  "helper_sha256": "061b83a3743f40430740c893d833722b7f9ea2d53afd8734f292f0b45b4816f4",
+  "exchanges": [
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 2,
+        "type": "get_engine_parameters_v1",
+        "engine_id": "dectalk",
+        "voice_id": null,
+        "cursor": null,
+        "expected_catalogue_revision": null
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 2,
+        "type": "engine_parameters_v1",
+        "engine_id": "dectalk",
+        "result": {
+          "status": "busy",
+          "retry_after_ms": 50
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 3,
+        "type": "get_engine_parameters_v1",
+        "engine_id": "dectalk",
+        "voice_id": null,
+        "cursor": null,
+        "expected_catalogue_revision": null
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 3,
+        "type": "engine_parameters_v1",
+        "engine_id": "dectalk",
+        "result": {
+          "status": "ready",
+          "identity": {
+            "schema_id": "dectalk.design-voice.v1",
+            "profile_id": "dectalk.windows.4_99.v1",
+            "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+            "runtime_generation": 1754486825466588715
+          },
+          "voice_id": null,
+          "parameters": [
+            {
+              "id": "sx",
+              "label": "Sex",
+              "help": "Voice sex: 0 female, 1 male. Default restores the selected preset.",
+              "group": "voice",
+              "order": 0,
+              "unit": null,
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 1,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "sm",
+              "label": "Smoothness",
+              "help": "Native DECtalk sm control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 1,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "as",
+              "label": "Assertiveness",
+              "help": "Native DECtalk as control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 2,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 200,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "ap",
+              "label": "Average pitch",
+              "help": "Native DECtalk ap control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 3,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 50,
+                "maximum": 350,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "pr",
+              "label": "Pitch range",
+              "help": "Native DECtalk pr control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 4,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 250,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "br",
+              "label": "Breathiness",
+              "help": "Native DECtalk br control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 5,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 72,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "ri",
+              "label": "Richness",
+              "help": "Native DECtalk ri control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 6,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "nf",
+              "label": "Fixed open-glottis samples",
+              "help": "Native DECtalk nf control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 7,
+              "unit": "samples",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "la",
+              "label": "Laryngealization",
+              "help": "Native DECtalk la control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 8,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "hs",
+              "label": "Head size",
+              "help": "Native DECtalk hs control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 9,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 65,
+                "maximum": 145,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "f4",
+              "label": "Fourth formant frequency",
+              "help": "Native DECtalk f4 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 10,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 2000,
+                "maximum": 6000,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "b4",
+              "label": "Fourth formant bandwidth",
+              "help": "Native DECtalk b4 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 11,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 100,
+                "maximum": 6000,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "f5",
+              "label": "Fifth formant frequency",
+              "help": "Native DECtalk f5 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 12,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 2500,
+                "maximum": 6000,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "b5",
+              "label": "Fifth formant bandwidth",
+              "help": "Native DECtalk b5 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 13,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 100,
+                "maximum": 6000,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "gf",
+              "label": "Frication gain",
+              "help": "Native DECtalk gf control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 14,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "gh",
+              "label": "Aspiration gain",
+              "help": "Native DECtalk gh control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 15,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "gv",
+              "label": "Voicing gain",
+              "help": "Native DECtalk gv control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 16,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "gn",
+              "label": "Nasalization gain",
+              "help": "Native DECtalk gn control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 17,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g1",
+              "label": "Cascade gain G1",
+              "help": "Native DECtalk g1 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 18,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g2",
+              "label": "Cascade gain G2",
+              "help": "Native DECtalk g2 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 19,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g3",
+              "label": "Cascade gain G3",
+              "help": "Native DECtalk g3 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 20,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g4",
+              "label": "Cascade gain G4",
+              "help": "Native DECtalk g4 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 21,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g5",
+              "label": "Loudness",
+              "help": "Native DECtalk g5 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 22,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "bf",
+              "label": "Baseline fall",
+              "help": "Native DECtalk bf control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 23,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 90,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "lx",
+              "label": "Lax breathiness",
+              "help": "Native DECtalk lx control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 24,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "qu",
+              "label": "Quickness",
+              "help": "Native DECtalk qu control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 25,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "hr",
+              "label": "Hat rise",
+              "help": "Native DECtalk hr control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 26,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 2,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "sr",
+              "label": "Stress rise",
+              "help": "Native DECtalk sr control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 27,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            }
+          ],
+          "mappings": [
+            {
+              "common_inputs": [
+                "average_pitch"
+              ],
+              "native_outputs": [
+                "ap"
+              ]
+            },
+            {
+              "common_inputs": [
+                "pitch_range"
+              ],
+              "native_outputs": [
+                "as",
+                "pr"
+              ]
+            },
+            {
+              "common_inputs": [
+                "stress"
+              ],
+              "native_outputs": [
+                "bf",
+                "qu",
+                "hr",
+                "sr"
+              ]
+            },
+            {
+              "common_inputs": [
+                "richness"
+              ],
+              "native_outputs": [
+                "sm",
+                "ri"
+              ]
+            }
+          ],
+          "next_cursor": null
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 4,
+        "type": "get_engine_parameters_v1",
+        "engine_id": "dectalk",
+        "voice_id": "paul",
+        "cursor": null,
+        "expected_catalogue_revision": null
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 4,
+        "type": "engine_parameters_v1",
+        "engine_id": "dectalk",
+        "result": {
+          "status": "ready",
+          "identity": {
+            "schema_id": "dectalk.design-voice.v1",
+            "profile_id": "dectalk.windows.4_99.v1",
+            "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+            "runtime_generation": 1754486825466588715
+          },
+          "voice_id": "paul",
+          "parameters": [
+            {
+              "id": "sx",
+              "label": "Sex",
+              "help": "Voice sex: 0 female, 1 male. Default restores the selected preset.",
+              "group": "voice",
+              "order": 0,
+              "unit": null,
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 1,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "sm",
+              "label": "Smoothness",
+              "help": "Native DECtalk sm control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 1,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "as",
+              "label": "Assertiveness",
+              "help": "Native DECtalk as control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 2,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 200,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "ap",
+              "label": "Average pitch",
+              "help": "Native DECtalk ap control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 3,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 50,
+                "maximum": 350,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "pr",
+              "label": "Pitch range",
+              "help": "Native DECtalk pr control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 4,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 250,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "br",
+              "label": "Breathiness",
+              "help": "Native DECtalk br control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 5,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 72,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "ri",
+              "label": "Richness",
+              "help": "Native DECtalk ri control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 6,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "nf",
+              "label": "Fixed open-glottis samples",
+              "help": "Native DECtalk nf control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 7,
+              "unit": "samples",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "la",
+              "label": "Laryngealization",
+              "help": "Native DECtalk la control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 8,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "hs",
+              "label": "Head size",
+              "help": "Native DECtalk hs control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 9,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 65,
+                "maximum": 145,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "f4",
+              "label": "Fourth formant frequency",
+              "help": "Native DECtalk f4 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 10,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 2000,
+                "maximum": 6000,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "b4",
+              "label": "Fourth formant bandwidth",
+              "help": "Native DECtalk b4 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 11,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 100,
+                "maximum": 6000,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "f5",
+              "label": "Fifth formant frequency",
+              "help": "Native DECtalk f5 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 12,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 2500,
+                "maximum": 6000,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "b5",
+              "label": "Fifth formant bandwidth",
+              "help": "Native DECtalk b5 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 13,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 100,
+                "maximum": 6000,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "gf",
+              "label": "Frication gain",
+              "help": "Native DECtalk gf control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 14,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "gh",
+              "label": "Aspiration gain",
+              "help": "Native DECtalk gh control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 15,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "gv",
+              "label": "Voicing gain",
+              "help": "Native DECtalk gv control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 16,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "gn",
+              "label": "Nasalization gain",
+              "help": "Native DECtalk gn control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 17,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g1",
+              "label": "Cascade gain G1",
+              "help": "Native DECtalk g1 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 18,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g2",
+              "label": "Cascade gain G2",
+              "help": "Native DECtalk g2 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 19,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g3",
+              "label": "Cascade gain G3",
+              "help": "Native DECtalk g3 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 20,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g4",
+              "label": "Cascade gain G4",
+              "help": "Native DECtalk g4 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 21,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "g5",
+              "label": "Loudness",
+              "help": "Native DECtalk g5 control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 22,
+              "unit": "decibels",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 87,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "bf",
+              "label": "Baseline fall",
+              "help": "Native DECtalk bf control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 23,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 90,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "lx",
+              "label": "Lax breathiness",
+              "help": "Native DECtalk lx control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 24,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "qu",
+              "label": "Quickness",
+              "help": "Native DECtalk qu control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 25,
+              "unit": "percent",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "hr",
+              "label": "Hat rise",
+              "help": "Native DECtalk hr control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 26,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 2,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            },
+            {
+              "id": "sr",
+              "label": "Stress rise",
+              "help": "Native DECtalk sr control. Default restores the selected preset.",
+              "group": "voice",
+              "order": 27,
+              "unit": "hertz",
+              "value_type": {
+                "kind": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "step": 1
+              },
+              "scope": "voice",
+              "adjustable": true,
+              "availability": {
+                "status": "supported",
+                "reason": null
+              },
+              "default": {
+                "source": "unknown",
+                "value": null,
+                "reset_supported": true
+              },
+              "side_effects": []
+            }
+          ],
+          "mappings": [
+            {
+              "common_inputs": [
+                "average_pitch"
+              ],
+              "native_outputs": [
+                "ap"
+              ]
+            },
+            {
+              "common_inputs": [
+                "pitch_range"
+              ],
+              "native_outputs": [
+                "as",
+                "pr"
+              ]
+            },
+            {
+              "common_inputs": [
+                "stress"
+              ],
+              "native_outputs": [
+                "bf",
+                "qu",
+                "hr",
+                "sr"
+              ]
+            },
+            {
+              "common_inputs": [
+                "richness"
+              ],
+              "native_outputs": [
+                "sm",
+                "ri"
+              ]
+            }
+          ],
+          "next_cursor": null
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 5,
+        "type": "explain_voice_parameters_v1",
+        "source": {
+          "mode": "draft",
+          "settings": {
+            "voice_id": "paul",
+            "rate": 0.5,
+            "pitch": 1.0,
+            "pitch_range": null,
+            "stress": null,
+            "richness": null,
+            "volume": 1.0
+          },
+          "voice_parameters": {
+            "native": {
+              "engine_id": "dectalk",
+              "schema_id": "dectalk.design-voice.v1",
+              "parameters": {
+                "sx": {
+                  "op": "set",
+                  "value": 0
+                }
+              }
+            },
+            "context_dimensions": [],
+            "expected_identity": {
+              "schema_id": "dectalk.design-voice.v1",
+              "profile_id": "dectalk.windows.4_99.v1",
+              "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+              "runtime_generation": 1754486825466588715
+            },
+            "unavailable_policy": "require"
+          }
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 5,
+        "type": "voice_parameters_explained_v1",
+        "result": {
+          "status": "ready",
+          "evidence": "planned",
+          "plan_id": null,
+          "realized": {
+            "engine_id": "dectalk",
+            "voice_id": "paul"
+          },
+          "identity": {
+            "schema_id": "dectalk.design-voice.v1",
+            "profile_id": "dectalk.windows.4_99.v1",
+            "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+            "runtime_generation": 1754486825466588715
+          },
+          "parameters": [
+            {
+              "id": "sx",
+              "value": 0,
+              "origin": "native_set",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "sm",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "as",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "ap",
+              "value": 122,
+              "origin": "common_mapping",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "pr",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "br",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "ri",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "nf",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "la",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "hs",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "f4",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "b4",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "f5",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "b5",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "gf",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "gh",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "gv",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "gn",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g1",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g2",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g3",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g4",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g5",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "bf",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "lx",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "qu",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "hr",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "sr",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 6,
+        "type": "synthesize",
+        "text": "Test.",
+        "settings": {
+          "voice_id": "paul",
+          "rate": 0.5,
+          "pitch": 1.0,
+          "pitch_range": null,
+          "stress": null,
+          "richness": null,
+          "volume": 1.0
+        },
+        "anchors": [],
+        "voice_parameters": {
+          "native": {
+            "engine_id": "dectalk",
+            "schema_id": "dectalk.design-voice.v1",
+            "parameters": {
+              "sx": {
+                "op": "set",
+                "value": 0
+              }
+            }
+          },
+          "context_dimensions": [],
+          "expected_identity": {
+            "schema_id": "dectalk.design-voice.v1",
+            "profile_id": "dectalk.windows.4_99.v1",
+            "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+            "runtime_generation": 1754486825466588715
+          },
+          "unavailable_policy": "require"
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 6,
+        "type": "synthesis_started",
+        "format": {
+          "sample_rate": 11025,
+          "channels": 1,
+          "sample_format": "pcm_s16_le"
+        },
+        "actual_voice_id": "paul",
+        "native_application": {
+          "status": "applied",
+          "plan_id": "dt-9670f6e28ca3497e8b3ade375c9128ab",
+          "identity": {
+            "schema_id": "dectalk.design-voice.v1",
+            "profile_id": "dectalk.windows.4_99.v1",
+            "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+            "runtime_generation": 1754486825466588715
+          },
+          "masked_parameters": [],
+          "reason": null
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 7,
+        "type": "explain_voice_parameters_v1",
+        "source": {
+          "mode": "applied",
+          "plan_id": "dt-9670f6e28ca3497e8b3ade375c9128ab"
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 7,
+        "type": "voice_parameters_explained_v1",
+        "result": {
+          "status": "ready",
+          "evidence": "adapter_applied",
+          "plan_id": "dt-9670f6e28ca3497e8b3ade375c9128ab",
+          "realized": {
+            "engine_id": "dectalk",
+            "voice_id": "paul"
+          },
+          "identity": {
+            "schema_id": "dectalk.design-voice.v1",
+            "profile_id": "dectalk.windows.4_99.v1",
+            "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+            "runtime_generation": 1754486825466588715
+          },
+          "parameters": [
+            {
+              "id": "sx",
+              "value": 0,
+              "origin": "native_set",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "sm",
+              "value": 3,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "as",
+              "value": 100,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "ap",
+              "value": 122,
+              "origin": "common_mapping",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "pr",
+              "value": 100,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "br",
+              "value": 0,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "ri",
+              "value": 70,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "nf",
+              "value": 0,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "la",
+              "value": 0,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "hs",
+              "value": 100,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "f4",
+              "value": 3300,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "b4",
+              "value": 260,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "f5",
+              "value": 3650,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "b5",
+              "value": 330,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "gf",
+              "value": 70,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "gh",
+              "value": 70,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "gv",
+              "value": 65,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "gn",
+              "value": 74,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "g1",
+              "value": 68,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "g2",
+              "value": 60,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "g3",
+              "value": 48,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "g4",
+              "value": 64,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "g5",
+              "value": 86,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "bf",
+              "value": 18,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "lx",
+              "value": 0,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "qu",
+              "value": 40,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "hr",
+              "value": 18,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            },
+            {
+              "id": "sr",
+              "value": 32,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 173,
+        "type": "synthesize",
+        "text": "Native parameter test.",
+        "settings": {
+          "voice_id": "paul",
+          "rate": 0.5,
+          "pitch": 1.0,
+          "pitch_range": null,
+          "stress": null,
+          "richness": null,
+          "volume": 1.0
+        },
+        "anchors": [],
+        "voice_parameters": null
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 173,
+        "type": "synthesis_started",
+        "format": {
+          "sample_rate": 11025,
+          "channels": 1,
+          "sample_format": "pcm_s16_le"
+        },
+        "actual_voice_id": "paul",
+        "native_application": null
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 230,
+        "type": "explain_voice_parameters_v1",
+        "source": {
+          "mode": "draft",
+          "settings": {
+            "voice_id": "kit",
+            "rate": 0.5,
+            "pitch": 2.0,
+            "pitch_range": 0.0,
+            "stress": 0.0,
+            "richness": 0.0,
+            "volume": 1.0
+          },
+          "voice_parameters": {
+            "native": {
+              "engine_id": "dectalk",
+              "schema_id": "dectalk.design-voice.v1",
+              "parameters": {
+                "sm": {
+                  "op": "set",
+                  "value": 55
+                },
+                "ap": {
+                  "op": "set",
+                  "value": 75
+                },
+                "hr": {
+                  "op": "set",
+                  "value": 50
+                }
+              }
+            },
+            "context_dimensions": [
+              "richness",
+              "average_pitch",
+              "stress"
+            ],
+            "expected_identity": {
+              "schema_id": "dectalk.design-voice.v1",
+              "profile_id": "dectalk.windows.4_99.v1",
+              "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+              "runtime_generation": 1754486825466588715
+            },
+            "unavailable_policy": "require"
+          }
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 230,
+        "type": "voice_parameters_explained_v1",
+        "result": {
+          "status": "ready",
+          "evidence": "planned",
+          "plan_id": null,
+          "realized": {
+            "engine_id": "dectalk",
+            "voice_id": "kit"
+          },
+          "identity": {
+            "schema_id": "dectalk.design-voice.v1",
+            "profile_id": "dectalk.windows.4_99.v1",
+            "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+            "runtime_generation": 1754486825466588715
+          },
+          "parameters": [
+            {
+              "id": "sx",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "sm",
+              "value": 100,
+              "origin": "context_mapping",
+              "masked_native": true,
+              "read_back": false
+            },
+            {
+              "id": "as",
+              "value": 0,
+              "origin": "common_mapping",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "ap",
+              "value": 350,
+              "origin": "context_mapping",
+              "masked_native": true,
+              "read_back": false
+            },
+            {
+              "id": "pr",
+              "value": 0,
+              "origin": "common_mapping",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "br",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "ri",
+              "value": 0,
+              "origin": "context_mapping",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "nf",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "la",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "hs",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "f4",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "b4",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "f5",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "b5",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "gf",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "gh",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "gv",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "gn",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g1",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g2",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g3",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g4",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "g5",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "bf",
+              "value": 0,
+              "origin": "context_mapping",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "lx",
+              "value": null,
+              "origin": "engine_default",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "qu",
+              "value": 0,
+              "origin": "context_mapping",
+              "masked_native": false,
+              "read_back": false
+            },
+            {
+              "id": "hr",
+              "value": 2,
+              "origin": "context_mapping",
+              "masked_native": true,
+              "read_back": false
+            },
+            {
+              "id": "sr",
+              "value": 1,
+              "origin": "context_mapping",
+              "masked_native": false,
+              "read_back": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 321,
+        "type": "synthesize",
+        "text": "Native parameter test.",
+        "settings": {
+          "voice_id": "paul",
+          "rate": 0.5,
+          "pitch": 1.0,
+          "pitch_range": null,
+          "stress": null,
+          "richness": null,
+          "volume": 1.0
+        },
+        "anchors": [],
+        "voice_parameters": {
+          "native": {
+            "engine_id": "dectalk",
+            "schema_id": "dectalk.design-voice.v1",
+            "parameters": {
+              "sm": {
+                "op": "set",
+                "value": 55
+              }
+            }
+          },
+          "context_dimensions": [],
+          "expected_identity": {
+            "schema_id": "dectalk.design-voice.v1",
+            "profile_id": "dectalk.windows.4_99.v1",
+            "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+            "runtime_generation": 1754486825466588717
+          },
+          "unavailable_policy": "common_only"
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 321,
+        "type": "synthesis_started",
+        "format": {
+          "sample_rate": 11025,
+          "channels": 1,
+          "sample_format": "pcm_s16_le"
+        },
+        "actual_voice_id": "paul",
+        "native_application": {
+          "status": "common_only",
+          "plan_id": null,
+          "identity": null,
+          "masked_parameters": [],
+          "reason": "Native parameter catalogue identity is stale"
+        }
+      }
+    },
+    {
+      "request": {
+        "protocol_version": 6,
+        "request_id": 388,
+        "type": "explain_voice_parameters_v1",
+        "source": {
+          "mode": "applied",
+          "plan_id": "dt-150e23e5590a4f58afbc11a9c5a04dca"
+        }
+      },
+      "response": {
+        "protocol_version": 6,
+        "request_id": 388,
+        "type": "voice_parameters_explained_v1",
+        "result": {
+          "status": "unavailable",
+          "reason": "plan_expired",
+          "message": "Applied plan is no longer retained"
+        }
+      }
+    }
+  ]
+}

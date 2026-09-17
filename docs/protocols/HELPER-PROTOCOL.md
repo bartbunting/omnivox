@@ -301,8 +301,8 @@ Both native wire PCM and expanded canonical PCM remain subject to the ordinary
 
 The accepted [engine parameter contract](../engine-voice-parameters.md) defines
 helper 6 catalogue queries, native synthesis settings and application evidence.
-The Eloquence Windows helper can negotiate 6 explicitly. DECtalk, other helpers
-and the Rust parent dispatcher still negotiate 1–5. The parent therefore does
+The Eloquence and DECtalk Windows helpers can negotiate 6 explicitly. Other
+helpers and the Rust parent dispatcher still negotiate 1–5. The parent therefore does
 not expose native controls to public speech or Emacs yet. Missing-runtime
 Windows hosts also retain 1–5; ordinary speech does not depend on native support.
 
@@ -311,18 +311,22 @@ codecs and catalogue assembly. The parent readers for hello, PCM, markers,
 cancellation and terminal frames have not switched to 6. Existing 1–5 readers
 reject the new operations and members, even when null.
 
-Eloquence 6 adds `get_engine_parameters_v1`, `explain_voice_parameters_v1`,
+Windows helper 6 adds `get_engine_parameters_v1`, `explain_voice_parameters_v1`,
 required nullable `voice_parameters` on synthesis and required nullable
 `native_application` on `synthesis_started`. Native readback must complete
 before that start frame and any PCM. The shared host guards receipt, audio and
 cancellation publication under the same state lock, rejecting early native PCM.
 
-Catalogue metadata is read-only and fits one page of eight ECI controls. It
+Catalogue metadata is read-only and fits one page: eight ECI controls or 28
+DECtalk design-voice controls. It
 reports unknown preset defaults with verified reset support. Browsing neither
 selects a preset nor waits on active synthesis. Runtime qualification hashes the
 DLL once on a background worker; queries return bounded `busy` responses while
 it runs, and unavailable after ten seconds if it has not finished. Native
-execution independently retains its unit, runtime and readback guards.
+execution independently retains its unit, runtime, limit and readback guards.
+DECtalk draft explanations account for the qualified runtime's common pitch and
+stress clamps. They leave unmapped preset defaults unknown; the ordinary
+synthesis command values and calibration remain unchanged.
 
 Draft explanations never claim readback. Applied explanations retain up to 64
 plans and 256 KiB per helper process; old or foreign plan IDs return
@@ -336,5 +340,6 @@ It checks voice, revision, runtime generation, profile and repeated mappings,
 then checks all cross-page references when the final page arrives. Correlated
 response validation rejects mismatched requests, voices, stale applied identities
 and a common-only confirmation for a strict native request. The
-[Eloquence handler report](../benchmarks/2026-09-18-eloquence-helper6.md) separates
+[Eloquence](../benchmarks/2026-09-18-eloquence-helper6.md) and
+[DECtalk](../benchmarks/2026-09-18-dectalk-helper6.md) handler reports separate
 direct helper qualification from the remaining parent/client integration.

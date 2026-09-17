@@ -113,6 +113,59 @@ internal sealed class OmnivoxDectalkParameters
         }
     }
 
+    internal const int Count = 28;
+
+    // Labels/units follow DECtalk's SPDEFS and define_options tables. Limits
+    // belong to this qualified runtime, not an inferred scale in the UI.
+    internal static Dictionary<string, object> Descriptor(int index)
+    {
+        string[] labels = {
+            "Sex", "Smoothness", "Assertiveness", "Average pitch", "Pitch range",
+            "Breathiness", "Richness", "Fixed open-glottis samples", "Laryngealization",
+            "Head size", "Fourth formant frequency", "Fourth formant bandwidth",
+            "Fifth formant frequency", "Fifth formant bandwidth", "Frication gain",
+            "Aspiration gain", "Voicing gain", "Nasalization gain", "Cascade gain G1",
+            "Cascade gain G2", "Cascade gain G3", "Cascade gain G4", "Loudness",
+            "Baseline fall", "Lax breathiness", "Quickness", "Hat rise", "Stress rise"
+        };
+        string[] units = {
+            null, "percent", "percent", "hertz", "percent", "decibels", "percent",
+            "samples", "percent", "percent", "hertz", "hertz", "hertz", "hertz",
+            "decibels", "decibels", "decibels", "decibels", "decibels", "decibels",
+            "decibels", "decibels", "decibels", "hertz", "percent", "percent", "hertz", "hertz"
+        };
+        string help = index == 0 ? "Voice sex: 0 female, 1 male. Default restores the selected preset." :
+            "Native DECtalk " + Ids[index] + " control. Default restores the selected preset.";
+        return OmnivoxParameterWire.Map("id", Ids[index], "label", labels[index],
+            "help", help, "group", "voice", "order", index, "unit", units[index],
+            "value_type", OmnivoxParameterWire.Map("kind", "integer", "minimum", Minimum[index],
+                "maximum", Maximum[index], "step", 1), "scope", "voice", "adjustable", true,
+            "availability", OmnivoxParameterWire.Map("status", "supported", "reason", null),
+            "default", OmnivoxParameterWire.Map("source", "unknown", "value", null, "reset_supported", true),
+            "side_effects", new string[0]);
+    }
+
+    internal object[] Explain(int?[] common, int[] actual)
+    {
+        if (common == null || common.Length != Count || (actual != null && actual.Length != Count))
+            throw new ArgumentException("Incomplete DECtalk explanation");
+        object[] rows = new object[Count];
+        for (int i = 0; i < Count; i++)
+        {
+            int? value = common[i];
+            string origin = value.HasValue ? (contextual[i] ? "context_mapping" : "common_mapping") : "engine_default";
+            if (selected[i] && !contextual[i])
+            {
+                value = values[i];
+                origin = value.HasValue ? "native_set" : "native_default";
+            }
+            rows[i] = OmnivoxParameterWire.Map("id", Ids[i],
+                "value", actual == null ? (object)value : actual[i], "origin", origin,
+                "masked_native", selected[i] && contextual[i], "read_back", actual != null);
+        }
+        return rows;
+    }
+
     internal static void ValidateValue(int index, int value)
     {
         if (index < 0 || index >= Ids.Length) throw new ArgumentOutOfRangeException("index");

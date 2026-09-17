@@ -242,7 +242,7 @@ reported as `not_available` through the helper protocol.
 
 `common/OmnivoxHelperHost.cs` owns the bounded versions 1 through 6 protocol
 loop; engines opt into 6 through `common/OmnivoxHelperParameters.cs`. Eloquence
-implements that interface; DECtalk and missing-runtime hosts retain 1–5. Each
+and DECtalk implement that interface; missing-runtime hosts retain 1–5. Each
 engine owns its native parameter metadata, mapping, capture and readback.
 The Rust parent continues to request version 5 until its integration is complete.
 
@@ -250,6 +250,8 @@ For silent direct helper-6 acceptance against a locally installed qualified ECI
 runtime, run `python3 tools/test_helper6_eloquence.py
 windows-helpers/bin/OmnivoxEloquenceHelper32.exe --output /tmp/eloquence-helper6.json`
 from the repository root. It captures PCM without playing it or installing DLLs.
+For DECtalk, use `tools/test_helper6_dectalk.py` with its helper executable and
+`--dll` pointing to the user-installed DLL beside its matching dictionary.
 The shared host's deterministic fake-engine suite remains
 `make windows-helpers-cancellation-test`.
 

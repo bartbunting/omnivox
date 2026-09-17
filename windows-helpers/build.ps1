@@ -65,6 +65,7 @@ if ($Engine -eq "all" -or $Engine -eq "dectalk") {
         (Join-Path $Root "dectalk\OmnivoxDectalkCapture.cs") `
         (Join-Path $Root "dectalk\OmnivoxDectalkHelper.cs") `
         (Join-Path $Root "dectalk\OmnivoxDectalkParameters.cs") `
+        (Join-Path $Root "dectalk\OmnivoxDectalkParameterService.cs") `
         (Join-Path $Common "OmnivoxNativeLibrary.cs") `
         (Join-Path $Common "OmnivoxHelperHost.cs") `
         (Join-Path $Common "OmnivoxHelperParameters.cs")

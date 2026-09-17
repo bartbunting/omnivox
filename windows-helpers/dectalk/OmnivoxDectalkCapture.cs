@@ -359,6 +359,8 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         }
     }
 
+    internal bool HasNativeParameterApi { get { return native.HasSpeakerParameterApi; } }
+
     internal string Version
     {
         get

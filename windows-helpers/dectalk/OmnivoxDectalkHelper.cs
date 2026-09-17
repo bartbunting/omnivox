@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
+internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine, IOmnivoxParameterEngine
 {
     private static readonly OmnivoxHelperVoice[] EngineVoices =
         new OmnivoxHelperVoice[]
@@ -95,11 +95,20 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
         };
 
     private readonly OmnivoxDectalkCapture capture;
+    private readonly OmnivoxDectalkParameterService parameterService;
 
     internal OmnivoxDectalkAdapter(string dllPath)
     {
         capture = new OmnivoxDectalkCapture(dllPath);
+        parameterService = new OmnivoxDectalkParameterService(this, dllPath, capture.HasNativeParameterApi);
     }
+
+    public Dictionary<string, object> GetParameters(IDictionary<string, object> query)
+    { return parameterService.Catalogue(query); }
+    public Dictionary<string, object> ExplainParameters(object source)
+    { return parameterService.Explain(source); }
+    public IOmnivoxParameterSynthesis PrepareParameters(IDictionary<string, object> settings, object parameters)
+    { return parameterService.Prepare(settings, parameters); }
 
     public string EngineId { get { return "dectalk"; } }
     public string DisplayName { get { return "DECtalk Software"; } }
@@ -153,16 +162,47 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine
         }
 
         int nativeRate = MapRate(rate);
-        int nativePitch = (int)Math.Round(
-            VoiceAveragePitch[voiceId] * pitch,
-            MidpointRounding.AwayFromZero);
-        nativePitch = Math.Max(50, Math.Min(500, nativePitch));
+        int nativePitch = MapPitch(voiceId, pitch);
         string voiceParameters = MapExtendedAcss(pitchRange, stress, richness);
         if (edits != null)
             return capture.SynthesizeNative(text, voiceCode, nativeRate, nativePitch,
                 voiceParameters, volume, anchors, cancellationRequested, sink, edits, applied);
         return capture.Synthesize(text, voiceCode, nativeRate, nativePitch,
             voiceParameters, volume, anchors, cancellationRequested, sink);
+    }
+
+    private static int MapPitch(string voiceId, double pitch)
+    {
+        int value = (int)Math.Round(VoiceAveragePitch[voiceId] * pitch, MidpointRounding.AwayFromZero);
+        return Math.Max(50, Math.Min(500, value));
+    }
+
+    // Read-only prediction for the qualified profile. Ordinary synthesis keeps
+    // its exact command values; the runtime's audited clamps only affect this
+    // planned evidence. Native application still verifies actual readback.
+    internal static int?[] MapCommonParameters(string voiceId, double pitch,
+        double? pitchRange, double? stress, double? richness)
+    {
+        int?[] result = new int?[OmnivoxDectalkParameters.Count];
+        result[3] = Math.Min(350, MapPitch(voiceId, pitch));
+        if (pitchRange.HasValue)
+        {
+            result[2] = MapNormalized(pitchRange.Value, Assertiveness);
+            result[4] = MapNormalized(pitchRange.Value, PitchRange);
+        }
+        if (stress.HasValue)
+        {
+            result[23] = MapNormalized(stress.Value, BaselineFall);
+            result[25] = MapNormalized(stress.Value, Quickness);
+            result[26] = Math.Max(2, MapNormalized(stress.Value, HatRise));
+            result[27] = Math.Max(1, MapNormalized(stress.Value, StressRise));
+        }
+        if (richness.HasValue)
+        {
+            result[1] = MapNormalized(richness.Value, Smoothness);
+            result[6] = MapNormalized(richness.Value, Richness);
+        }
+        return result;
     }
 
     internal static int MapRate(double rate)
