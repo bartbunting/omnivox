@@ -176,7 +176,7 @@ pub enum ApplicationStatus {
     CommonOnly,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NativeApplication {
     pub status: ApplicationStatus,

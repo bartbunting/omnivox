@@ -40,6 +40,7 @@ pub struct LogicalVoiceRoutingSnapshot {
     registry_generation: u64,
     layered_definitions: Vec<LayeredVoiceDefinition>,
     engine_definitions: Vec<EngineLayeredVoiceDefinition>,
+    pub(crate) parameter_catalogues: Vec<Arc<omnivox_tts::native_parameters::ParameterCatalogue>>,
     // A private one-selector resolution view, mapped back into the full draft.
     preview_choice_index: Option<usize>,
     fallback_policy: FallbackPolicy,
@@ -48,6 +49,16 @@ pub struct LogicalVoiceRoutingSnapshot {
 }
 
 impl LogicalVoiceRoutingSnapshot {
+    pub(crate) fn with_parameter_catalogues(
+        mut self,
+        catalogues: Vec<Arc<omnivox_tts::native_parameters::ParameterCatalogue>>,
+    ) -> Self {
+        self.parameter_catalogues = catalogues;
+        self
+    }
+    pub(crate) fn has_native_definition(&self, id: &str) -> bool {
+        self.engine_definitions.iter().any(|voice| voice.id == id)
+    }
     pub(crate) fn registry_generation(&self) -> u64 {
         self.registry_generation
     }
@@ -67,6 +78,7 @@ impl LogicalVoiceRoutingSnapshot {
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
             engine_definitions: engine_definitions(logical_voices),
+            parameter_catalogues: Vec::new(),
             preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: engine_registry.inventory(),
@@ -84,6 +96,7 @@ impl LogicalVoiceRoutingSnapshot {
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
             engine_definitions: engine_definitions(logical_voices),
+            parameter_catalogues: Vec::new(),
             preview_choice_index: None,
             fallback_policy: routing_policy
                 .effective_fallback_policy(logical_voices.fallback_policy()),
@@ -104,6 +117,7 @@ impl LogicalVoiceRoutingSnapshot {
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
             engine_definitions: engine_definitions(logical_voices),
+            parameter_catalogues: Vec::new(),
             preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: routing_policy.project_inventory(engine_registry.inventory()),
@@ -122,6 +136,7 @@ impl LogicalVoiceRoutingSnapshot {
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
             engine_definitions: engine_definitions(logical_voices),
+            parameter_catalogues: Vec::new(),
             preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: Vec::new(),
@@ -194,6 +209,22 @@ impl LogicalVoiceRoutingSnapshot {
             );
         definitions
             .saturating_add(
+                self.parameter_catalogues
+                    .iter()
+                    .map(|c| {
+                        serde_json::to_vec(c.as_ref())
+                            .map_or(usize::MAX, |v| v.len())
+                            .saturating_add(
+                                c.parameters
+                                    .len()
+                                    .saturating_mul(std::mem::size_of::<
+                                        omnivox_tts::native_parameters::ParameterDescriptor,
+                                    >()),
+                            )
+                    })
+                    .fold(0usize, usize::saturating_add),
+            )
+            .saturating_add(
                 self.layered_definitions
                     .iter()
                     .map(layered_definition_payload_bytes)
@@ -254,8 +285,7 @@ impl LogicalVoiceRoutingSnapshot {
         self.resolve_current(logical_voice_id, engine_registry)
     }
 
-    /// Reserved entry for the native timeline/private-preview integration.
-    #[cfg_attr(not(test), expect(dead_code))]
+    /// Resolve an admitted engine-layered timeline or private-preview choice.
     pub(crate) fn initial_native_route(
         &self,
         logical_voice_id: &str,

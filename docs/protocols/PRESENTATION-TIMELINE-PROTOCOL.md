@@ -306,3 +306,34 @@ windows are checked before replacement decisions. Replacement domains include
 protocol version, so a version-4 key cannot cancel version-3 work. Consecutive
 legacy spans retain effect state only within their legacy run; every such run
 starts neutral. Playback uses marker version 3 and one tracked terminal record.
+
+
+## Native timelines, version 5
+
+Version 5 adds the `engine_layered` span mode and preserves the existing legacy
+and layered forms. Each named span must match its registered definition mode
+and the document's admitted registry generation. The
+[engine parameter contract](../engine-voice-parameters.md) defines native choice
+composition, contextual masking and ordinary common-only degradation.
+
+The single-document and multipart commands accept version 5 within the existing
+bounds. Multipart declarations must match the decoded byte count and document
+identity. New envelopes reject unknown and duplicate fields, including nested
+legacy settings and action positions, without changing older readers.
+Replacement domains remain version-local. Catalogue snapshots are frozen on
+admission and charged to the queue's payload budget; execution does not query
+helpers for metadata.
+
+Playback uses marker version 4. Each non-legacy choice receipt requires a
+nullable `native_application` beside `choice`: null means no native block was
+requested, `common_only` states why the native block could not apply, and
+`applied` contains the adapter's identity, masked controls and a connection-local
+plan reference. The paired utterance-start and choice records are published
+when the first PCM frame is consumed. Preparation, empty audio, cancellation
+before consumption and failed pre-audio fallback attempts cannot publish them.
+The existing receipt and remote-line limits apply before queuing PCM.
+
+Native feature negotiation remains unadvertised until strict previews and
+explanation operations complete the public execution bundle. Explicit development
+probes can exercise these messages; clients must continue using advertised
+capabilities.

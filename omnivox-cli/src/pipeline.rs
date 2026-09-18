@@ -793,7 +793,7 @@ fn queue_synthesis_result_inner(
                 degraded_effects,
                 ctx.marker_span_id
                     .zip(attempt.filter(|attempt| {
-                        attempt.kind == crate::routing::choice::VoiceAttemptKind::Layered
+                        attempt.kind != crate::routing::choice::VoiceAttemptKind::Legacy
                     }))
                     .map(
                         |(span_id, attempt)| crate::marker_events::PlaybackVoiceChoice {
@@ -1384,8 +1384,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                             self.ctx
                                 .marker_span_id
                                 .zip(self.attempt.as_ref().filter(|attempt| {
-                                    attempt.kind
-                                        == crate::routing::choice::VoiceAttemptKind::Layered
+                                    attempt.kind != crate::routing::choice::VoiceAttemptKind::Legacy
                                 }))
                                 .map(|(span_id, attempt)| {
                                     crate::marker_events::PlaybackVoiceChoice { span_id, attempt }
@@ -1943,6 +1942,11 @@ impl Drop for ProgressiveChunkSink<'_, '_> {
 }
 
 impl crate::routing::choice::RoutedPlaybackSink for ProgressiveChunkSink<'_, '_> {
+    fn supports_native(&self) -> bool {
+        self.ctx
+            .marker_dispatch
+            .is_some_and(MarkerDispatchContext::supports_native)
+    }
     fn preflight_attempt(&mut self, attempt: &PreparedVoiceAttempt) -> Result<(), TtsError> {
         if let (Some(dispatch), Some(span_id)) = (self.ctx.marker_dispatch, self.ctx.marker_span_id)
         {
@@ -2872,6 +2876,10 @@ struct PreparedTimelineSpan {
 
 #[derive(Debug)]
 enum PreparedTimelineStyle {
+    EngineLayered {
+        context: omnivox_tts::voice_choices::VoiceStylePatch,
+        placement: omnivox_tts::voice_preview_v2::VoicePlacement,
+    },
     Legacy {
         acss: NormalizedAcss,
         effects: PresentationEffectDirective,
@@ -2958,14 +2966,34 @@ pub(crate) fn process_presentation_timeline_v4(
     if ctx.is_stale() {
         return BatchStatus::Cancelled;
     }
-    if let Err(error) = timeline.validate(true) {
+    let validation = if timeline.protocol_version == 5 {
+        timeline.validate_native_execution(true)
+    } else {
+        timeline.validate(true)
+    };
+    if let Err(error) = validation {
         ctx.mark_failed();
         warn!("Invalid mixed timeline: {error}");
         return BatchStatus::Failed;
     }
     if timeline.registry_generation != routing.registry_generation()
-        || timeline.spans.iter().any(|span| matches!(span, MixedSpeechSpan::Layered(span) if !routing.has_layered_definition(&span.logical_voice_id))) {
-        ctx.mark_failed(); warn!("Mixed timeline references an unadmitted registry or layered voice"); return BatchStatus::Failed;
+        || timeline.spans.iter().any(|span| match span {
+            MixedSpeechSpan::Layered(s) => {
+                !routing.has_layered_definition(&s.logical_voice_id)
+                    || routing.has_native_definition(&s.logical_voice_id)
+            }
+            MixedSpeechSpan::EngineLayered(s) => {
+                !routing.has_native_definition(&s.logical_voice_id)
+            }
+            MixedSpeechSpan::Legacy(s) => s
+                .logical_voice_id
+                .as_deref()
+                .is_some_and(|id| routing.has_native_definition(id)),
+        })
+    {
+        ctx.mark_failed();
+        warn!("Mixed timeline references an unadmitted registry or layered voice");
+        return BatchStatus::Failed;
     }
     state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
     let cancelled = || ctx.is_stale();
@@ -2980,6 +3008,19 @@ pub(crate) fn process_presentation_timeline_v4(
                 MixedSpeechSpan::Legacy(span) => {
                     prepare_timeline_span(span, span_actions, &state, &resources, &cancelled)?
                 }
+                MixedSpeechSpan::EngineLayered(span) => prepare_timeline_span_data(
+                    span.id,
+                    &span.text,
+                    Some(span.logical_voice_id.clone()),
+                    PreparedTimelineStyle::EngineLayered {
+                        context: span.context.clone(),
+                        placement: span.placement.clone(),
+                    },
+                    span_actions,
+                    &state,
+                    &resources,
+                    &cancelled,
+                )?,
                 MixedSpeechSpan::Layered(span) => prepare_timeline_span_data(
                     span.id,
                     &span.text,
@@ -3056,9 +3097,15 @@ fn process_prepared_timeline(
     let mut chunk_index = 0_usize;
     let mut active_effects: Option<PostSynthesisStyle> = None;
 
+    let catalogues = logical_voice_routing.parameter_catalogues.clone();
+    let knowledge = catalogues
+        .iter()
+        .map(|c| omnivox_tts::engine_voice_choices::ParameterKnowledge::Ready(c.as_ref()))
+        .collect::<Vec<_>>();
     let mut in_legacy_run = !mixed;
     for span in spans {
-        let layered = matches!(span.style, PreparedTimelineStyle::Layered { .. });
+        let native = matches!(span.style, PreparedTimelineStyle::EngineLayered { .. });
+        let layered = !matches!(span.style, PreparedTimelineStyle::Legacy { .. });
         if layered {
             active_effects = None;
             in_legacy_run = false;
@@ -3079,7 +3126,12 @@ fn process_prepared_timeline(
         }
         let mut route = match span.logical_voice_id.as_deref() {
             Some(logical_voice_id) => {
-                match logical_voice_routing.initial_route(logical_voice_id, engine_registry) {
+                let initial = if native {
+                    logical_voice_routing.initial_native_route(logical_voice_id, engine_registry)
+                } else {
+                    logical_voice_routing.initial_route(logical_voice_id, engine_registry)
+                };
+                match initial {
                     Ok(route) => Some(route),
                     Err(error) => {
                         if layered {
@@ -3102,7 +3154,9 @@ fn process_prepared_timeline(
         }
         let requested_acss = match &span.style {
             PreparedTimelineStyle::Legacy { acss, .. } => acss_has_values(acss).then_some(acss),
-            PreparedTimelineStyle::Layered { .. } => None,
+            PreparedTimelineStyle::Layered { .. } | PreparedTimelineStyle::EngineLayered { .. } => {
+                None
+            }
         };
         let span_ctx = SynthCtx {
             marker_span_id: mixed.then_some(span.id),
@@ -3132,6 +3186,15 @@ fn process_prepared_timeline(
                             settings: &settings,
                             acss: requested_acss,
                             effects: active_effects.as_ref(),
+                        }
+                    }
+                    PreparedTimelineStyle::EngineLayered { context, placement } => {
+                        crate::routing::choice::AttemptStyle::EngineLayered {
+                            context,
+                            base_rate: state.speech_rate,
+                            placement_pan: placement.pan,
+                            knowledge: &knowledge,
+                            policy: omnivox_tts::native_synthesis::UnavailablePolicy::CommonOnly,
                         }
                     }
                     PreparedTimelineStyle::Layered { context, placement } => {
@@ -4016,6 +4079,7 @@ mod tests {
             kind: crate::routing::choice::VoiceAttemptKind::Layered,
             native: omnivox_tts::engine_voice_choices::NativeChoiceExecution::NotRequested,
             native_application: None,
+            native_runtime: None,
             registry_generation: 41,
             resolution: omnivox_tts::resolver::VoiceResolution {
                 logical_voice_id: "bolden".to_owned(),

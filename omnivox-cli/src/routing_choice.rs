@@ -20,7 +20,6 @@ pub(crate) enum AttemptStyle<'a> {
         placement_pan: Option<f32>,
     },
     /// Current immutable metadata is supplied by the connection owner, never queried here.
-    #[cfg_attr(not(test), expect(dead_code))]
     EngineLayered {
         context: &'a VoiceStylePatch,
         base_rate: f32,
@@ -52,6 +51,9 @@ pub(crate) struct PreparedVoiceAttempt {
     pub native: NativeChoiceExecution,
     /// Tentative adapter evidence; neither this field nor a buffer proves playback.
     pub native_application: Option<NativeApplication>,
+    /// Runtime observed before synthesis; applied detail must never be rebound
+    /// to a replacement that happens to reuse the helper's local plan ID.
+    pub native_runtime: Option<(std::sync::Weak<dyn TtsEngine>, u64)>,
 }
 
 impl PreparedVoiceAttempt {
@@ -206,6 +208,15 @@ impl AttemptStyle<'_> {
             effects,
             native,
             native_application: None,
+            native_runtime: self
+                .is_native()
+                .then(|| {
+                    route
+                        .engine
+                        .parameter_cache_epoch()
+                        .map(|epoch| (Arc::downgrade(&route.engine), epoch))
+                })
+                .flatten(),
         };
         if !matches!(self, Self::Legacy { .. }) {
             omnivox_tts::voice_preview_v2::validate_audio_choice_identity(

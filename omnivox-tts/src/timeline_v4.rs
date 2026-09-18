@@ -17,6 +17,7 @@ pub const PRESENTATION_TIMELINE_PROTOCOL_V4: u32 = 4;
 pub enum TimelineDocument {
     Legacy(PresentationTimelineEnvelope),
     Layered(PresentationTimelineV4),
+    Native(crate::timeline_v5::PresentationTimelineV5),
 }
 
 impl From<PresentationTimelineEnvelope> for TimelineDocument {
@@ -36,48 +37,59 @@ impl TimelineDocument {
         match self {
             Self::Legacy(t) => t.protocol_version,
             Self::Layered(t) => t.protocol_version,
+            Self::Native(t) => t.protocol_version,
         }
     }
     pub fn generation(&self) -> u64 {
         match self {
             Self::Legacy(t) => t.generation,
             Self::Layered(t) => t.generation,
+            Self::Native(t) => t.generation,
         }
     }
     pub fn dispatch_id(&self) -> u64 {
         match self {
             Self::Legacy(t) => t.dispatch_id,
             Self::Layered(t) => t.dispatch_id,
+            Self::Native(t) => t.dispatch_id,
         }
     }
     pub fn effective_delivery_policy(&self) -> PresentationDeliveryPolicy {
         match self {
             Self::Legacy(t) => t.effective_delivery_policy(),
             Self::Layered(t) => t.delivery_policy,
+            Self::Native(t) => t.delivery_policy,
         }
     }
     pub fn replacement_key(&self) -> Option<&str> {
         match self {
             Self::Legacy(t) => t.replacement_key.as_deref(),
             Self::Layered(t) => t.replacement_key.as_deref(),
+            Self::Native(t) => t.replacement_key.as_deref(),
         }
     }
     pub fn tracking_identity(&self) -> Option<PresentationTimelineIdentity> {
         match self {
             Self::Legacy(t) => t.tracking_identity(),
             Self::Layered(t) => t.tracking_identity(),
+            Self::Native(t) => t.tracking_identity(),
         }
     }
     pub fn span_text(&self, index: usize) -> Option<&str> {
         match self {
             Self::Legacy(t) => t.spans.get(index).map(|span| span.text.as_str()),
             Self::Layered(t) => t.spans.get(index).map(MixedSpeechSpan::text),
+            Self::Native(t) => t
+                .spans
+                .get(index)
+                .map(crate::timeline_v5::NativeSpeechSpan::text),
         }
     }
     pub fn shares_replacement_domain(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Legacy(a), Self::Legacy(b)) => a.shares_replacement_domain(b),
             (Self::Layered(a), Self::Layered(b)) => a.shares_replacement_domain(b),
+            (Self::Native(a), Self::Native(b)) => a.shares_replacement_domain(b),
             _ => false,
         }
     }
@@ -120,7 +132,10 @@ pub fn decode_timeline_document(
             .map_err(PresentationTimelineError::InvalidJson)
     };
     let version = version().map_err(|error| PresentationTimelineDecodeError::new(None, error))?;
-    if version == PRESENTATION_TIMELINE_PROTOCOL_V4 {
+    if version == crate::timeline_v5::PRESENTATION_TIMELINE_PROTOCOL_V5 {
+        crate::timeline_v5::decode_timeline_v5(payload, aggregate_bytes)
+            .map(TimelineDocument::Native)
+    } else if version == PRESENTATION_TIMELINE_PROTOCOL_V4 {
         decode_timeline_v4(payload, aggregate_bytes).map(TimelineDocument::Layered)
     } else if let Some(bytes) = aggregate_bytes {
         decode_multipart_presentation_timeline(payload, bytes)
@@ -151,20 +166,23 @@ pub struct LayeredSpeechSpan {
 pub enum MixedSpeechSpan {
     Legacy(PresentationSpeechSpan),
     Layered(LayeredSpeechSpan),
+    // Execution representation only; the version-4 wire reader stays closed.
+    #[serde(skip_deserializing)]
+    EngineLayered(LayeredSpeechSpan),
 }
 
 impl MixedSpeechSpan {
     pub fn id(&self) -> u64 {
         match self {
             Self::Legacy(span) => span.id,
-            Self::Layered(span) => span.id,
+            Self::Layered(span) | Self::EngineLayered(span) => span.id,
         }
     }
 
     pub fn text(&self) -> &str {
         match self {
             Self::Legacy(span) => &span.text,
-            Self::Layered(span) => &span.text,
+            Self::Layered(span) | Self::EngineLayered(span) => &span.text,
         }
     }
 }
@@ -227,7 +245,9 @@ impl PresentationTimelineV4 {
         for span in &self.spans {
             let id = match span {
                 MixedSpeechSpan::Legacy(s) => s.logical_voice_id.as_deref(),
-                MixedSpeechSpan::Layered(s) => Some(s.logical_voice_id.as_str()),
+                MixedSpeechSpan::Layered(s) | MixedSpeechSpan::EngineLayered(s) => {
+                    Some(s.logical_voice_id.as_str())
+                }
             };
             require(
                 !id.is_some_and(|id| registry.is_engine_layered(id)),
@@ -244,9 +264,28 @@ impl PresentationTimelineV4 {
     }
 
     pub fn validate(&self, aggregate: bool) -> Result<(), PresentationTimelineError> {
+        self.validate_version(aggregate, PRESENTATION_TIMELINE_PROTOCOL_V4)
+    }
+
+    /// Shared execution validation; only the separate v5 reader creates native spans.
+    pub fn validate_native_execution(
+        &self,
+        aggregate: bool,
+    ) -> Result<(), PresentationTimelineError> {
+        self.validate_version(
+            aggregate,
+            crate::timeline_v5::PRESENTATION_TIMELINE_PROTOCOL_V5,
+        )
+    }
+
+    fn validate_version(
+        &self,
+        aggregate: bool,
+        version: u32,
+    ) -> Result<(), PresentationTimelineError> {
         require(
-            self.protocol_version == PRESENTATION_TIMELINE_PROTOCOL_V4,
-            "expected timeline protocol version 4",
+            self.protocol_version == version,
+            "unexpected timeline protocol version",
         )?;
         require(
             self.generation > 0 && self.dispatch_id > 0 && self.registry_generation > 0,
@@ -285,6 +324,10 @@ impl PresentationTimelineV4 {
                 spans.insert(span.id(), span.text()).is_none(),
                 "duplicate speech span ID",
             )?;
+            require(
+                !matches!(span, MixedSpeechSpan::EngineLayered(_)) || version == 5,
+                "native span requires timeline version 5",
+            )?;
             match span {
                 MixedSpeechSpan::Legacy(span) => {
                     if let Some(id) = &span.logical_voice_id {
@@ -292,7 +335,7 @@ impl PresentationTimelineV4 {
                     }
                     validate_legacy_span_style(span)?;
                 }
-                MixedSpeechSpan::Layered(span) => {
+                MixedSpeechSpan::Layered(span) | MixedSpeechSpan::EngineLayered(span) => {
                     validate_id(&span.logical_voice_id, "logical voice")?;
                     span.context
                         .validate()
@@ -567,7 +610,9 @@ mod tests {
                 let mut span = span.clone();
                 match &mut span {
                     MixedSpeechSpan::Legacy(span) => span.id = id,
-                    MixedSpeechSpan::Layered(span) => span.id = id,
+                    MixedSpeechSpan::Layered(span) | MixedSpeechSpan::EngineLayered(span) => {
+                        span.id = id
+                    }
                 };
                 span
             })

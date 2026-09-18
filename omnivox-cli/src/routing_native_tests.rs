@@ -24,6 +24,7 @@ struct NativeEngine {
     behavior: ReceiptBehavior,
     native_calls: Mutex<Vec<(SynthesisRequest, VoiceParameters)>>,
     supersede: Option<Arc<AtomicU64>>,
+    epoch: AtomicU64,
 }
 impl NativeEngine {
     fn new(
@@ -38,6 +39,7 @@ impl NativeEngine {
             behavior,
             native_calls: Mutex::new(vec![]),
             supersede: None,
+            epoch: AtomicU64::new(1),
         })
     }
     fn receipt(&self, p: &VoiceParameters) -> NativeApplication {
@@ -72,11 +74,14 @@ impl NativeEngine {
     }
 }
 impl TtsEngine for NativeEngine {
+    fn parameter_cache_epoch(&self) -> Option<u64> { Some(self.epoch.load(Ordering::Acquire)) }
     fn descriptor(&self) -> EngineDescriptor {
         self.inner.descriptor()
     }
     fn synthesize(&self, r: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
-        self.inner.synthesize(r)
+        let mut result = self.inner.synthesize(r)?;
+        result.audio = AudioBuffer::new(vec![0.2, -0.2]);
+        Ok(result)
     }
     fn synthesize_stream(
         &self,
@@ -1044,3 +1049,5 @@ fn superseded_generation_suppresses_native_preamble_and_pcm() {
     assert!(sink.inner.attempts.is_empty());
     assert!(sink.inner.stream.audio.is_empty());
 }
+
+include!("native_timeline_tests.rs");

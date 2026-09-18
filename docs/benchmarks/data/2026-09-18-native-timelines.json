@@ -1,0 +1,1164 @@
+{
+  "build_id": "bc33370ac992544e",
+  "audio_backend": "null",
+  "provenance": {
+    "format": "emacsvox-omnivox-provenance-v1",
+    "build_id": "bc33370ac992544e",
+    "emacsvox_commit": "f1287304b6661cd31696e7f9c076c2d4352d9297",
+    "omnivox_commit": "30f994ece75b2dc1fc82240f9c45d7decd7c72a6",
+    "build_kind": "local-dirty-worktree",
+    "emacsvox_worktree_sha256": "196a122bb20814bf5e41f16e3af303db8180197fb3730a5d7e7d958bb218baa2",
+    "omnivox_worktree_sha256": "d6f6d32a43599e3a7b763767e52e99e8525cf5f8babff42673817b7c3076e3fe",
+    "cargo_lock_sha256": "686268250a87215a747f0b39652208ca9edd9071883aa730cdff2f2eb53170f1",
+    "toolchain_lock_sha256": "7a400a4767c6f47eba02a60d7c2bf9b7ddfb2c6fc60abb8867548e3bd788c996",
+    "dockerfile_sha256": "33e2df54152f81abd75143954a5aaaab0c20e098970afba68d8b024fb7169efa",
+    "release_image_id": "sha256:3186f03b16a6b9cc62befb0902a40974b6297426483582464e3c421bb9873204",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "mingw_gcc": "x86_64-w64-mingw32-gcc-win32 (GCC) 12-win32",
+    "roslyn_csc": "5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)",
+    "roslyn_csc_sha256": "4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee",
+    "roslyn_nupkg_sha256": "302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401",
+    "net40_reference_assemblies_nupkg_sha256": "54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694",
+    "target": "x86_64-pc-windows-gnu",
+    "omnivox_features": "none",
+    "windows_rustflags": "-C link-arg=-Wl,--no-insert-timestamp",
+    "windows_strip": "SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all",
+    "omnivox_executable_sha256": "6a2462798f7318c83cbc5c50e3f5edd1dfa45f5deda0a60ae15692358a091dac",
+    "unstripped_diagnostics": "retained-local-not-staged",
+    "espeak_data_sha256": "9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "rhvoice_companion": "local-omnivox-build",
+    "rhvoice_companion_tree_sha256": "77c8057bbba029a5db9317c3436c17adc0dd7410ce9c6143a0fbc3c0cbba44dc",
+    "rhvoice_runtime": "external-user-supplied-not-bundled",
+    "rhvoice_configuration": "recorded-windows-paths",
+    "rhvoice_library_sha256": "3014e72aa5a989c3082cbbc42977919601a8444f4e6dcdb73e5ae0c664272aed",
+    "rhvoice_data_tree_sha256": "a20abbc6f19bdef73b1f97e57c8fd3cb5c15e7fc3d1c04aafa9cde6f1254c5ce",
+    "rhvoice_config_tree_sha256": "not-configured",
+    "flite_companion": "local-omnivox-build",
+    "flite_companion_tree_sha256": "6d342374d6add088f27905b1223416f21b5431da576527fcf54c43bfae12d22e",
+    "flite_target": "x86_64-pc-windows-gnu",
+    "flite_compiled_voice": "cmu_us_slt",
+    "rutts_companion": "local-omnivox-build",
+    "rutts_companion_tree_sha256": "54944ef6f55fc45773c366f2fe1a25246a0cab81eeccf310ba6dfaf01d2f9c3b",
+    "rutts_target": "x86_64-pc-windows-gnu",
+    "rutts_version": "6.3.3",
+    "rutts_built_in_voices": "male,female",
+    "rutts_rulex": "not-included",
+    "tgspeechbox_companion": "local-omnivox-experimental-build",
+    "tgspeechbox_companion_tree_sha256": "dfa389043e5492c39c13baa3990708fd25abb61e78196e7bbc0058e96e07b190",
+    "tgspeechbox_target": "x86_64-pc-windows-gnu",
+    "tgspeechbox_markers": "exact_requested_anchors",
+    "tgspeechbox_rate_mapping": "calibrated_eloquence_v1",
+    "tgspeechbox_build_environment": "wsl-host-development-only",
+    "tgspeechbox_cxx": "x86_64-w64-mingw32-g++-posix (GCC) 13-posix",
+    "tgspeechbox_cxx_sha256": "43befe0a8b6f3b40f54b5fac3717b4bf1cf56a2373b7b9bbbe21956211c16046",
+    "piper_companion": "not-included",
+    "piper_companion_version": "not-included",
+    "piper_companion_commit": "not-included",
+    "piper_companion_archive_sha256": "not-included",
+    "piper_companion_tree_sha256": "not-included",
+    "piper_model": "not-included",
+    "piper_model_sha256": "not-observed",
+    "piper_model_config_sha256": "not-observed",
+    "eloquence_runtime": "external-user-supplied-not-bundled",
+    "eloquence_runtime_sha256": "external-not-observed",
+    "dectalk_runtime": "bundled-pinned-archive",
+    "windows_helpers_source": "omnivox",
+    "windows_helpers_license": "GPL-2.0-or-later"
+  },
+  "dispatches": [
+    {
+      "dispatch_id": 91,
+      "status": "completed",
+      "events": [
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 1,
+          "type": "utterance_started",
+          "utterance_id": 1,
+          "text": "A heading",
+          "engine_id": "dectalk",
+          "actual_voice": {
+            "engine_id": "dectalk",
+            "voice_id": "paul"
+          },
+          "logical_voice_id": "bolden",
+          "sample_rate": 44100,
+          "frame_count": 0
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 2,
+          "type": "voice_choice_applied",
+          "utterance_id": 1,
+          "span_id": 1,
+          "registry_generation": 41,
+          "logical_voice_id": "bolden",
+          "choice": {
+            "choice_id": "paul-main",
+            "reason": {
+              "reason": "preferred"
+            },
+            "realized": {
+              "engine_id": "dectalk",
+              "voice_id": "paul"
+            },
+            "degraded_acss": [],
+            "degraded_effects": []
+          },
+          "native_application": {
+            "status": "applied",
+            "plan_id": "native-plan-1",
+            "identity": {
+              "schema_id": "dectalk.design-voice.v1",
+              "profile_id": "dectalk.windows.4_99.v1",
+              "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+              "runtime_generation": 5107782134169805719
+            },
+            "masked_parameters": [
+              "sm"
+            ],
+            "reason": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 3,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 0,
+            "text_start": null,
+            "text_length": null,
+            "value": "0"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 4,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "sentence",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 9,
+            "value": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 5,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 1,
+            "value": "A"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 6,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 0,
+            "text_start": null,
+            "text_length": null,
+            "value": "17"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 7,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 4622,
+            "text_start": null,
+            "text_length": null,
+            "value": "28"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 8,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 5474,
+            "text_start": null,
+            "text_length": null,
+            "value": "4"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 9,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 6326,
+            "text_start": 2,
+            "text_length": 7,
+            "value": "heading"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 10,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 10302,
+            "text_start": null,
+            "text_length": null,
+            "value": "51"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 11,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 11154,
+            "text_start": null,
+            "text_length": null,
+            "value": "18"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 12,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 15982,
+            "text_start": null,
+            "text_length": null,
+            "value": "33"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 13,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 20804,
+            "text_start": null,
+            "text_length": null,
+            "value": "0"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 14,
+          "type": "utterance_started",
+          "utterance_id": 2,
+          "text": "Plain again",
+          "engine_id": "dectalk",
+          "actual_voice": {
+            "engine_id": "dectalk",
+            "voice_id": "paul"
+          },
+          "logical_voice_id": "bolden",
+          "sample_rate": 44100,
+          "frame_count": 0
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 15,
+          "type": "voice_choice_applied",
+          "utterance_id": 2,
+          "span_id": 3,
+          "registry_generation": 41,
+          "logical_voice_id": "bolden",
+          "choice": {
+            "choice_id": "paul-main",
+            "reason": {
+              "reason": "preferred"
+            },
+            "realized": {
+              "engine_id": "dectalk",
+              "voice_id": "paul"
+            },
+            "degraded_acss": [],
+            "degraded_effects": []
+          },
+          "native_application": {
+            "status": "applied",
+            "plan_id": "native-plan-2",
+            "identity": {
+              "schema_id": "dectalk.design-voice.v1",
+              "profile_id": "dectalk.windows.4_99.v1",
+              "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+              "runtime_generation": 5107782134169805719
+            },
+            "masked_parameters": [],
+            "reason": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 16,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 0,
+            "text_start": null,
+            "text_length": null,
+            "value": "0"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 17,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "sentence",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 11,
+            "value": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 18,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 5,
+            "value": "Plain"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 19,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 0,
+            "text_start": null,
+            "text_length": null,
+            "value": "45"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 20,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 1083,
+            "text_start": null,
+            "text_length": null,
+            "value": "27"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 21,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 2219,
+            "text_start": null,
+            "text_length": null,
+            "value": "3"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 22,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 7899,
+            "text_start": null,
+            "text_length": null,
+            "value": "32"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 23,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 9319,
+            "text_start": null,
+            "text_length": null,
+            "value": "17"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 24,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 11023,
+            "text_start": null,
+            "text_length": null,
+            "value": "50"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 25,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 11875,
+            "text_start": 6,
+            "text_length": 5,
+            "value": "again"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 26,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 13579,
+            "text_start": null,
+            "text_length": null,
+            "value": "4"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 27,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 18407,
+            "text_start": null,
+            "text_length": null,
+            "value": "32"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 91,
+          "sequence": 28,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "phoneme",
+            "frame_offset": 22099,
+            "text_start": null,
+            "text_length": null,
+            "value": "0"
+          }
+        }
+      ],
+      "multipart_parts": 0
+    },
+    {
+      "dispatch_id": 92,
+      "status": "completed",
+      "events": [
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 1,
+          "type": "utterance_started",
+          "utterance_id": 1,
+          "text": "A heading",
+          "engine_id": "eloquence",
+          "actual_voice": {
+            "engine_id": "eloquence",
+            "voice_id": "v1"
+          },
+          "logical_voice_id": "bolden",
+          "sample_rate": 44100,
+          "frame_count": 0
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 2,
+          "type": "voice_choice_applied",
+          "utterance_id": 1,
+          "span_id": 1,
+          "registry_generation": 42,
+          "logical_voice_id": "bolden",
+          "choice": {
+            "choice_id": "eci-default",
+            "reason": {
+              "reason": "preferred"
+            },
+            "realized": {
+              "engine_id": "eloquence",
+              "voice_id": "v1"
+            },
+            "degraded_acss": [],
+            "degraded_effects": []
+          },
+          "native_application": {
+            "status": "applied",
+            "plan_id": "native-plan-3",
+            "identity": {
+              "schema_id": "eloquence.eci-units.v1",
+              "profile_id": "eloquence.windows.6_1.en_us.v1",
+              "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+              "runtime_generation": 4675351426341795621
+            },
+            "masked_parameters": [
+              "breathiness"
+            ],
+            "reason": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 3,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "sentence",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 9,
+            "value": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 4,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 1,
+            "value": "A"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 5,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 2028,
+            "text_start": 2,
+            "text_length": 7,
+            "value": "heading"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 6,
+          "type": "utterance_started",
+          "utterance_id": 2,
+          "text": "Plain again",
+          "engine_id": "eloquence",
+          "actual_voice": {
+            "engine_id": "eloquence",
+            "voice_id": "v1"
+          },
+          "logical_voice_id": "bolden",
+          "sample_rate": 44100,
+          "frame_count": 0
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 7,
+          "type": "voice_choice_applied",
+          "utterance_id": 2,
+          "span_id": 3,
+          "registry_generation": 42,
+          "logical_voice_id": "bolden",
+          "choice": {
+            "choice_id": "eci-default",
+            "reason": {
+              "reason": "preferred"
+            },
+            "realized": {
+              "engine_id": "eloquence",
+              "voice_id": "v1"
+            },
+            "degraded_acss": [],
+            "degraded_effects": []
+          },
+          "native_application": {
+            "status": "applied",
+            "plan_id": "native-plan-4",
+            "identity": {
+              "schema_id": "eloquence.eci-units.v1",
+              "profile_id": "eloquence.windows.6_1.en_us.v1",
+              "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+              "runtime_generation": 4675351426341795621
+            },
+            "masked_parameters": [],
+            "reason": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 8,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "sentence",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 11,
+            "value": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 9,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 5,
+            "value": "Plain"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 92,
+          "sequence": 10,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 8190,
+            "text_start": 6,
+            "text_length": 5,
+            "value": "again"
+          }
+        }
+      ],
+      "multipart_parts": 3
+    },
+    {
+      "dispatch_id": 93,
+      "status": "failed",
+      "events": [],
+      "multipart_parts": 0
+    },
+    {
+      "dispatch_id": 94,
+      "status": "completed",
+      "events": [
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 1,
+          "type": "utterance_started",
+          "utterance_id": 1,
+          "text": "A heading",
+          "engine_id": "eloquence",
+          "actual_voice": {
+            "engine_id": "eloquence",
+            "voice_id": "v1"
+          },
+          "logical_voice_id": "bolden",
+          "sample_rate": 44100,
+          "frame_count": 0
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 2,
+          "type": "voice_choice_applied",
+          "utterance_id": 1,
+          "span_id": 1,
+          "registry_generation": 43,
+          "logical_voice_id": "bolden",
+          "choice": {
+            "choice_id": "eci-default",
+            "reason": {
+              "reason": "preferred"
+            },
+            "realized": {
+              "engine_id": "eloquence",
+              "voice_id": "v1"
+            },
+            "degraded_acss": [],
+            "degraded_effects": []
+          },
+          "native_application": null
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 3,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "sentence",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 9,
+            "value": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 4,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 1,
+            "value": "A"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 5,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 2028,
+            "text_start": 2,
+            "text_length": 7,
+            "value": "heading"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 6,
+          "type": "utterance_started",
+          "utterance_id": 2,
+          "text": "Plain again",
+          "engine_id": "eloquence",
+          "actual_voice": {
+            "engine_id": "eloquence",
+            "voice_id": "v1"
+          },
+          "logical_voice_id": "bolden",
+          "sample_rate": 44100,
+          "frame_count": 0
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 7,
+          "type": "voice_choice_applied",
+          "utterance_id": 2,
+          "span_id": 3,
+          "registry_generation": 43,
+          "logical_voice_id": "bolden",
+          "choice": {
+            "choice_id": "eci-default",
+            "reason": {
+              "reason": "preferred"
+            },
+            "realized": {
+              "engine_id": "eloquence",
+              "voice_id": "v1"
+            },
+            "degraded_acss": [],
+            "degraded_effects": []
+          },
+          "native_application": null
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 8,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "sentence",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 11,
+            "value": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 9,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 5,
+            "value": "Plain"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 94,
+          "sequence": 10,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 8267,
+            "text_start": 6,
+            "text_length": 5,
+            "value": "again"
+          }
+        }
+      ],
+      "multipart_parts": 0
+    },
+    {
+      "dispatch_id": 95,
+      "status": "completed",
+      "events": [
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 1,
+          "type": "utterance_started",
+          "utterance_id": 1,
+          "text": "A heading",
+          "engine_id": "eloquence",
+          "actual_voice": {
+            "engine_id": "eloquence",
+            "voice_id": "v1"
+          },
+          "logical_voice_id": "bolden",
+          "sample_rate": 44100,
+          "frame_count": 0
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 2,
+          "type": "voice_choice_applied",
+          "utterance_id": 1,
+          "span_id": 1,
+          "registry_generation": 41,
+          "logical_voice_id": "bolden",
+          "choice": {
+            "choice_id": "eci-default",
+            "reason": {
+              "reason": "preferred"
+            },
+            "realized": {
+              "engine_id": "eloquence",
+              "voice_id": "v1"
+            },
+            "degraded_acss": [],
+            "degraded_effects": []
+          },
+          "native_application": {
+            "status": "common_only",
+            "plan_id": null,
+            "identity": null,
+            "masked_parameters": [],
+            "reason": "No current native catalogue is available"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 3,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "sentence",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 9,
+            "value": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 4,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 1,
+            "value": "A"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 5,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 2028,
+            "text_start": 2,
+            "text_length": 7,
+            "value": "heading"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 6,
+          "type": "utterance_started",
+          "utterance_id": 2,
+          "text": "Plain again",
+          "engine_id": "eloquence",
+          "actual_voice": {
+            "engine_id": "eloquence",
+            "voice_id": "v1"
+          },
+          "logical_voice_id": "bolden",
+          "sample_rate": 44100,
+          "frame_count": 0
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 7,
+          "type": "voice_choice_applied",
+          "utterance_id": 2,
+          "span_id": 3,
+          "registry_generation": 41,
+          "logical_voice_id": "bolden",
+          "choice": {
+            "choice_id": "eci-default",
+            "reason": {
+              "reason": "preferred"
+            },
+            "realized": {
+              "engine_id": "eloquence",
+              "voice_id": "v1"
+            },
+            "degraded_acss": [],
+            "degraded_effects": []
+          },
+          "native_application": {
+            "status": "common_only",
+            "plan_id": null,
+            "identity": null,
+            "masked_parameters": [],
+            "reason": "No current native catalogue is available"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 8,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "sentence",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 11,
+            "value": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 9,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 5,
+            "value": "Plain"
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 95,
+          "sequence": 10,
+          "type": "marker_reached",
+          "utterance_id": 2,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 8239,
+            "text_start": 6,
+            "text_length": 5,
+            "value": "again"
+          }
+        }
+      ],
+      "multipart_parts": 0
+    },
+    {
+      "dispatch_id": 96,
+      "status": "cancelled",
+      "events": [
+        {
+          "protocol_version": 4,
+          "dispatch_id": 96,
+          "sequence": 1,
+          "type": "utterance_started",
+          "utterance_id": 1,
+          "text": "Cancellation restores the native voice before later speech dot  Cancellation restores the native voice before",
+          "engine_id": "eloquence",
+          "actual_voice": {
+            "engine_id": "eloquence",
+            "voice_id": "v1"
+          },
+          "logical_voice_id": "bolden",
+          "sample_rate": 44100,
+          "frame_count": 0
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 96,
+          "sequence": 2,
+          "type": "voice_choice_applied",
+          "utterance_id": 1,
+          "span_id": 1,
+          "registry_generation": 44,
+          "logical_voice_id": "bolden",
+          "choice": {
+            "choice_id": "eci-default",
+            "reason": {
+              "reason": "preferred"
+            },
+            "realized": {
+              "engine_id": "eloquence",
+              "voice_id": "v1"
+            },
+            "degraded_acss": [],
+            "degraded_effects": []
+          },
+          "native_application": {
+            "status": "applied",
+            "plan_id": "native-plan-5",
+            "identity": {
+              "schema_id": "eloquence.eci-units.v1",
+              "profile_id": "eloquence.windows.6_1.en_us.v1",
+              "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+              "runtime_generation": 4675351426341795621
+            },
+            "masked_parameters": [
+              "breathiness"
+            ],
+            "reason": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 96,
+          "sequence": 3,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "sentence",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 109,
+            "value": null
+          }
+        },
+        {
+          "protocol_version": 4,
+          "dispatch_id": 96,
+          "sequence": 4,
+          "type": "marker_reached",
+          "utterance_id": 1,
+          "marker": {
+            "kind": "word",
+            "frame_offset": 0,
+            "text_start": 0,
+            "text_length": 12,
+            "value": "Cancellation"
+          }
+        }
+      ],
+      "multipart_parts": 0
+    }
+  ],
+  "checks": [
+    "dectalk native spans and explicit equal-context masking",
+    "eloquence native spans and explicit equal-context masking",
+    "distinct connection-owned plan references",
+    "marker pairs at consumed source",
+    "multipart timeline 5",
+    "older timeline rejects native definition",
+    "required null receipt for a choice without native edits",
+    "uncached metadata common-only on an independent connection",
+    "native playback cancellation",
+    "ordinary preview after cancellation",
+    "native bundle remains unadvertised"
+  ]
+}

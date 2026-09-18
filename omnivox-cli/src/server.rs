@@ -432,7 +432,13 @@ fn timeline_payload_bytes(timeline: &TimelineDocument) -> usize {
                 _ => 0,
             })
     };
+    if let TimelineDocument::Native(timeline) = timeline {
+        return timeline_payload_bytes(&TimelineDocument::Layered(
+            timeline.clone().into_execution(),
+        ));
+    }
     let (spans, actions) = match timeline {
+        TimelineDocument::Native(_) => unreachable!(),
         TimelineDocument::Legacy(timeline) => (
             timeline.spans.iter().map(legacy_span_bytes).fold(
                 std::mem::size_of_val(timeline.spans.as_slice()),
@@ -446,7 +452,7 @@ fn timeline_payload_bytes(timeline: &TimelineDocument) -> usize {
                 .iter()
                 .map(|span| match span {
                     MixedSpeechSpan::Legacy(span) => legacy_span_bytes(span),
-                    MixedSpeechSpan::Layered(span) => {
+                    MixedSpeechSpan::Layered(span) | MixedSpeechSpan::EngineLayered(span) => {
                         span.text.len().saturating_add(span.logical_voice_id.len())
                     }
                 })
@@ -1144,6 +1150,7 @@ pub fn synthesis_worker(
     tracked_playback_tx: mpsc::SyncSender<TrackedPlayback>,
     marker_output: MarkerEventOutput,
 ) {
+    let native_plans = Arc::new(crate::native_plans::NativePlanReferences::default());
     while let Some(request) = rx.recv() {
         let request_kind = request.diagnostic_kind();
         let request_identifier = request.diagnostic_identifier();
@@ -1255,6 +1262,11 @@ pub fn synthesis_worker(
                         timeline.dispatch_id(),
                         marker_output.clone(),
                     ),
+                    TimelineDocument::Native(_) => MarkerDispatchContext::with_native_events(
+                        timeline.dispatch_id(),
+                        marker_output.clone(),
+                        Arc::clone(&native_plans),
+                    ),
                     TimelineDocument::Layered(_) => {
                         MarkerDispatchContext::with_voice_choice_events(
                             timeline.dispatch_id(),
@@ -1291,6 +1303,17 @@ pub fn synthesis_worker(
                         &runtime_health,
                         logical_voice_routing,
                     ),
+                    TimelineDocument::Native(timeline) => {
+                        crate::pipeline::process_presentation_timeline_v4(
+                            timeline.into_execution(),
+                            state,
+                            &ctx,
+                            &loader,
+                            &engine_registry,
+                            &runtime_health,
+                            logical_voice_routing,
+                        )
+                    }
                     TimelineDocument::Layered(timeline) => {
                         crate::pipeline::process_presentation_timeline_v4(
                             timeline,
@@ -1809,6 +1832,7 @@ pub fn run_server(
                         &engine_registry,
                         &routing_policy,
                         &logical_voices,
+                        &parameter_queries,
                         &tx,
                     );
                     break;
@@ -1866,6 +1890,7 @@ pub fn run_server(
                                                 &engine_registry,
                                                 &routing_policy,
                                                 &logical_voices,
+                                                &parameter_queries,
                                                 &tx,
                                             );
                                             selected = candidate;
@@ -1904,6 +1929,7 @@ pub fn run_server(
                                         &engine_registry,
                                         &routing_policy,
                                         &logical_voices,
+                                        &parameter_queries,
                                         &tx,
                                     );
                                 }
@@ -1950,6 +1976,7 @@ pub fn run_server(
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
+                            &parameter_queries,
                             &tx,
                         );
                         deferred_command = Some(next);
@@ -1965,6 +1992,7 @@ pub fn run_server(
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
+                            &parameter_queries,
                             &tx,
                         );
                         break;
@@ -1979,6 +2007,7 @@ pub fn run_server(
                             &engine_registry,
                             &routing_policy,
                             &logical_voices,
+                            &parameter_queries,
                             &tx,
                         );
                         input_closed = true;
@@ -2384,6 +2413,15 @@ fn validate_structured_admission(
                 validate_presentation_timeline_action_windows(timeline, state)
             }
         }
+        TimelineDocument::Native(timeline) => timeline
+            .validate_registry(logical_voices)
+            .map_err(|error| error.to_string())
+            .and_then(|_| {
+                crate::pipeline::validate_presentation_timeline_v4_action_windows(
+                    &timeline.clone().into_execution(),
+                    state,
+                )
+            }),
         TimelineDocument::Layered(timeline) => timeline
             .validate_registry(logical_voices)
             .map_err(|error| error.to_string())
@@ -2481,6 +2519,7 @@ fn execute_structured_presentation(
     engine_registry: &EngineRegistry,
     routing_policy: &RoutingPolicyRegistry,
     logical_voices: &LogicalVoiceRegistry,
+    parameter_queries: &crate::parameter_queries::ParameterQueries,
     tx: &WorkQueueSender<SynthRequest>,
 ) {
     debug!(
@@ -2488,6 +2527,14 @@ fn execute_structured_presentation(
         presentation.generation
     );
     generations.commit(presentation.generation);
+    let catalogues = if matches!(presentation.timeline, TimelineDocument::Native(_)) {
+        parameter_queries.cached_catalogues(
+            engine_registry,
+            &routing_policy.policy().disabled_engine_ids,
+        )
+    } else {
+        Vec::new()
+    };
     enqueue_synthesis(
         tx,
         SynthRequest::Timeline {
@@ -2497,7 +2544,8 @@ fn execute_structured_presentation(
                 logical_voices,
                 engine_registry,
                 routing_policy,
-            ),
+            )
+            .with_parameter_catalogues(catalogues),
             cancellation,
             lifecycle: RequestLifecycle::default(),
             gen: current_gen,

@@ -8,7 +8,8 @@ use omnivox_core::timeline::TimelineActionId;
 use omnivox_tts::contracts::{AcssDimension, PhysicalVoiceId, PostSynthesisDimension};
 use omnivox_tts::marker_protocol::{
     format_marker_event, MarkerEvent, MarkerEventEnvelope, VoiceChoiceApplied,
-    MARKER_PROTOCOL_VERSION, TIMELINE_EVENT_PROTOCOL_VERSION, VOICE_CHOICE_EVENT_PROTOCOL_VERSION,
+    MARKER_PROTOCOL_VERSION, NATIVE_VOICE_EVENT_PROTOCOL_VERSION, TIMELINE_EVENT_PROTOCOL_VERSION,
+    VOICE_CHOICE_EVENT_PROTOCOL_VERSION,
 };
 use omnivox_tts::{AnchorResolution, SynthesisMarker};
 use std::cell::Cell;
@@ -398,6 +399,7 @@ pub struct MarkerDispatchContext {
     next_utterance_id: Cell<u64>,
     output: MarkerEventOutput,
     lifecycle: Option<RequestLifecycle>,
+    native_plans: Option<Arc<crate::native_plans::NativePlanReferences>>,
 }
 
 pub(crate) struct PlaybackVoiceChoice<'a> {
@@ -406,13 +408,18 @@ pub(crate) struct PlaybackVoiceChoice<'a> {
 }
 
 impl PlaybackVoiceChoice<'_> {
-    fn event(&self, utterance_id: u64) -> MarkerEvent {
+    fn event(
+        &self,
+        utterance_id: u64,
+        native_application: Option<Option<Box<omnivox_tts::native_synthesis::NativeApplication>>>,
+    ) -> MarkerEvent {
         MarkerEvent::VoiceChoiceApplied(VoiceChoiceApplied {
             utterance_id,
             span_id: self.span_id,
             registry_generation: self.attempt.registry_generation,
             logical_voice_id: self.attempt.resolution.logical_voice_id.clone(),
             choice: self.attempt.audio_identity(),
+            native_application,
         })
     }
 }
@@ -426,6 +433,7 @@ impl MarkerDispatchContext {
             next_utterance_id: Cell::new(0),
             output,
             lifecycle: None,
+            native_plans: None,
         }
     }
 
@@ -439,6 +447,7 @@ impl MarkerDispatchContext {
             next_utterance_id: Cell::new(0),
             output,
             lifecycle: None,
+            native_plans: None,
         }
     }
 
@@ -454,6 +463,21 @@ impl MarkerDispatchContext {
         }
     }
 
+    pub(crate) fn with_native_events(
+        dispatch_id: u64,
+        output: MarkerEventOutput,
+        plans: Arc<crate::native_plans::NativePlanReferences>,
+    ) -> Self {
+        Self {
+            protocol_version: NATIVE_VOICE_EVENT_PROTOCOL_VERSION,
+            native_plans: Some(plans),
+            ..Self::new(dispatch_id, output)
+        }
+    }
+    pub(crate) fn supports_native(&self) -> bool {
+        self.protocol_version == NATIVE_VOICE_EVENT_PROTOCOL_VERSION
+    }
+
     /// Check the exact actual-route identity and worst-width counters before
     /// invoking synthesis. This allocates no sequence/utterance or reservation.
     pub(crate) fn preflight_attempt(
@@ -462,9 +486,12 @@ impl MarkerDispatchContext {
         span_id: u64,
         attempt: &PreparedVoiceAttempt,
     ) -> Result<(), AudioError> {
-        if self.protocol_version != VOICE_CHOICE_EVENT_PROTOCOL_VERSION {
+        if !matches!(
+            self.protocol_version,
+            VOICE_CHOICE_EVENT_PROTOCOL_VERSION | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
+        ) {
             return Err(AudioError::InvalidFormat(
-                "choice receipt requires a version 3 dispatch".to_owned(),
+                "choice receipt requires a version 3 or 4 dispatch".to_owned(),
             ));
         }
         let voice = &attempt.resolution.realized;
@@ -477,8 +504,11 @@ impl MarkerDispatchContext {
             sample_rate: u32::MAX,
             frame_count: u64::MAX,
         }];
-        if attempt.kind == crate::routing::choice::VoiceAttemptKind::Layered {
-            events.push(PlaybackVoiceChoice { span_id, attempt }.event(u64::MAX));
+        if attempt.kind != crate::routing::choice::VoiceAttemptKind::Legacy {
+            events.push(
+                PlaybackVoiceChoice { span_id, attempt }
+                    .event(u64::MAX, self.supports_native().then_some(None)),
+            );
         }
         for event in events {
             format_marker_event(&MarkerEventEnvelope {
@@ -495,7 +525,9 @@ impl MarkerDispatchContext {
     pub fn supports_timeline_events(&self) -> bool {
         matches!(
             self.protocol_version,
-            TIMELINE_EVENT_PROTOCOL_VERSION | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+            TIMELINE_EVENT_PROTOCOL_VERSION
+                | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+                | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
         )
     }
 
@@ -573,7 +605,13 @@ impl MarkerDispatchContext {
         degraded_effects: &[PostSynthesisDimension],
         choice: Option<PlaybackVoiceChoice<'_>>,
     ) -> PreparedMarkerPlayback {
-        assert!(choice.is_none() || self.protocol_version == VOICE_CHOICE_EVENT_PROTOCOL_VERSION);
+        assert!(
+            choice.is_none()
+                || matches!(
+                    self.protocol_version,
+                    VOICE_CHOICE_EVENT_PROTOCOL_VERSION | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
+                )
+        );
         assert!(
             (semantic_events.is_empty()
                 && resolutions.is_empty()
@@ -610,13 +648,26 @@ impl MarkerDispatchContext {
         );
         let paired_start = choice.is_some();
         if let Some(choice) = choice {
+            let native_application = self.native_plans.as_ref().map(|plans| {
+                choice
+                    .attempt
+                    .native_application
+                    .as_ref()
+                    .map(|application| {
+                        Box::new(plans.publish(
+                            &choice.attempt.native_runtime,
+                            &choice.attempt.resolution.realized,
+                            application,
+                        ))
+                    })
+            });
             // Identifier 1 deliberately has no separate audio cue. The first
             // cue publishes records 0 and 1 together before any diagnostics.
             events.push(Arc::new(MarkerEventEnvelope {
                 protocol_version: self.protocol_version,
                 dispatch_id: self.dispatch_id,
                 sequence: increment(&self.next_sequence),
-                event: choice.event(utterance_id),
+                event: choice.event(utterance_id, native_application),
             }));
         }
         for resolution in resolutions {
@@ -814,7 +865,9 @@ impl ProgressiveMarkerPublisher {
         if (!resolutions.is_empty() || !semantic_events.is_empty())
             && !matches!(
                 self.protocol_version,
-                TIMELINE_EVENT_PROTOCOL_VERSION | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+                TIMELINE_EVENT_PROTOCOL_VERSION
+                    | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+                    | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
             )
         {
             return Err(AudioError::InvalidFormat(
@@ -1131,6 +1184,7 @@ mod tests {
             kind: crate::routing::choice::VoiceAttemptKind::Layered,
             native: omnivox_tts::engine_voice_choices::NativeChoiceExecution::NotRequested,
             native_application: None,
+            native_runtime: None,
             registry_generation: 41,
             resolution: omnivox_tts::resolver::VoiceResolution {
                 logical_voice_id: "bolden".to_owned(),

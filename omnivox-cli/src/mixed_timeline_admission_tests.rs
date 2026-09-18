@@ -256,6 +256,7 @@ fn mixed_reader_to_worker_reports_consumed_choices_before_one_terminal_record() 
             &engines,
             &RoutingPolicyRegistry::new("first"),
             &voices,
+            &crate::parameter_queries::ParameterQueries::new(),
             &work_sender,
         );
         // A later registration must not change the already admitted document.

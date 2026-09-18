@@ -15,6 +15,7 @@ pub const MARKER_PROTOCOL_VERSION: u32 = 1;
 pub const TIMELINE_EVENT_PROTOCOL_VERSION: u32 = 2;
 /// Marker protocol carrying the actual layered choice at first consumed frame.
 pub const VOICE_CHOICE_EVENT_PROTOCOL_VERSION: u32 = 3;
+pub const NATIVE_VOICE_EVENT_PROTOCOL_VERSION: u32 = 4;
 pub const MAX_VOICE_CHOICE_RECEIPT_BYTES: usize = 32 * 1024;
 pub const MAX_V3_MARKER_RECORD_BYTES: usize = 512 * 1024;
 /// Maximum UTF-8 size of an opaque semantic action identifier.
@@ -90,6 +91,19 @@ pub struct VoiceChoiceApplied {
     pub registry_generation: u64,
     pub logical_voice_id: String,
     pub choice: AudioChoiceIdentity,
+    /// Absent in v3; required (and nullable) in v4. The outer option records
+    /// field presence so old readers cannot silently discard even a null member.
+    #[serde(
+        default,
+        deserialize_with = "native_member",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub native_application: Option<Option<Box<crate::native_synthesis::NativeApplication>>>,
+}
+fn native_member<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<Option<Option<Box<crate::native_synthesis::NativeApplication>>>, D::Error> {
+    Option::<Box<crate::native_synthesis::NativeApplication>>::deserialize(d).map(Some)
 }
 
 /// Encoding or decoding failure for one marker event.
@@ -101,7 +115,9 @@ pub enum MarkerProtocolError {
     #[error("voice choice receipt exceeds the {MAX_VOICE_CHOICE_RECEIPT_BYTES}-byte limit")]
     ChoiceReceiptTooLarge,
 
-    #[error("version 3 marker record exceeds the {MAX_V3_MARKER_RECORD_BYTES}-byte line limit")]
+    #[error(
+        "version 3 or 4 marker record exceeds the {MAX_V3_MARKER_RECORD_BYTES}-byte line limit"
+    )]
     RecordTooLarge,
 
     #[error("marker event is not valid Base64: {0}")]
@@ -127,7 +143,10 @@ pub fn decode_marker_event(payload: &str) -> Result<MarkerEventEnvelope, MarkerP
     let event = decode_json(payload)?;
     validate_event(&event)?;
     validate_v3_size(&event, payload)?;
-    if event.protocol_version == VOICE_CHOICE_EVENT_PROTOCOL_VERSION {
+    if matches!(
+        event.protocol_version,
+        VOICE_CHOICE_EVENT_PROTOCOL_VERSION | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
+    ) {
         let bytes = STANDARD
             .decode(payload)
             .map_err(MarkerProtocolError::InvalidBase64)?;
@@ -138,7 +157,10 @@ pub fn decode_marker_event(payload: &str) -> Result<MarkerEventEnvelope, MarkerP
 }
 
 fn validate_v3_size(event: &MarkerEventEnvelope, payload: &str) -> Result<(), MarkerProtocolError> {
-    if event.protocol_version != VOICE_CHOICE_EVENT_PROTOCOL_VERSION {
+    if !matches!(
+        event.protocol_version,
+        VOICE_CHOICE_EVENT_PROTOCOL_VERSION | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
+    ) {
         return Ok(());
     }
     // Include prefix, separator and newline in the existing remote line budget.
@@ -213,8 +235,10 @@ fn decode_json<T: DeserializeOwned>(payload: &str) -> Result<T, MarkerProtocolEr
 }
 
 fn validate_event(event: &MarkerEventEnvelope) -> Result<(), MarkerProtocolError> {
-    if event.protocol_version == VOICE_CHOICE_EVENT_PROTOCOL_VERSION
-        && (event.dispatch_id == 0 || event.sequence == 0)
+    if matches!(
+        event.protocol_version,
+        VOICE_CHOICE_EVENT_PROTOCOL_VERSION | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
+    ) && (event.dispatch_id == 0 || event.sequence == 0)
     {
         return Err(MarkerProtocolError::InvalidEnvelope(
             "dispatch ID and sequence must be positive".to_owned(),
@@ -222,10 +246,29 @@ fn validate_event(event: &MarkerEventEnvelope) -> Result<(), MarkerProtocolError
     }
     match &event.event {
         MarkerEvent::VoiceChoiceApplied(choice) => {
-            if event.protocol_version != VOICE_CHOICE_EVENT_PROTOCOL_VERSION {
+            if !matches!(
+                event.protocol_version,
+                VOICE_CHOICE_EVENT_PROTOCOL_VERSION | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
+            ) {
                 return Err(MarkerProtocolError::InvalidEnvelope(
-                    "voice choice receipts require protocol version 3".to_owned(),
+                    "voice choice receipts require protocol version 3 or 4".to_owned(),
                 ));
+            }
+            if (event.protocol_version == NATIVE_VOICE_EVENT_PROTOCOL_VERSION)
+                != choice.native_application.is_some()
+            {
+                return Err(MarkerProtocolError::InvalidEnvelope(
+                    "native receipt member requires version 4 and must be present there".into(),
+                ));
+            }
+            if event.protocol_version == NATIVE_VOICE_EVENT_PROTOCOL_VERSION {
+                crate::voice_preview_v2::validate_audio_choice_identity(&choice.choice)
+                    .map_err(MarkerProtocolError::InvalidEnvelope)?;
+                if let Some(Some(application)) = &choice.native_application {
+                    application
+                        .validate()
+                        .map_err(|e| MarkerProtocolError::InvalidEnvelope(e.to_string()))?;
+                }
             }
             if choice.utterance_id == 0 || choice.span_id == 0 || choice.registry_generation == 0 {
                 return Err(MarkerProtocolError::InvalidEnvelope(
@@ -239,7 +282,9 @@ fn validate_event(event: &MarkerEventEnvelope) -> Result<(), MarkerProtocolError
         | MarkerEvent::TimelineActionResolved { action_id, .. } => {
             if !matches!(
                 event.protocol_version,
-                TIMELINE_EVENT_PROTOCOL_VERSION | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+                TIMELINE_EVENT_PROTOCOL_VERSION
+                    | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+                    | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
             ) {
                 return Err(MarkerProtocolError::InvalidEnvelope(
                     "semantic events require protocol version 2".to_owned(),
@@ -254,7 +299,9 @@ fn validate_event(event: &MarkerEventEnvelope) -> Result<(), MarkerProtocolError
         MarkerEvent::TimelineStyleDegraded { .. }
             if !matches!(
                 event.protocol_version,
-                TIMELINE_EVENT_PROTOCOL_VERSION | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+                TIMELINE_EVENT_PROTOCOL_VERSION
+                    | VOICE_CHOICE_EVENT_PROTOCOL_VERSION
+                    | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
             ) =>
         {
             return Err(MarkerProtocolError::InvalidEnvelope(
@@ -263,7 +310,10 @@ fn validate_event(event: &MarkerEventEnvelope) -> Result<(), MarkerProtocolError
         }
         _ if event.protocol_version != MARKER_PROTOCOL_VERSION
             && event.protocol_version != TIMELINE_EVENT_PROTOCOL_VERSION
-            && event.protocol_version != VOICE_CHOICE_EVENT_PROTOCOL_VERSION =>
+            && !matches!(
+                event.protocol_version,
+                VOICE_CHOICE_EVENT_PROTOCOL_VERSION | NATIVE_VOICE_EVENT_PROTOCOL_VERSION
+            ) =>
         {
             return Err(MarkerProtocolError::InvalidEnvelope(format!(
                 "unsupported protocol version {}",
@@ -525,5 +575,61 @@ mod tests {
                 event
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod native_tests {
+    use super::*;
+    use serde_json::{json, Value};
+    fn receipt() -> Value {
+        serde_json::from_str::<Value>(include_str!(
+            "../../docs/protocol-fixtures/engine-voice-parameters.json"
+        ))
+        .unwrap()["messages"]["playback_receipt"]
+            .clone()
+    }
+    fn decode(value: &Value) -> Result<MarkerEventEnvelope, MarkerProtocolError> {
+        decode_marker_event(&STANDARD.encode(serde_json::to_vec(value).unwrap()))
+    }
+    #[test]
+    fn marker_four_fixture_and_required_nullable_receipt() {
+        let value = receipt();
+        let event = decode(&value).unwrap();
+        assert_eq!(serde_json::to_value(&event).unwrap(), value);
+        assert_eq!(
+            decode_marker_event(&encode_marker_event(&event).unwrap()).unwrap(),
+            event
+        );
+        let mut value = receipt();
+        value["native_application"] = Value::Null;
+        decode(&value).unwrap();
+        value["protocol_version"] = json!(3);
+        assert!(decode(&value).is_err());
+        value.as_object_mut().unwrap().remove("native_application");
+        let old = decode(&value).unwrap();
+        assert_eq!(serde_json::to_value(&old).unwrap(), value);
+        value["protocol_version"] = json!(4);
+        assert!(decode(&value).is_err());
+    }
+    #[test]
+    fn marker_four_rejects_invalid_or_duplicate_native_evidence() {
+        for (pointer, bad) in [
+            ("/native_application/plan_id", Value::Null),
+            ("/native_application/identity/runtime_generation", json!(0)),
+            ("/native_application/status", json!("planned")),
+            ("/native_application/masked_parameters", json!(["sm", "sm"])),
+            ("/span_id", json!(0)),
+        ] {
+            let mut value = receipt();
+            *value.pointer_mut(pointer).unwrap() = bad;
+            assert!(decode(&value).is_err(), "{pointer}");
+        }
+        let raw = serde_json::to_string(&receipt()).unwrap().replacen(
+            "\"sequence\":2",
+            "\"sequence\":2,\"sequence\":2",
+            1,
+        );
+        assert!(decode_marker_event(&STANDARD.encode(raw)).is_err());
     }
 }

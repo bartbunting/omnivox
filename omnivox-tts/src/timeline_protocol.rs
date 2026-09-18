@@ -539,8 +539,7 @@ fn decode_timeline_part_version(
 
     invalid_if(
         version != u64::from(PRESENTATION_TIMELINE_PROTOCOL_V3)
-            && (legacy_only
-                || version != u64::from(crate::timeline_v4::PRESENTATION_TIMELINE_PROTOCOL_V4)),
+            && (legacy_only || !matches!(version, 4 | 5)),
         format!("unsupported timeline part version {version}"),
     )?;
     invalid_if(generation == 0, "timeline part generation must be positive")?;
