@@ -55,9 +55,8 @@ impl ParameterQueries {
         }
     }
 
-    /// Complete runtime-qualified catalogues for the forthcoming native admission
-    /// path. Contention and unavailable/replaced runtimes yield missing metadata, never a wait.
-    #[cfg_attr(not(test), expect(dead_code))]
+    /// Complete runtime-qualified catalogues for native admission. Contention and
+    /// unavailable/replaced runtimes yield missing metadata, never a wait.
     pub(crate) fn cached_catalogues(
         &self,
         registry: &EngineRegistry,

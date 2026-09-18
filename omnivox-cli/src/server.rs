@@ -17,9 +17,9 @@ use omnivox_tts::contracts::{
     MAX_RATE_OFFSET_POINTS, MIN_RATE_OFFSET_POINTS,
 };
 use omnivox_tts::control::{
-    decode_request, format_control_event, process_control_request_with_library, ControlErrorCode,
-    ControlRequest, ControlResponse, ControlResponseEnvelope, PreviewStatus, VoicePreviewRequest,
-    CONTROL_PROTOCOL_VERSION, MAX_PREVIEW_TEXT_BYTES,
+    decode_request, format_control_event, process_control_request_with_parameters,
+    ControlErrorCode, ControlRequest, ControlResponse, ControlResponseEnvelope, PreviewStatus,
+    VoicePreviewRequest, CONTROL_PROTOCOL_VERSION, MAX_PREVIEW_TEXT_BYTES,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry};
@@ -1934,6 +1934,7 @@ pub fn run_server(
                             &preferred_engine_id,
                             &mut routing_policy,
                             &mut logical_voices,
+                            &parameter_queries,
                             &control,
                             &tx,
                         );
@@ -2000,6 +2001,7 @@ pub fn run_server(
                 &preferred_engine_id,
                 &mut routing_policy,
                 &mut logical_voices,
+                &parameter_queries,
                 &control,
                 &tx,
             );
@@ -2038,6 +2040,7 @@ pub fn run_server(
                         &preferred_engine_id,
                         &mut routing_policy,
                         &mut logical_voices,
+                        &parameter_queries,
                         &control,
                         &tx,
                     );
@@ -2056,6 +2059,7 @@ pub fn run_server(
                         &preferred_engine_id,
                         &mut routing_policy,
                         &mut logical_voices,
+                        &parameter_queries,
                         &control,
                         &tx,
                     );
@@ -2075,6 +2079,7 @@ pub fn run_server(
                         &preferred_engine_id,
                         &mut routing_policy,
                         &mut logical_voices,
+                        &parameter_queries,
                         &control,
                         &tx,
                     );
@@ -2093,6 +2098,7 @@ pub fn run_server(
                         &preferred_engine_id,
                         &mut routing_policy,
                         &mut logical_voices,
+                        &parameter_queries,
                         &control,
                         &tx,
                     );
@@ -2512,6 +2518,7 @@ fn execute_presentation(
     preferred_engine_id: &str,
     routing_policy: &mut RoutingPolicyRegistry,
     logical_voices: &mut LogicalVoiceRegistry,
+    parameter_queries: &crate::parameter_queries::ParameterQueries,
     control: &Arc<AudioControl>,
     tx: &WorkQueueSender<SynthRequest>,
 ) {
@@ -2532,6 +2539,7 @@ fn execute_presentation(
             preferred_engine_id,
             routing_policy,
             logical_voices,
+            parameter_queries,
             control,
             tx,
         );
@@ -2792,6 +2800,7 @@ fn handle_command(
     preferred_engine_id: &str,
     routing_policy: &mut RoutingPolicyRegistry,
     logical_voices: &mut LogicalVoiceRegistry,
+    parameter_queries: &crate::parameter_queries::ParameterQueries,
     control: &Arc<AudioControl>,
     tx: &WorkQueueSender<SynthRequest>,
 ) {
@@ -3245,7 +3254,7 @@ fn handle_command(
                         response,
                     });
                 }
-                _ => {
+                request => {
                     let engine_runtime = runtime_health.statuses(
                         &inventory.engines,
                         &routing_policy.policy().disabled_engine_ids,
@@ -3255,7 +3264,26 @@ fn handle_command(
                         &inventory.engines,
                         &routing_policy.policy().disabled_engine_ids,
                     );
-                    let response = process_control_request_with_library(
+                    // Only native registration needs a cache snapshot. Reading it
+                    // never waits for speech or requests missing engine metadata.
+                    let cached = if matches!(
+                        request,
+                        Some((_, ControlRequest::RegisterLogicalVoicesV3(_)))
+                    ) {
+                        parameter_queries.cached_catalogues(
+                            engine_registry,
+                            &routing_policy.policy().disabled_engine_ids,
+                        )
+                    } else {
+                        Vec::new()
+                    };
+                    let knowledge = cached
+                        .iter()
+                        .map(|catalogue| {
+                            omnivox_tts::engine_voice_choices::ParameterKnowledge::Ready(catalogue)
+                        })
+                        .collect::<Vec<_>>();
+                    let response = process_control_request_with_parameters(
                         payload,
                         crate::VERSION,
                         inventory.generation,
@@ -3265,6 +3293,7 @@ fn handle_command(
                         logical_voices,
                         routing_policy,
                         Some(&library_status),
+                        &knowledge,
                     );
                     write_control_response(&response);
                 }
@@ -3430,7 +3459,6 @@ mod tests {
 
     #[test]
     fn native_definitions_cannot_be_silently_projected_through_older_speech_paths() {
-        use omnivox_tts::engine_voice_choices::{NativeCatalogueSnapshot, VoiceRegistrationV3};
         use omnivox_tts::timeline_v4::{
             LayeredSpeechSpan, MixedSpeechSpan, PresentationTimelineV4,
         };
@@ -3439,15 +3467,24 @@ mod tests {
             "../../docs/protocol-fixtures/engine-voice-parameters.json"
         ))
         .unwrap();
-        let mut body = fixtures["messages"]["registration"].clone();
-        for field in ["protocol_version", "request_id", "type"] {
-            body.as_object_mut().unwrap().remove(field);
-        }
-        let request = VoiceRegistrationV3::from_json(&serde_json::to_vec(&body).unwrap()).unwrap();
+        let request = serde_json::from_value(fixtures["messages"]["registration"].clone()).unwrap();
         let mut registry = LogicalVoiceRegistry::default();
-        registry
-            .register_v3(request, &NativeCatalogueSnapshot::new(&[], &[]).unwrap())
-            .unwrap();
+        let response = process_control_request_with_parameters(
+            &omnivox_tts::control::encode_request(&request).unwrap(),
+            "test",
+            12,
+            "",
+            &[],
+            &[],
+            &mut registry,
+            &mut RoutingPolicyRegistry::new(""),
+            None,
+            &[],
+        );
+        assert!(matches!(
+            response.response,
+            ControlResponse::LogicalVoicesRegisteredV3 { .. }
+        ));
         let engines = EngineRegistry::new();
         let routing = LogicalVoiceRoutingSnapshot::capture(&registry, &engines);
         assert!(routing
@@ -3492,12 +3529,12 @@ mod tests {
                 .to_string()
                 .contains("version 5"));
         }
-        // The new public operation remains reserved until routed execution/evidence exists.
+        // The old registration reader still cannot accept the new definition kind.
+        let mut old_request = fixtures["messages"]["registration"].clone();
+        old_request["type"] = serde_json::json!("register_logical_voices_v2");
         assert!(
-            serde_json::from_value::<omnivox_tts::control::ControlRequestEnvelope>(
-                fixtures["messages"]["registration"].clone()
-            )
-            .is_err()
+            serde_json::from_value::<omnivox_tts::control::ControlRequestEnvelope>(old_request)
+                .is_err()
         );
     }
 

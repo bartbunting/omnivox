@@ -5,7 +5,7 @@ in Emacsvox commit `e0e83d71d`, under [ADR 0015](adr/0015-engine-described-voice
 The [JSON fixtures](protocol-fixtures/engine-voice-parameters.json) are independent
 examples for codecs and composition. The typed metadata and pure planner now
 consume the parameter and composition examples. Public catalogue discovery is
-implemented; native editing/speech operations below remain reserved. The
+implemented, as is v3 registration; native editing/speech operations below remain reserved. The
 [native audit](benchmarks/2026-09-17-native-voice-parameters.md) does not replace
 the remaining execution and cancellation tests.
 
@@ -83,8 +83,8 @@ they never connect a deferred helper or restart one to obtain metadata.
 Public [read-only catalogue discovery](benchmarks/2026-09-18-public-parameter-catalogues.md)
 now reaches those current-worker queries
 through the `engine_parameter_catalogue_v1` capability. Admission and replies are
-bounded independently of the speech command thread. Native registration, speech,
-preview/explanation operations, routed receipts and the Emacs editor remain next.
+bounded independently of the speech command thread. Native speech,
+preview/explanation operations, public receipts and the Emacs editor remain next.
 Adapter integration must preserve the old common path, including its existing clamps; native edit ranges are separately
 qualified and must not silently recalibrate common controls.
 
@@ -93,9 +93,9 @@ now stores engine-layered definitions in the existing registry generation domain
 It validates complete replacements against immutable current metadata, preserves
 unavailable settings, and prepares the actual selected choice with its common
 context and runtime identity. Registration performs no engine I/O. Older speech
-paths reject these definitions instead of discarding native settings. Public v3
-registration, native timelines, public playback evidence, preview operations and
-editing remain pending; the native execution bundle is not advertised.
+paths reject these definitions instead of discarding native settings. Native
+timelines, public playback evidence, preview operations and editing remain
+pending; the native execution bundle is not advertised.
 
 Internal [routed native execution](benchmarks/2026-09-18-native-routed-execution.md)
 now prepares and executes each actual choice through the shared buffered or
@@ -111,8 +111,16 @@ routing. Reads use immutable snapshots without engine I/O or waits; runtime
 replacement invalidates their qualification. Entry and encoded-content budgets
 bound retention. Cached metadata stays usable during ordinary speech, while
 native execution still validates the actual runtime identity. Public native
-request codecs and playback/preview evidence remain to be connected before
+speech request codecs and playback/preview evidence remain to be connected before
 this path is available to Emacs.
+
+Public [v3 registration](benchmarks/2026-09-18-public-native-registration.md)
+now accepts mixed legacy, layered and engine-layered definitions against the
+connection's cached metadata. The complete acknowledgement is checked before
+publishing the registry, including per-choice native status and resolution under
+current administrative policy. Idempotent retries can refresh status without
+rewriting definitions or querying engines. The native capability remains
+unadvertised until speech, private previews and playback evidence are complete.
 
 ## Shared rules
 

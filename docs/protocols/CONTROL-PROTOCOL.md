@@ -62,6 +62,24 @@ This capability is read-only. `engine_voice_parameters_v1`, native registration,
 previews, timeline 5 and marker events 4 remain unadvertised until their complete
 execution and evidence paths work.
 
+### Development native registration
+
+`register_logical_voices_v3` and `logical_voices_registered_v3` are implemented
+for integration testing under the accepted
+[parameter contract](../engine-voice-parameters.md#registry-timelines-and-previews).
+The complete `engine_voice_parameters_v1` bundle is not yet advertised; clients
+must continue negotiating the complete bundle before using native definitions.
+
+Registration validates mixed legacy, layered and engine-layered definitions
+against complete cached catalogues from this connection. It never requests
+metadata or touches an engine to complete registration. The acknowledgement
+reports per-choice supported, deferred or unavailable native status, retains
+unavailable settings, and must fit the complete control bound before registry
+publication. Current routing policy governs resolution and disablement. An
+identical-generation retry can refresh status without rewriting saved settings.
+Older speech formats reject engine-layered definitions; registration support
+alone does not enable native speech, previews or playback evidence.
+
 ### Ordinary request envelope
 
 A client writes one ordinary protocol command:

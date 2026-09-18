@@ -1,6 +1,6 @@
 //! Native choice admission and actual-choice preparation, without engine I/O.
 //!
-//! These internal integration types do not enable public registration or speech.
+//! Public registration uses these types; native speech integration remains separate.
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -131,7 +131,7 @@ impl From<EngineRegisteredVoiceDefinition> for RegisteredVoiceDefinition {
     }
 }
 
-/// Reserved v3 body. Control envelope/operation integration is a separate slice.
+/// Complete v3 registry replacement, shared by internal and public admission.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VoiceRegistrationV3 {

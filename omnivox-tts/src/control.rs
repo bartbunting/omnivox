@@ -73,6 +73,7 @@ pub enum ControlRequest {
         fallback_policy: FallbackPolicy,
     },
     RegisterLogicalVoicesV2(VoiceRegistrationV2),
+    RegisterLogicalVoicesV3(crate::engine_voice_choices::VoiceRegistrationV3),
     SetRoutingPolicy {
         routing_policy_generation: u64,
         #[serde(flatten)]
@@ -225,6 +226,13 @@ pub enum ControlResponse {
         definition_count: usize,
         unresolved_logical_voice_ids: Vec<String>,
     },
+    LogicalVoicesRegisteredV3 {
+        registry_generation: u64,
+        inventory_generation: u64,
+        definition_count: usize,
+        unresolved_logical_voice_ids: Vec<String>,
+        native_status: Vec<crate::engine_voice_choices::NativeChoiceStatus>,
+    },
     RoutingPolicyApplied {
         inventory_generation: u64,
         routing_policy: RoutingPolicyRegistration,
@@ -337,6 +345,7 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
     if matches!(
         request.request,
         ControlRequest::RegisterLogicalVoicesV2(_)
+            | ControlRequest::RegisterLogicalVoicesV3(_)
             | ControlRequest::PreviewVoiceV2(_)
             | ControlRequest::VoiceLibraryStatusV1
             | ControlRequest::GetEngineParametersV1(_)
@@ -399,6 +408,36 @@ pub fn process_control_request_with_library(
     logical_voices: &mut LogicalVoiceRegistry,
     routing_policy: &mut RoutingPolicyRegistry,
     voice_library: Option<&crate::voice_library::VoiceLibraryStatus>,
+) -> ControlResponseEnvelope {
+    process_control_request_with_parameters(
+        payload,
+        server_version,
+        inventory_generation,
+        preferred_engine_id,
+        engines,
+        engine_runtime,
+        logical_voices,
+        routing_policy,
+        voice_library,
+        &[],
+    )
+}
+
+/// Dispatch with connection-owned immutable native metadata. Registration never
+/// fetches missing catalogues or performs engine I/O; missing metadata is deferred.
+/// The complete native execution capability remains unadvertised.
+#[allow(clippy::too_many_arguments)]
+pub fn process_control_request_with_parameters(
+    payload: &str,
+    server_version: &str,
+    inventory_generation: u64,
+    preferred_engine_id: &str,
+    engines: &[EngineDescriptor],
+    engine_runtime: &[EngineRuntimeStatus],
+    logical_voices: &mut LogicalVoiceRegistry,
+    routing_policy: &mut RoutingPolicyRegistry,
+    voice_library: Option<&crate::voice_library::VoiceLibraryStatus>,
+    parameter_knowledge: &[crate::engine_voice_choices::ParameterKnowledge<'_>],
 ) -> ControlResponseEnvelope {
     match decode_request(payload) {
         Ok(request) if request.protocol_version != CONTROL_PROTOCOL_VERSION => error_response(
@@ -521,6 +560,15 @@ pub fn process_control_request_with_library(
                     error.to_string(),
                 ),
             },
+            ControlRequest::RegisterLogicalVoicesV3(registration) => native::register(
+                request.request_id,
+                inventory_generation,
+                registration,
+                engines,
+                parameter_knowledge,
+                logical_voices,
+                routing_policy,
+            ),
             ControlRequest::RegisterLogicalVoicesV2(registration) => {
                 let mut candidate = logical_voices.clone();
                 let projected = routing_policy.project_inventory(engines.to_vec());
@@ -761,6 +809,9 @@ impl<'de> Deserialize<'de> for DuplicateFreeJson {
         deserializer.deserialize_any(Visitor)
     }
 }
+
+#[path = "control_native.rs"]
+mod native;
 
 #[cfg(test)]
 #[path = "control_choice_tests.rs"]

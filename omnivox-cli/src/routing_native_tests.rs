@@ -913,8 +913,55 @@ fn qualified_helpers_route_native_choices_without_playback() {
             EngineVoiceChoice { id:"native".into(),selector:exact(&case.engine,&case.voice),adjustments:Default::default(),native:Some(serde_json::from_value(json!({"engine_id":case.engine,"schema_id":catalogue.identity.schema_id,"parameters":{case.parameter.clone():{"op":"set","value":case.value}}})).unwrap()) },
         ] };
         let knowledge = [ParameterKnowledge::Ready(&cached[0])];
+        let registration = omnivox_tts::control::ControlRequestEnvelope {
+            protocol_version: 1,
+            request_id: 702,
+            request: omnivox_tts::control::ControlRequest::RegisterLogicalVoicesV3(
+                VoiceRegistrationV3 {
+                    registry_generation: 41,
+                    definitions: vec![EngineRegisteredVoiceDefinition::EngineLayered(definition)],
+                    fallback_policy: omnivox_tts::control::ChoiceFallbackPolicy {
+                        preferred_engines: vec![],
+                        allow_same_language_on_requested_engine: false,
+                        global_default: None,
+                        fallback_engines: vec![],
+                    },
+                },
+            ),
+        };
+        let mut registry = LogicalVoiceRegistry::default();
+        let mut policy = omnivox_tts::routing_policy::RoutingPolicyRegistry::new("");
+        let registered = omnivox_tts::control::process_control_request_with_parameters(
+            &omnivox_tts::control::encode_request(&registration).unwrap(),
+            "test",
+            12,
+            "",
+            &engines.inventory(),
+            &[],
+            &mut registry,
+            &mut policy,
+            None,
+            &knowledge,
+        );
+        let omnivox_tts::control::ControlResponse::LogicalVoicesRegisteredV3 {
+            ref native_status,
+            ..
+        } = registered.response
+        else {
+            panic!("{registered:?}")
+        };
+        assert_eq!(native_status.len(), 1);
+        assert_eq!(
+            native_status[0].status,
+            omnivox_tts::engine_voice_choices::NativeSupport::Supported
+        );
+        println!(
+            "NATIVE_REGISTRATION {}",
+            serde_json::to_string(&registered).unwrap()
+        );
         for exact_preview in [false, true] {
-            let mut routing = snapshot(&engines, definition.clone());
+            let mut routing =
+                LogicalVoiceRoutingSnapshot::capture_with_policy(&registry, &engines, &policy);
             if exact_preview {
                 routing.restrict_preview_to_choice(1).unwrap();
             }

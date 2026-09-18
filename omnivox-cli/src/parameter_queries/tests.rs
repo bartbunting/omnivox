@@ -375,3 +375,72 @@ fn cached_catalogue_qualifies_native_registration_without_new_engine_calls() {
     assert_eq!(registry.generation(), 41);
     assert_eq!(engine.calls.load(Ordering::Acquire), 1);
 }
+
+#[test]
+fn public_registration_uses_only_this_connections_current_cached_metadata() {
+    use omnivox_tts::control::process_control_request_with_parameters;
+    use omnivox_tts::engine_voice_choices::{NativeSupport, ParameterKnowledge};
+    use omnivox_tts::logical_voices::LogicalVoiceRegistry;
+    use omnivox_tts::routing_policy::RoutingPolicyRegistry;
+    let (service, rx) = service();
+    let engine = engine(None);
+    let mut engines = EngineRegistry::new();
+    engines.register(engine.clone()).unwrap();
+    let mut registry = LogicalVoiceRegistry::default();
+    let mut policy = RoutingPolicyRegistry::new("");
+    let request = payload(&fixture("registration"));
+    let register = |service: &ParameterQueries,
+                    registry: &mut LogicalVoiceRegistry,
+                    policy: &mut RoutingPolicyRegistry| {
+        let cached = service.cached_catalogues(&engines, &policy.policy().disabled_engine_ids);
+        let knowledge = cached
+            .iter()
+            .map(|c| ParameterKnowledge::Ready(c))
+            .collect::<Vec<_>>();
+        let response = process_control_request_with_parameters(
+            &request,
+            "test",
+            12,
+            "",
+            &engines.inventory(),
+            &[],
+            registry,
+            policy,
+            None,
+            &knowledge,
+        );
+        let ControlResponse::LogicalVoicesRegisteredV3 { native_status, .. } = response.response
+        else {
+            panic!("{response:?}")
+        };
+        native_status[0].status
+    };
+    assert_eq!(
+        register(&service, &mut registry, &mut policy),
+        NativeSupport::Deferred
+    );
+    service.submit(1, query(), engine.clone());
+    rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    await_idle(&service);
+    assert_eq!(
+        register(&service, &mut registry, &mut policy),
+        NativeSupport::Supported
+    );
+    assert_eq!(engine.calls.load(Ordering::Acquire), 1);
+    let saved = registry.registered_definitions().to_vec();
+    // A separate speech lane or reconnect cannot borrow this connection's cache.
+    let other = ParameterQueries::new();
+    let mut other_registry = LogicalVoiceRegistry::default();
+    assert_eq!(
+        register(&other, &mut other_registry, &mut policy),
+        NativeSupport::Deferred
+    );
+    engine.epoch.store(2, Ordering::Release);
+    assert_eq!(
+        register(&service, &mut registry, &mut policy),
+        NativeSupport::Deferred
+    );
+    assert_eq!(engine.calls.load(Ordering::Acquire), 1);
+    assert_eq!(registry.registered_definitions(), saved);
+    assert_eq!(registry.generation(), 41);
+}
