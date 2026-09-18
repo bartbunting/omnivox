@@ -115,6 +115,15 @@ pub trait TtsEngine: Send + Sync {
     /// Describe this engine, its current runtime state, and discovered voices.
     fn descriptor(&self) -> contracts::EngineDescriptor;
 
+    /// Nonblocking cache qualification for this engine object's current runtime.
+    /// A positive token is stable only while metadata remains valid; runtime
+    /// replacement must change it. None means unavailable/busy/unsupported.
+    /// This memory-only check must never connect, query, load or wait for speech.
+    /// Tokens are parent-local, not persisted or substituted for wire identity.
+    fn parameter_cache_epoch(&self) -> Option<u64> {
+        None
+    }
+
     /// Read a bounded parameter catalogue page from the current worker only.
     /// Never synthesize, load a model or reconnect to satisfy this query.
     fn engine_parameters(

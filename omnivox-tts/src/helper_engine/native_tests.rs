@@ -254,6 +254,26 @@ mod native_parent {
     }
 
     #[test]
+    fn cache_epoch_is_nonblocking_and_expires_on_helper_replacement() {
+        let first = NativePeer::new(true);
+        let second = NativePeer::new(true);
+        let engine = engine(vec![first, second]);
+        let initial = engine.parameter_cache_epoch().unwrap();
+        let guard = engine.lifecycle.lock().unwrap();
+        assert_eq!(engine.parameter_cache_epoch(), Some(initial));
+        drop(guard);
+        let guard = engine.connection.write().unwrap();
+        assert_eq!(engine.parameter_cache_epoch(), None);
+        drop(guard);
+        assert_eq!(engine.parameter_cache_epoch(), Some(initial));
+        let connection = engine.current_connection().unwrap();
+        engine.invalidate_connection(&connection);
+        assert_eq!(engine.parameter_cache_epoch(), None);
+        engine.prewarm_connection().unwrap();
+        assert_ne!(engine.parameter_cache_epoch().unwrap(), initial);
+    }
+
+    #[test]
     fn public_catalogue_guard_is_stale_without_retiring_the_current_helper() {
         let peer = NativePeer::new(true);
         let engine = engine(vec![Arc::clone(&peer)]);

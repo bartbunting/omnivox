@@ -874,11 +874,45 @@ fn qualified_helpers_route_native_choices_without_playback() {
         let mut engines = EngineRegistry::new();
         engines.register(primary).unwrap();
         engines.register(wrapped).unwrap();
+        // These qualified catalogues fit one page; synthetic cache tests cover paging.
+        assert!(
+            catalogue.parameters.len()
+                <= omnivox_tts::helper_protocol::parameters::MAX_PAGE_PARAMETERS
+        );
+        let queries = crate::parameter_queries::ParameterQueries::new();
+        let query_payload =
+            omnivox_tts::control::encode_request(&omnivox_tts::control::ControlRequestEnvelope {
+                protocol_version: 1,
+                request_id: 701,
+                request: omnivox_tts::control::ControlRequest::GetEngineParametersV1(
+                    CatalogueQuery {
+                        engine_id: case.engine.clone(),
+                        voice_id: None,
+                        cursor: None,
+                        expected_catalogue_revision: None,
+                    },
+                ),
+            })
+            .unwrap();
+        assert!(queries.try_handle(&query_payload, &engines, &[]));
+        let deadline = Instant::now() + std::time::Duration::from_secs(5);
+        let cached = loop {
+            let cached = queries.cached_catalogues(&engines, &[]);
+            if !cached.is_empty() {
+                break cached;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "current catalogue was not cached"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        };
+        assert_eq!(*cached[0], catalogue);
         let definition=EngineLayeredVoiceDefinition { id:"bolden".into(),language:None,shared:Default::default(),choices:vec![
             EngineVoiceChoice { id:"failed".into(),selector:exact("probe-failure","first"),adjustments:Default::default(),native:None },
             EngineVoiceChoice { id:"native".into(),selector:exact(&case.engine,&case.voice),adjustments:Default::default(),native:Some(serde_json::from_value(json!({"engine_id":case.engine,"schema_id":catalogue.identity.schema_id,"parameters":{case.parameter.clone():{"op":"set","value":case.value}}})).unwrap()) },
         ] };
-        let knowledge = [ParameterKnowledge::Ready(&catalogue)];
+        let knowledge = [ParameterKnowledge::Ready(&cached[0])];
         for exact_preview in [false, true] {
             let mut routing = snapshot(&engines, definition.clone());
             if exact_preview {
@@ -923,6 +957,12 @@ fn qualified_helpers_route_native_choices_without_playback() {
                 json!({"engine":case.engine,"exact_preview":exact_preview,"choice_id":attempt.choice_id,"frames":completion.frame_count,"identity":receipt.identity,"native_parameter":parameter})
             );
         }
+        helper.prepare_recovery_probe().unwrap();
+        assert!(queries.cached_catalogues(&engines, &[]).is_empty());
+        println!(
+            "NATIVE_CACHE {}",
+            json!({"engine":case.engine,"cached_parameters":cached[0].parameters.len(),"identity":cached[0].identity,"expired_after_recovery":true})
+        );
     }
 }
 

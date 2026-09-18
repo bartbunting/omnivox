@@ -103,9 +103,16 @@ progressive path. Native receipts remain tentative until the existing
 transactional audio handoff; failed pre-audio attempts cannot contaminate a
 fallback. Cancellation and post-commit no-replay rules remain in force. Private
 selection retains original choice identity, and older request/output paths
-reject native data rather than silently dropping it. The connection-owned
-metadata cache, public request codecs and public playback/preview evidence still
-need integration before this path is available to Emacs.
+reject native data rather than silently dropping it.
+
+The [connection-owned catalogue cache](benchmarks/2026-09-18-parameter-catalogue-cache.md)
+now assembles complete validated public query replies for internal admission and
+routing. Reads use immutable snapshots without engine I/O or waits; runtime
+replacement invalidates their qualification. Entry and encoded-content budgets
+bound retention. Cached metadata stays usable during ordinary speech, while
+native execution still validates the actual runtime identity. Public native
+request codecs and playback/preview evidence remain to be connected before
+this path is available to Emacs.
 
 ## Shared rules
 

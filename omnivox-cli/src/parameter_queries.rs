@@ -1,6 +1,6 @@
 //! Bounded read-only catalogue queries, independent of the speech command loop.
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -16,6 +16,9 @@ use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::helper_protocol::parameters;
 use omnivox_tts::TtsEngine;
 
+mod cache;
+use cache::CatalogueCache;
+
 const QUERY_DEADLINE: Duration = Duration::from_secs(1);
 type Reporter = Arc<dyn Fn(&ControlResponseEnvelope) + Send + Sync>;
 
@@ -24,6 +27,7 @@ pub(crate) struct ParameterQueries {
     closed: Arc<AtomicBool>,
     report: Reporter,
     deadline: Duration,
+    cache: Arc<Mutex<CatalogueCache>>,
 }
 
 // Admission remains occupied until BOTH the query and its deadline reporter exit.
@@ -47,7 +51,32 @@ impl ParameterQueries {
             closed: Arc::new(AtomicBool::new(false)),
             report: Arc::new(crate::server::write_control_response),
             deadline: QUERY_DEADLINE,
+            cache: Arc::new(Mutex::new(CatalogueCache::default())),
         }
+    }
+
+    /// Complete runtime-qualified catalogues for the forthcoming native admission
+    /// path. Contention and unavailable/replaced runtimes yield missing metadata, never a wait.
+    #[cfg_attr(not(test), expect(dead_code))]
+    pub(crate) fn cached_catalogues(
+        &self,
+        registry: &EngineRegistry,
+        disabled: &[String],
+    ) -> Vec<Arc<omnivox_tts::native_parameters::ParameterCatalogue>> {
+        let candidates = match self.cache.try_lock() {
+            Ok(cache) => cache.candidates(),
+            Err(_) => return vec![],
+        };
+        candidates
+            .into_iter()
+            .filter_map(|entry| {
+                if disabled.contains(&entry.catalogue.engine_id) {
+                    return None;
+                }
+                let engine = registry.engine(&entry.catalogue.engine_id)?;
+                entry.current(&engine).then_some(entry.catalogue)
+            })
+            .collect()
     }
 
     /// Return false for other operations or malformed envelopes so the existing
@@ -123,6 +152,9 @@ impl ParameterQueries {
         let closed = Arc::clone(&self.closed);
         let deadline = self.deadline;
         let worker_query = query.clone();
+        let cache = Arc::clone(&self.cache);
+        let epoch = engine.parameter_cache_epoch().filter(|epoch| *epoch > 0);
+        let observed_engine = Arc::clone(&engine);
         let spawn = thread::Builder::new()
             .name("omnivox-parameter-query".into())
             .spawn(move || {
@@ -156,8 +188,14 @@ impl ParameterQueries {
                         ),
                     ),
                 };
+                let response = response(id, result);
                 if !closed.load(Ordering::Acquire) {
-                    report(&response(id, result));
+                    // The reporter owns publication. Adapter threads cannot cache
+                    // timed-out replies, and a changed runtime invalidates assembly.
+                    if let Ok(mut cache) = cache.try_lock() {
+                        cache.observe(&worker_query, &response.response, &observed_engine, epoch);
+                    }
+                    report(&response);
                 }
             });
         if spawn.is_err() {

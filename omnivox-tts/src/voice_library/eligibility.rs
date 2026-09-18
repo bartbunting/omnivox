@@ -247,6 +247,13 @@ impl TtsEngine for EligibleEngine {
             .synthesize_stream_with_parameters(request, parameters, sink, application)
     }
 
+    fn parameter_cache_epoch(&self) -> Option<u64> {
+        if self.policy.excludes_provider(&self.engine_id) {
+            return None;
+        }
+        self.engine.parameter_cache_epoch()
+    }
+
     fn engine_parameters(
         &self,
         query: crate::engine_parameters::CatalogueQuery,

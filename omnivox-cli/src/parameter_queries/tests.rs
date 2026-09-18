@@ -30,12 +30,29 @@ fn ready() -> CatalogueResult {
 }
 struct FakeEngine {
     calls: AtomicUsize,
+    epoch: std::sync::atomic::AtomicU64,
     block: Mutex<Option<mpsc::Receiver<()>>>,
 }
 impl TtsEngine for FakeEngine {
+    fn parameter_cache_epoch(&self) -> Option<u64> {
+        let epoch = self.epoch.load(Ordering::Acquire);
+        (epoch > 0).then_some(epoch)
+    }
     fn descriptor(&self) -> EngineDescriptor {
         let mut d = EngineDescriptor::unavailable("dectalk", "test");
         d.availability = omnivox_tts::contracts::Availability::Available;
+        d.health = omnivox_tts::contracts::EngineHealth::Healthy;
+        d.voices
+            .push(omnivox_tts::contracts::VoiceDescriptor::from_voice_info(
+                "dectalk",
+                VoiceInfo {
+                    identifier: "paul".into(),
+                    name: "Paul".into(),
+                    language: "en-US".into(),
+                    quality: omnivox_tts::VoiceQuality::Compact,
+                },
+            ));
+        d.default_voice_id = Some("paul".into());
         d
     }
     fn engine_parameters(&self, _query: CatalogueQuery) -> Result<CatalogueResult, CatalogueError> {
@@ -76,6 +93,7 @@ fn service() -> (ParameterQueries, mpsc::Receiver<ControlResponseEnvelope>) {
 fn engine(block: Option<mpsc::Receiver<()>>) -> Arc<FakeEngine> {
     Arc::new(FakeEngine {
         calls: AtomicUsize::new(0),
+        epoch: std::sync::atomic::AtomicU64::new(1),
         block: Mutex::new(block),
     })
 }
@@ -99,12 +117,18 @@ fn catalogue_current_engine_reply_is_correlated_and_read_only() {
         fixture("catalogue_response")
     );
     assert_eq!(engine.calls.load(Ordering::Acquire), 1);
+    assert_eq!(service.cached_catalogues(&registry, &[]).len(), 1);
+    assert!(service
+        .cached_catalogues(&registry, &["dectalk".into()])
+        .is_empty());
 }
 #[test]
 fn catalogue_timeout_keeps_admission_bounded_and_discards_late_reply() {
     let (service, rx) = service();
     let (release, wait) = mpsc::channel();
     let engine = engine(Some(wait));
+    let mut registry = EngineRegistry::new();
+    registry.register(engine.clone()).unwrap();
     let started = Instant::now();
     service.submit(1, query(), engine.clone());
     assert!(started.elapsed() < Duration::from_millis(50));
@@ -130,6 +154,7 @@ fn catalogue_timeout_keeps_admission_bounded_and_discards_late_reply() {
     release.send(()).unwrap();
     await_idle(&service);
     assert!(rx.try_recv().is_err());
+    assert!(service.cached_catalogues(&registry, &[]).is_empty());
     service.submit(12, query(), engine);
     assert!(matches!(
         rx.recv_timeout(Duration::from_secs(2)).unwrap().response,
@@ -234,10 +259,119 @@ fn catalogue_pending_recovery_returns_busy_without_recovering() {
         isolated.engine_parameters(query()).unwrap(),
         CatalogueResult::Ready { .. }
     ));
+    assert_eq!(isolated.parameter_cache_epoch(), Some(1));
     isolated.prepare_recovery_probe().unwrap();
+    assert_eq!(isolated.parameter_cache_epoch(), None);
     assert!(matches!(
         isolated.engine_parameters(query()).unwrap(),
         CatalogueResult::Busy { .. }
     ));
+    assert_eq!(engine.calls.load(Ordering::Acquire), 1);
+}
+
+#[test]
+fn cached_metadata_rejects_replaced_runtime_and_never_waits_on_cache_contention() {
+    let (service, rx) = service();
+    let engine = engine(None);
+    let mut registry = EngineRegistry::new();
+    registry.register(engine.clone()).unwrap();
+    service.submit(1, query(), engine.clone());
+    rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    await_idle(&service);
+    let frozen = service.cached_catalogues(&registry, &[]);
+    assert_eq!(frozen.len(), 1);
+    let guard = service.cache.lock().unwrap();
+    let now = Instant::now();
+    assert!(service.cached_catalogues(&registry, &[]).is_empty());
+    assert!(now.elapsed() < Duration::from_millis(50));
+    drop(guard);
+    engine.epoch.store(2, Ordering::Release);
+    assert!(service.cached_catalogues(&registry, &[]).is_empty());
+    assert_eq!(frozen[0].engine_id, "dectalk");
+    service.submit(2, query(), engine.clone());
+    rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    await_idle(&service);
+    assert_eq!(service.cached_catalogues(&registry, &[]).len(), 1);
+    assert_eq!(engine.calls.load(Ordering::Acquire), 2);
+    engine.epoch.store(0, Ordering::Release);
+    assert!(service.cached_catalogues(&registry, &[]).is_empty());
+}
+
+#[test]
+fn catalogue_reply_from_a_replaced_runtime_is_never_cached() {
+    let (service, rx) = service();
+    let (release, wait) = mpsc::channel();
+    let engine = engine(Some(wait));
+    let mut registry = EngineRegistry::new();
+    registry.register(engine.clone()).unwrap();
+    service.submit(1, query(), engine.clone());
+    engine.epoch.store(2, Ordering::Release);
+    release.send(()).unwrap();
+    rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    await_idle(&service);
+    assert!(service.cached_catalogues(&registry, &[]).is_empty());
+}
+
+#[test]
+fn unsupported_cache_qualification_preserves_public_queries_without_caching() {
+    let (service, rx) = service();
+    let engine = engine(None);
+    engine.epoch.store(0, Ordering::Release);
+    let mut registry = EngineRegistry::new();
+    registry.register(engine.clone()).unwrap();
+    service.submit(1, query(), engine.clone());
+    assert!(matches!(
+        rx.recv_timeout(Duration::from_secs(2)).unwrap().response,
+        ControlResponse::EngineParametersV1 {
+            result: CatalogueResult::Ready { .. },
+            ..
+        }
+    ));
+    assert!(service.cached_catalogues(&registry, &[]).is_empty());
+    assert_eq!(engine.calls.load(Ordering::Acquire), 1);
+}
+
+#[test]
+fn cached_catalogue_qualifies_native_registration_without_new_engine_calls() {
+    use omnivox_tts::engine_voice_choices::{
+        NativeCatalogueSnapshot, NativeSupport, ParameterKnowledge, VoiceRegistrationV3,
+    };
+    use omnivox_tts::logical_voices::LogicalVoiceRegistry;
+    let (service, rx) = service();
+    let engine = engine(None);
+    let mut engines = EngineRegistry::new();
+    engines.register(engine.clone()).unwrap();
+    service.submit(1, query(), engine.clone());
+    rx.recv_timeout(Duration::from_secs(2)).unwrap();
+    await_idle(&service);
+    let cached = service.cached_catalogues(&engines, &[]);
+    let knowledge = cached
+        .iter()
+        .map(|c| ParameterKnowledge::Ready(c))
+        .collect::<Vec<_>>();
+    let inventory = engines.inventory();
+    let metadata = NativeCatalogueSnapshot::new(&inventory, &knowledge).unwrap();
+    let mut body = fixture("registration");
+    for key in ["protocol_version", "request_id", "type"] {
+        body.as_object_mut().unwrap().remove(key);
+    }
+    let mut registry = LogicalVoiceRegistry::default();
+    let result = registry
+        .register_v3(
+            VoiceRegistrationV3::from_json(&serde_json::to_vec(&body).unwrap()).unwrap(),
+            &metadata,
+        )
+        .unwrap();
+    assert_eq!(result.native_status[0].status, NativeSupport::Supported);
+    body["registry_generation"] = json!(42);
+    body["definitions"][0]["definition"]["choices"][0]["native"]["parameters"]["sm"]["value"] =
+        json!(101);
+    assert!(registry
+        .register_v3(
+            VoiceRegistrationV3::from_json(&serde_json::to_vec(&body).unwrap()).unwrap(),
+            &metadata
+        )
+        .is_err());
+    assert_eq!(registry.generation(), 41);
     assert_eq!(engine.calls.load(Ordering::Acquire), 1);
 }

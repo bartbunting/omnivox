@@ -508,6 +508,13 @@ impl IsolatedTtsEngine {
 }
 
 impl TtsEngine for IsolatedTtsEngine {
+    fn parameter_cache_epoch(&self) -> Option<u64> {
+        if self.recover_before_next_call.load(Ordering::Acquire) {
+            return None;
+        }
+        self.engine.parameter_cache_epoch()
+    }
+
     fn engine_parameters(
         &self,
         query: omnivox_tts::engine_parameters::CatalogueQuery,
@@ -674,6 +681,10 @@ mod tests {
     }
 
     impl TtsEngine for BlockingEngine {
+        fn parameter_cache_epoch(&self) -> Option<u64> {
+            Some(7)
+        }
+
         fn descriptor(&self) -> EngineDescriptor {
             EngineDescriptor {
                 id: self.id.clone(),
@@ -839,6 +850,19 @@ mod tests {
         });
 
         native.wait_for_started(1);
+        // A live query is busy, but cached metadata remains qualified during speech.
+        assert_eq!(engine.parameter_cache_epoch(), Some(7));
+        assert!(matches!(
+            engine
+                .engine_parameters(omnivox_tts::engine_parameters::CatalogueQuery {
+                    engine_id: "progressive".into(),
+                    voice_id: None,
+                    cursor: None,
+                    expected_catalogue_revision: None,
+                })
+                .unwrap(),
+            omnivox_tts::engine_parameters::CatalogueResult::Busy { .. }
+        ));
         assert_eq!(
             event_rx.recv_timeout(Duration::from_millis(250)).unwrap(),
             "start"

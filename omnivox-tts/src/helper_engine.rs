@@ -1227,6 +1227,7 @@ pub struct HelperTtsEngine {
     descriptor: RwLock<Option<EngineDescriptor>>,
     descriptor_is_deferred: AtomicBool,
     protocol_version: AtomicU64,
+    parameter_cache_epoch: AtomicU64,
     next_request_id: AtomicU64,
     stop_epoch: AtomicU64,
     active_request_id: Arc<AtomicU64>,
@@ -1297,6 +1298,7 @@ impl HelperTtsEngine {
             descriptor: RwLock::new(descriptor),
             descriptor_is_deferred: AtomicBool::new(descriptor_is_deferred),
             protocol_version: AtomicU64::new(0),
+            parameter_cache_epoch: AtomicU64::new(0),
             next_request_id: AtomicU64::new(1),
             stop_epoch: AtomicU64::new(0),
             active_request_id: Arc::new(AtomicU64::new(0)),
@@ -1378,7 +1380,15 @@ impl HelperTtsEngine {
         self.descriptor_is_deferred.store(false, Ordering::Release);
         self.protocol_version
             .store(u64::from(protocol_version), Ordering::Release);
-        *self.connection.write().unwrap() = Some(connection);
+        {
+            let mut current = self.connection.write().unwrap();
+            let epoch = self
+                .parameter_cache_epoch
+                .load(Ordering::Relaxed)
+                .saturating_add(1);
+            self.parameter_cache_epoch.store(epoch, Ordering::Release);
+            *current = Some(connection);
+        }
         *retiring = None;
         info!(
             engine_id = self.config.engine_id,
@@ -2018,6 +2028,19 @@ impl Drop for ActiveRequestGuard<'_> {
 }
 
 impl TtsEngine for HelperTtsEngine {
+    fn parameter_cache_epoch(&self) -> Option<u64> {
+        // Ordinary speech holds lifecycle, but does not invalidate metadata.
+        // The connection lock qualifies this snapshot, not a runtime lease.
+        let connection = self.connection.try_read().ok()?;
+        connection.as_ref()?;
+        if self.protocol_version.load(Ordering::Acquire) != u64::from(parameters::PROTOCOL_VERSION)
+        {
+            return None;
+        }
+        let epoch = self.parameter_cache_epoch.load(Ordering::Acquire);
+        (epoch > 0 && epoch < u64::MAX).then_some(epoch)
+    }
+
     fn synthesize_with_parameters(
         &self,
         request: &SynthesisRequest,
