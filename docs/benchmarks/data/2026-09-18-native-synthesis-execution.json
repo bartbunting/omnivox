@@ -1,0 +1,630 @@
+{
+  "engines": [
+    {
+      "applied": {
+        "evidence": "adapter_applied",
+        "identity": {
+          "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+          "profile_id": "eloquence.windows.6_1.en_us.v1",
+          "runtime_generation": 3791361216333757523,
+          "schema_id": "eloquence.eci-units.v1"
+        },
+        "parameters": [
+          {
+            "id": "gender",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 0
+          },
+          {
+            "id": "head_size",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 50
+          },
+          {
+            "id": "pitch_baseline",
+            "masked_native": false,
+            "origin": "native_set",
+            "read_back": true,
+            "value": 65
+          },
+          {
+            "id": "pitch_fluctuation",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 30
+          },
+          {
+            "id": "roughness",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 0
+          },
+          {
+            "id": "breathiness",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 0
+          },
+          {
+            "id": "speed",
+            "masked_native": false,
+            "origin": "common_mapping",
+            "read_back": true,
+            "value": 75
+          },
+          {
+            "id": "volume",
+            "masked_native": false,
+            "origin": "common_mapping",
+            "read_back": true,
+            "value": 100
+          }
+        ],
+        "plan_id": "eci-0f455784e2fe4b5293c1435c7c9e439e",
+        "realized": {
+          "engine_id": "eloquence",
+          "voice_id": "v1"
+        },
+        "status": "ready"
+      },
+      "buffered_frames": 76084,
+      "draft": {
+        "evidence": "planned",
+        "identity": {
+          "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+          "profile_id": "eloquence.windows.6_1.en_us.v1",
+          "runtime_generation": 3791361216333757523,
+          "schema_id": "eloquence.eci-units.v1"
+        },
+        "parameters": [
+          {
+            "id": "gender",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "head_size",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "pitch_baseline",
+            "masked_native": false,
+            "origin": "native_set",
+            "read_back": false,
+            "value": 65
+          },
+          {
+            "id": "pitch_fluctuation",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "roughness",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "breathiness",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "speed",
+            "masked_native": false,
+            "origin": "common_mapping",
+            "read_back": false,
+            "value": 75
+          },
+          {
+            "id": "volume",
+            "masked_native": false,
+            "origin": "common_mapping",
+            "read_back": false,
+            "value": 100
+          }
+        ],
+        "plan_id": null,
+        "realized": {
+          "engine_id": "eloquence",
+          "voice_id": "v1"
+        },
+        "status": "ready"
+      },
+      "engine": "eloquence",
+      "execution_path": "TtsEngine through voice eligibility",
+      "explicit_common_only": "passed",
+      "native_cancellation": {
+        "error": "SynthesisFailed(\"helper exited before returning a complete response\")",
+        "restarted": true
+      },
+      "ordinary_cancellation": {
+        "error": "SynthesisFailed(\"helper exited before returning a complete response\")",
+        "restarted": true
+      },
+      "ordinary_followup": "passed",
+      "parameter_count": 8,
+      "progressive_frames": 76604,
+      "query_during_speech": "busy",
+      "reconnect": "fresh_generation_old_plan_expired",
+      "stale_strict": "rejected"
+    },
+    {
+      "applied": {
+        "evidence": "adapter_applied",
+        "identity": {
+          "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+          "profile_id": "dectalk.windows.4_99.v1",
+          "runtime_generation": 6299499799055806623,
+          "schema_id": "dectalk.design-voice.v1"
+        },
+        "parameters": [
+          {
+            "id": "sx",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 1
+          },
+          {
+            "id": "sm",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 3
+          },
+          {
+            "id": "as",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 100
+          },
+          {
+            "id": "ap",
+            "masked_native": false,
+            "origin": "native_set",
+            "read_back": true,
+            "value": 130
+          },
+          {
+            "id": "pr",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 100
+          },
+          {
+            "id": "br",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 0
+          },
+          {
+            "id": "ri",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 70
+          },
+          {
+            "id": "nf",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 0
+          },
+          {
+            "id": "la",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 0
+          },
+          {
+            "id": "hs",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 100
+          },
+          {
+            "id": "f4",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 3300
+          },
+          {
+            "id": "b4",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 260
+          },
+          {
+            "id": "f5",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 3650
+          },
+          {
+            "id": "b5",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 330
+          },
+          {
+            "id": "gf",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 70
+          },
+          {
+            "id": "gh",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 70
+          },
+          {
+            "id": "gv",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 65
+          },
+          {
+            "id": "gn",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 74
+          },
+          {
+            "id": "g1",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 68
+          },
+          {
+            "id": "g2",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 60
+          },
+          {
+            "id": "g3",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 48
+          },
+          {
+            "id": "g4",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 64
+          },
+          {
+            "id": "g5",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 86
+          },
+          {
+            "id": "bf",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 18
+          },
+          {
+            "id": "lx",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 0
+          },
+          {
+            "id": "qu",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 40
+          },
+          {
+            "id": "hr",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 18
+          },
+          {
+            "id": "sr",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": true,
+            "value": 32
+          }
+        ],
+        "plan_id": "dt-82909e6926d84b0fb37f4fd85292a5e3",
+        "realized": {
+          "engine_id": "dectalk",
+          "voice_id": "paul"
+        },
+        "status": "ready"
+      },
+      "buffered_frames": 77580,
+      "draft": {
+        "evidence": "planned",
+        "identity": {
+          "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+          "profile_id": "dectalk.windows.4_99.v1",
+          "runtime_generation": 6299499799055806623,
+          "schema_id": "dectalk.design-voice.v1"
+        },
+        "parameters": [
+          {
+            "id": "sx",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "sm",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "as",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "ap",
+            "masked_native": false,
+            "origin": "native_set",
+            "read_back": false,
+            "value": 130
+          },
+          {
+            "id": "pr",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "br",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "ri",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "nf",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "la",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "hs",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "f4",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "b4",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "f5",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "b5",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "gf",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "gh",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "gv",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "gn",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "g1",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "g2",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "g3",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "g4",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "g5",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "bf",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "lx",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "qu",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "hr",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          },
+          {
+            "id": "sr",
+            "masked_native": false,
+            "origin": "engine_default",
+            "read_back": false,
+            "value": null
+          }
+        ],
+        "plan_id": null,
+        "realized": {
+          "engine_id": "dectalk",
+          "voice_id": "paul"
+        },
+        "status": "ready"
+      },
+      "engine": "dectalk",
+      "execution_path": "TtsEngine through voice eligibility",
+      "explicit_common_only": "passed",
+      "native_cancellation": {
+        "error": "SynthesisFailed(\"helper exited before returning a complete response\")",
+        "restarted": true
+      },
+      "ordinary_cancellation": {
+        "error": "SynthesisFailed(\"helper exited before returning a complete response\")",
+        "restarted": true
+      },
+      "ordinary_followup": "passed",
+      "parameter_count": 28,
+      "progressive_frames": 78384,
+      "query_during_speech": "busy",
+      "reconnect": "fresh_generation_old_plan_expired",
+      "stale_strict": "rejected"
+    }
+  ],
+  "windows_staging": {
+    "build_id": "7e38878e1051c7db",
+    "emacsvox_commit": "2e761a9719dc591b1c6342608dcde0ae2de94df5",
+    "omnivox_commit": "10e7ddafca74e0c737a19af72b8b8fc78d5262d5",
+    "omnivox_worktree_sha256": "f36d8f2b207569532eee3a4fcd79d4e3aa7d7e1377e7638e5e7e7b3f67ed67bf",
+    "omnivox_executable_sha256": "06cc9d59c818408b59d9ad80be2ec61c9b3a7a8a115d34abc83a40779d885c30",
+    "piper_companion": "not-included",
+    "implementation_commit": "fbddf32d12448c35665d9bad52eea307cba3897c",
+    "helper_sha256": {
+      "OmnivoxEloquenceHelper32.exe": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8",
+      "OmnivoxDectalkHelper32.exe": "061b83a3743f40430740c893d833722b7f9ea2d53afd8734f292f0b45b4816f4"
+    },
+    "verification": "full development target, checksums, live inventory and companion synthesis passed"
+  }
+}
