@@ -6,6 +6,7 @@ use thiserror::Error;
 
 pub mod contracts;
 pub mod control;
+pub mod engine_parameters;
 pub mod engine_registry;
 #[cfg(feature = "espeak")]
 pub mod espeak;
@@ -111,6 +112,19 @@ impl Default for TtsSettings {
 pub trait TtsEngine: Send + Sync {
     /// Describe this engine, its current runtime state, and discovered voices.
     fn descriptor(&self) -> contracts::EngineDescriptor;
+
+    /// Read a bounded parameter catalogue page from the current worker only.
+    /// Never synthesize, load a model or reconnect to satisfy this query.
+    fn engine_parameters(
+        &self,
+        query: engine_parameters::CatalogueQuery,
+    ) -> Result<engine_parameters::CatalogueResult, engine_parameters::CatalogueError> {
+        engine_parameters::validate_query(&query)?;
+        Ok(engine_parameters::unavailable(
+            engine_parameters::CatalogueUnavailable::NotDescribed,
+            "This engine does not describe native voice parameters",
+        ))
+    }
 
     /// Prepare an engine for a circuit-breaker recovery probe.
     ///

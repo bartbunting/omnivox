@@ -224,6 +224,32 @@ impl EligibleEngine {
 }
 
 impl TtsEngine for EligibleEngine {
+    fn engine_parameters(
+        &self,
+        query: crate::engine_parameters::CatalogueQuery,
+    ) -> Result<crate::engine_parameters::CatalogueResult, crate::engine_parameters::CatalogueError>
+    {
+        use crate::engine_parameters::{unavailable, validate_query, CatalogueUnavailable};
+        validate_query(&query)?;
+        if self.policy.excludes_provider(&self.engine_id) {
+            return Ok(unavailable(
+                CatalogueUnavailable::EngineUnavailable,
+                EXCLUDED,
+            ));
+        }
+        if query.voice_id.as_ref().is_some_and(|id| {
+            !self
+                .policy
+                .permits(&PhysicalVoiceId::new(&self.engine_id, id))
+        }) {
+            return Ok(unavailable(
+                CatalogueUnavailable::VoiceUnavailable,
+                EXCLUDED,
+            ));
+        }
+        self.engine.engine_parameters(query)
+    }
+
     fn descriptor(&self) -> EngineDescriptor {
         self.policy.project_descriptor(self.engine.descriptor())
     }

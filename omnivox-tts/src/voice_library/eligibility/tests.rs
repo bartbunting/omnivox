@@ -383,3 +383,29 @@ fn on_demand_variants_preserve_library_exclusions_and_direct_synthesis_guards() 
     let guarded = Arc::new(policy).guard_engine(native.clone());
     assert!(guarded.synthesize(&request).is_err());
 }
+
+#[test]
+fn catalogue_respects_disabled_voices_and_empty_managed_providers() {
+    use crate::engine_parameters::{CatalogueQuery, CatalogueResult, CatalogueUnavailable};
+    let policy = make_policy(&document(), ProviderOverrides::default());
+    for (id, voice, reason) in [
+        ("espeak", Some("v0"), CatalogueUnavailable::VoiceUnavailable),
+        ("flite", None, CatalogueUnavailable::EngineUnavailable),
+    ] {
+        let native = Native::new(id, &[]);
+        let guarded = policy.guard_engine(native.clone());
+        let result = guarded
+            .engine_parameters(CatalogueQuery {
+                engine_id: id.into(),
+                voice_id: voice.map(String::from),
+                cursor: None,
+                expected_catalogue_revision: None,
+            })
+            .unwrap();
+        assert!(
+            matches!(result, CatalogueResult::Unavailable { reason: actual, .. } if actual == reason)
+        );
+        assert_eq!(native.probes.load(Ordering::SeqCst), 0);
+        assert_eq!(native.calls.load(Ordering::SeqCst), 0);
+    }
+}

@@ -41,6 +41,27 @@ native process ownership, audible output, or permission to publish an active
 pointer. Local Apply obtains those other receipts separately; no installation
 or process-management operation is added to the remote speech transport.
 
+### Current-worker engine parameter catalogues
+
+`engine_parameter_catalogue_v1` enables `get_engine_parameters_v1` and its
+`engine_parameters_v1` response. The [parameter contract](../engine-voice-parameters.md#catalogue)
+defines the strict fields, required nulls, pagination, typed descriptors and
+busy/unavailable results. Requests need a positive request ID. Conditional first
+pages and continuation cursors reject stale catalogue state with `stale_generation`.
+Queries describe the current worker; they never synthesize, load models, recover
+an engine or check a managed installation.
+
+The live server admits one query per connection off the speech command thread.
+Concurrent queries receive busy; an admitted query has a one-second response
+deadline. A timed-out adapter retains the slot until it exits, preventing retry
+floods from accumulating work. Late replies are discarded; connection shutdown
+suppresses pending replies. Main and notification processes have independent slots.
+The helper transaction retains its shorter 200 ms limit and cleanup ownership.
+
+This capability is read-only. `engine_voice_parameters_v1`, native registration,
+previews, timeline 5 and marker events 4 remain unadvertised until their complete
+execution and evidence paths work.
+
 ### Ordinary request envelope
 
 A client writes one ordinary protocol command:

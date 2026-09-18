@@ -245,6 +245,23 @@ impl IsolatedTtsEngine {
 }
 
 impl TtsEngine for IsolatedTtsEngine {
+    fn engine_parameters(
+        &self,
+        query: omnivox_tts::engine_parameters::CatalogueQuery,
+    ) -> Result<
+        omnivox_tts::engine_parameters::CatalogueResult,
+        omnivox_tts::engine_parameters::CatalogueError,
+    > {
+        use omnivox_tts::engine_parameters::{validate_query, CatalogueResult};
+        validate_query(&query)?;
+        if self.engine_active.load(Ordering::Acquire)
+            || self.recover_before_next_call.load(Ordering::Acquire)
+        {
+            return Ok(CatalogueResult::Busy { retry_after_ms: 50 });
+        }
+        self.engine.engine_parameters(query)
+    }
+
     fn descriptor(&self) -> EngineDescriptor {
         self.engine.descriptor()
     }

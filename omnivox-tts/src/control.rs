@@ -65,6 +65,7 @@ pub enum ControlRequest {
     Capabilities,
     Inventory,
     VoiceLibraryStatusV1,
+    GetEngineParametersV1(crate::engine_parameters::CatalogueQuery),
     RegisterLogicalVoices {
         registry_generation: u64,
         definitions: Vec<LogicalVoiceDefinition>,
@@ -195,6 +196,10 @@ pub struct ControlResponseEnvelope {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ControlResponse {
     VoiceLibraryStatusV1(crate::voice_library::VoiceLibraryStatus),
+    EngineParametersV1 {
+        engine_id: String,
+        result: crate::engine_parameters::CatalogueResult,
+    },
     Capabilities {
         server_version: String,
         supported_protocol_versions: Vec<u32>,
@@ -334,6 +339,7 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
         ControlRequest::RegisterLogicalVoicesV2(_)
             | ControlRequest::PreviewVoiceV2(_)
             | ControlRequest::VoiceLibraryStatusV1
+            | ControlRequest::GetEngineParametersV1(_)
     ) {
         // Legacy definitions inside a new envelope may accept extension keys,
         // but no key in the new message may occur twice.
@@ -426,6 +432,7 @@ pub fn process_control_request_with_library(
                         "control_v1".to_owned(),
                         "emacsvox_tx".to_owned(),
                         "engine_inventory".to_owned(),
+                        "engine_parameter_catalogue_v1".to_owned(),
                         "engine_recovery_probe".to_owned(),
                         "startup_engine_rescan".to_owned(),
                         "exact_voice_preview".to_owned(),
@@ -599,7 +606,8 @@ pub fn process_control_request_with_library(
                     error.to_string(),
                 ),
             },
-            ControlRequest::Preview { .. }
+            ControlRequest::GetEngineParametersV1(_)
+            | ControlRequest::Preview { .. }
             | ControlRequest::PreviewVoice(_)
             | ControlRequest::PreviewVoiceV2(_)
             | ControlRequest::RequestEngineRecoveryProbe { .. } => error_response(
@@ -866,6 +874,61 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn parameter_catalogue_wire_is_strict_and_preserves_required_nulls() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../docs/protocol-fixtures/engine-voice-parameters.json"
+        ))
+        .unwrap();
+        let value = &fixture["messages"]["catalogue_request"];
+        let request = decode_request(&encode_json(value).unwrap()).unwrap();
+        assert_eq!(serde_json::to_value(request).unwrap(), *value);
+        for field in ["voice_id", "cursor", "expected_catalogue_revision"] {
+            let mut invalid = value.clone();
+            invalid.as_object_mut().unwrap().remove(field);
+            assert!(
+                decode_request(&encode_json(&invalid).unwrap()).is_err(),
+                "{field}"
+            );
+            let reply = process_without_registry(&encode_json(&invalid).unwrap(), "test", 0, &[]);
+            assert_eq!(reply.request_id, Some(803));
+            assert!(matches!(
+                reply.response,
+                ControlResponse::Error {
+                    code: ControlErrorCode::MalformedRequest,
+                    ..
+                }
+            ));
+        }
+        let mut invalid = value.clone();
+        invalid["native"] = serde_json::Value::Null;
+        assert!(decode_request(&encode_json(&invalid).unwrap()).is_err());
+        let raw =
+            serde_json::to_string(value)
+                .unwrap()
+                .replacen("{", "{\"engine_id\":\"eloquence\",", 1);
+        assert!(decode_request(&STANDARD.encode(raw)).is_err());
+        let result: ControlResponseEnvelope =
+            serde_json::from_value(fixture["messages"]["catalogue_response"].clone()).unwrap();
+        assert_eq!(
+            decode_response(&encode_response(&result).unwrap()).unwrap(),
+            result
+        );
+        let caps = process_without_registry(
+            &encode_request(&capabilities_request(1, 1)).unwrap(),
+            "test",
+            0,
+            &[],
+        );
+        let ControlResponse::Capabilities { features, .. } = caps.response else {
+            panic!()
+        };
+        assert!(features
+            .iter()
+            .any(|f| f == "engine_parameter_catalogue_v1"));
+        assert!(!features.iter().any(|f| f == "engine_voice_parameters_v1"));
     }
 
     fn capabilities_request(version: u32, request_id: u64) -> ControlRequestEnvelope {

@@ -25,6 +25,7 @@ mod engine_execution;
 mod health;
 mod lifecycle;
 mod marker_events;
+mod parameter_queries;
 mod pipeline;
 mod remote;
 #[cfg(windows)]

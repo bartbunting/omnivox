@@ -254,12 +254,23 @@ mod native_parent {
     }
 
     #[test]
+    fn public_catalogue_guard_is_stale_without_retiring_the_current_helper() {
+        let peer = NativePeer::new(true);
+        let engine = engine(vec![Arc::clone(&peer)]);
+        let mut guarded = query();
+        guarded.expected_catalogue_revision = Some("f".repeat(64));
+        assert!(matches!(engine.engine_parameters(guarded), Err(crate::engine_parameters::CatalogueError::Stale(_))));
+        assert!(matches!(engine.engine_parameters(query()).unwrap(), p::CatalogueResult::Ready { .. }));
+        assert!(engine.synthesize(&synthesis_request("ordinary speech after stale metadata")).is_ok());
+    }
+
+    #[test]
     fn ordinary_and_native_speech_keep_receipts_separate_and_reset_per_request() {
         for streaming in [false, true] {
             let peer = NativePeer::new(streaming);
             let engine = engine(vec![Arc::clone(&peer)]);
             assert!(matches!(
-                engine.query_parameters(query()).unwrap(),
+                engine.engine_parameters(query()).unwrap(),
                 p::CatalogueResult::Ready { .. }
             ));
             let (result, receipt) = engine
@@ -363,7 +374,7 @@ mod native_parent {
         ));
         let engine = mock_engine(vec![Arc::clone(&peer)]).unwrap();
         assert!(matches!(
-            engine.query_parameters(query()).unwrap(),
+            engine.engine_parameters(query()).unwrap(),
             p::CatalogueResult::Unavailable {
                 reason: p::CatalogueUnavailable::UnsupportedHelper,
                 ..
@@ -406,7 +417,7 @@ mod native_parent {
         });
         ready.recv_timeout(Duration::from_secs(1)).unwrap();
         assert!(matches!(
-            engine.query_parameters(query()).unwrap(),
+            engine.engine_parameters(query()).unwrap(),
             p::CatalogueResult::Busy { .. }
         ));
         assert!(!peer
@@ -418,7 +429,7 @@ mod native_parent {
         engine.stop();
         assert!(task.join().unwrap().is_err());
         assert!(matches!(
-            engine.query_parameters(query()).unwrap(),
+            engine.engine_parameters(query()).unwrap(),
             p::CatalogueResult::Ready { .. }
         ));
         peer.inner.set_mode(MockSynthesisMode::StreamComplete);
@@ -502,7 +513,7 @@ mod native_parent {
         )
         .unwrap();
         assert!(matches!(
-            engine.query_parameters(query()).unwrap(),
+            engine.engine_parameters(query()).unwrap(),
             p::CatalogueResult::Unavailable {
                 reason: p::CatalogueUnavailable::EngineUnavailable,
                 ..

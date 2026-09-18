@@ -730,7 +730,7 @@ fn playback_completion_identifier(completion: &PlaybackCompletion) -> u64 {
     }
 }
 
-fn write_control_response(response: &ControlResponseEnvelope) {
+pub(crate) fn write_control_response(response: &ControlResponseEnvelope) {
     match format_control_event(response) {
         Ok(event) => {
             let mut stdout = io::stdout().lock();
@@ -1704,6 +1704,7 @@ pub fn run_server(
     tracked_playback_handle: std::thread::JoinHandle<()>,
     marker_event_handle: std::thread::JoinHandle<()>,
 ) -> Result<()> {
+    let parameter_queries = crate::parameter_queries::ParameterQueries::new();
     let mut pending = PendingBatch::default();
     let mut current_gen: u64 = 0;
     let mut logical_voices = LogicalVoiceRegistry::default();
@@ -1757,6 +1758,16 @@ pub fn run_server(
             Some(command) => command,
             None => break,
         };
+
+        if command.id == CommandId::OmnivoxControl
+            && parameter_queries.try_handle(
+                command.args.as_deref().unwrap_or(""),
+                &engine_registry,
+                &routing_policy.policy().disabled_engine_ids,
+            )
+        {
+            continue;
+        }
 
         if matches!(
             command.id,
@@ -2091,6 +2102,7 @@ pub fn run_server(
             }
         }
     }
+    drop(parameter_queries);
     let _ = input_handle.join();
 
     // A broker or local owner disappearing must not play its backlog.

@@ -2018,6 +2018,53 @@ impl Drop for ActiveRequestGuard<'_> {
 }
 
 impl TtsEngine for HelperTtsEngine {
+    fn engine_parameters(
+        &self,
+        query: crate::engine_parameters::CatalogueQuery,
+    ) -> Result<crate::engine_parameters::CatalogueResult, crate::engine_parameters::CatalogueError>
+    {
+        use crate::engine_parameters::{
+            unavailable, validate_query, CatalogueError, CatalogueUnavailable,
+        };
+        validate_query(&query)?;
+        let guarded = query.cursor.is_some() || query.expected_catalogue_revision.is_some();
+        let expected = query.expected_catalogue_revision.clone();
+        let mut submitted = query;
+        // A conditional first-page check is evaluated against the actual ready
+        // identity, without turning a stale client guard into a bad-helper fault.
+        if submitted.cursor.is_none() {
+            submitted.expected_catalogue_revision = None;
+        }
+        match self.query_parameters(submitted) {
+            Ok(parameters::CatalogueResult::Ready { ref identity, .. })
+                if expected
+                    .as_ref()
+                    .is_some_and(|r| r != &identity.catalogue_revision) =>
+            {
+                Err(CatalogueError::Stale(
+                    "Catalogue revision changed; start a fresh query".into(),
+                ))
+            }
+            Ok(result) => Ok(result),
+            Err(HelperEngineError::Remote {
+                code: HelperErrorCode::InvalidParameter,
+                message,
+                ..
+            }) => Err(if guarded {
+                CatalogueError::Stale(message)
+            } else {
+                CatalogueError::Invalid(message)
+            }),
+            Err(error) => {
+                warn!(%error, "Engine parameter catalogue unavailable");
+                Ok(unavailable(
+                    CatalogueUnavailable::EngineUnavailable,
+                    "The current helper could not return a parameter catalogue",
+                ))
+            }
+        }
+    }
+
     fn descriptor(&self) -> EngineDescriptor {
         self.descriptor
             .read()

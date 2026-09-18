@@ -1,0 +1,50 @@
+{
+  "build_id": "2043239474542241",
+  "audio_backend": "null",
+  "engines": {
+    "eloquence": {
+      "parameter_count": 8,
+      "voices_checked": 8,
+      "identity": {
+        "schema_id": "eloquence.eci-units.v1",
+        "profile_id": "eloquence.windows.6_1.en_us.v1",
+        "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+        "runtime_generation": 425631139866128881
+      },
+      "ordinary_preview": "completed",
+      "ordinary_preview_frames": 110000
+    },
+    "dectalk": {
+      "parameter_count": 28,
+      "voices_checked": 9,
+      "identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 4013606490725627307
+      },
+      "ordinary_preview": "completed",
+      "ordinary_preview_frames": 107636
+    }
+  },
+  "checks": [
+    "capability boundary",
+    "engine and voice catalogues",
+    "all native presets",
+    "stale revision and cursor",
+    "ordinary preview after stale queries",
+    "absent engine and voice",
+    "undescribed engine",
+    "required null rejection",
+    "busy during synthesis",
+    "bounded concurrent queries",
+    "capabilities responsive during queries",
+    "ordinary speech after cancellation"
+  ],
+  "busy_responses": 12,
+  "burst_seconds": 0.0016999939980451018,
+  "after_cancellation": "completed",
+  "cancelled_preview_status": "cancelled",
+  "after_cancellation_frames": 93808,
+  "shutdown": "normal shutdown and helper retirement logged"
+}

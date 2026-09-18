@@ -4,8 +4,8 @@ Accepted implementation boundary, 2026-09-17. This mirrors the semantic design
 in Emacsvox commit `e0e83d71d`, under [ADR 0015](adr/0015-engine-described-voice-parameters.md).
 The [JSON fixtures](protocol-fixtures/engine-voice-parameters.json) are independent
 examples for codecs and composition. The typed metadata and pure planner now
-consume the parameter and composition examples; the public operations described
-below remain reserved. No feature is advertised yet. The
+consume the parameter and composition examples. Public catalogue discovery is
+implemented; native editing/speech operations below remain reserved. The
 [native audit](benchmarks/2026-09-17-native-voice-parameters.md) does not replace
 the remaining execution and cancellation tests.
 
@@ -80,8 +80,12 @@ The [parent integration](benchmarks/2026-09-18-helper6-parent.md) connects stric
 negotiation, ordinary and native synthesis, per-request application evidence,
 and bounded catalogue/explanation queries. Queries return busy during speech;
 they never connect a deferred helper or restart one to obtain metadata.
-Next connect public transport, routed receipts and the Emacs editor. Adapter integration must preserve the
-old common path, including its existing clamps; native edit ranges are separately
+Public [read-only catalogue discovery](benchmarks/2026-09-18-public-parameter-catalogues.md)
+now reaches those current-worker queries
+through the `engine_parameter_catalogue_v1` capability. Admission and replies are
+bounded independently of the speech command thread. Native registration, speech,
+preview/explanation operations, routed receipts and the Emacs editor remain next.
+Adapter integration must preserve the old common path, including its existing clamps; native edit ranges are separately
 qualified and must not silently recalibrate common controls.
 
 ## Shared rules
