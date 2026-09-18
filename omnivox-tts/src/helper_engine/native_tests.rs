@@ -348,6 +348,48 @@ mod native_parent {
         }
     }
     #[test]
+    fn native_trait_dispatch_survives_eligibility_and_blocks_disabled_voices() {
+        use crate::voice_library::{HostPlatform, ProviderOverrides, RuntimeLibrary, VoiceEligibility};
+        for streaming in [false, true] {
+            for disabled in [false, true] {
+                let peer = NativePeer::new(streaming);
+                let source = json!({"schema_version":1,
+                    "target_id":"11111111-1111-4111-8111-111111111111",
+                    "profile_id":"22222222-2222-4222-8222-222222222222",
+                    "generation_id":"33333333-3333-4333-8333-333333333333",
+                    "disabled_physical_ids": if disabled {
+                        vec![json!({"engine_id":"eloquence","voice_id":"reed"})]
+                    } else { vec![] },
+                    "piper":null,"flite":null});
+                let library = RuntimeLibrary::parse(&serde_json::to_vec(&source).unwrap(), HostPlatform::Posix).unwrap();
+                let policy = Arc::new(VoiceEligibility::from_library(&library, ProviderOverrides::default()));
+                let guarded = policy.guard_engine(Arc::new(engine(vec![peer.clone()])));
+                let request = synthesis_request("guarded native voice");
+                let buffered = guarded.synthesize_with_parameters(&request, &native());
+                let seen = Arc::new(AtomicBool::new(false));
+                let mut sink = OrderedSink { receipt: seen.clone(), audio: 0 };
+                let streamed = guarded.synthesize_stream_with_parameters(&request, &native(), &mut sink,
+                    &mut |_| { assert!(!seen.swap(true, Ordering::AcqRel)); });
+                if disabled {
+                    assert!(buffered.is_err() && streamed.is_err());
+                    assert!(!seen.load(Ordering::Acquire));
+                    assert_eq!(sink.audio, 0);
+                    assert!(peer.requests.lock().unwrap().is_empty());
+                } else {
+                    assert_eq!(buffered.unwrap().1.status, p::ApplicationStatus::Applied);
+                    assert!(streamed.is_ok() && sink.audio > 0);
+                    let requests = peer.requests.lock().unwrap();
+                    let native_blocks: Vec<_> = requests.values().filter_map(|request| {
+                        if let p::RequestBody::Synthesize { voice_parameters, .. } = &request.body {
+                            voice_parameters.as_ref()
+                        } else { None }
+                    }).collect();
+                    assert_eq!(native_blocks, vec![&native(), &native()]);
+                }
+            }
+        }
+    }
+    #[test]
     fn invalid_receipts_never_reach_sink_or_application_callback() {
         for fault in [1, 2, 3] {
             let peer = NativePeer::new(true);

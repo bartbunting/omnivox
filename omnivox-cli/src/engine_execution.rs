@@ -6,6 +6,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use omnivox_tts::contracts::EngineDescriptor;
+use omnivox_tts::native_synthesis::{self, NativeApplication, VoiceParameters};
 use omnivox_tts::{
     AudioBuffer, ResolvedAnchor, SynthesisCancellationToken, SynthesisMarker, SynthesisRequest,
     SynthesisResult, SynthesisStreamCompletion, SynthesisStreamSink, SynthesisStreamStart,
@@ -20,6 +21,7 @@ const ISOLATED_STREAM_EVENT_CAPACITY: usize = 4;
 pub const MAX_ISOLATED_CALLS: usize = 2;
 
 enum IsolatedStreamEvent {
+    Application(NativeApplication),
     Start(SynthesisStreamStart),
     Audio(AudioBuffer),
     Markers(Vec<SynthesisMarker>, Vec<ResolvedAnchor>),
@@ -244,36 +246,12 @@ impl IsolatedTtsEngine {
     }
 }
 
-impl TtsEngine for IsolatedTtsEngine {
-    fn engine_parameters(
+impl IsolatedTtsEngine {
+    fn synthesize_isolated<T: Send + 'static>(
         &self,
-        query: omnivox_tts::engine_parameters::CatalogueQuery,
-    ) -> Result<
-        omnivox_tts::engine_parameters::CatalogueResult,
-        omnivox_tts::engine_parameters::CatalogueError,
-    > {
-        use omnivox_tts::engine_parameters::{validate_query, CatalogueResult};
-        validate_query(&query)?;
-        if self.engine_active.load(Ordering::Acquire)
-            || self.recover_before_next_call.load(Ordering::Acquire)
-        {
-            return Ok(CatalogueResult::Busy { retry_after_ms: 50 });
-        }
-        self.engine.engine_parameters(query)
-    }
-
-    fn descriptor(&self) -> EngineDescriptor {
-        self.engine.descriptor()
-    }
-
-    fn prepare_recovery_probe(&self) -> Result<(), TtsError> {
-        // Connection setup can itself block. Defer it into the same isolated
-        // task as synthesis so a newer generation can quarantine it safely.
-        self.recover_before_next_call.store(true, Ordering::Release);
-        Ok(())
-    }
-
-    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+        request: &SynthesisRequest,
+        run: impl FnOnce(Arc<dyn TtsEngine>, SynthesisRequest) -> Result<T, TtsError> + Send + 'static,
+    ) -> Result<T, TtsError> {
         let engine_id = self.engine.descriptor().id;
         let generation = self.generation.load(Ordering::Acquire);
         let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
@@ -294,9 +272,9 @@ impl TtsEngine for IsolatedTtsEngine {
                 let result = if prepare_recovery {
                     engine
                         .prepare_recovery_probe()
-                        .and_then(|()| engine.synthesize(&owned_request))
+                        .and_then(|()| run(engine, owned_request))
                 } else {
-                    engine.synthesize(&owned_request)
+                    run(engine, owned_request)
                 };
                 // The caller retains its lease until after it receives this
                 // result. Drop the task's clone first so the engine slot is
@@ -358,11 +336,16 @@ impl TtsEngine for IsolatedTtsEngine {
         }
     }
 
-    fn synthesize_stream(
+    fn synthesize_stream_isolated(
         &self,
         request: &SynthesisRequest,
         sink: &mut dyn SynthesisStreamSink,
+        parameters: Option<&VoiceParameters>,
+        application: &mut dyn FnMut(&NativeApplication),
     ) -> Result<SynthesisStreamCompletion, TtsError> {
+        if let Some(parameters) = parameters {
+            native_synthesis::validate_request(parameters)?;
+        }
         let engine_id = self.engine.descriptor().id;
         let generation = self.generation.load(Ordering::Acquire);
         let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
@@ -375,6 +358,7 @@ impl TtsEngine for IsolatedTtsEngine {
         let prepare_recovery = self.recover_before_next_call.swap(false, Ordering::AcqRel);
         let engine = Arc::clone(&self.engine);
         let owned_request = request.clone();
+        let owned_parameters = parameters.cloned();
         let task_lease = lease.clone();
         let (event_sender, event_receiver) = mpsc::sync_channel(ISOLATED_STREAM_EVENT_CAPACITY);
         let task = thread::Builder::new()
@@ -383,12 +367,22 @@ impl TtsEngine for IsolatedTtsEngine {
                 let mut relay = IsolatedStreamRelay {
                     sender: event_sender.clone(),
                 };
+                let mut run = || match &owned_parameters {
+                    Some(parameters) => engine.synthesize_stream_with_parameters(
+                        &owned_request,
+                        parameters,
+                        &mut relay,
+                        &mut |receipt| {
+                            let _ = event_sender
+                                .send(IsolatedStreamEvent::Application(receipt.clone()));
+                        },
+                    ),
+                    None => engine.synthesize_stream(&owned_request, &mut relay),
+                };
                 let result = if prepare_recovery {
-                    engine
-                        .prepare_recovery_probe()
-                        .and_then(|()| engine.synthesize_stream(&owned_request, &mut relay))
+                    engine.prepare_recovery_probe().and_then(|()| run())
                 } else {
-                    engine.synthesize_stream(&owned_request, &mut relay)
+                    run()
                 };
                 drop(relay);
                 drop(task_lease);
@@ -404,6 +398,8 @@ impl TtsEngine for IsolatedTtsEngine {
         }
 
         let mut superseded_at = None;
+        let mut receipt_seen = false;
+        let mut start_seen = false;
         loop {
             let cancelled = self.was_cancelled(generation, stop_epoch, cancellation);
             if cancelled {
@@ -430,10 +426,42 @@ impl TtsEngine for IsolatedTtsEngine {
                     if self.was_cancelled(generation, stop_epoch, cancellation) {
                         return Err(self.cancellation_error());
                     }
+                    if result.is_ok() && parameters.is_some() && !(receipt_seen && start_seen) {
+                        return Err(TtsError::SynthesisFailed(
+                            "Native stream completed without application and start metadata".into(),
+                        ));
+                    }
                     return result;
                 }
-                Ok(_) if cancelled => {}
+                // Recheck after the blocking receive, including application metadata.
+                Ok(_) if self.was_cancelled(generation, stop_epoch, cancellation) => {}
+                Ok(IsolatedStreamEvent::Application(receipt)) => {
+                    let valid = parameters
+                        .ok_or_else(|| {
+                            TtsError::SynthesisFailed("Unexpected native application".into())
+                        })
+                        .and_then(|parameters| {
+                            native_synthesis::validate_application(&engine_id, parameters, &receipt)
+                        });
+                    if receipt_seen || start_seen || valid.is_err() {
+                        self.engine.stop();
+                        lease.mark_quarantined();
+                        return Err(valid.err().unwrap_or_else(|| {
+                            TtsError::SynthesisFailed("Repeated or late native application".into())
+                        }));
+                    }
+                    receipt_seen = true;
+                    application(&receipt);
+                }
                 Ok(IsolatedStreamEvent::Start(start)) => {
+                    if parameters.is_some() && (!receipt_seen || start_seen) {
+                        self.engine.stop();
+                        lease.mark_quarantined();
+                        return Err(TtsError::SynthesisFailed(
+                            "Native stream start without one preceding application".into(),
+                        ));
+                    }
+                    start_seen = true;
                     if let Err(error) = sink.start(start) {
                         self.engine.stop();
                         lease.mark_quarantined();
@@ -441,6 +469,13 @@ impl TtsEngine for IsolatedTtsEngine {
                     }
                 }
                 Ok(IsolatedStreamEvent::Audio(audio)) => {
+                    if parameters.is_some() && !(receipt_seen && start_seen) {
+                        self.engine.stop();
+                        lease.mark_quarantined();
+                        return Err(TtsError::SynthesisFailed(
+                            "Native output preceded application/start metadata".into(),
+                        ));
+                    }
                     if let Err(error) = sink.audio(audio) {
                         self.engine.stop();
                         lease.mark_quarantined();
@@ -448,6 +483,13 @@ impl TtsEngine for IsolatedTtsEngine {
                     }
                 }
                 Ok(IsolatedStreamEvent::Markers(markers, anchors)) => {
+                    if parameters.is_some() && !(receipt_seen && start_seen) {
+                        self.engine.stop();
+                        lease.mark_quarantined();
+                        return Err(TtsError::SynthesisFailed(
+                            "Native output preceded application/start metadata".into(),
+                        ));
+                    }
                     if let Err(error) = sink.markers(markers, anchors) {
                         self.engine.stop();
                         lease.mark_quarantined();
@@ -462,6 +504,76 @@ impl TtsEngine for IsolatedTtsEngine {
                 }
             }
         }
+    }
+}
+
+impl TtsEngine for IsolatedTtsEngine {
+    fn engine_parameters(
+        &self,
+        query: omnivox_tts::engine_parameters::CatalogueQuery,
+    ) -> Result<
+        omnivox_tts::engine_parameters::CatalogueResult,
+        omnivox_tts::engine_parameters::CatalogueError,
+    > {
+        use omnivox_tts::engine_parameters::{validate_query, CatalogueResult};
+        validate_query(&query)?;
+        if self.engine_active.load(Ordering::Acquire)
+            || self.recover_before_next_call.load(Ordering::Acquire)
+        {
+            return Ok(CatalogueResult::Busy { retry_after_ms: 50 });
+        }
+        self.engine.engine_parameters(query)
+    }
+
+    fn descriptor(&self) -> EngineDescriptor {
+        self.engine.descriptor()
+    }
+
+    fn prepare_recovery_probe(&self) -> Result<(), TtsError> {
+        // Connection setup can itself block. Defer it into the same isolated
+        // task as synthesis so a newer generation can quarantine it safely.
+        self.recover_before_next_call.store(true, Ordering::Release);
+        Ok(())
+    }
+
+    fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+        self.synthesize_isolated(request, |engine, request| engine.synthesize(&request))
+    }
+
+    fn synthesize_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &VoiceParameters,
+    ) -> Result<(SynthesisResult, NativeApplication), TtsError> {
+        native_synthesis::validate_request(parameters)?;
+        let parameters = parameters.clone();
+        self.synthesize_isolated(request, move |engine, request| {
+            let result = engine.synthesize_with_parameters(&request, &parameters)?;
+            native_synthesis::validate_application(
+                &engine.descriptor().id,
+                &parameters,
+                &result.1,
+            )?;
+            Ok(result)
+        })
+    }
+
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        self.synthesize_stream_isolated(request, sink, None, &mut |_| {})
+    }
+
+    fn synthesize_stream_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &VoiceParameters,
+        sink: &mut dyn SynthesisStreamSink,
+        application: &mut dyn FnMut(&NativeApplication),
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        self.synthesize_stream_isolated(request, sink, Some(parameters), application)
     }
 
     fn stop(&self) {
@@ -494,6 +606,10 @@ mod tests {
     use omnivox_tts::{AudioBuffer, TtsSettings, VoiceQuality};
 
     use super::*;
+
+    mod native {
+        include!("engine_execution_native_tests.rs");
+    }
 
     struct BlockingState {
         started: usize,

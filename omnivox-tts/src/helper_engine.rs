@@ -2018,6 +2018,30 @@ impl Drop for ActiveRequestGuard<'_> {
 }
 
 impl TtsEngine for HelperTtsEngine {
+    fn synthesize_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &parameters::VoiceParameters,
+    ) -> Result<(SynthesisResult, parameters::NativeApplication), TtsError> {
+        HelperTtsEngine::synthesize_with_parameters(self, request, parameters)
+    }
+
+    fn synthesize_stream_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &parameters::VoiceParameters,
+        sink: &mut dyn SynthesisStreamSink,
+        application: &mut dyn FnMut(&parameters::NativeApplication),
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        HelperTtsEngine::synthesize_stream_with_parameters(
+            self,
+            request,
+            parameters,
+            sink,
+            application,
+        )
+    }
+
     fn engine_parameters(
         &self,
         query: crate::engine_parameters::CatalogueQuery,

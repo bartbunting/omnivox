@@ -224,6 +224,29 @@ impl EligibleEngine {
 }
 
 impl TtsEngine for EligibleEngine {
+    fn synthesize_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &crate::native_synthesis::VoiceParameters,
+    ) -> Result<(SynthesisResult, crate::native_synthesis::NativeApplication), TtsError> {
+        crate::native_synthesis::validate_request(parameters)?;
+        self.admit(request)?;
+        self.engine.synthesize_with_parameters(request, parameters)
+    }
+
+    fn synthesize_stream_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &crate::native_synthesis::VoiceParameters,
+        sink: &mut dyn SynthesisStreamSink,
+        application: &mut dyn FnMut(&crate::native_synthesis::NativeApplication),
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        crate::native_synthesis::validate_request(parameters)?;
+        self.admit(request)?;
+        self.engine
+            .synthesize_stream_with_parameters(request, parameters, sink, application)
+    }
+
     fn engine_parameters(
         &self,
         query: crate::engine_parameters::CatalogueQuery,

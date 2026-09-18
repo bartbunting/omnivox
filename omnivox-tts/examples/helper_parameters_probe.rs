@@ -10,6 +10,7 @@ use serde_json::json;
 use std::{
     cell::Cell,
     error::Error,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -81,7 +82,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let mut config = HelperEngineConfig::new(&args[1], &args[2]);
     config.arguments = args[6..].iter().map(Into::into).collect();
-    let engine = HelperTtsEngine::new(config)?;
+    let engine = Arc::new(HelperTtsEngine::new(config)?);
+    let execution =
+        Arc::new(voice_library::VoiceEligibility::default()).guard_engine(engine.clone());
     let initial = catalogue(&engine, &args[1])?;
     let mut native: VoiceParameters = serde_json::from_value(
         json!({"native":{"engine_id":args[1],"schema_id":initial.identity.schema_id,
@@ -113,7 +116,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             ..
         }
     ));
-    let (buffered, receipt) = engine.synthesize_with_parameters(&request, &native)?;
+    let (buffered, receipt) = execution.synthesize_with_parameters(&request, &native)?;
     assert!(!buffered.audio.is_empty());
     let explanation = engine.explain_parameters(ExplanationSource::Applied {
         plan_id: receipt.plan_id.clone().unwrap(),
@@ -134,7 +137,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         busy: false,
     };
     let completed =
-        engine.synthesize_stream_with_parameters(&request, &native, &mut sink, &mut |_| {
+        execution.synthesize_stream_with_parameters(&request, &native, &mut sink, &mut |_| {
             assert!(!seen.replace(true));
         })?;
     assert_eq!(sink.frames, completed.frame_count);
@@ -146,7 +149,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     sink.frames = 0;
     sink.interrupt = true;
     let cancelled =
-        engine.synthesize_stream_with_parameters(&long, &native, &mut sink, &mut |_| {
+        execution.synthesize_stream_with_parameters(&long, &native, &mut sink, &mut |_| {
             seen.set(true);
         });
     eprintln!("Cancellation outcome: {cancelled:?}");
@@ -160,7 +163,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         initial.identity.catalogue_revision
     );
     native.expected_identity = refreshed.identity;
-    assert!(engine.synthesize_with_parameters(&request, &native).is_ok());
+    assert!(execution
+        .synthesize_with_parameters(&request, &native)
+        .is_ok());
     // Compare the same first-PCM cancellation with ordinary speech. Existing
     // watchdog retirement is valid, but stale native identity must never replay.
     seen.set(true);
@@ -174,10 +179,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     assert!(engine.synthesize(&request).is_ok());
     let mut stale = native.clone();
     stale.expected_identity.runtime_generation += 1;
-    assert!(engine.synthesize_with_parameters(&request, &stale).is_err());
+    assert!(execution
+        .synthesize_with_parameters(&request, &stale)
+        .is_err());
     stale.unavailable_policy = UnavailablePolicy::CommonOnly;
     assert_eq!(
-        engine
+        execution
             .synthesize_with_parameters(&request, &stale)?
             .1
             .status,
@@ -202,16 +209,18 @@ fn main() -> Result<(), Box<dyn Error>> {
             ..
         }
     ));
-    assert!(engine
+    assert!(execution
         .synthesize_with_parameters(&request, &native)
         .is_err());
     let mut fresh = native;
     fresh.expected_identity = renewed.identity;
-    assert!(engine.synthesize_with_parameters(&request, &fresh).is_ok());
+    assert!(execution
+        .synthesize_with_parameters(&request, &fresh)
+        .is_ok());
     println!(
         "{}",
         serde_json::to_string_pretty(
-            &json!({"engine":args[1],"parameter_count":initial.parameters.len(),
+            &json!({"engine":args[1],"execution_path":"TtsEngine through voice eligibility","parameter_count":initial.parameters.len(),
         "buffered_frames":buffered.audio.frame_count(),"progressive_frames":progressive_frames,
         "draft":draft,"applied":explanation,"query_during_speech":"busy","native_cancellation":{"error":native_cancel_error,"restarted":native_restarted},
         "ordinary_cancellation":{"error":ordinary_cancel_error,"restarted":ordinary_restarted},

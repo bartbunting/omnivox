@@ -16,6 +16,7 @@ pub mod logical_voices;
 pub mod macos;
 pub mod marker_protocol;
 pub mod native_parameters;
+pub mod native_synthesis;
 #[cfg(feature = "piper")]
 pub mod piper;
 pub mod presentation;
@@ -155,6 +156,33 @@ pub trait TtsEngine: Send + Sync {
             result,
             sink,
         )
+    }
+
+    /// Execute an explicit native block, returning tentative adapter evidence.
+    /// Strict requests fail on unsupported engines before ordinary synthesis.
+    fn synthesize_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &native_synthesis::VoiceParameters,
+    ) -> Result<(SynthesisResult, native_synthesis::NativeApplication), TtsError> {
+        let application = native_synthesis::common_only(parameters)?;
+        Ok((self.synthesize(request)?, application))
+    }
+
+    /// Stream explicit native settings; evidence must precede start, PCM and markers.
+    /// The callback is tentative: callers retain normal PCM commitment rules.
+    /// Unsupported adapters keep their ordinary progressive path for common-only
+    /// requests instead of introducing whole-utterance buffering.
+    fn synthesize_stream_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &native_synthesis::VoiceParameters,
+        sink: &mut dyn SynthesisStreamSink,
+        application: &mut dyn FnMut(&native_synthesis::NativeApplication),
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        let receipt = native_synthesis::common_only(parameters)?;
+        application(&receipt);
+        self.synthesize_stream(request, sink)
     }
 
     /// Stop current synthesis
