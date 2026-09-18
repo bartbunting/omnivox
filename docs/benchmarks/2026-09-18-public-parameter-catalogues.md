@@ -68,7 +68,11 @@ latency measurement. The preview was cancelled and a fresh ordinary preview
 completed successfully. The process then logged normal shutdown and helper
 retirement. Tests opened no audio device and establish no listening quality.
 
-The development desktop launcher retains the previously selected parent build
-`c9ff5b92bc933fe1`. No live Emacs process was changed. The catalogue build is
-staged separately; exposing/editing these controls in Emacs still requires the
-remaining native registration, routing, preview and client work.
+Final inspection found the development desktop launcher had been restored outside
+this slice to `e1ecdb481ee08fd0`. Its new comment records that the active voice
+library requires Piper. Both the earlier parent test package and this catalogue
+package omit Piper under the existing development staging policy; neither is a
+suitable replacement for that active profile without a matching Piper build.
+The restored launcher was preserved. No live Emacs process was changed. The
+catalogue package remains staged separately; exposing/editing these controls in
+Emacs still requires native registration, routing, preview and client work.
