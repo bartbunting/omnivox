@@ -750,12 +750,23 @@ fn queue_synthesis_result_inner(
         }
     };
     let observation = if result.audio.is_empty() {
-        None
+        Ok(None)
     } else {
-        attempt.and_then(|attempt| {
-            ctx.voice_observations
-                .map(|evidence| evidence.lock().unwrap().prepare(attempt))
-        })
+        attempt
+            .and_then(|attempt| {
+                ctx.voice_observations
+                    .map(|evidence| evidence.lock().unwrap().prepare(attempt))
+            })
+            .transpose()
+    };
+    let observation = match observation {
+        Ok(observation) => observation,
+        Err(error) => {
+            warn!("Preview evidence cannot be reported: {error}");
+            ctx.mark_failed();
+            discard_effects(ctx);
+            return false;
+        }
     };
     let accepted = if let Some(marker_dispatch) =
         ctx.marker_dispatch.filter(|_| !result.audio.is_empty())
@@ -1355,11 +1366,16 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
                     "progressive engine emitted audio before stream metadata".to_owned(),
                 )
             })?;
-            self.observation = self.attempt.as_ref().and_then(|attempt| {
-                self.ctx
-                    .voice_observations
-                    .map(|evidence| evidence.lock().unwrap().prepare(attempt))
-            });
+            self.observation = self
+                .attempt
+                .as_ref()
+                .and_then(|attempt| {
+                    self.ctx
+                        .voice_observations
+                        .map(|evidence| evidence.lock().unwrap().prepare(attempt))
+                })
+                .transpose()
+                .map_err(TtsError::SynthesisFailed)?;
             self.ctx.flush_overlays();
             let cancellation = self
                 .ctx
@@ -1942,10 +1958,20 @@ impl Drop for ProgressiveChunkSink<'_, '_> {
 }
 
 impl crate::routing::choice::RoutedPlaybackSink for ProgressiveChunkSink<'_, '_> {
+    fn rejected_preparation(&mut self, message: &str) {
+        if let Some(observations) = self.ctx.voice_observations {
+            observations.lock().unwrap().reject_preparation(message);
+        }
+    }
+
     fn supports_native(&self) -> bool {
         self.ctx
             .marker_dispatch
             .is_some_and(MarkerDispatchContext::supports_native)
+            || self
+                .ctx
+                .voice_observations
+                .is_some_and(|observations| observations.lock().unwrap().supports_native())
     }
     fn preflight_attempt(&mut self, attempt: &PreparedVoiceAttempt) -> Result<(), TtsError> {
         if let (Some(dispatch), Some(span_id)) = (self.ctx.marker_dispatch, self.ctx.marker_span_id)
@@ -2515,22 +2541,89 @@ pub(crate) fn process_layered_preview(
     ctx: &SynthCtx,
     engine_registry: &EngineRegistry,
     runtime_health: &RuntimeEngineHealth,
+    routing: LogicalVoiceRoutingSnapshot,
+) -> (BatchStatus, Option<String>) {
+    process_choice_preview(
+        text,
+        state,
+        context,
+        placement,
+        ctx,
+        engine_registry,
+        runtime_health,
+        routing,
+        false,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn process_native_preview(
+    text: &str,
+    state: TtsState,
+    context: &omnivox_tts::voice_choices::VoiceStylePatch,
+    placement: &omnivox_tts::voice_preview_v2::VoicePlacement,
+    ctx: &SynthCtx,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
+    routing: LogicalVoiceRoutingSnapshot,
+) -> (BatchStatus, Option<String>) {
+    process_choice_preview(
+        text,
+        state,
+        context,
+        placement,
+        ctx,
+        engine_registry,
+        runtime_health,
+        routing,
+        true,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn process_choice_preview(
+    text: &str,
+    state: TtsState,
+    context: &omnivox_tts::voice_choices::VoiceStylePatch,
+    placement: &omnivox_tts::voice_preview_v2::VoicePlacement,
+    ctx: &SynthCtx,
+    engine_registry: &EngineRegistry,
+    runtime_health: &RuntimeEngineHealth,
     mut routing: LogicalVoiceRoutingSnapshot,
+    native: bool,
 ) -> (BatchStatus, Option<String>) {
     if ctx.is_stale() {
         return (BatchStatus::Cancelled, None);
     }
-    let mut route = match routing.initial_route(
-        omnivox_tts::voice_preview_v2::PRIVATE_PREVIEW_VOICE_ID,
-        engine_registry,
-    ) {
+    let id = omnivox_tts::voice_preview_v2::PRIVATE_PREVIEW_VOICE_ID;
+    let route = if native {
+        routing.initial_native_route(id, engine_registry)
+    } else {
+        routing.initial_route(id, engine_registry)
+    };
+    let mut route = match route {
         Ok(route) => route,
         Err(message) => return (BatchStatus::Failed, Some(message)),
     };
-    let style = crate::routing::choice::AttemptStyle::Layered {
-        context,
-        base_rate: state.speech_rate,
-        placement_pan: placement.pan,
+    let catalogues = routing.parameter_catalogues.clone();
+    let knowledge = catalogues
+        .iter()
+        .map(|c| omnivox_tts::engine_voice_choices::ParameterKnowledge::Ready(c.as_ref()))
+        .collect::<Vec<_>>();
+    let style = if native {
+        crate::routing::choice::AttemptStyle::EngineLayered {
+            context,
+            base_rate: state.speech_rate,
+            placement_pan: placement.pan,
+            knowledge: &knowledge,
+            policy: omnivox_tts::native_synthesis::UnavailablePolicy::Require,
+        }
+    } else {
+        crate::routing::choice::AttemptStyle::Layered {
+            context,
+            base_rate: state.speech_rate,
+            placement_pan: placement.pan,
+        }
     };
     let chunks = chunk_prepared_speech(prepare_speech_text(text, &state), 15);
     let count = chunks.len();
@@ -2552,8 +2645,13 @@ pub(crate) fn process_layered_preview(
         if status != BatchStatus::Completed {
             return (
                 status,
-                (status == BatchStatus::Failed)
-                    .then(|| "preview synthesis or playback preparation failed".to_owned()),
+                (status == BatchStatus::Failed).then(|| {
+                    ctx.voice_observations
+                        .and_then(|o| o.lock().unwrap().failure_message())
+                        .unwrap_or_else(|| {
+                            "preview synthesis or playback preparation failed".to_owned()
+                        })
+                }),
             );
         }
     }

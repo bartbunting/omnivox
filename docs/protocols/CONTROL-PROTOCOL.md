@@ -901,3 +901,37 @@ the complete Cartesian product is never added to the ordinary inventory.
 Explicit unavailable rows, disabled engines and library exclusions still win.
 Automatic and property selection continue using the ordinary voice inventory.
 Neither preview nor palette selection needs a speech-worker restart.
+
+
+## Native private previews
+
+`preview_voice_v3` is a separate control-envelope-1 operation with the v2 preview
+fields. Its private voice contains native choice records from the
+[engine parameter contract](../engine-voice-parameters.md). Requests require a
+positive correlation ID and preserve the 16 KiB text and 32-choice bounds.
+New readers reject unknown and duplicate members; old preview readers still
+reject native fields. Admission freezes the current rate, catalogue snapshots,
+context and union of draft/applied administrative exclusions without modifying
+live registry or routing state.
+
+Selected-choice previews retain the original choice identity and cannot use
+another selector. Automatic previews can retry synthesis before PCM commitment,
+recomposing each actual choice. Native blocks must apply faithfully: unsupported
+controls and missing metadata cannot degrade into common-only playback. No-native
+choices remain valid and report null native application. Preparation failures
+return a bounded reason; stale queued work and cancellation retain typed terminal
+responses without claiming unstarted audio.
+
+`preview_voice_completed_v3` retains the v2 terminal fields and adds required
+nullable `native_application` to each accepted-audio entry and non-null
+`last_started` identity. Acceptance is separate from consumption. Distinct native
+plans are distinct observations, even for the same physical voice. Plan references
+share the connection's bounded ownership with timeline receipts. The accepted
+list is bounded to 32 entries and the complete reply to 256 KiB, with explicit
+truncation; the independent last-started identity is never truncated. The combined
+choice/native identity is bounded to 48 KiB before PCM acceptance. Serialization,
+validation and plan publication run on the producer, outside audio callbacks.
+
+The native feature bundle remains unadvertised pending its explanation operations
+and final integration acceptance. Explicit development probes can use these
+operations; clients must continue respecting each connection's capabilities.

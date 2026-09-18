@@ -229,6 +229,8 @@ impl AttemptStyle<'_> {
 
 /// The engine-facing stream adapter publishes identity and style together.
 pub(crate) trait RoutedPlaybackSink {
+    /// Bounded diagnostics for a rejected style; never a playback observation.
+    fn rejected_preparation(&mut self, _message: &str) {}
     /// Old marker/preview consumers must not silently discard native evidence.
     fn supports_native(&self) -> bool {
         false

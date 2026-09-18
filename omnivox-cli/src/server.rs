@@ -177,6 +177,12 @@ pub enum PreviewTarget {
         context: VoiceStylePatch,
         placement: VoicePlacement,
     },
+    Native {
+        base_rate: f32,
+        disabled_engine_ids: Vec<String>,
+        context: VoiceStylePatch,
+        placement: VoicePlacement,
+    },
 }
 
 impl PreviewTarget {
@@ -188,6 +194,10 @@ impl PreviewTarget {
                 ..
             }
             | Self::Layered {
+                disabled_engine_ids,
+                ..
+            }
+            | Self::Native {
                 disabled_engine_ids,
                 ..
             } => disabled_engine_ids.iter().map(String::len).sum(),
@@ -622,6 +632,13 @@ pub(crate) enum PlaybackCompletion {
         base_rate: f32,
         disabled_engine_ids: Vec<String>,
     },
+    VoicePreviewV3 {
+        request_id: u64,
+        observations: VoiceObservations,
+        message: Option<String>,
+        base_rate: f32,
+        disabled_engine_ids: Vec<String>,
+    },
     Preview {
         request_id: u64,
         requested: VoiceSelector,
@@ -703,6 +720,20 @@ fn tracked_playback_reporter(
                 base_rate,
                 disabled_engine_ids,
             ),
+            PlaybackCompletion::VoicePreviewV3 {
+                request_id,
+                observations,
+                message,
+                base_rate,
+                disabled_engine_ids,
+            } => voice_preview_v3_status_record(
+                request_id,
+                status,
+                observations,
+                message,
+                base_rate,
+                disabled_engine_ids,
+            ),
             PlaybackCompletion::Preview {
                 request_id,
                 requested,
@@ -732,6 +763,7 @@ fn playback_completion_identifier(completion: &PlaybackCompletion) -> u64 {
         PlaybackCompletion::Tracked(identifier) => *identifier,
         PlaybackCompletion::Preview { request_id, .. }
         | PlaybackCompletion::VoicePreviewV2 { request_id, .. }
+        | PlaybackCompletion::VoicePreviewV3 { request_id, .. }
         | PlaybackCompletion::VoicePreview { request_id, .. } => *request_id,
     }
 }
@@ -845,6 +877,35 @@ fn voice_preview_v2_status_record(
     // calls this. Never snapshot started evidence on the synthesis worker.
     let snapshot = observations.snapshot();
     let response = VoicePreviewResponseV2 {
+        status: match status {
+            BatchStatus::Completed => PreviewStatus::Completed,
+            BatchStatus::Cancelled => PreviewStatus::Cancelled,
+            BatchStatus::Failed => PreviewStatus::Failed,
+        },
+        accepted_audio: snapshot.accepted.into_iter().map(Into::into).collect(),
+        accepted_audio_truncated: snapshot.truncated,
+        last_started: snapshot.last_started,
+        message,
+        base_rate,
+        effective_disabled_engine_ids: disabled_engine_ids,
+    };
+    response
+        .bounded_event(request_id)
+        .expect("admitted preview metadata and prepared identities must fit terminal budget")
+}
+
+fn voice_preview_v3_status_record(
+    request_id: u64,
+    status: BatchStatus,
+    observations: VoiceObservations,
+    message: Option<String>,
+    base_rate: f32,
+    disabled_engine_ids: Vec<String>,
+) -> String {
+    // Only the reporter (after ALL tickets settle) or pre-synthesis retirement
+    // calls this. Never snapshot started evidence on the synthesis worker.
+    let snapshot = observations.native_snapshot();
+    let response = omnivox_tts::voice_preview_v3::VoicePreviewResponseV3 {
         status: match status {
             BatchStatus::Completed => PreviewStatus::Completed,
             BatchStatus::Cancelled => PreviewStatus::Cancelled,
@@ -1076,6 +1137,18 @@ fn report_retired_synthesis(retired: RetiredWork<SynthRequest>) {
                     disabled_engine_ids,
                     ..
                 } => voice_preview_v2_status_record(
+                    request_id,
+                    status,
+                    VoiceObservations::default(),
+                    Some(message.to_owned()),
+                    base_rate,
+                    disabled_engine_ids,
+                ),
+                PreviewTarget::Native {
+                    base_rate,
+                    disabled_engine_ids,
+                    ..
+                } => voice_preview_v3_status_record(
                     request_id,
                     status,
                     VoiceObservations::default(),
@@ -1354,7 +1427,12 @@ pub fn synthesis_worker(
                 let pending_overlays = Mutex::new(Vec::new());
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
                 let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
-                let observations = Mutex::new(VoiceObservations::default());
+                let native = matches!(&requested, PreviewTarget::Native { .. });
+                let observations = Mutex::new(if native {
+                    VoiceObservations::native(native_plans.clone())
+                } else {
+                    VoiceObservations::default()
+                });
                 let failed = AtomicBool::new(false);
                 let ctx = SynthCtx {
                     gen,
@@ -1370,8 +1448,11 @@ pub fn synthesis_worker(
                     effect_processor: Some(&effect_processor),
                     marker_span_id: None,
                     marker_dispatch: None,
-                    voice_observations: matches!(&requested, PreviewTarget::Layered { .. })
-                        .then_some(&observations),
+                    voice_observations: matches!(
+                        &requested,
+                        PreviewTarget::Layered { .. } | PreviewTarget::Native { .. }
+                    )
+                    .then_some(&observations),
                     batch_failed: Some(&failed),
                 };
                 let (status, completion) = match requested {
@@ -1380,8 +1461,19 @@ pub fn synthesis_worker(
                         disabled_engine_ids,
                         context,
                         placement,
+                    }
+                    | PreviewTarget::Native {
+                        base_rate,
+                        disabled_engine_ids,
+                        context,
+                        placement,
                     } => {
-                        let (status, message) = crate::pipeline::process_layered_preview(
+                        let process = if native {
+                            crate::pipeline::process_native_preview
+                        } else {
+                            crate::pipeline::process_layered_preview
+                        };
+                        let (status, message) = process(
                             &text,
                             state,
                             &context,
@@ -1393,12 +1485,22 @@ pub fn synthesis_worker(
                         );
                         (
                             status,
-                            PlaybackCompletion::VoicePreviewV2 {
-                                request_id,
-                                observations: observations.into_inner().unwrap(),
-                                message,
-                                base_rate,
-                                disabled_engine_ids,
+                            if native {
+                                PlaybackCompletion::VoicePreviewV3 {
+                                    request_id,
+                                    observations: observations.into_inner().unwrap(),
+                                    message,
+                                    base_rate,
+                                    disabled_engine_ids,
+                                }
+                            } else {
+                                PlaybackCompletion::VoicePreviewV2 {
+                                    request_id,
+                                    observations: observations.into_inner().unwrap(),
+                                    message,
+                                    base_rate,
+                                    disabled_engine_ids,
+                                }
                             },
                         )
                     }
@@ -1431,7 +1533,9 @@ pub fn synthesis_worker(
                                 base_rate,
                                 disabled_engine_ids,
                             },
-                            PreviewTarget::Layered { .. } => unreachable!(),
+                            PreviewTarget::Layered { .. } | PreviewTarget::Native { .. } => {
+                                unreachable!()
+                            }
                         };
                         (status, completion)
                     }
@@ -2606,10 +2710,66 @@ struct PreparedVoicePreview {
     disabled_engine_ids: Vec<String>,
 }
 
-struct PreparedVoicePreviewV2 {
+struct PreparedChoicePreview {
     text: String,
     routing: LogicalVoiceRoutingSnapshot,
     target: PreviewTarget,
+}
+
+fn prepare_voice_preview_v3(
+    request: omnivox_tts::voice_preview_v3::VoicePreviewRequestV3,
+    base_rate: f32,
+    engines: &EngineRegistry,
+    applied_policy: &RoutingPolicyRegistry,
+    catalogues: Vec<Arc<omnivox_tts::native_parameters::ParameterCatalogue>>,
+) -> Result<PreparedChoicePreview, String> {
+    use omnivox_tts::engine_voice_choices::{
+        EngineRegisteredVoiceDefinition, NativeCatalogueSnapshot, ParameterKnowledge,
+        VoiceRegistrationV3,
+    };
+    let index = request.validate(base_rate)?;
+    let definition = request.voice.definition();
+    let mut disabled = request.disabled_engine_ids;
+    for engine in &applied_policy.policy().disabled_engine_ids {
+        if !disabled.contains(engine) {
+            disabled.push(engine.clone());
+        }
+    }
+    omnivox_tts::voice_preview_v3::VoicePreviewResponseV3::validate_metadata_budget(
+        base_rate, &disabled,
+    )?;
+    let inventory = engines.inventory();
+    let knowledge = catalogues
+        .iter()
+        .map(|c| ParameterKnowledge::Ready(c.as_ref()))
+        .collect::<Vec<_>>();
+    let mut private = LogicalVoiceRegistry::default();
+    private
+        .register_v3(
+            VoiceRegistrationV3 {
+                registry_generation: 1,
+                definitions: vec![EngineRegisteredVoiceDefinition::EngineLayered(definition)],
+                fallback_policy: request.fallback_policy,
+            },
+            &NativeCatalogueSnapshot::new(&inventory, &knowledge).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+    let mut routing =
+        LogicalVoiceRoutingSnapshot::capture_voice_preview(&private, engines, disabled.clone())
+            .with_parameter_catalogues(catalogues);
+    if let Some(index) = index {
+        routing.restrict_preview_to_choice(index)?;
+    }
+    Ok(PreparedChoicePreview {
+        text: request.text,
+        routing,
+        target: PreviewTarget::Native {
+            base_rate,
+            disabled_engine_ids: disabled,
+            context: request.context,
+            placement: request.placement,
+        },
+    })
 }
 
 fn prepare_voice_preview_v2(
@@ -2617,7 +2777,7 @@ fn prepare_voice_preview_v2(
     base_rate: f32,
     engines: &EngineRegistry,
     applied_policy: &RoutingPolicyRegistry,
-) -> Result<PreparedVoicePreviewV2, String> {
+) -> Result<PreparedChoicePreview, String> {
     let index = request.validate(base_rate)?;
     let definition = request.voice.definition();
     let mut disabled = request.disabled_engine_ids;
@@ -2641,7 +2801,7 @@ fn prepare_voice_preview_v2(
     if let Some(index) = index {
         routing.restrict_preview_to_choice(index)?;
     }
-    Ok(PreparedVoicePreviewV2 {
+    Ok(PreparedChoicePreview {
         text: request.text,
         routing,
         target: PreviewTarget::Layered {
@@ -3162,6 +3322,46 @@ fn handle_command(
                 Some(request)
             });
             match live_request.map(|request| (request.request_id, request.request)) {
+                Some((request_id, ControlRequest::PreviewVoiceV3(request))) => {
+                    let prepared = if request_id == 0 {
+                        Err("native preview requires a positive request ID".into())
+                    } else {
+                        prepare_voice_preview_v3(
+                            request,
+                            state.speech_rate,
+                            engine_registry,
+                            routing_policy,
+                            parameter_queries.cached_catalogues(
+                                engine_registry,
+                                &routing_policy.policy().disabled_engine_ids,
+                            ),
+                        )
+                    };
+                    match prepared {
+                        Ok(prepared) => {
+                            enqueue_synthesis(
+                                tx,
+                                SynthRequest::Preview {
+                                    request_id,
+                                    text: prepared.text,
+                                    requested: prepared.target,
+                                    state: state.clone(),
+                                    logical_voice_routing: prepared.routing,
+                                    lifecycle: RequestLifecycle::default(),
+                                    gen: *current_gen,
+                                },
+                            );
+                        }
+                        Err(message) => write_control_response(&ControlResponseEnvelope {
+                            protocol_version: CONTROL_PROTOCOL_VERSION,
+                            request_id: Some(request_id),
+                            response: ControlResponse::Error {
+                                code: ControlErrorCode::InvalidConfiguration,
+                                message,
+                            },
+                        }),
+                    }
+                }
                 Some((request_id, ControlRequest::PreviewVoiceV2(request))) => {
                     match prepare_voice_preview_v2(
                         request,

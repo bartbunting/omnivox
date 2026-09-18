@@ -1035,6 +1035,7 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
             Err(error) => {
                 release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
                 warn!("Cannot prepare routed voice attempt: {error}");
+                sink.rejected_preparation(&error);
                 return choice::PreparedSynthesisOutcome::Failed;
             }
         };

@@ -31,6 +31,7 @@ pub mod timeline_v5;
 pub mod voice_choices;
 pub mod voice_library;
 pub mod voice_preview_v2;
+pub mod voice_preview_v3;
 pub mod windows;
 
 pub use omnivox_audio::AudioBuffer;

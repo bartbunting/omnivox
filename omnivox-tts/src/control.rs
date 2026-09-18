@@ -84,6 +84,7 @@ pub enum ControlRequest {
     },
     PreviewVoice(VoicePreviewRequest),
     PreviewVoiceV2(VoicePreviewRequestV2),
+    PreviewVoiceV3(crate::voice_preview_v3::VoicePreviewRequestV3),
     Preview {
         text: String,
         selector: VoiceSelector,
@@ -254,6 +255,7 @@ pub enum ControlResponse {
         effective_disabled_engine_ids: Vec<String>,
     },
     PreviewVoiceCompletedV2(VoicePreviewResponseV2),
+    PreviewVoiceCompletedV3(crate::voice_preview_v3::VoicePreviewResponseV3),
     PreviewCompleted {
         status: PreviewStatus,
         requested: VoiceSelector,
@@ -347,6 +349,7 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
         ControlRequest::RegisterLogicalVoicesV2(_)
             | ControlRequest::RegisterLogicalVoicesV3(_)
             | ControlRequest::PreviewVoiceV2(_)
+            | ControlRequest::PreviewVoiceV3(_)
             | ControlRequest::VoiceLibraryStatusV1
             | ControlRequest::GetEngineParametersV1(_)
     ) {
@@ -365,7 +368,16 @@ pub fn encode_response(response: &ControlResponseEnvelope) -> Result<String, Con
 
 /// Decode a response, primarily for clients and protocol tests.
 pub fn decode_response(payload: &str) -> Result<ControlResponseEnvelope, ControlCodecError> {
-    decode_json(payload)
+    let response: ControlResponseEnvelope = decode_json(payload)?;
+    if let ControlResponse::PreviewVoiceCompletedV3(preview) = &response.response {
+        let bytes = decode_bytes(payload)?;
+        serde_json::from_slice::<DuplicateFreeJson>(&bytes)
+            .map_err(ControlCodecError::InvalidJson)?;
+        preview
+            .validate()
+            .map_err(|message| ControlCodecError::InvalidJson(serde::de::Error::custom(message)))?;
+    }
+    Ok(response)
 }
 
 /// Turn one encoded request into a response without mutating synthesis state.
@@ -658,6 +670,7 @@ pub fn process_control_request_with_parameters(
             | ControlRequest::Preview { .. }
             | ControlRequest::PreviewVoice(_)
             | ControlRequest::PreviewVoiceV2(_)
+            | ControlRequest::PreviewVoiceV3(_)
             | ControlRequest::RequestEngineRecoveryProbe { .. } => error_response(
                 Some(request.request_id),
                 ControlErrorCode::InvalidConfiguration,

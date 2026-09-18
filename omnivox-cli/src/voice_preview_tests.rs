@@ -9,6 +9,9 @@ use omnivox_tts::{
     SynthesisStreamStart, TtsError, VoiceInfo,
 };
 
+#[path = "native_preview_tests.rs"]
+mod native_preview_tests;
+
 #[path = "mixed_timeline_tests.rs"]
 mod mixed_timeline_tests;
 
@@ -182,7 +185,7 @@ fn layered_request() -> VoicePreviewRequestV2 {
 }
 
 fn run_layered(
-    prepared: PreparedVoicePreviewV2,
+    prepared: PreparedChoicePreview,
     engines: &EngineRegistry,
     stale: bool,
 ) -> VoicePreviewResponseV2 {

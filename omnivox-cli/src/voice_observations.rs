@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use omnivox_tts::voice_choices::AudioChoiceIdentity;
+use omnivox_tts::voice_preview_v3::NativeAudioChoiceIdentity;
 
 use crate::routing::choice::PreparedVoiceAttempt;
 
@@ -11,10 +12,10 @@ use omnivox_tts::voice_preview_v2::MAX_ACCEPTED_AUDIO_CHOICES;
 
 #[derive(Clone)]
 pub(crate) struct VoiceObservation {
-    identity: Arc<AudioChoiceIdentity>,
+    identity: Arc<NativeAudioChoiceIdentity>,
     started: Arc<AtomicBool>,
     source_started: Arc<AtomicBool>,
-    last_started: Arc<Mutex<Option<Arc<AudioChoiceIdentity>>>>,
+    last_started: Arc<Mutex<Option<Arc<NativeAudioChoiceIdentity>>>>,
 }
 
 impl VoiceObservation {
@@ -31,9 +32,11 @@ impl VoiceObservation {
 
 #[derive(Default)]
 pub(crate) struct VoiceObservations {
+    failure_message: Option<String>,
+    native_plans: Option<Arc<crate::native_plans::NativePlanReferences>>,
     accepted: Vec<VoiceObservation>,
     truncated: bool,
-    last_started: Arc<Mutex<Option<Arc<AudioChoiceIdentity>>>>,
+    last_started: Arc<Mutex<Option<Arc<NativeAudioChoiceIdentity>>>>,
 }
 
 pub(crate) struct VoiceObservationSnapshot {
@@ -42,13 +45,55 @@ pub(crate) struct VoiceObservationSnapshot {
     pub last_started: Option<AudioChoiceIdentity>,
 }
 
+pub(crate) struct NativeVoiceObservationSnapshot {
+    pub accepted: Vec<(NativeAudioChoiceIdentity, bool)>,
+    pub truncated: bool,
+    pub last_started: Option<NativeAudioChoiceIdentity>,
+}
+
 impl VoiceObservations {
+    pub(crate) fn reject_preparation(&mut self, message: &str) {
+        let mut end = message
+            .len()
+            .min(omnivox_tts::voice_preview_v2::MAX_PREVIEW_MESSAGE_BYTES);
+        while !message.is_char_boundary(end) {
+            end -= 1;
+        }
+        self.failure_message = Some(message[..end].to_owned());
+    }
+    pub(crate) fn failure_message(&self) -> Option<String> {
+        self.failure_message.clone()
+    }
+
+    pub(crate) fn native(plans: Arc<crate::native_plans::NativePlanReferences>) -> Self {
+        Self {
+            native_plans: Some(plans),
+            ..Default::default()
+        }
+    }
+    pub(crate) fn supports_native(&self) -> bool {
+        self.native_plans.is_some()
+    }
+
     /// The synthesis producer prepares and publishes sources sequentially.
     /// Allocate the handle before enqueue: null playback can win the ack race.
-    pub(crate) fn prepare(&self, attempt: &PreparedVoiceAttempt) -> VoiceObservation {
-        let identity = attempt.audio_identity();
+    pub(crate) fn prepare(
+        &self,
+        attempt: &PreparedVoiceAttempt,
+    ) -> Result<VoiceObservation, String> {
+        let application = self.native_plans.as_ref().and_then(|plans| {
+            attempt.native_application.as_ref().map(|application| {
+                plans.publish(
+                    &attempt.native_runtime,
+                    &attempt.resolution.realized,
+                    application,
+                )
+            })
+        });
+        let identity = NativeAudioChoiceIdentity::from_parts(attempt.audio_identity(), application);
+        identity.validate()?;
         let existing = self.accepted.iter().find(|item| *item.identity == identity);
-        VoiceObservation {
+        Ok(VoiceObservation {
             identity: existing.map_or_else(|| Arc::new(identity), |item| item.identity.clone()),
             started: existing.map_or_else(
                 || Arc::new(AtomicBool::new(false)),
@@ -56,7 +101,7 @@ impl VoiceObservations {
             ),
             source_started: Arc::new(AtomicBool::new(false)),
             last_started: self.last_started.clone(),
-        }
+        })
     }
 
     /// Success of a nonempty enqueue, or published progressive frames even on error.
@@ -77,8 +122,20 @@ impl VoiceObservations {
 
     /// Terminal callers must wait for ALL source tickets before taking this snapshot.
     pub(crate) fn snapshot(&self) -> VoiceObservationSnapshot {
-        let last_started = self.last_started.lock().unwrap().clone();
+        let native = self.native_snapshot();
         VoiceObservationSnapshot {
+            accepted: native
+                .accepted
+                .into_iter()
+                .map(|(id, started)| (id.common(), started))
+                .collect(),
+            truncated: native.truncated,
+            last_started: native.last_started.map(|id| id.common()),
+        }
+    }
+    pub(crate) fn native_snapshot(&self) -> NativeVoiceObservationSnapshot {
+        let last_started = self.last_started.lock().unwrap().clone();
+        NativeVoiceObservationSnapshot {
             accepted: self
                 .accepted
                 .iter()
@@ -127,7 +184,7 @@ mod tests {
     #[test]
     fn consumption_before_acceptance_bookkeeping_is_preserved() {
         let mut evidence = VoiceObservations::default();
-        let observation = evidence.prepare(&attempt("first"));
+        let observation = evidence.prepare(&attempt("first")).unwrap();
         observation.first_frame();
         evidence.accept(&observation);
         let snapshot = evidence.snapshot();
@@ -139,7 +196,7 @@ mod tests {
     #[test]
     fn accepted_and_cancelled_before_consumption_has_no_last_started_voice() {
         let mut evidence = VoiceObservations::default();
-        let observation = evidence.prepare(&attempt("first"));
+        let observation = evidence.prepare(&attempt("first")).unwrap();
         evidence.accept(&observation);
         drop(observation);
         let snapshot = evidence.snapshot();
@@ -150,11 +207,11 @@ mod tests {
     #[test]
     fn repeated_sources_share_started_evidence_but_each_updates_last_once() {
         let mut evidence = VoiceObservations::default();
-        let first = evidence.prepare(&attempt("first"));
+        let first = evidence.prepare(&attempt("first")).unwrap();
         evidence.accept(&first);
-        let second = evidence.prepare(&attempt("second"));
+        let second = evidence.prepare(&attempt("second")).unwrap();
         evidence.accept(&second);
-        let repeated = evidence.prepare(&attempt("first"));
+        let repeated = evidence.prepare(&attempt("first")).unwrap();
         evidence.accept(&repeated);
         repeated.first_frame();
         second.first_frame();
@@ -172,17 +229,17 @@ mod tests {
     fn equal_physical_voices_with_different_resolution_or_degradation_are_distinct() {
         let mut evidence = VoiceObservations::default();
         let mut changed = attempt("first");
-        let initial = evidence.prepare(&changed);
+        let initial = evidence.prepare(&changed).unwrap();
         evidence.accept(&initial);
         changed.resolution.reason = ResolutionReason::GlobalDefault;
         changed.choice_id = None;
-        let policy = evidence.prepare(&changed);
+        let policy = evidence.prepare(&changed).unwrap();
         evidence.accept(&policy);
         changed
             .acss
             .omitted
             .push(omnivox_tts::contracts::AcssDimension::Richness);
-        let degraded = evidence.prepare(&changed);
+        let degraded = evidence.prepare(&changed).unwrap();
         evidence.accept(&degraded);
         assert_eq!(evidence.snapshot().accepted.len(), 3);
     }
@@ -191,7 +248,9 @@ mod tests {
     fn last_started_survives_list_truncation_and_unconsumed_later_attempts() {
         let mut evidence = VoiceObservations::default();
         for index in 0..34 {
-            let observation = evidence.prepare(&attempt(&format!("choice-{index}")));
+            let observation = evidence
+                .prepare(&attempt(&format!("choice-{index}")))
+                .unwrap();
             evidence.accept(&observation);
             if index < 33 {
                 observation.first_frame();
@@ -203,6 +262,51 @@ mod tests {
         assert_eq!(
             snapshot.last_started.unwrap().choice_id.as_deref(),
             Some("choice-32")
+        );
+    }
+    #[test]
+    fn native_evidence_retains_accepted_without_inventing_start_and_distinguishes_plans() {
+        let mut observations = VoiceObservations::native(Arc::new(
+            crate::native_plans::NativePlanReferences::default(),
+        ));
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../docs/protocol-fixtures/engine-voice-parameters.json"
+        ))
+        .unwrap();
+        let mut attempt = attempt("same-choice");
+        attempt.native_application = Some(
+            serde_json::from_value(
+                fixture["messages"]["playback_receipt"]["native_application"].clone(),
+            )
+            .unwrap(),
+        );
+        for index in 0..34 {
+            let observation = observations.prepare(&attempt).unwrap();
+            observations.accept(&observation);
+            if index == 0 {
+                assert!(observations.native_snapshot().last_started.is_none());
+            }
+            if index < 33 {
+                observation.first_frame();
+            }
+        }
+        let snapshot = observations.native_snapshot();
+        assert_eq!(snapshot.accepted.len(), 32);
+        assert!(snapshot.truncated);
+        assert!(snapshot.accepted.iter().all(|(_, started)| *started));
+        assert_ne!(
+            snapshot.accepted[0].0.native_application,
+            snapshot.accepted[1].0.native_application
+        );
+        assert_eq!(
+            snapshot
+                .last_started
+                .unwrap()
+                .native_application
+                .unwrap()
+                .plan_id
+                .as_deref(),
+            Some("native-plan-33")
         );
     }
 }
