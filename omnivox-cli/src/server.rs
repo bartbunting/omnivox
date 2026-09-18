@@ -2368,7 +2368,15 @@ fn validate_structured_admission(
     };
     let validation = match &presentation.timeline {
         TimelineDocument::Legacy(timeline) => {
-            validate_presentation_timeline_action_windows(timeline, state)
+            if timeline.spans.iter().any(|span| {
+                span.logical_voice_id
+                    .as_deref()
+                    .is_some_and(|id| logical_voices.is_engine_layered(id))
+            }) {
+                Err("engine-layered definitions require timeline version 5".into())
+            } else {
+                validate_presentation_timeline_action_windows(timeline, state)
+            }
         }
         TimelineDocument::Layered(timeline) => timeline
             .validate_registry(logical_voices)
@@ -3419,6 +3427,79 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn native_definitions_cannot_be_silently_projected_through_older_speech_paths() {
+        use omnivox_tts::engine_voice_choices::{NativeCatalogueSnapshot, VoiceRegistrationV3};
+        use omnivox_tts::timeline_v4::{
+            LayeredSpeechSpan, MixedSpeechSpan, PresentationTimelineV4,
+        };
+        use omnivox_tts::voice_preview_v2::VoicePlacement;
+        let fixtures: serde_json::Value = serde_json::from_str(include_str!(
+            "../../docs/protocol-fixtures/engine-voice-parameters.json"
+        ))
+        .unwrap();
+        let mut body = fixtures["messages"]["registration"].clone();
+        for field in ["protocol_version", "request_id", "type"] {
+            body.as_object_mut().unwrap().remove(field);
+        }
+        let request = VoiceRegistrationV3::from_json(&serde_json::to_vec(&body).unwrap()).unwrap();
+        let mut registry = LogicalVoiceRegistry::default();
+        registry
+            .register_v3(request, &NativeCatalogueSnapshot::new(&[], &[]).unwrap())
+            .unwrap();
+        let engines = EngineRegistry::new();
+        let routing = LogicalVoiceRoutingSnapshot::capture(&registry, &engines);
+        assert!(routing
+            .initial_route("bolden", &engines)
+            .err()
+            .unwrap()
+            .contains("native routing support"));
+        let mut legacy = timeline_envelope(7, 91, PresentationDeliveryPolicy::Ordered, None);
+        legacy.spans[0].logical_voice_id = Some("bolden".into());
+        for version in [1, 2, 3] {
+            legacy.protocol_version = version;
+            let read = StructuredSubmissionRead::Prepared(PreparedStructuredPresentation {
+                generation: 7,
+                timeline: legacy.clone().into(),
+            });
+            assert!(matches!(
+                validate_structured_admission(read, &TtsState::default(), &registry),
+                StructuredSubmissionRead::Rejected(_)
+            ));
+        }
+        let layered = MixedSpeechSpan::Layered(LayeredSpeechSpan {
+            id: 1,
+            text: "Native settings must not disappear".into(),
+            logical_voice_id: "bolden".into(),
+            context: Default::default(),
+            placement: VoicePlacement { pan: None },
+        });
+        for span in [MixedSpeechSpan::Legacy(legacy.spans[0].clone()), layered] {
+            let timeline = PresentationTimelineV4 {
+                protocol_version: 4,
+                generation: 7,
+                dispatch_id: 91,
+                registry_generation: 41,
+                delivery_policy: PresentationDeliveryPolicy::Ordered,
+                replacement_key: None,
+                spans: vec![span],
+                actions: vec![],
+            };
+            assert!(timeline
+                .validate_registry(&registry)
+                .unwrap_err()
+                .to_string()
+                .contains("version 5"));
+        }
+        // The new public operation remains reserved until routed execution/evidence exists.
+        assert!(
+            serde_json::from_value::<omnivox_tts::control::ControlRequestEnvelope>(
+                fixtures["messages"]["registration"].clone()
+            )
+            .is_err()
+        );
+    }
 
     const INVALID_DIRECT_TIMELINE: &str = "eyJwcm90b2NvbF92ZXJzaW9uIjozLCJnZW5lcmF0aW9uIjozMSwiZGlzcGF0Y2hfaWQiOjcyLCJkZWxpdmVyeV9wb2xpY3kiOiJvcmRlcmVkIiwic3BhbnMiOltdLCJhY3Rpb25zIjpbXX0=";
 

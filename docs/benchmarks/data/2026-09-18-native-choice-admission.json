@@ -1,0 +1,99 @@
+{
+  "engines": [
+    {
+      "buffered_frames": 76084,
+      "choice_preparation": {
+        "choice_id": "selected",
+        "native_status": [
+          {
+            "choice_id": "selected",
+            "logical_voice_id": "native-probe",
+            "reason": null,
+            "status": "supported"
+          }
+        ],
+        "registry_generation": 1
+      },
+      "engine": "eloquence",
+      "execution_path": "TtsEngine through voice eligibility",
+      "explicit_common_only": "passed",
+      "helper_sha256": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8",
+      "identity": {
+        "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+        "profile_id": "eloquence.windows.6_1.en_us.v1",
+        "runtime_generation": 8473091436410654895,
+        "schema_id": "eloquence.eci-units.v1"
+      },
+      "native_cancellation": {
+        "error": "SynthesisFailed(\"helper exited before returning a complete response\")",
+        "restarted": true
+      },
+      "native_readback": {
+        "id": "pitch_baseline",
+        "masked_native": false,
+        "origin": "native_set",
+        "read_back": true,
+        "value": 65
+      },
+      "ordinary_cancellation": {
+        "error": "SynthesisFailed(\"helper exited before returning a complete response\")",
+        "restarted": true
+      },
+      "ordinary_followup": "passed",
+      "parameter_count": 8,
+      "progressive_frames": 76604,
+      "query_during_speech": "busy",
+      "reconnect": "fresh_generation_old_plan_expired",
+      "stale_strict": "rejected"
+    },
+    {
+      "buffered_frames": 77580,
+      "choice_preparation": {
+        "choice_id": "selected",
+        "native_status": [
+          {
+            "choice_id": "selected",
+            "logical_voice_id": "native-probe",
+            "reason": null,
+            "status": "supported"
+          }
+        ],
+        "registry_generation": 1
+      },
+      "engine": "dectalk",
+      "execution_path": "TtsEngine through voice eligibility",
+      "explicit_common_only": "passed",
+      "helper_sha256": "061b83a3743f40430740c893d833722b7f9ea2d53afd8734f292f0b45b4816f4",
+      "identity": {
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "runtime_generation": 3861555468587320087,
+        "schema_id": "dectalk.design-voice.v1"
+      },
+      "native_cancellation": {
+        "error": "SynthesisFailed(\"helper exited before returning a complete response\")",
+        "restarted": true
+      },
+      "native_readback": {
+        "id": "ap",
+        "masked_native": false,
+        "origin": "native_set",
+        "read_back": true,
+        "value": 130
+      },
+      "ordinary_cancellation": {
+        "error": "SynthesisFailed(\"helper exited before returning a complete response\")",
+        "restarted": true
+      },
+      "ordinary_followup": "passed",
+      "parameter_count": 28,
+      "progressive_frames": 78384,
+      "query_during_speech": "busy",
+      "reconnect": "fresh_generation_old_plan_expired",
+      "stale_strict": "rejected"
+    }
+  ],
+  "helper_runtime_build": "7e38878e1051c7db",
+  "parent_probe_sha256": "ea9a20c4291a019b6cf90907ffd09d6670bc44bf28dd225e8f5614f3e8876218",
+  "scope": "Silent Linux parent, internal choice admission/preparation and shared native execution; no public routing or audio playback"
+}

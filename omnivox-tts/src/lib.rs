@@ -8,6 +8,7 @@ pub mod contracts;
 pub mod control;
 pub mod engine_parameters;
 pub mod engine_registry;
+pub mod engine_voice_choices;
 #[cfg(feature = "espeak")]
 pub mod espeak;
 pub mod helper_engine;

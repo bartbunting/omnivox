@@ -33,7 +33,9 @@ pub struct NativePlan {
     pub application_order: Vec<String>,
 }
 
-fn contextual_inputs(context: &VoiceStylePatch) -> Result<BTreeSet<CommonInput>, ParameterError> {
+pub(crate) fn contextual_inputs(
+    context: &VoiceStylePatch,
+) -> Result<BTreeSet<CommonInput>, ParameterError> {
     context
         .validate()
         .map_err(|_| ParameterError::Invalid("invalid contextual patch"))?;

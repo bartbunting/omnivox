@@ -36,6 +36,7 @@ pub struct LogicalVoiceRoutingSnapshot {
     definitions: Vec<LogicalVoiceDefinition>,
     registry_generation: u64,
     layered_definitions: Vec<LayeredVoiceDefinition>,
+    engine_definition_ids: Vec<String>,
     // A private one-selector resolution view, mapped back into the full draft.
     preview_choice_index: Option<usize>,
     fallback_policy: FallbackPolicy,
@@ -50,6 +51,7 @@ impl LogicalVoiceRoutingSnapshot {
 
     pub(crate) fn has_layered_definition(&self, id: &str) -> bool {
         self.layered_definitions.iter().any(|voice| voice.id == id)
+            || self.engine_definition_ids.iter().any(|native| native == id)
     }
 
     #[cfg(test)]
@@ -61,6 +63,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
+            engine_definition_ids: engine_definition_ids(logical_voices),
             preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: engine_registry.inventory(),
@@ -77,6 +80,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
+            engine_definition_ids: engine_definition_ids(logical_voices),
             preview_choice_index: None,
             fallback_policy: routing_policy
                 .effective_fallback_policy(logical_voices.fallback_policy()),
@@ -96,6 +100,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
+            engine_definition_ids: engine_definition_ids(logical_voices),
             preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: routing_policy.project_inventory(engine_registry.inventory()),
@@ -113,6 +118,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
+            engine_definition_ids: engine_definition_ids(logical_voices),
             preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: Vec::new(),
@@ -325,6 +331,13 @@ impl LogicalVoiceRoutingSnapshot {
         text: Option<&str>,
         engine_registry: &EngineRegistry,
     ) -> Result<LogicalRoute, String> {
+        if self
+            .engine_definition_ids
+            .iter()
+            .any(|id| id == logical_voice_id)
+        {
+            return Err("engine-layered voices require native routing support".into());
+        }
         let definition = self
             .definitions
             .iter()
@@ -353,13 +366,26 @@ impl LogicalVoiceRoutingSnapshot {
     }
 }
 
+fn engine_definition_ids(registry: &LogicalVoiceRegistry) -> Vec<String> {
+    registry
+        .registered_definitions()
+        .iter()
+        .filter_map(|definition| match definition {
+            RegisteredVoiceDefinition::EngineLayered(v) => Some(v.id.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
 fn layered_definitions(registry: &LogicalVoiceRegistry) -> Vec<LayeredVoiceDefinition> {
     registry
         .registered_definitions()
         .iter()
         .filter_map(|definition| match definition {
             RegisteredVoiceDefinition::Layered(definition) => Some(definition.clone()),
-            RegisteredVoiceDefinition::Legacy(_) => None,
+            RegisteredVoiceDefinition::Legacy(_) | RegisteredVoiceDefinition::EngineLayered(_) => {
+                None
+            }
         })
         .collect()
 }

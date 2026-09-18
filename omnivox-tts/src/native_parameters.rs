@@ -5,6 +5,7 @@
 //! validation, native overlays, provenance and dependency ordering, not calibration.
 
 mod planning;
+pub(crate) use planning::contextual_inputs;
 mod types;
 mod validation;
 
@@ -33,7 +34,7 @@ pub enum ParameterError {
     DependencyCycle,
 }
 
-fn decode<T: DeserializeOwned>(json: &[u8]) -> Result<T, ParameterError> {
+pub(crate) fn decode<T: DeserializeOwned>(json: &[u8]) -> Result<T, ParameterError> {
     if json.len() > crate::control::MAX_CONTROL_PAYLOAD_BYTES {
         return Err(ParameterError::Invalid("payload exceeds control bound"));
     }

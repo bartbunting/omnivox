@@ -1,8 +1,10 @@
 //! Silent real-helper acceptance through the Rust parent, not a direct wire client.
 //! Usage: helper_parameters_probe ENGINE PROGRAM VOICE PARAMETER INTEGER [HELPER-ARG...]
 use omnivox_tts::{
+    engine_voice_choices::*,
     helper_engine::{HelperEngineConfig, HelperTtsEngine},
     helper_protocol::parameters::*,
+    logical_voices::{LogicalVoiceBinding, LogicalVoiceRegistry},
     native_parameters::ParameterCatalogue,
     *,
 };
@@ -90,6 +92,61 @@ fn main() -> Result<(), Box<dyn Error>> {
         json!({"native":{"engine_id":args[1],"schema_id":initial.identity.schema_id,
         "parameters":{args[4].clone():{"op":"set","value":args[5].parse::<i64>()?}}},"context_dimensions":[],"expected_identity":initial.identity,"unavailable_policy":"require"}),
     )?;
+    // Admit and prepare a named choice from current metadata without engine I/O.
+    // Execution below still uses the internal trait; public routing is separate.
+    let definition = EngineLayeredVoiceDefinition {
+        id: "native-probe".into(),
+        language: None,
+        shared: Default::default(),
+        choices: vec![EngineVoiceChoice {
+            id: "selected".into(),
+            selector: contracts::VoiceSelector::Exact(contracts::PhysicalVoiceId::new(
+                &args[1], &args[3],
+            )),
+            adjustments: Default::default(),
+            native: Some(native.native.clone()),
+        }],
+    };
+    let inventory = [engine.descriptor()];
+    let snapshot =
+        NativeCatalogueSnapshot::new(&inventory, &[ParameterKnowledge::Ready(&initial)])?;
+    let mut registry = LogicalVoiceRegistry::default();
+    let registration = registry.register_v3(
+        VoiceRegistrationV3 {
+            registry_generation: 1,
+            definitions: vec![EngineRegisteredVoiceDefinition::EngineLayered(
+                definition.clone(),
+            )],
+            fallback_policy: control::ChoiceFallbackPolicy {
+                preferred_engines: vec![],
+                allow_same_language_on_requested_engine: false,
+                global_default: None,
+                fallback_engines: vec![],
+            },
+        },
+        &snapshot,
+    )?;
+    assert_eq!(
+        registration.native_status[0].status,
+        NativeSupport::Supported
+    );
+    let LogicalVoiceBinding::Resolved { resolution } = &registry.bindings()[0] else {
+        return Err("Native probe choice did not resolve".into());
+    };
+    let prepared = definition.prepare(
+        resolution,
+        &Default::default(),
+        TtsSettings::default().rate,
+        None,
+        &snapshot,
+        UnavailablePolicy::Require,
+    )?;
+    assert_eq!(prepared.common.choice_id.as_deref(), Some("selected"));
+    let NativeChoiceExecution::Parameters(parameters) = prepared.native else {
+        return Err("Native probe choice did not prepare native settings".into());
+    };
+    assert_eq!(*parameters, native);
+    native = *parameters;
     let request = SynthesisRequest::new(
         "Native parameter parent acceptance.",
         TtsSettings {
@@ -221,6 +278,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "{}",
         serde_json::to_string_pretty(
             &json!({"engine":args[1],"execution_path":"TtsEngine through voice eligibility","parameter_count":initial.parameters.len(),
+        "choice_preparation":{"registry_generation":registration.registry_generation,"choice_id":prepared.common.choice_id,"native_status":registration.native_status},
         "buffered_frames":buffered.audio.frame_count(),"progressive_frames":progressive_frames,
         "draft":draft,"applied":explanation,"query_during_speech":"busy","native_cancellation":{"error":native_cancel_error,"restarted":native_restarted},
         "ordinary_cancellation":{"error":ordinary_cancel_error,"restarted":ordinary_restarted},

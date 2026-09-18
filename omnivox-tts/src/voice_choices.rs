@@ -38,7 +38,7 @@ pub struct AudioChoiceIdentity {
     pub degraded_effects: Vec<PostSynthesisDimension>,
 }
 
-fn required_nullable<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+pub(crate) fn required_nullable<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de>,
@@ -347,7 +347,7 @@ enum StrictSelector {
     },
 }
 
-fn choice_selector<'de, D>(deserializer: D) -> Result<VoiceSelector, D::Error>
+pub(crate) fn choice_selector<'de, D>(deserializer: D) -> Result<VoiceSelector, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -414,6 +414,9 @@ pub struct LayeredVoiceDefinition {
 pub enum RegisteredVoiceDefinition {
     Legacy(LogicalVoiceDefinition),
     Layered(LayeredVoiceDefinition),
+    // Stored by v3 admission only; never accepted by the v2 wire reader.
+    #[serde(skip_deserializing)]
+    EngineLayered(crate::engine_voice_choices::EngineLayeredVoiceDefinition),
 }
 
 /// Complete request state before capability adaptation, never failed-attempt state.

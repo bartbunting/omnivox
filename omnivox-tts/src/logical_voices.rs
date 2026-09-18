@@ -104,6 +104,14 @@ impl LogicalVoiceRegistry {
         &self.registered_definitions
     }
 
+    /// Native definitions require the new execution and timeline contract.
+    pub fn is_engine_layered(&self, id: &str) -> bool {
+        self.registered_definitions.iter().any(|d| {
+            matches!(d,
+            RegisteredVoiceDefinition::EngineLayered(voice) if voice.id == id)
+        })
+    }
+
     pub fn fallback_policy(&self) -> &FallbackPolicy {
         &self.fallback_policy
     }
@@ -160,6 +168,24 @@ impl LogicalVoiceRegistry {
     pub fn register_v2(
         &mut self,
         generation: u64,
+        definitions: Vec<RegisteredVoiceDefinition>,
+        fallback_policy: FallbackPolicy,
+        inventory: &[EngineDescriptor],
+    ) -> Result<LogicalVoiceRegistration, ChoiceTuningError> {
+        if definitions
+            .iter()
+            .any(|d| matches!(d, RegisteredVoiceDefinition::EngineLayered(_)))
+        {
+            return Err(ChoiceTuningError::Invalid(
+                "engine-layered definitions require v3 admission",
+            ));
+        }
+        self.replace_definitions(generation, definitions, fallback_policy, inventory)
+    }
+
+    fn replace_definitions(
+        &mut self,
+        generation: u64,
         mut definitions: Vec<RegisteredVoiceDefinition>,
         fallback_policy: FallbackPolicy,
         inventory: &[EngineDescriptor],
@@ -193,6 +219,10 @@ impl LogicalVoiceRegistry {
                 RegisteredVoiceDefinition::Layered(layered) => {
                     layered.validate()?;
                     projection.push(layered.legacy_projection());
+                }
+                RegisteredVoiceDefinition::EngineLayered(native) => {
+                    // Native validation completes before this private publication step.
+                    projection.push(native.common_projection().legacy_projection());
                 }
             }
         }
@@ -661,3 +691,6 @@ mod tests {
         assert_eq!(registry.registered_definitions(), original);
     }
 }
+
+mod native;
+pub use native::NativeVoiceRegistration;

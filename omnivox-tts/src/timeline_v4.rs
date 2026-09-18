@@ -225,6 +225,14 @@ impl PresentationTimelineV4 {
             })
             .collect::<HashSet<_>>();
         for span in &self.spans {
+            let id = match span {
+                MixedSpeechSpan::Legacy(s) => s.logical_voice_id.as_deref(),
+                MixedSpeechSpan::Layered(s) => Some(s.logical_voice_id.as_str()),
+            };
+            require(
+                !id.is_some_and(|id| registry.is_engine_layered(id)),
+                "engine-layered definitions require timeline version 5",
+            )?;
             if let MixedSpeechSpan::Layered(span) = span {
                 require(
                     layered.contains(span.logical_voice_id.as_str()),

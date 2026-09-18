@@ -88,6 +88,15 @@ preview/explanation operations, routed receipts and the Emacs editor remain next
 Adapter integration must preserve the old common path, including its existing clamps; native edit ranges are separately
 qualified and must not silently recalibrate common controls.
 
+Internal [native choice admission and preparation](benchmarks/2026-09-18-native-choice-admission.md)
+now stores engine-layered definitions in the existing registry generation domain.
+It validates complete replacements against immutable current metadata, preserves
+unavailable settings, and prepares the actual selected choice with its common
+context and runtime identity. Registration performs no engine I/O. Older speech
+paths reject these definitions instead of discarding native settings. Public v3
+registration, routed execution/evidence, previews and editing remain pending;
+the native execution bundle is not advertised.
+
 ## Shared rules
 
 Retain control envelope 1, remote envelope 1, positive request correlation,
