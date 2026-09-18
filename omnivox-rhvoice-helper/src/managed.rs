@@ -1,6 +1,22 @@
 use super::*;
 use omnivox_tts::voice_library::RuntimeLibrary;
 
+fn verify_managed_resources(library: &RuntimeLibrary) -> Result<(), Box<dyn std::error::Error>> {
+    // Reuse the isolated native-load verifier, including resource-tree checks.
+    // The original generation still supplies the helper's identity and load set;
+    // unrelated providers' assets cannot prevent RHVoice from supplying speech.
+    for target in library
+        .validation_targets()
+        .iter()
+        .filter(|target| target.engine_id == "rhvoice")
+    {
+        library
+            .validation_unit(target)?
+            .verify_assets(Default::default())?;
+    }
+    Ok(())
+}
+
 impl RhVoiceTtsEngine {
     pub fn from_library(library: &RuntimeLibrary) -> Result<Self, TtsError> {
         let load = || -> Result<Self, Box<dyn std::error::Error>> {
@@ -9,7 +25,7 @@ impl RhVoiceTtsEngine {
                 .rhvoice
                 .as_ref()
                 .ok_or("missing RHVoice load set")?;
-            library.verify_assets(Default::default())?;
+            verify_managed_resources(library)?;
             let mut config = if managed.inherit_external {
                 RuntimeConfig::from_environment()?
             } else {
@@ -98,5 +114,30 @@ impl RhVoiceTtsEngine {
             Ok(engine)
         };
         load().map_err(|error| TtsError::InvalidParameter(format!("managed RHVoice: {error}")))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use omnivox_tts::voice_library::HostPlatform;
+
+    #[test]
+    fn unrelated_missing_voice_files_do_not_block_rhvoice_verification() {
+        let library = RuntimeLibrary::parse(
+            br#"{"schema_version":3,"target_id":"11111111-1111-4111-8111-111111111111",
+            "profile_id":"22222222-2222-4222-8222-222222222222",
+            "generation_id":"33333333-3333-4333-8333-333333333333",
+            "disabled_physical_ids":[],"piper":null,
+            "flite":{"builtin_slt":false,"files":[{"physical_id":"flitevox:test",
+            "file":{"path":"/missing/voice.flitevox","bytes":1,
+            "sha256":"0000000000000000000000000000000000000000000000000000000000000000"},
+            "display_name":"Test","language":"en"}]},
+            "rhvoice":{"inherit_external":true,"voices":[]}}"#,
+            HostPlatform::Posix,
+        )
+        .unwrap();
+        assert!(library.verify_assets(Default::default()).is_err());
+        verify_managed_resources(&library).unwrap();
     }
 }

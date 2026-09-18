@@ -258,6 +258,17 @@ Main-server inputs are =--voice-library PATH= and
 generation file. With neither, startup is unchanged. An explicit malformed
 library fails preflight/startup; do not quietly ignore it.
 
+A valid generation does not make optional engines mandatory for ordinary
+speech. Missing compiled support, missing helpers, provider asset failures or
+incomplete native discovery mark only that provider unavailable, with its
+reason in inventory. Other eligible engines remain usable through normal
+fallback. Verify each provider's assets before native loading and again on a
+configured helper's rescan; preserve generation identity and all exclusions.
+Do not invent voices for failed providers. Exact diagnostics and previews
+remain strict, and Apply still requires the complete expected eligible set
+from both workers. Degraded startup cannot establish successful activation.
+An undiscovered companion needs configuration repair and a speech restart.
+
 Within each engine, existing explicit CLI/native environment file settings
 win over the managed projection, which wins over defaults. This includes the
 typed Emacs file settings already projected by the local launcher. Override
@@ -278,7 +289,8 @@ configuration; helpers never translate WSL paths.
 The main server also passes =--voice-library-sha256 DIGEST= to managed Piper
 and Flite helpers. They compare it with the exact generation bytes before
 constructing an engine. A changed file or an older helper which rejects the
-option fails startup; it cannot acknowledge the parent's configuration.
+option makes that helper unavailable; it cannot acknowledge its configured
+voices. Other engines may continue supplying ordinary speech.
 Direct helper development calls may omit this extra argument.
 
 Discovery must not load all installed models. A managed Piper helper reports

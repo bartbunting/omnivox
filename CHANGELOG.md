@@ -88,6 +88,11 @@ Versioning for published releases.
 
 ### Fixed
 
+- Ordinary speech starts with available fallback engines when a managed engine
+  lacks compiled support, a helper or valid runtime resources. Failed providers
+  remain visibly unavailable; exact auditions, asset checks, voice exclusions
+  and coordinated Apply retain their checks.
+
 - macOS can run the development native voice validator with private process-group
   cleanup and a sampled aggregate memory-footprint budget. Cleanup waits for
   exited descendants to be reaped instead of failing on Darwin's temporary

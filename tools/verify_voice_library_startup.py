@@ -25,8 +25,9 @@ def native(path, windows):
 
 class Server:
     def __init__(self, program, arguments, environment):
+        engine = [] if "--engine" in arguments else ["--engine", "espeak"]
         self.process = subprocess.Popen(
-            [str(program), "--audio-output", "null", "--engine", "espeak", *arguments],
+            [str(program), "--audio-output", "null", *engine, *arguments],
             env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             text=True, encoding="utf-8", errors="replace", start_new_session=os.name == "posix",
         )
@@ -92,6 +93,27 @@ def server(program, arguments, environment):
         instance.close()
 
 
+def degraded_speech(session, provider, voice_id, reason=None):
+    """Require truthful unavailability, exact-audition failure and real fallback PCM."""
+    inventory = session.control("inventory")
+    engine = next(engine for engine in inventory["engines"] if engine["id"] == provider)
+    assert engine["availability"]["status"] == "unavailable", engine
+    if reason:
+        assert reason in engine["availability"]["reason"], engine
+    status = session.control("voice_library_status_v1")
+    assert not any(voice["engine_id"] == provider for voice in status["eligible_voices"]), status
+    exact = {"kind": "exact", "engine_id": provider, "voice_id": voice_id}
+    result = session.control("preview", text="Voice fallback.", selector=exact)
+    assert result["status"] != "completed" and result.get("realized") is None, result
+    result = session.control("preview_voice", text="Voice fallback.", preferences=[exact],
+                             language="en", disabled_engine_ids=[], fallback_policy={
+                                 "preferred_engines": [provider],
+                                 "allow_same_language_on_requested_engine": True,
+                                 "global_default": None, "fallback_engines": ["espeak"]})
+    assert result["status"] == "completed" and result["realized"]["engine_id"] == "espeak", result
+    return inventory, status
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("server", type=Path)
@@ -105,11 +127,19 @@ def main():
         temporary = Path(temporary)
         environment = {key: value for key, value in os.environ.items()
                        if not key.startswith("OMNIVOX_") and key != "ESPEAK_NG_DATA"}
+        if windows and os.environ.get("ESPEAK_NG_DATA"):
+            environment["ESPEAK_NG_DATA"] = os.environ["ESPEAK_NG_DATA"]
         for name in ["PIPER", "FLITE", "RHVOICE", "RUTTS", "TGSPEECHBOX", "ELOQUENCE", "DECTALK"]:
             environment[f"OMNIVOX_{name}_HELPER"] = native(temporary / "absent-helper", windows)
         environment["OMNIVOX_FLITE_HELPER"] = native(args.flite_helper.resolve(), windows)
         if args.piper_helper:
             environment["OMNIVOX_PIPER_HELPER"] = native(args.piper_helper.resolve(), windows)
+        if windows and sys.platform == "linux":
+            forwarded = [key for key in environment if key.startswith("OMNIVOX_")]
+            forwarded += ["OMNIVOX_VOICE_LIBRARY", "ESPEAK_NG_DATA"]
+            retained = [entry for entry in environment.get("WSLENV", "").split(":")
+                        if entry and entry.split("/")[0] not in forwarded]
+            environment["WSLENV"] = ":".join(retained + forwarded)
         document = {"schema_version": 1,
                     "target_id": "11111111-1111-4111-8111-111111111111",
                     "profile_id": "22222222-2222-4222-8222-222222222222",
@@ -146,7 +176,7 @@ def main():
                     assert "excluded" in engine["availability"]["reason"], engine
             response = session.control("preview", text="a", selector={"kind": "exact", **excluded})
             assert response.get("realized") is None and response["status"] != "completed", response
-            assert "voice_library_v1" not in session.control("capabilities")["features"]
+            assert "voice_library_v1" in session.control("capabilities")["features"]
             result = session.control("set_routing_policy", routing_policy_generation=7,
                                      preferred_engine_ids=["espeak"], fallback_engine_ids=[], disabled_engine_ids=["espeak"])
             assert result["type"] == "routing_policy_applied", result
@@ -166,8 +196,13 @@ def main():
             assert result["status"] == "completed" and result["realized"]["engine_id"] == "flite", result
         print("Environment selection, managed Flite and actual preview identity passed", flush=True)
 
+        with server(program, arguments, {**environment, "OMNIVOX_FLITE_HELPER": native(temporary / "missing-helper", windows)}) as session:
+            inventory, status = degraded_speech(session, "flite", "cmu_us_slt")
+            assert status["configuration"]["sha256"] == digest, status
+            assert excluded not in status["eligible_voices"], status
+        print("Missing managed helper retains speech, exclusions and truthful status", flush=True)
+
         for arguments_override, environment_override in [
-            (arguments, {**environment, "OMNIVOX_FLITE_HELPER": native(temporary / "missing-helper", windows)}),
             (["--voice-library", native(temporary / "missing.json", windows)], environment),
             (["--voice-library", ""], environment),
         ]:
@@ -177,44 +212,64 @@ def main():
         result = subprocess.run([str(args.flite_helper.resolve()), "--voice-library", native(path, windows),
                                  "--voice-library-sha256", "0" * 64], input="", text=True, capture_output=True, timeout=30)
         assert result.returncode != 0 and "SHA-256" in result.stderr, result
-        print("Required helper failures, malformed selection and changed-generation rejection passed", flush=True)
+        print("Malformed selection and changed-generation rejection passed", flush=True)
 
+        damaged = temporary / "damaged.flitevox"
+        damaged.write_bytes(b"bad")
+        document["flite"]["files"] = [{"physical_id": "flitevox:test",
+            "file": {"path": native(damaged, windows), "bytes": 3,
+                     "sha256": hashlib.sha256(b"abc").hexdigest()},
+            "display_name": "Test", "language": "en"}]
+        write()
+        with server(program, arguments, environment) as session:
+            degraded_speech(session, "flite", "cmu_us_slt", "SHA-256")
+        document["flite"]["files"] = []
+        write()
+        print("Damaged managed assets retain speech through other engines", flush=True)
+
+        # A saved Piper selection must also work on a build without Piper support.
+        # These tiny deterministic fixtures need no native Piper model loading.
+        source = root / "test-fixtures/piper-speakers"
+        model = temporary / "alpha.onnx"
+        config = temporary / "alpha.onnx.json"
+        model.write_bytes((source / "alpha.onnx").read_bytes())
+        config.write_bytes((source / "config.json").read_bytes())
+        def asset(file):
+            data = file.read_bytes()
+            return {"path": native(file, windows), "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+        document["piper"]["models"] = [{"identity": {"catalogue_key": "alpha"}, "model": asset(model), "config": asset(config),
+            "voices": [{"physical_id": "piper:v1/c/alpha/1", "speaker_index": 1, "display_name": "Alpha speaker 1", "language": None}]}]
+        write()
         if args.piper_helper:
-            source = root / "test-fixtures/piper-speakers"
-            model = temporary / "alpha.onnx"
-            config = temporary / "alpha.onnx.json"
-            model.write_bytes((source / "alpha.onnx").read_bytes())
-            config.write_bytes((source / "config.json").read_bytes())
-            def asset(file):
-                data = file.read_bytes()
-                return {"path": native(file, windows), "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
-            document["piper"]["models"] = [{"identity": {"catalogue_key": "alpha"}, "model": asset(model), "config": asset(config),
-                "voices": [{"physical_id": "piper:v1/c/alpha/1", "speaker_index": 1, "display_name": "Alpha speaker 1", "language": None}]}]
-            write()
             with server(program, arguments, environment) as session:
                 result = session.control("preview", text="a", selector={"kind": "exact", "engine_id": "piper", "voice_id": "piper:v1/c/alpha/1"})
                 assert result["status"] == "completed" and result["realized"]["voice_id"] == "piper:v1/c/alpha/1", result
-            # Changed managed assets fail before helper startup; an explicit
-            # model override replaces that provider's declared load set.
-            document["piper"]["models"][0]["model"]["sha256"] = "0" * 64
-            write()
-            result = subprocess.run([str(program), "--audio-output", "null", *arguments],
-                                    env=environment, input="", text=True, capture_output=True, timeout=90)
-            assert result.returncode != 0 and "SHA-256" in result.stderr, result
-            with server(program, arguments + ["--piper-model", native(model, windows)], environment) as session:
-                status = session.control("voice_library_status_v1")
-                assert status["overridden_engines"] == ["piper"], status
-                assert {"engine_id": "piper", "voice_id": "piper:alpha"} in status["eligible_voices"], status
-                assert {"engine_id": "piper", "voice_id": "piper:v1/c/alpha/1"} not in status["eligible_voices"], status
-            document["disabled_physical_ids"].append({"engine_id": "piper", "voice_id": "piper:alpha"})
-            write()
-            with server(program, arguments + ["--piper-model", native(model, windows)], environment) as session:
-                status = session.control("voice_library_status_v1")
-                assert status["overridden_engines"] == ["piper"], status
-                assert not any(voice["engine_id"] == "piper" for voice in status["eligible_voices"]), status
-                result = session.control("preview", text="a", selector={"kind": "exact", "engine_id": "piper", "voice_id": "piper:alpha"})
-                assert result.get("realized") is None and result["status"] != "completed", result
-            print("Managed Piper speaker preview and explicit model override passed", flush=True)
+        else:
+            with server(program, arguments + ["--engine", "piper"], environment) as session:
+                _, status = degraded_speech(session, "piper", "piper:v1/c/alpha/1")
+                assert excluded not in status["eligible_voices"], status
+            print("Unavailable preferred Piper falls back to real eSpeak synthesis", flush=True)
+            return
+        # Changed managed assets disable only their provider; an explicit
+        # model override replaces that provider's declared load set.
+        document["piper"]["models"][0]["model"]["sha256"] = "0" * 64
+        write()
+        with server(program, arguments, environment) as session:
+            degraded_speech(session, "piper", "piper:v1/c/alpha/1", "SHA-256")
+        with server(program, arguments + ["--piper-model", native(model, windows)], environment) as session:
+            status = session.control("voice_library_status_v1")
+            assert status["overridden_engines"] == ["piper"], status
+            assert {"engine_id": "piper", "voice_id": "piper:alpha"} in status["eligible_voices"], status
+            assert {"engine_id": "piper", "voice_id": "piper:v1/c/alpha/1"} not in status["eligible_voices"], status
+        document["disabled_physical_ids"].append({"engine_id": "piper", "voice_id": "piper:alpha"})
+        write()
+        with server(program, arguments + ["--piper-model", native(model, windows)], environment) as session:
+            status = session.control("voice_library_status_v1")
+            assert status["overridden_engines"] == ["piper"], status
+            assert not any(voice["engine_id"] == "piper" for voice in status["eligible_voices"]), status
+            result = session.control("preview", text="a", selector={"kind": "exact", "engine_id": "piper", "voice_id": "piper:alpha"})
+            assert result.get("realized") is None and result["status"] != "completed", result
+        print("Managed Piper speaker preview and explicit model override passed", flush=True)
 
 
 if __name__ == "__main__":

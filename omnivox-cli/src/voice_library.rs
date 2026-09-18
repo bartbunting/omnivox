@@ -10,6 +10,7 @@ use omnivox_tts::voice_library::{
     HostPlatform, ProviderOverrides, RuntimeLibrary, VoiceEligibility,
 };
 
+#[derive(Clone)]
 pub(crate) struct StartupLibrary {
     pub path: PathBuf,
     pub library: RuntimeLibrary,
@@ -61,7 +62,6 @@ impl StartupLibrary {
             HostPlatform::Posix
         };
         let library = RuntimeLibrary::read(std::fs::File::open(&path)?, host)?;
-        library.verify_assets(overrides)?;
         let eligibility = Arc::new(VoiceEligibility::from_library(&library, overrides));
         Ok(Self {
             path,
@@ -102,6 +102,38 @@ impl StartupLibrary {
                 self.library.sha256().into(),
             ];
         }
+    }
+
+    /// Verify only the provider about to load. A broken optional provider must
+    /// not prevent another engine from supplying ordinary fallback speech.
+    pub fn verify_assets(&self, engine: &str) -> Result<()> {
+        if !self.manages(engine) {
+            return Ok(());
+        }
+        // Reuse the shared verifier, including RHVoice's resource-tree checks.
+        // This private projection never replaces the pinned generation passed
+        // to helpers or the configuration acknowledged to the client.
+        let mut document = self.library.document().clone();
+        if engine != "piper" {
+            document.piper = None;
+        }
+        if engine != "flite" {
+            document.flite = None;
+        }
+        if engine != "mbrola" {
+            document.mbrola = None;
+        }
+        if engine != "rhvoice" {
+            document.rhvoice = None;
+        }
+        let host = if cfg!(windows) {
+            HostPlatform::Windows
+        } else {
+            HostPlatform::Posix
+        };
+        RuntimeLibrary::parse(&serde_json::to_vec(&document)?, host)?
+            .verify_assets(ProviderOverrides::default())?;
+        Ok(())
     }
 
     pub fn validate_descriptor(&self, descriptor: &EngineDescriptor) -> Result<()> {

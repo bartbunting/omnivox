@@ -107,12 +107,13 @@ fn create_non_windows_engines(
     isolation_budget: Arc<IsolationBudget>,
 ) -> Result<CreatedEngines> {
     let requested = requested_engine(engine_name);
-    let helper_initializations =
-        start_helper_initializations(configured_helper_configs(&requested, piper_model, library)?);
+    let helper_configs = configured_helper_configs(&requested, piper_model, library);
     let mut registry = match library {
         Some(library) => library.registry()?,
         None => EngineRegistry::new(),
     };
+    register_missing_managed_helpers(&mut registry, &helper_configs, library)?;
+    let helper_initializations = start_helper_initializations(helper_configs, library);
 
     #[cfg(target_os = "macos")]
     match MacOsTtsEngine::new() {
@@ -189,12 +190,13 @@ fn create_windows_engines(
     .into_iter()
     .flatten()
     .collect::<Vec<_>>();
-    helper_configs.extend(configured_helper_configs(&forced, piper_model, library)?);
-    let helper_initializations = start_helper_initializations(helper_configs);
+    helper_configs.extend(configured_helper_configs(&forced, piper_model, library));
     let mut registry = match library {
         Some(library) => library.registry()?,
         None => EngineRegistry::new(),
     };
+    register_missing_managed_helpers(&mut registry, &helper_configs, library)?;
+    let helper_initializations = start_helper_initializations(helper_configs, library);
 
     match WindowsTtsEngine::new() {
         Ok(engine) => {
@@ -297,10 +299,19 @@ type HelperInitializationResult =
     Result<Arc<HelperTtsEngine>, omnivox_tts::helper_engine::HelperEngineError>;
 type PendingHelper = PendingHelperInitialization<HelperInitializationResult>;
 
-fn start_helper_initializations(configs: Vec<HelperEngineConfig>) -> Vec<PendingHelper> {
-    start_helper_initializations_with(configs, |config| {
+fn start_helper_initializations(
+    configs: Vec<HelperEngineConfig>,
+    library: Option<&StartupLibrary>,
+) -> Vec<PendingHelper> {
+    let library = library.cloned();
+    start_helper_initializations_with(configs, move |config| {
         let engine_id = config.engine_id.clone();
         let helper_path = config.program.clone();
+        if let Some(library) = &library {
+            library.verify_assets(&engine_id).map_err(|error| {
+                omnivox_tts::helper_engine::HelperEngineError::Transport(error.to_string())
+            })?;
+        }
         let result = initialize_server_helper(config).map(Arc::new);
         if engine_id == "tgspeechbox" {
             if let Ok(engine) = &result {
@@ -394,7 +405,6 @@ fn register_initialized_helpers(
     isolation_budget: Arc<IsolationBudget>,
     library: Option<&StartupLibrary>,
 ) -> Result<()> {
-    let mut required_failures = Vec::new();
     for initialization in pending {
         let PendingHelperInitialization {
             engine_id,
@@ -434,19 +444,27 @@ fn register_initialized_helpers(
                 info!(engine_id, helper = %helper_path.display(), elapsed_ms, "Registered helper engine");
             }
             Err(reason) => {
-                if library.is_some_and(|library| library.requires(&engine_id)) {
-                    required_failures.push(format!("{engine_id}: {reason}"));
-                }
                 warn!(engine_id, helper = %helper_path.display(), %reason, "Helper is not available");
                 let generation = Arc::clone(&generation);
                 let isolation_budget = Arc::clone(&isolation_budget);
+                let library = library.cloned();
                 registry.register_unavailable(
                     EngineDescriptor::unavailable(&engine_id, reason),
                     move || {
                         // A rescan must perform live discovery, including for
                         // helpers that normally permit a deferred cached inventory.
+                        if let Some(library) = &library {
+                            library
+                                .verify_assets(&config.engine_id)
+                                .map_err(|error| error.to_string())?;
+                        }
                         let engine = HelperTtsEngine::new(config.clone())
                             .map_err(|error| error.to_string())?;
+                        if let Some(library) = &library {
+                            library
+                                .validate_descriptor(&engine.descriptor())
+                                .map_err(|error| error.to_string())?;
+                        }
                         Ok(Arc::new(IsolatedTtsEngine::new(
                             Arc::new(engine),
                             Arc::clone(&generation),
@@ -457,11 +475,6 @@ fn register_initialized_helpers(
             }
         }
     }
-    anyhow::ensure!(
-        required_failures.is_empty(),
-        "voice-library helper startup failed: {}",
-        required_failures.join("; ")
-    );
     Ok(())
 }
 
@@ -647,20 +660,12 @@ fn configured_helper_configs(
     requested: &str,
     model: Option<&str>,
     library: Option<&StartupLibrary>,
-) -> Result<Vec<HelperEngineConfig>> {
+) -> Vec<HelperEngineConfig> {
     let mut configs = Vec::with_capacity(5);
     if library.is_some_and(|library| library.manages("piper")) {
+        #[cfg(feature = "piper")]
         if library.is_some_and(|library| library.requires("piper")) {
-            #[cfg(not(feature = "piper"))]
-            anyhow::bail!("voice library requires Piper; rebuild Omnivox with --features piper");
-            #[cfg(feature = "piper")]
-            {
-                let mut config = companion_helper_config("piper", "OMNIVOX_PIPER_HELPER")
-                    .ok_or_else(|| {
-                        anyhow::anyhow!(
-                            "voice library requires the Piper helper, but it was not found"
-                        )
-                    })?;
+            if let Some(mut config) = companion_helper_config("piper", "OMNIVOX_PIPER_HELPER") {
                 config.startup_timeout = Duration::from_secs(60);
                 config.synthesis_idle_timeout = Duration::from_secs(60);
                 configs.push(config);
@@ -682,19 +687,40 @@ fn configured_helper_configs(
     }
     if let Some(library) = library {
         configs.retain(|config| !library.eligibility.excludes_provider(&config.engine_id));
-        for engine in ["piper", "flite", "mbrola"] {
-            anyhow::ensure!(
-                !library.requires(engine)
-                    || configs.iter().any(|config| config.engine_id == engine),
-                "voice library requires the {engine} helper, but it was not found"
-            );
-        }
         for config in &mut configs {
             library.configure(config);
         }
     }
-    Ok(configs)
+    configs
 }
+
+fn register_missing_managed_helpers(
+    registry: &mut EngineRegistry,
+    configs: &[HelperEngineConfig],
+    library: Option<&StartupLibrary>,
+) -> Result<()> {
+    let Some(library) = library else {
+        return Ok(());
+    };
+    for engine in ["piper", "flite", "mbrola", "rhvoice"] {
+        if library.requires(engine) && !configs.iter().any(|config| config.engine_id == engine) {
+            let reason = if engine == "piper" && !cfg!(feature = "piper") {
+                "Piper support is not built in; rebuild Omnivox with --features piper".to_owned()
+            } else {
+                format!("The {engine} helper was not found; configure it and restart speech")
+            };
+            warn!(engine_id = engine, %reason, "Managed engine is not available; retaining fallback speech");
+            registry.register_unavailable(
+                EngineDescriptor::unavailable(engine, &reason),
+                move || Err(reason.clone()),
+            )?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod library_tests;
 
 /// Create one exact TTS engine for a diagnostic action.
 ///
@@ -721,8 +747,9 @@ pub fn create_engine(
         !library.eligibility.excludes_provider(&forced),
         "{forced} is excluded by voice-library configuration"
     );
+    library.verify_assets(&forced)?;
     let engine: Arc<dyn TtsEngine> = if library.manages(&forced) {
-        let config = configured_helper_configs(&forced, piper_model, Some(&library))?
+        let config = configured_helper_configs(&forced, piper_model, Some(&library))
             .into_iter()
             .find(|config| config.engine_id == forced)
             .ok_or_else(|| anyhow::anyhow!("voice library requires the {forced} helper"))?;

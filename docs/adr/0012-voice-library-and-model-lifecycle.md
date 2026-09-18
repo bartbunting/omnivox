@@ -200,6 +200,10 @@ remains unresolved; these checks do not establish MSVC or two-lane acceptance.
 
 ### Main-server startup and development status
 
+The strict optional-helper failure behavior described below was subsequently
+refined by [ADR 0017](0017-managed-engine-startup-fallback.md): ordinary speech
+retains available fallbacks, while exact diagnostics and Apply remain strict.
+
 The server now accepts the generation via CLI or native environment, with CLI
 precedence. It verifies active provider assets before engine construction,
 binds registry eligibility for the process lifetime, and omits empty managed
