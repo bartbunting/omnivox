@@ -1,6 +1,10 @@
 //! CLI-owned preparation and commitment of a single actual voice attempt.
 
 use super::*;
+use omnivox_tts::engine_voice_choices::{
+    NativeCatalogueSnapshot, NativeChoiceExecution, ParameterKnowledge,
+};
+use omnivox_tts::native_synthesis::{NativeApplication, UnavailablePolicy};
 use omnivox_tts::voice_choices::VoiceStylePatch;
 
 /// A span's immutable input. Layered context never lives on mutable routing state.
@@ -15,12 +19,22 @@ pub(crate) enum AttemptStyle<'a> {
         base_rate: f32,
         placement_pan: Option<f32>,
     },
+    /// Current immutable metadata is supplied by the connection owner, never queried here.
+    #[cfg_attr(not(test), expect(dead_code))]
+    EngineLayered {
+        context: &'a VoiceStylePatch,
+        base_rate: f32,
+        placement_pan: Option<f32>,
+        knowledge: &'a [ParameterKnowledge<'a>],
+        policy: UnavailablePolicy,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum VoiceAttemptKind {
     Legacy,
     Layered,
+    EngineLayered,
 }
 
 /// Values belong to the actual attempt, independently of subsequent route mutations.
@@ -35,6 +49,9 @@ pub(crate) struct PreparedVoiceAttempt {
     pub settings: TtsSettings,
     pub acss: AcssApplication,
     pub effects: PostSynthesisApplication,
+    pub native: NativeChoiceExecution,
+    /// Tentative adapter evidence; neither this field nor a buffer proves playback.
+    pub native_application: Option<NativeApplication>,
 }
 
 impl PreparedVoiceAttempt {
@@ -50,12 +67,30 @@ impl PreparedVoiceAttempt {
 }
 
 impl AttemptStyle<'_> {
+    pub(crate) fn is_native(&self) -> bool {
+        matches!(self, Self::EngineLayered { .. })
+    }
+
+    pub(crate) fn validate_definition(
+        &self,
+        routing: &LogicalVoiceRoutingSnapshot,
+        id: &str,
+    ) -> Result<(), String> {
+        let native = routing.engine_definitions.iter().any(|d| d.id == id);
+        if native != self.is_native() {
+            return Err("native definitions require an engine-layered request".into());
+        }
+        Ok(())
+    }
+
     pub(crate) fn prepare(
         &self,
         routing: &LogicalVoiceRoutingSnapshot,
         route: &LogicalRoute,
         descriptor: &EngineDescriptor,
     ) -> Result<PreparedVoiceAttempt, String> {
+        self.validate_definition(routing, &route.logical_voice_id)?;
+        let mut native = NativeChoiceExecution::NotRequested;
         let (mut settings, acss, effects, choice_index, choice_id) = match self {
             Self::Legacy {
                 settings,
@@ -78,6 +113,52 @@ impl AttemptStyle<'_> {
                 None,
                 None,
             ),
+            Self::EngineLayered {
+                context,
+                base_rate,
+                placement_pan,
+                knowledge,
+                policy,
+            } => {
+                let definition = routing
+                    .engine_definitions
+                    .iter()
+                    .find(|definition| definition.id == route.logical_voice_id)
+                    .ok_or("native request has no admitted engine-layered definition")?;
+                let metadata = NativeCatalogueSnapshot::new(&routing.inventory, knowledge)
+                    .map_err(|error| error.to_string())?;
+                let prepared = definition
+                    .prepare(
+                        &route.resolution,
+                        context,
+                        *base_rate,
+                        *placement_pan,
+                        &metadata,
+                        *policy,
+                    )
+                    .map_err(|error| error.to_string())?;
+                let index = definition
+                    .common_projection()
+                    .selected_choice(&route.resolution)
+                    .map_err(|error| error.to_string())?;
+                native = prepared.native;
+                (
+                    TtsSettings {
+                        rate: *base_rate,
+                        ..TtsSettings::default()
+                    },
+                    prepared
+                        .common
+                        .acss
+                        .degrade_for(&descriptor.capabilities.acss),
+                    prepared
+                        .common
+                        .effects
+                        .degrade_for(&descriptor.capabilities.post_synthesis_dimensions),
+                    index,
+                    prepared.common.choice_id,
+                )
+            }
             Self::Layered {
                 context,
                 base_rate,
@@ -111,10 +192,10 @@ impl AttemptStyle<'_> {
         settings.voice = route.realized.voice_id.clone();
         apply_normalized_acss(&mut settings, &acss.style);
         let prepared = PreparedVoiceAttempt {
-            kind: if matches!(self, Self::Layered { .. }) {
-                VoiceAttemptKind::Layered
-            } else {
-                VoiceAttemptKind::Legacy
+            kind: match self {
+                Self::EngineLayered { .. } => VoiceAttemptKind::EngineLayered,
+                Self::Layered { .. } => VoiceAttemptKind::Layered,
+                Self::Legacy { .. } => VoiceAttemptKind::Legacy,
             },
             registry_generation: routing.registry_generation,
             resolution: route.resolution.clone(),
@@ -123,8 +204,10 @@ impl AttemptStyle<'_> {
             settings,
             acss,
             effects,
+            native,
+            native_application: None,
         };
-        if matches!(self, Self::Layered { .. }) {
+        if !matches!(self, Self::Legacy { .. }) {
             omnivox_tts::voice_preview_v2::validate_audio_choice_identity(
                 &prepared.audio_identity(),
             )?;
@@ -135,6 +218,10 @@ impl AttemptStyle<'_> {
 
 /// The engine-facing stream adapter publishes identity and style together.
 pub(crate) trait RoutedPlaybackSink {
+    /// Old marker/preview consumers must not silently discard native evidence.
+    fn supports_native(&self) -> bool {
+        false
+    }
     fn preflight_attempt(&mut self, _attempt: &PreparedVoiceAttempt) -> Result<(), TtsError> {
         Ok(())
     }

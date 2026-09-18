@@ -25,6 +25,9 @@ use crate::health::{EngineAccess, EnginePermit, RuntimeEngineHealth};
 
 #[path = "routing_choice.rs"]
 pub(crate) mod choice;
+#[path = "routing_native.rs"]
+mod native;
+use omnivox_tts::engine_voice_choices::EngineLayeredVoiceDefinition;
 
 /// Maximum synthesis attempts for one routed chunk, including the first try.
 pub const MAX_RUNTIME_SYNTHESIS_ATTEMPTS: usize = 4;
@@ -36,7 +39,7 @@ pub struct LogicalVoiceRoutingSnapshot {
     definitions: Vec<LogicalVoiceDefinition>,
     registry_generation: u64,
     layered_definitions: Vec<LayeredVoiceDefinition>,
-    engine_definition_ids: Vec<String>,
+    engine_definitions: Vec<EngineLayeredVoiceDefinition>,
     // A private one-selector resolution view, mapped back into the full draft.
     preview_choice_index: Option<usize>,
     fallback_policy: FallbackPolicy,
@@ -51,7 +54,7 @@ impl LogicalVoiceRoutingSnapshot {
 
     pub(crate) fn has_layered_definition(&self, id: &str) -> bool {
         self.layered_definitions.iter().any(|voice| voice.id == id)
-            || self.engine_definition_ids.iter().any(|native| native == id)
+            || self.engine_definitions.iter().any(|native| native.id == id)
     }
 
     #[cfg(test)]
@@ -63,7 +66,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
-            engine_definition_ids: engine_definition_ids(logical_voices),
+            engine_definitions: engine_definitions(logical_voices),
             preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: engine_registry.inventory(),
@@ -80,7 +83,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
-            engine_definition_ids: engine_definition_ids(logical_voices),
+            engine_definitions: engine_definitions(logical_voices),
             preview_choice_index: None,
             fallback_policy: routing_policy
                 .effective_fallback_policy(logical_voices.fallback_policy()),
@@ -100,7 +103,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
-            engine_definition_ids: engine_definition_ids(logical_voices),
+            engine_definitions: engine_definitions(logical_voices),
             preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: routing_policy.project_inventory(engine_registry.inventory()),
@@ -118,7 +121,7 @@ impl LogicalVoiceRoutingSnapshot {
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
-            engine_definition_ids: engine_definition_ids(logical_voices),
+            engine_definitions: engine_definitions(logical_voices),
             preview_choice_index: None,
             fallback_policy: logical_voices.fallback_policy().clone(),
             inventory: Vec::new(),
@@ -131,14 +134,19 @@ impl LogicalVoiceRoutingSnapshot {
     /// Restrict a validated private draft without renumbering its authoritative
     /// choices. Only the resolver projection changes; no policy substitute remains.
     pub(crate) fn restrict_preview_to_choice(&mut self, index: usize) -> Result<(), String> {
-        if self.definitions.len() != 1 || self.layered_definitions.len() != 1 {
+        if self.definitions.len() != 1 {
             return Err("individual preview requires one private layered draft".to_owned());
         }
-        let choice = self.layered_definitions[0]
-            .choices
-            .get(index)
-            .ok_or("preview choice index is absent from the draft")?;
-        self.definitions[0].preferences = vec![choice.selector.clone()];
+        let selector = match (
+            self.layered_definitions.as_slice(),
+            self.engine_definitions.as_slice(),
+        ) {
+            ([definition], []) => definition.choices.get(index).map(|c| c.selector.clone()),
+            ([], [definition]) => definition.choices.get(index).map(|c| c.selector.clone()),
+            _ => return Err("individual preview requires one private layered draft".to_owned()),
+        }
+        .ok_or("preview choice index is absent from the draft")?;
+        self.definitions[0].preferences = vec![selector];
         self.preview_choice_index = Some(index);
         self.fallback_policy = FallbackPolicy::default();
         Ok(())
@@ -191,6 +199,12 @@ impl LogicalVoiceRoutingSnapshot {
                     .map(layered_definition_payload_bytes)
                     .fold(0usize, usize::saturating_add),
             )
+            .saturating_add(
+                self.engine_definitions
+                    .iter()
+                    .map(native::definition_payload_bytes)
+                    .fold(0usize, usize::saturating_add),
+            )
             .saturating_add(fallback_policy_payload_bytes(&self.fallback_policy))
             .saturating_add(inventory)
             .saturating_add(string_vec_payload_bytes(&self.disabled_engine_ids))
@@ -230,6 +244,30 @@ impl LogicalVoiceRoutingSnapshot {
         logical_voice_id: &str,
         engine_registry: &EngineRegistry,
     ) -> Result<LogicalRoute, String> {
+        if self
+            .engine_definitions
+            .iter()
+            .any(|d| d.id == logical_voice_id)
+        {
+            return Err("engine-layered voices require native routing support".into());
+        }
+        self.resolve_current(logical_voice_id, engine_registry)
+    }
+
+    /// Reserved entry for the native timeline/private-preview integration.
+    #[cfg_attr(not(test), expect(dead_code))]
+    pub(crate) fn initial_native_route(
+        &self,
+        logical_voice_id: &str,
+        engine_registry: &EngineRegistry,
+    ) -> Result<LogicalRoute, String> {
+        if !self
+            .engine_definitions
+            .iter()
+            .any(|d| d.id == logical_voice_id)
+        {
+            return Err("native request has no admitted engine-layered definition".into());
+        }
         self.resolve_current(logical_voice_id, engine_registry)
     }
 
@@ -331,13 +369,6 @@ impl LogicalVoiceRoutingSnapshot {
         text: Option<&str>,
         engine_registry: &EngineRegistry,
     ) -> Result<LogicalRoute, String> {
-        if self
-            .engine_definition_ids
-            .iter()
-            .any(|id| id == logical_voice_id)
-        {
-            return Err("engine-layered voices require native routing support".into());
-        }
         let definition = self
             .definitions
             .iter()
@@ -366,12 +397,12 @@ impl LogicalVoiceRoutingSnapshot {
     }
 }
 
-fn engine_definition_ids(registry: &LogicalVoiceRegistry) -> Vec<String> {
+fn engine_definitions(registry: &LogicalVoiceRegistry) -> Vec<EngineLayeredVoiceDefinition> {
     registry
         .registered_definitions()
         .iter()
         .filter_map(|definition| match definition {
-            RegisteredVoiceDefinition::EngineLayered(v) => Some(v.id.clone()),
+            RegisteredVoiceDefinition::EngineLayered(v) => Some(v.clone()),
             _ => None,
         })
         .collect()
@@ -629,6 +660,8 @@ struct RoutedAttemptStreamSink<'a> {
     inner: &'a mut dyn choice::RoutedPlaybackSink,
     prepared: choice::PreparedVoiceAttempt,
     validate_identity: bool,
+    native_receipt: Option<&'a native::ReceiptState<'a>>,
+    native_accepted_frames: u64,
     pending_start: Option<SynthesisStreamStart>,
     pending_markers: Vec<(Vec<SynthesisMarker>, Vec<ResolvedAnchor>)>,
     output_committed: bool,
@@ -637,7 +670,15 @@ struct RoutedAttemptStreamSink<'a> {
 }
 
 impl RoutedAttemptStreamSink<'_> {
+    fn check_native_receipt(&mut self) -> Result<(), TtsError> {
+        if let Some(receipt) = self.native_receipt {
+            receipt.check_and_attach(&mut self.prepared.native_application)?;
+        }
+        Ok(())
+    }
+
     fn commit_preamble(&mut self) -> Result<(), TtsError> {
+        self.check_native_receipt()?;
         if self.output_committed {
             return Ok(());
         }
@@ -661,6 +702,7 @@ impl RoutedAttemptStreamSink<'_> {
 
 impl SynthesisStreamSink for RoutedAttemptStreamSink<'_> {
     fn start(&mut self, mut start: SynthesisStreamStart) -> Result<(), TtsError> {
+        self.check_native_receipt()?;
         if self.pending_start.is_some() || self.output_committed {
             return Err(TtsError::SynthesisFailed(
                 "progressive engine emitted stream metadata more than once".to_owned(),
@@ -680,11 +722,27 @@ impl SynthesisStreamSink for RoutedAttemptStreamSink<'_> {
     }
 
     fn audio(&mut self, audio: AudioBuffer) -> Result<(), TtsError> {
+        self.check_native_receipt()?;
+        if self.native_receipt.is_some() && audio.is_empty() {
+            if self.pending_start.is_none() && !self.output_committed {
+                return Err(TtsError::SynthesisFailed(
+                    "native audio preceded stream metadata".into(),
+                ));
+            }
+            return Ok(());
+        }
+        let frames = audio.frame_count() as u64;
         self.commit_preamble()?;
         self.inner
             .audio(audio)
             .inspect_err(|_| self.output_failed = true)?;
         self.audio_accepted = true;
+        if self.native_receipt.is_some() {
+            self.native_accepted_frames = self
+                .native_accepted_frames
+                .checked_add(frames)
+                .ok_or_else(|| TtsError::SynthesisFailed("native frame count overflow".into()))?;
+        }
         Ok(())
     }
 
@@ -693,6 +751,7 @@ impl SynthesisStreamSink for RoutedAttemptStreamSink<'_> {
         markers: Vec<SynthesisMarker>,
         anchors: Vec<ResolvedAnchor>,
     ) -> Result<(), TtsError> {
+        self.check_native_receipt()?;
         if self.output_committed {
             self.inner
                 .markers(markers, anchors)
@@ -835,7 +894,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
     .into_legacy()
 }
 
-/// Internal handoff shared by legacy playback and the forthcoming layered admission path.
+/// Internal attempt handoff shared by legacy, layered and native requests.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
     chunk: &str,
@@ -852,6 +911,14 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
 ) -> choice::PreparedSynthesisOutcome {
     if stale(generation, generation_counter, cancellation) {
         return choice::PreparedSynthesisOutcome::Cancelled;
+    }
+    if style
+        .validate_definition(routing, &route.logical_voice_id)
+        .is_err()
+        || (style.is_native() && !sink.supports_native())
+    {
+        warn!("Native routing requires an engine-layered request and an evidence-aware sink");
+        return choice::PreparedSynthesisOutcome::Failed;
     }
     let previous_incompatibility = routing.text_incompatibility(route, chunk);
     let compatible_route = match routing.route_for_text(route, chunk, engine_registry) {
@@ -933,7 +1000,7 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
         }
 
         let descriptor = route.engine.descriptor();
-        let prepared = match style.prepare(routing, route, &descriptor) {
+        let mut prepared = match style.prepare(routing, route, &descriptor) {
             Ok(prepared) => prepared,
             Err(error) => {
                 release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
@@ -945,6 +1012,10 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
             release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
             warn!("Prepared playback preflight failed: {error}");
             return choice::PreparedSynthesisOutcome::Failed;
+        }
+        if stale(generation, generation_counter, cancellation) {
+            release_probe_if_held(runtime_health, &route.realized.engine_id, permit);
+            return choice::PreparedSynthesisOutcome::Cancelled;
         }
         let mut request = SynthesisRequest::new(chunk, prepared.settings.clone())
             .with_normalized_acss(prepared.acss.style.clone());
@@ -983,12 +1054,17 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
                 && descriptor.capabilities.markers.requested_anchors
                     == omnivox_tts::contracts::AnchorSupport::None)
         {
-            let synthesis = route.engine.synthesize(&request).and_then(|mut result| {
-                result.resolve_anchors(&request, descriptor.capabilities.markers.requested_anchors);
-                result.validate(&request)?;
-                result.degraded_acss = prepared.acss.omitted.clone();
-                Ok(result)
-            });
+            let synthesis =
+                native::synthesize_buffered(route.engine.as_ref(), &request, &mut prepared)
+                    .and_then(|mut result| {
+                        result.resolve_anchors(
+                            &request,
+                            descriptor.capabilities.markers.requested_anchors,
+                        );
+                        result.validate(&request)?;
+                        result.degraded_acss = prepared.acss.omitted.clone();
+                        Ok(result)
+                    });
             match synthesis {
                 Ok(result) => {
                     runtime_health.record_success(&route.realized.engine_id, permit);
@@ -1033,23 +1109,56 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
             }
         }
 
+        let native_plan = prepared.native.clone();
+        let receipt = native::ReceiptState::new(
+            &native_plan,
+            &route.realized.engine_id,
+            generation,
+            generation_counter,
+            cancellation,
+        );
         let mut attempt_sink = RoutedAttemptStreamSink {
             inner: sink,
             prepared,
-            validate_identity: matches!(style, choice::AttemptStyle::Layered { .. }),
+            validate_identity: !matches!(style, choice::AttemptStyle::Legacy { .. }),
+            native_receipt: style.is_native().then_some(&receipt),
+            native_accepted_frames: 0,
             pending_start: None,
             pending_markers: Vec::new(),
             output_committed: false,
             audio_accepted: false,
             output_failed: false,
         };
-        let synthesis = route
-            .engine
-            .synthesize_stream(&request, &mut attempt_sink)
-            .and_then(|completion| {
+        let synthesis = match &native_plan {
+            omnivox_tts::engine_voice_choices::NativeChoiceExecution::Parameters(parameters) => {
+                route.engine.synthesize_stream_with_parameters(
+                    &request,
+                    parameters,
+                    &mut attempt_sink,
+                    &mut |application| receipt.record(application),
+                )
+            }
+            _ => route.engine.synthesize_stream(&request, &mut attempt_sink),
+        }
+        .and_then(|completion| {
+            if style.is_native() {
+                attempt_sink.check_native_receipt()?;
+                if attempt_sink.pending_start.is_none() && !attempt_sink.output_committed {
+                    return Err(TtsError::SynthesisFailed(
+                        "native stream completed without metadata".into(),
+                    ));
+                }
+                if completion.frame_count != attempt_sink.native_accepted_frames {
+                    return Err(TtsError::SynthesisFailed(
+                        "native completion frame count mismatch".into(),
+                    ));
+                }
+            }
+            if !style.is_native() || completion.frame_count > 0 {
                 attempt_sink.commit_preamble()?;
-                Ok(completion)
-            });
+            }
+            Ok(completion)
+        });
         match synthesis {
             Ok(completion) => {
                 runtime_health.record_success(&route.realized.engine_id, permit);
@@ -1175,6 +1284,13 @@ fn synthesize_with_runtime_fallback_anchored_inner(
 ) -> RuntimeSynthesisOutcome {
     if stale(generation, generation_counter, cancellation) {
         return RuntimeSynthesisOutcome::Cancelled;
+    }
+    if routing
+        .engine_definitions
+        .iter()
+        .any(|d| d.id == route.logical_voice_id)
+    {
+        return RuntimeSynthesisOutcome::Failed;
     }
     let previous_incompatibility = routing.text_incompatibility(route, chunk);
     let compatible_route = match routing.route_for_text(route, chunk, engine_registry) {
@@ -1560,6 +1676,9 @@ fn record_runtime_failure(
 mod tests {
     mod choice_tests {
         include!("routing_choice_tests.rs");
+        mod native_tests {
+            include!("routing_native_tests.rs");
+        }
     }
     use std::sync::atomic::AtomicUsize;
     use std::sync::Mutex;

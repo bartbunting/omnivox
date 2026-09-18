@@ -94,8 +94,18 @@ It validates complete replacements against immutable current metadata, preserves
 unavailable settings, and prepares the actual selected choice with its common
 context and runtime identity. Registration performs no engine I/O. Older speech
 paths reject these definitions instead of discarding native settings. Public v3
-registration, routed execution/evidence, previews and editing remain pending;
-the native execution bundle is not advertised.
+registration, native timelines, public playback evidence, preview operations and
+editing remain pending; the native execution bundle is not advertised.
+
+Internal [routed native execution](benchmarks/2026-09-18-native-routed-execution.md)
+now prepares and executes each actual choice through the shared buffered or
+progressive path. Native receipts remain tentative until the existing
+transactional audio handoff; failed pre-audio attempts cannot contaminate a
+fallback. Cancellation and post-commit no-replay rules remain in force. Private
+selection retains original choice identity, and older request/output paths
+reject native data rather than silently dropping it. The connection-owned
+metadata cache, public request codecs and public playback/preview evidence still
+need integration before this path is available to Emacs.
 
 ## Shared rules
 

@@ -105,6 +105,8 @@ mod tests {
     fn attempt(choice: &str) -> PreparedVoiceAttempt {
         PreparedVoiceAttempt {
             kind: crate::routing::choice::VoiceAttemptKind::Layered,
+            native: omnivox_tts::engine_voice_choices::NativeChoiceExecution::NotRequested,
+            native_application: None,
             registry_generation: 41,
             resolution: VoiceResolution {
                 logical_voice_id: "bolden".to_owned(),

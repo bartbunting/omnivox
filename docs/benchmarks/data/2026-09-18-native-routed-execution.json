@@ -1,0 +1,86 @@
+{
+  "helper_runtime_build": "7e38878e1051c7db",
+  "helpers": {
+    "OmnivoxDectalkHelper32.exe": "061b83a3743f40430740c893d833722b7f9ea2d53afd8734f292f0b45b4816f4",
+    "OmnivoxEloquenceHelper32.exe": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8"
+  },
+  "observations": [
+    {
+      "choice_id": "native",
+      "engine": "eloquence",
+      "exact_preview": false,
+      "frames": 48136,
+      "identity": {
+        "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+        "profile_id": "eloquence.windows.6_1.en_us.v1",
+        "runtime_generation": 3494337489206083195,
+        "schema_id": "eloquence.eci-units.v1"
+      },
+      "native_parameter": {
+        "id": "pitch_baseline",
+        "masked_native": false,
+        "origin": "native_set",
+        "read_back": true,
+        "value": 65
+      }
+    },
+    {
+      "choice_id": "native",
+      "engine": "eloquence",
+      "exact_preview": true,
+      "frames": 48136,
+      "identity": {
+        "catalogue_revision": "f7d766beb606c37b7697dbcdb376b96c1fddcdb8c50326c53699d0558b7c1fab",
+        "profile_id": "eloquence.windows.6_1.en_us.v1",
+        "runtime_generation": 3494337489206083195,
+        "schema_id": "eloquence.eci-units.v1"
+      },
+      "native_parameter": {
+        "id": "pitch_baseline",
+        "masked_native": false,
+        "origin": "native_set",
+        "read_back": true,
+        "value": 65
+      }
+    },
+    {
+      "choice_id": "native",
+      "engine": "dectalk",
+      "exact_preview": false,
+      "frames": 43452,
+      "identity": {
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "runtime_generation": 6523431335938647769,
+        "schema_id": "dectalk.design-voice.v1"
+      },
+      "native_parameter": {
+        "id": "ap",
+        "masked_native": false,
+        "origin": "native_set",
+        "read_back": true,
+        "value": 130
+      }
+    },
+    {
+      "choice_id": "native",
+      "engine": "dectalk",
+      "exact_preview": true,
+      "frames": 43736,
+      "identity": {
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "runtime_generation": 6523431335938647769,
+        "schema_id": "dectalk.design-voice.v1"
+      },
+      "native_parameter": {
+        "id": "ap",
+        "masked_native": false,
+        "origin": "native_set",
+        "read_back": true,
+        "value": 130
+      }
+    }
+  ],
+  "scope": "Silent Linux test parent through routing, voice eligibility and isolation; synthetic first-attempt failure followed by qualified Windows native synthesis, and exact private selection. No audio device or public transport."
+}
