@@ -81,6 +81,15 @@ and recovery from readback, receipt-delivery and concurrent Stop failures.
 The [batching report](../docs/benchmarks/2026-09-20-dectalk-batched-parameters.md)
 records the qualified cache boundary and matched startup measurements.
 
+The DECtalk helper requests 1 ms Windows timer resolution while a synthesis
+owns the native engine, through reset and parameter restoration. This reduces
+oversleep in the runtime's completion polling without removing synchronization.
+Every successful request is released on scope exit, including cancellation and
+failure; idle helpers retain no timer request. Unsupported resolution requests
+leave ordinary synthesis working. Windows controls the actual scheduling, and
+finer resolution can increase power use while active. The execution audit also
+checks balanced timer ownership and the unsupported-request path.
+
 ## Runtime requirements and installation
 
 Beginning with v1.7.1, generic Omnivox Windows release archives contain these

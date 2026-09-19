@@ -161,6 +161,40 @@ public static class DectalkExecutionAudit
 
     private static readonly int[] Paul = { 1,3,100,122,100,0,70,0,0,100,3300,260,3650,330,70,70,65,74,68,60,48,64,86,18,0,40,18,32 };
 
+    public static object TimerResolution(string helper)
+    {
+        Type timer = Assembly.Load(File.ReadAllBytes(helper))
+            .GetType("OmnivoxDectalkTimerResolution", true);
+        int starts = 0, ends = 0;
+        Func<uint, uint> begin = delegate(uint period) {
+            Check(period == 1, "unexpected timer period");
+            starts++;
+            return 0;
+        };
+        Func<uint, uint> end = delegate(uint period) {
+            Check(period == 1, "timer period was not balanced");
+            ends++;
+            return 0;
+        };
+        IDisposable scope = (IDisposable)New(timer, begin, end);
+        Check(starts == 1 && ends == 0, "timer not retained during synthesis");
+        scope.Dispose();
+        scope.Dispose();
+        Check(ends == 1, "timer released more than once");
+        Rejects(delegate {
+            using ((IDisposable)New(timer, begin, end))
+                throw new IOException("injected synthesis/cleanup failure");
+        }, typeof(IOException), "timer exception propagation");
+        Check(starts == 2 && ends == 2, "failed synthesis retained timer request");
+        using ((IDisposable)New(timer, new Func<uint, uint>(delegate(uint period) {
+            starts++;
+            return 97;
+        }), end)) { }
+        Check(starts == 3 && ends == 2, "unsuccessful timer request was released");
+        return Record("balanced_success", true, "balanced_failure", true,
+            "unsupported_request", true, "idempotent_dispose", true);
+    }
+
     public static object Planning(string helper, string fixtures)
     {
         Assembly assembly = Assembly.Load(File.ReadAllBytes(helper));

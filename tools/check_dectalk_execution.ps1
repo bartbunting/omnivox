@@ -16,6 +16,7 @@ $Source = Join-Path $PSScriptRoot 'DectalkExecutionAudit.cs'
 $Fixtures = Join-Path (Split-Path -Parent $PSScriptRoot) 'docs\protocol-fixtures\engine-voice-parameters.json'
 Add-Type -Path $Source -ReferencedAssemblies System.Web.Extensions.dll
 $result = @{ planning = [DectalkExecutionAudit]::Planning($Helper, $Fixtures) }
+$result['timer_resolution'] = [DectalkExecutionAudit]::TimerResolution($Helper)
 if (!$PlanningOnly) {
     $result['reset_lifecycle'] = [DectalkExecutionAudit]::ResetLifecycle($Helper, $RuntimeDll)
     $result['batched_parameters'] = [DectalkExecutionAudit]::BatchedParameters($Helper, $RuntimeDll)

@@ -12,6 +12,35 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
+// DECtalk polls native completion with short sleeps. Request finer scheduling
+// only while a synthesis owns the engine, including its reset/restoration.
+// Balance successful requests on every exit; an unsupported request is only a
+// missed optimization and must not make speech unavailable.
+internal sealed class OmnivoxDectalkTimerResolution : IDisposable
+{
+    [DllImport("winmm.dll", ExactSpelling = true)]
+    private static extern uint timeBeginPeriod(uint period);
+    [DllImport("winmm.dll", ExactSpelling = true)]
+    private static extern uint timeEndPeriod(uint period);
+
+    private Func<uint, uint> endPeriod;
+
+    internal OmnivoxDectalkTimerResolution()
+        : this(timeBeginPeriod, timeEndPeriod) { }
+
+    internal OmnivoxDectalkTimerResolution(Func<uint, uint> begin, Func<uint, uint> end)
+    {
+        if (begin(1) == 0) endPeriod = end;
+    }
+
+    public void Dispose()
+    {
+        Func<uint, uint> end = endPeriod;
+        endPeriod = null;
+        if (end != null) end(1);
+    }
+}
+
 internal sealed class OmnivoxNativeDectalk : IDisposable
 {
     [DllImport("user32.dll", CharSet = CharSet.Ansi, SetLastError = true,
@@ -430,6 +459,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         int?[] common)
     {
         lock (synthesisLock)
+        using (new OmnivoxDectalkTimerResolution())
         {
             ThrowIfCancellationRequested(cancellationRequested);
             if (!nativeStateUsable)
