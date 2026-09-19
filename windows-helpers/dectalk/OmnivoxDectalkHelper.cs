@@ -166,7 +166,8 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine, IOmnivoxPar
         string voiceParameters = MapExtendedAcss(pitchRange, stress, richness);
         if (edits != null)
             return capture.SynthesizeNative(text, voiceCode, nativeRate, nativePitch,
-                voiceParameters, volume, anchors, cancellationRequested, sink, edits, applied);
+                voiceParameters, volume, anchors, cancellationRequested, sink, edits, applied,
+                MapCommonParameters(voiceId, pitch, pitchRange, stress, richness));
         return capture.Synthesize(text, voiceCode, nativeRate, nativePitch,
             voiceParameters, volume, anchors, cancellationRequested, sink);
     }
@@ -177,7 +178,7 @@ internal sealed class OmnivoxDectalkAdapter : IOmnivoxCaptureEngine, IOmnivoxPar
         return Math.Max(50, Math.Min(500, value));
     }
 
-    // Read-only prediction for the qualified profile. Ordinary synthesis keeps
+    // Common projection for the qualified profile. Ordinary synthesis keeps
     // its exact command values; the runtime's audited clamps only affect this
     // planned evidence. Native application still verifies actual readback.
     internal static int?[] MapCommonParameters(string voiceId, double pitch,

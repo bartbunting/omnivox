@@ -248,6 +248,165 @@ public static class DectalkExecutionAudit
 
     private static uint FailingSetRate(IntPtr handle, uint rate) { return 1; }
 
+    private static Delegate BatchSpeak, BatchSync, BatchRead;
+    private static bool TextQueued, DamageReadback;
+    private static int PreparationSyncs;
+    private static uint BatchObservedSpeak(IntPtr handle, IntPtr text, uint flags)
+    {
+        if (Marshal.PtrToStringAnsi(text).Contains("Batch")) TextQueued = true;
+        return (uint)BatchSpeak.DynamicInvoke(handle, text, flags);
+    }
+    private static uint BatchObservedSync(IntPtr handle)
+    {
+        if (!TextQueued) PreparationSyncs++;
+        return (uint)BatchSync.DynamicInvoke(handle);
+    }
+    private static uint BatchObservedRead(IntPtr handle, uint index,
+        out IntPtr current, out IntPtr low, out IntPtr high, out IntPtr defaults)
+    {
+        object[] args = { handle, index, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero };
+        uint status = (uint)BatchRead.DynamicInvoke(args);
+        current = (IntPtr)args[2]; low = (IntPtr)args[3]; high = (IntPtr)args[4]; defaults = (IntPtr)args[5];
+        if (DamageReadback)
+        {
+            DamageReadback = false;
+            Marshal.WriteInt16(current, 2, 62); // Wrong smoothness; native state stays intact.
+        }
+        return status;
+    }
+
+    public static object BatchedParameters(string helper, string dll)
+    {
+        Assembly assembly = Assembly.Load(File.ReadAllBytes(helper));
+        object adapter = New(assembly.GetType("OmnivoxDectalkAdapter", true), dll);
+        object capture = Field(adapter, "capture"), native = Field(capture, "native");
+        Type sinkType = assembly.GetType("IOmnivoxCaptureSink", true);
+        Type anchorType = assembly.GetType("OmnivoxHelperAnchor", true);
+        Array anchors = Array.CreateInstance(anchorType, 1);
+        anchors.SetValue(New(anchorType, "leading", (uint)0, "before"), 0);
+        var cases = new List<string>();
+        FieldInfo sf = native.GetType().GetField("speak", Hidden);
+        FieldInfo yf = native.GetType().GetField("sync", Hidden);
+        FieldInfo rf = native.GetType().GetField("getSpeakerParams", Hidden);
+        BatchSpeak = (Delegate)sf.GetValue(native); BatchSync = (Delegate)yf.GetValue(native);
+        BatchRead = (Delegate)rf.GetValue(native);
+        sf.SetValue(native, Delegate.CreateDelegate(sf.FieldType, typeof(DectalkExecutionAudit).GetMethod("BatchObservedSpeak", Hidden)));
+        yf.SetValue(native, Delegate.CreateDelegate(yf.FieldType, typeof(DectalkExecutionAudit).GetMethod("BatchObservedSync", Hidden)));
+        rf.SetValue(native, Delegate.CreateDelegate(rf.FieldType, typeof(DectalkExecutionAudit).GetMethod("BatchObservedRead", Hidden)));
+        Sink sink = null;
+        int receipts = 0;
+        bool failReceipt = false;
+        Action beforeReceipt = null;
+        var cancelled = new ManualResetEvent(false);
+        Func<string, string, object> synthesize = (text, voice) => {
+            sink = new Sink(sinkType); receipts = PreparationSyncs = 0; TextQueued = false;
+            return Call(adapter, "SynthesizeWithParameters", text, voice, 0.5, 1.0,
+                null, null, null, 1.0, anchors, new Func<bool>(() => cancelled.WaitOne(0)), sink.GetTransparentProxy(),
+                new Dictionary<string, int?> { { "sm", 61 } }, new string[0], new Action<int[]>(values => {
+                    Check(values[1] == 61 && sink.Frames == 0 && sink.Markers == 0,
+                        "incorrect or late application receipt");
+                    receipts++; sink.Applied = true;
+                    if (beforeReceipt != null) beforeReceipt();
+                    if (failReceipt) throw new IOException("injected batch receipt failure");
+                }));
+        };
+        try
+        {
+            synthesize("Batch cold.", "paul");
+            Check(PreparationSyncs == 1 && receipts == 1 && sink.Frames > 0, "cold preset not verified once");
+            for (int i = 0; i < 3; i++)
+            {
+                synthesize("Batch warm.", "paul");
+                Check(PreparationSyncs == 0 && receipts == 1 && sink.Frames > 0 && sink.Markers > 0,
+                    "warm parameters waited before text or lost output");
+            }
+            cases.Add("cold_and_warm_receipt_before_leading_anchor_and_pcm");
+            synthesize("Batch other voice.", "betty");
+            Check(PreparationSyncs == 1, "new voice reused another preset");
+            synthesize("Batch original voice.", "paul");
+            Check(PreparationSyncs == 0, "return to verified preset waited again");
+            cases.Add("preset_cache_is_per_voice");
+            synthesize("[:dv sm 62] Batch embedded command.", "paul");
+            Check(PreparationSyncs == 3 && receipts == 1 && sink.Frames > 0,
+                "embedded command did not retain pre-text verification");
+            synthesize("Batch after embedded command.", "paul");
+            Check(PreparationSyncs == 1, "embedded command did not invalidate presets");
+            synthesize("Batch warm again.", "paul");
+            Check(PreparationSyncs == 0, "plain recovery was not cached");
+            cases.Add("embedded_command_fallback_and_cache_invalidation");
+            // Ordinary commands must invalidate native defaults too.
+            Call(adapter, "Synthesize", "[:dv sm 62] Batch ordinary command.", "paul", 0.5, 1.0,
+                null, null, null, 1.0, anchors, new Func<bool>(() => false), null);
+            synthesize("Batch after ordinary command.", "paul");
+            Check(PreparationSyncs == 1, "ordinary vendor command retained cached presets");
+            cases.Add("ordinary_command_invalidates_cache");
+            DamageReadback = true;
+            Rejects(() => synthesize("Batch bad readback.", "paul"), typeof(InvalidOperationException), "readback mismatch");
+            Check(receipts == 0 && sink.Frames == 0 && sink.Markers == 0, "failed readback leaked output");
+            synthesize("Batch after bad readback.", "paul");
+            Check(PreparationSyncs == 1 && receipts == 1 && sink.Frames > 0, "readback failure did not recover");
+            cases.Add("readback_failure_releases_no_output_and_recovers");
+            failReceipt = true;
+            Rejects(() => synthesize("Batch failed receipt.", "paul"), typeof(IOException), "receipt failure");
+            Check(sink.Frames == 0 && sink.Markers == 0, "failed receipt leaked output");
+            failReceipt = false;
+            synthesize("Batch after failed receipt.", "paul");
+            cases.Add("receipt_failure_releases_no_output_and_recovers");
+            var entered = new ManualResetEvent(false);
+            var release = new ManualResetEvent(false);
+            var stopStarted = new ManualResetEvent(false);
+            Exception workerError = null, stopError = null;
+            beforeReceipt = () => {
+                entered.Set();
+                Check(release.WaitOne(10000), "receipt release timeout");
+            };
+            Thread worker = new Thread(() => {
+                try { synthesize("Batch cancellation during receipt.", "paul"); }
+                catch (Exception error) { workerError = error; }
+            });
+            Thread stopper = new Thread(() => {
+                stopStarted.Set();
+                try { Call(adapter, "Stop"); } catch (Exception error) { stopError = error; }
+            });
+            worker.IsBackground = stopper.IsBackground = true;
+            bool stopperStarted = false;
+            try
+            {
+                worker.Start();
+                Check(entered.WaitOne(10000), "receipt callback was not reached");
+                cancelled.Set(); stopper.Start(); stopperStarted = true;
+                Check(stopStarted.WaitOne(10000), "Stop did not start");
+            }
+            finally
+            {
+                release.Set();
+                Check(worker.Join(10000) && (!stopperStarted || stopper.Join(10000)), "receipt/Stop deadlock");
+                beforeReceipt = null;
+                entered.Dispose(); release.Dispose(); stopStarted.Dispose();
+            }
+            Check(workerError is OperationCanceledException && stopError == null,
+                "receipt cancellation failed: " + workerError + stopError);
+            Check(sink.Frames == 0 && sink.Markers == 0, "cancelled receipt leaked output");
+            cancelled.Reset();
+            synthesize("Batch after receipt cancellation.", "paul");
+            cases.Add("stop_during_receipt_releases_no_output_and_recovers");
+            foreach (string text in new[] { "", " ", "." })
+            {
+                synthesize(text, "paul");
+                Check(receipts == 1, "silent text omitted its receipt");
+            }
+            cases.Add("silent_text_has_one_receipt");
+        }
+        finally
+        {
+            DamageReadback = false;
+            sf.SetValue(native, BatchSpeak); yf.SetValue(native, BatchSync); rf.SetValue(native, BatchRead);
+            ((IDisposable)adapter).Dispose();
+            cancelled.Dispose();
+        }
+        return Record("status", "passed", "cases", cases);
+    }
+
     // Exercise actual compiled helper state with bounded native-call faults.
     // No production hooks or timing thresholds are needed for these checks.
     public static object ResetLifecycle(string helper, string dll)

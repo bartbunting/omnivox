@@ -88,6 +88,11 @@ Versioning for published releases.
 
 ### Fixed
 
+- DECtalk batches custom voice controls with plain text after checking each
+  preset once per helper. Actual native settings are verified before output,
+  avoiding repeated pre-speech synchronization. Embedded native commands retain
+  conservative verification and invalidate cached presets.
+
 - DECtalk resets its native instance after streaming each utterance, reducing
   the delay before subsequent speech. Failed reset or voice restoration blocks
   reuse until the helper restarts; marker ordering and cancellation are retained.

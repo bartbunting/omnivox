@@ -18,6 +18,7 @@ Add-Type -Path $Source -ReferencedAssemblies System.Web.Extensions.dll
 $result = @{ planning = [DectalkExecutionAudit]::Planning($Helper, $Fixtures) }
 if (!$PlanningOnly) {
     $result['reset_lifecycle'] = [DectalkExecutionAudit]::ResetLifecycle($Helper, $RuntimeDll)
+    $result['batched_parameters'] = [DectalkExecutionAudit]::BatchedParameters($Helper, $RuntimeDll)
     $result['runtime'] = [DectalkExecutionAudit]::Runtime($Helper, $RuntimeDll, $Fixtures)
     $result['runtime_sha256'] = (Get-FileHash -Algorithm SHA256 -LiteralPath $RuntimeDll).Hash.ToLowerInvariant()
 }

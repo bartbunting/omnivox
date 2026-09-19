@@ -75,6 +75,9 @@ The probe also checks that first and repeated speech deliver audio before
 cleanup reset, that a setup failure permits recovery after cleanup, that failed
 reset/restoration prevents reuse, and that Stop waits for cleanup without
 resetting the prepared instance again.
+The batching checks cover per-preset cold and warm preparation, actual readback
+before leading anchors and PCM, native-command cache invalidation, silent text,
+and recovery from readback, receipt-delivery and concurrent Stop failures.
 
 ## Runtime requirements and installation
 
