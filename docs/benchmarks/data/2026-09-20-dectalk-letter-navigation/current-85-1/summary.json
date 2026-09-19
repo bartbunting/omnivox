@@ -1,0 +1,27 @@
+{
+  "l {A}": {
+    "worker_elapsed_ms": 39.5155,
+    "admission_elapsed_ms": 39.531,
+    "admission_to_audio_queued_ms": 2.183
+  },
+  "l {a}": {
+    "worker_elapsed_ms": 39.370000000000005,
+    "admission_elapsed_ms": 39.4065,
+    "admission_to_audio_queued_ms": 1.8535
+  },
+  "l {b}": {
+    "worker_elapsed_ms": 40.091,
+    "admission_elapsed_ms": 40.1075,
+    "admission_to_audio_queued_ms": 2.3535
+  },
+  "l {w}": {
+    "worker_elapsed_ms": 39.6195,
+    "admission_elapsed_ms": 39.64,
+    "admission_to_audio_queued_ms": 2.453
+  },
+  "tts_say {a}": {
+    "worker_elapsed_ms": 39.29,
+    "admission_elapsed_ms": 39.32599999999999,
+    "admission_to_audio_queued_ms": 2.0465
+  }
+}

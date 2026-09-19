@@ -1,0 +1,902 @@
+[
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.265,
+      "admission_elapsed_ms": 40.274,
+      "admission_to_audio_queued_ms": 1.455
+    },
+    "log": "2026-09-19T22:36:24.676063Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=4 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40265 admission_elapsed_us=Some(40274) admission_to_audio_queued_us=Some(1455)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 48.245,
+      "admission_elapsed_ms": 48.295,
+      "admission_to_audio_queued_ms": 2.41
+    },
+    "log": "2026-09-19T22:36:24.725379Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=5 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=48245 admission_elapsed_us=Some(48295) admission_to_audio_queued_us=Some(2410)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.212,
+      "admission_elapsed_ms": 39.24,
+      "admission_to_audio_queued_ms": 1.815
+    },
+    "log": "2026-09-19T22:36:24.765284Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=6 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39212 admission_elapsed_us=Some(39240) admission_to_audio_queued_us=Some(1815)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.811,
+      "admission_elapsed_ms": 39.822,
+      "admission_to_audio_queued_ms": 1.704
+    },
+    "log": "2026-09-19T22:36:24.805919Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=7 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39811 admission_elapsed_us=Some(39822) admission_to_audio_queued_us=Some(1704)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.795,
+      "admission_elapsed_ms": 38.816,
+      "admission_to_audio_queued_ms": 2.01
+    },
+    "log": "2026-09-19T22:36:24.845554Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=8 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38795 admission_elapsed_us=Some(38816) admission_to_audio_queued_us=Some(2010)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.926,
+      "admission_elapsed_ms": 38.942,
+      "admission_to_audio_queued_ms": 1.785
+    },
+    "log": "2026-09-19T22:36:24.885251Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=9 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38926 admission_elapsed_us=Some(38942) admission_to_audio_queued_us=Some(1785)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.329,
+      "admission_elapsed_ms": 39.347,
+      "admission_to_audio_queued_ms": 1.813
+    },
+    "log": "2026-09-19T22:36:24.925211Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=10 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39329 admission_elapsed_us=Some(39347) admission_to_audio_queued_us=Some(1813)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.319,
+      "admission_elapsed_ms": 39.336,
+      "admission_to_audio_queued_ms": 1.924
+    },
+    "log": "2026-09-19T22:36:24.965431Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=11 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39319 admission_elapsed_us=Some(39336) admission_to_audio_queued_us=Some(1924)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.191,
+      "admission_elapsed_ms": 39.207,
+      "admission_to_audio_queued_ms": 2.006
+    },
+    "log": "2026-09-19T22:36:25.005315Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=12 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39191 admission_elapsed_us=Some(39207) admission_to_audio_queued_us=Some(2006)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.252,
+      "admission_elapsed_ms": 39.268,
+      "admission_to_audio_queued_ms": 2.276
+    },
+    "log": "2026-09-19T22:36:25.045273Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=13 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39252 admission_elapsed_us=Some(39268) admission_to_audio_queued_us=Some(2276)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.793,
+      "admission_elapsed_ms": 39.805,
+      "admission_to_audio_queued_ms": 1.803
+    },
+    "log": "2026-09-19T22:36:25.085679Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=14 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39793 admission_elapsed_us=Some(39805) admission_to_audio_queued_us=Some(1803)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 51.639,
+      "admission_elapsed_ms": 51.655,
+      "admission_to_audio_queued_ms": 1.887
+    },
+    "log": "2026-09-19T22:36:25.137986Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=15 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=51639 admission_elapsed_us=Some(51655) admission_to_audio_queued_us=Some(1887)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 49.14,
+      "admission_elapsed_ms": 49.155,
+      "admission_to_audio_queued_ms": 2.044
+    },
+    "log": "2026-09-19T22:36:25.187780Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=16 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=49140 admission_elapsed_us=Some(49155) admission_to_audio_queued_us=Some(2044)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.328,
+      "admission_elapsed_ms": 39.404,
+      "admission_to_audio_queued_ms": 2.014
+    },
+    "log": "2026-09-19T22:36:25.227773Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=17 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39328 admission_elapsed_us=Some(39404) admission_to_audio_queued_us=Some(2014)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 41.152,
+      "admission_elapsed_ms": 41.163,
+      "admission_to_audio_queued_ms": 1.675
+    },
+    "log": "2026-09-19T22:36:25.269392Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=18 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=41152 admission_elapsed_us=Some(41163) admission_to_audio_queued_us=Some(1675)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.306,
+      "admission_elapsed_ms": 40.327,
+      "admission_to_audio_queued_ms": 2.237
+    },
+    "log": "2026-09-19T22:36:25.310430Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=19 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40306 admission_elapsed_us=Some(40327) admission_to_audio_queued_us=Some(2237)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.351,
+      "admission_elapsed_ms": 39.405,
+      "admission_to_audio_queued_ms": 1.646
+    },
+    "log": "2026-09-19T22:36:25.350386Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=20 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39351 admission_elapsed_us=Some(39405) admission_to_audio_queued_us=Some(1646)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.144,
+      "admission_elapsed_ms": 39.175,
+      "admission_to_audio_queued_ms": 1.82
+    },
+    "log": "2026-09-19T22:36:25.390119Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=21 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39144 admission_elapsed_us=Some(39175) admission_to_audio_queued_us=Some(1820)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.389,
+      "admission_elapsed_ms": 39.408,
+      "admission_to_audio_queued_ms": 1.689
+    },
+    "log": "2026-09-19T22:36:25.430044Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=22 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39389 admission_elapsed_us=Some(39408) admission_to_audio_queued_us=Some(1689)"
+  },
+  {
+    "command": "l {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.549,
+      "admission_elapsed_ms": 39.565,
+      "admission_to_audio_queued_ms": 2.055
+    },
+    "log": "2026-09-19T22:36:25.470210Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=23 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39549 admission_elapsed_us=Some(39565) admission_to_audio_queued_us=Some(2055)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.88,
+      "admission_elapsed_ms": 39.897,
+      "admission_to_audio_queued_ms": 1.723
+    },
+    "log": "2026-09-19T22:36:25.630229Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=27 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39880 admission_elapsed_us=Some(39897) admission_to_audio_queued_us=Some(1723)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.742,
+      "admission_elapsed_ms": 39.754,
+      "admission_to_audio_queued_ms": 1.992
+    },
+    "log": "2026-09-19T22:36:25.670578Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=28 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39742 admission_elapsed_us=Some(39754) admission_to_audio_queued_us=Some(1992)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.815,
+      "admission_elapsed_ms": 38.834,
+      "admission_to_audio_queued_ms": 2.006
+    },
+    "log": "2026-09-19T22:36:25.710089Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=29 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38815 admission_elapsed_us=Some(38834) admission_to_audio_queued_us=Some(2006)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.246,
+      "admission_elapsed_ms": 39.294,
+      "admission_to_audio_queued_ms": 2.184
+    },
+    "log": "2026-09-19T22:36:25.750579Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=30 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39246 admission_elapsed_us=Some(39294) admission_to_audio_queued_us=Some(2184)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.053,
+      "admission_elapsed_ms": 39.064,
+      "admission_to_audio_queued_ms": 1.532
+    },
+    "log": "2026-09-19T22:36:25.790229Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=31 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39053 admission_elapsed_us=Some(39064) admission_to_audio_queued_us=Some(1532)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.211,
+      "admission_elapsed_ms": 39.223,
+      "admission_to_audio_queued_ms": 1.98
+    },
+    "log": "2026-09-19T22:36:25.830187Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=32 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39211 admission_elapsed_us=Some(39223) admission_to_audio_queued_us=Some(1980)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.718,
+      "admission_elapsed_ms": 39.734,
+      "admission_to_audio_queued_ms": 1.779
+    },
+    "log": "2026-09-19T22:36:25.870365Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=33 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39718 admission_elapsed_us=Some(39734) admission_to_audio_queued_us=Some(1779)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.058,
+      "admission_elapsed_ms": 40.068,
+      "admission_to_audio_queued_ms": 1.887
+    },
+    "log": "2026-09-19T22:36:25.911069Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=34 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40058 admission_elapsed_us=Some(40068) admission_to_audio_queued_us=Some(1887)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 37.677,
+      "admission_elapsed_ms": 37.694,
+      "admission_to_audio_queued_ms": 2.305
+    },
+    "log": "2026-09-19T22:36:25.950438Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=35 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=37677 admission_elapsed_us=Some(37694) admission_to_audio_queued_us=Some(2305)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.145,
+      "admission_elapsed_ms": 39.157,
+      "admission_to_audio_queued_ms": 1.693
+    },
+    "log": "2026-09-19T22:36:25.990193Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=36 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39145 admission_elapsed_us=Some(39157) admission_to_audio_queued_us=Some(1693)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.943,
+      "admission_elapsed_ms": 39.986,
+      "admission_to_audio_queued_ms": 2.035
+    },
+    "log": "2026-09-19T22:36:26.031079Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=37 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39943 admission_elapsed_us=Some(39986) admission_to_audio_queued_us=Some(2035)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 49.355,
+      "admission_elapsed_ms": 49.369,
+      "admission_to_audio_queued_ms": 2.058
+    },
+    "log": "2026-09-19T22:36:26.081042Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=38 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=49355 admission_elapsed_us=Some(49369) admission_to_audio_queued_us=Some(2058)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.513,
+      "admission_elapsed_ms": 38.531,
+      "admission_to_audio_queued_ms": 2.602
+    },
+    "log": "2026-09-19T22:36:26.120314Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=39 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38513 admission_elapsed_us=Some(38531) admission_to_audio_queued_us=Some(2602)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.33,
+      "admission_elapsed_ms": 39.358,
+      "admission_to_audio_queued_ms": 3.607
+    },
+    "log": "2026-09-19T22:36:26.160312Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=40 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39330 admission_elapsed_us=Some(39358) admission_to_audio_queued_us=Some(3607)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.498,
+      "admission_elapsed_ms": 39.516,
+      "admission_to_audio_queued_ms": 2.183
+    },
+    "log": "2026-09-19T22:36:26.200382Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=41 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39498 admission_elapsed_us=Some(39516) admission_to_audio_queued_us=Some(2183)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.42,
+      "admission_elapsed_ms": 39.438,
+      "admission_to_audio_queued_ms": 2.116
+    },
+    "log": "2026-09-19T22:36:26.240552Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=42 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39420 admission_elapsed_us=Some(39438) admission_to_audio_queued_us=Some(2116)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.049,
+      "admission_elapsed_ms": 39.066,
+      "admission_to_audio_queued_ms": 2.101
+    },
+    "log": "2026-09-19T22:36:26.280264Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=43 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39049 admission_elapsed_us=Some(39066) admission_to_audio_queued_us=Some(2101)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.966,
+      "admission_elapsed_ms": 39.006,
+      "admission_to_audio_queued_ms": 2.416
+    },
+    "log": "2026-09-19T22:36:26.320085Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=44 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38966 admission_elapsed_us=Some(39006) admission_to_audio_queued_us=Some(2416)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.71,
+      "admission_elapsed_ms": 39.736,
+      "admission_to_audio_queued_ms": 1.621
+    },
+    "log": "2026-09-19T22:36:26.360449Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=45 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39710 admission_elapsed_us=Some(39736) admission_to_audio_queued_us=Some(1621)"
+  },
+  {
+    "command": "tts_say {a}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.25,
+      "admission_elapsed_ms": 39.271,
+      "admission_to_audio_queued_ms": 2.588
+    },
+    "log": "2026-09-19T22:36:26.400324Z  INFO speech_request{request_kind=\"immediate\" request_identifier=None stop_epoch=46 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39250 admission_elapsed_us=Some(39271) admission_to_audio_queued_us=Some(2588)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.1,
+      "admission_elapsed_ms": 39.134,
+      "admission_to_audio_queued_ms": 2.234
+    },
+    "log": "2026-09-19T22:36:26.560393Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=50 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39100 admission_elapsed_us=Some(39134) admission_to_audio_queued_us=Some(2234)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.094,
+      "admission_elapsed_ms": 39.112,
+      "admission_to_audio_queued_ms": 1.757
+    },
+    "log": "2026-09-19T22:36:26.599988Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=51 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39094 admission_elapsed_us=Some(39112) admission_to_audio_queued_us=Some(1757)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.606,
+      "admission_elapsed_ms": 39.625,
+      "admission_to_audio_queued_ms": 1.799
+    },
+    "log": "2026-09-19T22:36:26.640209Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=52 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39606 admission_elapsed_us=Some(39625) admission_to_audio_queued_us=Some(1799)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.613,
+      "admission_elapsed_ms": 39.627,
+      "admission_to_audio_queued_ms": 2.501
+    },
+    "log": "2026-09-19T22:36:26.680230Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=53 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39613 admission_elapsed_us=Some(39627) admission_to_audio_queued_us=Some(2501)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.524,
+      "admission_elapsed_ms": 39.534,
+      "admission_to_audio_queued_ms": 2.089
+    },
+    "log": "2026-09-19T22:36:26.720387Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=54 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39524 admission_elapsed_us=Some(39534) admission_to_audio_queued_us=Some(2089)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.675,
+      "admission_elapsed_ms": 38.693,
+      "admission_to_audio_queued_ms": 2.5
+    },
+    "log": "2026-09-19T22:36:26.760016Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=55 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38675 admission_elapsed_us=Some(38693) admission_to_audio_queued_us=Some(2500)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.462,
+      "admission_elapsed_ms": 39.48,
+      "admission_to_audio_queued_ms": 2.344
+    },
+    "log": "2026-09-19T22:36:26.800167Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=56 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39462 admission_elapsed_us=Some(39480) admission_to_audio_queued_us=Some(2344)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.06,
+      "admission_elapsed_ms": 39.092,
+      "admission_to_audio_queued_ms": 2.17
+    },
+    "log": "2026-09-19T22:36:26.839855Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=57 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39060 admission_elapsed_us=Some(39092) admission_to_audio_queued_us=Some(2170)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.772,
+      "admission_elapsed_ms": 39.788,
+      "admission_to_audio_queued_ms": 2.196
+    },
+    "log": "2026-09-19T22:36:26.880138Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=58 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39772 admission_elapsed_us=Some(39788) admission_to_audio_queued_us=Some(2196)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.676,
+      "admission_elapsed_ms": 39.688,
+      "admission_to_audio_queued_ms": 1.798
+    },
+    "log": "2026-09-19T22:36:26.920341Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=59 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39676 admission_elapsed_us=Some(39688) admission_to_audio_queued_us=Some(1798)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 44.649,
+      "admission_elapsed_ms": 44.66,
+      "admission_to_audio_queued_ms": 1.532
+    },
+    "log": "2026-09-19T22:36:26.965636Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=60 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=44649 admission_elapsed_us=Some(44660) admission_to_audio_queued_us=Some(1532)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.524,
+      "admission_elapsed_ms": 39.535,
+      "admission_to_audio_queued_ms": 1.361
+    },
+    "log": "2026-09-19T22:36:27.005804Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=61 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39524 admission_elapsed_us=Some(39535) admission_to_audio_queued_us=Some(1361)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.09,
+      "admission_elapsed_ms": 39.1,
+      "admission_to_audio_queued_ms": 1.57
+    },
+    "log": "2026-09-19T22:36:27.045533Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=62 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39090 admission_elapsed_us=Some(39100) admission_to_audio_queued_us=Some(1570)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.507,
+      "admission_elapsed_ms": 39.528,
+      "admission_to_audio_queued_ms": 1.988
+    },
+    "log": "2026-09-19T22:36:27.085751Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=63 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39507 admission_elapsed_us=Some(39528) admission_to_audio_queued_us=Some(1988)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.374,
+      "admission_elapsed_ms": 39.477,
+      "admission_to_audio_queued_ms": 2.427
+    },
+    "log": "2026-09-19T22:36:27.125780Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=64 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39374 admission_elapsed_us=Some(39477) admission_to_audio_queued_us=Some(2427)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.148,
+      "admission_elapsed_ms": 39.161,
+      "admission_to_audio_queued_ms": 2.416
+    },
+    "log": "2026-09-19T22:36:27.165523Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=65 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39148 admission_elapsed_us=Some(39161) admission_to_audio_queued_us=Some(2416)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.969,
+      "admission_elapsed_ms": 39.106,
+      "admission_to_audio_queued_ms": 2.412
+    },
+    "log": "2026-09-19T22:36:27.205356Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=66 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38969 admission_elapsed_us=Some(39106) admission_to_audio_queued_us=Some(2412)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.552,
+      "admission_elapsed_ms": 39.57,
+      "admission_to_audio_queued_ms": 2.117
+    },
+    "log": "2026-09-19T22:36:27.245484Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=67 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39552 admission_elapsed_us=Some(39570) admission_to_audio_queued_us=Some(2117)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 48.687,
+      "admission_elapsed_ms": 48.706,
+      "admission_to_audio_queued_ms": 2.353
+    },
+    "log": "2026-09-19T22:36:27.294961Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=68 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=48687 admission_elapsed_us=Some(48706) admission_to_audio_queued_us=Some(2353)"
+  },
+  {
+    "command": "l {A}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.754,
+      "admission_elapsed_ms": 39.771,
+      "admission_to_audio_queued_ms": 2.796
+    },
+    "log": "2026-09-19T22:36:27.335557Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=69 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39754 admission_elapsed_us=Some(39771) admission_to_audio_queued_us=Some(2796)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 41.358,
+      "admission_elapsed_ms": 41.38,
+      "admission_to_audio_queued_ms": 2.861
+    },
+    "log": "2026-09-19T22:36:27.499883Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=73 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=41358 admission_elapsed_us=Some(41380) admission_to_audio_queued_us=Some(2861)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.793,
+      "admission_elapsed_ms": 39.875,
+      "admission_to_audio_queued_ms": 2.396
+    },
+    "log": "2026-09-19T22:36:27.540349Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=74 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39793 admission_elapsed_us=Some(39875) admission_to_audio_queued_us=Some(2396)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.805,
+      "admission_elapsed_ms": 40.828,
+      "admission_to_audio_queued_ms": 2.427
+    },
+    "log": "2026-09-19T22:36:27.581775Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=75 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40805 admission_elapsed_us=Some(40828) admission_to_audio_queued_us=Some(2427)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 43.654,
+      "admission_elapsed_ms": 43.673,
+      "admission_to_audio_queued_ms": 2.035
+    },
+    "log": "2026-09-19T22:36:27.626033Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=76 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=43654 admission_elapsed_us=Some(43673) admission_to_audio_queued_us=Some(2035)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.35,
+      "admission_elapsed_ms": 39.366,
+      "admission_to_audio_queued_ms": 2.862
+    },
+    "log": "2026-09-19T22:36:27.665975Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=77 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39350 admission_elapsed_us=Some(39366) admission_to_audio_queued_us=Some(2862)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.96,
+      "admission_elapsed_ms": 39.025,
+      "admission_to_audio_queued_ms": 2.381
+    },
+    "log": "2026-09-19T22:36:27.705660Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=78 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38960 admission_elapsed_us=Some(39025) admission_to_audio_queued_us=Some(2381)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.254,
+      "admission_elapsed_ms": 39.271,
+      "admission_to_audio_queued_ms": 2.326
+    },
+    "log": "2026-09-19T22:36:27.745559Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=79 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39254 admission_elapsed_us=Some(39271) admission_to_audio_queued_us=Some(2326)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.613,
+      "admission_elapsed_ms": 39.631,
+      "admission_to_audio_queued_ms": 2.156
+    },
+    "log": "2026-09-19T22:36:27.785951Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=80 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39613 admission_elapsed_us=Some(39631) admission_to_audio_queued_us=Some(2156)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.661,
+      "admission_elapsed_ms": 38.674,
+      "admission_to_audio_queued_ms": 2.003
+    },
+    "log": "2026-09-19T22:36:27.825316Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=81 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38661 admission_elapsed_us=Some(38674) admission_to_audio_queued_us=Some(2003)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.971,
+      "admission_elapsed_ms": 40.993,
+      "admission_to_audio_queued_ms": 2.714
+    },
+    "log": "2026-09-19T22:36:27.866971Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=82 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40971 admission_elapsed_us=Some(40993) admission_to_audio_queued_us=Some(2714)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 51.612,
+      "admission_elapsed_ms": 51.65,
+      "admission_to_audio_queued_ms": 1.849
+    },
+    "log": "2026-09-19T22:36:27.919120Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=83 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=51612 admission_elapsed_us=Some(51650) admission_to_audio_queued_us=Some(1849)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.3,
+      "admission_elapsed_ms": 40.321,
+      "admission_to_audio_queued_ms": 2.576
+    },
+    "log": "2026-09-19T22:36:27.960070Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=84 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40300 admission_elapsed_us=Some(40321) admission_to_audio_queued_us=Some(2576)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 51.482,
+      "admission_elapsed_ms": 51.496,
+      "admission_to_audio_queued_ms": 2.083
+    },
+    "log": "2026-09-19T22:36:28.012167Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=85 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=51482 admission_elapsed_us=Some(51496) admission_to_audio_queued_us=Some(2083)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.057,
+      "admission_elapsed_ms": 40.074,
+      "admission_to_audio_queued_ms": 1.994
+    },
+    "log": "2026-09-19T22:36:28.052844Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=86 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40057 admission_elapsed_us=Some(40074) admission_to_audio_queued_us=Some(1994)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.32,
+      "admission_elapsed_ms": 40.346,
+      "admission_to_audio_queued_ms": 2.402
+    },
+    "log": "2026-09-19T22:36:28.093694Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=87 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40320 admission_elapsed_us=Some(40346) admission_to_audio_queued_us=Some(2402)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.442,
+      "admission_elapsed_ms": 40.467,
+      "admission_to_audio_queued_ms": 2.432
+    },
+    "log": "2026-09-19T22:36:28.134757Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=88 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40442 admission_elapsed_us=Some(40467) admission_to_audio_queued_us=Some(2432)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.125,
+      "admission_elapsed_ms": 40.141,
+      "admission_to_audio_queued_ms": 1.886
+    },
+    "log": "2026-09-19T22:36:28.175472Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=89 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40125 admission_elapsed_us=Some(40141) admission_to_audio_queued_us=Some(1886)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.096,
+      "admission_elapsed_ms": 39.113,
+      "admission_to_audio_queued_ms": 2.466
+    },
+    "log": "2026-09-19T22:36:28.215430Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=90 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39096 admission_elapsed_us=Some(39113) admission_to_audio_queued_us=Some(2466)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.774,
+      "admission_elapsed_ms": 39.787,
+      "admission_to_audio_queued_ms": 2.03
+    },
+    "log": "2026-09-19T22:36:28.255697Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=91 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39774 admission_elapsed_us=Some(39787) admission_to_audio_queued_us=Some(2030)"
+  },
+  {
+    "command": "l {b}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.915,
+      "admission_elapsed_ms": 38.936,
+      "admission_to_audio_queued_ms": 2.196
+    },
+    "log": "2026-09-19T22:36:28.295335Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=92 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38915 admission_elapsed_us=Some(38936) admission_to_audio_queued_us=Some(2196)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.793,
+      "admission_elapsed_ms": 38.809,
+      "admission_to_audio_queued_ms": 2.813
+    },
+    "log": "2026-09-19T22:36:28.455900Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=96 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38793 admission_elapsed_us=Some(38809) admission_to_audio_queued_us=Some(2813)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.476,
+      "admission_elapsed_ms": 39.491,
+      "admission_to_audio_queued_ms": 2.477
+    },
+    "log": "2026-09-19T22:36:28.496064Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=97 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39476 admission_elapsed_us=Some(39491) admission_to_audio_queued_us=Some(2477)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.75,
+      "admission_elapsed_ms": 39.775,
+      "admission_to_audio_queued_ms": 3.494
+    },
+    "log": "2026-09-19T22:36:28.536615Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=98 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39750 admission_elapsed_us=Some(39775) admission_to_audio_queued_us=Some(3494)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.344,
+      "admission_elapsed_ms": 38.365,
+      "admission_to_audio_queued_ms": 2.429
+    },
+    "log": "2026-09-19T22:36:28.575825Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=99 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38344 admission_elapsed_us=Some(38365) admission_to_audio_queued_us=Some(2429)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.231,
+      "admission_elapsed_ms": 39.252,
+      "admission_to_audio_queued_ms": 2.381
+    },
+    "log": "2026-09-19T22:36:28.615765Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=100 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39231 admission_elapsed_us=Some(39252) admission_to_audio_queued_us=Some(2381)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.174,
+      "admission_elapsed_ms": 39.263,
+      "admission_to_audio_queued_ms": 2.245
+    },
+    "log": "2026-09-19T22:36:28.655676Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=101 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39174 admission_elapsed_us=Some(39263) admission_to_audio_queued_us=Some(2245)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.188,
+      "admission_elapsed_ms": 40.202,
+      "admission_to_audio_queued_ms": 2.491
+    },
+    "log": "2026-09-19T22:36:28.696383Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=102 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40188 admission_elapsed_us=Some(40202) admission_to_audio_queued_us=Some(2491)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 38.437,
+      "admission_elapsed_ms": 38.492,
+      "admission_to_audio_queued_ms": 2.65
+    },
+    "log": "2026-09-19T22:36:28.735772Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=103 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=38437 admission_elapsed_us=Some(38492) admission_to_audio_queued_us=Some(2650)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.489,
+      "admission_elapsed_ms": 39.505,
+      "admission_to_audio_queued_ms": 2.48
+    },
+    "log": "2026-09-19T22:36:28.775807Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=104 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39489 admission_elapsed_us=Some(39505) admission_to_audio_queued_us=Some(2480)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.285,
+      "admission_elapsed_ms": 40.298,
+      "admission_to_audio_queued_ms": 2.232
+    },
+    "log": "2026-09-19T22:36:28.816633Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=105 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40285 admission_elapsed_us=Some(40298) admission_to_audio_queued_us=Some(2232)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 49.363,
+      "admission_elapsed_ms": 49.39,
+      "admission_to_audio_queued_ms": 2.685
+    },
+    "log": "2026-09-19T22:36:28.866684Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=106 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=49363 admission_elapsed_us=Some(49390) admission_to_audio_queued_us=Some(2685)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 41.26,
+      "admission_elapsed_ms": 41.28,
+      "admission_to_audio_queued_ms": 2.356
+    },
+    "log": "2026-09-19T22:36:28.908550Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=107 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=41260 admission_elapsed_us=Some(41280) admission_to_audio_queued_us=Some(2356)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.868,
+      "admission_elapsed_ms": 40.885,
+      "admission_to_audio_queued_ms": 2.185
+    },
+    "log": "2026-09-19T22:36:28.950105Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=108 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40868 admission_elapsed_us=Some(40885) admission_to_audio_queued_us=Some(2185)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 50.612,
+      "admission_elapsed_ms": 50.64,
+      "admission_to_audio_queued_ms": 2.646
+    },
+    "log": "2026-09-19T22:36:29.001331Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=109 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=50612 admission_elapsed_us=Some(50640) admission_to_audio_queued_us=Some(2646)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.236,
+      "admission_elapsed_ms": 39.26,
+      "admission_to_audio_queued_ms": 2.026
+    },
+    "log": "2026-09-19T22:36:29.041113Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=110 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39236 admission_elapsed_us=Some(39260) admission_to_audio_queued_us=Some(2026)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.271,
+      "admission_elapsed_ms": 39.293,
+      "admission_to_audio_queued_ms": 1.913
+    },
+    "log": "2026-09-19T22:36:29.081037Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=111 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39271 admission_elapsed_us=Some(39293) admission_to_audio_queued_us=Some(1913)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 48.885,
+      "admission_elapsed_ms": 48.906,
+      "admission_to_audio_queued_ms": 1.706
+    },
+    "log": "2026-09-19T22:36:29.130527Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=112 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=48885 admission_elapsed_us=Some(48906) admission_to_audio_queued_us=Some(1706)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 40.064,
+      "admission_elapsed_ms": 40.146,
+      "admission_to_audio_queued_ms": 2.814
+    },
+    "log": "2026-09-19T22:36:29.171329Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=113 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=40064 admission_elapsed_us=Some(40146) admission_to_audio_queued_us=Some(2814)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 39.18,
+      "admission_elapsed_ms": 39.199,
+      "admission_to_audio_queued_ms": 2.745
+    },
+    "log": "2026-09-19T22:36:29.211215Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=114 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=39180 admission_elapsed_us=Some(39199) admission_to_audio_queued_us=Some(2745)"
+  },
+  {
+    "command": "l {w}",
+    "timings_ms": {
+      "worker_elapsed_ms": 49.482,
+      "admission_elapsed_ms": 49.55,
+      "admission_to_audio_queued_ms": 2.07
+    },
+    "log": "2026-09-19T22:36:29.261512Z  INFO speech_request{request_kind=\"letter\" request_identifier=None stop_epoch=115 protocol_generation=None}: Speech lifecycle finished synthesis worker lifecycle_stage=\"worker_finished\" worker_elapsed_us=49482 admission_elapsed_us=Some(49550) admission_to_audio_queued_us=Some(2070)"
+  }
+]

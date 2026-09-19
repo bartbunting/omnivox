@@ -1,0 +1,1332 @@
+[
+  {
+    "gap_ms": 100,
+    "epoch": 4,
+    "worker_elapsed_ms": 40.57,
+    "admission_elapsed_ms": 40.611,
+    "admission_to_audio_queued_ms": 4.251
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 5,
+    "worker_elapsed_ms": 40.507,
+    "admission_elapsed_ms": 40.535,
+    "admission_to_audio_queued_ms": 2.6
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 6,
+    "worker_elapsed_ms": 40.607,
+    "admission_elapsed_ms": 40.63,
+    "admission_to_audio_queued_ms": 3.101
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 7,
+    "worker_elapsed_ms": 40.647,
+    "admission_elapsed_ms": 40.68,
+    "admission_to_audio_queued_ms": 2.171
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 8,
+    "worker_elapsed_ms": 40.03,
+    "admission_elapsed_ms": 40.052,
+    "admission_to_audio_queued_ms": 1.777
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 9,
+    "worker_elapsed_ms": 39.735,
+    "admission_elapsed_ms": 39.75,
+    "admission_to_audio_queued_ms": 2.322
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 10,
+    "worker_elapsed_ms": 49.526,
+    "admission_elapsed_ms": 49.541,
+    "admission_to_audio_queued_ms": 2.275
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 11,
+    "worker_elapsed_ms": 39.833,
+    "admission_elapsed_ms": 39.851,
+    "admission_to_audio_queued_ms": 2.037
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 12,
+    "worker_elapsed_ms": 38.53,
+    "admission_elapsed_ms": 38.55,
+    "admission_to_audio_queued_ms": 2.59
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 13,
+    "worker_elapsed_ms": 39.513,
+    "admission_elapsed_ms": 39.537,
+    "admission_to_audio_queued_ms": 2.252
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 14,
+    "worker_elapsed_ms": 38.81,
+    "admission_elapsed_ms": 38.824,
+    "admission_to_audio_queued_ms": 2.608
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 15,
+    "worker_elapsed_ms": 52.633,
+    "admission_elapsed_ms": 52.649,
+    "admission_to_audio_queued_ms": 2.09
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 16,
+    "worker_elapsed_ms": 43.672,
+    "admission_elapsed_ms": 43.693,
+    "admission_to_audio_queued_ms": 3.111
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 17,
+    "worker_elapsed_ms": 33.253,
+    "admission_elapsed_ms": 33.274,
+    "admission_to_audio_queued_ms": 3.897
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 18,
+    "worker_elapsed_ms": 48.118,
+    "admission_elapsed_ms": 48.146,
+    "admission_to_audio_queued_ms": 2.826
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 19,
+    "worker_elapsed_ms": 38.032,
+    "admission_elapsed_ms": 38.047,
+    "admission_to_audio_queued_ms": 1.835
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 20,
+    "worker_elapsed_ms": 47.2,
+    "admission_elapsed_ms": 47.224,
+    "admission_to_audio_queued_ms": 2.147
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 21,
+    "worker_elapsed_ms": 47.615,
+    "admission_elapsed_ms": 47.635,
+    "admission_to_audio_queued_ms": 2.502
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 22,
+    "worker_elapsed_ms": 47.508,
+    "admission_elapsed_ms": 47.525,
+    "admission_to_audio_queued_ms": 2.116
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 23,
+    "worker_elapsed_ms": 46.954,
+    "admission_elapsed_ms": 46.971,
+    "admission_to_audio_queued_ms": 2.011
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 24,
+    "worker_elapsed_ms": 46.725,
+    "admission_elapsed_ms": 46.74,
+    "admission_to_audio_queued_ms": 1.843
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 25,
+    "worker_elapsed_ms": 46.719,
+    "admission_elapsed_ms": 46.74,
+    "admission_to_audio_queued_ms": 2.539
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 26,
+    "worker_elapsed_ms": 46.033,
+    "admission_elapsed_ms": 46.047,
+    "admission_to_audio_queued_ms": 1.856
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 27,
+    "worker_elapsed_ms": 46.165,
+    "admission_elapsed_ms": 46.201,
+    "admission_to_audio_queued_ms": 3.487
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 28,
+    "worker_elapsed_ms": 46.926,
+    "admission_elapsed_ms": 46.952,
+    "admission_to_audio_queued_ms": 2.427
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 29,
+    "worker_elapsed_ms": 45.699,
+    "admission_elapsed_ms": 45.724,
+    "admission_to_audio_queued_ms": 3.09
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 30,
+    "worker_elapsed_ms": 45.371,
+    "admission_elapsed_ms": 45.422,
+    "admission_to_audio_queued_ms": 2.363
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 31,
+    "worker_elapsed_ms": 45.572,
+    "admission_elapsed_ms": 45.589,
+    "admission_to_audio_queued_ms": 3.014
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 32,
+    "worker_elapsed_ms": 45.011,
+    "admission_elapsed_ms": 45.034,
+    "admission_to_audio_queued_ms": 3.343
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 33,
+    "worker_elapsed_ms": 45.137,
+    "admission_elapsed_ms": 45.158,
+    "admission_to_audio_queued_ms": 3.072
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 34,
+    "worker_elapsed_ms": 40.44,
+    "admission_elapsed_ms": 40.47,
+    "admission_to_audio_queued_ms": 2.94
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 35,
+    "worker_elapsed_ms": 39.643,
+    "admission_elapsed_ms": 39.662,
+    "admission_to_audio_queued_ms": 2.868
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 36,
+    "worker_elapsed_ms": 38.986,
+    "admission_elapsed_ms": 39.025,
+    "admission_to_audio_queued_ms": 3.091
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 37,
+    "worker_elapsed_ms": 39.895,
+    "admission_elapsed_ms": 39.926,
+    "admission_to_audio_queued_ms": 2.921
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 38,
+    "worker_elapsed_ms": 39.21,
+    "admission_elapsed_ms": 39.272,
+    "admission_to_audio_queued_ms": 3.005
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 39,
+    "worker_elapsed_ms": 48.79,
+    "admission_elapsed_ms": 48.831,
+    "admission_to_audio_queued_ms": 3.355
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 40,
+    "worker_elapsed_ms": 39.183,
+    "admission_elapsed_ms": 39.215,
+    "admission_to_audio_queued_ms": 2.808
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 41,
+    "worker_elapsed_ms": 38.396,
+    "admission_elapsed_ms": 38.409,
+    "admission_to_audio_queued_ms": 2.721
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 42,
+    "worker_elapsed_ms": 40.682,
+    "admission_elapsed_ms": 40.697,
+    "admission_to_audio_queued_ms": 2.312
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 43,
+    "worker_elapsed_ms": 53.553,
+    "admission_elapsed_ms": 53.574,
+    "admission_to_audio_queued_ms": 2.687
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 44,
+    "worker_elapsed_ms": 42.59,
+    "admission_elapsed_ms": 42.62,
+    "admission_to_audio_queued_ms": 2.467
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 45,
+    "worker_elapsed_ms": 42.43,
+    "admission_elapsed_ms": 42.452,
+    "admission_to_audio_queued_ms": 2.666
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 46,
+    "worker_elapsed_ms": 43.298,
+    "admission_elapsed_ms": 43.324,
+    "admission_to_audio_queued_ms": 3.8
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 47,
+    "worker_elapsed_ms": 41.668,
+    "admission_elapsed_ms": 41.691,
+    "admission_to_audio_queued_ms": 2.874
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 48,
+    "worker_elapsed_ms": 41.682,
+    "admission_elapsed_ms": 41.71,
+    "admission_to_audio_queued_ms": 3.177
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 49,
+    "worker_elapsed_ms": 41.699,
+    "admission_elapsed_ms": 41.811,
+    "admission_to_audio_queued_ms": 2.644
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 50,
+    "worker_elapsed_ms": 41.639,
+    "admission_elapsed_ms": 41.661,
+    "admission_to_audio_queued_ms": 2.765
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 51,
+    "worker_elapsed_ms": 40.767,
+    "admission_elapsed_ms": 40.789,
+    "admission_to_audio_queued_ms": 2.779
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 52,
+    "worker_elapsed_ms": 52.107,
+    "admission_elapsed_ms": 52.121,
+    "admission_to_audio_queued_ms": 2.678
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 53,
+    "worker_elapsed_ms": 40.403,
+    "admission_elapsed_ms": 40.438,
+    "admission_to_audio_queued_ms": 2.521
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 54,
+    "worker_elapsed_ms": 40.536,
+    "admission_elapsed_ms": 40.558,
+    "admission_to_audio_queued_ms": 2.449
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 55,
+    "worker_elapsed_ms": 40.289,
+    "admission_elapsed_ms": 40.304,
+    "admission_to_audio_queued_ms": 2.5
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 56,
+    "worker_elapsed_ms": 41.237,
+    "admission_elapsed_ms": 41.278,
+    "admission_to_audio_queued_ms": 2.424
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 57,
+    "worker_elapsed_ms": 40.177,
+    "admission_elapsed_ms": 40.194,
+    "admission_to_audio_queued_ms": 2.21
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 58,
+    "worker_elapsed_ms": 40.582,
+    "admission_elapsed_ms": 40.601,
+    "admission_to_audio_queued_ms": 2.34
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 59,
+    "worker_elapsed_ms": 39.057,
+    "admission_elapsed_ms": 39.075,
+    "admission_to_audio_queued_ms": 2.831
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 60,
+    "worker_elapsed_ms": 39.772,
+    "admission_elapsed_ms": 39.792,
+    "admission_to_audio_queued_ms": 2.737
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 61,
+    "worker_elapsed_ms": 39.745,
+    "admission_elapsed_ms": 39.785,
+    "admission_to_audio_queued_ms": 2.711
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 62,
+    "worker_elapsed_ms": 38.946,
+    "admission_elapsed_ms": 39.077,
+    "admission_to_audio_queued_ms": 2.874
+  },
+  {
+    "gap_ms": 100,
+    "epoch": 63,
+    "worker_elapsed_ms": 39.522,
+    "admission_elapsed_ms": 39.585,
+    "admission_to_audio_queued_ms": 2.259
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 67,
+    "worker_elapsed_ms": 38.417,
+    "admission_elapsed_ms": 38.443,
+    "admission_to_audio_queued_ms": 3.21
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 68,
+    "worker_elapsed_ms": 43.072,
+    "admission_elapsed_ms": 43.091,
+    "admission_to_audio_queued_ms": 2.265
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 69,
+    "worker_elapsed_ms": 42.692,
+    "admission_elapsed_ms": 42.713,
+    "admission_to_audio_queued_ms": 2.562
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 70,
+    "worker_elapsed_ms": 43.048,
+    "admission_elapsed_ms": 43.061,
+    "admission_to_audio_queued_ms": 2.229
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 71,
+    "worker_elapsed_ms": 42.785,
+    "admission_elapsed_ms": 42.8,
+    "admission_to_audio_queued_ms": 2.246
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 72,
+    "worker_elapsed_ms": 41.938,
+    "admission_elapsed_ms": 41.956,
+    "admission_to_audio_queued_ms": 2.32
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 73,
+    "worker_elapsed_ms": 43.138,
+    "admission_elapsed_ms": 43.165,
+    "admission_to_audio_queued_ms": 2.414
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 74,
+    "worker_elapsed_ms": 44.25,
+    "admission_elapsed_ms": 44.273,
+    "admission_to_audio_queued_ms": 2.382
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 75,
+    "worker_elapsed_ms": 47.069,
+    "admission_elapsed_ms": 47.088,
+    "admission_to_audio_queued_ms": 2.187
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 76,
+    "worker_elapsed_ms": 47.391,
+    "admission_elapsed_ms": 47.403,
+    "admission_to_audio_queued_ms": 1.972
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 77,
+    "worker_elapsed_ms": 46.57,
+    "admission_elapsed_ms": 46.591,
+    "admission_to_audio_queued_ms": 2.55
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 78,
+    "worker_elapsed_ms": 46.649,
+    "admission_elapsed_ms": 46.663,
+    "admission_to_audio_queued_ms": 2.162
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 79,
+    "worker_elapsed_ms": 46.685,
+    "admission_elapsed_ms": 46.702,
+    "admission_to_audio_queued_ms": 2.509
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 80,
+    "worker_elapsed_ms": 46.026,
+    "admission_elapsed_ms": 46.044,
+    "admission_to_audio_queued_ms": 2.027
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 81,
+    "worker_elapsed_ms": 45.862,
+    "admission_elapsed_ms": 45.892,
+    "admission_to_audio_queued_ms": 2.48
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 82,
+    "worker_elapsed_ms": 47.079,
+    "admission_elapsed_ms": 47.121,
+    "admission_to_audio_queued_ms": 2.491
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 83,
+    "worker_elapsed_ms": 45.491,
+    "admission_elapsed_ms": 45.534,
+    "admission_to_audio_queued_ms": 2.398
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 84,
+    "worker_elapsed_ms": 45.155,
+    "admission_elapsed_ms": 45.174,
+    "admission_to_audio_queued_ms": 2.067
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 85,
+    "worker_elapsed_ms": 45.877,
+    "admission_elapsed_ms": 45.896,
+    "admission_to_audio_queued_ms": 2.41
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 86,
+    "worker_elapsed_ms": 44.966,
+    "admission_elapsed_ms": 45.039,
+    "admission_to_audio_queued_ms": 2.326
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 87,
+    "worker_elapsed_ms": 44.869,
+    "admission_elapsed_ms": 44.892,
+    "admission_to_audio_queued_ms": 3.112
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 88,
+    "worker_elapsed_ms": 44.507,
+    "admission_elapsed_ms": 44.528,
+    "admission_to_audio_queued_ms": 2.098
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 89,
+    "worker_elapsed_ms": 44.532,
+    "admission_elapsed_ms": 44.544,
+    "admission_to_audio_queued_ms": 2.256
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 90,
+    "worker_elapsed_ms": 44.99,
+    "admission_elapsed_ms": 45.019,
+    "admission_to_audio_queued_ms": 2.038
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 91,
+    "worker_elapsed_ms": 44.88,
+    "admission_elapsed_ms": 44.898,
+    "admission_to_audio_queued_ms": 2.685
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 92,
+    "worker_elapsed_ms": 44.268,
+    "admission_elapsed_ms": 44.285,
+    "admission_to_audio_queued_ms": 1.862
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 93,
+    "worker_elapsed_ms": 43.816,
+    "admission_elapsed_ms": 43.833,
+    "admission_to_audio_queued_ms": 2.429
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 94,
+    "worker_elapsed_ms": 44.9,
+    "admission_elapsed_ms": 44.924,
+    "admission_to_audio_queued_ms": 2.59
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 95,
+    "worker_elapsed_ms": 43.799,
+    "admission_elapsed_ms": 43.815,
+    "admission_to_audio_queued_ms": 2.946
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 96,
+    "worker_elapsed_ms": 43.549,
+    "admission_elapsed_ms": 43.56,
+    "admission_to_audio_queued_ms": 2.13
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 97,
+    "worker_elapsed_ms": 44.082,
+    "admission_elapsed_ms": 44.101,
+    "admission_to_audio_queued_ms": 2.403
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 98,
+    "worker_elapsed_ms": 45.184,
+    "admission_elapsed_ms": 45.203,
+    "admission_to_audio_queued_ms": 1.971
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 99,
+    "worker_elapsed_ms": 46.084,
+    "admission_elapsed_ms": 46.114,
+    "admission_to_audio_queued_ms": 2.571
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 100,
+    "worker_elapsed_ms": 48.15,
+    "admission_elapsed_ms": 48.186,
+    "admission_to_audio_queued_ms": 2.677
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 101,
+    "worker_elapsed_ms": 38.141,
+    "admission_elapsed_ms": 38.16,
+    "admission_to_audio_queued_ms": 2.149
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 102,
+    "worker_elapsed_ms": 47.57,
+    "admission_elapsed_ms": 47.596,
+    "admission_to_audio_queued_ms": 2.326
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 103,
+    "worker_elapsed_ms": 47.508,
+    "admission_elapsed_ms": 47.542,
+    "admission_to_audio_queued_ms": 2.856
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 104,
+    "worker_elapsed_ms": 46.947,
+    "admission_elapsed_ms": 46.965,
+    "admission_to_audio_queued_ms": 2.623
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 105,
+    "worker_elapsed_ms": 47.18,
+    "admission_elapsed_ms": 47.21,
+    "admission_to_audio_queued_ms": 3.573
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 106,
+    "worker_elapsed_ms": 47.115,
+    "admission_elapsed_ms": 47.141,
+    "admission_to_audio_queued_ms": 2.6
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 107,
+    "worker_elapsed_ms": 46.392,
+    "admission_elapsed_ms": 46.413,
+    "admission_to_audio_queued_ms": 2.668
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 108,
+    "worker_elapsed_ms": 47.087,
+    "admission_elapsed_ms": 47.099,
+    "admission_to_audio_queued_ms": 2.296
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 109,
+    "worker_elapsed_ms": 47.335,
+    "admission_elapsed_ms": 47.354,
+    "admission_to_audio_queued_ms": 2.54
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 110,
+    "worker_elapsed_ms": 45.933,
+    "admission_elapsed_ms": 45.966,
+    "admission_to_audio_queued_ms": 3.525
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 111,
+    "worker_elapsed_ms": 45.926,
+    "admission_elapsed_ms": 45.94,
+    "admission_to_audio_queued_ms": 2.526
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 112,
+    "worker_elapsed_ms": 47.532,
+    "admission_elapsed_ms": 47.553,
+    "admission_to_audio_queued_ms": 2.22
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 113,
+    "worker_elapsed_ms": 48.746,
+    "admission_elapsed_ms": 48.788,
+    "admission_to_audio_queued_ms": 2.515
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 114,
+    "worker_elapsed_ms": 40.259,
+    "admission_elapsed_ms": 40.276,
+    "admission_to_audio_queued_ms": 2.033
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 115,
+    "worker_elapsed_ms": 40.68,
+    "admission_elapsed_ms": 40.695,
+    "admission_to_audio_queued_ms": 2.244
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 116,
+    "worker_elapsed_ms": 46.004,
+    "admission_elapsed_ms": 46.025,
+    "admission_to_audio_queued_ms": 2.944
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 117,
+    "worker_elapsed_ms": 47.73,
+    "admission_elapsed_ms": 47.748,
+    "admission_to_audio_queued_ms": 2.274
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 118,
+    "worker_elapsed_ms": 49.224,
+    "admission_elapsed_ms": 49.247,
+    "admission_to_audio_queued_ms": 2.646
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 119,
+    "worker_elapsed_ms": 49.89,
+    "admission_elapsed_ms": 49.944,
+    "admission_to_audio_queued_ms": 3.206
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 120,
+    "worker_elapsed_ms": 39.073,
+    "admission_elapsed_ms": 39.093,
+    "admission_to_audio_queued_ms": 2.346
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 121,
+    "worker_elapsed_ms": 39.943,
+    "admission_elapsed_ms": 39.961,
+    "admission_to_audio_queued_ms": 2.176
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 122,
+    "worker_elapsed_ms": 48.585,
+    "admission_elapsed_ms": 48.607,
+    "admission_to_audio_queued_ms": 2.639
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 123,
+    "worker_elapsed_ms": 48.82,
+    "admission_elapsed_ms": 48.839,
+    "admission_to_audio_queued_ms": 1.991
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 124,
+    "worker_elapsed_ms": 39.005,
+    "admission_elapsed_ms": 39.029,
+    "admission_to_audio_queued_ms": 2.428
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 125,
+    "worker_elapsed_ms": 38.327,
+    "admission_elapsed_ms": 38.387,
+    "admission_to_audio_queued_ms": 2.439
+  },
+  {
+    "gap_ms": 50,
+    "epoch": 126,
+    "worker_elapsed_ms": 38.254,
+    "admission_elapsed_ms": 38.272,
+    "admission_to_audio_queued_ms": 2.675
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 131,
+    "worker_elapsed_ms": 39.889,
+    "admission_elapsed_ms": 41.687,
+    "admission_to_audio_queued_ms": 3.908
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 132,
+    "worker_elapsed_ms": 50.005,
+    "admission_elapsed_ms": 61.614,
+    "admission_to_audio_queued_ms": 14.133
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 134,
+    "worker_elapsed_ms": 39.762,
+    "admission_elapsed_ms": 41.033,
+    "admission_to_audio_queued_ms": 3.711
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 135,
+    "worker_elapsed_ms": 39.926,
+    "admission_elapsed_ms": 50.908,
+    "admission_to_audio_queued_ms": 13.678
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 136,
+    "worker_elapsed_ms": 45.462,
+    "admission_elapsed_ms": 66.22,
+    "admission_to_audio_queued_ms": 23.571
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 138,
+    "worker_elapsed_ms": 40.245,
+    "admission_elapsed_ms": 46.073,
+    "admission_to_audio_queued_ms": 8.353
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 139,
+    "worker_elapsed_ms": 49.976,
+    "admission_elapsed_ms": 65.901,
+    "admission_to_audio_queued_ms": 18.225
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 141,
+    "worker_elapsed_ms": 59.623,
+    "admission_elapsed_ms": 65.207,
+    "admission_to_audio_queued_ms": 7.428
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 143,
+    "worker_elapsed_ms": 39.566,
+    "admission_elapsed_ms": 44.279,
+    "admission_to_audio_queued_ms": 7.283
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 144,
+    "worker_elapsed_ms": 50.682,
+    "admission_elapsed_ms": 65.116,
+    "admission_to_audio_queued_ms": 16.447
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 146,
+    "worker_elapsed_ms": 41.487,
+    "admission_elapsed_ms": 45.877,
+    "admission_to_audio_queued_ms": 6.873
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 147,
+    "worker_elapsed_ms": 62.239,
+    "admission_elapsed_ms": 78.414,
+    "admission_to_audio_queued_ms": 19.187
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 149,
+    "worker_elapsed_ms": 40.598,
+    "admission_elapsed_ms": 58.634,
+    "admission_to_audio_queued_ms": 20.609
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 150,
+    "worker_elapsed_ms": 40.065,
+    "admission_elapsed_ms": 68.654,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 152,
+    "worker_elapsed_ms": 39.764,
+    "admission_elapsed_ms": 48.064,
+    "admission_to_audio_queued_ms": 11.176
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 153,
+    "worker_elapsed_ms": 40.683,
+    "admission_elapsed_ms": 58.693,
+    "admission_to_audio_queued_ms": 20.508
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 154,
+    "worker_elapsed_ms": 59.114,
+    "admission_elapsed_ms": 87.464,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 156,
+    "worker_elapsed_ms": 49.862,
+    "admission_elapsed_ms": 77.042,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 158,
+    "worker_elapsed_ms": 40.175,
+    "admission_elapsed_ms": 56.831,
+    "admission_to_audio_queued_ms": 18.642
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 159,
+    "worker_elapsed_ms": 3.428,
+    "admission_elapsed_ms": 30.485,
+    "admission_to_audio_queued_ms": 29.739
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 160,
+    "worker_elapsed_ms": 31.622,
+    "admission_elapsed_ms": 32.112,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 161,
+    "worker_elapsed_ms": 32.063,
+    "admission_elapsed_ms": 33.991,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 162,
+    "worker_elapsed_ms": 44.02,
+    "admission_elapsed_ms": 47.849,
+    "admission_to_audio_queued_ms": 6.431
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 163,
+    "worker_elapsed_ms": 41.046,
+    "admission_elapsed_ms": 58.907,
+    "admission_to_audio_queued_ms": 20.44
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 164,
+    "worker_elapsed_ms": 47.379,
+    "admission_elapsed_ms": 76.079,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 166,
+    "worker_elapsed_ms": 54.966,
+    "admission_elapsed_ms": 70.728,
+    "admission_to_audio_queued_ms": 18.389
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 168,
+    "worker_elapsed_ms": 39.755,
+    "admission_elapsed_ms": 50.123,
+    "admission_to_audio_queued_ms": 12.882
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 169,
+    "worker_elapsed_ms": 40.291,
+    "admission_elapsed_ms": 60.313,
+    "admission_to_audio_queued_ms": 22.074
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 171,
+    "worker_elapsed_ms": 39.07,
+    "admission_elapsed_ms": 39.094,
+    "admission_to_audio_queued_ms": 2.508
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 172,
+    "worker_elapsed_ms": 50.845,
+    "admission_elapsed_ms": 60.315,
+    "admission_to_audio_queued_ms": 11.494
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 174,
+    "worker_elapsed_ms": 39.109,
+    "admission_elapsed_ms": 39.127,
+    "admission_to_audio_queued_ms": 2.159
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 175,
+    "worker_elapsed_ms": 40.757,
+    "admission_elapsed_ms": 49.712,
+    "admission_to_audio_queued_ms": 11.403
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 176,
+    "worker_elapsed_ms": 38.873,
+    "admission_elapsed_ms": 58.786,
+    "admission_to_audio_queued_ms": 22.311
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 177,
+    "worker_elapsed_ms": 40.127,
+    "admission_elapsed_ms": 68.574,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 179,
+    "worker_elapsed_ms": 49.171,
+    "admission_elapsed_ms": 57.392,
+    "admission_to_audio_queued_ms": 10.534
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 180,
+    "worker_elapsed_ms": 58.784,
+    "admission_elapsed_ms": 86.15,
+    "admission_to_audio_queued_ms": 29.846
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 182,
+    "worker_elapsed_ms": 41.248,
+    "admission_elapsed_ms": 66.861,
+    "admission_to_audio_queued_ms": 27.649
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 184,
+    "worker_elapsed_ms": 40.475,
+    "admission_elapsed_ms": 46.856,
+    "admission_to_audio_queued_ms": 9.115
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 185,
+    "worker_elapsed_ms": 39.93,
+    "admission_elapsed_ms": 57.147,
+    "admission_to_audio_queued_ms": 19.639
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 186,
+    "worker_elapsed_ms": 40.445,
+    "admission_elapsed_ms": 67.433,
+    "admission_to_audio_queued_ms": 29.585
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 188,
+    "worker_elapsed_ms": 58.304,
+    "admission_elapsed_ms": 65.365,
+    "admission_to_audio_queued_ms": 9.042
+  },
+  {
+    "gap_ms": 30,
+    "epoch": 189,
+    "worker_elapsed_ms": 41.382,
+    "admission_elapsed_ms": 76.816,
+    "admission_to_audio_queued_ms": 38.364
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 194,
+    "worker_elapsed_ms": 41.839,
+    "admission_elapsed_ms": 49.035,
+    "admission_to_audio_queued_ms": 10.221
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 196,
+    "worker_elapsed_ms": 51.716,
+    "admission_elapsed_ms": 60.461,
+    "admission_to_audio_queued_ms": 10.845
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 199,
+    "worker_elapsed_ms": 39.13,
+    "admission_elapsed_ms": 39.158,
+    "admission_to_audio_queued_ms": 2.739
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 200,
+    "worker_elapsed_ms": 40.211,
+    "admission_elapsed_ms": 59.192,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 202,
+    "worker_elapsed_ms": 50.235,
+    "admission_elapsed_ms": 69.198,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 205,
+    "worker_elapsed_ms": 40.033,
+    "admission_elapsed_ms": 48.654,
+    "admission_to_audio_queued_ms": 11.56
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 207,
+    "worker_elapsed_ms": 39.415,
+    "admission_elapsed_ms": 47.872,
+    "admission_to_audio_queued_ms": 10.737
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 209,
+    "worker_elapsed_ms": 40.278,
+    "admission_elapsed_ms": 47.517,
+    "admission_to_audio_queued_ms": 10.488
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 211,
+    "worker_elapsed_ms": 40.315,
+    "admission_elapsed_ms": 47.674,
+    "admission_to_audio_queued_ms": 10.158
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 213,
+    "worker_elapsed_ms": 59.239,
+    "admission_elapsed_ms": 66.661,
+    "admission_to_audio_queued_ms": 10.579
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 216,
+    "worker_elapsed_ms": 50.312,
+    "admission_elapsed_ms": 56.426,
+    "admission_to_audio_queued_ms": 8.505
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 218,
+    "worker_elapsed_ms": 41.644,
+    "admission_elapsed_ms": 57.997,
+    "admission_to_audio_queued_ms": 18.251
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 220,
+    "worker_elapsed_ms": 51.004,
+    "admission_elapsed_ms": 68.385,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 223,
+    "worker_elapsed_ms": 41.82,
+    "admission_elapsed_ms": 49.939,
+    "admission_to_audio_queued_ms": 10.378
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 225,
+    "worker_elapsed_ms": 39.988,
+    "admission_elapsed_ms": 49.432,
+    "admission_to_audio_queued_ms": 12.088
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 227,
+    "worker_elapsed_ms": 40.582,
+    "admission_elapsed_ms": 49.827,
+    "admission_to_audio_queued_ms": 11.443
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 229,
+    "worker_elapsed_ms": 39.77,
+    "admission_elapsed_ms": 49.252,
+    "admission_to_audio_queued_ms": 12.232
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 231,
+    "worker_elapsed_ms": 39.64,
+    "admission_elapsed_ms": 48.299,
+    "admission_to_audio_queued_ms": 11.716
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 233,
+    "worker_elapsed_ms": 50.261,
+    "admission_elapsed_ms": 58.412,
+    "admission_to_audio_queued_ms": 10.141
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 235,
+    "worker_elapsed_ms": 39.874,
+    "admission_elapsed_ms": 57.759,
+    "admission_to_audio_queued_ms": null
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 237,
+    "worker_elapsed_ms": 49.834,
+    "admission_elapsed_ms": 67.349,
+    "admission_to_audio_queued_ms": 19.728
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 240,
+    "worker_elapsed_ms": 39.922,
+    "admission_elapsed_ms": 46.438,
+    "admission_to_audio_queued_ms": 9.075
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 242,
+    "worker_elapsed_ms": 40.009,
+    "admission_elapsed_ms": 46.333,
+    "admission_to_audio_queued_ms": 9.143
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 244,
+    "worker_elapsed_ms": 40.105,
+    "admission_elapsed_ms": 46.206,
+    "admission_to_audio_queued_ms": 8.931
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 246,
+    "worker_elapsed_ms": 39.207,
+    "admission_elapsed_ms": 45.078,
+    "admission_to_audio_queued_ms": 8.053
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 248,
+    "worker_elapsed_ms": 40.38,
+    "admission_elapsed_ms": 45.141,
+    "admission_to_audio_queued_ms": 6.801
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 250,
+    "worker_elapsed_ms": 40.081,
+    "admission_elapsed_ms": 44.851,
+    "admission_to_audio_queued_ms": 6.838
+  },
+  {
+    "gap_ms": 20,
+    "epoch": 252,
+    "worker_elapsed_ms": 40.116,
+    "admission_elapsed_ms": 44.622,
+    "admission_to_audio_queued_ms": 6.983
+  }
+]

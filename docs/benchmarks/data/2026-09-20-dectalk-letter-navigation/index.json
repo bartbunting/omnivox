@@ -1,0 +1,80 @@
+{
+  "date": "2026-09-20",
+  "omnivox_source": "3ac0991fe5c57f24104d9df9ed062d0aadf695a5",
+  "emacsvox_source": "55a31047285cd183a3ee34f368007466d0341e15",
+  "implementation_commit": "8119e02d1d17e9214a00a2042cd4a57a7b86b099",
+  "runtime": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656",
+  "payload_and_transport_sha256": {
+    "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656/omnivox.exe": "18b2f9799eba790b4c859973c766facc87be55826944572337e33232993ca8bf",
+    "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656/OmnivoxDectalkHelper32.exe": "c4e605f39977781b30e867f61929fa3215a0d34d77afe56af3bf2dcd0cf7f258",
+    "/mnt/c/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/DECtalk.dll": "af25879d858846aaaa80b8f9626b1cbf4e57a1ab0467e8e2d82990558033c852",
+    "/mnt/c/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/dtalk_us.dic": "72271446c6d656842b389ff67f2bfafd6e0d4732f8a3a37442133dfb206206e7",
+    "tools/benchmark_server.py": "71cfa6545064133ff776a4ed220957d7f476cb89e2f8bd2e0b6845cf3e75bb8b",
+    "/home/bart/src/emacsvox/servers/omnivox": "83b38b9255627617005f085f50c2604171990dee5668a7cf49ffc80a53ce3753"
+  },
+  "original_sha256": {
+    "probe-letters.py": "d8163c5c986f1361c6c47e171aec04a7a440839483a7047cbad714cf437f32f3",
+    "probe-device.py": "185b21170a9fd2bccfdbd526d5d4bc4b659bcaad0dc91942963aa7bb9679ee9a",
+    "probe-burst.py": "2a702fa2f6cd559dc3c6a2cf9b26c3c29c28de25b817f0180af30b9101101fd0",
+    "current-85-1/raw.json": "4d0a11123e7e981f1263f446b6d277b6ed7dddc11f65fd6b040a48625a961d65",
+    "current-85-1/summary.json": "ddc025b19807ab5e7de0ae441e69aa6011d50b3ea275b952b901c7b33bc46c91",
+    "current-85-1/stderr.log": "c300fa280473f64d9250014786fddb84a0dec11fa8bdfbd95a6edc733e47f040",
+    "current-device-85/raw.json": "4f5a9c3c50531273ee09fa591d29225f2927a255486564304b542ecfe5dbce20",
+    "current-device-85/summary.json": "dbcb0bda60daa6449ae7dd416c0cc4b5c704bdf0be8dccb8a9f7a0816ce84f46",
+    "current-device-85/stderr.log": "2a4deeab19b5fed843da9f3d98a93e44ec3155005239d4d7046286099ae1ce04",
+    "current-null-85/raw.json": "5cb2b83fa57786db610d99cfd6e87e6c266908642e65a6721c1313a49b3826af",
+    "current-null-85/summary.json": "7d70ba362cc8a7a6f16b66aa9fc3e3ae99d805ddbb1f9b0a9ae3c340cf18959b",
+    "current-null-85/stderr.log": "7e1af405c79c3a240091b67414bff50fef519951e8c9220ae9dd8ea7e717f5d3",
+    "current-burst-85/raw.json": "0dffc906a35a2adc6d672731abc19b89cb547d56e0977ccd7e29febf56de1061",
+    "current-burst-85/summary.json": "598deae2df0cba155ec9011d396815328a16c9da6eb66b1855a11a7553c32988",
+    "current-burst-85/stderr.log": "7f27045a798a2f03cd20912f83b9b34469a7538e73354545c104172ab6ebf2f8"
+  },
+  "notes": [
+    "Private processes; serial runs; no build during measurement.",
+    "The device run mutes output after silence trimming and uses public playback markers, not acoustic capture.",
+    "Legacy l null measurements and tracked ordinary device measurements are distinct experiments.",
+    "Retained letter metric keys corrected from _us to _ms; values unchanged."
+  ],
+  "invocations": [
+    [
+      "python3",
+      "probe-letters.py",
+      "NEW-OUTPUT",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656/omnivox.exe",
+      "--rate",
+      "85"
+    ],
+    [
+      "python3",
+      "probe-device.py",
+      "NEW-OUTPUT",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656/omnivox.exe",
+      "--backend",
+      "device"
+    ],
+    [
+      "python3",
+      "probe-device.py",
+      "NEW-OUTPUT",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656/omnivox.exe",
+      "--backend",
+      "null"
+    ],
+    [
+      "python3",
+      "probe-burst.py",
+      "NEW-OUTPUT",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656/omnivox.exe"
+    ]
+  ],
+  "recorded_output_directories": [
+    "current-85-1",
+    "current-device-85",
+    "current-null-85",
+    "current-burst-85"
+  ]
+}

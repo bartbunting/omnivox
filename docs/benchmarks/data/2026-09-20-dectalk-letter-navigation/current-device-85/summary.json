@@ -1,0 +1,18 @@
+{
+  "a": {
+    "source_ms": 49.7606555,
+    "terminal_ms": 139.50827950000001
+  },
+  "b": {
+    "source_ms": 49.4597885,
+    "terminal_ms": 139.8033485
+  },
+  "latency": {
+    "source_ms": 9.6254955,
+    "terminal_ms": 249.8871285
+  },
+  "w": {
+    "source_ms": 9.4855625,
+    "terminal_ms": 259.6818455
+  }
+}

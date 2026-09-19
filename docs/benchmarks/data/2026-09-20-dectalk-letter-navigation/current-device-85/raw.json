@@ -1,0 +1,562 @@
+[
+  {
+    "text": "a",
+    "dispatch_id": 1000003,
+    "source_ms": 59.39818,
+    "terminal_ms": 139.54757,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000004,
+    "source_ms": 59.43292,
+    "terminal_ms": 139.420144,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000005,
+    "source_ms": 59.911596,
+    "terminal_ms": 139.899254,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000006,
+    "source_ms": 49.865525,
+    "terminal_ms": 130.191596,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000007,
+    "source_ms": 59.307743,
+    "terminal_ms": 149.633232,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000008,
+    "source_ms": 49.743582,
+    "terminal_ms": 139.76505,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000009,
+    "source_ms": 59.420574,
+    "terminal_ms": 149.401527,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000010,
+    "source_ms": 49.609211,
+    "terminal_ms": 140.025159,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000011,
+    "source_ms": 39.24041,
+    "terminal_ms": 129.803582,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000012,
+    "source_ms": 59.369825,
+    "terminal_ms": 139.367443,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000013,
+    "source_ms": 49.602957,
+    "terminal_ms": 130.130385,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000014,
+    "source_ms": 59.312094,
+    "terminal_ms": 149.474786,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000015,
+    "source_ms": 39.702299,
+    "terminal_ms": 129.672719,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000016,
+    "source_ms": 49.770452,
+    "terminal_ms": 139.993725,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000017,
+    "source_ms": 49.472304,
+    "terminal_ms": 139.965763,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000018,
+    "source_ms": 49.189202,
+    "terminal_ms": 139.341578,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000019,
+    "source_ms": 39.525608,
+    "terminal_ms": 129.677312,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000020,
+    "source_ms": 49.896756,
+    "terminal_ms": 130.288403,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000021,
+    "source_ms": 49.750859,
+    "terminal_ms": 139.619367,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "a",
+    "dispatch_id": 1000022,
+    "source_ms": 49.402164,
+    "terminal_ms": 139.468989,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000026,
+    "source_ms": 39.483033,
+    "terminal_ms": 139.82188,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000027,
+    "source_ms": 39.479039,
+    "terminal_ms": 129.415919,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000028,
+    "source_ms": 39.603381,
+    "terminal_ms": 139.763514,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000029,
+    "source_ms": 39.610533,
+    "terminal_ms": 129.757953,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000030,
+    "source_ms": 49.452983,
+    "terminal_ms": 149.603348,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000031,
+    "source_ms": 39.812947,
+    "terminal_ms": 129.971101,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000032,
+    "source_ms": 49.546557,
+    "terminal_ms": 149.758869,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000033,
+    "source_ms": 49.545824,
+    "terminal_ms": 139.954362,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000034,
+    "source_ms": 49.237725,
+    "terminal_ms": 149.392715,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000035,
+    "source_ms": 39.626336,
+    "terminal_ms": 129.848676,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000036,
+    "source_ms": 59.930625,
+    "terminal_ms": 149.729244,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000037,
+    "source_ms": 49.466594,
+    "terminal_ms": 149.784473,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000038,
+    "source_ms": 49.674091,
+    "terminal_ms": 139.753653,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000039,
+    "source_ms": 49.6949,
+    "terminal_ms": 150.078252,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000040,
+    "source_ms": 49.495153,
+    "terminal_ms": 139.784817,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000041,
+    "source_ms": 49.486698,
+    "terminal_ms": 139.597603,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000042,
+    "source_ms": 39.782024,
+    "terminal_ms": 129.661653,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000043,
+    "source_ms": 59.846534,
+    "terminal_ms": 149.750702,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000044,
+    "source_ms": 49.636452,
+    "terminal_ms": 149.851288,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "b",
+    "dispatch_id": 1000045,
+    "source_ms": 39.433909,
+    "terminal_ms": 129.573378,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000049,
+    "source_ms": 9.608885,
+    "terminal_ms": 250.005556,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000050,
+    "source_ms": 9.310765,
+    "terminal_ms": 259.964134,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000051,
+    "source_ms": 9.321002,
+    "terminal_ms": 259.707857,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000052,
+    "source_ms": 9.105861,
+    "terminal_ms": 259.132451,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000053,
+    "source_ms": 9.935545,
+    "terminal_ms": 250.117941,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000054,
+    "source_ms": 9.151218,
+    "terminal_ms": 259.547043,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000055,
+    "source_ms": 9.466985,
+    "terminal_ms": 259.79749,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000056,
+    "source_ms": 9.330074,
+    "terminal_ms": 259.717202,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000057,
+    "source_ms": 9.489118,
+    "terminal_ms": 249.621303,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000058,
+    "source_ms": 9.874272,
+    "terminal_ms": 259.953507,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000059,
+    "source_ms": 9.607456,
+    "terminal_ms": 259.576727,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000060,
+    "source_ms": 9.693266,
+    "terminal_ms": 259.792622,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000061,
+    "source_ms": 9.470891,
+    "terminal_ms": 249.577336,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000062,
+    "source_ms": 9.61963,
+    "terminal_ms": 260.184412,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000063,
+    "source_ms": 9.496189,
+    "terminal_ms": 259.655834,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000064,
+    "source_ms": 9.463395,
+    "terminal_ms": 259.754739,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000065,
+    "source_ms": 9.497651,
+    "terminal_ms": 249.984129,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000066,
+    "source_ms": 9.242751,
+    "terminal_ms": 259.637024,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000067,
+    "source_ms": 10.231171,
+    "terminal_ms": 259.855043,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "w",
+    "dispatch_id": 1000068,
+    "source_ms": 9.482007,
+    "terminal_ms": 260.513952,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000072,
+    "source_ms": 9.530251,
+    "terminal_ms": 259.709651,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000073,
+    "source_ms": 9.635994,
+    "terminal_ms": 249.798923,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000074,
+    "source_ms": 9.529068,
+    "terminal_ms": 249.76329,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000075,
+    "source_ms": 9.510726,
+    "terminal_ms": 249.656323,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000076,
+    "source_ms": 9.688381,
+    "terminal_ms": 250.055259,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000077,
+    "source_ms": 9.776185,
+    "terminal_ms": 249.651344,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000078,
+    "source_ms": 9.64347,
+    "terminal_ms": 259.955186,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000079,
+    "source_ms": 9.429254,
+    "terminal_ms": 249.518078,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000080,
+    "source_ms": 9.604323,
+    "terminal_ms": 249.892206,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000081,
+    "source_ms": 9.371076,
+    "terminal_ms": 249.552229,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000082,
+    "source_ms": 9.614997,
+    "terminal_ms": 249.882051,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000083,
+    "source_ms": 9.763456,
+    "terminal_ms": 259.515447,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000084,
+    "source_ms": 19.827773,
+    "terminal_ms": 259.818398,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000085,
+    "source_ms": 9.730017,
+    "terminal_ms": 249.834739,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000086,
+    "source_ms": 9.858211,
+    "terminal_ms": 249.795019,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000087,
+    "source_ms": 9.726544,
+    "terminal_ms": 259.749698,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000088,
+    "source_ms": 9.294827,
+    "terminal_ms": 260.368171,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000089,
+    "source_ms": 8.860967,
+    "terminal_ms": 249.225687,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000090,
+    "source_ms": 19.282996,
+    "terminal_ms": 259.547221,
+    "engine_id": "dectalk"
+  },
+  {
+    "text": "latency",
+    "dispatch_id": 1000091,
+    "source_ms": 9.510365,
+    "terminal_ms": 259.832642,
+    "engine_id": "dectalk"
+  }
+]
