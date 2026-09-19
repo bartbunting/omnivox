@@ -1,0 +1,181 @@
+{
+  "units": "milliseconds; medians and nearest-rank p95; phases can overlap",
+  "phases": {
+    "native_reset": {
+      "n": 90,
+      "median_ms": 17.212,
+      "p95_ms": 27.446,
+      "minimum_ms": 12.569,
+      "maximum_ms": 32.327
+    },
+    "set_rate": {
+      "n": 90,
+      "median_ms": 0.001,
+      "p95_ms": 0.001,
+      "minimum_ms": 0.0,
+      "maximum_ms": 0.001
+    },
+    "build_indexed_text": {
+      "n": 90,
+      "median_ms": 0.026,
+      "p95_ms": 0.05,
+      "minimum_ms": 0.014,
+      "maximum_ms": 0.193
+    },
+    "speak_call": {
+      "n": 90,
+      "median_ms": 0.0635,
+      "p95_ms": 0.359,
+      "minimum_ms": 0.023,
+      "maximum_ms": 0.413
+    },
+    "speak_to_first_callback": {
+      "n": 90,
+      "median_ms": 0.684,
+      "p95_ms": 1.578,
+      "minimum_ms": 0.379,
+      "maximum_ms": 2.277
+    },
+    "first_callback_to_first_audio_write": {
+      "n": 90,
+      "median_ms": 0.145,
+      "p95_ms": 0.23,
+      "minimum_ms": 0.085,
+      "maximum_ms": 1.424
+    },
+    "first_audio_write": {
+      "n": 90,
+      "median_ms": 0.024,
+      "p95_ms": 0.045,
+      "minimum_ms": 0.013,
+      "maximum_ms": 0.082
+    },
+    "native_sync_overlaps_audio_delivery": {
+      "n": 90,
+      "median_ms": 19.989,
+      "p95_ms": 29.486,
+      "minimum_ms": 16.323,
+      "maximum_ms": 37.554
+    }
+  },
+  "queued_to_mixer": {
+    "n": 90,
+    "median_ms": 0.044,
+    "p95_ms": 0.111,
+    "minimum_ms": 0.021,
+    "maximum_ms": 0.199
+  },
+  "first_callback_minimum_peak": 3946,
+  "first_callback_frames": [
+    512
+  ],
+  "instrumentation_control": {
+    "stock": {
+      "dispatch_to_source_ms": {
+        "n": 90,
+        "median_ms": 20.1263255,
+        "p95_ms": 30.99599,
+        "minimum_ms": 18.380355,
+        "maximum_ms": 43.534196
+      },
+      "dispatch_to_terminal_ms": {
+        "n": 90,
+        "median_ms": 40.5024535,
+        "p95_ms": 54.969611,
+        "minimum_ms": 36.064286,
+        "maximum_ms": 64.819188
+      }
+    },
+    "probe512": {
+      "dispatch_to_source_ms": {
+        "n": 90,
+        "median_ms": 20.615140500000003,
+        "p95_ms": 32.734087,
+        "minimum_ms": 15.407564,
+        "maximum_ms": 37.549223
+      },
+      "dispatch_to_terminal_ms": {
+        "n": 90,
+        "median_ms": 41.0876915,
+        "p95_ms": 57.783638,
+        "minimum_ms": 35.114687,
+        "maximum_ms": 67.577021
+      }
+    }
+  },
+  "reset_after_comparison": {
+    "stock": {
+      "dispatch_to_source_ms": {
+        "n": 90,
+        "median_ms": 20.421841,
+        "p95_ms": 32.681177,
+        "minimum_ms": 17.168347,
+        "maximum_ms": 34.682064
+      },
+      "dispatch_to_terminal_ms": {
+        "n": 90,
+        "median_ms": 40.9812965,
+        "p95_ms": 56.027307,
+        "minimum_ms": 35.281286,
+        "maximum_ms": 60.407325
+      }
+    },
+    "reset-after": {
+      "dispatch_to_source_ms": {
+        "n": 90,
+        "median_ms": 2.9616325,
+        "p95_ms": 3.781828,
+        "minimum_ms": 2.271507,
+        "maximum_ms": 4.285423
+      },
+      "dispatch_to_terminal_ms": {
+        "n": 90,
+        "median_ms": 40.855236500000004,
+        "p95_ms": 53.648229,
+        "minimum_ms": 35.870013,
+        "maximum_ms": 62.502385
+      }
+    }
+  },
+  "native_comparison": {
+    "stock": {
+      "dispatch_to_source_ms": {
+        "n": 90,
+        "median_ms": 98.407016,
+        "p95_ms": 117.983707,
+        "minimum_ms": 78.123745,
+        "maximum_ms": 128.983814
+      },
+      "dispatch_to_terminal_ms": {
+        "n": 90,
+        "median_ms": 162.523507,
+        "p95_ms": 186.57659,
+        "minimum_ms": 138.633185,
+        "maximum_ms": 190.326206
+      }
+    },
+    "reset-after": {
+      "dispatch_to_source_ms": {
+        "n": 90,
+        "median_ms": 71.375024,
+        "p95_ms": 92.704998,
+        "minimum_ms": 57.92577,
+        "maximum_ms": 99.167542
+      },
+      "dispatch_to_terminal_ms": {
+        "n": 90,
+        "median_ms": 137.65107949999998,
+        "p95_ms": 169.336705,
+        "minimum_ms": 118.001839,
+        "maximum_ms": 192.804258
+      }
+    }
+  },
+  "native_parameter_preparation_after_reset_move": {
+    "n": 90,
+    "median_ms": 67.414,
+    "p95_ms": 88.803,
+    "minimum_ms": 55.181,
+    "maximum_ms": 95.753
+  }
+}

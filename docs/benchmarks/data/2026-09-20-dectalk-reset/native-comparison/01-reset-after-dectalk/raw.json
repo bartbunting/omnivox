@@ -1,0 +1,941 @@
+{
+  "measurement": "client source and terminal observations; no acoustic onset",
+  "clock": "time.perf_counter_ns",
+  "timing_samples": [
+    {
+      "case": "server_ready",
+      "iteration": 0,
+      "process_start_to_ready_ms": 664.052847
+    },
+    {
+      "dispatch_id": 1000003,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200056101709371,
+      "source_observed_at_monotonic_ns": 200056162134282,
+      "terminal_observed_at_monotonic_ns": 200056224172827,
+      "dispatch_to_source_ms": 60.424911,
+      "dispatch_to_terminal_ms": 122.463456,
+      "source_to_terminal_ms": 62.038545,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 0,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000004,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200056226624223,
+      "source_observed_at_monotonic_ns": 200056305367160,
+      "terminal_observed_at_monotonic_ns": 200056365408112,
+      "dispatch_to_source_ms": 78.742937,
+      "dispatch_to_terminal_ms": 138.783889,
+      "source_to_terminal_ms": 60.040952,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 1,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000005,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200056367294165,
+      "source_observed_at_monotonic_ns": 200056455345830,
+      "terminal_observed_at_monotonic_ns": 200056514351341,
+      "dispatch_to_source_ms": 88.051665,
+      "dispatch_to_terminal_ms": 147.057176,
+      "source_to_terminal_ms": 59.005511,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 2,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000006,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200056516174529,
+      "source_observed_at_monotonic_ns": 200056575579616,
+      "terminal_observed_at_monotonic_ns": 200056639177618,
+      "dispatch_to_source_ms": 59.405087,
+      "dispatch_to_terminal_ms": 123.003089,
+      "source_to_terminal_ms": 63.598002,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 3,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000007,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200056641222443,
+      "source_observed_at_monotonic_ns": 200056715595987,
+      "terminal_observed_at_monotonic_ns": 200056783678941,
+      "dispatch_to_source_ms": 74.373544,
+      "dispatch_to_terminal_ms": 142.456498,
+      "source_to_terminal_ms": 68.082954,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 4,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000008,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200056785726684,
+      "source_observed_at_monotonic_ns": 200056855882836,
+      "terminal_observed_at_monotonic_ns": 200056915668413,
+      "dispatch_to_source_ms": 70.156152,
+      "dispatch_to_terminal_ms": 129.941729,
+      "source_to_terminal_ms": 59.785577,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 5,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000009,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200056918471189,
+      "source_observed_at_monotonic_ns": 200056984902617,
+      "terminal_observed_at_monotonic_ns": 200057044604633,
+      "dispatch_to_source_ms": 66.431428,
+      "dispatch_to_terminal_ms": 126.133444,
+      "source_to_terminal_ms": 59.702016,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 6,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000010,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200057046594478,
+      "source_observed_at_monotonic_ns": 200057106373321,
+      "terminal_observed_at_monotonic_ns": 200057165073314,
+      "dispatch_to_source_ms": 59.778843,
+      "dispatch_to_terminal_ms": 118.478836,
+      "source_to_terminal_ms": 58.699993,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 7,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000011,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200057167121412,
+      "source_observed_at_monotonic_ns": 200057235193326,
+      "terminal_observed_at_monotonic_ns": 200057300399131,
+      "dispatch_to_source_ms": 68.071914,
+      "dispatch_to_terminal_ms": 133.277719,
+      "source_to_terminal_ms": 65.205805,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 8,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000012,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200057301998393,
+      "source_observed_at_monotonic_ns": 200057367648522,
+      "terminal_observed_at_monotonic_ns": 200057429434363,
+      "dispatch_to_source_ms": 65.650129,
+      "dispatch_to_terminal_ms": 127.43597,
+      "source_to_terminal_ms": 61.785841,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 9,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000013,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200057431168002,
+      "source_observed_at_monotonic_ns": 200057491176645,
+      "terminal_observed_at_monotonic_ns": 200057569675936,
+      "dispatch_to_source_ms": 60.008643,
+      "dispatch_to_terminal_ms": 138.507934,
+      "source_to_terminal_ms": 78.499291,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 10,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000014,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200057571483705,
+      "source_observed_at_monotonic_ns": 200057639792003,
+      "terminal_observed_at_monotonic_ns": 200057722218551,
+      "dispatch_to_source_ms": 68.308298,
+      "dispatch_to_terminal_ms": 150.734846,
+      "source_to_terminal_ms": 82.426548,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 11,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000015,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200057723779139,
+      "source_observed_at_monotonic_ns": 200057806317378,
+      "terminal_observed_at_monotonic_ns": 200057882340034,
+      "dispatch_to_source_ms": 82.538239,
+      "dispatch_to_terminal_ms": 158.560895,
+      "source_to_terminal_ms": 76.022656,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 12,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000016,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200057884862964,
+      "source_observed_at_monotonic_ns": 200057955056740,
+      "terminal_observed_at_monotonic_ns": 200058020448231,
+      "dispatch_to_source_ms": 70.193776,
+      "dispatch_to_terminal_ms": 135.585267,
+      "source_to_terminal_ms": 65.391491,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 13,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000017,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200058022264666,
+      "source_observed_at_monotonic_ns": 200058090210162,
+      "terminal_observed_at_monotonic_ns": 200058151446954,
+      "dispatch_to_source_ms": 67.945496,
+      "dispatch_to_terminal_ms": 129.182288,
+      "source_to_terminal_ms": 61.236792,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 14,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000018,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200058154180907,
+      "source_observed_at_monotonic_ns": 200058221060371,
+      "terminal_observed_at_monotonic_ns": 200058288950192,
+      "dispatch_to_source_ms": 66.879464,
+      "dispatch_to_terminal_ms": 134.769285,
+      "source_to_terminal_ms": 67.889821,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 15,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000019,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200058291186506,
+      "source_observed_at_monotonic_ns": 200058370988248,
+      "terminal_observed_at_monotonic_ns": 200058430164843,
+      "dispatch_to_source_ms": 79.801742,
+      "dispatch_to_terminal_ms": 138.978337,
+      "source_to_terminal_ms": 59.176595,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 16,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000020,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200058432518266,
+      "source_observed_at_monotonic_ns": 200058500569653,
+      "terminal_observed_at_monotonic_ns": 200058560618326,
+      "dispatch_to_source_ms": 68.051387,
+      "dispatch_to_terminal_ms": 128.10006,
+      "source_to_terminal_ms": 60.048673,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 17,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000021,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200058562931481,
+      "source_observed_at_monotonic_ns": 200058638981439,
+      "terminal_observed_at_monotonic_ns": 200058720943509,
+      "dispatch_to_source_ms": 76.049958,
+      "dispatch_to_terminal_ms": 158.012028,
+      "source_to_terminal_ms": 81.96207,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 18,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000022,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200058723170173,
+      "source_observed_at_monotonic_ns": 200058794353645,
+      "terminal_observed_at_monotonic_ns": 200058860831515,
+      "dispatch_to_source_ms": 71.183472,
+      "dispatch_to_terminal_ms": 137.661342,
+      "source_to_terminal_ms": 66.47787,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 19,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000023,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200058862953796,
+      "source_observed_at_monotonic_ns": 200058924129158,
+      "terminal_observed_at_monotonic_ns": 200058984892057,
+      "dispatch_to_source_ms": 61.175362,
+      "dispatch_to_terminal_ms": 121.938261,
+      "source_to_terminal_ms": 60.762899,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 20,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000024,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200058987273580,
+      "source_observed_at_monotonic_ns": 200059056155676,
+      "terminal_observed_at_monotonic_ns": 200059115898502,
+      "dispatch_to_source_ms": 68.882096,
+      "dispatch_to_terminal_ms": 128.624922,
+      "source_to_terminal_ms": 59.742826,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 21,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000025,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200059118778468,
+      "source_observed_at_monotonic_ns": 200059190926840,
+      "terminal_observed_at_monotonic_ns": 200059260499177,
+      "dispatch_to_source_ms": 72.148372,
+      "dispatch_to_terminal_ms": 141.720709,
+      "source_to_terminal_ms": 69.572337,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 22,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000026,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200059263187425,
+      "source_observed_at_monotonic_ns": 200059341300886,
+      "terminal_observed_at_monotonic_ns": 200059400300426,
+      "dispatch_to_source_ms": 78.113461,
+      "dispatch_to_terminal_ms": 137.113001,
+      "source_to_terminal_ms": 58.99954,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 23,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000027,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200059402439423,
+      "source_observed_at_monotonic_ns": 200059470764591,
+      "terminal_observed_at_monotonic_ns": 200059530310595,
+      "dispatch_to_source_ms": 68.325168,
+      "dispatch_to_terminal_ms": 127.871172,
+      "source_to_terminal_ms": 59.546004,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 24,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000028,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200059533352505,
+      "source_observed_at_monotonic_ns": 200059600833179,
+      "terminal_observed_at_monotonic_ns": 200059673341548,
+      "dispatch_to_source_ms": 67.480674,
+      "dispatch_to_terminal_ms": 139.989043,
+      "source_to_terminal_ms": 72.508369,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 25,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000029,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200059675739326,
+      "source_observed_at_monotonic_ns": 200059750655132,
+      "terminal_observed_at_monotonic_ns": 200059813679559,
+      "dispatch_to_source_ms": 74.915806,
+      "dispatch_to_terminal_ms": 137.940233,
+      "source_to_terminal_ms": 63.024427,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 26,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000030,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200059816261666,
+      "source_observed_at_monotonic_ns": 200059900498603,
+      "terminal_observed_at_monotonic_ns": 200059970788385,
+      "dispatch_to_source_ms": 84.236937,
+      "dispatch_to_terminal_ms": 154.526719,
+      "source_to_terminal_ms": 70.289782,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 27,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000031,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200059973139715,
+      "source_observed_at_monotonic_ns": 200060034742536,
+      "terminal_observed_at_monotonic_ns": 200060095399288,
+      "dispatch_to_source_ms": 61.602821,
+      "dispatch_to_terminal_ms": 122.259573,
+      "source_to_terminal_ms": 60.656752,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 28,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    },
+    {
+      "dispatch_id": 1000032,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 200060097386680,
+      "source_observed_at_monotonic_ns": 200060183161835,
+      "terminal_observed_at_monotonic_ns": 200060244174998,
+      "dispatch_to_source_ms": 85.775155,
+      "dispatch_to_terminal_ms": 146.788318,
+      "source_to_terminal_ms": 61.013163,
+      "native_verified": true,
+      "native_identity": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      },
+      "case": "line",
+      "iteration": 29,
+      "server_version": "1.11.0",
+      "catalogue": {
+        "schema_id": "dectalk.design-voice.v1",
+        "profile_id": "dectalk.windows.4_99.v1",
+        "catalogue_revision": "0cacc47ecc26d3ecf73ae1a1a1f8f961e1b9200cd12952ac32699c718c4e7b6a",
+        "runtime_generation": 96107250482860407
+      }
+    }
+  ]
+}

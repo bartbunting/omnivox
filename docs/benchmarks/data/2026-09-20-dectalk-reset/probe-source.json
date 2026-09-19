@@ -1,0 +1,20 @@
+{
+  "source_commit": "0b73df8afb96e3307299d4eada0bb56a3fabe09f",
+  "files": {
+    "README.md": "7b3fa833c5460b49ab5c903474160d067293347441057c8241dea66588dfc028",
+    "Makefile": "9d3d979908e5f0891da0e0bfe1284f85b253f6263343b893c7e0280ebe22f01a",
+    "build.ps1": "a1e75ec52140002761d9ed9744bbe32f62b9912333eacc33f9530440b571b7ff",
+    "COPYING": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+    "dectalk/OmnivoxDectalkCapture.cs": "9a09e2a6f3f602eb9334347058146f8b289c718adc714a0b92fa54b324eba17a",
+    "dectalk/OmnivoxDectalkHelper.cs": "20b0f2ebceb8c92f3f734a5ef9dc497f3751df0cc855c44606831249a235e29d",
+    "dectalk/OmnivoxDectalkParameterService.cs": "ecce78d5e497c658f596ac0e55565a5025ff90336315c174f521f17d7096dd3f",
+    "dectalk/OmnivoxDectalkParameters.cs": "0ece9509d8e02b6ed9585f58f177788c0be5a25c54edf219408082baa34ff245",
+    "eloquence/OmnivoxEloquenceParameterService.cs": "04cb92a2b027ca8350c40e4a3fd8bbfbb4d31fe886ae412c5ff1433cc86dd6fd",
+    "eloquence/OmnivoxEloquenceHelper.cs": "de1ff55c9fdac68b1749b31e1ef9326d8028bd3d7c8fd983b1786a1c144a6537",
+    "eloquence/OmnivoxEloquenceCapture.cs": "63e4df8929bac942d116f92e78f94c484dc1fc39fb563e46bb366f1b4756eaea",
+    "eloquence/OmnivoxEloquenceParameters.cs": "be5756376c004a60c4b70342cadf8c00e36db17cc1fdebea95c1e2a1c03d6b8f",
+    "common/OmnivoxHelperParameters.cs": "bad7c2fc26372bcef9b732adae113f8b9d56004a3c8a08c4e95d20656bc5d90a",
+    "common/OmnivoxHelperHost.cs": "98c96c46f6aa46f7ae151a9061738236ccdef5edbf0e2dd5618b0f79ccbfd6b8",
+    "common/OmnivoxNativeLibrary.cs": "1803a395d8cd89330e03ee76d54fba690722d749e9f327e37e1ac5f72b101342"
+  }
+}

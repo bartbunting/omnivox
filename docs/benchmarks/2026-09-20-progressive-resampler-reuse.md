@@ -32,7 +32,9 @@ contains 90 observations. Times are milliseconds from dispatch to first source.
 No warm series crossed the comparison screen of a p95 increase greater than
 both 5 ms and 15%. Three warm server-readiness series had only three samples and
 were marked insufficient. This is a regression screen, not statistical proof.
-DECtalk remains dominated by native synthesis latency.
+The [follow-up DECtalk investigation](2026-09-20-dectalk-reset-latency.md)
+identifies its pre-utterance native reset as the dominant ordinary-speech delay,
+and measures a private prototype that moves reset after synthesis.
 
 Historical control medians (90 warm lines per cell) were:
 

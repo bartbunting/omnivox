@@ -1,0 +1,23 @@
+{
+  "audio_output": "null",
+  "cases": [
+    "line"
+  ],
+  "concurrent": false,
+  "flavour": "legacy",
+  "iterations": 12,
+  "mode": "warm",
+  "omnivox_root": "/home/bart/src/omnivox",
+  "rate": 225,
+  "replacement_burst": 5,
+  "route": {
+    "engine": "dectalk",
+    "id": "dectalk",
+    "parameter": "sm",
+    "value": 61,
+    "voice": "paul"
+  },
+  "server": "/home/bart/src/emacsvox/servers/omnivox",
+  "timeout": 30,
+  "warmups": 3
+}
