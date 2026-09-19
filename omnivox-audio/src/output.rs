@@ -20,7 +20,7 @@ use std::sync::mpsc::{self, Receiver, Sender, SyncSender, TrySendError};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
-use tracing::debug;
+use tracing::{debug, info};
 
 const SPEECH_STOP_FADE_MILLISECONDS: usize = 3;
 const SPEECH_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * SPEECH_STOP_FADE_MILLISECONDS / 1000;
@@ -146,8 +146,11 @@ impl ProgressivePlaybackProducer {
         })?;
         self.published_frames = published_frames;
         self.prebuffered_audio_windows = self.prebuffered_audio_windows.saturating_add(1);
-        if self.letter_navigation && self.pending_attachment.is_some() {
-            debug!(
+        if self.letter_navigation
+            && self.pending_attachment.is_some()
+            && self.prebuffered_audio_windows == 1
+        {
+            info!(
                 lifecycle_stage = "letter_playback_reserve",
                 frames = self.published_frames,
                 windows = self.prebuffered_audio_windows,
@@ -1072,13 +1075,14 @@ impl AudioControl {
         let stream_cancellation = self
             .smooth_stop_cancellation(stream)
             .expect("speech has a stream cancellation token");
-        let (mut producer, source, ticket) = ProgressivePlaybackSource::new(
+        let (mut producer, mut source, ticket) = ProgressivePlaybackSource::new(
             Box::new(on_cue),
             cancellation,
             stream_cancellation,
             Some(SPEECH_STOP_FADE_FRAMES),
         );
         if !matches!(sink, ManagedSink::Null(_)) {
+            source.report_waits = true;
             producer.pending_attachment = Some(ProgressivePlaybackAttachment {
                 control: self.clone(),
                 source: Some(source),
@@ -2002,6 +2006,8 @@ struct ProgressivePlaybackSource {
     cancellation: PlaybackCancellation,
     cues: VecDeque<PlaybackCue>,
     cue_callback: Box<dyn FnMut(PlaybackCue) + Send>,
+    report_waits: bool,
+    waiting_for_audio: bool,
 }
 
 impl ProgressivePlaybackSource {
@@ -2038,6 +2044,8 @@ impl ProgressivePlaybackSource {
             ),
             cues: VecDeque::new(),
             cue_callback,
+            report_waits: false,
+            waiting_for_audio: false,
         };
         (producer, source, ticket)
     }
@@ -2096,6 +2104,7 @@ impl Iterator for ProgressivePlaybackSource {
                 .recv_timeout(PROGRESSIVE_PLAYBACK_POLL_INTERVAL)
             {
                 Ok(ProgressivePlaybackMessage::Audio { samples, cues }) => {
+                    self.waiting_for_audio = false;
                     self.cues.extend(cues);
                     self.current = BufferSource::new(samples);
                 }
@@ -2111,8 +2120,9 @@ impl Iterator for ProgressivePlaybackSource {
                     return None;
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => {
-                    if self.position > 0 {
-                        debug!(
+                    if self.report_waits && self.position > 0 && !self.waiting_for_audio {
+                        self.waiting_for_audio = true;
+                        info!(
                             lifecycle_stage = "progressive_source_wait",
                             consumed_frames = self.position / CHANNELS as usize,
                             "Progressive playback waited for more PCM or completion"
