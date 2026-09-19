@@ -9,6 +9,8 @@ measurements do not establish why the DLL's reset implementation takes so long.
 
 This is an investigation with private experimental helpers, not a deployed fix.
 The development launcher and running Emacs sessions were not changed.
+The [subsequent implementation and parameter timing report](2026-09-20-dectalk-parameter-timing.md)
+records the tested production helper and development deployment that followed.
 
 ## Where the time goes
 

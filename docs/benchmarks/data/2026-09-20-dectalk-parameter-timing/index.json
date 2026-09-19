@@ -1,0 +1,407 @@
+{
+  "kind": "Production reset-after cleanup verification and native parameter call attribution",
+  "implementation_commit": "5b7f1b776596989e6e32a90817f506c2c0de7062",
+  "emacsvox_commit": "55a31047285cd183a3ee34f368007466d0341e15",
+  "program_sha256": "18b2f9799eba790b4c859973c766facc87be55826944572337e33232993ca8bf",
+  "helper_sha256": "1bb9f92b60e31815c1fd76acfe7edbda12c6159d930570d6a57b427340608f68",
+  "provenance": "format=emacsvox-omnivox-provenance-v1\nbuild_id=34e353095d7cfd73\nemacsvox_commit=55a31047285cd183a3ee34f368007466d0341e15\nomnivox_commit=5b7f1b776596989e6e32a90817f506c2c0de7062\nbuild_kind=local-dirty-worktree\nemacsvox_worktree_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\nomnivox_worktree_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\ncargo_lock_sha256=686268250a87215a747f0b39652208ca9edd9071883aa730cdff2f2eb53170f1\ntoolchain_lock_sha256=7a400a4767c6f47eba02a60d7c2bf9b7ddfb2c6fc60abb8867548e3bd788c996\ndockerfile_sha256=33e2df54152f81abd75143954a5aaaab0c20e098970afba68d8b024fb7169efa\nrelease_image_id=sha256:3186f03b16a6b9cc62befb0902a40974b6297426483582464e3c421bb9873204\nrustc=rustc 1.97.1 (8bab26f4f 2026-07-14)\nmingw_gcc=x86_64-w64-mingw32-gcc-win32 (GCC) 12-win32\nroslyn_csc=5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)\nroslyn_csc_sha256=4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee\nroslyn_nupkg_sha256=302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401\nnet40_reference_assemblies_nupkg_sha256=54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694\ntarget=x86_64-pc-windows-gnu\nomnivox_features=none\nwindows_rustflags=-C link-arg=-Wl,--no-insert-timestamp\nwindows_strip=SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all\nomnivox_executable_sha256=18b2f9799eba790b4c859973c766facc87be55826944572337e33232993ca8bf\nunstripped_diagnostics=retained-local-not-staged\nespeak_data_sha256=9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718\nrhvoice_companion=local-omnivox-build\nrhvoice_companion_tree_sha256=1bd7f2dd3945a1d5407ca0f7f2a7cfa6c5fd153296ba27461dda5219dba5e38e\nrhvoice_runtime=external-user-supplied-not-bundled\nrhvoice_configuration=recorded-windows-paths\nrhvoice_library_sha256=3014e72aa5a989c3082cbbc42977919601a8444f4e6dcdb73e5ae0c664272aed\nrhvoice_data_tree_sha256=a20abbc6f19bdef73b1f97e57c8fd3cb5c15e7fc3d1c04aafa9cde6f1254c5ce\nrhvoice_config_tree_sha256=not-configured\nflite_companion=local-omnivox-build\nflite_companion_tree_sha256=458702c286dac8b35fb811c6fd2b71410b405bb7ba357e70b226e98dcf01206c\nflite_target=x86_64-pc-windows-gnu\nflite_compiled_voice=cmu_us_slt\nrutts_companion=local-omnivox-build\nrutts_companion_tree_sha256=7007e96d3011d6a2984c2376b960620612df1ad303da12581b746291be3053aa\nrutts_target=x86_64-pc-windows-gnu\nrutts_version=6.3.3\nrutts_built_in_voices=male,female\nrutts_rulex=not-included\ntgspeechbox_companion=local-omnivox-experimental-build\ntgspeechbox_companion_tree_sha256=48222dd0e4be559caab399933bc7bd057119c698ae2c7dc202c514b3d34ab8d0\ntgspeechbox_target=x86_64-pc-windows-gnu\ntgspeechbox_markers=exact_requested_anchors\ntgspeechbox_rate_mapping=calibrated_eloquence_v1\ntgspeechbox_build_environment=wsl-host-development-only\ntgspeechbox_cxx=x86_64-w64-mingw32-g++-posix (GCC) 13-posix\ntgspeechbox_cxx_sha256=43befe0a8b6f3b40f54b5fac3717b4bf1cf56a2373b7b9bbbe21956211c16046\npiper_companion=not-included\npiper_companion_version=not-included\npiper_companion_commit=not-included\npiper_companion_archive_sha256=not-included\npiper_companion_tree_sha256=not-included\npiper_model=not-included\npiper_model_sha256=not-observed\npiper_model_config_sha256=not-observed\neloquence_runtime=external-user-supplied-not-bundled\neloquence_runtime_sha256=external-not-observed\ndectalk_runtime=bundled-pinned-archive\nwindows_helpers_source=omnivox\nwindows_helpers_license=GPL-2.0-or-later\n",
+  "native_dll_sha256": "af25879d858846aaaa80b8f9626b1cbf4e57a1ab0467e8e2d82990558033c852",
+  "dictionary_sha256": "72271446c6d656842b389ff67f2bfafd6e0d4732f8a3a37442133dfb206206e7",
+  "local_dectalk_source_commit": "69ebb459137a7a8d92ed41da8362233eaa173efc",
+  "local_dectalk_source_hashes": {
+    "src/dapi/src/api/ttsapi.c": "455e666ac1bdff1b3361cb37b11aa669bbf9a0b1e19c9c23776a39b123e80d00",
+    "src/dapi/src/ph/ph_task.c": "ccd1f133f8b5099894d7b32c350674ffa468d80818f6e9765f815873959615d9"
+  },
+  "retained": {
+    "DectalkTimingAudit.cs": {
+      "original_sha256": "3531d1ec45b00006e418a97cb5574ada46045c9df158c4a32bbd1111469b6e51",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/DectalkTimingAudit.cs",
+      "gzip": false
+    },
+    "time-parameters.ps1": {
+      "original_sha256": "ce724ea0df0acbba5ccb1f4d91f4be7553fae086f9b9acb2cdc2bbd4d9ab9cc0",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/time-parameters.ps1",
+      "gzip": false
+    },
+    "summarize-parameters.py": {
+      "original_sha256": "3e89a5e404aea4b066047fbff5ebfa40f510f38ae611937e8a78b77d9dd84278",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/summarize-parameters.py",
+      "gzip": false
+    },
+    "parameter-timings.json.gz": {
+      "original_sha256": "4e6003b4a02839961263639866afcf1b19783656e03408e643a02ea8a862a2e2",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/parameter-timings.json",
+      "gzip": true
+    },
+    "parameter-timings.log.gz": {
+      "original_sha256": "95e1c02d114b77313f0b8ac9f5e8331134fb18751c5ef6efc1a749989e6a3549",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/parameter-timings.log",
+      "gzip": true
+    },
+    "parameter-summary.json": {
+      "original_sha256": "bcbcb376badc737badeb284c078214e032181123b79634ea6b7181fda3a157ce",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/parameter-summary.json",
+      "gzip": false
+    },
+    "server-summary.json": {
+      "original_sha256": "4ac4cd46183747c4c97244a2f8fbf29b8bc3172db0c18281227f8d960de4c1c9",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-summary.json",
+      "gzip": false
+    },
+    "deployment.json": {
+      "original_sha256": "3cda3323578fc449d102dab77413ea2531a8be305f8822a07f1e4cde8521b720",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/deployment.json",
+      "gzip": false
+    },
+    "staging-before.json": {
+      "original_sha256": "c984346ffcc53e63dd3d7768772651bec1cd97839204849339ca953e26ce5325",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/staging-before.json",
+      "gzip": false
+    },
+    "plan-before.json": {
+      "original_sha256": "e711fa76a64f3654456be02309fc1e0078cea6f66a94aae05a1dd291b942ec69",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/plan-before.json",
+      "gzip": false
+    },
+    "run-server-lines.py": {
+      "original_sha256": "ddce611169b507c3898c24ffbfa7995f2d9f13cdf77766be528dae8574cbdca4",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/run-server-lines.py",
+      "gzip": false
+    },
+    "run-server-native.py": {
+      "original_sha256": "bef558ba9b4501af8eca5c736952301863437e1b14d73f7f13500512cf7a6094",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/run-server-native.py",
+      "gzip": false
+    },
+    "lifecycle-before.log.gz": {
+      "original_sha256": "d1f32755229eb8df618ea042deeb8d0ca64080cc9060373a782e77f793b37f33",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/lifecycle-before.log",
+      "gzip": true
+    },
+    "execution-audit.json.gz": {
+      "original_sha256": "9bcee212d2f4f8907dd50829a1d9d8ef935d4a75dd5a83bba741e9fa0d98ae00",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/execution-audit.json",
+      "gzip": true
+    },
+    "execution-audit.log.gz": {
+      "original_sha256": "5a3715a00567f19f8033d7d7ef3f7ba41547f45bcd295f1ee05a14dd0e9ebac3",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/execution-audit.log",
+      "gzip": true
+    },
+    "wire-acceptance.json.gz": {
+      "original_sha256": "64d51939efdaa516116a03f02b27e40cacb18fd736063082eeebdd969432fae0",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/wire-acceptance.json",
+      "gzip": true
+    },
+    "wire-acceptance.log.gz": {
+      "original_sha256": "ec69f27c49e05a180d580c9492dec0987f3d0d840822b803e2392d609387fcc8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/wire-acceptance.log",
+      "gzip": true
+    },
+    "helper-build.log.gz": {
+      "original_sha256": "f774f01c1462ba48e4c54accec1808d0865966fc0d2da2d30f5ed4757e84c29c",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/helper-build.log",
+      "gzip": true
+    },
+    "full-staging.log.gz": {
+      "original_sha256": "e5b10a44e6cd94573ee9bafef0003a1b99f16db54af9c5524f2fbaa34b96dc81",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/full-staging.log",
+      "gzip": true
+    },
+    "emacs-native-acceptance.log.gz": {
+      "original_sha256": "93443e0dcadf2508cf4a670507c317550d13baf0c0d32677f19bff153f54dda6",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/emacs-native-acceptance.log",
+      "gzip": true
+    },
+    "emacsvox-docs-check.log.gz": {
+      "original_sha256": "7a716454cfdfde847b8b8e435f5cea66e78dbb29400729666b83ea61fa58aaac",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/emacsvox-docs-check.log",
+      "gzip": true
+    },
+    "server-comparison/00-before-dectalk/job.json": {
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/00-before-dectalk/job.json",
+      "gzip": false
+    },
+    "server-comparison/00-before-dectalk/raw.json": {
+      "original_sha256": "c6b3a781c9fec97e4e439859151173298e5e59f354449d5ec9bc56c5d26a0ad1",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/00-before-dectalk/raw.json",
+      "gzip": false
+    },
+    "server-comparison/00-before-dectalk/server-logs/omnivox-20260919T214517Z-1423834-part000001.log.gz": {
+      "original_sha256": "1d3cdf5019105e390f9bd4344d87cba02738fbf7af6b56c829ccbf304b386ed5",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/00-before-dectalk/server-logs/omnivox-20260919T214517Z-1423834-part000001.log",
+      "gzip": true
+    },
+    "server-comparison/00-before-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/00-before-dectalk/worker.log",
+      "gzip": true
+    },
+    "server-comparison/01-after-dectalk/job.json": {
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/01-after-dectalk/job.json",
+      "gzip": false
+    },
+    "server-comparison/01-after-dectalk/raw.json": {
+      "original_sha256": "fa54f620175468f7ecb0aa1158477e24807b99c9505e9e3ffa14c93c8f5d39ca",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/01-after-dectalk/raw.json",
+      "gzip": false
+    },
+    "server-comparison/01-after-dectalk/server-logs/omnivox-20260919T214523Z-1423938-part000001.log.gz": {
+      "original_sha256": "2dd3539ec6fa582525302c061fce9a76bd2e56bd75b869220c5a18d50ce5abfc",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/01-after-dectalk/server-logs/omnivox-20260919T214523Z-1423938-part000001.log",
+      "gzip": true
+    },
+    "server-comparison/01-after-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/01-after-dectalk/worker.log",
+      "gzip": true
+    },
+    "server-comparison/02-before-dectalk/job.json": {
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/02-before-dectalk/job.json",
+      "gzip": false
+    },
+    "server-comparison/02-before-dectalk/raw.json": {
+      "original_sha256": "b8f3185b958372e7accdd771ba2ba7d4b3188cd1d23f17e81342f690665fa763",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/02-before-dectalk/raw.json",
+      "gzip": false
+    },
+    "server-comparison/02-before-dectalk/server-logs/omnivox-20260919T214526Z-1423991-part000001.log.gz": {
+      "original_sha256": "e41c268ec719450d9463e4f93b6bb321040cd1bdddc0161af369ab8d4282b7af",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/02-before-dectalk/server-logs/omnivox-20260919T214526Z-1423991-part000001.log",
+      "gzip": true
+    },
+    "server-comparison/02-before-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/02-before-dectalk/worker.log",
+      "gzip": true
+    },
+    "server-comparison/03-after-dectalk/job.json": {
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/03-after-dectalk/job.json",
+      "gzip": false
+    },
+    "server-comparison/03-after-dectalk/raw.json": {
+      "original_sha256": "1cd482a62a34fd2c919309b8d818a0c367e5e81e4946b8f16d1168ae90c8e4ae",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/03-after-dectalk/raw.json",
+      "gzip": false
+    },
+    "server-comparison/03-after-dectalk/server-logs/omnivox-20260919T214529Z-1424037-part000001.log.gz": {
+      "original_sha256": "cf406bf8e57181d1120e902445bf251c20b195f45705880e04da11b8d252baf1",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/03-after-dectalk/server-logs/omnivox-20260919T214529Z-1424037-part000001.log",
+      "gzip": true
+    },
+    "server-comparison/03-after-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/03-after-dectalk/worker.log",
+      "gzip": true
+    },
+    "server-comparison/04-before-dectalk/job.json": {
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/04-before-dectalk/job.json",
+      "gzip": false
+    },
+    "server-comparison/04-before-dectalk/raw.json": {
+      "original_sha256": "71eec230b373b1118a78008d60f270c970c876ae71798d7140ff018a1b956f1d",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/04-before-dectalk/raw.json",
+      "gzip": false
+    },
+    "server-comparison/04-before-dectalk/server-logs/omnivox-20260919T214531Z-1424105-part000001.log.gz": {
+      "original_sha256": "e0464090f0ca401f80e5f348ef65e0876f17bf7c621d595240d992a4f7c4d9c7",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/04-before-dectalk/server-logs/omnivox-20260919T214531Z-1424105-part000001.log",
+      "gzip": true
+    },
+    "server-comparison/04-before-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/04-before-dectalk/worker.log",
+      "gzip": true
+    },
+    "server-comparison/05-after-dectalk/job.json": {
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/05-after-dectalk/job.json",
+      "gzip": false
+    },
+    "server-comparison/05-after-dectalk/raw.json": {
+      "original_sha256": "1a26be0c51c420c9dff62c8a57a7b7c0970163db43125eb32f5a7024cf906968",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/05-after-dectalk/raw.json",
+      "gzip": false
+    },
+    "server-comparison/05-after-dectalk/server-logs/omnivox-20260919T214533Z-1424182-part000001.log.gz": {
+      "original_sha256": "8a168d81bf327bebc8c86bf1a65aa904013695d3684beaed4b79be87b6b8e05e",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/05-after-dectalk/server-logs/omnivox-20260919T214533Z-1424182-part000001.log",
+      "gzip": true
+    },
+    "server-comparison/05-after-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/05-after-dectalk/worker.log",
+      "gzip": true
+    },
+    "server-comparison/manifest.json": {
+      "original_sha256": "8f4132992413b1b1070319b7c00a09929e79afa8c4efc7c87d343d53e68001ab",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/server-comparison/manifest.json",
+      "gzip": false
+    },
+    "native-server-comparison/00-before-dectalk/job.json": {
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/00-before-dectalk/job.json",
+      "gzip": false
+    },
+    "native-server-comparison/00-before-dectalk/raw.json": {
+      "original_sha256": "e38446d9bf1266b8c833cf916d35566eafa888b8471c7b918388e1325f5b45ae",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/00-before-dectalk/raw.json",
+      "gzip": false
+    },
+    "native-server-comparison/00-before-dectalk/server-logs/omnivox-20260919T214607Z-1424900-part000001.log.gz": {
+      "original_sha256": "18e2f12e7eb6120b7c65a4bcefccc4bae7b53799fdfb9773358ef7c056a28126",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/00-before-dectalk/server-logs/omnivox-20260919T214607Z-1424900-part000001.log",
+      "gzip": true
+    },
+    "native-server-comparison/00-before-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/00-before-dectalk/worker.log",
+      "gzip": true
+    },
+    "native-server-comparison/01-after-dectalk/job.json": {
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/01-after-dectalk/job.json",
+      "gzip": false
+    },
+    "native-server-comparison/01-after-dectalk/raw.json": {
+      "original_sha256": "bf58fecca39c2f46027bc680c3a7f4c311626aba9a9a257c30790a83af5d5458",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/01-after-dectalk/raw.json",
+      "gzip": false
+    },
+    "native-server-comparison/01-after-dectalk/server-logs/omnivox-20260919T214614Z-1425013-part000001.log.gz": {
+      "original_sha256": "8096207f9720d692d40ef8472fd2a4786cc4733791485367b61f07a5905ff366",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/01-after-dectalk/server-logs/omnivox-20260919T214614Z-1425013-part000001.log",
+      "gzip": true
+    },
+    "native-server-comparison/01-after-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/01-after-dectalk/worker.log",
+      "gzip": true
+    },
+    "native-server-comparison/02-before-dectalk/job.json": {
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/02-before-dectalk/job.json",
+      "gzip": false
+    },
+    "native-server-comparison/02-before-dectalk/raw.json": {
+      "original_sha256": "a01367f53ee32259fb1cb7139d87c1cecc126eb67f3c1f64be4414624c555bb2",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/02-before-dectalk/raw.json",
+      "gzip": false
+    },
+    "native-server-comparison/02-before-dectalk/server-logs/omnivox-20260919T214620Z-1425112-part000001.log.gz": {
+      "original_sha256": "1cd51692eebb1196e60e953a3ff4b96808a70b30474724caa5a77f2147fb477a",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/02-before-dectalk/server-logs/omnivox-20260919T214620Z-1425112-part000001.log",
+      "gzip": true
+    },
+    "native-server-comparison/02-before-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/02-before-dectalk/worker.log",
+      "gzip": true
+    },
+    "native-server-comparison/03-after-dectalk/job.json": {
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/03-after-dectalk/job.json",
+      "gzip": false
+    },
+    "native-server-comparison/03-after-dectalk/raw.json": {
+      "original_sha256": "d7c77be6a01b4e8a67d37f4fc9b956b8f5016097f015eacb932b918bf7433de8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/03-after-dectalk/raw.json",
+      "gzip": false
+    },
+    "native-server-comparison/03-after-dectalk/server-logs/omnivox-20260919T214627Z-1425201-part000001.log.gz": {
+      "original_sha256": "6a74773a5af713eae0ae423b13c2a5d8d43d9e915187aa5c3365afaa43522559",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/03-after-dectalk/server-logs/omnivox-20260919T214627Z-1425201-part000001.log",
+      "gzip": true
+    },
+    "native-server-comparison/03-after-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/03-after-dectalk/worker.log",
+      "gzip": true
+    },
+    "native-server-comparison/04-before-dectalk/job.json": {
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/04-before-dectalk/job.json",
+      "gzip": false
+    },
+    "native-server-comparison/04-before-dectalk/raw.json": {
+      "original_sha256": "8ecb819a58cc81d521b8827594f0c8398077f284b25eaed15dec8edfababe596",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/04-before-dectalk/raw.json",
+      "gzip": false
+    },
+    "native-server-comparison/04-before-dectalk/server-logs/omnivox-20260919T214634Z-1425305-part000001.log.gz": {
+      "original_sha256": "bcd6ebd9427547ce20bbb9a04d9b7a8cd95554aaf024c0454bab83667f5907b4",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/04-before-dectalk/server-logs/omnivox-20260919T214634Z-1425305-part000001.log",
+      "gzip": true
+    },
+    "native-server-comparison/04-before-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/04-before-dectalk/worker.log",
+      "gzip": true
+    },
+    "native-server-comparison/05-after-dectalk/job.json": {
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/05-after-dectalk/job.json",
+      "gzip": false
+    },
+    "native-server-comparison/05-after-dectalk/raw.json": {
+      "original_sha256": "afa2b7c479402e719d55289ea76d8cbb4ace21f7495d80843f32f929e5405018",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/05-after-dectalk/raw.json",
+      "gzip": false
+    },
+    "native-server-comparison/05-after-dectalk/server-logs/omnivox-20260919T214641Z-1425566-part000001.log.gz": {
+      "original_sha256": "0657557d681b056280edec3d1f6a4bb6f6fcd4e583387669b1011e3c5b96945d",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/05-after-dectalk/server-logs/omnivox-20260919T214641Z-1425566-part000001.log",
+      "gzip": true
+    },
+    "native-server-comparison/05-after-dectalk/worker.log.gz": {
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/05-after-dectalk/worker.log",
+      "gzip": true
+    },
+    "native-server-comparison/manifest.json": {
+      "original_sha256": "97f35bf2e12cd64f32ff622dd37b6b429806d7e31a500c307ff11a4ac2f575bf",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/native-server-comparison/manifest.json",
+      "gzip": false
+    },
+    "queue-wait-disassembly.txt.gz": {
+      "original_sha256": "d6a142779edc12200087055deee58b44050224cb4ad3a43da59ad10d3fa7bc63",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/queue-wait-disassembly.txt",
+      "gzip": true
+    },
+    "pipe-wait-disassembly.txt.gz": {
+      "original_sha256": "a54b7172a2c6dacbd15e8142c83454865926e4d17ff61ebba660b1f99a5db423",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/pipe-wait-disassembly.txt",
+      "gzip": true
+    },
+    "sync-disassembly.txt.gz": {
+      "original_sha256": "a706fd050baf849c30e9d9c4283a081898afb1362169219b7e2f62e6caeb61a7",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/sync-disassembly.txt",
+      "gzip": true
+    },
+    "runtime-pe-headers.txt.gz": {
+      "original_sha256": "117735afbee5a3cd9ee5eb2aa3845709a0f8612d5e4f02ad7773af9b5997c09e",
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/runtime-pe-headers.txt",
+      "gzip": true
+    },
+    "plan-after.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/voices.json",
+      "original_sha256": "39f6b75b7a32d7371955f4fd8c5d9d73436ad808fe1d3241b2261a8d9362e9be",
+      "gzip": false
+    }
+  },
+  "notes": [
+    "Native phase probe uses exact compiled helper bytes; temporary reflection delegate hooks exist only in its private PowerShell process.",
+    "Native phase probe uses buffered silent capture in an x86 STA process; these intervals are not end-to-end server startup measurements.",
+    "Native call duration includes reflection invocation overhead; non-sync preparation remains below a millisecond at the median.",
+    "Server comparisons use null audio, exact paul, rate 225, 90 warm observations per cell after three warmups per worker.",
+    "Compilation and integration checks finished before timed runs; timed comparisons ran sequentially.",
+    "Local DECtalk source corresponds to observed polling code; an exact source-to-installed-DLL build provenance is not asserted. Disassembly refers to the hashed installed DLL.",
+    "Default servers/omnivox-bin/current link was restored after guarded staging; only the desktop development launcher was repinned.",
+    "The standalone retained execution JSON from the implementation commit normalizes CRLF to LF; execution-audit.json.gz here preserves original bytes."
+  ]
+}

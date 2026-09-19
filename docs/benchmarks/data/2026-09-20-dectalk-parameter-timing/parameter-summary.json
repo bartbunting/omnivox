@@ -1,0 +1,207 @@
+{
+  "ordinary": {
+    "total": {
+      "n": 90,
+      "median_ms": 50.458,
+      "p95_ms": 65.9802
+    },
+    "preparation_sync": {
+      "n": 90,
+      "median_ms": 0.0,
+      "p95_ms": 0
+    },
+    "preparation_speak": {
+      "n": 90,
+      "median_ms": 0.0,
+      "p95_ms": 0
+    },
+    "preparation_readback": {
+      "n": 90,
+      "median_ms": 0.0,
+      "p95_ms": 0
+    },
+    "preparation_sync_counts": [
+      0
+    ],
+    "speech_sync": {
+      "n": 90,
+      "median_ms": 26.22735,
+      "p95_ms": 33.4086
+    }
+  },
+  "native_empty": {
+    "total": {
+      "n": 90,
+      "median_ms": 131.9365,
+      "p95_ms": 144.1627
+    },
+    "preparation_sync": {
+      "n": 90,
+      "median_ms": 50.7443,
+      "p95_ms": 65.0683
+    },
+    "preparation_speak": {
+      "n": 90,
+      "median_ms": 0.11345000000000001,
+      "p95_ms": 0.3885
+    },
+    "preparation_readback": {
+      "n": 90,
+      "median_ms": 0.0553,
+      "p95_ms": 0.0909
+    },
+    "preparation_sync_counts": [
+      2
+    ],
+    "applied": {
+      "n": 90,
+      "median_ms": 51.055099999999996,
+      "p95_ms": 65.6668
+    },
+    "remaining_preparation": {
+      "n": 90,
+      "median_ms": 0.2951499999999996,
+      "p95_ms": 0.5685000000000073
+    },
+    "preset_sync": {
+      "n": 90,
+      "median_ms": 26.5207,
+      "p95_ms": 33.8488
+    },
+    "common_sync": {
+      "n": 90,
+      "median_ms": 26.9601,
+      "p95_ms": 33.6881
+    },
+    "speech_sync": {
+      "n": 90,
+      "median_ms": 26.06935,
+      "p95_ms": 32.1228
+    },
+    "restore_sync": {
+      "n": 90,
+      "median_ms": 26.1413,
+      "p95_ms": 33.2299
+    }
+  },
+  "native_one": {
+    "total": {
+      "n": 90,
+      "median_ms": 154.34994999999998,
+      "p95_ms": 179.4955
+    },
+    "preparation_sync": {
+      "n": 90,
+      "median_ms": 77.94715,
+      "p95_ms": 93.7893
+    },
+    "preparation_speak": {
+      "n": 90,
+      "median_ms": 0.2172,
+      "p95_ms": 0.47090000000000004
+    },
+    "preparation_readback": {
+      "n": 90,
+      "median_ms": 0.08135,
+      "p95_ms": 0.1225
+    },
+    "preparation_sync_counts": [
+      3
+    ],
+    "applied": {
+      "n": 90,
+      "median_ms": 78.4589,
+      "p95_ms": 94.1534
+    },
+    "remaining_preparation": {
+      "n": 90,
+      "median_ms": 0.5001999999999995,
+      "p95_ms": 0.7861999999999938
+    },
+    "preset_sync": {
+      "n": 90,
+      "median_ms": 26.46895,
+      "p95_ms": 31.9657
+    },
+    "common_sync": {
+      "n": 90,
+      "median_ms": 26.3671,
+      "p95_ms": 33.6843
+    },
+    "edits_sync": {
+      "n": 90,
+      "median_ms": 26.7654,
+      "p95_ms": 32.9638
+    },
+    "speech_sync": {
+      "n": 90,
+      "median_ms": 26.643549999999998,
+      "p95_ms": 34.327
+    },
+    "restore_sync": {
+      "n": 90,
+      "median_ms": 25.37785,
+      "p95_ms": 31.6515
+    }
+  },
+  "native_all": {
+    "total": {
+      "n": 90,
+      "median_ms": 156.417,
+      "p95_ms": 170.9846
+    },
+    "preparation_sync": {
+      "n": 90,
+      "median_ms": 76.69675000000001,
+      "p95_ms": 90.4206
+    },
+    "preparation_speak": {
+      "n": 90,
+      "median_ms": 0.22005,
+      "p95_ms": 0.5029
+    },
+    "preparation_readback": {
+      "n": 90,
+      "median_ms": 0.0796,
+      "p95_ms": 0.1094
+    },
+    "preparation_sync_counts": [
+      3
+    ],
+    "applied": {
+      "n": 90,
+      "median_ms": 77.25765000000001,
+      "p95_ms": 91.1702
+    },
+    "remaining_preparation": {
+      "n": 90,
+      "median_ms": 0.49885000000000446,
+      "p95_ms": 0.8073000000000121
+    },
+    "preset_sync": {
+      "n": 90,
+      "median_ms": 26.5628,
+      "p95_ms": 32.3936
+    },
+    "common_sync": {
+      "n": 90,
+      "median_ms": 25.49775,
+      "p95_ms": 32.121
+    },
+    "edits_sync": {
+      "n": 90,
+      "median_ms": 26.230800000000002,
+      "p95_ms": 31.6232
+    },
+    "speech_sync": {
+      "n": 90,
+      "median_ms": 25.74685,
+      "p95_ms": 31.4808
+    },
+    "restore_sync": {
+      "n": 90,
+      "median_ms": 24.9783,
+      "p95_ms": 32.4807
+    }
+  }
+}
