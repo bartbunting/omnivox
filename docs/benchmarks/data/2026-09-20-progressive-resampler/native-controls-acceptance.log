@@ -1,0 +1,9 @@
+Native acceptance selection: server=/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/f73e3fc2b777f977/omnivox.exe DECtalk=C:/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/DECtalk.dll Eloquence=automatic discovery
+editor comparison and readback: paul-main passed
+editor comparison and readback: eci-default passed
+native palette save and reload passed
+round=0 lane=native-main native ordinary speech verified
+round=0 lane=native-notify native ordinary speech verified
+round=1 lane=native-reconnected native ordinary speech verified
+round=1 lane=native-notify native ordinary speech verified
+Real-server native client acceptance passed (null audio).

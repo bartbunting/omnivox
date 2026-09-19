@@ -1,0 +1,581 @@
+{
+  "measurement": "client source and terminal observations; no acoustic onset",
+  "clock": "time.perf_counter_ns",
+  "timing_samples": [
+    {
+      "case": "server_ready",
+      "iteration": 0,
+      "process_start_to_ready_ms": 478.832531
+    },
+    {
+      "dispatch_id": 1000003,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197276670117649,
+      "source_observed_at_monotonic_ns": 197276684567604,
+      "terminal_observed_at_monotonic_ns": 197276711947760,
+      "dispatch_to_source_ms": 14.449955,
+      "dispatch_to_terminal_ms": 41.830111,
+      "source_to_terminal_ms": 27.380156,
+      "case": "line",
+      "iteration": 0,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000004,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197276712188339,
+      "source_observed_at_monotonic_ns": 197276726770519,
+      "terminal_observed_at_monotonic_ns": 197276748577607,
+      "dispatch_to_source_ms": 14.58218,
+      "dispatch_to_terminal_ms": 36.389268,
+      "source_to_terminal_ms": 21.807088,
+      "case": "line",
+      "iteration": 1,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000005,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197276748747580,
+      "source_observed_at_monotonic_ns": 197276767644677,
+      "terminal_observed_at_monotonic_ns": 197276796127139,
+      "dispatch_to_source_ms": 18.897097,
+      "dispatch_to_terminal_ms": 47.379559,
+      "source_to_terminal_ms": 28.482462,
+      "case": "line",
+      "iteration": 2,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000006,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197276796316640,
+      "source_observed_at_monotonic_ns": 197276813441508,
+      "terminal_observed_at_monotonic_ns": 197276837161089,
+      "dispatch_to_source_ms": 17.124868,
+      "dispatch_to_terminal_ms": 40.844449,
+      "source_to_terminal_ms": 23.719581,
+      "case": "line",
+      "iteration": 3,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000007,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197276837395697,
+      "source_observed_at_monotonic_ns": 197276853052041,
+      "terminal_observed_at_monotonic_ns": 197276880925260,
+      "dispatch_to_source_ms": 15.656344,
+      "dispatch_to_terminal_ms": 43.529563,
+      "source_to_terminal_ms": 27.873219,
+      "case": "line",
+      "iteration": 4,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000008,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197276881106921,
+      "source_observed_at_monotonic_ns": 197276900585234,
+      "terminal_observed_at_monotonic_ns": 197276931487508,
+      "dispatch_to_source_ms": 19.478313,
+      "dispatch_to_terminal_ms": 50.380587,
+      "source_to_terminal_ms": 30.902274,
+      "case": "line",
+      "iteration": 5,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000009,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197276931673047,
+      "source_observed_at_monotonic_ns": 197276944044056,
+      "terminal_observed_at_monotonic_ns": 197276969411712,
+      "dispatch_to_source_ms": 12.371009,
+      "dispatch_to_terminal_ms": 37.738665,
+      "source_to_terminal_ms": 25.367656,
+      "case": "line",
+      "iteration": 6,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000010,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197276969576173,
+      "source_observed_at_monotonic_ns": 197276987663905,
+      "terminal_observed_at_monotonic_ns": 197277018066430,
+      "dispatch_to_source_ms": 18.087732,
+      "dispatch_to_terminal_ms": 48.490257,
+      "source_to_terminal_ms": 30.402525,
+      "case": "line",
+      "iteration": 7,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000011,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277018230913,
+      "source_observed_at_monotonic_ns": 197277033027910,
+      "terminal_observed_at_monotonic_ns": 197277060783153,
+      "dispatch_to_source_ms": 14.796997,
+      "dispatch_to_terminal_ms": 42.55224,
+      "source_to_terminal_ms": 27.755243,
+      "case": "line",
+      "iteration": 8,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000012,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277060956608,
+      "source_observed_at_monotonic_ns": 197277081294934,
+      "terminal_observed_at_monotonic_ns": 197277114039834,
+      "dispatch_to_source_ms": 20.338326,
+      "dispatch_to_terminal_ms": 53.083226,
+      "source_to_terminal_ms": 32.7449,
+      "case": "line",
+      "iteration": 9,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000013,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277114268034,
+      "source_observed_at_monotonic_ns": 197277133715395,
+      "terminal_observed_at_monotonic_ns": 197277157956811,
+      "dispatch_to_source_ms": 19.447361,
+      "dispatch_to_terminal_ms": 43.688777,
+      "source_to_terminal_ms": 24.241416,
+      "case": "line",
+      "iteration": 10,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000014,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277158126443,
+      "source_observed_at_monotonic_ns": 197277176407134,
+      "terminal_observed_at_monotonic_ns": 197277208567294,
+      "dispatch_to_source_ms": 18.280691,
+      "dispatch_to_terminal_ms": 50.440851,
+      "source_to_terminal_ms": 32.16016,
+      "case": "line",
+      "iteration": 11,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000015,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277208692475,
+      "source_observed_at_monotonic_ns": 197277227178411,
+      "terminal_observed_at_monotonic_ns": 197277253316832,
+      "dispatch_to_source_ms": 18.485936,
+      "dispatch_to_terminal_ms": 44.624357,
+      "source_to_terminal_ms": 26.138421,
+      "case": "line",
+      "iteration": 12,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000016,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277253672679,
+      "source_observed_at_monotonic_ns": 197277268886684,
+      "terminal_observed_at_monotonic_ns": 197277301383320,
+      "dispatch_to_source_ms": 15.214005,
+      "dispatch_to_terminal_ms": 47.710641,
+      "source_to_terminal_ms": 32.496636,
+      "case": "line",
+      "iteration": 13,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000017,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277301608273,
+      "source_observed_at_monotonic_ns": 197277317971049,
+      "terminal_observed_at_monotonic_ns": 197277347894150,
+      "dispatch_to_source_ms": 16.362776,
+      "dispatch_to_terminal_ms": 46.285877,
+      "source_to_terminal_ms": 29.923101,
+      "case": "line",
+      "iteration": 14,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000018,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277348050964,
+      "source_observed_at_monotonic_ns": 197277360130559,
+      "terminal_observed_at_monotonic_ns": 197277385804173,
+      "dispatch_to_source_ms": 12.079595,
+      "dispatch_to_terminal_ms": 37.753209,
+      "source_to_terminal_ms": 25.673614,
+      "case": "line",
+      "iteration": 15,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000019,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277385913874,
+      "source_observed_at_monotonic_ns": 197277400847584,
+      "terminal_observed_at_monotonic_ns": 197277431176995,
+      "dispatch_to_source_ms": 14.93371,
+      "dispatch_to_terminal_ms": 45.263121,
+      "source_to_terminal_ms": 30.329411,
+      "case": "line",
+      "iteration": 16,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000020,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277431370352,
+      "source_observed_at_monotonic_ns": 197277446794010,
+      "terminal_observed_at_monotonic_ns": 197277475338039,
+      "dispatch_to_source_ms": 15.423658,
+      "dispatch_to_terminal_ms": 43.967687,
+      "source_to_terminal_ms": 28.544029,
+      "case": "line",
+      "iteration": 17,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000021,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277475454200,
+      "source_observed_at_monotonic_ns": 197277489952220,
+      "terminal_observed_at_monotonic_ns": 197277516300407,
+      "dispatch_to_source_ms": 14.49802,
+      "dispatch_to_terminal_ms": 40.846207,
+      "source_to_terminal_ms": 26.348187,
+      "case": "line",
+      "iteration": 18,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000022,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277516574600,
+      "source_observed_at_monotonic_ns": 197277529833920,
+      "terminal_observed_at_monotonic_ns": 197277560156450,
+      "dispatch_to_source_ms": 13.25932,
+      "dispatch_to_terminal_ms": 43.58185,
+      "source_to_terminal_ms": 30.32253,
+      "case": "line",
+      "iteration": 19,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000023,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277560325076,
+      "source_observed_at_monotonic_ns": 197277577489905,
+      "terminal_observed_at_monotonic_ns": 197277609184463,
+      "dispatch_to_source_ms": 17.164829,
+      "dispatch_to_terminal_ms": 48.859387,
+      "source_to_terminal_ms": 31.694558,
+      "case": "line",
+      "iteration": 20,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000024,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277609392481,
+      "source_observed_at_monotonic_ns": 197277628793240,
+      "terminal_observed_at_monotonic_ns": 197277661967072,
+      "dispatch_to_source_ms": 19.400759,
+      "dispatch_to_terminal_ms": 52.574591,
+      "source_to_terminal_ms": 33.173832,
+      "case": "line",
+      "iteration": 21,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000025,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277662107381,
+      "source_observed_at_monotonic_ns": 197277675377785,
+      "terminal_observed_at_monotonic_ns": 197277705405518,
+      "dispatch_to_source_ms": 13.270404,
+      "dispatch_to_terminal_ms": 43.298137,
+      "source_to_terminal_ms": 30.027733,
+      "case": "line",
+      "iteration": 22,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000026,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277705576310,
+      "source_observed_at_monotonic_ns": 197277719539110,
+      "terminal_observed_at_monotonic_ns": 197277739447280,
+      "dispatch_to_source_ms": 13.9628,
+      "dispatch_to_terminal_ms": 33.87097,
+      "source_to_terminal_ms": 19.90817,
+      "case": "line",
+      "iteration": 23,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000027,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277739635015,
+      "source_observed_at_monotonic_ns": 197277756237666,
+      "terminal_observed_at_monotonic_ns": 197277783691755,
+      "dispatch_to_source_ms": 16.602651,
+      "dispatch_to_terminal_ms": 44.05674,
+      "source_to_terminal_ms": 27.454089,
+      "case": "line",
+      "iteration": 24,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000028,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277783855826,
+      "source_observed_at_monotonic_ns": 197277801366930,
+      "terminal_observed_at_monotonic_ns": 197277821146016,
+      "dispatch_to_source_ms": 17.511104,
+      "dispatch_to_terminal_ms": 37.29019,
+      "source_to_terminal_ms": 19.779086,
+      "case": "line",
+      "iteration": 25,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000029,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277821275442,
+      "source_observed_at_monotonic_ns": 197277836394915,
+      "terminal_observed_at_monotonic_ns": 197277865447855,
+      "dispatch_to_source_ms": 15.119473,
+      "dispatch_to_terminal_ms": 44.172413,
+      "source_to_terminal_ms": 29.05294,
+      "case": "line",
+      "iteration": 26,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000030,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277865594710,
+      "source_observed_at_monotonic_ns": 197277883046888,
+      "terminal_observed_at_monotonic_ns": 197277912314199,
+      "dispatch_to_source_ms": 17.452178,
+      "dispatch_to_terminal_ms": 46.719489,
+      "source_to_terminal_ms": 29.267311,
+      "case": "line",
+      "iteration": 27,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000031,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277912475626,
+      "source_observed_at_monotonic_ns": 197277931214002,
+      "terminal_observed_at_monotonic_ns": 197277956542249,
+      "dispatch_to_source_ms": 18.738376,
+      "dispatch_to_terminal_ms": 44.066623,
+      "source_to_terminal_ms": 25.328247,
+      "case": "line",
+      "iteration": 28,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000032,
+      "engine_id": "espeak",
+      "actual_voice": {
+        "engine_id": "espeak",
+        "voice_id": "espeak:gmw\\en"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197277956770578,
+      "source_observed_at_monotonic_ns": 197277973887265,
+      "terminal_observed_at_monotonic_ns": 197277996622186,
+      "dispatch_to_source_ms": 17.116687,
+      "dispatch_to_terminal_ms": 39.851608,
+      "source_to_terminal_ms": 22.734921,
+      "case": "line",
+      "iteration": 29,
+      "server_version": "1.11.0",
+      "catalogue": null
+    }
+  ]
+}

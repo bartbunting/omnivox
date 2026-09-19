@@ -1,0 +1,58 @@
+{
+  "release": {
+    "sha256": "6076e35b6f7079576915f94392244bb8fe577ee88d193c55712aab695c1ec14c",
+    "headers_and_imports": [
+      "MajorLinkerVersion\t14",
+      "MinorLinkerVersion\t51",
+      "DLL Name: KERNEL32.dll",
+      "DLL Name: kernel32.dll",
+      "DLL Name: oleaut32.dll",
+      "DLL Name: api-ms-win-core-synch-l1-2-0.dll",
+      "DLL Name: bcryptprimitives.dll",
+      "DLL Name: ws2_32.dll",
+      "DLL Name: api-ms-win-core-winrt-l1-1-0.dll",
+      "DLL Name: ole32.dll",
+      "DLL Name: advapi32.dll",
+      "DLL Name: ntdll.dll",
+      "DLL Name: MSVCP140.dll",
+      "DLL Name: VCRUNTIME140.dll",
+      "DLL Name: api-ms-win-crt-math-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-string-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-runtime-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-stdio-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-locale-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-heap-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-environment-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-time-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-utility-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-convert-l1-1-0.dll",
+      "DLL Name: api-ms-win-crt-filesystem-l1-1-0.dll"
+    ]
+  },
+  "development": {
+    "sha256": "f2245a331169c339f876dc94718c6e8d5b3894c44823694ea62367cf77526d9b",
+    "headers_and_imports": [
+      "MajorLinkerVersion\t2",
+      "MinorLinkerVersion\t40",
+      "DLL Name: ADVAPI32.dll",
+      "DLL Name: bcrypt.dll",
+      "DLL Name: KERNEL32.dll",
+      "DLL Name: msvcrt.dll",
+      "DLL Name: ntdll.dll",
+      "DLL Name: libstdc++-6.dll",
+      "DLL Name: api-ms-win-core-synch-l1-2-0.dll",
+      "DLL Name: bcryptprimitives.dll",
+      "DLL Name: api-ms-win-core-winrt-error-l1-1-0.dll",
+      "DLL Name: api-ms-win-core-winrt-l1-1-0.dll",
+      "DLL Name: kernel32.dll",
+      "DLL Name: ntdll.dll",
+      "DLL Name: ole32.dll",
+      "DLL Name: oleaut32.dll",
+      "DLL Name: propsys.dll",
+      "DLL Name: userenv.dll",
+      "DLL Name: ws2_32.dll",
+      "DLL Name: kernel32.dll",
+      "DLL Name: oleaut32.dll"
+    ]
+  }
+}

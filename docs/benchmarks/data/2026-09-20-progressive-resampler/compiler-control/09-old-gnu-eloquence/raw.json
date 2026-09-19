@@ -1,0 +1,581 @@
+{
+  "measurement": "client source and terminal observations; no acoustic onset",
+  "clock": "time.perf_counter_ns",
+  "timing_samples": [
+    {
+      "case": "server_ready",
+      "iteration": 0,
+      "process_start_to_ready_ms": 563.608319
+    },
+    {
+      "dispatch_id": 1000003,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288402048779,
+      "source_observed_at_monotonic_ns": 197288419744017,
+      "terminal_observed_at_monotonic_ns": 197288421252675,
+      "dispatch_to_source_ms": 17.695238,
+      "dispatch_to_terminal_ms": 19.203896,
+      "source_to_terminal_ms": 1.508658,
+      "case": "line",
+      "iteration": 0,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000004,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288421346685,
+      "source_observed_at_monotonic_ns": 197288438306543,
+      "terminal_observed_at_monotonic_ns": 197288439968207,
+      "dispatch_to_source_ms": 16.959858,
+      "dispatch_to_terminal_ms": 18.621522,
+      "source_to_terminal_ms": 1.661664,
+      "case": "line",
+      "iteration": 1,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000005,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288440184325,
+      "source_observed_at_monotonic_ns": 197288457509612,
+      "terminal_observed_at_monotonic_ns": 197288459419523,
+      "dispatch_to_source_ms": 17.325287,
+      "dispatch_to_terminal_ms": 19.235198,
+      "source_to_terminal_ms": 1.909911,
+      "case": "line",
+      "iteration": 2,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000006,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288459563460,
+      "source_observed_at_monotonic_ns": 197288474573712,
+      "terminal_observed_at_monotonic_ns": 197288476114536,
+      "dispatch_to_source_ms": 15.010252,
+      "dispatch_to_terminal_ms": 16.551076,
+      "source_to_terminal_ms": 1.540824,
+      "case": "line",
+      "iteration": 3,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000007,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288476322025,
+      "source_observed_at_monotonic_ns": 197288489422590,
+      "terminal_observed_at_monotonic_ns": 197288491087822,
+      "dispatch_to_source_ms": 13.100565,
+      "dispatch_to_terminal_ms": 14.765797,
+      "source_to_terminal_ms": 1.665232,
+      "case": "line",
+      "iteration": 4,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000008,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288491346075,
+      "source_observed_at_monotonic_ns": 197288504911199,
+      "terminal_observed_at_monotonic_ns": 197288506752232,
+      "dispatch_to_source_ms": 13.565124,
+      "dispatch_to_terminal_ms": 15.406157,
+      "source_to_terminal_ms": 1.841033,
+      "case": "line",
+      "iteration": 5,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000009,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288506978661,
+      "source_observed_at_monotonic_ns": 197288521240349,
+      "terminal_observed_at_monotonic_ns": 197288522934703,
+      "dispatch_to_source_ms": 14.261688,
+      "dispatch_to_terminal_ms": 15.956042,
+      "source_to_terminal_ms": 1.694354,
+      "case": "line",
+      "iteration": 6,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000010,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288523089473,
+      "source_observed_at_monotonic_ns": 197288536827917,
+      "terminal_observed_at_monotonic_ns": 197288538264246,
+      "dispatch_to_source_ms": 13.738444,
+      "dispatch_to_terminal_ms": 15.174773,
+      "source_to_terminal_ms": 1.436329,
+      "case": "line",
+      "iteration": 7,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000011,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288538404435,
+      "source_observed_at_monotonic_ns": 197288551782214,
+      "terminal_observed_at_monotonic_ns": 197288553488994,
+      "dispatch_to_source_ms": 13.377779,
+      "dispatch_to_terminal_ms": 15.084559,
+      "source_to_terminal_ms": 1.70678,
+      "case": "line",
+      "iteration": 8,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000012,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288553741442,
+      "source_observed_at_monotonic_ns": 197288569805948,
+      "terminal_observed_at_monotonic_ns": 197288571764349,
+      "dispatch_to_source_ms": 16.064506,
+      "dispatch_to_terminal_ms": 18.022907,
+      "source_to_terminal_ms": 1.958401,
+      "case": "line",
+      "iteration": 9,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000013,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288571947836,
+      "source_observed_at_monotonic_ns": 197288584081583,
+      "terminal_observed_at_monotonic_ns": 197288585158293,
+      "dispatch_to_source_ms": 12.133747,
+      "dispatch_to_terminal_ms": 13.210457,
+      "source_to_terminal_ms": 1.07671,
+      "case": "line",
+      "iteration": 10,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000014,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288585323470,
+      "source_observed_at_monotonic_ns": 197288597148513,
+      "terminal_observed_at_monotonic_ns": 197288597953124,
+      "dispatch_to_source_ms": 11.825043,
+      "dispatch_to_terminal_ms": 12.629654,
+      "source_to_terminal_ms": 0.804611,
+      "case": "line",
+      "iteration": 11,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000015,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288598061977,
+      "source_observed_at_monotonic_ns": 197288611534418,
+      "terminal_observed_at_monotonic_ns": 197288612033765,
+      "dispatch_to_source_ms": 13.472441,
+      "dispatch_to_terminal_ms": 13.971788,
+      "source_to_terminal_ms": 0.499347,
+      "case": "line",
+      "iteration": 12,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000016,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288612236168,
+      "source_observed_at_monotonic_ns": 197288628695805,
+      "terminal_observed_at_monotonic_ns": 197288630198188,
+      "dispatch_to_source_ms": 16.459637,
+      "dispatch_to_terminal_ms": 17.96202,
+      "source_to_terminal_ms": 1.502383,
+      "case": "line",
+      "iteration": 13,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000017,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288630347676,
+      "source_observed_at_monotonic_ns": 197288643426985,
+      "terminal_observed_at_monotonic_ns": 197288644332450,
+      "dispatch_to_source_ms": 13.079309,
+      "dispatch_to_terminal_ms": 13.984774,
+      "source_to_terminal_ms": 0.905465,
+      "case": "line",
+      "iteration": 14,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000018,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288644505678,
+      "source_observed_at_monotonic_ns": 197288661622988,
+      "terminal_observed_at_monotonic_ns": 197288662878114,
+      "dispatch_to_source_ms": 17.11731,
+      "dispatch_to_terminal_ms": 18.372436,
+      "source_to_terminal_ms": 1.255126,
+      "case": "line",
+      "iteration": 15,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000019,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288663037896,
+      "source_observed_at_monotonic_ns": 197288676614234,
+      "terminal_observed_at_monotonic_ns": 197288678078634,
+      "dispatch_to_source_ms": 13.576338,
+      "dispatch_to_terminal_ms": 15.040738,
+      "source_to_terminal_ms": 1.4644,
+      "case": "line",
+      "iteration": 16,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000020,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288678267291,
+      "source_observed_at_monotonic_ns": 197288690376868,
+      "terminal_observed_at_monotonic_ns": 197288691550392,
+      "dispatch_to_source_ms": 12.109577,
+      "dispatch_to_terminal_ms": 13.283101,
+      "source_to_terminal_ms": 1.173524,
+      "case": "line",
+      "iteration": 17,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000021,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288691806608,
+      "source_observed_at_monotonic_ns": 197288703683737,
+      "terminal_observed_at_monotonic_ns": 197288704459850,
+      "dispatch_to_source_ms": 11.877129,
+      "dispatch_to_terminal_ms": 12.653242,
+      "source_to_terminal_ms": 0.776113,
+      "case": "line",
+      "iteration": 18,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000022,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288704620335,
+      "source_observed_at_monotonic_ns": 197288718166843,
+      "terminal_observed_at_monotonic_ns": 197288720130542,
+      "dispatch_to_source_ms": 13.546508,
+      "dispatch_to_terminal_ms": 15.510207,
+      "source_to_terminal_ms": 1.963699,
+      "case": "line",
+      "iteration": 19,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000023,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288720286236,
+      "source_observed_at_monotonic_ns": 197288731963421,
+      "terminal_observed_at_monotonic_ns": 197288732858995,
+      "dispatch_to_source_ms": 11.677185,
+      "dispatch_to_terminal_ms": 12.572759,
+      "source_to_terminal_ms": 0.895574,
+      "case": "line",
+      "iteration": 20,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000024,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288733011338,
+      "source_observed_at_monotonic_ns": 197288748579818,
+      "terminal_observed_at_monotonic_ns": 197288750326157,
+      "dispatch_to_source_ms": 15.56848,
+      "dispatch_to_terminal_ms": 17.314819,
+      "source_to_terminal_ms": 1.746339,
+      "case": "line",
+      "iteration": 21,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000025,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288750513676,
+      "source_observed_at_monotonic_ns": 197288766720182,
+      "terminal_observed_at_monotonic_ns": 197288768476755,
+      "dispatch_to_source_ms": 16.206506,
+      "dispatch_to_terminal_ms": 17.963079,
+      "source_to_terminal_ms": 1.756573,
+      "case": "line",
+      "iteration": 22,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000026,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288768651186,
+      "source_observed_at_monotonic_ns": 197288786976923,
+      "terminal_observed_at_monotonic_ns": 197288788067436,
+      "dispatch_to_source_ms": 18.325737,
+      "dispatch_to_terminal_ms": 19.41625,
+      "source_to_terminal_ms": 1.090513,
+      "case": "line",
+      "iteration": 23,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000027,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288788295807,
+      "source_observed_at_monotonic_ns": 197288804888246,
+      "terminal_observed_at_monotonic_ns": 197288806745921,
+      "dispatch_to_source_ms": 16.592439,
+      "dispatch_to_terminal_ms": 18.450114,
+      "source_to_terminal_ms": 1.857675,
+      "case": "line",
+      "iteration": 24,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000028,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288806898831,
+      "source_observed_at_monotonic_ns": 197288820323143,
+      "terminal_observed_at_monotonic_ns": 197288821470244,
+      "dispatch_to_source_ms": 13.424312,
+      "dispatch_to_terminal_ms": 14.571413,
+      "source_to_terminal_ms": 1.147101,
+      "case": "line",
+      "iteration": 25,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000029,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288821677374,
+      "source_observed_at_monotonic_ns": 197288835139172,
+      "terminal_observed_at_monotonic_ns": 197288835728313,
+      "dispatch_to_source_ms": 13.461798,
+      "dispatch_to_terminal_ms": 14.050939,
+      "source_to_terminal_ms": 0.589141,
+      "case": "line",
+      "iteration": 26,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000030,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288835916043,
+      "source_observed_at_monotonic_ns": 197288850647584,
+      "terminal_observed_at_monotonic_ns": 197288852178819,
+      "dispatch_to_source_ms": 14.731541,
+      "dispatch_to_terminal_ms": 16.262776,
+      "source_to_terminal_ms": 1.531235,
+      "case": "line",
+      "iteration": 27,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000031,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288852321807,
+      "source_observed_at_monotonic_ns": 197288866539840,
+      "terminal_observed_at_monotonic_ns": 197288868235409,
+      "dispatch_to_source_ms": 14.218033,
+      "dispatch_to_terminal_ms": 15.913602,
+      "source_to_terminal_ms": 1.695569,
+      "case": "line",
+      "iteration": 28,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000032,
+      "engine_id": "eloquence",
+      "actual_voice": {
+        "engine_id": "eloquence",
+        "voice_id": "v1"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 197288868426544,
+      "source_observed_at_monotonic_ns": 197288885876208,
+      "terminal_observed_at_monotonic_ns": 197288887527224,
+      "dispatch_to_source_ms": 17.449664,
+      "dispatch_to_terminal_ms": 19.10068,
+      "source_to_terminal_ms": 1.651016,
+      "case": "line",
+      "iteration": 29,
+      "server_version": "1.11.0",
+      "catalogue": null
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "audio_output": "null",
+  "cases": [
+    "character",
+    "word",
+    "line",
+    "dense",
+    "multipart",
+    "replacement"
+  ],
+  "emacsvox_root": "/home/bart/src/emacsvox",
+  "flavour": "legacy",
+  "iterations": 3,
+  "mode": "cold",
+  "omnivox_root": "/home/bart/src/omnivox",
+  "rate": 225,
+  "repeat": 2,
+  "replacement_burst": 5,
+  "resource_process_name": "omnivox.exe",
+  "route": {
+    "engine": "dectalk",
+    "id": "dectalk",
+    "parameter": "sm",
+    "value": 61,
+    "voice": "paul"
+  },
+  "server": "/home/bart/src/emacsvox/servers/omnivox",
+  "server_args": [],
+  "state_directory": "/home/bart/src/emacsvox/.benchmarks/resampler-reuse-2026-09-20/0028-after-dectalk-legacy-cold/state",
+  "target": "after",
+  "timeout": 30,
+  "warmups": 3
+}

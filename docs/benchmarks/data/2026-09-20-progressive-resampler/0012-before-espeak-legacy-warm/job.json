@@ -1,0 +1,33 @@
+{
+  "audio_output": "null",
+  "cases": [
+    "character",
+    "word",
+    "line",
+    "multipart",
+    "replacement"
+  ],
+  "emacsvox_root": "/home/bart/src/emacsvox",
+  "flavour": "legacy",
+  "iterations": 30,
+  "mode": "warm",
+  "omnivox_root": "/home/bart/src/omnivox",
+  "rate": 225,
+  "repeat": 0,
+  "replacement_burst": 5,
+  "resource_process_name": "omnivox.exe",
+  "route": {
+    "engine": "espeak",
+    "exclude_cases": {
+      "dense": "Windows eSpeak reports 14 of 15 requested anchors on both 1.10.0 and current; retained in .benchmarks/baseline-probe/espeak-dense and .benchmarks/smoke-03/0012-current-espeak-legacy-cold."
+    },
+    "id": "espeak",
+    "voice": "espeak:gmw\\en"
+  },
+  "server": "/home/bart/src/emacsvox/servers/omnivox",
+  "server_args": [],
+  "state_directory": "/home/bart/src/emacsvox/.benchmarks/resampler-reuse-2026-09-20/0012-before-espeak-legacy-warm/state",
+  "target": "before",
+  "timeout": 30,
+  "warmups": 3
+}

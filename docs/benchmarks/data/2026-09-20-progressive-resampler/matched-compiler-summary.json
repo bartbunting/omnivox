@@ -1,0 +1,32 @@
+{
+  "old-gnu/dectalk": {
+    "n": 90,
+    "median_ms": 20.347356,
+    "p95_ms": 34.279997
+  },
+  "old-gnu/espeak": {
+    "n": 90,
+    "median_ms": 15.6492915,
+    "p95_ms": 19.393686
+  },
+  "old-gnu/eloquence": {
+    "n": 90,
+    "median_ms": 14.8708965,
+    "p95_ms": 17.855544
+  },
+  "current-gnu/espeak": {
+    "n": 90,
+    "median_ms": 15.608289500000001,
+    "p95_ms": 18.940194
+  },
+  "current-gnu/eloquence": {
+    "n": 90,
+    "median_ms": 15.608253999999999,
+    "p95_ms": 18.933167
+  },
+  "current-gnu/dectalk": {
+    "n": 90,
+    "median_ms": 20.170152,
+    "p95_ms": 33.85348
+  }
+}

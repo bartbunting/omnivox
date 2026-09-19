@@ -1,0 +1,4536 @@
+{
+  "measurement": "client source and terminal observations; no acoustic onset",
+  "clock": "time.perf_counter_ns",
+  "timing_samples": [
+    {
+      "case": "server_ready",
+      "iteration": 0,
+      "process_start_to_ready_ms": 514.783091
+    },
+    {
+      "dispatch_id": 1000003,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518229196120,
+      "source_observed_at_monotonic_ns": 198518268908180,
+      "terminal_observed_at_monotonic_ns": 198518269261192,
+      "dispatch_to_source_ms": 39.71206,
+      "dispatch_to_terminal_ms": 40.065072,
+      "source_to_terminal_ms": 0.353012,
+      "case": "character",
+      "iteration": 0,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000004,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518269415681,
+      "source_observed_at_monotonic_ns": 198518308249944,
+      "terminal_observed_at_monotonic_ns": 198518308301565,
+      "dispatch_to_source_ms": 38.834263,
+      "dispatch_to_terminal_ms": 38.885884,
+      "source_to_terminal_ms": 0.051621,
+      "case": "character",
+      "iteration": 1,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000005,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518308516612,
+      "source_observed_at_monotonic_ns": 198518353473489,
+      "terminal_observed_at_monotonic_ns": 198518353583385,
+      "dispatch_to_source_ms": 44.956877,
+      "dispatch_to_terminal_ms": 45.066773,
+      "source_to_terminal_ms": 0.109896,
+      "case": "character",
+      "iteration": 2,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000006,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518353887578,
+      "source_observed_at_monotonic_ns": 198518398100344,
+      "terminal_observed_at_monotonic_ns": 198518398409433,
+      "dispatch_to_source_ms": 44.212766,
+      "dispatch_to_terminal_ms": 44.521855,
+      "source_to_terminal_ms": 0.309089,
+      "case": "character",
+      "iteration": 3,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000007,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518398573560,
+      "source_observed_at_monotonic_ns": 198518438486501,
+      "terminal_observed_at_monotonic_ns": 198518438783762,
+      "dispatch_to_source_ms": 39.912941,
+      "dispatch_to_terminal_ms": 40.210202,
+      "source_to_terminal_ms": 0.297261,
+      "case": "character",
+      "iteration": 4,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000008,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518438920090,
+      "source_observed_at_monotonic_ns": 198518478557573,
+      "terminal_observed_at_monotonic_ns": 198518478916046,
+      "dispatch_to_source_ms": 39.637483,
+      "dispatch_to_terminal_ms": 39.995956,
+      "source_to_terminal_ms": 0.358473,
+      "case": "character",
+      "iteration": 5,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000009,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518479082382,
+      "source_observed_at_monotonic_ns": 198518518246337,
+      "terminal_observed_at_monotonic_ns": 198518518342838,
+      "dispatch_to_source_ms": 39.163955,
+      "dispatch_to_terminal_ms": 39.260456,
+      "source_to_terminal_ms": 0.096501,
+      "case": "character",
+      "iteration": 6,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000010,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518518616319,
+      "source_observed_at_monotonic_ns": 198518558182752,
+      "terminal_observed_at_monotonic_ns": 198518558250020,
+      "dispatch_to_source_ms": 39.566433,
+      "dispatch_to_terminal_ms": 39.633701,
+      "source_to_terminal_ms": 0.067268,
+      "case": "character",
+      "iteration": 7,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000011,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518558474647,
+      "source_observed_at_monotonic_ns": 198518598494414,
+      "terminal_observed_at_monotonic_ns": 198518598557234,
+      "dispatch_to_source_ms": 40.019767,
+      "dispatch_to_terminal_ms": 40.082587,
+      "source_to_terminal_ms": 0.06282,
+      "case": "character",
+      "iteration": 8,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000012,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518598885705,
+      "source_observed_at_monotonic_ns": 198518640734367,
+      "terminal_observed_at_monotonic_ns": 198518640817119,
+      "dispatch_to_source_ms": 41.848662,
+      "dispatch_to_terminal_ms": 41.931414,
+      "source_to_terminal_ms": 0.082752,
+      "case": "character",
+      "iteration": 9,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000013,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518641112121,
+      "source_observed_at_monotonic_ns": 198518707431089,
+      "terminal_observed_at_monotonic_ns": 198518707499698,
+      "dispatch_to_source_ms": 66.318968,
+      "dispatch_to_terminal_ms": 66.387577,
+      "source_to_terminal_ms": 0.068609,
+      "case": "character",
+      "iteration": 10,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000014,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518707811586,
+      "source_observed_at_monotonic_ns": 198518764896364,
+      "terminal_observed_at_monotonic_ns": 198518765213328,
+      "dispatch_to_source_ms": 57.084778,
+      "dispatch_to_terminal_ms": 57.401742,
+      "source_to_terminal_ms": 0.316964,
+      "case": "character",
+      "iteration": 11,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000015,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518765400723,
+      "source_observed_at_monotonic_ns": 198518809098273,
+      "terminal_observed_at_monotonic_ns": 198518809383387,
+      "dispatch_to_source_ms": 43.69755,
+      "dispatch_to_terminal_ms": 43.982664,
+      "source_to_terminal_ms": 0.285114,
+      "case": "character",
+      "iteration": 12,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000016,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518809475498,
+      "source_observed_at_monotonic_ns": 198518857692202,
+      "terminal_observed_at_monotonic_ns": 198518857762054,
+      "dispatch_to_source_ms": 48.216704,
+      "dispatch_to_terminal_ms": 48.286556,
+      "source_to_terminal_ms": 0.069852,
+      "case": "character",
+      "iteration": 13,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000017,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518857954186,
+      "source_observed_at_monotonic_ns": 198518916084638,
+      "terminal_observed_at_monotonic_ns": 198518916143143,
+      "dispatch_to_source_ms": 58.130452,
+      "dispatch_to_terminal_ms": 58.188957,
+      "source_to_terminal_ms": 0.058505,
+      "case": "character",
+      "iteration": 14,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000018,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518916451392,
+      "source_observed_at_monotonic_ns": 198518956926148,
+      "terminal_observed_at_monotonic_ns": 198518957004550,
+      "dispatch_to_source_ms": 40.474756,
+      "dispatch_to_terminal_ms": 40.553158,
+      "source_to_terminal_ms": 0.078402,
+      "case": "character",
+      "iteration": 15,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000019,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518957633241,
+      "source_observed_at_monotonic_ns": 198518998435262,
+      "terminal_observed_at_monotonic_ns": 198518998518596,
+      "dispatch_to_source_ms": 40.802021,
+      "dispatch_to_terminal_ms": 40.885355,
+      "source_to_terminal_ms": 0.083334,
+      "case": "character",
+      "iteration": 16,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000020,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198518998910138,
+      "source_observed_at_monotonic_ns": 198519038741556,
+      "terminal_observed_at_monotonic_ns": 198519038799915,
+      "dispatch_to_source_ms": 39.831418,
+      "dispatch_to_terminal_ms": 39.889777,
+      "source_to_terminal_ms": 0.058359,
+      "case": "character",
+      "iteration": 17,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000021,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519039155264,
+      "source_observed_at_monotonic_ns": 198519078451698,
+      "terminal_observed_at_monotonic_ns": 198519078924021,
+      "dispatch_to_source_ms": 39.296434,
+      "dispatch_to_terminal_ms": 39.768757,
+      "source_to_terminal_ms": 0.472323,
+      "case": "character",
+      "iteration": 18,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000022,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519079131381,
+      "source_observed_at_monotonic_ns": 198519118681987,
+      "terminal_observed_at_monotonic_ns": 198519119028473,
+      "dispatch_to_source_ms": 39.550606,
+      "dispatch_to_terminal_ms": 39.897092,
+      "source_to_terminal_ms": 0.346486,
+      "case": "character",
+      "iteration": 19,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000023,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519119196919,
+      "source_observed_at_monotonic_ns": 198519158359424,
+      "terminal_observed_at_monotonic_ns": 198519158422942,
+      "dispatch_to_source_ms": 39.162505,
+      "dispatch_to_terminal_ms": 39.226023,
+      "source_to_terminal_ms": 0.063518,
+      "case": "character",
+      "iteration": 20,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000024,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519158722632,
+      "source_observed_at_monotonic_ns": 198519198034300,
+      "terminal_observed_at_monotonic_ns": 198519198258900,
+      "dispatch_to_source_ms": 39.311668,
+      "dispatch_to_terminal_ms": 39.536268,
+      "source_to_terminal_ms": 0.2246,
+      "case": "character",
+      "iteration": 21,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000025,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519198349484,
+      "source_observed_at_monotonic_ns": 198519248737630,
+      "terminal_observed_at_monotonic_ns": 198519248786630,
+      "dispatch_to_source_ms": 50.388146,
+      "dispatch_to_terminal_ms": 50.437146,
+      "source_to_terminal_ms": 0.049,
+      "case": "character",
+      "iteration": 22,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000026,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519248997235,
+      "source_observed_at_monotonic_ns": 198519288609259,
+      "terminal_observed_at_monotonic_ns": 198519288941066,
+      "dispatch_to_source_ms": 39.612024,
+      "dispatch_to_terminal_ms": 39.943831,
+      "source_to_terminal_ms": 0.331807,
+      "case": "character",
+      "iteration": 23,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000027,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519289170888,
+      "source_observed_at_monotonic_ns": 198519328488858,
+      "terminal_observed_at_monotonic_ns": 198519328588215,
+      "dispatch_to_source_ms": 39.31797,
+      "dispatch_to_terminal_ms": 39.417327,
+      "source_to_terminal_ms": 0.099357,
+      "case": "character",
+      "iteration": 24,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000028,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519328946587,
+      "source_observed_at_monotonic_ns": 198519368670024,
+      "terminal_observed_at_monotonic_ns": 198519368718922,
+      "dispatch_to_source_ms": 39.723437,
+      "dispatch_to_terminal_ms": 39.772335,
+      "source_to_terminal_ms": 0.048898,
+      "case": "character",
+      "iteration": 25,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000029,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519369006101,
+      "source_observed_at_monotonic_ns": 198519409793780,
+      "terminal_observed_at_monotonic_ns": 198519410138200,
+      "dispatch_to_source_ms": 40.787679,
+      "dispatch_to_terminal_ms": 41.132099,
+      "source_to_terminal_ms": 0.34442,
+      "case": "character",
+      "iteration": 26,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000030,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519410301354,
+      "source_observed_at_monotonic_ns": 198519438868119,
+      "terminal_observed_at_monotonic_ns": 198519438921844,
+      "dispatch_to_source_ms": 28.566765,
+      "dispatch_to_terminal_ms": 28.62049,
+      "source_to_terminal_ms": 0.053725,
+      "case": "character",
+      "iteration": 27,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000031,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519439230546,
+      "source_observed_at_monotonic_ns": 198519486717270,
+      "terminal_observed_at_monotonic_ns": 198519487050650,
+      "dispatch_to_source_ms": 47.486724,
+      "dispatch_to_terminal_ms": 47.820104,
+      "source_to_terminal_ms": 0.33338,
+      "case": "character",
+      "iteration": 28,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000032,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198519487201399,
+      "source_observed_at_monotonic_ns": 198519527968393,
+      "terminal_observed_at_monotonic_ns": 198519528301040,
+      "dispatch_to_source_ms": 40.766994,
+      "dispatch_to_terminal_ms": 41.099641,
+      "source_to_terminal_ms": 0.332647,
+      "case": "character",
+      "iteration": 29,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "case": "server_ready",
+      "iteration": 0,
+      "process_start_to_ready_ms": 533.107488
+    },
+    {
+      "dispatch_id": 1000036,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520330045645,
+      "source_observed_at_monotonic_ns": 198520358592877,
+      "terminal_observed_at_monotonic_ns": 198520379307454,
+      "dispatch_to_source_ms": 28.547232,
+      "dispatch_to_terminal_ms": 49.261809,
+      "source_to_terminal_ms": 20.714577,
+      "case": "word",
+      "iteration": 0,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000037,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520379539192,
+      "source_observed_at_monotonic_ns": 198520398492529,
+      "terminal_observed_at_monotonic_ns": 198520419230680,
+      "dispatch_to_source_ms": 18.953337,
+      "dispatch_to_terminal_ms": 39.691488,
+      "source_to_terminal_ms": 20.738151,
+      "case": "word",
+      "iteration": 1,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000038,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520419440512,
+      "source_observed_at_monotonic_ns": 198520438541988,
+      "terminal_observed_at_monotonic_ns": 198520458963971,
+      "dispatch_to_source_ms": 19.101476,
+      "dispatch_to_terminal_ms": 39.523459,
+      "source_to_terminal_ms": 20.421983,
+      "case": "word",
+      "iteration": 2,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000039,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520459198219,
+      "source_observed_at_monotonic_ns": 198520478246043,
+      "terminal_observed_at_monotonic_ns": 198520498978906,
+      "dispatch_to_source_ms": 19.047824,
+      "dispatch_to_terminal_ms": 39.780687,
+      "source_to_terminal_ms": 20.732863,
+      "case": "word",
+      "iteration": 3,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000040,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520499203179,
+      "source_observed_at_monotonic_ns": 198520518892135,
+      "terminal_observed_at_monotonic_ns": 198520539618989,
+      "dispatch_to_source_ms": 19.688956,
+      "dispatch_to_terminal_ms": 40.41581,
+      "source_to_terminal_ms": 20.726854,
+      "case": "word",
+      "iteration": 4,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000041,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520539754545,
+      "source_observed_at_monotonic_ns": 198520558489574,
+      "terminal_observed_at_monotonic_ns": 198520578595397,
+      "dispatch_to_source_ms": 18.735029,
+      "dispatch_to_terminal_ms": 38.840852,
+      "source_to_terminal_ms": 20.105823,
+      "case": "word",
+      "iteration": 5,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000042,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520578733005,
+      "source_observed_at_monotonic_ns": 198520599117382,
+      "terminal_observed_at_monotonic_ns": 198520623183051,
+      "dispatch_to_source_ms": 20.384377,
+      "dispatch_to_terminal_ms": 44.450046,
+      "source_to_terminal_ms": 24.065669,
+      "case": "word",
+      "iteration": 6,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000043,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520623411367,
+      "source_observed_at_monotonic_ns": 198520641498612,
+      "terminal_observed_at_monotonic_ns": 198520656705648,
+      "dispatch_to_source_ms": 18.087245,
+      "dispatch_to_terminal_ms": 33.294281,
+      "source_to_terminal_ms": 15.207036,
+      "case": "word",
+      "iteration": 7,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000044,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520656816257,
+      "source_observed_at_monotonic_ns": 198520689394952,
+      "terminal_observed_at_monotonic_ns": 198520724265997,
+      "dispatch_to_source_ms": 32.578695,
+      "dispatch_to_terminal_ms": 67.44974,
+      "source_to_terminal_ms": 34.871045,
+      "case": "word",
+      "iteration": 8,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000045,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520724447136,
+      "source_observed_at_monotonic_ns": 198520746976593,
+      "terminal_observed_at_monotonic_ns": 198520774185336,
+      "dispatch_to_source_ms": 22.529457,
+      "dispatch_to_terminal_ms": 49.7382,
+      "source_to_terminal_ms": 27.208743,
+      "case": "word",
+      "iteration": 9,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000046,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520774375770,
+      "source_observed_at_monotonic_ns": 198520793809196,
+      "terminal_observed_at_monotonic_ns": 198520824382661,
+      "dispatch_to_source_ms": 19.433426,
+      "dispatch_to_terminal_ms": 50.006891,
+      "source_to_terminal_ms": 30.573465,
+      "case": "word",
+      "iteration": 10,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000047,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520824539014,
+      "source_observed_at_monotonic_ns": 198520856689315,
+      "terminal_observed_at_monotonic_ns": 198520884029370,
+      "dispatch_to_source_ms": 32.150301,
+      "dispatch_to_terminal_ms": 59.490356,
+      "source_to_terminal_ms": 27.340055,
+      "case": "word",
+      "iteration": 11,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000048,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520884281681,
+      "source_observed_at_monotonic_ns": 198520903584543,
+      "terminal_observed_at_monotonic_ns": 198520923650112,
+      "dispatch_to_source_ms": 19.302862,
+      "dispatch_to_terminal_ms": 39.368431,
+      "source_to_terminal_ms": 20.065569,
+      "case": "word",
+      "iteration": 12,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000049,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520923932788,
+      "source_observed_at_monotonic_ns": 198520943755948,
+      "terminal_observed_at_monotonic_ns": 198520963486524,
+      "dispatch_to_source_ms": 19.82316,
+      "dispatch_to_terminal_ms": 39.553736,
+      "source_to_terminal_ms": 19.730576,
+      "case": "word",
+      "iteration": 13,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000050,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198520963700398,
+      "source_observed_at_monotonic_ns": 198520983836176,
+      "terminal_observed_at_monotonic_ns": 198521004354432,
+      "dispatch_to_source_ms": 20.135778,
+      "dispatch_to_terminal_ms": 40.654034,
+      "source_to_terminal_ms": 20.518256,
+      "case": "word",
+      "iteration": 14,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000051,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521004467939,
+      "source_observed_at_monotonic_ns": 198521023920824,
+      "terminal_observed_at_monotonic_ns": 198521044764052,
+      "dispatch_to_source_ms": 19.452885,
+      "dispatch_to_terminal_ms": 40.296113,
+      "source_to_terminal_ms": 20.843228,
+      "case": "word",
+      "iteration": 15,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000052,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521044960853,
+      "source_observed_at_monotonic_ns": 198521073746396,
+      "terminal_observed_at_monotonic_ns": 198521093517597,
+      "dispatch_to_source_ms": 28.785543,
+      "dispatch_to_terminal_ms": 48.556744,
+      "source_to_terminal_ms": 19.771201,
+      "case": "word",
+      "iteration": 16,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000053,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521093732820,
+      "source_observed_at_monotonic_ns": 198521114026112,
+      "terminal_observed_at_monotonic_ns": 198521134370510,
+      "dispatch_to_source_ms": 20.293292,
+      "dispatch_to_terminal_ms": 40.63769,
+      "source_to_terminal_ms": 20.344398,
+      "case": "word",
+      "iteration": 17,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000054,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521135139228,
+      "source_observed_at_monotonic_ns": 198521154940056,
+      "terminal_observed_at_monotonic_ns": 198521183933553,
+      "dispatch_to_source_ms": 19.800828,
+      "dispatch_to_terminal_ms": 48.794325,
+      "source_to_terminal_ms": 28.993497,
+      "case": "word",
+      "iteration": 18,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000055,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521184206957,
+      "source_observed_at_monotonic_ns": 198521203914725,
+      "terminal_observed_at_monotonic_ns": 198521224486004,
+      "dispatch_to_source_ms": 19.707768,
+      "dispatch_to_terminal_ms": 40.279047,
+      "source_to_terminal_ms": 20.571279,
+      "case": "word",
+      "iteration": 19,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000056,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521224794102,
+      "source_observed_at_monotonic_ns": 198521259738312,
+      "terminal_observed_at_monotonic_ns": 198521284151235,
+      "dispatch_to_source_ms": 34.94421,
+      "dispatch_to_terminal_ms": 59.357133,
+      "source_to_terminal_ms": 24.412923,
+      "case": "word",
+      "iteration": 20,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000057,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521284350108,
+      "source_observed_at_monotonic_ns": 198521314039283,
+      "terminal_observed_at_monotonic_ns": 198521335074524,
+      "dispatch_to_source_ms": 29.689175,
+      "dispatch_to_terminal_ms": 50.724416,
+      "source_to_terminal_ms": 21.035241,
+      "case": "word",
+      "iteration": 21,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000058,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521335248996,
+      "source_observed_at_monotonic_ns": 198521372446699,
+      "terminal_observed_at_monotonic_ns": 198521384544676,
+      "dispatch_to_source_ms": 37.197703,
+      "dispatch_to_terminal_ms": 49.29568,
+      "source_to_terminal_ms": 12.097977,
+      "case": "word",
+      "iteration": 22,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000059,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521384768799,
+      "source_observed_at_monotonic_ns": 198521404160362,
+      "terminal_observed_at_monotonic_ns": 198521424343244,
+      "dispatch_to_source_ms": 19.391563,
+      "dispatch_to_terminal_ms": 39.574445,
+      "source_to_terminal_ms": 20.182882,
+      "case": "word",
+      "iteration": 23,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000060,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521424636824,
+      "source_observed_at_monotonic_ns": 198521459706272,
+      "terminal_observed_at_monotonic_ns": 198521478605694,
+      "dispatch_to_source_ms": 35.069448,
+      "dispatch_to_terminal_ms": 53.96887,
+      "source_to_terminal_ms": 18.899422,
+      "case": "word",
+      "iteration": 24,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000061,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521478791341,
+      "source_observed_at_monotonic_ns": 198521499046393,
+      "terminal_observed_at_monotonic_ns": 198521519698344,
+      "dispatch_to_source_ms": 20.255052,
+      "dispatch_to_terminal_ms": 40.907003,
+      "source_to_terminal_ms": 20.651951,
+      "case": "word",
+      "iteration": 25,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000062,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521519974753,
+      "source_observed_at_monotonic_ns": 198521538842353,
+      "terminal_observed_at_monotonic_ns": 198521559389220,
+      "dispatch_to_source_ms": 18.8676,
+      "dispatch_to_terminal_ms": 39.414467,
+      "source_to_terminal_ms": 20.546867,
+      "case": "word",
+      "iteration": 26,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000063,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521559590932,
+      "source_observed_at_monotonic_ns": 198521578649518,
+      "terminal_observed_at_monotonic_ns": 198521599565811,
+      "dispatch_to_source_ms": 19.058586,
+      "dispatch_to_terminal_ms": 39.974879,
+      "source_to_terminal_ms": 20.916293,
+      "case": "word",
+      "iteration": 27,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000064,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521599739448,
+      "source_observed_at_monotonic_ns": 198521618562253,
+      "terminal_observed_at_monotonic_ns": 198521647686246,
+      "dispatch_to_source_ms": 18.822805,
+      "dispatch_to_terminal_ms": 47.946798,
+      "source_to_terminal_ms": 29.123993,
+      "case": "word",
+      "iteration": 28,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000065,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198521647863850,
+      "source_observed_at_monotonic_ns": 198521672509718,
+      "terminal_observed_at_monotonic_ns": 198521700442251,
+      "dispatch_to_source_ms": 24.645868,
+      "dispatch_to_terminal_ms": 52.578401,
+      "source_to_terminal_ms": 27.932533,
+      "case": "word",
+      "iteration": 29,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "case": "server_ready",
+      "iteration": 0,
+      "process_start_to_ready_ms": 572.834227
+    },
+    {
+      "dispatch_id": 1000069,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522548814226,
+      "source_observed_at_monotonic_ns": 198522568786204,
+      "terminal_observed_at_monotonic_ns": 198522588731709,
+      "dispatch_to_source_ms": 19.971978,
+      "dispatch_to_terminal_ms": 39.917483,
+      "source_to_terminal_ms": 19.945505,
+      "case": "line",
+      "iteration": 0,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000070,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522588946341,
+      "source_observed_at_monotonic_ns": 198522608713310,
+      "terminal_observed_at_monotonic_ns": 198522640558090,
+      "dispatch_to_source_ms": 19.766969,
+      "dispatch_to_terminal_ms": 51.611749,
+      "source_to_terminal_ms": 31.84478,
+      "case": "line",
+      "iteration": 1,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000071,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522640962258,
+      "source_observed_at_monotonic_ns": 198522674012711,
+      "terminal_observed_at_monotonic_ns": 198522694375216,
+      "dispatch_to_source_ms": 33.050453,
+      "dispatch_to_terminal_ms": 53.412958,
+      "source_to_terminal_ms": 20.362505,
+      "case": "line",
+      "iteration": 2,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000072,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522694553393,
+      "source_observed_at_monotonic_ns": 198522723166960,
+      "terminal_observed_at_monotonic_ns": 198522747680210,
+      "dispatch_to_source_ms": 28.613567,
+      "dispatch_to_terminal_ms": 53.126817,
+      "source_to_terminal_ms": 24.51325,
+      "case": "line",
+      "iteration": 3,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000073,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522747896601,
+      "source_observed_at_monotonic_ns": 198522773910644,
+      "terminal_observed_at_monotonic_ns": 198522794067295,
+      "dispatch_to_source_ms": 26.014043,
+      "dispatch_to_terminal_ms": 46.170694,
+      "source_to_terminal_ms": 20.156651,
+      "case": "line",
+      "iteration": 4,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000074,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522794230758,
+      "source_observed_at_monotonic_ns": 198522813787666,
+      "terminal_observed_at_monotonic_ns": 198522830122859,
+      "dispatch_to_source_ms": 19.556908,
+      "dispatch_to_terminal_ms": 35.892101,
+      "source_to_terminal_ms": 16.335193,
+      "case": "line",
+      "iteration": 5,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000075,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522830278893,
+      "source_observed_at_monotonic_ns": 198522849242611,
+      "terminal_observed_at_monotonic_ns": 198522874356766,
+      "dispatch_to_source_ms": 18.963718,
+      "dispatch_to_terminal_ms": 44.077873,
+      "source_to_terminal_ms": 25.114155,
+      "case": "line",
+      "iteration": 6,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000076,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522874535252,
+      "source_observed_at_monotonic_ns": 198522894576550,
+      "terminal_observed_at_monotonic_ns": 198522913577779,
+      "dispatch_to_source_ms": 20.041298,
+      "dispatch_to_terminal_ms": 39.042527,
+      "source_to_terminal_ms": 19.001229,
+      "case": "line",
+      "iteration": 7,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000077,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522913779215,
+      "source_observed_at_monotonic_ns": 198522954480854,
+      "terminal_observed_at_monotonic_ns": 198522984217782,
+      "dispatch_to_source_ms": 40.701639,
+      "dispatch_to_terminal_ms": 70.438567,
+      "source_to_terminal_ms": 29.736928,
+      "case": "line",
+      "iteration": 8,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000078,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198522984363630,
+      "source_observed_at_monotonic_ns": 198523003877711,
+      "terminal_observed_at_monotonic_ns": 198523024223489,
+      "dispatch_to_source_ms": 19.514081,
+      "dispatch_to_terminal_ms": 39.859859,
+      "source_to_terminal_ms": 20.345778,
+      "case": "line",
+      "iteration": 9,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000079,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523024397575,
+      "source_observed_at_monotonic_ns": 198523043608089,
+      "terminal_observed_at_monotonic_ns": 198523063564035,
+      "dispatch_to_source_ms": 19.210514,
+      "dispatch_to_terminal_ms": 39.16646,
+      "source_to_terminal_ms": 19.955946,
+      "case": "line",
+      "iteration": 10,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000080,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523063794068,
+      "source_observed_at_monotonic_ns": 198523083723468,
+      "terminal_observed_at_monotonic_ns": 198523103639132,
+      "dispatch_to_source_ms": 19.9294,
+      "dispatch_to_terminal_ms": 39.845064,
+      "source_to_terminal_ms": 19.915664,
+      "case": "line",
+      "iteration": 11,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000081,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523103782221,
+      "source_observed_at_monotonic_ns": 198523125048257,
+      "terminal_observed_at_monotonic_ns": 198523144186188,
+      "dispatch_to_source_ms": 21.266036,
+      "dispatch_to_terminal_ms": 40.403967,
+      "source_to_terminal_ms": 19.137931,
+      "case": "line",
+      "iteration": 12,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000082,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523144522031,
+      "source_observed_at_monotonic_ns": 198523164663761,
+      "terminal_observed_at_monotonic_ns": 198523185292885,
+      "dispatch_to_source_ms": 20.14173,
+      "dispatch_to_terminal_ms": 40.770854,
+      "source_to_terminal_ms": 20.629124,
+      "case": "line",
+      "iteration": 13,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000083,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523185407028,
+      "source_observed_at_monotonic_ns": 198523206147836,
+      "terminal_observed_at_monotonic_ns": 198523225711338,
+      "dispatch_to_source_ms": 20.740808,
+      "dispatch_to_terminal_ms": 40.30431,
+      "source_to_terminal_ms": 19.563502,
+      "case": "line",
+      "iteration": 14,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000084,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523225848896,
+      "source_observed_at_monotonic_ns": 198523251094410,
+      "terminal_observed_at_monotonic_ns": 198523282581494,
+      "dispatch_to_source_ms": 25.245514,
+      "dispatch_to_terminal_ms": 56.732598,
+      "source_to_terminal_ms": 31.487084,
+      "case": "line",
+      "iteration": 15,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000085,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523282769183,
+      "source_observed_at_monotonic_ns": 198523303014117,
+      "terminal_observed_at_monotonic_ns": 198523324425132,
+      "dispatch_to_source_ms": 20.244934,
+      "dispatch_to_terminal_ms": 41.655949,
+      "source_to_terminal_ms": 21.411015,
+      "case": "line",
+      "iteration": 16,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000086,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523324583135,
+      "source_observed_at_monotonic_ns": 198523345986527,
+      "terminal_observed_at_monotonic_ns": 198523365384981,
+      "dispatch_to_source_ms": 21.403392,
+      "dispatch_to_terminal_ms": 40.801846,
+      "source_to_terminal_ms": 19.398454,
+      "case": "line",
+      "iteration": 17,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000087,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523365608299,
+      "source_observed_at_monotonic_ns": 198523394724680,
+      "terminal_observed_at_monotonic_ns": 198523414449950,
+      "dispatch_to_source_ms": 29.116381,
+      "dispatch_to_terminal_ms": 48.841651,
+      "source_to_terminal_ms": 19.72527,
+      "case": "line",
+      "iteration": 18,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000088,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523414626204,
+      "source_observed_at_monotonic_ns": 198523443396869,
+      "terminal_observed_at_monotonic_ns": 198523464177239,
+      "dispatch_to_source_ms": 28.770665,
+      "dispatch_to_terminal_ms": 49.551035,
+      "source_to_terminal_ms": 20.78037,
+      "case": "line",
+      "iteration": 19,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000089,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523464324347,
+      "source_observed_at_monotonic_ns": 198523484215352,
+      "terminal_observed_at_monotonic_ns": 198523503830728,
+      "dispatch_to_source_ms": 19.891005,
+      "dispatch_to_terminal_ms": 39.506381,
+      "source_to_terminal_ms": 19.615376,
+      "case": "line",
+      "iteration": 20,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000090,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523504000045,
+      "source_observed_at_monotonic_ns": 198523523930131,
+      "terminal_observed_at_monotonic_ns": 198523544387947,
+      "dispatch_to_source_ms": 19.930086,
+      "dispatch_to_terminal_ms": 40.387902,
+      "source_to_terminal_ms": 20.457816,
+      "case": "line",
+      "iteration": 21,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000091,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523544579144,
+      "source_observed_at_monotonic_ns": 198523563361151,
+      "terminal_observed_at_monotonic_ns": 198523583998317,
+      "dispatch_to_source_ms": 18.782007,
+      "dispatch_to_terminal_ms": 39.419173,
+      "source_to_terminal_ms": 20.637166,
+      "case": "line",
+      "iteration": 22,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000092,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523584139920,
+      "source_observed_at_monotonic_ns": 198523606650612,
+      "terminal_observed_at_monotonic_ns": 198523638399260,
+      "dispatch_to_source_ms": 22.510692,
+      "dispatch_to_terminal_ms": 54.25934,
+      "source_to_terminal_ms": 31.748648,
+      "case": "line",
+      "iteration": 23,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000093,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523638643616,
+      "source_observed_at_monotonic_ns": 198523673657090,
+      "terminal_observed_at_monotonic_ns": 198523694390945,
+      "dispatch_to_source_ms": 35.013474,
+      "dispatch_to_terminal_ms": 55.747329,
+      "source_to_terminal_ms": 20.733855,
+      "case": "line",
+      "iteration": 24,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000094,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523694607198,
+      "source_observed_at_monotonic_ns": 198523723033291,
+      "terminal_observed_at_monotonic_ns": 198523755751563,
+      "dispatch_to_source_ms": 28.426093,
+      "dispatch_to_terminal_ms": 61.144365,
+      "source_to_terminal_ms": 32.718272,
+      "case": "line",
+      "iteration": 25,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000095,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523755906902,
+      "source_observed_at_monotonic_ns": 198523784243728,
+      "terminal_observed_at_monotonic_ns": 198523806882244,
+      "dispatch_to_source_ms": 28.336826,
+      "dispatch_to_terminal_ms": 50.975342,
+      "source_to_terminal_ms": 22.638516,
+      "case": "line",
+      "iteration": 26,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000096,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523807029791,
+      "source_observed_at_monotonic_ns": 198523829925377,
+      "terminal_observed_at_monotonic_ns": 198523846597083,
+      "dispatch_to_source_ms": 22.895586,
+      "dispatch_to_terminal_ms": 39.567292,
+      "source_to_terminal_ms": 16.671706,
+      "case": "line",
+      "iteration": 27,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000097,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523846760012,
+      "source_observed_at_monotonic_ns": 198523872771633,
+      "terminal_observed_at_monotonic_ns": 198523893013285,
+      "dispatch_to_source_ms": 26.011621,
+      "dispatch_to_terminal_ms": 46.253273,
+      "source_to_terminal_ms": 20.241652,
+      "case": "line",
+      "iteration": 28,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000098,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198523893174811,
+      "source_observed_at_monotonic_ns": 198523914082704,
+      "terminal_observed_at_monotonic_ns": 198523934045488,
+      "dispatch_to_source_ms": 20.907893,
+      "dispatch_to_terminal_ms": 40.870677,
+      "source_to_terminal_ms": 19.962784,
+      "case": "line",
+      "iteration": 29,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "case": "server_ready",
+      "iteration": 0,
+      "process_start_to_ready_ms": 473.31171
+    },
+    {
+      "dispatch_id": 1000102,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198524872177507,
+      "source_observed_at_monotonic_ns": 198524893147378,
+      "terminal_observed_at_monotonic_ns": 198524953404953,
+      "dispatch_to_source_ms": 20.969871,
+      "dispatch_to_terminal_ms": 81.227446,
+      "source_to_terminal_ms": 60.257575,
+      "case": "dense",
+      "iteration": 0,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000103,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198524953604034,
+      "source_observed_at_monotonic_ns": 198524974419449,
+      "terminal_observed_at_monotonic_ns": 198525034404255,
+      "dispatch_to_source_ms": 20.815415,
+      "dispatch_to_terminal_ms": 80.800221,
+      "source_to_terminal_ms": 59.984806,
+      "case": "dense",
+      "iteration": 1,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000104,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525034572609,
+      "source_observed_at_monotonic_ns": 198525065973833,
+      "terminal_observed_at_monotonic_ns": 198525136646002,
+      "dispatch_to_source_ms": 31.401224,
+      "dispatch_to_terminal_ms": 102.073393,
+      "source_to_terminal_ms": 70.672169,
+      "case": "dense",
+      "iteration": 2,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000105,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525136895375,
+      "source_observed_at_monotonic_ns": 198525157589344,
+      "terminal_observed_at_monotonic_ns": 198525219195123,
+      "dispatch_to_source_ms": 20.693969,
+      "dispatch_to_terminal_ms": 82.299748,
+      "source_to_terminal_ms": 61.605779,
+      "case": "dense",
+      "iteration": 3,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000106,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525219460415,
+      "source_observed_at_monotonic_ns": 198525239160516,
+      "terminal_observed_at_monotonic_ns": 198525306174438,
+      "dispatch_to_source_ms": 19.700101,
+      "dispatch_to_terminal_ms": 86.714023,
+      "source_to_terminal_ms": 67.013922,
+      "case": "dense",
+      "iteration": 4,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000107,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525306416029,
+      "source_observed_at_monotonic_ns": 198525327112833,
+      "terminal_observed_at_monotonic_ns": 198525398323279,
+      "dispatch_to_source_ms": 20.696804,
+      "dispatch_to_terminal_ms": 91.90725,
+      "source_to_terminal_ms": 71.210446,
+      "case": "dense",
+      "iteration": 5,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000108,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525398516894,
+      "source_observed_at_monotonic_ns": 198525419849641,
+      "terminal_observed_at_monotonic_ns": 198525478025463,
+      "dispatch_to_source_ms": 21.332747,
+      "dispatch_to_terminal_ms": 79.508569,
+      "source_to_terminal_ms": 58.175822,
+      "case": "dense",
+      "iteration": 6,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000109,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525478362093,
+      "source_observed_at_monotonic_ns": 198525499984909,
+      "terminal_observed_at_monotonic_ns": 198525558897433,
+      "dispatch_to_source_ms": 21.622816,
+      "dispatch_to_terminal_ms": 80.53534,
+      "source_to_terminal_ms": 58.912524,
+      "case": "dense",
+      "iteration": 7,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000110,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525559180716,
+      "source_observed_at_monotonic_ns": 198525579673701,
+      "terminal_observed_at_monotonic_ns": 198525654300563,
+      "dispatch_to_source_ms": 20.492985,
+      "dispatch_to_terminal_ms": 95.119847,
+      "source_to_terminal_ms": 74.626862,
+      "case": "dense",
+      "iteration": 8,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000111,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525654604132,
+      "source_observed_at_monotonic_ns": 198525683249732,
+      "terminal_observed_at_monotonic_ns": 198525755446132,
+      "dispatch_to_source_ms": 28.6456,
+      "dispatch_to_terminal_ms": 100.842,
+      "source_to_terminal_ms": 72.1964,
+      "case": "dense",
+      "iteration": 9,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000112,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525755798665,
+      "source_observed_at_monotonic_ns": 198525783332265,
+      "terminal_observed_at_monotonic_ns": 198525846882371,
+      "dispatch_to_source_ms": 27.5336,
+      "dispatch_to_terminal_ms": 91.083706,
+      "source_to_terminal_ms": 63.550106,
+      "case": "dense",
+      "iteration": 10,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000113,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525847183257,
+      "source_observed_at_monotonic_ns": 198525873146970,
+      "terminal_observed_at_monotonic_ns": 198525933626402,
+      "dispatch_to_source_ms": 25.963713,
+      "dispatch_to_terminal_ms": 86.443145,
+      "source_to_terminal_ms": 60.479432,
+      "case": "dense",
+      "iteration": 11,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000114,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198525933927137,
+      "source_observed_at_monotonic_ns": 198525963062164,
+      "terminal_observed_at_monotonic_ns": 198526028547390,
+      "dispatch_to_source_ms": 29.135027,
+      "dispatch_to_terminal_ms": 94.620253,
+      "source_to_terminal_ms": 65.485226,
+      "case": "dense",
+      "iteration": 12,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000115,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526028877780,
+      "source_observed_at_monotonic_ns": 198526049514806,
+      "terminal_observed_at_monotonic_ns": 198526115406140,
+      "dispatch_to_source_ms": 20.637026,
+      "dispatch_to_terminal_ms": 86.52836,
+      "source_to_terminal_ms": 65.891334,
+      "case": "dense",
+      "iteration": 13,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000116,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526115733448,
+      "source_observed_at_monotonic_ns": 198526139518727,
+      "terminal_observed_at_monotonic_ns": 198526208851235,
+      "dispatch_to_source_ms": 23.785279,
+      "dispatch_to_terminal_ms": 93.117787,
+      "source_to_terminal_ms": 69.332508,
+      "case": "dense",
+      "iteration": 14,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000117,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526209012222,
+      "source_observed_at_monotonic_ns": 198526229467052,
+      "terminal_observed_at_monotonic_ns": 198526289114929,
+      "dispatch_to_source_ms": 20.45483,
+      "dispatch_to_terminal_ms": 80.102707,
+      "source_to_terminal_ms": 59.647877,
+      "case": "dense",
+      "iteration": 15,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000118,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526289462472,
+      "source_observed_at_monotonic_ns": 198526309762659,
+      "terminal_observed_at_monotonic_ns": 198526387782688,
+      "dispatch_to_source_ms": 20.300187,
+      "dispatch_to_terminal_ms": 98.320216,
+      "source_to_terminal_ms": 78.020029,
+      "case": "dense",
+      "iteration": 16,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000119,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526387989467,
+      "source_observed_at_monotonic_ns": 198526409629772,
+      "terminal_observed_at_monotonic_ns": 198526469092297,
+      "dispatch_to_source_ms": 21.640305,
+      "dispatch_to_terminal_ms": 81.10283,
+      "source_to_terminal_ms": 59.462525,
+      "case": "dense",
+      "iteration": 17,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000120,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526469223745,
+      "source_observed_at_monotonic_ns": 198526489345322,
+      "terminal_observed_at_monotonic_ns": 198526557121422,
+      "dispatch_to_source_ms": 20.121577,
+      "dispatch_to_terminal_ms": 87.897677,
+      "source_to_terminal_ms": 67.7761,
+      "case": "dense",
+      "iteration": 18,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000121,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526557328030,
+      "source_observed_at_monotonic_ns": 198526578688896,
+      "terminal_observed_at_monotonic_ns": 198526648611881,
+      "dispatch_to_source_ms": 21.360866,
+      "dispatch_to_terminal_ms": 91.283851,
+      "source_to_terminal_ms": 69.922985,
+      "case": "dense",
+      "iteration": 19,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000122,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526648922671,
+      "source_observed_at_monotonic_ns": 198526682444285,
+      "terminal_observed_at_monotonic_ns": 198526755040716,
+      "dispatch_to_source_ms": 33.521614,
+      "dispatch_to_terminal_ms": 106.118045,
+      "source_to_terminal_ms": 72.596431,
+      "case": "dense",
+      "iteration": 20,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000123,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526755318815,
+      "source_observed_at_monotonic_ns": 198526782265219,
+      "terminal_observed_at_monotonic_ns": 198526845476012,
+      "dispatch_to_source_ms": 26.946404,
+      "dispatch_to_terminal_ms": 90.157197,
+      "source_to_terminal_ms": 63.210793,
+      "case": "dense",
+      "iteration": 21,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000124,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526845698002,
+      "source_observed_at_monotonic_ns": 198526863227530,
+      "terminal_observed_at_monotonic_ns": 198526923779729,
+      "dispatch_to_source_ms": 17.529528,
+      "dispatch_to_terminal_ms": 78.081727,
+      "source_to_terminal_ms": 60.552199,
+      "case": "dense",
+      "iteration": 22,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000125,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198526924074023,
+      "source_observed_at_monotonic_ns": 198526954580219,
+      "terminal_observed_at_monotonic_ns": 198527014004352,
+      "dispatch_to_source_ms": 30.506196,
+      "dispatch_to_terminal_ms": 89.930329,
+      "source_to_terminal_ms": 59.424133,
+      "case": "dense",
+      "iteration": 23,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000126,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198527014201381,
+      "source_observed_at_monotonic_ns": 198527034375737,
+      "terminal_observed_at_monotonic_ns": 198527094292964,
+      "dispatch_to_source_ms": 20.174356,
+      "dispatch_to_terminal_ms": 80.091583,
+      "source_to_terminal_ms": 59.917227,
+      "case": "dense",
+      "iteration": 24,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000127,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198527094690419,
+      "source_observed_at_monotonic_ns": 198527114716424,
+      "terminal_observed_at_monotonic_ns": 198527173981800,
+      "dispatch_to_source_ms": 20.026005,
+      "dispatch_to_terminal_ms": 79.291381,
+      "source_to_terminal_ms": 59.265376,
+      "case": "dense",
+      "iteration": 25,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000128,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198527174169002,
+      "source_observed_at_monotonic_ns": 198527194560661,
+      "terminal_observed_at_monotonic_ns": 198527253870379,
+      "dispatch_to_source_ms": 20.391659,
+      "dispatch_to_terminal_ms": 79.701377,
+      "source_to_terminal_ms": 59.309718,
+      "case": "dense",
+      "iteration": 26,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000129,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198527254127805,
+      "source_observed_at_monotonic_ns": 198527274280593,
+      "terminal_observed_at_monotonic_ns": 198527334934405,
+      "dispatch_to_source_ms": 20.152788,
+      "dispatch_to_terminal_ms": 80.8066,
+      "source_to_terminal_ms": 60.653812,
+      "case": "dense",
+      "iteration": 27,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000130,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198527335062482,
+      "source_observed_at_monotonic_ns": 198527364091913,
+      "terminal_observed_at_monotonic_ns": 198527424885245,
+      "dispatch_to_source_ms": 29.029431,
+      "dispatch_to_terminal_ms": 89.822763,
+      "source_to_terminal_ms": 60.793332,
+      "case": "dense",
+      "iteration": 28,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000131,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198527425155494,
+      "source_observed_at_monotonic_ns": 198527464427067,
+      "terminal_observed_at_monotonic_ns": 198527526093145,
+      "dispatch_to_source_ms": 39.271573,
+      "dispatch_to_terminal_ms": 100.937651,
+      "source_to_terminal_ms": 61.666078,
+      "case": "dense",
+      "iteration": 29,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "case": "server_ready",
+      "iteration": 0,
+      "process_start_to_ready_ms": 602.479823
+    },
+    {
+      "dispatch_id": 1000135,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528394424161,
+      "source_observed_at_monotonic_ns": 198528415451590,
+      "terminal_observed_at_monotonic_ns": 198528436103916,
+      "dispatch_to_source_ms": 21.027429,
+      "dispatch_to_terminal_ms": 41.679755,
+      "source_to_terminal_ms": 20.652326,
+      "case": "multipart",
+      "iteration": 0,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000136,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528436327659,
+      "source_observed_at_monotonic_ns": 198528457663612,
+      "terminal_observed_at_monotonic_ns": 198528477002655,
+      "dispatch_to_source_ms": 21.335953,
+      "dispatch_to_terminal_ms": 40.674996,
+      "source_to_terminal_ms": 19.339043,
+      "case": "multipart",
+      "iteration": 1,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000137,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528477177907,
+      "source_observed_at_monotonic_ns": 198528499268877,
+      "terminal_observed_at_monotonic_ns": 198528518140806,
+      "dispatch_to_source_ms": 22.09097,
+      "dispatch_to_terminal_ms": 40.962899,
+      "source_to_terminal_ms": 18.871929,
+      "case": "multipart",
+      "iteration": 2,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000138,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528518383457,
+      "source_observed_at_monotonic_ns": 198528549679058,
+      "terminal_observed_at_monotonic_ns": 198528568057418,
+      "dispatch_to_source_ms": 31.295601,
+      "dispatch_to_terminal_ms": 49.673961,
+      "source_to_terminal_ms": 18.37836,
+      "case": "multipart",
+      "iteration": 3,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000139,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528568242968,
+      "source_observed_at_monotonic_ns": 198528589092719,
+      "terminal_observed_at_monotonic_ns": 198528608062799,
+      "dispatch_to_source_ms": 20.849751,
+      "dispatch_to_terminal_ms": 39.819831,
+      "source_to_terminal_ms": 18.97008,
+      "case": "multipart",
+      "iteration": 4,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000140,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528608351646,
+      "source_observed_at_monotonic_ns": 198528638199964,
+      "terminal_observed_at_monotonic_ns": 198528653406882,
+      "dispatch_to_source_ms": 29.848318,
+      "dispatch_to_terminal_ms": 45.055236,
+      "source_to_terminal_ms": 15.206918,
+      "case": "multipart",
+      "iteration": 5,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000141,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528653620008,
+      "source_observed_at_monotonic_ns": 198528681150950,
+      "terminal_observed_at_monotonic_ns": 198528701152657,
+      "dispatch_to_source_ms": 27.530942,
+      "dispatch_to_terminal_ms": 47.532649,
+      "source_to_terminal_ms": 20.001707,
+      "case": "multipart",
+      "iteration": 6,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000142,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528701357408,
+      "source_observed_at_monotonic_ns": 198528727884778,
+      "terminal_observed_at_monotonic_ns": 198528753234893,
+      "dispatch_to_source_ms": 26.52737,
+      "dispatch_to_terminal_ms": 51.877485,
+      "source_to_terminal_ms": 25.350115,
+      "case": "multipart",
+      "iteration": 7,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000143,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528753439486,
+      "source_observed_at_monotonic_ns": 198528772997591,
+      "terminal_observed_at_monotonic_ns": 198528792080670,
+      "dispatch_to_source_ms": 19.558105,
+      "dispatch_to_terminal_ms": 38.641184,
+      "source_to_terminal_ms": 19.083079,
+      "case": "multipart",
+      "iteration": 8,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000144,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528792380384,
+      "source_observed_at_monotonic_ns": 198528811683533,
+      "terminal_observed_at_monotonic_ns": 198528838451515,
+      "dispatch_to_source_ms": 19.303149,
+      "dispatch_to_terminal_ms": 46.071131,
+      "source_to_terminal_ms": 26.767982,
+      "case": "multipart",
+      "iteration": 9,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000145,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528839230405,
+      "source_observed_at_monotonic_ns": 198528861991216,
+      "terminal_observed_at_monotonic_ns": 198528881963426,
+      "dispatch_to_source_ms": 22.760811,
+      "dispatch_to_terminal_ms": 42.733021,
+      "source_to_terminal_ms": 19.97221,
+      "case": "multipart",
+      "iteration": 10,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000146,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528882216032,
+      "source_observed_at_monotonic_ns": 198528902954086,
+      "terminal_observed_at_monotonic_ns": 198528921632633,
+      "dispatch_to_source_ms": 20.738054,
+      "dispatch_to_terminal_ms": 39.416601,
+      "source_to_terminal_ms": 18.678547,
+      "case": "multipart",
+      "iteration": 11,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000147,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528921803646,
+      "source_observed_at_monotonic_ns": 198528943940426,
+      "terminal_observed_at_monotonic_ns": 198528961134075,
+      "dispatch_to_source_ms": 22.13678,
+      "dispatch_to_terminal_ms": 39.330429,
+      "source_to_terminal_ms": 17.193649,
+      "case": "multipart",
+      "iteration": 12,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000148,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198528961453946,
+      "source_observed_at_monotonic_ns": 198528982157035,
+      "terminal_observed_at_monotonic_ns": 198529002675533,
+      "dispatch_to_source_ms": 20.703089,
+      "dispatch_to_terminal_ms": 41.221587,
+      "source_to_terminal_ms": 20.518498,
+      "case": "multipart",
+      "iteration": 13,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000149,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529002935606,
+      "source_observed_at_monotonic_ns": 198529023733299,
+      "terminal_observed_at_monotonic_ns": 198529053198493,
+      "dispatch_to_source_ms": 20.797693,
+      "dispatch_to_terminal_ms": 50.262887,
+      "source_to_terminal_ms": 29.465194,
+      "case": "multipart",
+      "iteration": 14,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000150,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529053500562,
+      "source_observed_at_monotonic_ns": 198529084863550,
+      "terminal_observed_at_monotonic_ns": 198529103078393,
+      "dispatch_to_source_ms": 31.362988,
+      "dispatch_to_terminal_ms": 49.577831,
+      "source_to_terminal_ms": 18.214843,
+      "case": "multipart",
+      "iteration": 15,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000151,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529103480286,
+      "source_observed_at_monotonic_ns": 198529123919275,
+      "terminal_observed_at_monotonic_ns": 198529143423224,
+      "dispatch_to_source_ms": 20.438989,
+      "dispatch_to_terminal_ms": 39.942938,
+      "source_to_terminal_ms": 19.503949,
+      "case": "multipart",
+      "iteration": 16,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000152,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529143642460,
+      "source_observed_at_monotonic_ns": 198529164244868,
+      "terminal_observed_at_monotonic_ns": 198529183344488,
+      "dispatch_to_source_ms": 20.602408,
+      "dispatch_to_terminal_ms": 39.702028,
+      "source_to_terminal_ms": 19.09962,
+      "case": "multipart",
+      "iteration": 17,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000153,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529183596524,
+      "source_observed_at_monotonic_ns": 198529203536758,
+      "terminal_observed_at_monotonic_ns": 198529223479978,
+      "dispatch_to_source_ms": 19.940234,
+      "dispatch_to_terminal_ms": 39.883454,
+      "source_to_terminal_ms": 19.94322,
+      "case": "multipart",
+      "iteration": 18,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000154,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529223773869,
+      "source_observed_at_monotonic_ns": 198529243737550,
+      "terminal_observed_at_monotonic_ns": 198529263695463,
+      "dispatch_to_source_ms": 19.963681,
+      "dispatch_to_terminal_ms": 39.921594,
+      "source_to_terminal_ms": 19.957913,
+      "case": "multipart",
+      "iteration": 19,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000155,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529264071946,
+      "source_observed_at_monotonic_ns": 198529284061822,
+      "terminal_observed_at_monotonic_ns": 198529303493324,
+      "dispatch_to_source_ms": 19.989876,
+      "dispatch_to_terminal_ms": 39.421378,
+      "source_to_terminal_ms": 19.431502,
+      "case": "multipart",
+      "iteration": 20,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000156,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529303819919,
+      "source_observed_at_monotonic_ns": 198529335210937,
+      "terminal_observed_at_monotonic_ns": 198529353099019,
+      "dispatch_to_source_ms": 31.391018,
+      "dispatch_to_terminal_ms": 49.2791,
+      "source_to_terminal_ms": 17.888082,
+      "case": "multipart",
+      "iteration": 21,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000157,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529353213440,
+      "source_observed_at_monotonic_ns": 198529374439119,
+      "terminal_observed_at_monotonic_ns": 198529393919839,
+      "dispatch_to_source_ms": 21.225679,
+      "dispatch_to_terminal_ms": 40.706399,
+      "source_to_terminal_ms": 19.48072,
+      "case": "multipart",
+      "iteration": 22,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000158,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529394154266,
+      "source_observed_at_monotonic_ns": 198529413816537,
+      "terminal_observed_at_monotonic_ns": 198529438367188,
+      "dispatch_to_source_ms": 19.662271,
+      "dispatch_to_terminal_ms": 44.212922,
+      "source_to_terminal_ms": 24.550651,
+      "case": "multipart",
+      "iteration": 23,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000159,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529438585910,
+      "source_observed_at_monotonic_ns": 198529458871545,
+      "terminal_observed_at_monotonic_ns": 198529478238373,
+      "dispatch_to_source_ms": 20.285635,
+      "dispatch_to_terminal_ms": 39.652463,
+      "source_to_terminal_ms": 19.366828,
+      "case": "multipart",
+      "iteration": 24,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000160,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529478379367,
+      "source_observed_at_monotonic_ns": 198529499144536,
+      "terminal_observed_at_monotonic_ns": 198529518144944,
+      "dispatch_to_source_ms": 20.765169,
+      "dispatch_to_terminal_ms": 39.765577,
+      "source_to_terminal_ms": 19.000408,
+      "case": "multipart",
+      "iteration": 25,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000161,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529518266175,
+      "source_observed_at_monotonic_ns": 198529548451452,
+      "terminal_observed_at_monotonic_ns": 198529568502451,
+      "dispatch_to_source_ms": 30.185277,
+      "dispatch_to_terminal_ms": 50.236276,
+      "source_to_terminal_ms": 20.050999,
+      "case": "multipart",
+      "iteration": 26,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000162,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529568632703,
+      "source_observed_at_monotonic_ns": 198529588723672,
+      "terminal_observed_at_monotonic_ns": 198529608563579,
+      "dispatch_to_source_ms": 20.090969,
+      "dispatch_to_terminal_ms": 39.930876,
+      "source_to_terminal_ms": 19.839907,
+      "case": "multipart",
+      "iteration": 27,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000163,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529608761373,
+      "source_observed_at_monotonic_ns": 198529627893567,
+      "terminal_observed_at_monotonic_ns": 198529652840593,
+      "dispatch_to_source_ms": 19.132194,
+      "dispatch_to_terminal_ms": 44.07922,
+      "source_to_terminal_ms": 24.947026,
+      "case": "multipart",
+      "iteration": 28,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000164,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198529653051225,
+      "source_observed_at_monotonic_ns": 198529681406234,
+      "terminal_observed_at_monotonic_ns": 198529718331655,
+      "dispatch_to_source_ms": 28.355009,
+      "dispatch_to_terminal_ms": 65.28043,
+      "source_to_terminal_ms": 36.925421,
+      "case": "multipart",
+      "iteration": 29,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "case": "server_ready",
+      "iteration": 0,
+      "process_start_to_ready_ms": 577.627757
+    },
+    {
+      "dispatch_id": 1000184,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198530771123984,
+      "source_observed_at_monotonic_ns": 198530821168704,
+      "terminal_observed_at_monotonic_ns": 198530892111102,
+      "dispatch_to_source_ms": 50.04472,
+      "dispatch_to_terminal_ms": 120.987118,
+      "source_to_terminal_ms": 70.942398,
+      "cancel_terminal_ms": 0.377384,
+      "case": "replacement",
+      "iteration": 0,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000189,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198530892615447,
+      "source_observed_at_monotonic_ns": 198530944818952,
+      "terminal_observed_at_monotonic_ns": 198531008861713,
+      "dispatch_to_source_ms": 52.203505,
+      "dispatch_to_terminal_ms": 116.246266,
+      "source_to_terminal_ms": 64.042761,
+      "cancel_terminal_ms": 0.409229,
+      "case": "replacement",
+      "iteration": 1,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000194,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198531009188834,
+      "source_observed_at_monotonic_ns": 198531059187303,
+      "terminal_observed_at_monotonic_ns": 198531119126273,
+      "dispatch_to_source_ms": 49.998469,
+      "dispatch_to_terminal_ms": 109.937439,
+      "source_to_terminal_ms": 59.93897,
+      "cancel_terminal_ms": 0.340651,
+      "case": "replacement",
+      "iteration": 2,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000199,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198531119335575,
+      "source_observed_at_monotonic_ns": 198531168876820,
+      "terminal_observed_at_monotonic_ns": 198531228435399,
+      "dispatch_to_source_ms": 49.541245,
+      "dispatch_to_terminal_ms": 109.099824,
+      "source_to_terminal_ms": 59.558579,
+      "cancel_terminal_ms": 0.599552,
+      "case": "replacement",
+      "iteration": 3,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000204,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198531228818926,
+      "source_observed_at_monotonic_ns": 198531279317622,
+      "terminal_observed_at_monotonic_ns": 198531338530144,
+      "dispatch_to_source_ms": 50.498696,
+      "dispatch_to_terminal_ms": 109.711218,
+      "source_to_terminal_ms": 59.212522,
+      "cancel_terminal_ms": 0.378034,
+      "case": "replacement",
+      "iteration": 4,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000209,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198531338909231,
+      "source_observed_at_monotonic_ns": 198531399570840,
+      "terminal_observed_at_monotonic_ns": 198531460666004,
+      "dispatch_to_source_ms": 60.661609,
+      "dispatch_to_terminal_ms": 121.756773,
+      "source_to_terminal_ms": 61.095164,
+      "cancel_terminal_ms": 0.339787,
+      "case": "replacement",
+      "iteration": 5,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000214,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198531460969907,
+      "source_observed_at_monotonic_ns": 198531515548551,
+      "terminal_observed_at_monotonic_ns": 198531576942094,
+      "dispatch_to_source_ms": 54.578644,
+      "dispatch_to_terminal_ms": 115.972187,
+      "source_to_terminal_ms": 61.393543,
+      "cancel_terminal_ms": 0.357649,
+      "case": "replacement",
+      "iteration": 6,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000219,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198531577137264,
+      "source_observed_at_monotonic_ns": 198531629705349,
+      "terminal_observed_at_monotonic_ns": 198531700300329,
+      "dispatch_to_source_ms": 52.568085,
+      "dispatch_to_terminal_ms": 123.163065,
+      "source_to_terminal_ms": 70.59498,
+      "cancel_terminal_ms": 0.441454,
+      "case": "replacement",
+      "iteration": 7,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000224,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198531700562106,
+      "source_observed_at_monotonic_ns": 198531753765434,
+      "terminal_observed_at_monotonic_ns": 198531820264315,
+      "dispatch_to_source_ms": 53.203328,
+      "dispatch_to_terminal_ms": 119.702209,
+      "source_to_terminal_ms": 66.498881,
+      "cancel_terminal_ms": 0.455216,
+      "case": "replacement",
+      "iteration": 8,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000229,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198531820698433,
+      "source_observed_at_monotonic_ns": 198531871582529,
+      "terminal_observed_at_monotonic_ns": 198531934334893,
+      "dispatch_to_source_ms": 50.884096,
+      "dispatch_to_terminal_ms": 113.63646,
+      "source_to_terminal_ms": 62.752364,
+      "cancel_terminal_ms": 0.491059,
+      "case": "replacement",
+      "iteration": 9,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000234,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198531935181155,
+      "source_observed_at_monotonic_ns": 198531984443311,
+      "terminal_observed_at_monotonic_ns": 198532050336928,
+      "dispatch_to_source_ms": 49.262156,
+      "dispatch_to_terminal_ms": 115.155773,
+      "source_to_terminal_ms": 65.893617,
+      "cancel_terminal_ms": 0.88561,
+      "case": "replacement",
+      "iteration": 10,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000239,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198532050706620,
+      "source_observed_at_monotonic_ns": 198532103322621,
+      "terminal_observed_at_monotonic_ns": 198532163478671,
+      "dispatch_to_source_ms": 52.616001,
+      "dispatch_to_terminal_ms": 112.772051,
+      "source_to_terminal_ms": 60.15605,
+      "cancel_terminal_ms": 0.329272,
+      "case": "replacement",
+      "iteration": 11,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000244,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198532163916748,
+      "source_observed_at_monotonic_ns": 198532215533837,
+      "terminal_observed_at_monotonic_ns": 198532273613914,
+      "dispatch_to_source_ms": 51.617089,
+      "dispatch_to_terminal_ms": 109.697166,
+      "source_to_terminal_ms": 58.080077,
+      "cancel_terminal_ms": 0.478776,
+      "case": "replacement",
+      "iteration": 12,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000249,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198532274036004,
+      "source_observed_at_monotonic_ns": 198532330587171,
+      "terminal_observed_at_monotonic_ns": 198532393513173,
+      "dispatch_to_source_ms": 56.551167,
+      "dispatch_to_terminal_ms": 119.477169,
+      "source_to_terminal_ms": 62.926002,
+      "cancel_terminal_ms": 0.526852,
+      "case": "replacement",
+      "iteration": 13,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000254,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198532394077062,
+      "source_observed_at_monotonic_ns": 198532444506927,
+      "terminal_observed_at_monotonic_ns": 198532503750121,
+      "dispatch_to_source_ms": 50.429865,
+      "dispatch_to_terminal_ms": 109.673059,
+      "source_to_terminal_ms": 59.243194,
+      "cancel_terminal_ms": 0.378589,
+      "case": "replacement",
+      "iteration": 14,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000259,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198532504178954,
+      "source_observed_at_monotonic_ns": 198532553631171,
+      "terminal_observed_at_monotonic_ns": 198532610457859,
+      "dispatch_to_source_ms": 49.452217,
+      "dispatch_to_terminal_ms": 106.278905,
+      "source_to_terminal_ms": 56.826688,
+      "cancel_terminal_ms": 0.401121,
+      "case": "replacement",
+      "iteration": 15,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000264,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198532610870289,
+      "source_observed_at_monotonic_ns": 198532669257299,
+      "terminal_observed_at_monotonic_ns": 198532736439369,
+      "dispatch_to_source_ms": 58.38701,
+      "dispatch_to_terminal_ms": 125.56908,
+      "source_to_terminal_ms": 67.18207,
+      "cancel_terminal_ms": 0.302275,
+      "case": "replacement",
+      "iteration": 16,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000269,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198532736958048,
+      "source_observed_at_monotonic_ns": 198532781403123,
+      "terminal_observed_at_monotonic_ns": 198532836436308,
+      "dispatch_to_source_ms": 44.445075,
+      "dispatch_to_terminal_ms": 99.47826,
+      "source_to_terminal_ms": 55.033185,
+      "cancel_terminal_ms": 0.684271,
+      "case": "replacement",
+      "iteration": 17,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000274,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198532836710504,
+      "source_observed_at_monotonic_ns": 198532879662091,
+      "terminal_observed_at_monotonic_ns": 198532938767372,
+      "dispatch_to_source_ms": 42.951587,
+      "dispatch_to_terminal_ms": 102.056868,
+      "source_to_terminal_ms": 59.105281,
+      "cancel_terminal_ms": 0.367904,
+      "case": "replacement",
+      "iteration": 18,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000279,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198532938979892,
+      "source_observed_at_monotonic_ns": 198532990687041,
+      "terminal_observed_at_monotonic_ns": 198533053044214,
+      "dispatch_to_source_ms": 51.707149,
+      "dispatch_to_terminal_ms": 114.064322,
+      "source_to_terminal_ms": 62.357173,
+      "cancel_terminal_ms": 0.542367,
+      "case": "replacement",
+      "iteration": 19,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000284,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198533053603787,
+      "source_observed_at_monotonic_ns": 198533105089659,
+      "terminal_observed_at_monotonic_ns": 198533167427886,
+      "dispatch_to_source_ms": 51.485872,
+      "dispatch_to_terminal_ms": 113.824099,
+      "source_to_terminal_ms": 62.338227,
+      "cancel_terminal_ms": 0.480724,
+      "case": "replacement",
+      "iteration": 20,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000289,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198533167857786,
+      "source_observed_at_monotonic_ns": 198533220297439,
+      "terminal_observed_at_monotonic_ns": 198533278733377,
+      "dispatch_to_source_ms": 52.439653,
+      "dispatch_to_terminal_ms": 110.875591,
+      "source_to_terminal_ms": 58.435938,
+      "cancel_terminal_ms": 0.424705,
+      "case": "replacement",
+      "iteration": 21,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000294,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198533278979326,
+      "source_observed_at_monotonic_ns": 198533329380614,
+      "terminal_observed_at_monotonic_ns": 198533388421786,
+      "dispatch_to_source_ms": 50.401288,
+      "dispatch_to_terminal_ms": 109.44246,
+      "source_to_terminal_ms": 59.041172,
+      "cancel_terminal_ms": 0.342938,
+      "case": "replacement",
+      "iteration": 22,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000299,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198533388778090,
+      "source_observed_at_monotonic_ns": 198533439643012,
+      "terminal_observed_at_monotonic_ns": 198533498523054,
+      "dispatch_to_source_ms": 50.864922,
+      "dispatch_to_terminal_ms": 109.744964,
+      "source_to_terminal_ms": 58.880042,
+      "cancel_terminal_ms": 0.669324,
+      "case": "replacement",
+      "iteration": 23,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000304,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198533498885814,
+      "source_observed_at_monotonic_ns": 198533549561411,
+      "terminal_observed_at_monotonic_ns": 198533609927377,
+      "dispatch_to_source_ms": 50.675597,
+      "dispatch_to_terminal_ms": 111.041563,
+      "source_to_terminal_ms": 60.365966,
+      "cancel_terminal_ms": 0.341507,
+      "case": "replacement",
+      "iteration": 24,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000309,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198533610138713,
+      "source_observed_at_monotonic_ns": 198533660787229,
+      "terminal_observed_at_monotonic_ns": 198533718492239,
+      "dispatch_to_source_ms": 50.648516,
+      "dispatch_to_terminal_ms": 108.353526,
+      "source_to_terminal_ms": 57.70501,
+      "cancel_terminal_ms": 0.597867,
+      "case": "replacement",
+      "iteration": 25,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000314,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198533718732066,
+      "source_observed_at_monotonic_ns": 198533782422765,
+      "terminal_observed_at_monotonic_ns": 198533853914532,
+      "dispatch_to_source_ms": 63.690699,
+      "dispatch_to_terminal_ms": 135.182466,
+      "source_to_terminal_ms": 71.491767,
+      "cancel_terminal_ms": 0.304854,
+      "case": "replacement",
+      "iteration": 26,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000319,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198533854340261,
+      "source_observed_at_monotonic_ns": 198533901935209,
+      "terminal_observed_at_monotonic_ns": 198533963375470,
+      "dispatch_to_source_ms": 47.594948,
+      "dispatch_to_terminal_ms": 109.035209,
+      "source_to_terminal_ms": 61.440261,
+      "cancel_terminal_ms": 0.470111,
+      "case": "replacement",
+      "iteration": 27,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000324,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198533963546999,
+      "source_observed_at_monotonic_ns": 198534014840036,
+      "terminal_observed_at_monotonic_ns": 198534078370268,
+      "dispatch_to_source_ms": 51.293037,
+      "dispatch_to_terminal_ms": 114.823269,
+      "source_to_terminal_ms": 63.530232,
+      "cancel_terminal_ms": 0.390162,
+      "case": "replacement",
+      "iteration": 28,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000329,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "cancelled_dispatches": 4,
+      "sent_at_monotonic_ns": 198534078653876,
+      "source_observed_at_monotonic_ns": 198534140258857,
+      "terminal_observed_at_monotonic_ns": 198534221267479,
+      "dispatch_to_source_ms": 61.604981,
+      "dispatch_to_terminal_ms": 142.613603,
+      "source_to_terminal_ms": 81.008622,
+      "cancel_terminal_ms": 0.351274,
+      "case": "replacement",
+      "iteration": 29,
+      "server_version": "1.11.0",
+      "catalogue": null
+    },
+    {
+      "dispatch_id": 1000003,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535125248431,
+      "source_observed_at_monotonic_ns": 198535154224626,
+      "terminal_observed_at_monotonic_ns": 198535174431668,
+      "dispatch_to_source_ms": 28.976195,
+      "dispatch_to_terminal_ms": 49.183237,
+      "source_to_terminal_ms": 20.207042,
+      "case": "concurrent_main",
+      "iteration": 0
+    },
+    {
+      "dispatch_id": 1000003,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535125060289,
+      "source_observed_at_monotonic_ns": 198535143976388,
+      "terminal_observed_at_monotonic_ns": 198535163567794,
+      "dispatch_to_source_ms": 18.916099,
+      "dispatch_to_terminal_ms": 38.507505,
+      "source_to_terminal_ms": 19.591406,
+      "case": "concurrent_notification",
+      "iteration": 0
+    },
+    {
+      "dispatch_id": 1000004,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535174982474,
+      "source_observed_at_monotonic_ns": 198535193259454,
+      "terminal_observed_at_monotonic_ns": 198535213909272,
+      "dispatch_to_source_ms": 18.27698,
+      "dispatch_to_terminal_ms": 38.926798,
+      "source_to_terminal_ms": 20.649818,
+      "case": "concurrent_main",
+      "iteration": 1
+    },
+    {
+      "dispatch_id": 1000004,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535175123619,
+      "source_observed_at_monotonic_ns": 198535192945945,
+      "terminal_observed_at_monotonic_ns": 198535214111516,
+      "dispatch_to_source_ms": 17.822326,
+      "dispatch_to_terminal_ms": 38.987897,
+      "source_to_terminal_ms": 21.165571,
+      "case": "concurrent_notification",
+      "iteration": 1
+    },
+    {
+      "dispatch_id": 1000005,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535214771915,
+      "source_observed_at_monotonic_ns": 198535234273284,
+      "terminal_observed_at_monotonic_ns": 198535253874346,
+      "dispatch_to_source_ms": 19.501369,
+      "dispatch_to_terminal_ms": 39.102431,
+      "source_to_terminal_ms": 19.601062,
+      "case": "concurrent_main",
+      "iteration": 2
+    },
+    {
+      "dispatch_id": 1000005,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535214674449,
+      "source_observed_at_monotonic_ns": 198535234145126,
+      "terminal_observed_at_monotonic_ns": 198535254262266,
+      "dispatch_to_source_ms": 19.470677,
+      "dispatch_to_terminal_ms": 39.587817,
+      "source_to_terminal_ms": 20.11714,
+      "case": "concurrent_notification",
+      "iteration": 2
+    },
+    {
+      "dispatch_id": 1000006,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535254914428,
+      "source_observed_at_monotonic_ns": 198535273612866,
+      "terminal_observed_at_monotonic_ns": 198535293766319,
+      "dispatch_to_source_ms": 18.698438,
+      "dispatch_to_terminal_ms": 38.851891,
+      "source_to_terminal_ms": 20.153453,
+      "case": "concurrent_main",
+      "iteration": 3
+    },
+    {
+      "dispatch_id": 1000006,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535254926648,
+      "source_observed_at_monotonic_ns": 198535273289494,
+      "terminal_observed_at_monotonic_ns": 198535293472078,
+      "dispatch_to_source_ms": 18.362846,
+      "dispatch_to_terminal_ms": 38.54543,
+      "source_to_terminal_ms": 20.182584,
+      "case": "concurrent_notification",
+      "iteration": 3
+    },
+    {
+      "dispatch_id": 1000007,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535294290825,
+      "source_observed_at_monotonic_ns": 198535315032985,
+      "terminal_observed_at_monotonic_ns": 198535333702958,
+      "dispatch_to_source_ms": 20.74216,
+      "dispatch_to_terminal_ms": 39.412133,
+      "source_to_terminal_ms": 18.669973,
+      "case": "concurrent_main",
+      "iteration": 4
+    },
+    {
+      "dispatch_id": 1000007,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535294408249,
+      "source_observed_at_monotonic_ns": 198535314368091,
+      "terminal_observed_at_monotonic_ns": 198535333819744,
+      "dispatch_to_source_ms": 19.959842,
+      "dispatch_to_terminal_ms": 39.411495,
+      "source_to_terminal_ms": 19.451653,
+      "case": "concurrent_notification",
+      "iteration": 4
+    },
+    {
+      "dispatch_id": 1000008,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535334385202,
+      "source_observed_at_monotonic_ns": 198535354031391,
+      "terminal_observed_at_monotonic_ns": 198535374164583,
+      "dispatch_to_source_ms": 19.646189,
+      "dispatch_to_terminal_ms": 39.779381,
+      "source_to_terminal_ms": 20.133192,
+      "case": "concurrent_main",
+      "iteration": 5
+    },
+    {
+      "dispatch_id": 1000008,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535334318676,
+      "source_observed_at_monotonic_ns": 198535353932734,
+      "terminal_observed_at_monotonic_ns": 198535374376094,
+      "dispatch_to_source_ms": 19.614058,
+      "dispatch_to_terminal_ms": 40.057418,
+      "source_to_terminal_ms": 20.44336,
+      "case": "concurrent_notification",
+      "iteration": 5
+    },
+    {
+      "dispatch_id": 1000009,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535375043004,
+      "source_observed_at_monotonic_ns": 198535394617550,
+      "terminal_observed_at_monotonic_ns": 198535413387254,
+      "dispatch_to_source_ms": 19.574546,
+      "dispatch_to_terminal_ms": 38.34425,
+      "source_to_terminal_ms": 18.769704,
+      "case": "concurrent_main",
+      "iteration": 6
+    },
+    {
+      "dispatch_id": 1000009,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535375067160,
+      "source_observed_at_monotonic_ns": 198535394953357,
+      "terminal_observed_at_monotonic_ns": 198535413418364,
+      "dispatch_to_source_ms": 19.886197,
+      "dispatch_to_terminal_ms": 38.351204,
+      "source_to_terminal_ms": 18.465007,
+      "case": "concurrent_notification",
+      "iteration": 6
+    },
+    {
+      "dispatch_id": 1000010,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535413960004,
+      "source_observed_at_monotonic_ns": 198535434450757,
+      "terminal_observed_at_monotonic_ns": 198535453396359,
+      "dispatch_to_source_ms": 20.490753,
+      "dispatch_to_terminal_ms": 39.436355,
+      "source_to_terminal_ms": 18.945602,
+      "case": "concurrent_main",
+      "iteration": 7
+    },
+    {
+      "dispatch_id": 1000010,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535413804185,
+      "source_observed_at_monotonic_ns": 198535434769501,
+      "terminal_observed_at_monotonic_ns": 198535454005232,
+      "dispatch_to_source_ms": 20.965316,
+      "dispatch_to_terminal_ms": 40.201047,
+      "source_to_terminal_ms": 19.235731,
+      "case": "concurrent_notification",
+      "iteration": 7
+    },
+    {
+      "dispatch_id": 1000011,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535454475693,
+      "source_observed_at_monotonic_ns": 198535474669994,
+      "terminal_observed_at_monotonic_ns": 198535493566084,
+      "dispatch_to_source_ms": 20.194301,
+      "dispatch_to_terminal_ms": 39.090391,
+      "source_to_terminal_ms": 18.89609,
+      "case": "concurrent_main",
+      "iteration": 8
+    },
+    {
+      "dispatch_id": 1000011,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535454609342,
+      "source_observed_at_monotonic_ns": 198535474856684,
+      "terminal_observed_at_monotonic_ns": 198535493544147,
+      "dispatch_to_source_ms": 20.247342,
+      "dispatch_to_terminal_ms": 38.934805,
+      "source_to_terminal_ms": 18.687463,
+      "case": "concurrent_notification",
+      "iteration": 8
+    },
+    {
+      "dispatch_id": 1000012,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535494093036,
+      "source_observed_at_monotonic_ns": 198535514248041,
+      "terminal_observed_at_monotonic_ns": 198535534340113,
+      "dispatch_to_source_ms": 20.155005,
+      "dispatch_to_terminal_ms": 40.247077,
+      "source_to_terminal_ms": 20.092072,
+      "case": "concurrent_main",
+      "iteration": 9
+    },
+    {
+      "dispatch_id": 1000012,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535494218466,
+      "source_observed_at_monotonic_ns": 198535513576255,
+      "terminal_observed_at_monotonic_ns": 198535534284443,
+      "dispatch_to_source_ms": 19.357789,
+      "dispatch_to_terminal_ms": 40.065977,
+      "source_to_terminal_ms": 20.708188,
+      "case": "concurrent_notification",
+      "iteration": 9
+    },
+    {
+      "dispatch_id": 1000013,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535535060944,
+      "source_observed_at_monotonic_ns": 198535554385836,
+      "terminal_observed_at_monotonic_ns": 198535574139853,
+      "dispatch_to_source_ms": 19.324892,
+      "dispatch_to_terminal_ms": 39.078909,
+      "source_to_terminal_ms": 19.754017,
+      "case": "concurrent_main",
+      "iteration": 10
+    },
+    {
+      "dispatch_id": 1000013,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535535071876,
+      "source_observed_at_monotonic_ns": 198535554227630,
+      "terminal_observed_at_monotonic_ns": 198535573737241,
+      "dispatch_to_source_ms": 19.155754,
+      "dispatch_to_terminal_ms": 38.665365,
+      "source_to_terminal_ms": 19.509611,
+      "case": "concurrent_notification",
+      "iteration": 10
+    },
+    {
+      "dispatch_id": 1000014,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535574750816,
+      "source_observed_at_monotonic_ns": 198535594127015,
+      "terminal_observed_at_monotonic_ns": 198535619037624,
+      "dispatch_to_source_ms": 19.376199,
+      "dispatch_to_terminal_ms": 44.286808,
+      "source_to_terminal_ms": 24.910609,
+      "case": "concurrent_main",
+      "iteration": 11
+    },
+    {
+      "dispatch_id": 1000014,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535574657447,
+      "source_observed_at_monotonic_ns": 198535594348496,
+      "terminal_observed_at_monotonic_ns": 198535619167354,
+      "dispatch_to_source_ms": 19.691049,
+      "dispatch_to_terminal_ms": 44.509907,
+      "source_to_terminal_ms": 24.818858,
+      "case": "concurrent_notification",
+      "iteration": 11
+    },
+    {
+      "dispatch_id": 1000015,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535619993784,
+      "source_observed_at_monotonic_ns": 198535653371394,
+      "terminal_observed_at_monotonic_ns": 198535678290686,
+      "dispatch_to_source_ms": 33.37761,
+      "dispatch_to_terminal_ms": 58.296902,
+      "source_to_terminal_ms": 24.919292,
+      "case": "concurrent_main",
+      "iteration": 12
+    },
+    {
+      "dispatch_id": 1000015,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535619818603,
+      "source_observed_at_monotonic_ns": 198535653239457,
+      "terminal_observed_at_monotonic_ns": 198535678936092,
+      "dispatch_to_source_ms": 33.420854,
+      "dispatch_to_terminal_ms": 59.117489,
+      "source_to_terminal_ms": 25.696635,
+      "case": "concurrent_notification",
+      "iteration": 12
+    },
+    {
+      "dispatch_id": 1000016,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535679432670,
+      "source_observed_at_monotonic_ns": 198535699816837,
+      "terminal_observed_at_monotonic_ns": 198535735315042,
+      "dispatch_to_source_ms": 20.384167,
+      "dispatch_to_terminal_ms": 55.882372,
+      "source_to_terminal_ms": 35.498205,
+      "case": "concurrent_main",
+      "iteration": 13
+    },
+    {
+      "dispatch_id": 1000016,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535679338729,
+      "source_observed_at_monotonic_ns": 198535699656616,
+      "terminal_observed_at_monotonic_ns": 198535735650781,
+      "dispatch_to_source_ms": 20.317887,
+      "dispatch_to_terminal_ms": 56.312052,
+      "source_to_terminal_ms": 35.994165,
+      "case": "concurrent_notification",
+      "iteration": 13
+    },
+    {
+      "dispatch_id": 1000017,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535736337130,
+      "source_observed_at_monotonic_ns": 198535767555449,
+      "terminal_observed_at_monotonic_ns": 198535789578969,
+      "dispatch_to_source_ms": 31.218319,
+      "dispatch_to_terminal_ms": 53.241839,
+      "source_to_terminal_ms": 22.02352,
+      "case": "concurrent_main",
+      "iteration": 14
+    },
+    {
+      "dispatch_id": 1000017,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535736215436,
+      "source_observed_at_monotonic_ns": 198535768106372,
+      "terminal_observed_at_monotonic_ns": 198535789068061,
+      "dispatch_to_source_ms": 31.890936,
+      "dispatch_to_terminal_ms": 52.852625,
+      "source_to_terminal_ms": 20.961689,
+      "case": "concurrent_notification",
+      "iteration": 14
+    },
+    {
+      "dispatch_id": 1000018,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535790086878,
+      "source_observed_at_monotonic_ns": 198535819290808,
+      "terminal_observed_at_monotonic_ns": 198535836132598,
+      "dispatch_to_source_ms": 29.20393,
+      "dispatch_to_terminal_ms": 46.04572,
+      "source_to_terminal_ms": 16.84179,
+      "case": "concurrent_main",
+      "iteration": 15
+    },
+    {
+      "dispatch_id": 1000018,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535790175955,
+      "source_observed_at_monotonic_ns": 198535819420522,
+      "terminal_observed_at_monotonic_ns": 198535836638087,
+      "dispatch_to_source_ms": 29.244567,
+      "dispatch_to_terminal_ms": 46.462132,
+      "source_to_terminal_ms": 17.217565,
+      "case": "concurrent_notification",
+      "iteration": 15
+    },
+    {
+      "dispatch_id": 1000019,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535837494880,
+      "source_observed_at_monotonic_ns": 198535859450606,
+      "terminal_observed_at_monotonic_ns": 198535878617391,
+      "dispatch_to_source_ms": 21.955726,
+      "dispatch_to_terminal_ms": 41.122511,
+      "source_to_terminal_ms": 19.166785,
+      "case": "concurrent_main",
+      "iteration": 16
+    },
+    {
+      "dispatch_id": 1000019,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535837395000,
+      "source_observed_at_monotonic_ns": 198535859103551,
+      "terminal_observed_at_monotonic_ns": 198535878478244,
+      "dispatch_to_source_ms": 21.708551,
+      "dispatch_to_terminal_ms": 41.083244,
+      "source_to_terminal_ms": 19.374693,
+      "case": "concurrent_notification",
+      "iteration": 16
+    },
+    {
+      "dispatch_id": 1000020,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535879106137,
+      "source_observed_at_monotonic_ns": 198535898814998,
+      "terminal_observed_at_monotonic_ns": 198535918444593,
+      "dispatch_to_source_ms": 19.708861,
+      "dispatch_to_terminal_ms": 39.338456,
+      "source_to_terminal_ms": 19.629595,
+      "case": "concurrent_main",
+      "iteration": 17
+    },
+    {
+      "dispatch_id": 1000020,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535879038627,
+      "source_observed_at_monotonic_ns": 198535899064201,
+      "terminal_observed_at_monotonic_ns": 198535918912145,
+      "dispatch_to_source_ms": 20.025574,
+      "dispatch_to_terminal_ms": 39.873518,
+      "source_to_terminal_ms": 19.847944,
+      "case": "concurrent_notification",
+      "iteration": 17
+    },
+    {
+      "dispatch_id": 1000021,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535919496159,
+      "source_observed_at_monotonic_ns": 198535939642023,
+      "terminal_observed_at_monotonic_ns": 198535969028600,
+      "dispatch_to_source_ms": 20.145864,
+      "dispatch_to_terminal_ms": 49.532441,
+      "source_to_terminal_ms": 29.386577,
+      "case": "concurrent_main",
+      "iteration": 18
+    },
+    {
+      "dispatch_id": 1000021,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535919371613,
+      "source_observed_at_monotonic_ns": 198535940512394,
+      "terminal_observed_at_monotonic_ns": 198535969198197,
+      "dispatch_to_source_ms": 21.140781,
+      "dispatch_to_terminal_ms": 49.826584,
+      "source_to_terminal_ms": 28.685803,
+      "case": "concurrent_notification",
+      "iteration": 18
+    },
+    {
+      "dispatch_id": 1000022,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535969937792,
+      "source_observed_at_monotonic_ns": 198535989301492,
+      "terminal_observed_at_monotonic_ns": 198536008909212,
+      "dispatch_to_source_ms": 19.3637,
+      "dispatch_to_terminal_ms": 38.97142,
+      "source_to_terminal_ms": 19.60772,
+      "case": "concurrent_main",
+      "iteration": 19
+    },
+    {
+      "dispatch_id": 1000022,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198535969836687,
+      "source_observed_at_monotonic_ns": 198535989801360,
+      "terminal_observed_at_monotonic_ns": 198536008737781,
+      "dispatch_to_source_ms": 19.964673,
+      "dispatch_to_terminal_ms": 38.901094,
+      "source_to_terminal_ms": 18.936421,
+      "case": "concurrent_notification",
+      "iteration": 19
+    },
+    {
+      "dispatch_id": 1000023,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536009378149,
+      "source_observed_at_monotonic_ns": 198536030345595,
+      "terminal_observed_at_monotonic_ns": 198536049373555,
+      "dispatch_to_source_ms": 20.967446,
+      "dispatch_to_terminal_ms": 39.995406,
+      "source_to_terminal_ms": 19.02796,
+      "case": "concurrent_main",
+      "iteration": 20
+    },
+    {
+      "dispatch_id": 1000023,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536009391482,
+      "source_observed_at_monotonic_ns": 198536029292066,
+      "terminal_observed_at_monotonic_ns": 198536049241538,
+      "dispatch_to_source_ms": 19.900584,
+      "dispatch_to_terminal_ms": 39.850056,
+      "source_to_terminal_ms": 19.949472,
+      "case": "concurrent_notification",
+      "iteration": 20
+    },
+    {
+      "dispatch_id": 1000024,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536049830731,
+      "source_observed_at_monotonic_ns": 198536069078844,
+      "terminal_observed_at_monotonic_ns": 198536089152445,
+      "dispatch_to_source_ms": 19.248113,
+      "dispatch_to_terminal_ms": 39.321714,
+      "source_to_terminal_ms": 20.073601,
+      "case": "concurrent_main",
+      "iteration": 21
+    },
+    {
+      "dispatch_id": 1000024,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536049771915,
+      "source_observed_at_monotonic_ns": 198536069208265,
+      "terminal_observed_at_monotonic_ns": 198536089081248,
+      "dispatch_to_source_ms": 19.43635,
+      "dispatch_to_terminal_ms": 39.309333,
+      "source_to_terminal_ms": 19.872983,
+      "case": "concurrent_notification",
+      "iteration": 21
+    },
+    {
+      "dispatch_id": 1000025,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536089596337,
+      "source_observed_at_monotonic_ns": 198536108596730,
+      "terminal_observed_at_monotonic_ns": 198536129368531,
+      "dispatch_to_source_ms": 19.000393,
+      "dispatch_to_terminal_ms": 39.772194,
+      "source_to_terminal_ms": 20.771801,
+      "case": "concurrent_main",
+      "iteration": 22
+    },
+    {
+      "dispatch_id": 1000025,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536089735623,
+      "source_observed_at_monotonic_ns": 198536109363845,
+      "terminal_observed_at_monotonic_ns": 198536129108449,
+      "dispatch_to_source_ms": 19.628222,
+      "dispatch_to_terminal_ms": 39.372826,
+      "source_to_terminal_ms": 19.744604,
+      "case": "concurrent_notification",
+      "iteration": 22
+    },
+    {
+      "dispatch_id": 1000026,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536129856532,
+      "source_observed_at_monotonic_ns": 198536148956655,
+      "terminal_observed_at_monotonic_ns": 198536169582016,
+      "dispatch_to_source_ms": 19.100123,
+      "dispatch_to_terminal_ms": 39.725484,
+      "source_to_terminal_ms": 20.625361,
+      "case": "concurrent_main",
+      "iteration": 23
+    },
+    {
+      "dispatch_id": 1000026,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536129761056,
+      "source_observed_at_monotonic_ns": 198536148856143,
+      "terminal_observed_at_monotonic_ns": 198536169166068,
+      "dispatch_to_source_ms": 19.095087,
+      "dispatch_to_terminal_ms": 39.405012,
+      "source_to_terminal_ms": 20.309925,
+      "case": "concurrent_notification",
+      "iteration": 23
+    },
+    {
+      "dispatch_id": 1000027,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536170139856,
+      "source_observed_at_monotonic_ns": 198536190510037,
+      "terminal_observed_at_monotonic_ns": 198536211005929,
+      "dispatch_to_source_ms": 20.370181,
+      "dispatch_to_terminal_ms": 40.866073,
+      "source_to_terminal_ms": 20.495892,
+      "case": "concurrent_main",
+      "iteration": 24
+    },
+    {
+      "dispatch_id": 1000027,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536170014150,
+      "source_observed_at_monotonic_ns": 198536190764213,
+      "terminal_observed_at_monotonic_ns": 198536211171824,
+      "dispatch_to_source_ms": 20.750063,
+      "dispatch_to_terminal_ms": 41.157674,
+      "source_to_terminal_ms": 20.407611,
+      "case": "concurrent_notification",
+      "iteration": 24
+    },
+    {
+      "dispatch_id": 1000028,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536211692475,
+      "source_observed_at_monotonic_ns": 198536229392411,
+      "terminal_observed_at_monotonic_ns": 198536246223523,
+      "dispatch_to_source_ms": 17.699936,
+      "dispatch_to_terminal_ms": 34.531048,
+      "source_to_terminal_ms": 16.831112,
+      "case": "concurrent_main",
+      "iteration": 25
+    },
+    {
+      "dispatch_id": 1000028,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536211666989,
+      "source_observed_at_monotonic_ns": 198536229789076,
+      "terminal_observed_at_monotonic_ns": 198536246251318,
+      "dispatch_to_source_ms": 18.122087,
+      "dispatch_to_terminal_ms": 34.584329,
+      "source_to_terminal_ms": 16.462242,
+      "case": "concurrent_notification",
+      "iteration": 25
+    },
+    {
+      "dispatch_id": 1000029,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536247001529,
+      "source_observed_at_monotonic_ns": 198536267530039,
+      "terminal_observed_at_monotonic_ns": 198536287876210,
+      "dispatch_to_source_ms": 20.52851,
+      "dispatch_to_terminal_ms": 40.874681,
+      "source_to_terminal_ms": 20.346171,
+      "case": "concurrent_main",
+      "iteration": 26
+    },
+    {
+      "dispatch_id": 1000029,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536247135017,
+      "source_observed_at_monotonic_ns": 198536267423208,
+      "terminal_observed_at_monotonic_ns": 198536287414134,
+      "dispatch_to_source_ms": 20.288191,
+      "dispatch_to_terminal_ms": 40.279117,
+      "source_to_terminal_ms": 19.990926,
+      "case": "concurrent_notification",
+      "iteration": 26
+    },
+    {
+      "dispatch_id": 1000030,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536288328361,
+      "source_observed_at_monotonic_ns": 198536319219291,
+      "terminal_observed_at_monotonic_ns": 198536338876001,
+      "dispatch_to_source_ms": 30.89093,
+      "dispatch_to_terminal_ms": 50.54764,
+      "source_to_terminal_ms": 19.65671,
+      "case": "concurrent_main",
+      "iteration": 27
+    },
+    {
+      "dispatch_id": 1000030,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536288419446,
+      "source_observed_at_monotonic_ns": 198536319458406,
+      "terminal_observed_at_monotonic_ns": 198536338377669,
+      "dispatch_to_source_ms": 31.03896,
+      "dispatch_to_terminal_ms": 49.958223,
+      "source_to_terminal_ms": 18.919263,
+      "case": "concurrent_notification",
+      "iteration": 27
+    },
+    {
+      "dispatch_id": 1000031,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536339593272,
+      "source_observed_at_monotonic_ns": 198536358957238,
+      "terminal_observed_at_monotonic_ns": 198536379339775,
+      "dispatch_to_source_ms": 19.363966,
+      "dispatch_to_terminal_ms": 39.746503,
+      "source_to_terminal_ms": 20.382537,
+      "case": "concurrent_main",
+      "iteration": 28
+    },
+    {
+      "dispatch_id": 1000031,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536339611586,
+      "source_observed_at_monotonic_ns": 198536359139146,
+      "terminal_observed_at_monotonic_ns": 198536379063181,
+      "dispatch_to_source_ms": 19.52756,
+      "dispatch_to_terminal_ms": 39.451595,
+      "source_to_terminal_ms": 19.924035,
+      "case": "concurrent_notification",
+      "iteration": 28
+    },
+    {
+      "dispatch_id": 1000032,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536380085409,
+      "source_observed_at_monotonic_ns": 198536399391354,
+      "terminal_observed_at_monotonic_ns": 198536418702674,
+      "dispatch_to_source_ms": 19.305945,
+      "dispatch_to_terminal_ms": 38.617265,
+      "source_to_terminal_ms": 19.31132,
+      "case": "concurrent_main",
+      "iteration": 29
+    },
+    {
+      "dispatch_id": 1000032,
+      "engine_id": "dectalk",
+      "actual_voice": {
+        "engine_id": "dectalk",
+        "voice_id": "paul"
+      },
+      "status": "completed",
+      "sent_at_monotonic_ns": 198536379943353,
+      "source_observed_at_monotonic_ns": 198536399028771,
+      "terminal_observed_at_monotonic_ns": 198536419293745,
+      "dispatch_to_source_ms": 19.085418,
+      "dispatch_to_terminal_ms": 39.350392,
+      "source_to_terminal_ms": 20.264974,
+      "case": "concurrent_notification",
+      "iteration": 29
+    }
+  ]
+}

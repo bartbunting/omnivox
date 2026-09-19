@@ -8,6 +8,9 @@ matching directory under `data/` containing the unmodified JSON reports and a
 
 Recorded baselines:
 
+- [2026-09-20 Windows x64 progressive resampler reuse](2026-09-20-progressive-resampler-reuse.md)
+  compares repeated speech before and after bounded filter reuse, and records
+  the compiler difference that confounded the earlier release comparison.
 - [2026-09-03 Windows x64 null-output pre-optimization baseline](2026-09-03-windows-x64-null-f7204ac69b6010f1.md)
   covers all eight configured physical engines with exact representative
   voices, randomized order, and no audible playback.
