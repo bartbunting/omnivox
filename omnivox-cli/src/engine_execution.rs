@@ -1,7 +1,7 @@
 //! Generation-aware isolation for native synthesis calls that cannot be preempted.
 
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -64,6 +64,8 @@ impl SynthesisStreamSink for IsolatedStreamRelay {
 pub struct IsolationBudget {
     in_flight: AtomicUsize,
     quarantined: AtomicUsize,
+    availability: Mutex<()>,
+    released: Condvar,
 }
 
 enum IsolationPressure {
@@ -76,6 +78,8 @@ impl IsolationBudget {
         Self {
             in_flight: AtomicUsize::new(0),
             quarantined: AtomicUsize::new(0),
+            availability: Mutex::new(()),
+            released: Condvar::new(),
         }
     }
 
@@ -150,11 +154,15 @@ struct IsolationLeaseInner {
 
 impl Drop for IsolationLeaseInner {
     fn drop(&mut self) {
+        // Pair slot publication with admission's check-and-wait lock so a
+        // finishing native call cannot disappear between checking and sleeping.
+        let _availability = self.budget.availability.lock().unwrap();
         if self.quarantined.load(Ordering::Acquire) {
             self.budget.quarantined.fetch_sub(1, Ordering::AcqRel);
         }
         self.budget.in_flight.fetch_sub(1, Ordering::AcqRel);
         self.engine_active.store(false, Ordering::Release);
+        self.budget.released.notify_all();
     }
 }
 
@@ -215,6 +223,7 @@ impl IsolatedTtsEngine {
         cancellation: Option<&SynthesisCancellationToken>,
     ) -> Result<IsolationLease, TtsError> {
         let deadline = Instant::now() + TRANSIENT_ENGINE_WAIT;
+        let mut availability = self.budget.availability.lock().unwrap();
         loop {
             let pressure = match self.budget.try_acquire(&self.engine_active) {
                 Ok(lease) => return Ok(lease),
@@ -241,7 +250,15 @@ impl IsolatedTtsEngine {
                 }
                 return Err(TtsError::NotAvailable);
             }
-            thread::sleep(CANCELLATION_POLL_INTERVAL);
+            // Wake as soon as either this engine or the process budget is
+            // released. The timeout still bounds cancellation observation when
+            // a native call remains blocked; it is no longer a readiness delay.
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            (availability, _) = self
+                .budget
+                .released
+                .wait_timeout(availability, CANCELLATION_POLL_INTERVAL.min(remaining))
+                .unwrap();
         }
     }
 }
@@ -829,6 +846,71 @@ mod tests {
             assert!(Instant::now() < deadline, "isolation slot was not released");
             thread::yield_now();
         }
+    }
+
+    #[test]
+    fn last_native_owner_wakes_waiters_after_publishing_available_capacity() {
+        let budget = Arc::new(IsolationBudget::new());
+        let active = Arc::new(AtomicBool::new(false));
+        let lease = budget.try_acquire(&active).ok().unwrap();
+        let native_owner = lease.clone();
+        lease.mark_quarantined();
+        drop(lease);
+        assert_eq!(budget.in_flight(), 1);
+        assert_eq!(budget.quarantined(), 1);
+        assert!(active.load(Ordering::Acquire));
+
+        // Hold the check-and-wait lock until the releaser is running. A long
+        // timeout makes this a notification check, not a scheduler speed test.
+        let available = budget.availability.lock().unwrap();
+        let (ready_tx, ready_rx) = mpsc::channel();
+        let releaser = thread::spawn(move || {
+            ready_tx.send(()).unwrap();
+            drop(native_owner);
+        });
+        ready_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        let (available, timeout) = budget
+            .released
+            .wait_timeout_while(available, Duration::from_secs(2), |_| {
+                budget.in_flight() != 0
+            })
+            .unwrap();
+        assert!(
+            !timeout.timed_out(),
+            "native release did not wake admission"
+        );
+        assert_eq!(budget.quarantined(), 0);
+        assert!(!active.load(Ordering::Acquire));
+        drop(available);
+        releaser.join().unwrap();
+        assert!(budget.try_acquire(&active).is_ok());
+    }
+
+    #[test]
+    fn waiting_admission_observes_cancellation_without_releasing_native_owner() {
+        let generation = Arc::new(AtomicU64::new(1));
+        let budget = Arc::new(IsolationBudget::new());
+        let native = Arc::new(BlockingEngine::new("occupied"));
+        let engine = isolated(Arc::clone(&native), generation, Arc::clone(&budget));
+        let lease = budget.try_acquire(&engine.engine_active).ok().unwrap();
+        let cancellation = SynthesisCancellationToken::new();
+        let request = request().with_cancellation(cancellation.clone());
+        let (ready_tx, ready_rx) = mpsc::channel();
+        let caller = Arc::clone(&engine);
+        let waiter = thread::spawn(move || {
+            ready_tx.send(()).unwrap();
+            caller.synthesize(&request)
+        });
+        ready_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        cancellation.cancel();
+        assert!(matches!(
+            waiter.join().unwrap(),
+            Err(TtsError::SynthesisFailed(_))
+        ));
+        assert_eq!(native.state.lock().unwrap().started, 0);
+        assert_eq!(budget.in_flight(), 1);
+        drop(lease);
+        assert_eq!(budget.in_flight(), 0);
     }
 
     struct SignallingSink {
