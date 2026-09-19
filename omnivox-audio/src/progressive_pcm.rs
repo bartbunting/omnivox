@@ -3,6 +3,7 @@
 use rubato::{
     Resampler, SincFixedIn, SincInterpolationParameters, SincInterpolationType, WindowFunction,
 };
+use std::sync::Mutex;
 
 use crate::buffer::{CHANNELS, SAMPLE_RATE};
 use crate::{AudioBuffer, AudioError};
@@ -10,6 +11,54 @@ use crate::{AudioBuffer, AudioError};
 /// Native input frames retained between progressive conversion calls.
 const INPUT_WINDOW_FRAMES: usize = 512;
 const SINC_LENGTH: usize = 256;
+
+// Building the sinc table can cost several milliseconds per utterance. Retain
+// at most four idle filters (roughly 1 MiB of sinc tables), keyed by exact native
+// format. Checked-out filters remain exclusively owned by their utterance.
+const MAX_IDLE_RESAMPLERS: usize = 4;
+static IDLE_RESAMPLERS: Mutex<Vec<IdleResampler>> = Mutex::new(Vec::new());
+
+struct IdleResampler {
+    sample_rate: u32,
+    channels: u16,
+    resampler: SincFixedIn<f32>,
+}
+
+impl IdleResampler {
+    fn reset(sample_rate: u32, channels: u16, mut resampler: SincFixedIn<f32>) -> Self {
+        // Clear history even when the previous utterance was cancelled before
+        // finish. Keep this work outside the cache lock.
+        resampler.reset();
+        Self {
+            sample_rate,
+            channels,
+            resampler,
+        }
+    }
+}
+
+fn take_idle_resampler(
+    cache: &Mutex<Vec<IdleResampler>>,
+    sample_rate: u32,
+    channels: u16,
+) -> Option<SincFixedIn<f32>> {
+    let mut idle = cache.lock().ok()?;
+    let index = idle
+        .iter()
+        .rposition(|entry| entry.sample_rate == sample_rate && entry.channels == channels)?;
+    Some(idle.remove(index).resampler)
+}
+
+fn retain_idle_resampler(cache: &Mutex<Vec<IdleResampler>>, entry: IdleResampler) {
+    // Cache failure must not turn a successful synthesis into a failure.
+    let Ok(mut idle) = cache.lock() else {
+        return;
+    };
+    let evicted = (idle.len() == MAX_IDLE_RESAMPLERS).then(|| idle.remove(0));
+    idle.push(entry);
+    drop(idle);
+    drop(evicted);
+}
 
 /// Stateful, bounded conversion from native mono/stereo PCM to Omnivox's
 /// 44.1 kHz stereo playback format.
@@ -34,21 +83,12 @@ impl ProgressivePcmCanonicalizer {
         validate_format(source_sample_rate, source_channels)?;
         let resampler = if source_sample_rate == SAMPLE_RATE {
             None
+        } else if let Some(resampler) =
+            take_idle_resampler(&IDLE_RESAMPLERS, source_sample_rate, source_channels)
+        {
+            Some(resampler)
         } else {
-            Some(
-                SincFixedIn::<f32>::new(
-                    SAMPLE_RATE as f64 / source_sample_rate as f64,
-                    2.0,
-                    sinc_parameters(),
-                    INPUT_WINDOW_FRAMES,
-                    source_channels as usize,
-                )
-                .map_err(|error| {
-                    AudioError::InvalidFormat(format!(
-                        "could not create progressive resampler: {error}"
-                    ))
-                })?,
-            )
+            Some(new_resampler(source_sample_rate, source_channels)?)
         };
         let output_delay_remaining = resampler.as_ref().map_or(0, Resampler::output_delay);
         Ok(Self {
@@ -302,6 +342,17 @@ impl ProgressivePcmCanonicalizer {
     }
 }
 
+impl Drop for ProgressivePcmCanonicalizer {
+    fn drop(&mut self) {
+        if let Some(resampler) = self.resampler.take() {
+            retain_idle_resampler(
+                &IDLE_RESAMPLERS,
+                IdleResampler::reset(self.source_sample_rate, self.source_channels, resampler),
+            );
+        }
+    }
+}
+
 fn validate_format(sample_rate: u32, channels: u16) -> Result<(), AudioError> {
     if sample_rate == 0 {
         return Err(AudioError::InvalidFormat(
@@ -324,6 +375,19 @@ fn sinc_parameters() -> SincInterpolationParameters {
         oversampling_factor: 256,
         window: WindowFunction::BlackmanHarris2,
     }
+}
+
+fn new_resampler(sample_rate: u32, channels: u16) -> Result<SincFixedIn<f32>, AudioError> {
+    SincFixedIn::new(
+        SAMPLE_RATE as f64 / sample_rate as f64,
+        2.0,
+        sinc_parameters(),
+        INPUT_WINDOW_FRAMES,
+        channels as usize,
+    )
+    .map_err(|error| {
+        AudioError::InvalidFormat(format!("could not create progressive resampler: {error}"))
+    })
 }
 
 fn resampling_error(error: rubato::ResampleError) -> AudioError {
@@ -442,5 +506,73 @@ mod tests {
         converter.finish().unwrap();
         assert!(converter.push_interleaved_f32(&[0.0, 0.0]).is_err());
         assert!(converter.finish().is_err());
+    }
+
+    #[test]
+    fn reused_filter_matches_fresh_pcm_after_completion_or_cancellation() {
+        for rate in [11_025, 22_050, 48_000] {
+            for channels in [1, 2] {
+                for completed in [false, true] {
+                    let cache = Mutex::new(Vec::new());
+                    let mut previous = ProgressivePcmCanonicalizer::new(rate, channels).unwrap();
+                    previous
+                        .push_interleaved_f32(&vec![0.75; 1_337 * channels as usize])
+                        .unwrap();
+                    if completed {
+                        previous.finish().unwrap();
+                    }
+                    retain_idle_resampler(
+                        &cache,
+                        IdleResampler::reset(rate, channels, previous.resampler.take().unwrap()),
+                    );
+                    let mut reused = ProgressivePcmCanonicalizer::new(rate, channels).unwrap();
+                    reused.resampler = take_idle_resampler(&cache, rate, channels);
+                    assert!(reused.resampler.is_some());
+                    // A second active utterance cannot borrow the same filter.
+                    assert!(take_idle_resampler(&cache, rate, channels).is_none());
+
+                    let mut fresh = ProgressivePcmCanonicalizer::new(rate, channels).unwrap();
+                    fresh.resampler = Some(new_resampler(rate, channels).unwrap());
+                    let input = (0..1_337 * channels as usize)
+                        .map(|index| if index % 17 == 0 { -0.25 } else { 0.0 })
+                        .collect::<Vec<_>>();
+                    let render = |converter: &mut ProgressivePcmCanonicalizer| {
+                        let mut output = Vec::new();
+                        for samples in input.chunks(37 * channels as usize) {
+                            for buffer in converter.push_interleaved_f32(samples).unwrap() {
+                                output.extend(buffer.samples);
+                            }
+                        }
+                        for buffer in converter.finish().unwrap() {
+                            output.extend(buffer.samples);
+                        }
+                        output
+                    };
+                    assert_eq!(render(&mut reused), render(&mut fresh));
+                    assert_eq!(reused.output_frames(), fresh.output_frames());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn idle_filters_require_exact_format_and_have_a_fixed_limit() {
+        let cache = Mutex::new(Vec::new());
+        for index in 0..=MAX_IDLE_RESAMPLERS {
+            let rate = 16_000 + index as u32;
+            let mut converter = ProgressivePcmCanonicalizer::new(rate, 1).unwrap();
+            retain_idle_resampler(
+                &cache,
+                IdleResampler::reset(rate, 1, converter.resampler.take().unwrap()),
+            );
+        }
+        assert_eq!(cache.lock().unwrap().len(), MAX_IDLE_RESAMPLERS);
+        assert!(take_idle_resampler(&cache, 16_000, 1).is_none());
+        assert!(take_idle_resampler(&cache, 16_001, 2).is_none());
+        assert!(take_idle_resampler(&cache, 22_050, 1).is_none());
+        for index in 1..=MAX_IDLE_RESAMPLERS {
+            assert!(take_idle_resampler(&cache, 16_000 + index as u32, 1).is_some());
+        }
+        assert!(cache.lock().unwrap().is_empty());
     }
 }

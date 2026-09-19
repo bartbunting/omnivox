@@ -88,6 +88,10 @@ Versioning for published releases.
 
 ### Fixed
 
+- Reuse up to four idle progressive PCM resamplers to avoid rebuilding sinc
+  filters for each utterance. Filters match the exact sample rate and channel
+  count and clear their history before reuse, including after cancellation.
+
 - Ordinary speech starts with available fallback engines when a managed engine
   lacks compiled support, a helper or valid runtime resources. Failed providers
   remain visibly unavailable; exact auditions, asset checks, voice exclusions
