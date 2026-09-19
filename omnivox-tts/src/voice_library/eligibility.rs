@@ -254,6 +254,37 @@ impl TtsEngine for EligibleEngine {
         self.engine.parameter_cache_epoch()
     }
 
+    fn explain_voice_parameters(
+        &self,
+        source: crate::helper_protocol::parameters::ExplanationSource,
+    ) -> Result<
+        crate::helper_protocol::parameters::ExplanationResult,
+        crate::engine_parameters::CatalogueError,
+    > {
+        use crate::helper_protocol::parameters::{
+            ExplanationResult, ExplanationSource, ExplanationUnavailable,
+        };
+        crate::voice_explanation::validate_helper_source(&source)
+            .map_err(crate::engine_parameters::CatalogueError::Invalid)?;
+        let excluded_voice = match &source {
+            ExplanationSource::Draft { settings, .. } => {
+                settings.voice_id.as_ref().is_some_and(|id| {
+                    !self
+                        .policy
+                        .permits(&PhysicalVoiceId::new(&self.engine_id, id))
+                })
+            }
+            ExplanationSource::Applied { .. } => false,
+        };
+        if self.policy.excludes_provider(&self.engine_id) || excluded_voice {
+            return Ok(ExplanationResult::Unavailable {
+                reason: ExplanationUnavailable::VoiceUnavailable,
+                message: EXCLUDED.into(),
+            });
+        }
+        self.engine.explain_voice_parameters(source)
+    }
+
     fn engine_parameters(
         &self,
         query: crate::engine_parameters::CatalogueQuery,

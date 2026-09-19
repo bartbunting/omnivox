@@ -87,6 +87,7 @@ impl VoiceObservations {
                     &attempt.native_runtime,
                     &attempt.resolution.realized,
                     application,
+                    attempt.choice_id.as_deref(),
                 )
             })
         });

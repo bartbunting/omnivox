@@ -29,6 +29,7 @@ pub mod timeline_protocol;
 pub mod timeline_v4;
 pub mod timeline_v5;
 pub mod voice_choices;
+pub mod voice_explanation;
 pub mod voice_library;
 pub mod voice_preview_v2;
 pub mod voice_preview_v3;
@@ -137,6 +138,23 @@ pub trait TtsEngine: Send + Sync {
             engine_parameters::CatalogueUnavailable::NotDescribed,
             "This engine does not describe native voice parameters",
         ))
+    }
+
+    /// Explain current-worker settings or retained evidence without synthesis,
+    /// model loading, recovery or reconnection.
+    fn explain_voice_parameters(
+        &self,
+        source: helper_protocol::parameters::ExplanationSource,
+    ) -> Result<helper_protocol::parameters::ExplanationResult, engine_parameters::CatalogueError>
+    {
+        voice_explanation::validate_helper_source(&source)
+            .map_err(engine_parameters::CatalogueError::Invalid)?;
+        Ok(
+            helper_protocol::parameters::ExplanationResult::Unavailable {
+                reason: helper_protocol::parameters::ExplanationUnavailable::NativeUnavailable,
+                message: "This engine does not explain native voice parameters".into(),
+            },
+        )
     }
 
     /// Prepare an engine for a circuit-breaker recovery probe.

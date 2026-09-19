@@ -6,8 +6,8 @@ The [JSON fixtures](protocol-fixtures/engine-voice-parameters.json) are independ
 examples for codecs and composition. The typed metadata and pure planner now
 consume the parameter and composition examples. Public catalogue discovery is
 implemented, as are v3 registration and ordinary timeline-5 speech with marker-4
-receipts. Strict native previews are also implemented; explanations and editing
-remain reserved. The
+receipts. Strict native previews and read-only draft/applied explanations are also
+implemented; editing remains reserved. The
 [native audit](benchmarks/2026-09-17-native-voice-parameters.md) does not replace
 the remaining execution and cancellation tests.
 
@@ -85,8 +85,7 @@ they never connect a deferred helper or restart one to obtain metadata.
 Public [read-only catalogue discovery](benchmarks/2026-09-18-public-parameter-catalogues.md)
 now reaches those current-worker queries
 through the `engine_parameter_catalogue_v1` capability. Admission and replies are
-bounded independently of the speech command thread. Native explanation
-operations and the Emacs editor remain next.
+bounded independently of the speech command thread. Native explanations are connected below; the Emacs editor remains next.
 Adapter integration must preserve the old common path, including its existing clamps; native edit ranges are separately
 qualified and must not silently recalibrate common controls.
 
@@ -97,7 +96,8 @@ unavailable settings, and prepares the actual selected choice with its common
 context and runtime identity. Registration performs no engine I/O. Older speech
 paths reject these definitions instead of discarding native settings. Native
 timelines, public playback evidence and private previews are connected below;
-explanations and editing remain pending. The native execution bundle is not advertised.
+explanations are connected below and editing remains pending. The native execution
+bundle is not advertised.
 
 Internal [routed native execution](benchmarks/2026-09-18-native-routed-execution.md)
 now prepares and executes each actual choice through the shared buffered or
@@ -114,7 +114,8 @@ replacement invalidates their qualification. Entry and encoded-content budgets
 bound retention. Cached metadata stays usable during ordinary speech, while
 native execution still validates the actual runtime identity. Public native
 speech request codecs and playback/preview evidence are connected below;
-explanations and client integration remain before this path is available to Emacs.
+explanations are connected below; client integration remains before this path is
+available to Emacs.
 
 Public [v3 registration](benchmarks/2026-09-18-public-native-registration.md)
 now accepts mixed legacy, layered and engine-layered definitions against the
@@ -130,8 +131,9 @@ freezes cached catalogue metadata alongside the logical registry. Marker 4
 reports the actual choice and native application only at the first consumed
 frame; helper preparation alone does not publish playback evidence. Applied
 plan IDs are bounded, connection-owned references tied to the runtime observed
-before synthesis. Strict previews are connected below; explanations and the
-Emacs editor remain pending, so the complete native bundle is still unadvertised.
+before synthesis. Strict previews and explanations are connected below; the Emacs editor and final
+integration acceptance remain pending, so the complete native bundle is still
+unadvertised.
 
 [Strict native previews](benchmarks/2026-09-18-native-previews.md) now accept
 `preview_voice_v3` and return `preview_voice_completed_v3`. Private admission
@@ -342,6 +344,16 @@ their original request shapes. Optional new exports do not become requirements
 for old speech.
 
 ## Explanation and receipts
+
+The public explanation operation is implemented. Its
+[verification report](benchmarks/2026-09-18-public-native-explanations.md)
+records read-only execution, bounded admission and retained evidence checks.
+Draft preparation reuses strict private-choice admission and composition without
+text/repertoire routing or synthesis. Applied queries resolve only a retained
+connection-owned reference, including its frozen choice, voice, catalogue identity
+and worker epoch. Both share the catalogue query's single active slot and deadline;
+late or mismatched replies cannot become ready evidence. No new capability bundle
+is advertised by this slice.
 
 `explain_voice_parameters_v1` has required `source`, discriminated by `mode`:
 

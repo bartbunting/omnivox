@@ -515,6 +515,27 @@ impl TtsEngine for IsolatedTtsEngine {
         self.engine.parameter_cache_epoch()
     }
 
+    fn explain_voice_parameters(
+        &self,
+        source: omnivox_tts::helper_protocol::parameters::ExplanationSource,
+    ) -> Result<
+        omnivox_tts::helper_protocol::parameters::ExplanationResult,
+        omnivox_tts::engine_parameters::CatalogueError,
+    > {
+        omnivox_tts::voice_explanation::validate_helper_source(&source)
+            .map_err(omnivox_tts::engine_parameters::CatalogueError::Invalid)?;
+        if self.engine_active.load(Ordering::Acquire)
+            || self.recover_before_next_call.load(Ordering::Acquire)
+        {
+            return Ok(
+                omnivox_tts::helper_protocol::parameters::ExplanationResult::Busy {
+                    retry_after_ms: 50,
+                },
+            );
+        }
+        self.engine.explain_voice_parameters(source)
+    }
+
     fn engine_parameters(
         &self,
         query: omnivox_tts::engine_parameters::CatalogueQuery,
@@ -850,6 +871,16 @@ mod tests {
         });
 
         native.wait_for_started(1);
+        assert!(matches!(
+            engine
+                .explain_voice_parameters(
+                    omnivox_tts::helper_protocol::parameters::ExplanationSource::Applied {
+                        plan_id: "retained-plan".into()
+                    }
+                )
+                .unwrap(),
+            omnivox_tts::helper_protocol::parameters::ExplanationResult::Busy { .. }
+        ));
         // A live query is busy, but cached metadata remains qualified during speech.
         assert_eq!(engine.parameter_cache_epoch(), Some(7));
         assert!(matches!(

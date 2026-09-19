@@ -17,6 +17,7 @@ use omnivox_tts::helper_protocol::parameters;
 use omnivox_tts::TtsEngine;
 
 mod cache;
+mod explanations;
 use cache::CatalogueCache;
 
 const QUERY_DEADLINE: Duration = Duration::from_secs(1);
@@ -28,6 +29,7 @@ pub(crate) struct ParameterQueries {
     report: Reporter,
     deadline: Duration,
     cache: Arc<Mutex<CatalogueCache>>,
+    plans: Arc<crate::native_plans::NativePlanReferences>,
 }
 
 // Admission remains occupied until BOTH the query and its deadline reporter exit.
@@ -52,7 +54,16 @@ impl ParameterQueries {
             report: Arc::new(crate::server::write_control_response),
             deadline: QUERY_DEADLINE,
             cache: Arc::new(Mutex::new(CatalogueCache::default())),
+            plans: Arc::new(crate::native_plans::NativePlanReferences::default()),
         }
+    }
+
+    pub(crate) fn with_native_plans(
+        mut self,
+        plans: Arc<crate::native_plans::NativePlanReferences>,
+    ) -> Self {
+        self.plans = plans;
+        self
     }
 
     /// Complete runtime-qualified catalogues for native admission. Contention and

@@ -2065,6 +2065,34 @@ impl TtsEngine for HelperTtsEngine {
         )
     }
 
+    fn explain_voice_parameters(
+        &self,
+        source: parameters::ExplanationSource,
+    ) -> Result<parameters::ExplanationResult, crate::engine_parameters::CatalogueError> {
+        crate::voice_explanation::validate_helper_source(&source)
+            .map_err(crate::engine_parameters::CatalogueError::Invalid)?;
+        let applied = matches!(&source, parameters::ExplanationSource::Applied { .. });
+        match self.explain_parameters(source) {
+            Ok(result) => Ok(result),
+            Err(HelperEngineError::Remote {
+                code: HelperErrorCode::InvalidParameter,
+                message,
+                ..
+            }) => Err(crate::engine_parameters::CatalogueError::Invalid(message)),
+            Err(error) => {
+                warn!(%error, "Native parameter explanation unavailable");
+                Ok(parameters::ExplanationResult::Unavailable {
+                    reason: if applied {
+                        parameters::ExplanationUnavailable::PlanExpired
+                    } else {
+                        parameters::ExplanationUnavailable::NativeUnavailable
+                    },
+                    message: "The current helper could not return a parameter explanation".into(),
+                })
+            }
+        }
+    }
+
     fn engine_parameters(
         &self,
         query: crate::engine_parameters::CatalogueQuery,

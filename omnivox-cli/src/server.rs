@@ -1212,7 +1212,7 @@ fn tracked_status_name(status: BatchStatus) -> &'static str {
 
 /// Worker thread: receive `SynthRequest`s and synthesize them one at a time.
 #[allow(clippy::too_many_arguments)]
-pub fn synthesis_worker(
+pub(crate) fn synthesis_worker(
     rx: WorkQueueReceiver<SynthRequest>,
     gen_counter: Arc<AtomicU64>,
     engine: Arc<dyn TtsEngine>,
@@ -1222,8 +1222,8 @@ pub fn synthesis_worker(
     loader: AudioFileLoader,
     tracked_playback_tx: mpsc::SyncSender<TrackedPlayback>,
     marker_output: MarkerEventOutput,
+    native_plans: Arc<crate::native_plans::NativePlanReferences>,
 ) {
-    let native_plans = Arc::new(crate::native_plans::NativePlanReferences::default());
     while let Some(request) = rx.recv() {
         let request_kind = request.diagnostic_kind();
         let request_identifier = request.diagnostic_identifier();
@@ -1819,7 +1819,7 @@ fn read_bounded_protocol_line<R: BufRead>(
 /// Does not own `AudioStreams` — the caller keeps the selected output runtime
 /// alive until reader and worker shutdown complete.
 #[allow(clippy::too_many_arguments)]
-pub fn run_server(
+pub(crate) fn run_server(
     engine: Arc<dyn TtsEngine>,
     engine_registry: Arc<EngineRegistry>,
     runtime_health: Arc<RuntimeEngineHealth>,
@@ -1830,8 +1830,10 @@ pub fn run_server(
     worker_handle: std::thread::JoinHandle<()>,
     tracked_playback_handle: std::thread::JoinHandle<()>,
     marker_event_handle: std::thread::JoinHandle<()>,
+    native_plans: Arc<crate::native_plans::NativePlanReferences>,
 ) -> Result<()> {
-    let parameter_queries = crate::parameter_queries::ParameterQueries::new();
+    let parameter_queries =
+        crate::parameter_queries::ParameterQueries::new().with_native_plans(native_plans);
     let mut pending = PendingBatch::default();
     let mut current_gen: u64 = 0;
     let mut logical_voices = LogicalVoiceRegistry::default();
@@ -2710,13 +2712,13 @@ struct PreparedVoicePreview {
     disabled_engine_ids: Vec<String>,
 }
 
-struct PreparedChoicePreview {
-    text: String,
-    routing: LogicalVoiceRoutingSnapshot,
-    target: PreviewTarget,
+pub(crate) struct PreparedChoicePreview {
+    pub(crate) text: String,
+    pub(crate) routing: LogicalVoiceRoutingSnapshot,
+    pub(crate) target: PreviewTarget,
 }
 
-fn prepare_voice_preview_v3(
+pub(crate) fn prepare_voice_preview_v3(
     request: omnivox_tts::voice_preview_v3::VoicePreviewRequestV3,
     base_rate: f32,
     engines: &EngineRegistry,
@@ -3322,6 +3324,15 @@ fn handle_command(
                 Some(request)
             });
             match live_request.map(|request| (request.request_id, request.request)) {
+                Some((request_id, ControlRequest::ExplainVoiceParametersV1(request))) => {
+                    parameter_queries.explain(
+                        request_id,
+                        request.source,
+                        state.speech_rate,
+                        engine_registry,
+                        routing_policy,
+                    );
+                }
                 Some((request_id, ControlRequest::PreviewVoiceV3(request))) => {
                     let prepared = if request_id == 0 {
                         Err("native preview requires a positive request ID".into())

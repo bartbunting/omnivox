@@ -198,6 +198,7 @@ fn run_native(
         AudioFileLoader::with_cache(),
         sender,
         output,
+        Arc::new(crate::native_plans::NativePlanReferences::default()),
     );
     tracker.join().unwrap();
     writer.join().unwrap();

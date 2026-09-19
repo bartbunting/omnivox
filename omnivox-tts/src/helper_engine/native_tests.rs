@@ -299,7 +299,7 @@ mod native_parent {
             assert!(!result.audio.samples.is_empty());
             assert_eq!(receipt.status, p::ApplicationStatus::Applied);
             assert!(matches!(
-                engine.explain_parameters(applied(&receipt)).unwrap(),
+                engine.explain_voice_parameters(applied(&receipt)).unwrap(),
                 p::ExplanationResult::Ready {
                     evidence: p::Evidence::AdapterApplied,
                     ..

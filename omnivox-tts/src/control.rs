@@ -66,6 +66,7 @@ pub enum ControlRequest {
     Inventory,
     VoiceLibraryStatusV1,
     GetEngineParametersV1(crate::engine_parameters::CatalogueQuery),
+    ExplainVoiceParametersV1(crate::voice_explanation::ExplanationRequest),
     RegisterLogicalVoices {
         registry_generation: u64,
         definitions: Vec<LogicalVoiceDefinition>,
@@ -198,6 +199,7 @@ pub struct ControlResponseEnvelope {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ControlResponse {
     VoiceLibraryStatusV1(crate::voice_library::VoiceLibraryStatus),
+    VoiceParametersExplainedV1(crate::voice_explanation::ExplanationResponse),
     EngineParametersV1 {
         engine_id: String,
         result: crate::engine_parameters::CatalogueResult,
@@ -352,6 +354,7 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
             | ControlRequest::PreviewVoiceV3(_)
             | ControlRequest::VoiceLibraryStatusV1
             | ControlRequest::GetEngineParametersV1(_)
+            | ControlRequest::ExplainVoiceParametersV1(_)
     ) {
         // Legacy definitions inside a new envelope may accept extension keys,
         // but no key in the new message may occur twice.
@@ -374,6 +377,14 @@ pub fn decode_response(payload: &str) -> Result<ControlResponseEnvelope, Control
         serde_json::from_slice::<DuplicateFreeJson>(&bytes)
             .map_err(ControlCodecError::InvalidJson)?;
         preview
+            .validate()
+            .map_err(|message| ControlCodecError::InvalidJson(serde::de::Error::custom(message)))?;
+    }
+    if let ControlResponse::VoiceParametersExplainedV1(explanation) = &response.response {
+        serde_json::from_slice::<DuplicateFreeJson>(&decode_bytes(payload)?)
+            .map_err(ControlCodecError::InvalidJson)?;
+        explanation
+            .result
             .validate()
             .map_err(|message| ControlCodecError::InvalidJson(serde::de::Error::custom(message)))?;
     }
@@ -667,6 +678,7 @@ pub fn process_control_request_with_parameters(
                 ),
             },
             ControlRequest::GetEngineParametersV1(_)
+            | ControlRequest::ExplainVoiceParametersV1(_)
             | ControlRequest::Preview { .. }
             | ControlRequest::PreviewVoice(_)
             | ControlRequest::PreviewVoiceV2(_)

@@ -244,7 +244,9 @@ fn main() -> Result<()> {
     let (tracked_playback_tx, tracked_playback_handle) =
         spawn_tracked_playback_reporter(marker_output.clone());
 
+    let native_plans = Arc::new(crate::native_plans::NativePlanReferences::default());
     let worker_handle = {
+        let worker_native_plans = native_plans.clone();
         let worker_engine = engine.clone();
         let worker_engine_registry = engine_registry.clone();
         let worker_runtime_health = runtime_health.clone();
@@ -270,6 +272,7 @@ fn main() -> Result<()> {
                         loader,
                         tracked_playback_tx,
                         marker_output,
+                        worker_native_plans,
                     )
                 }));
                 if let Err(payload) = result {
@@ -307,6 +310,7 @@ fn main() -> Result<()> {
                     worker_handle,
                     tracked_playback_handle,
                     marker_event_handle,
+                    native_plans,
                 );
                 *result2.lock().unwrap() = Some(r);
                 omnivox_tts::macos::stop_main_runloop();
@@ -329,6 +333,7 @@ fn main() -> Result<()> {
         worker_handle,
         tracked_playback_handle,
         marker_event_handle,
+        native_plans,
     )
 }
 

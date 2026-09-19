@@ -246,16 +246,16 @@ mod native_timeline_playback {
         };
         let plans = NativePlanReferences::default();
         let first = plans
-            .publish(&runtime, &voice, &application)
+            .publish(&runtime, &voice, &application, Some("choice"))
             .plan_id
             .unwrap();
         assert!(plans.lookup(&first, &engines).is_some());
         for _ in 0..64 {
-            plans.publish(&runtime, &voice, &application);
+            plans.publish(&runtime, &voice, &application, Some("choice"));
         }
         assert!(plans.lookup(&first, &engines).is_none());
         let last = plans
-            .publish(&runtime, &voice, &application)
+            .publish(&runtime, &voice, &application, Some("choice"))
             .plan_id
             .unwrap();
         assert!(plans.lookup(&last, &engines).is_some());
@@ -263,7 +263,7 @@ mod native_timeline_playback {
         assert!(plans.lookup(&last, &engines).is_none());
         // Publishing an old receipt after restart must not rebind it to epoch 2.
         let stale = plans
-            .publish(&runtime, &voice, &application)
+            .publish(&runtime, &voice, &application, Some("choice"))
             .plan_id
             .unwrap();
         assert!(plans.lookup(&stale, &engines).is_none());

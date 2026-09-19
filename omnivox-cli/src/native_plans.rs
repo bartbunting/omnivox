@@ -15,14 +15,14 @@ struct State {
     plans: VecDeque<PlanReference>,
 }
 #[derive(Clone)]
-#[cfg_attr(not(test), allow(dead_code))] // Consumed by the forthcoming applied explanation operation.
 pub(crate) struct PlanReference {
     pub public_id: String,
     pub helper_id: String,
     pub voice: PhysicalVoiceId,
+    pub choice_id: Option<String>,
     pub identity: CatalogueIdentity,
-    owner: Weak<dyn TtsEngine>,
-    epoch: Option<u64>,
+    pub owner: Weak<dyn TtsEngine>,
+    pub epoch: Option<u64>,
 }
 impl NativePlanReferences {
     /// Called on the synthesis side, before audio can be consumed. Compact
@@ -32,6 +32,7 @@ impl NativePlanReferences {
         runtime: &Option<(Weak<dyn TtsEngine>, u64)>,
         voice: &PhysicalVoiceId,
         application: &NativeApplication,
+        choice_id: Option<&str>,
     ) -> NativeApplication {
         let mut application = application.clone();
         if application.status != ApplicationStatus::Applied {
@@ -53,6 +54,7 @@ impl NativePlanReferences {
                 public_id: public_id.clone(),
                 helper_id: helper_id.clone(),
                 voice: voice.clone(),
+                choice_id: choice_id.map(str::to_owned),
                 identity: identity.clone(),
                 owner: owner.clone(),
                 epoch: Some(*epoch),
@@ -64,7 +66,6 @@ impl NativePlanReferences {
         application.plan_id = Some(public_id);
         application
     }
-    #[cfg_attr(not(test), expect(dead_code))]
     pub(crate) fn lookup(&self, id: &str, engines: &EngineRegistry) -> Option<PlanReference> {
         let reference = self
             .0

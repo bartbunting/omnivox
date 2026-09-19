@@ -280,6 +280,7 @@ fn mixed_reader_to_worker_reports_consumed_choices_before_one_terminal_record() 
             AudioFileLoader::with_cache(),
             sender,
             output,
+            Arc::new(crate::native_plans::NativePlanReferences::default()),
         );
         tracker.join().unwrap();
         writer.join().unwrap();

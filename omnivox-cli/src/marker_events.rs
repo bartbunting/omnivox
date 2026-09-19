@@ -658,6 +658,7 @@ impl MarkerDispatchContext {
                             &choice.attempt.native_runtime,
                             &choice.attempt.resolution.realized,
                             application,
+                            choice.attempt.choice_id.as_deref(),
                         ))
                     })
             });

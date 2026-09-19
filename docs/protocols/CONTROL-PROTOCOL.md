@@ -932,6 +932,35 @@ truncation; the independent last-started identity is never truncated. The combin
 choice/native identity is bounded to 48 KiB before PCM acceptance. Serialization,
 validation and plan publication run on the producer, outside audio callbacks.
 
-The native feature bundle remains unadvertised pending its explanation operations
-and final integration acceptance. Explicit development probes can use these
-operations; clients must continue respecting each connection's capabilities.
+The native feature bundle remains unadvertised pending final integration acceptance.
+Explicit development probes can use these operations; clients must continue respecting each connection's capabilities.
+
+
+## Native parameter explanations
+
+`explain_voice_parameters_v1` accepts a required `source`. A `draft` source has
+the native preview fields except text, requires one selected choice, and requires
+nullable `expected_base_rate`. It resolves and composes that private choice without
+synthesis, repertoire admission, registry mutation or activation. This predicts
+settings; it does not establish that the voice will speak particular text.
+
+An `applied` source contains only `plan_id`, obtained from this connection's
+native playback or preview evidence. Lookup uses the recorded choice, physical
+voice, catalogue identity and worker epoch. Missing, evicted or replaced-worker
+plans report `plan_expired`; lookup never synthesizes to reconstruct evidence.
+Current administrative engine exclusions remain authoritative.
+
+`voice_parameters_explained_v1` contains a required `result`. Ready results
+contain `evidence`, nullable `plan_id`, `choice_id`, `realized`, `identity` and
+at most 64 typed `parameters`. Each row reports its value, origin, masking and
+readback status. Planned evidence cannot claim a retained plan or native readback;
+adapter-applied evidence retains the public connection-owned plan ID. Busy and
+unavailable results follow the shapes in the
+[native parameter contract](../engine-voice-parameters.md#explanation-and-receipts).
+New readers reject duplicate keys, unknown fields and malformed evidence.
+
+Explanation queries share the catalogue query's one active slot and one-second
+response deadline. A timed-out adapter retains admission until it exits; retries
+cannot accumulate background workers. Connection closure suppresses late replies.
+These reads neither load voices nor connect, recover, stop or restart helpers.
+The native feature bundle remains unadvertised pending final integration acceptance.
