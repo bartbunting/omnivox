@@ -1,0 +1,139 @@
+[
+  {
+    "name": "final-matched",
+    "command": [
+      "python3",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/measure-letters.py",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/final-matched",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/d214e1ecc77ec84f/omnivox.exe"
+    ],
+    "elapsed_seconds": 28.512737035751343,
+    "exit_code": 0
+  },
+  {
+    "name": "baseline-matched",
+    "command": [
+      "python3",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/measure-letters.py",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/baseline-matched",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/f8b3b04d3243ee76/omnivox.exe"
+    ],
+    "elapsed_seconds": 30.42136859893799,
+    "exit_code": 0
+  },
+  {
+    "name": "baseline-alphabet",
+    "command": [
+      "python3",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/measure-letters.py",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/baseline-alphabet",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/f8b3b04d3243ee76/omnivox.exe",
+      "--letters",
+      "abcdefghijklmnopqrstuvwxyz",
+      "--iterations",
+      "5"
+    ],
+    "elapsed_seconds": 63.28079152107239,
+    "exit_code": 0
+  },
+  {
+    "name": "final-alphabet",
+    "command": [
+      "python3",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/measure-letters.py",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/final-alphabet",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/d214e1ecc77ec84f/omnivox.exe",
+      "--letters",
+      "abcdefghijklmnopqrstuvwxyz",
+      "--iterations",
+      "5"
+    ],
+    "elapsed_seconds": 63.24180603027344,
+    "exit_code": 0
+  },
+  {
+    "name": "final-slow",
+    "command": [
+      "python3",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/measure-letters.py",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/final-slow",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/d214e1ecc77ec84f/omnivox.exe",
+      "--rate",
+      "50",
+      "--iterations",
+      "8",
+      "--gap-ms",
+      "450"
+    ],
+    "elapsed_seconds": 20.702325105667114,
+    "exit_code": 0
+  },
+  {
+    "name": "final-fast",
+    "command": [
+      "python3",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/measure-letters.py",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/final-fast",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/d214e1ecc77ec84f/omnivox.exe",
+      "--rate",
+      "150",
+      "--iterations",
+      "8"
+    ],
+    "elapsed_seconds": 14.144695520401001,
+    "exit_code": 0
+  },
+  {
+    "name": "baseline-eloquence",
+    "command": [
+      "python3",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/measure-letters.py",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/baseline-eloquence",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/f8b3b04d3243ee76/omnivox.exe",
+      "--engine",
+      "eloquence",
+      "--voice",
+      "v1",
+      "--iterations",
+      "8"
+    ],
+    "elapsed_seconds": 14.220962762832642,
+    "exit_code": 0
+  },
+  {
+    "name": "final-eloquence",
+    "command": [
+      "python3",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/measure-letters.py",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/final-eloquence",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/d214e1ecc77ec84f/omnivox.exe",
+      "--engine",
+      "eloquence",
+      "--voice",
+      "v1",
+      "--iterations",
+      "8"
+    ],
+    "elapsed_seconds": 14.198505401611328,
+    "exit_code": 0
+  },
+  {
+    "name": "final-bursts",
+    "command": [
+      "python3",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/measure-bursts.py",
+      "/home/bart/src/emacsvox/.benchmarks/dectalk-letter-buffer-2026-09-20/final-bursts",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/d214e1ecc77ec84f/omnivox.exe"
+    ],
+    "exit_code": 0
+  }
+]

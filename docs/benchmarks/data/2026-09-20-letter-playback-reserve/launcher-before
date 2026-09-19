@@ -1,0 +1,39 @@
+#!/bin/sh
+# Start the normal WSL profile with the verified development runtime and MBROLA prototype.
+set -eu
+
+export EMACS=/home/bart/opt/emacs-31/bin/emacs
+export EMACSVOX_DIR=/home/bart/src/emacsvox
+export TTS_PROGRAM="$EMACSVOX_DIR/servers/omnivox"
+export OMNIVOX_PROGRAM=/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656/omnivox.exe
+# Native controls are qualified against this installed DECtalk build.
+export OMNIVOX_DECTALK_DLL="C:/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/DECtalk.dll"
+export ESPEAK_NG_DATA=C:/Users/bart/AppData/Local/Emacsvox/Omnivox/espeak-data/9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718
+
+# Explicit development opt-in; keep the complete prototype on the Windows drive.
+export OMNIVOX_MBROLA_HELPER="${OMNIVOX_MBROLA_HELPER-C:/Users/bart/AppData/Local/Emacsvox/Omnivox/prototypes/mbrola-library-2efed923daa1900c/omnivox-mbrola-helper.exe}"
+
+# Exercise the same runtime selection as the desktop launcher, using private workers.
+if [ "${1-}" = --check-native-controls ]; then
+    export EMACSVOX_NATIVE_TEST_SERVER="$TTS_PROGRAM"
+    exec "$EMACS" -Q --batch -L "$EMACSVOX_DIR/lisp" -L "$EMACSVOX_DIR/test" \
+        -l "$EMACSVOX_DIR/test/verify-omnivox-native-runtime.el"
+fi
+
+if [ "${1-}" = --benchmark-voices ]; then
+    shift
+    exec python3 "$EMACSVOX_DIR/utils/voice_benchmark.py" "$@"
+fi
+
+if [ "${1-}" = --diagnose ]; then
+    shift
+    exec "$EMACSVOX_DIR/bin/emacsvox" --diagnose "$@"
+fi
+
+umask 077
+launch_log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/emacsvox/development-launcher"
+mkdir -p "$launch_log_dir"
+launch_log=$(mktemp "$launch_log_dir/startup.XXXXXXXX.log")
+exec /home/bart/bin/evox --name emacsvox-development \
+    --eval '(setq frame-title-format (quote ("Emacsvox Development — " (:eval (buffer-name)))))' \
+    "$@" >"$launch_log" 2>&1

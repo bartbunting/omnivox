@@ -1,0 +1,257 @@
+diff --git a/omnivox-cli/src/mixed_timeline_tests.rs b/omnivox-cli/src/mixed_timeline_tests.rs
+index 06abe72..1ea80a7 100644
+--- a/omnivox-cli/src/mixed_timeline_tests.rs
++++ b/omnivox-cli/src/mixed_timeline_tests.rs
+@@ -128,6 +128,7 @@ fn run_mixed(
+         crate::marker_events::spawn_marker_event_reporter_with_writer(capture.clone());
+     let dispatch = MarkerDispatchContext::with_voice_choice_events(timeline.dispatch_id, output);
+     let ctx = SynthCtx {
++        letter_navigation: false,
+         gen: 1,
+         gen_counter: &generation,
+         cancellation: None,
+diff --git a/omnivox-cli/src/native_timeline_tests.rs b/omnivox-cli/src/native_timeline_tests.rs
+index 630266b..06432bd 100644
+--- a/omnivox-cli/src/native_timeline_tests.rs
++++ b/omnivox-cli/src/native_timeline_tests.rs
+@@ -54,6 +54,7 @@ mod native_timeline_playback {
+         let plans = Arc::new(NativePlanReferences::default());
+         let dispatch = MarkerDispatchContext::with_native_events(91, output, plans.clone());
+         let ctx = SynthCtx {
++            letter_navigation: false,
+             gen: 1,
+             gen_counter: &generation,
+             cancellation: Some(&cancellation),
+diff --git a/omnivox-cli/src/pipeline.rs b/omnivox-cli/src/pipeline.rs
+index 82638f4..9a19dd9 100644
+--- a/omnivox-cli/src/pipeline.rs
++++ b/omnivox-cli/src/pipeline.rs
+@@ -172,6 +172,8 @@ pub fn is_stale(request_gen: u64, gen_counter: &AtomicU64) -> bool {
+ /// Shared context threaded through all synthesis operations in the worker.
+ #[derive(Clone, Copy)]
+ pub struct SynthCtx<'a> {
++    /// Isolated character review through the legacy `l` command.
++    pub letter_navigation: bool,
+     pub gen: u64,
+     pub gen_counter: &'a AtomicU64,
+     pub cancellation: Option<&'a SynthesisCancellationToken>,
+@@ -1440,12 +1442,26 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
+                 self.marker_publisher = Some(marker_publisher);
+             } else {
+                 let observation = self.observation.clone();
++                let letter_timing = self
++                    .ctx
++                    .letter_navigation
++                    .then(|| (self.ctx.lifecycle.clone(), tracing::Span::current()));
+                 let queued_at = Instant::now();
+                 let queued = self
+                     .ctx
+                     .control
+                     .queue_progressive_speech_with_cue_callback_cancellable_if(
+                         move |_| {
++                            if let Some((lifecycle, span)) = &letter_timing {
++                                lifecycle.record_mixer_source_started();
++                                span.in_scope(|| {
++                                    info!(
++                                        lifecycle_stage = "mixer_source_started",
++                                        admission_to_mixer_source_us = ?lifecycle.mixer_source_started_us(),
++                                        "Letter playback consumed its first frame"
++                                    );
++                                });
++                            }
+                             if let Some(observation) = &observation {
+                                 observation.first_frame();
+                             }
+@@ -1464,7 +1480,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
+                 };
+                 let mut producer = producer;
+                 self.ctx.record_ticket(StreamType::Speech, ticket);
+-                if self.observation.is_some() {
++                if self.observation.is_some() || self.ctx.letter_navigation {
+                     // ensure_playback is reached only for nonempty rendered PCM.
+                     producer
+                         .push_cues(vec![omnivox_audio::PlaybackCue {
+@@ -2485,6 +2501,10 @@ pub fn process_letter(
+     runtime_health: &RuntimeEngineHealth,
+     mut routing: LogicalVoiceRoutingSnapshot,
+ ) -> BatchStatus {
++    let ctx = &SynthCtx {
++        letter_navigation: true,
++        ..*ctx
++    };
+     if ctx.is_stale() {
+         return BatchStatus::Cancelled;
+     }
+@@ -4195,6 +4215,68 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn untracked_letter_records_first_consumption_before_synthesis_finishes() {
++        let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
++        let control = streams.control();
++        let generation = AtomicU64::new(1);
++        let lifecycle = RequestLifecycle::default();
++        lifecycle.commit_admission();
++        let engine = PipelineTestEngine;
++        let state = TtsState::default();
++        let effects = Mutex::new(DispatchEffects::new());
++        let ctx = SynthCtx {
++            letter_navigation: true,
++            gen: 1,
++            gen_counter: &generation,
++            cancellation: None,
++            lifecycle: &lifecycle,
++            engine: &engine,
++            control: &control,
++            playback_tickets: None,
++            presentation_clock: None,
++            pending_overlays: None,
++            timeline_renderer: None,
++            effect_processor: Some(&effects),
++            marker_span_id: None,
++            marker_dispatch: None,
++            voice_observations: None,
++            batch_failed: None,
++        };
++        let mut sink = ProgressiveChunkSink::new(
++            "a",
++            None,
++            PostSynthesisStyle::default(),
++            Vec::new(),
++            &state,
++            false,
++            false,
++            &[],
++            &[],
++            &ctx,
++        )
++        .unwrap();
++        sink.start(SynthesisStreamStart {
++            engine_id: "mock".into(),
++            actual_voice: None,
++            degraded_acss: Vec::new(),
++        })
++        .unwrap();
++        assert_eq!(lifecycle.mixer_source_started_us(), None);
++        sink.audio(AudioBuffer::new(vec![0.4; 4096])).unwrap();
++        let deadline = Instant::now() + std::time::Duration::from_secs(2);
++        while lifecycle.mixer_source_started_us().is_none() {
++            assert!(
++                Instant::now() < deadline,
++                "first-frame timing waited for completion"
++            );
++            std::thread::sleep(std::time::Duration::from_millis(1));
++        }
++        sink.finish(SynthesisStreamCompletion { frame_count: 2048 })
++            .unwrap();
++        control.drain();
++    }
++
+     #[test]
+     fn committed_attempt_restyles_speech_bus_resources_and_rejects_dry_fallback_on_error() {
+         let streams = AudioStreams::new_with_backend(4, 4, 4, AudioBackend::Null).unwrap();
+@@ -4208,6 +4290,7 @@ mod tests {
+         let effects = Mutex::new(DispatchEffects::new());
+         let failed = AtomicBool::new(false);
+         let ctx = SynthCtx {
++            letter_navigation: false,
+             gen: 1,
+             gen_counter: &generation,
+             cancellation: None,
+@@ -4423,6 +4506,7 @@ mod tests {
+                 MarkerDispatchContext::new(42, output)
+             };
+             let ctx = SynthCtx {
++                letter_navigation: false,
+                 gen: 1,
+                 gen_counter: &generation,
+                 cancellation: Some(&cancellation),
+@@ -4554,6 +4638,7 @@ mod tests {
+             crate::marker_events::spawn_marker_event_reporter_with_writer(capture.clone());
+         let marker_context = MarkerDispatchContext::with_voice_choice_events(42, output);
+         let ctx = SynthCtx {
++            letter_navigation: false,
+             gen: 1,
+             gen_counter: &generation,
+             cancellation: None,
+@@ -4741,6 +4826,7 @@ mod tests {
+         let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+         let effect_processor = Mutex::new(DispatchEffects::new());
+         let ctx = SynthCtx {
++            letter_navigation: false,
+             gen: 1,
+             gen_counter: &generation,
+             cancellation: None,
+@@ -4822,6 +4908,7 @@ mod tests {
+         let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+         let effect_processor = Mutex::new(DispatchEffects::new());
+         let ctx = SynthCtx {
++            letter_navigation: false,
+             gen: 1,
+             gen_counter: &generation,
+             cancellation: None,
+diff --git a/omnivox-cli/src/server.rs b/omnivox-cli/src/server.rs
+index d66baab..3b88cb8 100644
+--- a/omnivox-cli/src/server.rs
++++ b/omnivox-cli/src/server.rs
+@@ -1272,6 +1272,7 @@ pub(crate) fn synthesis_worker(
+                     ),
+                 });
+                 let ctx = SynthCtx {
++                    letter_navigation: false,
+                     gen,
+                     gen_counter: &gen_counter,
+                     cancellation: None,
+@@ -1349,6 +1350,7 @@ pub(crate) fn synthesis_worker(
+                 }
+                 .with_lifecycle(request_lifecycle.clone());
+                 let ctx = SynthCtx {
++                    letter_navigation: false,
+                     gen,
+                     gen_counter: &gen_counter,
+                     cancellation: cancellation.as_ref().map(KeyedCancellationLease::token),
+@@ -1435,6 +1437,7 @@ pub(crate) fn synthesis_worker(
+                 });
+                 let failed = AtomicBool::new(false);
+                 let ctx = SynthCtx {
++                    letter_navigation: false,
+                     gen,
+                     gen_counter: &gen_counter,
+                     cancellation: None,
+@@ -1568,6 +1571,7 @@ pub(crate) fn synthesis_worker(
+                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+                 let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
+                 let ctx = SynthCtx {
++                    letter_navigation: false,
+                     gen,
+                     gen_counter: &gen_counter,
+                     cancellation: None,
+@@ -1614,6 +1618,7 @@ pub(crate) fn synthesis_worker(
+                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
+                 let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
+                 let ctx = SynthCtx {
++                    letter_navigation: false,
+                     gen,
+                     gen_counter: &gen_counter,
+                     cancellation: None,
+@@ -1650,6 +1655,7 @@ pub(crate) fn synthesis_worker(
+                 gen,
+             } => {
+                 let ctx = SynthCtx {
++                    letter_navigation: false,
+                     gen,
+                     gen_counter: &gen_counter,
+                     cancellation: None,
+diff --git a/omnivox-cli/src/voice_preview_tests.rs b/omnivox-cli/src/voice_preview_tests.rs
+index 32cbc79..b7168ad 100644
+--- a/omnivox-cli/src/voice_preview_tests.rs
++++ b/omnivox-cli/src/voice_preview_tests.rs
+@@ -588,6 +588,7 @@ fn run(
+     let effects = Mutex::new(crate::pipeline::DispatchEffects::new());
+     let failed = AtomicBool::new(false);
+     let ctx = SynthCtx {
++        letter_navigation: false,
+         gen: 1,
+         gen_counter: &generation,
+         cancellation: None,

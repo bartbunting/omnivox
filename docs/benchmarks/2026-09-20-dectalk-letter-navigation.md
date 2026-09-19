@@ -1,5 +1,9 @@
 # DECtalk letter navigation: synthesis and playback buffering
 
+Follow-up: the [duration-based letter reserve](2026-09-20-letter-playback-reserve.md)
+is implemented and tested, including direct `l` device measurements and remaining
+native-completion and producer-wait limits.
+
 Investigation against development runtime `b98c08411e68a656`, containing
 Omnivox `8119e02`, with the same qualified Windows x86 DECtalk DLL as the
 [custom-control measurements](2026-09-20-dectalk-batched-parameters.md).
