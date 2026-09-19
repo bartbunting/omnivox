@@ -78,6 +78,8 @@ resetting the prepared instance again.
 The batching checks cover per-preset cold and warm preparation, actual readback
 before leading anchors and PCM, native-command cache invalidation, silent text,
 and recovery from readback, receipt-delivery and concurrent Stop failures.
+The [batching report](../docs/benchmarks/2026-09-20-dectalk-batched-parameters.md)
+records the qualified cache boundary and matched startup measurements.
 
 ## Runtime requirements and installation
 

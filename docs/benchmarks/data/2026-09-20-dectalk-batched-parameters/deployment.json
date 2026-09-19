@@ -1,0 +1,11 @@
+{
+  "implementation_commit": "8119e02d1d17e9214a00a2042cd4a57a7b86b099",
+  "emacsvox_commit": "55a31047285cd183a3ee34f368007466d0341e15",
+  "runtime": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656",
+  "tested_helper_sha256": "c4e605f39977781b30e867f61929fa3215a0d34d77afe56af3bf2dcd0cf7f258",
+  "launcher": "/home/bart/bin/emacsvox-development",
+  "launcher_sha256": "2fe1d4c3c8451e6597f9788803ad62263ab396b92023a7b35c19163a1839e382",
+  "default_runtime_link_unchanged": "versions/e1ecdb481ee08fd0",
+  "existing_sessions_restarted": false,
+  "fresh_emacs_acceptance": "passed; candidate launcher bytes equal installed launcher bytes"
+}

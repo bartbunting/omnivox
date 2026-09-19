@@ -1,0 +1,504 @@
+{
+  "implementation_commit": "8119e02d1d17e9214a00a2042cd4a57a7b86b099",
+  "emacsvox_commit": "55a31047285cd183a3ee34f368007466d0341e15",
+  "source_directory": "/home/bart/src/emacsvox/.benchmarks/dectalk-parameter-barrier-2026-09-20",
+  "files": [
+    {
+      "path": "candidate.json",
+      "original_path": "candidate.json",
+      "original_sha256": "522189ed917d4ca8962f0fa1e6fa72e512a9e93c505b77b1a6af248d8c5b9599",
+      "original_bytes": 216,
+      "compressed": false
+    },
+    {
+      "path": "deployment.json",
+      "original_path": "deployment.json",
+      "original_sha256": "3b05d69087944aed4860ab14c459c11f6df14efede5b060236fb099a18a69f4a",
+      "original_bytes": 665,
+      "compressed": false
+    },
+    {
+      "path": "staging-before.json",
+      "original_path": "staging-before.json",
+      "original_sha256": "c24ba314753c1e9acaea9905bc24332894dabff16613e309bee8466296ee0a9b",
+      "original_bytes": 147,
+      "compressed": false
+    },
+    {
+      "path": "plan-before.json",
+      "original_path": "plan-before.json",
+      "original_sha256": "39f6b75b7a32d7371955f4fd8c5d9d73436ad808fe1d3241b2261a8d9362e9be",
+      "original_bytes": 2973,
+      "compressed": false
+    },
+    {
+      "path": "plan-after.json",
+      "original_path": "plan-after.json",
+      "original_sha256": "917c416ce1545d2e347a335e3531a34724ad0a85e548d847ed037858722a25d2",
+      "original_bytes": 2973,
+      "compressed": false
+    },
+    {
+      "path": "benchmark-command.json",
+      "original_path": "benchmark-command.json",
+      "original_sha256": "14d8a6e1536b7e554a9b4741e5eea1fcd726f3cabda7de75a926e3fe6545322c",
+      "original_bytes": 631,
+      "compressed": false
+    },
+    {
+      "path": "compare-server.py",
+      "original_path": "compare-server.py",
+      "original_sha256": "99a4d2ac95f280a7b6ea1dc2bf397787feebc2c738b509ce17b9b09023979fb1",
+      "original_bytes": 4203,
+      "compressed": false
+    },
+    {
+      "path": "check-batch.ps1",
+      "original_path": "check-batch.ps1",
+      "original_sha256": "fb24660cca3aded7e7db05a856b56a8f12c2b5cfb327f55de6675a5c77b44329",
+      "original_bytes": 351,
+      "compressed": false
+    },
+    {
+      "path": "execution-audit.json.gz",
+      "original_path": "execution-audit.json",
+      "original_sha256": "e4088de945f0f59944f21b02014848254f511814b76616613be46460a007f5be",
+      "original_bytes": 6332,
+      "compressed": true
+    },
+    {
+      "path": "execution-audit.log.gz",
+      "original_path": "execution-audit.log",
+      "original_sha256": "b57281b0441c3f43bb0bb1b6999ccc311aa209744405955e936c1011369ae814",
+      "original_bytes": 292336,
+      "compressed": true
+    },
+    {
+      "path": "wire-acceptance.json.gz",
+      "original_path": "wire-acceptance.json",
+      "original_sha256": "85e9c7b4b6b791f10c8ad7828afc241b43b0ac5dd639c3467625d1613532356d",
+      "original_bytes": 1720725,
+      "compressed": true
+    },
+    {
+      "path": "wire-acceptance.log.gz",
+      "original_path": "wire-acceptance.log",
+      "original_sha256": "decad944f8a3f0157dd5875494396a708e7ed7b353f510ed63ce162b2d66a95d",
+      "original_bytes": 149,
+      "compressed": true
+    },
+    {
+      "path": "batch-before.log.gz",
+      "original_path": "batch-before.log",
+      "original_sha256": "73cd8e2d6325f2de59d610d7edac12809ba467e32b2f8c8b1b6ab439fb52bd19",
+      "original_bytes": 751,
+      "compressed": true
+    },
+    {
+      "path": "helper-build.log.gz",
+      "original_path": "helper-build.log",
+      "original_sha256": "f774f01c1462ba48e4c54accec1808d0865966fc0d2da2d30f5ed4757e84c29c",
+      "original_bytes": 727,
+      "compressed": true
+    },
+    {
+      "path": "full-staging.log.gz",
+      "original_path": "full-staging.log",
+      "original_sha256": "7674e064cbffbb0496b062d41f0ba8558f9ef30ca063bc00e63d95ef31503f7c",
+      "original_bytes": 57806,
+      "compressed": true
+    },
+    {
+      "path": "emacs-native-acceptance.log.gz",
+      "original_path": "emacs-native-acceptance.log",
+      "original_sha256": "6d90bf79201f0390e8a4f3cda9c45c6c956b56e2a204c217a3736372c859f376",
+      "original_bytes": 664,
+      "compressed": true
+    },
+    {
+      "path": "emacsvox-docs-check.log.gz",
+      "original_path": "emacsvox-docs-check.log",
+      "original_sha256": "7a716454cfdfde847b8b8e435f5cea66e78dbb29400729666b83ea61fa58aaac",
+      "original_bytes": 1185,
+      "compressed": true
+    },
+    {
+      "path": "omnivox-docs-check.log.gz",
+      "original_path": "omnivox-docs-check.log",
+      "original_sha256": "09028205920de552a9fcb83707c7fdad75a6b25ec2a02ffe6b0ca18510eb8bb3",
+      "original_bytes": 80,
+      "compressed": true
+    },
+    {
+      "path": "source-contracts.log.gz",
+      "original_path": "source-contracts.log",
+      "original_sha256": "aac245d2a73b959799b3b74194435d99d53e7afa0ea7d2c76f428de3b178dd22",
+      "original_bytes": 149,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison.log.gz",
+      "original_path": "server-comparison.log",
+      "original_sha256": "70959859d0019ed42089557226f913c8d7bdc74909b009841e8f2f982df4359c",
+      "original_bytes": 3730,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/00-after-legacy/job.json",
+      "original_path": "server-comparison/00-after-legacy/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/00-after-legacy/raw.json",
+      "original_path": "server-comparison/00-after-legacy/raw.json",
+      "original_sha256": "5a9ae1749af7e8adf39f45b3d95380bc5f610009e8d0e3b10f8c841433a09ecc",
+      "original_bytes": 17901,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/00-after-legacy/server-logs/omnivox-20260919T222236Z-1485302-part000001.log.gz",
+      "original_path": "server-comparison/00-after-legacy/server-logs/omnivox-20260919T222236Z-1485302-part000001.log",
+      "original_sha256": "da4b432036298e6b7343b37d8def429b6f66c39223913eeea74bd81e5c224ad5",
+      "original_bytes": 101154,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/00-after-legacy/worker.log.gz",
+      "original_path": "server-comparison/00-after-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/01-before-legacy/job.json",
+      "original_path": "server-comparison/01-before-legacy/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/01-before-legacy/raw.json",
+      "original_path": "server-comparison/01-before-legacy/raw.json",
+      "original_sha256": "90e8fa1354e8361d5a7302c01b749cb73f6f11565f6990692423b7087a6d360f",
+      "original_bytes": 17903,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/01-before-legacy/server-logs/omnivox-20260919T222238Z-1485372-part000001.log.gz",
+      "original_path": "server-comparison/01-before-legacy/server-logs/omnivox-20260919T222238Z-1485372-part000001.log",
+      "original_sha256": "0295c21ee662791f8a735945e952d9c1fe24596f717c428a2c4f429bb1bcdccb",
+      "original_bytes": 100321,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/01-before-legacy/worker.log.gz",
+      "original_path": "server-comparison/01-before-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/02-before-native/job.json",
+      "original_path": "server-comparison/02-before-native/job.json",
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/02-before-native/raw.json",
+      "original_path": "server-comparison/02-before-native/raw.json",
+      "original_sha256": "e810cdb515ea477f9d454975606f03cd234ec1d49b7ba77073f80dfd96485720",
+      "original_bytes": 34822,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/02-before-native/server-logs/omnivox-20260919T222246Z-1485467-part000001.log.gz",
+      "original_path": "server-comparison/02-before-native/server-logs/omnivox-20260919T222246Z-1485467-part000001.log",
+      "original_sha256": "25a417608383560dfa0882c6bf2108eec1c4ea279bff9f52be1a75ae8d468ebe",
+      "original_bytes": 101517,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/02-before-native/worker.log.gz",
+      "original_path": "server-comparison/02-before-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/03-after-native/job.json",
+      "original_path": "server-comparison/03-after-native/job.json",
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/03-after-native/raw.json",
+      "original_path": "server-comparison/03-after-native/raw.json",
+      "original_sha256": "d4fed9f991ccdab40e88acbc8859328d9238f2ce37cab27be811f58b40e83f36",
+      "original_bytes": 34757,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/03-after-native/server-logs/omnivox-20260919T222251Z-1485577-part000001.log.gz",
+      "original_path": "server-comparison/03-after-native/server-logs/omnivox-20260919T222251Z-1485577-part000001.log",
+      "original_sha256": "53f1cfec6bf9a4939ab011c0dbe89e16c62d60b1396b7e5248f4254cd6c607e8",
+      "original_bytes": 101195,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/03-after-native/worker.log.gz",
+      "original_path": "server-comparison/03-after-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/04-before-native/job.json",
+      "original_path": "server-comparison/04-before-native/job.json",
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/04-before-native/raw.json",
+      "original_path": "server-comparison/04-before-native/raw.json",
+      "original_sha256": "1fde5001add8862384e227c60aa53c9ee0224cef16d68074240ddeac33d5fe23",
+      "original_bytes": 34766,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/04-before-native/server-logs/omnivox-20260919T222254Z-1485655-part000001.log.gz",
+      "original_path": "server-comparison/04-before-native/server-logs/omnivox-20260919T222254Z-1485655-part000001.log",
+      "original_sha256": "0c62b8e10813c8b73beb0f92f76428b4765b972e7b654b38c4543334f3a6a488",
+      "original_bytes": 101513,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/04-before-native/worker.log.gz",
+      "original_path": "server-comparison/04-before-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/05-after-legacy/job.json",
+      "original_path": "server-comparison/05-after-legacy/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/05-after-legacy/raw.json",
+      "original_path": "server-comparison/05-after-legacy/raw.json",
+      "original_sha256": "13cd9524b97b2927aa5c1d9bc9e5ce92e5921b191f176a3ebe031ad6e783f1bc",
+      "original_bytes": 17903,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/05-after-legacy/server-logs/omnivox-20260919T222300Z-1485913-part000001.log.gz",
+      "original_path": "server-comparison/05-after-legacy/server-logs/omnivox-20260919T222300Z-1485913-part000001.log",
+      "original_sha256": "a3b2ab5716aa87ac2afd25db2dcd4805c4887528634890640a62af8bf45361ad",
+      "original_bytes": 101156,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/05-after-legacy/worker.log.gz",
+      "original_path": "server-comparison/05-after-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/06-before-legacy/job.json",
+      "original_path": "server-comparison/06-before-legacy/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/06-before-legacy/raw.json",
+      "original_path": "server-comparison/06-before-legacy/raw.json",
+      "original_sha256": "6eb9bf1549c8545ab98c2aafd9310571da329b5bdc1b31e23ae221a969630c60",
+      "original_bytes": 17901,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/06-before-legacy/server-logs/omnivox-20260919T222302Z-1485958-part000001.log.gz",
+      "original_path": "server-comparison/06-before-legacy/server-logs/omnivox-20260919T222302Z-1485958-part000001.log",
+      "original_sha256": "8a20ca4a419a54dd964d66d0bfc25cb1bfd8c85faf133a41b6d2e2992c0912da",
+      "original_bytes": 101155,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/06-before-legacy/worker.log.gz",
+      "original_path": "server-comparison/06-before-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/07-after-native/job.json",
+      "original_path": "server-comparison/07-after-native/job.json",
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/07-after-native/raw.json",
+      "original_path": "server-comparison/07-after-native/raw.json",
+      "original_sha256": "aa8699e7d9baceec3822960bcb87e3ffb325a9f084782693fabebd7aec293657",
+      "original_bytes": 34759,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/07-after-native/server-logs/omnivox-20260919T222304Z-1486010-part000001.log.gz",
+      "original_path": "server-comparison/07-after-native/server-logs/omnivox-20260919T222304Z-1486010-part000001.log",
+      "original_sha256": "ec13918918570331d1af83a3fa33a7e7e3b41062de8f5126ab4487a261ee7bb1",
+      "original_bytes": 101198,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/07-after-native/worker.log.gz",
+      "original_path": "server-comparison/07-after-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/08-after-native/job.json",
+      "original_path": "server-comparison/08-after-native/job.json",
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/08-after-native/raw.json",
+      "original_path": "server-comparison/08-after-native/raw.json",
+      "original_sha256": "c57c698c6a120da0d6663504564c62d646044c961ff0f09ec5ec6f9a9eb2e988",
+      "original_bytes": 34705,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/08-after-native/server-logs/omnivox-20260919T222308Z-1486088-part000001.log.gz",
+      "original_path": "server-comparison/08-after-native/server-logs/omnivox-20260919T222308Z-1486088-part000001.log",
+      "original_sha256": "ee98c208bf98985b1c3292dd7588e5c0bcb0d0b767a07c0abf22bad749c9509d",
+      "original_bytes": 101190,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/08-after-native/worker.log.gz",
+      "original_path": "server-comparison/08-after-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/09-before-native/job.json",
+      "original_path": "server-comparison/09-before-native/job.json",
+      "original_sha256": "61da1d330c452c16057b18263d97a8088ff069a88a6404697f948f3c1252f6a8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/09-before-native/raw.json",
+      "original_path": "server-comparison/09-before-native/raw.json",
+      "original_sha256": "cd5de68a82ca188ed1d83cadca1c28acf8c9e12ec4371c6f9cef805f0b7bfa45",
+      "original_bytes": 34762,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/09-before-native/server-logs/omnivox-20260919T222311Z-1486155-part000001.log.gz",
+      "original_path": "server-comparison/09-before-native/server-logs/omnivox-20260919T222311Z-1486155-part000001.log",
+      "original_sha256": "f714f3febbcdd6dc4c3e1939d4025226f61bf9bb097b44393b0f8640d0ad7f60",
+      "original_bytes": 101516,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/09-before-native/worker.log.gz",
+      "original_path": "server-comparison/09-before-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/10-before-legacy/job.json",
+      "original_path": "server-comparison/10-before-legacy/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/10-before-legacy/raw.json",
+      "original_path": "server-comparison/10-before-legacy/raw.json",
+      "original_sha256": "82542fe2276970c13997cd1cd9e43c87ef2b559e20ba26e16701e07c0f45e75f",
+      "original_bytes": 17904,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/10-before-legacy/server-logs/omnivox-20260919T222316Z-1486232-part000001.log.gz",
+      "original_path": "server-comparison/10-before-legacy/server-logs/omnivox-20260919T222316Z-1486232-part000001.log",
+      "original_sha256": "6116a14e55bc2a6e09a237545b71c25492caabf7c153d0e00c8df57024e32d6b",
+      "original_bytes": 101155,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/10-before-legacy/worker.log.gz",
+      "original_path": "server-comparison/10-before-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/11-after-legacy/job.json",
+      "original_path": "server-comparison/11-after-legacy/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/11-after-legacy/raw.json",
+      "original_path": "server-comparison/11-after-legacy/raw.json",
+      "original_sha256": "a60d6e13c7ee3504f3d9464b9a9c78436e93d15a67867856e332354f68eaff7b",
+      "original_bytes": 17905,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/11-after-legacy/server-logs/omnivox-20260919T222318Z-1486297-part000001.log.gz",
+      "original_path": "server-comparison/11-after-legacy/server-logs/omnivox-20260919T222318Z-1486297-part000001.log",
+      "original_sha256": "7b58355b7ecafb49e6254509fc362c885728539e612d69b9f8dfc4f102f3c7e2",
+      "original_bytes": 101155,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/11-after-legacy/worker.log.gz",
+      "original_path": "server-comparison/11-after-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "compressed": true
+    },
+    {
+      "path": "server-comparison/manifest.json",
+      "original_path": "server-comparison/manifest.json",
+      "original_sha256": "0d549df25f5d45be2c4cf767cbf20b7312b8bec283f6e269a2eb0491b5c48703",
+      "original_bytes": 12807,
+      "compressed": false
+    },
+    {
+      "path": "server-comparison/summary.json",
+      "original_path": "server-comparison/summary.json",
+      "original_sha256": "998f5534cb7d6e47d4f8824a72bb1227e59343707a0210da41bd382e88aea31b",
+      "original_bytes": 926,
+      "compressed": false
+    }
+  ],
+  "sources": {
+    "tools/DectalkExecutionAudit.cs": "8c2a236ca776848906372ff7f74af671835f93f6a51810a87cca624aa8978551",
+    "tools/check_dectalk_execution.ps1": "7a2c4bc5884600d7b31c13323b22f4db6d34e08ef252c641f82b1352b4e731a4",
+    "tools/test_helper6_dectalk.py": "98d09a75f06a731d60c827b6c00d012820693fc7574a85063008fdf47359ad58",
+    "windows-helpers/dectalk/OmnivoxDectalkCapture.cs": "8717211bb4f2f611a97d64ece0cc1c5aba0aec5ffa6e235088c7880eed9a24d0",
+    "windows-helpers/dectalk/OmnivoxDectalkHelper.cs": "cdef39c31b88b3b19d84603f97f4cf01b889b1ef1b5fc3fd18e92bc5dc8217ce"
+  }
+}

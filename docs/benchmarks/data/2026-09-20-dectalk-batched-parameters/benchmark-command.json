@@ -1,0 +1,17 @@
+[
+  "python3",
+  "/home/bart/src/emacsvox/.benchmarks/dectalk-parameter-barrier-2026-09-20/compare-server.py",
+  "/home/bart/src/emacsvox/.benchmarks/dectalk-parameter-barrier-2026-09-20/server-comparison",
+  "--emacsvox",
+  "/home/bart/src/emacsvox",
+  "--plan",
+  "/home/bart/src/emacsvox/.benchmarks/dectalk-parameter-barrier-2026-09-20/plan-before.json",
+  "--target",
+  "before=/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/34e353095d7cfd73/omnivox.exe",
+  "--target",
+  "after=/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b98c08411e68a656/omnivox.exe",
+  "--iterations",
+  "30",
+  "--repeats",
+  "3"
+]

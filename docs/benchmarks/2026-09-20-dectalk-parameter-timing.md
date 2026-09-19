@@ -1,5 +1,9 @@
 # DECtalk reset deployment and custom-parameter timing
 
+Follow-up: [batched custom parameters](2026-09-20-dectalk-batched-parameters.md)
+remove these pre-speech waits for warm plain-text requests while retaining
+actual readback before output. The measurements below describe the earlier build.
+
 The reset-placement change is implemented in `5b7f1b7` and staged in development
 runtime `34e353095d7cfd73`. The desktop development launcher selects that package.
 Custom-parameter preparation remains expensive because the helper calls
