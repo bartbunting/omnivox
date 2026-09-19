@@ -54,6 +54,7 @@ mod native_timeline_playback {
         let plans = Arc::new(NativePlanReferences::default());
         let dispatch = MarkerDispatchContext::with_native_events(91, output, plans.clone());
         let ctx = SynthCtx {
+            letter_navigation: false,
             gen: 1,
             gen_counter: &generation,
             cancellation: Some(&cancellation),

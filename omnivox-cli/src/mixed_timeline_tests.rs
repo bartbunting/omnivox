@@ -128,6 +128,7 @@ fn run_mixed(
         crate::marker_events::spawn_marker_event_reporter_with_writer(capture.clone());
     let dispatch = MarkerDispatchContext::with_voice_choice_events(timeline.dispatch_id, output);
     let ctx = SynthCtx {
+        letter_navigation: false,
         gen: 1,
         gen_counter: &generation,
         cancellation: None,

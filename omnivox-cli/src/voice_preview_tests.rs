@@ -588,6 +588,7 @@ fn run(
     let effects = Mutex::new(crate::pipeline::DispatchEffects::new());
     let failed = AtomicBool::new(false);
     let ctx = SynthCtx {
+        letter_navigation: false,
         gen: 1,
         gen_counter: &generation,
         cancellation: None,

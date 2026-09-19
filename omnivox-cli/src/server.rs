@@ -1272,6 +1272,7 @@ pub(crate) fn synthesis_worker(
                     ),
                 });
                 let ctx = SynthCtx {
+                    letter_navigation: false,
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,
@@ -1349,6 +1350,7 @@ pub(crate) fn synthesis_worker(
                 }
                 .with_lifecycle(request_lifecycle.clone());
                 let ctx = SynthCtx {
+                    letter_navigation: false,
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: cancellation.as_ref().map(KeyedCancellationLease::token),
@@ -1435,6 +1437,7 @@ pub(crate) fn synthesis_worker(
                 });
                 let failed = AtomicBool::new(false);
                 let ctx = SynthCtx {
+                    letter_navigation: false,
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,
@@ -1568,6 +1571,7 @@ pub(crate) fn synthesis_worker(
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
                 let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
                 let ctx = SynthCtx {
+                    letter_navigation: false,
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,
@@ -1614,6 +1618,7 @@ pub(crate) fn synthesis_worker(
                 let timeline_renderer = Mutex::new(TimelineAudioRenderer::new());
                 let effect_processor = Mutex::new(crate::pipeline::DispatchEffects::new());
                 let ctx = SynthCtx {
+                    letter_navigation: false,
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,
@@ -1650,6 +1655,7 @@ pub(crate) fn synthesis_worker(
                 gen,
             } => {
                 let ctx = SynthCtx {
+                    letter_navigation: false,
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: None,

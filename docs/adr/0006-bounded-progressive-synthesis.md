@@ -64,6 +64,8 @@ an unbounded payload or a second transport:
   shorter source. Cue-only updates are coalesced into the next PCM or terminal
   message so they cannot consume this bounded audio reserve. The null backend
   attaches immediately because it has no device clock or underrun risk.
+  [ADR 0018](0018-letter-navigation-playback-reserve.md) refines this initial
+  reserve for isolated letter navigation; ordinary speech keeps this rule.
 - Runtime fallback is allowed only before the first progressive PCM chunk has
   been accepted. Routed start metadata and marker/anchor preambles remain
   transactional until that commitment, so a failed attempt cannot contaminate

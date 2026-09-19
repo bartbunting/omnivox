@@ -29,6 +29,7 @@ const TONE_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * TONE_STOP_FADE_MILLI
 const NULL_AUDIO_POLL_SAMPLES: usize = 1024;
 const PROGRESSIVE_PLAYBACK_CAPACITY: usize = 4;
 const PROGRESSIVE_PLAYBACK_PREBUFFER_WINDOWS: usize = 3;
+const LETTER_PLAYBACK_PREBUFFER_FRAMES: u64 = SAMPLE_RATE as u64 * 40 / 1000;
 const PROGRESSIVE_PLAYBACK_POLL_INTERVAL: Duration = Duration::from_millis(2);
 
 /// Selects whether streams play through the default device or discard samples.
@@ -107,10 +108,26 @@ pub struct ProgressivePlaybackProducer {
     last_cue_offset: Option<u64>,
     pending_cues: Vec<PlaybackCue>,
     prebuffered_audio_windows: usize,
+    letter_navigation: bool,
     pending_attachment: Option<ProgressivePlaybackAttachment>,
 }
 
 impl ProgressivePlaybackProducer {
+    /// Start isolated letter review after 40 ms of canonical audio is ready.
+    ///
+    /// Select before publishing PCM. The existing three-window limit and
+    /// completion also release the reserve, so tiny windows cannot fill the
+    /// bounded channel while waiting for this duration. Null output is unchanged.
+    pub fn use_letter_navigation_prebuffer(&mut self) -> Result<(), AudioError> {
+        if self.published_frames != 0 {
+            return Err(AudioError::PlaybackError(
+                "letter playback reserve must be selected before PCM".to_owned(),
+            ));
+        }
+        self.letter_navigation = true;
+        Ok(())
+    }
+
     /// Publish one non-empty canonical PCM window.
     pub fn push_audio(&mut self, audio: AudioBuffer) -> Result<(), AudioError> {
         if audio.is_empty() {
@@ -129,6 +146,14 @@ impl ProgressivePlaybackProducer {
         })?;
         self.published_frames = published_frames;
         self.prebuffered_audio_windows = self.prebuffered_audio_windows.saturating_add(1);
+        if self.letter_navigation && self.pending_attachment.is_some() {
+            debug!(
+                lifecycle_stage = "letter_playback_reserve",
+                frames = self.published_frames,
+                windows = self.prebuffered_audio_windows,
+                "Letter audio supplied before source attachment"
+            );
+        }
         self.attach_if_primed(false)?;
         Ok(())
     }
@@ -211,9 +236,10 @@ impl ProgressivePlaybackProducer {
     }
 
     fn attach_if_primed(&mut self, force: bool) -> Result<(), AudioError> {
-        if self.pending_attachment.is_none()
-            || (!force && self.prebuffered_audio_windows < PROGRESSIVE_PLAYBACK_PREBUFFER_WINDOWS)
-        {
+        let primed = self.prebuffered_audio_windows >= PROGRESSIVE_PLAYBACK_PREBUFFER_WINDOWS
+            || (self.letter_navigation
+                && self.published_frames >= LETTER_PLAYBACK_PREBUFFER_FRAMES);
+        if self.pending_attachment.is_none() || (!force && !primed) {
             return Ok(());
         }
         if self.request_cancellation.is_cancelled() || self.stream_cancellation.is_cancelled() {
@@ -1003,7 +1029,10 @@ impl AudioControl {
     /// Queue one bounded progressive speech source with dynamic frame cues.
     ///
     /// Device playback is appended after three PCM windows have been supplied,
-    /// or when a shorter stream completes. Null playback is appended
+    /// or when a shorter stream completes. Isolated letter callers may select
+    /// [`ProgressivePlaybackProducer::use_letter_navigation_prebuffer`] before
+    /// supplying PCM to attach sooner once 40 ms of audio is ready.
+    /// Null playback is appended
     /// immediately because its worker is not a real-time device. The source
     /// remains one speech-queue item while the returned producer supplies
     /// subsequent canonical PCM windows. Dropping the producer without calling
@@ -1992,6 +2021,7 @@ impl ProgressivePlaybackSource {
             last_cue_offset: None,
             pending_cues: Vec::new(),
             prebuffered_audio_windows: 0,
+            letter_navigation: false,
             pending_attachment: None,
         };
         let source = Self {
@@ -2080,7 +2110,15 @@ impl Iterator for ProgressivePlaybackSource {
                     self.report(status);
                     return None;
                 }
-                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    if self.position > 0 {
+                        debug!(
+                            lifecycle_stage = "progressive_source_wait",
+                            consumed_frames = self.position / CHANNELS as usize,
+                            "Progressive playback waited for more PCM or completion"
+                        );
+                    }
+                }
                 Err(mpsc::RecvTimeoutError::Disconnected) => {
                     self.report(PlaybackStatus::Cancelled);
                     return None;
@@ -2142,6 +2180,175 @@ mod tests {
             },
             [speech_device, tone_device, sound_device],
         )
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn letter_reserve_uses_frames_and_preserves_pcm_and_cues() {
+        for windows in [vec![1764], vec![1763, 1], vec![441, 1323]] {
+            let (streams, devices) = pulse_fixture();
+            let control = streams.control();
+            let (sender, receiver) = mpsc::channel();
+            let (mut producer, ticket) = control
+                .queue_progressive_speech_with_cue_callback_cancellable_if(
+                    move |cue| sender.send(cue).unwrap(),
+                    CancellationToken::new(),
+                    || true,
+                )
+                .unwrap()
+                .unwrap();
+            producer.use_letter_navigation_prebuffer().unwrap();
+            producer.push_cues(vec![cue(0, 1)]).unwrap();
+            let mut frames = 0;
+            for count in windows {
+                producer
+                    .push_audio(AudioBuffer::new(vec![0.2; count * 2]))
+                    .unwrap();
+                frames += count;
+                assert_eq!(
+                    control.pending(StreamType::Speech),
+                    usize::from(frames >= 1764)
+                );
+            }
+            producer.push_cues(vec![cue(frames as u64, 2)]).unwrap();
+            producer.finish().unwrap();
+            devices[0].writable.store(true, Ordering::Release);
+            crate::pulse::tests::until(|| control.pending(StreamType::Speech) == 0);
+            assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+            assert_eq!(devices[0].samples(), vec![0.2; frames * 2]);
+            assert_eq!(
+                receiver.try_iter().collect::<Vec<_>>(),
+                vec![cue(0, 1), cue(frames as u64, 2)]
+            );
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn letter_reserve_releases_short_streams_and_tiny_windows_without_deadlock() {
+        for windows in [vec![220], vec![1, 1, 1]] {
+            let (streams, devices) = pulse_fixture();
+            let control = streams.control();
+            let (mut producer, ticket) = control
+                .queue_progressive_speech_with_cue_callback_cancellable_if(
+                    |_| {},
+                    CancellationToken::new(),
+                    || true,
+                )
+                .unwrap()
+                .unwrap();
+            producer.use_letter_navigation_prebuffer().unwrap();
+            let mut frames = 0;
+            for (index, count) in windows.into_iter().enumerate() {
+                producer
+                    .push_audio(AudioBuffer::new(vec![0.2; count * 2]))
+                    .unwrap();
+                frames += count;
+                assert_eq!(control.pending(StreamType::Speech), usize::from(index == 2));
+            }
+            producer.finish().unwrap();
+            assert_eq!(control.pending(StreamType::Speech), 1);
+            devices[0].writable.store(true, Ordering::Release);
+            crate::pulse::tests::until(|| control.pending(StreamType::Speech) == 0);
+            assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+            assert_eq!(devices[0].samples(), vec![0.2; frames * 2]);
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn ordinary_progressive_speech_keeps_its_window_reserve() {
+        let (streams, devices) = pulse_fixture();
+        let control = streams.control();
+        let (mut producer, ticket) = control
+            .queue_progressive_speech_with_cue_callback_cancellable_if(
+                |_| {},
+                CancellationToken::new(),
+                || true,
+            )
+            .unwrap()
+            .unwrap();
+        producer
+            .push_audio(AudioBuffer::new(vec![0.2; 8820]))
+            .unwrap();
+        assert_eq!(control.pending(StreamType::Speech), 0);
+        assert!(producer.use_letter_navigation_prebuffer().is_err());
+        assert_eq!(control.pending(StreamType::Speech), 0);
+        producer.finish().unwrap();
+        devices[0].writable.store(true, Ordering::Release);
+        crate::pulse::tests::until(|| control.pending(StreamType::Speech) == 0);
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn letter_cancellation_before_priming_releases_no_pcm_or_cues() {
+        let (streams, devices) = pulse_fixture();
+        let control = streams.control();
+        let cancellation = CancellationToken::new();
+        let (sender, receiver) = mpsc::channel();
+        let (mut producer, ticket) = control
+            .queue_progressive_speech_with_cue_callback_cancellable_if(
+                move |cue| sender.send(cue).unwrap(),
+                cancellation.clone(),
+                || true,
+            )
+            .unwrap()
+            .unwrap();
+        producer.use_letter_navigation_prebuffer().unwrap();
+        producer.push_cues(vec![cue(0, 1)]).unwrap();
+        producer
+            .push_audio(AudioBuffer::new(vec![0.2; 1764]))
+            .unwrap();
+        cancellation.cancel();
+        assert!(producer
+            .push_audio(AudioBuffer::new(vec![0.2; 1764]))
+            .is_err());
+        drop(producer);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+        assert_eq!(control.pending(StreamType::Speech), 0);
+        assert!(devices[0].samples().is_empty());
+        assert!(receiver.try_iter().next().is_none());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn primed_letter_can_stop_a_stalled_producer_and_recover() {
+        let (streams, devices) = pulse_fixture();
+        let control = streams.control();
+        let (mut producer, ticket) = control
+            .queue_progressive_speech_with_cue_callback_cancellable_if(
+                |_| {},
+                CancellationToken::new(),
+                || true,
+            )
+            .unwrap()
+            .unwrap();
+        producer.use_letter_navigation_prebuffer().unwrap();
+        producer
+            .push_audio(AudioBuffer::new(vec![0.2; 3528]))
+            .unwrap();
+        devices[0].writable.store(true, Ordering::Release);
+        crate::pulse::tests::until(|| devices[0].samples().len() >= 3000);
+        control.stop(StreamType::Speech);
+        crate::pulse::tests::until(|| control.pending(StreamType::Speech) == 0);
+        assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
+        assert!(producer.push_audio(AudioBuffer::new(vec![0.2; 2])).is_err());
+        drop(producer);
+        let (mut next, recovered) = control
+            .queue_progressive_speech_with_cue_callback_cancellable_if(
+                |_| {},
+                CancellationToken::new(),
+                || true,
+            )
+            .unwrap()
+            .unwrap();
+        next.use_letter_navigation_prebuffer().unwrap();
+        next.push_audio(AudioBuffer::new(vec![0.3; 3528])).unwrap();
+        next.finish().unwrap();
+        crate::pulse::tests::until(|| control.pending(StreamType::Speech) == 0);
+        assert_eq!(recovered.wait(), PlaybackStatus::Completed);
+        assert!(devices[0].samples().ends_with(&vec![0.3; 3528]));
     }
 
     #[cfg(target_os = "linux")]

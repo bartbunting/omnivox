@@ -28,6 +28,10 @@ progressive reserve required by ADR 0006. PulseAudio mixes the three streams
 on its selected default sink; foreground and notification remain independent
 Omnivox processes under ADR 0008.
 
+[ADR 0018](0018-letter-navigation-playback-reserve.md) refines the shared
+progressive reserve for isolated letter navigation. The native PulseAudio
+priming and latency requests below remain unchanged.
+
 Request 20 ms total latency with `PA_STREAM_ADJUST_LATENCY`, write at most
 about 5 ms at once, and bound the requested maximum buffer. Permit an explicit
 10–200 ms request through `OMNIVOX_PULSE_LATENCY_MS`. Buffer requests are hints;
