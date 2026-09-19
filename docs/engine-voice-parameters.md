@@ -7,7 +7,8 @@ examples for codecs and composition. The typed metadata and pure planner now
 consume the parameter and composition examples. Public catalogue discovery is
 implemented, as are v3 registration and ordinary timeline-5 speech with marker-4
 receipts. Strict native previews and read-only draft/applied explanations are also
-implemented; editing remains reserved. The
+implemented, and the complete native capability bundle is advertised. Emacsvox
+provides catalogue-driven editing and sparse per-choice persistence. The
 [native audit](benchmarks/2026-09-17-native-voice-parameters.md) does not replace
 the remaining execution and cancellation tests.
 
@@ -131,9 +132,8 @@ freezes cached catalogue metadata alongside the logical registry. Marker 4
 reports the actual choice and native application only at the first consumed
 frame; helper preparation alone does not publish playback evidence. Applied
 plan IDs are bounded, connection-owned references tied to the runtime observed
-before synthesis. Strict previews and explanations are connected below; the Emacs editor and final
-integration acceptance remain pending, so the complete native bundle is still
-unadvertised.
+before synthesis. Strict previews, explanations and the Emacs editor are now
+connected; per-engine runtime qualification still controls native availability.
 
 [Strict native previews](benchmarks/2026-09-18-native-previews.md) now accept
 `preview_voice_v3` and return `preview_voice_completed_v3`. Private admission
@@ -142,7 +142,8 @@ policy. The shared executor requires faithful native application; absent
 metadata or inapplicable controls fail rather than silently playing common-only
 settings. Terminal receipts distinguish accepted PCM from actual source starts,
 retain connection-owned plan references, and remain bounded even when truncated.
-Explanations and client integration are next; the full bundle stays unadvertised.
+The complete bundle includes these previews and the draft/applied explanations.
+Client acceptance exercises the editor and independent speech connections.
 
 ## Shared rules
 

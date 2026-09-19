@@ -58,17 +58,18 @@ floods from accumulating work. Late replies are discarded; connection shutdown
 suppresses pending replies. Main and notification processes have independent slots.
 The helper transaction retains its shorter 200 ms limit and cleanup ownership.
 
-This capability is read-only. `engine_voice_parameters_v1`, native registration,
-previews, timeline 5 and marker events 4 remain unadvertised until their complete
-execution and evidence paths work.
+Catalogue discovery is read-only. Native editing is negotiated separately through
+the complete `engine_voice_parameters_v1`, `presentation_timeline_v5` and
+`playback_marker_events_v4` bundle, advertised alongside catalogue support.
 
-### Development native registration
+### Native registration
 
 `register_logical_voices_v3` and `logical_voices_registered_v3` are implemented
-for integration testing under the accepted
+under the accepted
 [parameter contract](../engine-voice-parameters.md#registry-timelines-and-previews).
-The complete `engine_voice_parameters_v1` bundle is not yet advertised; clients
-must continue negotiating the complete bundle before using native definitions.
+Clients must negotiate the complete native bundle before using native
+definitions. Each engine still needs qualified runtime metadata; bundle support
+does not imply that every engine exposes adjustable native parameters.
 
 Registration validates mixed legacy, layered and engine-layered definitions
 against complete cached catalogues from this connection. It never requests
@@ -932,7 +933,7 @@ truncation; the independent last-started identity is never truncated. The combin
 choice/native identity is bounded to 48 KiB before PCM acceptance. Serialization,
 validation and plan publication run on the producer, outside audio callbacks.
 
-The native feature bundle remains unadvertised pending final integration acceptance.
+This operation requires negotiation of the complete native feature bundle.
 Explicit development probes can use these operations; clients must continue respecting each connection's capabilities.
 
 
@@ -963,4 +964,4 @@ Explanation queries share the catalogue query's one active slot and one-second
 response deadline. A timed-out adapter retains admission until it exits; retries
 cannot accumulate background workers. Connection closure suppresses late replies.
 These reads neither load voices nor connect, recover, stop or restart helpers.
-The native feature bundle remains unadvertised pending final integration acceptance.
+This operation requires negotiation of the complete native feature bundle.

@@ -92,7 +92,7 @@ fn error(response: &ControlResponseEnvelope, code: ControlErrorCode) {
 }
 
 #[test]
-fn native_registration_fixture_roundtrips_and_matches_ack_without_advertising_execution() {
+fn native_registration_fixture_roundtrips_and_advertises_complete_execution() {
     let raw = fixture("registration").to_string();
     let request = decode_request(&STANDARD.encode(&raw)).unwrap();
     assert_eq!(
@@ -142,7 +142,7 @@ fn native_registration_fixture_roundtrips_and_matches_ack_without_advertising_ex
         "presentation_timeline_v5",
         "playback_marker_events_v4",
     ] {
-        assert!(!features.iter().any(|feature| feature == reserved));
+        assert!(features.iter().any(|feature| feature == reserved));
     }
 }
 

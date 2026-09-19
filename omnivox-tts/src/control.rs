@@ -495,6 +495,7 @@ pub fn process_control_request_with_parameters(
                         "emacsvox_tx".to_owned(),
                         "engine_inventory".to_owned(),
                         "engine_parameter_catalogue_v1".to_owned(),
+                        "engine_voice_parameters_v1".to_owned(),
                         "engine_recovery_probe".to_owned(),
                         "startup_engine_rescan".to_owned(),
                         "exact_voice_preview".to_owned(),
@@ -507,10 +508,12 @@ pub fn process_control_request_with_parameters(
                         "playback_marker_events_v1".to_owned(),
                         "playback_marker_events_v2".to_owned(),
                         "playback_marker_events_v3".to_owned(),
+                        "playback_marker_events_v4".to_owned(),
                         "presentation_timeline_v1".to_owned(),
                         "presentation_timeline_v2".to_owned(),
                         "presentation_timeline_v3".to_owned(),
                         "presentation_timeline_v4".to_owned(),
+                        "presentation_timeline_v5".to_owned(),
                         "voice_choice_tuning_v1".to_owned(),
                         "presentation_tone_v1".to_owned(),
                         "post_synthesis_effects_v1".to_owned(),
@@ -1004,7 +1007,13 @@ mod tests {
         assert!(features
             .iter()
             .any(|f| f == "engine_parameter_catalogue_v1"));
-        assert!(!features.iter().any(|f| f == "engine_voice_parameters_v1"));
+        for feature in [
+            "engine_voice_parameters_v1",
+            "presentation_timeline_v5",
+            "playback_marker_events_v4",
+        ] {
+            assert!(features.iter().any(|f| f == feature));
+        }
     }
 
     fn capabilities_request(version: u32, request_id: u64) -> ControlRequestEnvelope {
