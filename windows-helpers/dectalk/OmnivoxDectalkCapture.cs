@@ -292,6 +292,9 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
     private Exception callbackError;
     private bool discardAudio;
     private bool nativeSynthesisActive;
+    // Only the synthesis owner changes this. A failed cleanup must not let the
+    // next request reuse an unknown marker origin or partially restored voice.
+    private bool nativeStateUsable;
     private bool shuttingDown;
     private bool memoryOpen;
     private string runtimeVersion;
@@ -351,6 +354,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                 throw new OmnivoxRuntimeUnavailableException(
                     "DECtalk.dll did not report a runtime version");
             }
+            nativeStateUsable = true;
         }
         catch
         {
@@ -410,6 +414,9 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
         lock (synthesisLock)
         {
             ThrowIfCancellationRequested(cancellationRequested);
+            if (!nativeStateUsable)
+                throw new InvalidOperationException(
+                    "DECtalk cleanup failed; restart the helper before further synthesis");
             if (edits != null)
             {
                 if (!native.HasSpeakerParameterApi)
@@ -422,10 +429,9 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             }
             int[] pristine = null;
             bool restore = false;
-            bool synchronized = false;
-            lock (resetLock) BeginCapture(sink, volume);
             try
             {
+                lock (resetLock) BeginCapture(sink, volume);
                 string prefix = "[" + voiceCode + " :dv ap " +
                     pitch.ToString(CultureInfo.InvariantCulture) + voiceParameters + "] ";
                 lock (resetLock)
@@ -462,7 +468,6 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                 ThrowIfCancellationRequested(cancellationRequested);
                 OmnivoxHelperLog.Event("native_call_started", "engine=dectalk call=TextToSpeechSync");
                 Check(native.TextToSpeechSync(handle), "TextToSpeechSync");
-                synchronized = true;
                 OmnivoxHelperLog.Event("native_call_completed", "engine=dectalk call=TextToSpeechSync");
                 ThrowIfCancellationRequested(cancellationRequested);
                 ThrowCallbackError();
@@ -483,6 +488,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
             {
                 lock (resetLock)
                 {
+                    nativeStateUsable = false;
                     lock (stateLock)
                     {
                         nativeSynthesisActive = false;
@@ -490,10 +496,11 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                     }
                     try
                     {
-                        // Drain pending native callbacks before freeing capture state.
+                        // Reset the native marker origin after streaming this
+                        // utterance, so the next one need not wait before PCM.
+                        // Also drain callbacks after errors or cancellation.
                         // Stop cannot reset after the preset has been restored.
-                        if (restore || !synchronized)
-                            Check(native.TextToSpeechReset(handle, false), "TextToSpeechReset cleanup");
+                        Check(native.TextToSpeechReset(handle, false), "TextToSpeechReset cleanup");
                         if (restore)
                         {
                             Speak("[" + voiceCode + "]");
@@ -502,6 +509,7 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
                                 OmnivoxDectalkParameters.RequireReadback(pristine,
                                     native.ReadSpeakerParameterFields(handle)[0]);
                         }
+                        nativeStateUsable = true;
                     }
                     finally
                     {
@@ -551,12 +559,8 @@ internal sealed class OmnivoxDectalkCapture : IDisposable
 
     private void BeginCapture(IOmnivoxCaptureSink sink, double volume)
     {
-        lock (stateLock)
-        {
-            discardAudio = true;
-        }
-        Check(native.TextToSpeechReset(handle, false),
-            "TextToSpeechReset");
+        // A fresh instance or the previous owner's completed cleanup supplies
+        // the reset boundary. Never reset again on the path to first audio.
         lock (stateLock)
         {
             callbackError = null;

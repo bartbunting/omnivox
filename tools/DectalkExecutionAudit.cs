@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Runtime.Remoting.Messaging;
 using System.Runtime.Remoting.Proxies;
@@ -219,6 +220,167 @@ public static class DectalkExecutionAudit
         }
         try { return (uint)OriginalReset.DynamicInvoke(handle, modes); }
         catch (TargetInvocationException error) { throw error.InnerException; }
+    }
+
+    private static Action BeforeReset;
+    private static bool FailReset, FailRestoration;
+    private static int ResetCalls, SpeakCalls;
+    private static Delegate OriginalSpeak;
+    private static Sink LifecycleSink;
+
+    private static uint ObservedReset(IntPtr handle, bool modes)
+    {
+        Interlocked.Increment(ref ResetCalls);
+        if (BeforeReset != null) BeforeReset();
+        if (FailReset) return 1;
+        try { return (uint)OriginalReset.DynamicInvoke(handle, modes); }
+        catch (TargetInvocationException error) { throw error.InnerException; }
+    }
+
+    private static uint ObservedSpeak(IntPtr handle, IntPtr text, uint flags)
+    {
+        Interlocked.Increment(ref SpeakCalls);
+        if (FailRestoration && LifecycleSink.Frames > 0 &&
+            Marshal.PtrToStringAnsi(text) == "[:np]") return 1;
+        try { return (uint)OriginalSpeak.DynamicInvoke(handle, text, flags); }
+        catch (TargetInvocationException error) { throw error.InnerException; }
+    }
+
+    private static uint FailingSetRate(IntPtr handle, uint rate) { return 1; }
+
+    // Exercise actual compiled helper state with bounded native-call faults.
+    // No production hooks or timing thresholds are needed for these checks.
+    public static object ResetLifecycle(string helper, string dll)
+    {
+        Assembly assembly = Assembly.Load(File.ReadAllBytes(helper));
+        Type adapterType = assembly.GetType("OmnivoxDectalkAdapter", true);
+        Type sinkType = assembly.GetType("IOmnivoxCaptureSink", true);
+        Array anchors = Array.CreateInstance(assembly.GetType("OmnivoxHelperAnchor", true), 0);
+        var cases = new List<string>();
+        foreach (string scenario in new[] { "first_and_warm_audio_before_reset", "setup_failure_recovery",
+            "cleanup_reset_failure_rejects_reuse", "restoration_failure_rejects_reuse", "stop_during_cleanup" })
+        {
+            object adapter = New(adapterType, dll);
+            object native = Field(Field(adapter, "capture"), "native");
+            FieldInfo resetField = native.GetType().GetField("reset", Hidden);
+            FieldInfo speakField = native.GetType().GetField("speak", Hidden);
+            FieldInfo rateField = native.GetType().GetField("setRate", Hidden);
+            OriginalReset = (Delegate)resetField.GetValue(native);
+            OriginalSpeak = (Delegate)speakField.GetValue(native);
+            object originalRate = rateField.GetValue(native);
+            ResetCalls = SpeakCalls = 0;
+            BeforeReset = null; FailReset = FailRestoration = false;
+            resetField.SetValue(native, Delegate.CreateDelegate(resetField.FieldType,
+                typeof(DectalkExecutionAudit).GetMethod("ObservedReset", Hidden)));
+            speakField.SetValue(native, Delegate.CreateDelegate(speakField.FieldType,
+                typeof(DectalkExecutionAudit).GetMethod("ObservedSpeak", Hidden)));
+            Action ordinary = () => {
+                LifecycleSink = new Sink(sinkType); LifecycleSink.Applied = true;
+                Call(adapter, "Synthesize", Text, "paul", 0.5, 1.0, null, null, null, 1.0,
+                    anchors, new Func<bool>(() => false), LifecycleSink.GetTransparentProxy());
+                Check(LifecycleSink.Frames > 0 && LifecycleSink.Markers > 0, "missing follow-up output");
+            };
+            try
+            {
+                if (scenario == "first_and_warm_audio_before_reset")
+                {
+                    BeforeReset = () => Check(LifecycleSink.Frames > 0, "reset delayed first audio");
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        ordinary();
+                        Check(ResetCalls == i, "expected one cleanup per ordinary utterance");
+                        Call(adapter, "Stop");
+                        Check(ResetCalls == i, "idle Stop reset a ready instance");
+                    }
+                }
+                else if (scenario == "setup_failure_recovery")
+                {
+                    rateField.SetValue(native, Delegate.CreateDelegate(rateField.FieldType,
+                        typeof(DectalkExecutionAudit).GetMethod("FailingSetRate", Hidden)));
+                    Rejects(ordinary, typeof(InvalidOperationException), "set-rate failure");
+                    Check(SpeakCalls == 0 && ResetCalls == 1, "failed setup was not drained");
+                    rateField.SetValue(native, originalRate);
+                    ordinary();
+                }
+                else if (scenario == "cleanup_reset_failure_rejects_reuse" ||
+                    scenario == "restoration_failure_rejects_reuse")
+                {
+                    if (scenario == "cleanup_reset_failure_rejects_reuse")
+                    {
+                        FailReset = true;
+                        Rejects(ordinary, typeof(InvalidOperationException), "cleanup reset failure");
+                        FailReset = false;
+                    }
+                    else
+                    {
+                        FailRestoration = true;
+                        LifecycleSink = new Sink(sinkType);
+                        Rejects(() => Call(adapter, "SynthesizeWithParameters", Text, "paul", 0.5, 1.0,
+                            null, null, null, 1.0, anchors, new Func<bool>(() => false),
+                            LifecycleSink.GetTransparentProxy(), new Dictionary<string, int?> { { "sm", 61 } },
+                            new string[0], new Action<int[]>(values => LifecycleSink.Applied = true)),
+                            typeof(InvalidOperationException), "voice restoration failure");
+                        FailRestoration = false;
+                    }
+                    Check(LifecycleSink.Frames > 0, "cleanup failure occurred before speech");
+                    int beforeSpeak = SpeakCalls, beforeReset = ResetCalls;
+                    Rejects(ordinary, typeof(InvalidOperationException), "reuse after failed cleanup");
+                    Check(SpeakCalls == beforeSpeak && ResetCalls == beforeReset,
+                        "failed cleanup allowed more native work");
+                }
+                else
+                {
+                    var entered = new ManualResetEvent(false);
+                    var release = new ManualResetEvent(false);
+                    var stopStarted = new ManualResetEvent(false);
+                    var stopDone = new ManualResetEvent(false);
+                    Exception workerError = null, stopError = null;
+                    BeforeReset = () => {
+                        Check(LifecycleSink.Frames > 0, "cleanup began before audio");
+                        entered.Set();
+                        Check(release.WaitOne(10000), "cleanup release timeout");
+                    };
+                    Thread worker = new Thread(() => {
+                        try { ordinary(); } catch (Exception error) { workerError = error; }
+                    });
+                    Thread stopper = new Thread(() => {
+                        stopStarted.Set();
+                        try { Call(adapter, "Stop"); } catch (Exception error) { stopError = error; }
+                        finally { stopDone.Set(); }
+                    });
+                    worker.IsBackground = stopper.IsBackground = true;
+                    bool stopperStarted = false;
+                    try
+                    {
+                        worker.Start();
+                        Check(entered.WaitOne(10000), "cleanup was not reached");
+                        stopper.Start(); stopperStarted = true;
+                        Check(stopStarted.WaitOne(10000), "stopper was not started");
+                        Check(!stopDone.WaitOne(100), "Stop bypassed the cleanup lock");
+                    }
+                    finally
+                    {
+                        release.Set();
+                        Check(worker.Join(10000) && (!stopperStarted || stopper.Join(10000)), "cleanup/Stop deadlock");
+                        BeforeReset = null;
+                        entered.Dispose(); release.Dispose(); stopStarted.Dispose(); stopDone.Dispose();
+                    }
+                    Check(workerError == null && stopError == null, "cleanup overlap failed: " + workerError + stopError);
+                    Check(ResetCalls == 1, "Stop reset again after completed cleanup");
+                    ordinary();
+                }
+                cases.Add(scenario);
+            }
+            finally
+            {
+                BeforeReset = null; FailReset = FailRestoration = false;
+                resetField.SetValue(native, OriginalReset);
+                speakField.SetValue(native, OriginalSpeak);
+                rateField.SetValue(native, originalRate);
+                ((IDisposable)adapter).Dispose();
+            }
+        }
+        return Record("status", "passed", "cases", cases);
     }
 
     public static object Runtime(string helper, string dll, string fixtures)

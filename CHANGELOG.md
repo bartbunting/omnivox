@@ -88,6 +88,10 @@ Versioning for published releases.
 
 ### Fixed
 
+- DECtalk resets its native instance after streaming each utterance, reducing
+  the delay before subsequent speech. Failed reset or voice restoration blocks
+  reuse until the helper restarts; marker ordering and cancellation are retained.
+
 - Reuse up to four idle progressive PCM resamplers to avoid rebuilding sinc
   filters for each utterance. Filters match the exact sample rate and channel
   count and clear their history before reuse, including after cancellation.

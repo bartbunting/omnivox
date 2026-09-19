@@ -71,6 +71,10 @@ DECtalk's internal execution path has a corresponding
 with the same arguments and a six-minute outer timeout for its full matrix.
 The [DECtalk execution report](../docs/benchmarks/2026-09-18-dectalk-native-execution.md)
 covers all 28 controls, command readback, and native reset/restoration overlap.
+The probe also checks that first and repeated speech deliver audio before
+cleanup reset, that a setup failure permits recovery after cleanup, that failed
+reset/restoration prevents reuse, and that Stop waits for cleanup without
+resetting the prepared instance again.
 
 ## Runtime requirements and installation
 
