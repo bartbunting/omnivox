@@ -230,9 +230,11 @@ impl IsolatedTtsEngine {
                 Err(pressure) => pressure,
             };
             if self.was_cancelled(generation, stop_epoch, cancellation) {
+                drop(availability);
                 return Err(self.cancellation_error());
             }
             if Instant::now() >= deadline {
+                drop(availability);
                 match pressure {
                     IsolationPressure::EngineOccupied => warn!(
                         engine_id,
