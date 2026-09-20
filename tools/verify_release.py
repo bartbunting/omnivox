@@ -301,9 +301,11 @@ def verify_windows_helper_source(source: Path) -> None:
         "dectalk/OmnivoxDectalkCapture.cs",
         "dectalk/OmnivoxDectalkHelper.cs",
         "dectalk/OmnivoxDectalkParameterService.cs",
+        "dectalk/OmnivoxDectalkParameters.cs",
         "eloquence/OmnivoxEloquenceCapture.cs",
         "eloquence/OmnivoxEloquenceHelper.cs",
         "eloquence/OmnivoxEloquenceParameterService.cs",
+        "eloquence/OmnivoxEloquenceParameters.cs",
     }
     require(source.is_dir(), "Windows helper corresponding source is missing")
     actual = {
@@ -313,7 +315,8 @@ def verify_windows_helper_source(source: Path) -> None:
     }
     require(
         actual == expected,
-        f"unexpected Windows helper source entries: {sorted(actual)}",
+        "Windows helper source entries differ: "
+        f"missing {sorted(expected - actual)}; unexpected {sorted(actual - expected)}",
     )
 
 

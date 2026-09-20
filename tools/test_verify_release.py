@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 import struct
 import tempfile
 import unittest
@@ -62,37 +63,57 @@ class ReleaseLayoutTests(unittest.TestCase):
             self.write_pe(root / name, 0x14C)
         (root / "WINDOWS-HELPERS-COPYING").write_text("GPL\n" * 4_000)
         source = root / "windows-helpers-source"
+        helpers = Path(__file__).resolve().parent.parent / "windows-helpers"
         for name in (
             "COPYING",
             "Makefile",
             "README.md",
             "build.ps1",
-            "common/OmnivoxHelperHost.cs",
-            "common/OmnivoxHelperParameters.cs",
-            "common/OmnivoxNativeLibrary.cs",
-            "dectalk/OmnivoxDectalkCapture.cs",
-            "dectalk/OmnivoxDectalkHelper.cs",
-            "dectalk/OmnivoxDectalkParameterService.cs",
-            "eloquence/OmnivoxEloquenceCapture.cs",
-            "eloquence/OmnivoxEloquenceHelper.cs",
-            "eloquence/OmnivoxEloquenceParameterService.cs",
         ):
             path = source / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("source")
+            shutil.copy2(helpers / name, path)
+        # Match the release staging recipe using real sources. Duplicating the
+        # verifier's file list here hid newly added build inputs from this test.
+        for directory in ("common", "dectalk", "eloquence"):
+            shutil.copytree(helpers / directory, source / directory)
 
-    def test_windows_171_requires_runtime_helpers_and_source(self) -> None:
+    def test_windows_current_requires_runtime_helpers_and_packaged_source(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            self.make_payload(root, "1.7.1", windows_helpers=True)
-            verify_release.verify_layout(root, "windows", "1.7.1")
+            self.make_payload(root, "1.12.0", windows_helpers=True)
+            verify_release.verify_layout(root, "windows", "1.12.0")
 
             (root / "OmnivoxEloquenceHelper32.exe").unlink()
             with self.assertRaisesRegex(
                 verify_release.VerificationError,
                 "unexpected archive root entries",
             ):
-                verify_release.verify_layout(root, "windows", "1.7.1")
+                verify_release.verify_layout(root, "windows", "1.12.0")
+
+    def test_windows_source_requires_both_parameter_implementations(self) -> None:
+        for relative in (
+            "dectalk/OmnivoxDectalkParameters.cs",
+            "eloquence/OmnivoxEloquenceParameters.cs",
+        ):
+            with self.subTest(source=relative), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                self.make_payload(root, "1.12.0", windows_helpers=True)
+                (root / "windows-helpers-source" / relative).unlink()
+                with self.assertRaisesRegex(
+                    verify_release.VerificationError, "missing \\[.*Parameters"
+                ):
+                    verify_release.verify_layout(root, "windows", "1.12.0")
+
+    def test_windows_source_rejects_unexpected_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_payload(root, "1.12.0", windows_helpers=True)
+            (root / "windows-helpers-source" / "runtime.dll").write_bytes(b"unexpected")
+            with self.assertRaisesRegex(
+                verify_release.VerificationError, "unexpected \\['runtime.dll'\\]"
+            ):
+                verify_release.verify_layout(root, "windows", "1.12.0")
 
     def test_windows_170_historical_layout_remains_valid(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
