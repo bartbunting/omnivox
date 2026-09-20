@@ -1,13 +1,13 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-14
-**Workspace version:** 1.11.0
+**Last reviewed:** 2026-09-20
+**Workspace version:** 1.12.0
 
 This file records present behavior and limitations. Protocol guarantees belong
 in the linked protocol specifications; future work belongs in
 [NEXT_STEPS.md](plans/NEXT_STEPS.md).
-Changes prepared for 1.11.0 are recorded in the
-[changelog](../CHANGELOG.md#1110---2026-09-14). Later development changes belong
+Changes prepared for 1.12.0 are recorded in the
+[changelog](../CHANGELOG.md#1120---2026-09-20). Later development changes belong
 under [Unreleased](../CHANGELOG.md#unreleased); publication is established by
 the matching verified GitHub release.
 
@@ -21,12 +21,19 @@ the matching verified GitHub release.
 - Versioned Base64-JSON control negotiation, inventory, logical-voice
   registration, runtime routing policy, recovery probes, and non-mutating
   preview.
-- Tracked terminal status and marker protocols v1 through v3; v3 reports the
-  selected voice choice and physical voice at first-frame consumption.
+- Tracked terminal status and marker protocols v1 through v4; v3 reports the
+  selected voice choice and physical voice at first-frame consumption, and v4
+  adds native-parameter application evidence.
 - Negotiated `voice_choice_tuning_v1` support includes version-2 logical-voice
   registration and private previews, timeline v4, and marker v3. Preview
   evidence distinguishes accepted audio from audio whose playback started.
-- Structured presentation timelines v1 through v4, including v3/v4 multipart
+- Negotiated `engine_voice_parameters_v1` support adds version-3 registration
+  and strict private previews, timeline v5, marker v4, and read-only planned
+  and applied explanations. Typed catalogues describe qualified Eloquence and
+  DECtalk controls without accepting vendor command strings. Older protocol
+  versions remain supported; runtime qualification determines available controls.
+  See the [native parameter contract](engine-voice-parameters.md).
+- Structured presentation timelines v1 through v5, including v3/v4/v5 multipart
   framing, bounded schema/cross-reference/action-window validation before
   admission, resource preparation before new-span synthesis, and terminal
   status for decodable invalid or stale submissions.
@@ -36,7 +43,7 @@ the matching verified GitHub release.
 - macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
 - macOS reuses its voice inventory, engine descriptor, and native voice
   selections for the process lifetime. Restart Omnivox after installing voices.
-  Development synthesis streams native PCM through a bounded queue and one
+  Synthesis streams native PCM through a bounded queue and one
   continuous converter. Buffer timing logs identify first/last PCM, explicit
   completion and capture retirement. Full-result callers collect the same
   stream; requests requiring unavailable anchors remain buffered. Native
@@ -61,6 +68,10 @@ the matching verified GitHub release.
 - eSpeak NG emits native callback PCM progressively. Anchored requests use
   native SSML marks for exact resolution while generated-markup source maps
   preserve word and sentence ranges in the caller's original UTF-8 text.
+- Bundled eSpeak variants resolve on demand for exact previews and ordinary
+  speech, without enablement or worker restarts. Base inventories stay compact;
+  exclusions and exact native identity checks still apply. See
+  [eSpeak variants](ESPEAK-VARIANTS.md).
 - Ordered fallback for missing voices, unsupported text repertoires, engine
   failure, and transient engine pressure.
 - Persistent health circuits, bounded cooldowns, one recovery probe, and
@@ -73,6 +84,27 @@ the matching verified GitHub release.
   word-boundary, span-boundary, or omitted resolution.
 - Caller-supplied capitalization cues in timelines and pitch-rise presentation
   for isolated capital letters.
+
+### Installed voices
+
+- The local service acquires reviewed Piper, Flite, MBROLA and RHVoice voice
+  packages, verifies hashes and native loading, and installs downloads disabled.
+  Emacsvox supplies the catalogue and coordinates explicit Apply to both speech
+  streams. Imported files and saved voice choices retain their ownership.
+- Immutable runtime generations separate installed, enabled and active voices.
+  Each Piper helper loads at most one model on demand; speakers share that model.
+  Flite loads only its selected external files. Optional failed providers remain
+  unavailable while ordinary speech uses working fallbacks; Apply still requires
+  both streams to verify the complete candidate.
+- Reviewed removal checks active and rollback references and preserves external
+  files and runtimes. Native validation has bounded memory, deadlines and owned
+  process cleanup. Unresolved cleanup blocks conflicting work; further crash and
+  power-loss recovery remains follow-up hardening. See
+  [installation](VOICE-INSTALLATION.md) and [removal](VOICE-UNINSTALLATION.md).
+- MBROLA remains an explicitly configured development companion, outside release
+  archives. RHVoice requires a separately installed compatible runtime. Voice
+  downloads are separate from executable releases, and platform acceptance varies
+  by provider as recorded in the linked guides.
 
 ### Replacement and cancellation
 
@@ -101,6 +133,13 @@ the matching verified GitHub release.
   [WSLg comparison guide](WSL-AUDIO.md) and
   [native output experiment](experiments/2026-09-07-native-pulseaudio.md).
 - Canonical stereo 44.1 kHz PCM conversion with bounded sample-rate conversion.
+- Up to four idle progressive resamplers are reused after resetting their filter
+  history. Waiting synthesis wakes when native capacity becomes available.
+- DECtalk batches verified custom parameters with speech, resets after streaming,
+  and requests finer Windows timer scheduling only during active native work.
+  Cleanup or restoration failure prevents reuse until helper restart. Retained
+  [responsiveness measurements](benchmarks/2026-09-20-responsiveness.md) distinguish
+  software timing from acoustic onset.
 - Silence trimming with marker/anchor remapping, volume adjustment, and channel
   routing.
 - Independent speech, tone, and sound streams with bounded queues, plus
@@ -139,8 +178,9 @@ the matching verified GitHub release.
 - Audio routing selects left, right, or both channels within one output device;
   arbitrary multi-device routing is not implemented.
 - Device output uses Rodio 0.19.0 and CPAL 0.15.3: shared-mode WASAPI on
-  Windows and ALSA on Linux. Native PulseAudio/PipeWire output and public
-  device/buffer selection are not implemented. The
+  Windows and ALSA on Linux. Native PulseAudio is opt-in as described above;
+  native PipeWire output and public device/buffer selection are not implemented.
+  The
   [2026-09-06 WSLg experiment](experiments/2026-09-06-wslg-audio.md) verified a
   local ALSA-to-PulseAudio setup and smaller application-buffer snapshots with
   a 50 ms request. WSLg sink delay remained substantial; acoustic responsiveness
@@ -156,8 +196,10 @@ the matching verified GitHub release.
   single tracked playback source. Marker and timeline events are reserved
   before the corresponding PCM can reach playback. Real-device playback primes
   three non-empty windows without allowing cue-only traffic to consume that
-  reserve; the null backend attaches immediately. A request remains buffered
-  when its selected engine advertises no requested-anchor support or an
+  reserve. Isolated letter navigation can start after 40 ms of rendered audio,
+  or the existing window threshold or earlier completion; this is an audio
+  reserve, not a timer. The null backend attaches immediately. A request remains
+  buffered when its selected engine advertises no requested-anchor support or an
   operation still requires future knowledge of the complete waveform.
 - Immediate `tts_say` and letter commands use the global engine order rather
   than a named logical voice.

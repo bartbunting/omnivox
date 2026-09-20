@@ -1,16 +1,19 @@
 # Installed voices and local activation
 
-These development commands implement the installed-state part of
+These local commands implement the installed-state part of
 [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md) and the
 [voice-library contract](voice-library-contract.org). They register validated
 local Piper models and external Flite voices, persist desired enablement, and
-prepare immutable generations for the client's explicit Apply operation.
+prepare immutable generations for the client's explicit Apply operation. The
+local service also acquires reviewed downloads for Piper, Flite, MBROLA and
+RHVoice; runtime availability and platform support remain provider-specific.
 
 Installation does not restart speech. New imports start disabled. Enabling a
 voice changes desired state; the existing active pointer and speech processes
-retain their previous configuration. Download catalogues, managed asset copying,
-package updates and legacy voice-ID adoption remain separate implementation
-work. The local provider now supplies owned speech workers, retained Apply
+retain their previous configuration. Emacsvox supplies reviewed download
+catalogues; Omnivox owns acquisition, managed storage and native validation.
+Package updates and implicit legacy voice-ID adoption remain separate work.
+The local provider supplies owned speech workers, retained Apply
 leases and active-pointer publication for Emacsvox's two-lane controller.
 Speech connections advertise `voice_library_v1` when status is available.
 
