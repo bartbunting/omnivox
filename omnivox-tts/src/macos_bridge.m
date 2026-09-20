@@ -52,6 +52,8 @@ static NSArray<AVSpeechSynthesisVoice *> *sharedVoices(void) {
 // voices nor asking Apple for the default language voice belongs on every
 // utterance. NSNull retains failed lookups without changing their fallback.
 static AVSpeechSynthesisVoice *cachedVoice(NSString *lang, NSString *name) {
+    // A nil utterance voice asks AVSpeechSynthesizer for the system default.
+    if (lang == nil && name == nil) return nil;
     static NSMutableDictionary<NSArray *, id> *selected = nil;
     if (selected == nil) selected = [NSMutableDictionary dictionary];
     NSArray *key = @[lang, name ?: (id)[NSNull null]];
@@ -249,6 +251,9 @@ void *omnivox_stream_open(const char *text, const char *voice_lang,
         NSString *lang = voice_lang ? [NSString stringWithUTF8String:voice_lang] : nil;
         NSString *name = voice_name ? [NSString stringWithUTF8String:voice_name] : nil;
         NSString *identifier = voice_identifier ? [NSString stringWithUTF8String:voice_identifier] : nil;
+        // Diagnostics use an empty selector when no voice was requested. Keep
+        // explicit language, name and identifier requests subject to lookup.
+        if (lang.length == 0 && name == nil && identifier == nil) lang = nil;
         dispatch_async(synthQueue(), ^{
             @autoreleasepool {
                 AVSpeechSynthesizer *synth = nil;

@@ -62,7 +62,8 @@ cargo run --locked -p omnivox-tts --no-default-features --example macos_streamin
 
 The probe owns the main Cocoa run loop and does not open an audio device. It
 checks native voices, early windows, full-result compatibility, repeated stop,
-consumer failure and successful subsequent requests. Its deliberate consumer
+consumer failure, successful subsequent requests, omitted-voice system defaults
+and rejection of missing explicit voices. Its deliberate consumer
 pauses exercise backpressure; reported timings are not a performance benchmark.
 The [native workflow](../.github/workflows/macos-streaming.yml) runs these checks
 on Intel and Apple Silicon without publishing a release. It also stages the

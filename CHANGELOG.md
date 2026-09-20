@@ -67,6 +67,9 @@ Versioning for published releases.
 
 ### Fixed
 
+- Restore macOS system-default speech when the voice selector is omitted,
+  including `--dump-wav ""`. Explicit missing voices still fail instead of
+  silently selecting the system default.
 - Reduce DECtalk completion and short-letter startup delays by requesting finer
   Windows timer scheduling only during active synthesis and native cleanup.
   Idle helpers hold no timer request.
