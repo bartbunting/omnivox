@@ -34,8 +34,8 @@ jobs:
       - name: Check documentation links
         run: python3 tools/check_markdown_links.py
 
-      - name: Check Debian release guards and asset contract
-        run: make deb-package-test release-asset-test
+      - name: Check release guards, archive layout, and asset contract
+        run: make deb-package-test release-archive-test release-asset-test
 
       - name: Check WSL audio trial tools without an audio device
         run: make wsl-audio-test
@@ -1710,10 +1710,12 @@ jobs:
       RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
 
     steps:
-      - name: Checkout verification code from release tag
+      # Use this run's verifier, like the other binary checks, so a manual
+      # draft retry can repair verification without changing the release tag.
+      - name: Checkout verification code
         uses: actions/checkout@v7
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ github.sha }}
 
       - name: Install Python
         uses: actions/setup-python@v7
