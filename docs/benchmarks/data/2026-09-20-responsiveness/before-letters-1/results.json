@@ -1,0 +1,1260 @@
+{
+  "settings": {
+    "output": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-letters-1",
+    "program": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe",
+    "engine": "dectalk",
+    "voice": "paul",
+    "rate": "85",
+    "scale": "1.1",
+    "iterations": 4,
+    "letters": "abcdefghijklmnopqrstuvwxyzA",
+    "backend": "device",
+    "gap_ms": 300.0
+  },
+  "summary": {
+    "a": {
+      "count": 4,
+      "median_ms": 46.1245,
+      "p95_ms": 55.668,
+      "maximum_ms": 55.668
+    },
+    "b": {
+      "count": 4,
+      "median_ms": 5.0465,
+      "p95_ms": 5.222,
+      "maximum_ms": 5.222
+    },
+    "c": {
+      "count": 4,
+      "median_ms": 13.681000000000001,
+      "p95_ms": 14.226,
+      "maximum_ms": 14.226
+    },
+    "d": {
+      "count": 4,
+      "median_ms": 12.588,
+      "p95_ms": 23.283,
+      "maximum_ms": 23.283
+    },
+    "e": {
+      "count": 4,
+      "median_ms": 61.009,
+      "p95_ms": 71.411,
+      "maximum_ms": 71.411
+    },
+    "f": {
+      "count": 4,
+      "median_ms": 9.8485,
+      "p95_ms": 10.173,
+      "maximum_ms": 10.173
+    },
+    "g": {
+      "count": 4,
+      "median_ms": 9.302,
+      "p95_ms": 18.436,
+      "maximum_ms": 18.436
+    },
+    "h": {
+      "count": 4,
+      "median_ms": 7.638999999999999,
+      "p95_ms": 17.317,
+      "maximum_ms": 17.317
+    },
+    "i": {
+      "count": 4,
+      "median_ms": 6.449,
+      "p95_ms": 16.23,
+      "maximum_ms": 16.23
+    },
+    "j": {
+      "count": 4,
+      "median_ms": 5.0045,
+      "p95_ms": 5.189,
+      "maximum_ms": 5.189
+    },
+    "k": {
+      "count": 4,
+      "median_ms": 3.9210000000000003,
+      "p95_ms": 13.168,
+      "maximum_ms": 13.168
+    },
+    "l": {
+      "count": 4,
+      "median_ms": 12.624500000000001,
+      "p95_ms": 22.555,
+      "maximum_ms": 22.555
+    },
+    "m": {
+      "count": 4,
+      "median_ms": 11.498000000000001,
+      "p95_ms": 11.918,
+      "maximum_ms": 11.918
+    },
+    "n": {
+      "count": 4,
+      "median_ms": 10.234,
+      "p95_ms": 20.441,
+      "maximum_ms": 20.441
+    },
+    "o": {
+      "count": 4,
+      "median_ms": 49.0435,
+      "p95_ms": 59.225,
+      "maximum_ms": 59.225
+    },
+    "p": {
+      "count": 4,
+      "median_ms": 8.0275,
+      "p95_ms": 8.438,
+      "maximum_ms": 8.438
+    },
+    "q": {
+      "count": 4,
+      "median_ms": 6.6345,
+      "p95_ms": 7.077,
+      "maximum_ms": 7.077
+    },
+    "r": {
+      "count": 4,
+      "median_ms": 5.528,
+      "p95_ms": 5.995,
+      "maximum_ms": 5.995
+    },
+    "s": {
+      "count": 4,
+      "median_ms": 4.436999999999999,
+      "p95_ms": 14.426,
+      "maximum_ms": 14.426
+    },
+    "t": {
+      "count": 4,
+      "median_ms": 12.9495,
+      "p95_ms": 13.181,
+      "maximum_ms": 13.181
+    },
+    "u": {
+      "count": 4,
+      "median_ms": 11.681999999999999,
+      "p95_ms": 21.348,
+      "maximum_ms": 21.348
+    },
+    "v": {
+      "count": 4,
+      "median_ms": 50.2235,
+      "p95_ms": 60.578,
+      "maximum_ms": 60.578
+    },
+    "w": {
+      "count": 4,
+      "median_ms": 9.0615,
+      "p95_ms": 18.541,
+      "maximum_ms": 18.541
+    },
+    "x": {
+      "count": 4,
+      "median_ms": 7.4945,
+      "p95_ms": 7.735,
+      "maximum_ms": 7.735
+    },
+    "y": {
+      "count": 4,
+      "median_ms": 6.129,
+      "p95_ms": 6.692,
+      "maximum_ms": 6.692
+    },
+    "z": {
+      "count": 4,
+      "median_ms": 50.1325,
+      "p95_ms": 55.238,
+      "maximum_ms": 55.238
+    },
+    "A": {
+      "count": 4,
+      "median_ms": 58.9105,
+      "p95_ms": 64.113,
+      "maximum_ms": 64.113
+    }
+  },
+  "samples": [
+    {
+      "letter": "a",
+      "stop_epoch": 4,
+      "source_ms": 46.086,
+      "worker_elapsed_ms": 47.61,
+      "admission_elapsed_ms": 47.628,
+      "admission_to_audio_queued_ms": 2.065,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "a",
+      "stop_epoch": 5,
+      "source_ms": 46.163,
+      "worker_elapsed_ms": 47.67,
+      "admission_elapsed_ms": 47.74,
+      "admission_to_audio_queued_ms": 2.021,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "a",
+      "stop_epoch": 6,
+      "source_ms": 46.081,
+      "worker_elapsed_ms": 47.584,
+      "admission_elapsed_ms": 47.599,
+      "admission_to_audio_queued_ms": 2.766,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "a",
+      "stop_epoch": 7,
+      "source_ms": 55.668,
+      "worker_elapsed_ms": 57.2,
+      "admission_elapsed_ms": 57.22,
+      "admission_to_audio_queued_ms": 2.448,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "b",
+      "stop_epoch": 11,
+      "source_ms": 5.222,
+      "worker_elapsed_ms": 40.093,
+      "admission_elapsed_ms": 40.122,
+      "admission_to_audio_queued_ms": 3.317,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "b",
+      "stop_epoch": 12,
+      "source_ms": 5.125,
+      "worker_elapsed_ms": 39.691,
+      "admission_elapsed_ms": 39.714,
+      "admission_to_audio_queued_ms": 2.724,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "b",
+      "stop_epoch": 13,
+      "source_ms": 4.968,
+      "worker_elapsed_ms": 39.447,
+      "admission_elapsed_ms": 39.466,
+      "admission_to_audio_queued_ms": 2.621,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "b",
+      "stop_epoch": 14,
+      "source_ms": 4.487,
+      "worker_elapsed_ms": 39.884,
+      "admission_elapsed_ms": 39.909,
+      "admission_to_audio_queued_ms": 2.728,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "c",
+      "stop_epoch": 18,
+      "source_ms": 14.226,
+      "worker_elapsed_ms": 43.514,
+      "admission_elapsed_ms": 43.543,
+      "admission_to_audio_queued_ms": 3.274,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "c",
+      "stop_epoch": 19,
+      "source_ms": 13.699,
+      "worker_elapsed_ms": 44.012,
+      "admission_elapsed_ms": 44.036,
+      "admission_to_audio_queued_ms": 3.771,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "c",
+      "stop_epoch": 20,
+      "source_ms": 13.663,
+      "worker_elapsed_ms": 55.861,
+      "admission_elapsed_ms": 55.898,
+      "admission_to_audio_queued_ms": 2.991,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "c",
+      "stop_epoch": 21,
+      "source_ms": 13.436,
+      "worker_elapsed_ms": 37.962,
+      "admission_elapsed_ms": 37.983,
+      "admission_to_audio_queued_ms": 3.176,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "d",
+      "stop_epoch": 25,
+      "source_ms": 12.652,
+      "worker_elapsed_ms": 57.064,
+      "admission_elapsed_ms": 57.095,
+      "admission_to_audio_queued_ms": 3.191,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "d",
+      "stop_epoch": 26,
+      "source_ms": 23.283,
+      "worker_elapsed_ms": 38.993,
+      "admission_elapsed_ms": 39.017,
+      "admission_to_audio_queued_ms": 2.743,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "d",
+      "stop_epoch": 27,
+      "source_ms": 12.524,
+      "worker_elapsed_ms": 55.903,
+      "admission_elapsed_ms": 55.938,
+      "admission_to_audio_queued_ms": 2.788,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "d",
+      "stop_epoch": 28,
+      "source_ms": 12.308,
+      "worker_elapsed_ms": 47.105,
+      "admission_elapsed_ms": 47.175,
+      "admission_to_audio_queued_ms": 2.807,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "e",
+      "stop_epoch": 32,
+      "source_ms": 71.411,
+      "worker_elapsed_ms": 61.297,
+      "admission_elapsed_ms": 61.361,
+      "admission_to_audio_queued_ms": 2.645,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "e",
+      "stop_epoch": 33,
+      "source_ms": 51.252,
+      "worker_elapsed_ms": 46.757,
+      "admission_elapsed_ms": 46.837,
+      "admission_to_audio_queued_ms": 3.495,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "e",
+      "stop_epoch": 34,
+      "source_ms": 61.157,
+      "worker_elapsed_ms": 56.749,
+      "admission_elapsed_ms": 56.78,
+      "admission_to_audio_queued_ms": 2.721,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "e",
+      "stop_epoch": 35,
+      "source_ms": 60.861,
+      "worker_elapsed_ms": 56.216,
+      "admission_elapsed_ms": 56.239,
+      "admission_to_audio_queued_ms": 2.734,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "f",
+      "stop_epoch": 39,
+      "source_ms": 10.173,
+      "worker_elapsed_ms": 39.823,
+      "admission_elapsed_ms": 39.846,
+      "admission_to_audio_queued_ms": 2.73,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "f",
+      "stop_epoch": 40,
+      "source_ms": 9.87,
+      "worker_elapsed_ms": 59.237,
+      "admission_elapsed_ms": 59.268,
+      "admission_to_audio_queued_ms": 3.726,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "f",
+      "stop_epoch": 41,
+      "source_ms": 9.476,
+      "worker_elapsed_ms": 38.888,
+      "admission_elapsed_ms": 38.906,
+      "admission_to_audio_queued_ms": 3.608,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "f",
+      "stop_epoch": 42,
+      "source_ms": 9.827,
+      "worker_elapsed_ms": 44.451,
+      "admission_elapsed_ms": 44.474,
+      "admission_to_audio_queued_ms": 2.34,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "g",
+      "stop_epoch": 46,
+      "source_ms": 9.464,
+      "worker_elapsed_ms": 59.169,
+      "admission_elapsed_ms": 59.192,
+      "admission_to_audio_queued_ms": 2.673,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "g",
+      "stop_epoch": 47,
+      "source_ms": 9.14,
+      "worker_elapsed_ms": 43.764,
+      "admission_elapsed_ms": 43.785,
+      "admission_to_audio_queued_ms": 2.591,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "g",
+      "stop_epoch": 48,
+      "source_ms": 8.962,
+      "worker_elapsed_ms": 47.726,
+      "admission_elapsed_ms": 47.756,
+      "admission_to_audio_queued_ms": 2.991,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "g",
+      "stop_epoch": 49,
+      "source_ms": 18.436,
+      "worker_elapsed_ms": 48.892,
+      "admission_elapsed_ms": 48.951,
+      "admission_to_audio_queued_ms": 4.095,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "h",
+      "stop_epoch": 53,
+      "source_ms": 7.63,
+      "worker_elapsed_ms": 42.335,
+      "admission_elapsed_ms": 42.376,
+      "admission_to_audio_queued_ms": 3.452,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "h",
+      "stop_epoch": 54,
+      "source_ms": 7.648,
+      "worker_elapsed_ms": 43.054,
+      "admission_elapsed_ms": 43.069,
+      "admission_to_audio_queued_ms": 3.299,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "h",
+      "stop_epoch": 55,
+      "source_ms": 17.317,
+      "worker_elapsed_ms": 42.705,
+      "admission_elapsed_ms": 42.722,
+      "admission_to_audio_queued_ms": 2.46,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "h",
+      "stop_epoch": 56,
+      "source_ms": 7.231,
+      "worker_elapsed_ms": 42.136,
+      "admission_elapsed_ms": 42.163,
+      "admission_to_audio_queued_ms": 2.863,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "i",
+      "stop_epoch": 60,
+      "source_ms": 6.452,
+      "worker_elapsed_ms": 61.428,
+      "admission_elapsed_ms": 61.466,
+      "admission_to_audio_queued_ms": 2.716,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "i",
+      "stop_epoch": 61,
+      "source_ms": 16.23,
+      "worker_elapsed_ms": 41.122,
+      "admission_elapsed_ms": 41.175,
+      "admission_to_audio_queued_ms": 2.853,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "i",
+      "stop_epoch": 62,
+      "source_ms": 6.446,
+      "worker_elapsed_ms": 41.358,
+      "admission_elapsed_ms": 41.376,
+      "admission_to_audio_queued_ms": 2.262,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "i",
+      "stop_epoch": 63,
+      "source_ms": 6.213,
+      "worker_elapsed_ms": 55.164,
+      "admission_elapsed_ms": 55.187,
+      "admission_to_audio_queued_ms": 3.611,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "j",
+      "stop_epoch": 67,
+      "source_ms": 5.189,
+      "worker_elapsed_ms": 39.545,
+      "admission_elapsed_ms": 39.578,
+      "admission_to_audio_queued_ms": 2.683,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "j",
+      "stop_epoch": 68,
+      "source_ms": 5.117,
+      "worker_elapsed_ms": 55.806,
+      "admission_elapsed_ms": 55.833,
+      "admission_to_audio_queued_ms": 3.277,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "j",
+      "stop_epoch": 69,
+      "source_ms": 4.892,
+      "worker_elapsed_ms": 39.663,
+      "admission_elapsed_ms": 39.685,
+      "admission_to_audio_queued_ms": 3.353,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "j",
+      "stop_epoch": 70,
+      "source_ms": 4.532,
+      "worker_elapsed_ms": 39.286,
+      "admission_elapsed_ms": 39.421,
+      "admission_to_audio_queued_ms": 2.542,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "k",
+      "stop_epoch": 74,
+      "source_ms": 3.86,
+      "worker_elapsed_ms": 58.234,
+      "admission_elapsed_ms": 58.287,
+      "admission_to_audio_queued_ms": 3.127,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "k",
+      "stop_epoch": 75,
+      "source_ms": 3.876,
+      "worker_elapsed_ms": 54.135,
+      "admission_elapsed_ms": 54.173,
+      "admission_to_audio_queued_ms": 2.98,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "k",
+      "stop_epoch": 76,
+      "source_ms": 3.966,
+      "worker_elapsed_ms": 38.315,
+      "admission_elapsed_ms": 38.335,
+      "admission_to_audio_queued_ms": 2.541,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "k",
+      "stop_epoch": 77,
+      "source_ms": 13.168,
+      "worker_elapsed_ms": 48.3,
+      "admission_elapsed_ms": 48.336,
+      "admission_to_audio_queued_ms": 3.665,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "l",
+      "stop_epoch": 81,
+      "source_ms": 12.547,
+      "worker_elapsed_ms": 52.543,
+      "admission_elapsed_ms": 52.585,
+      "admission_to_audio_queued_ms": 3.425,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "l",
+      "stop_epoch": 82,
+      "source_ms": 12.702,
+      "worker_elapsed_ms": 52.494,
+      "admission_elapsed_ms": 52.514,
+      "admission_to_audio_queued_ms": 2.961,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "l",
+      "stop_epoch": 83,
+      "source_ms": 22.555,
+      "worker_elapsed_ms": 76.816,
+      "admission_elapsed_ms": 76.854,
+      "admission_to_audio_queued_ms": 2.729,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "l",
+      "stop_epoch": 84,
+      "source_ms": 12.44,
+      "worker_elapsed_ms": 57.185,
+      "admission_elapsed_ms": 57.206,
+      "admission_to_audio_queued_ms": 2.532,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "m",
+      "stop_epoch": 88,
+      "source_ms": 11.918,
+      "worker_elapsed_ms": 46.492,
+      "admission_elapsed_ms": 46.513,
+      "admission_to_audio_queued_ms": 2.736,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "m",
+      "stop_epoch": 89,
+      "source_ms": 11.464,
+      "worker_elapsed_ms": 45.998,
+      "admission_elapsed_ms": 46.017,
+      "admission_to_audio_queued_ms": 2.511,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "m",
+      "stop_epoch": 90,
+      "source_ms": 11.532,
+      "worker_elapsed_ms": 55.811,
+      "admission_elapsed_ms": 55.872,
+      "admission_to_audio_queued_ms": 3.439,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "m",
+      "stop_epoch": 91,
+      "source_ms": 11.187,
+      "worker_elapsed_ms": 58.143,
+      "admission_elapsed_ms": 58.177,
+      "admission_to_audio_queued_ms": 3.273,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "n",
+      "stop_epoch": 95,
+      "source_ms": 10.383,
+      "worker_elapsed_ms": 52.07,
+      "admission_elapsed_ms": 52.093,
+      "admission_to_audio_queued_ms": 2.328,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "n",
+      "stop_epoch": 96,
+      "source_ms": 20.441,
+      "worker_elapsed_ms": 44.618,
+      "admission_elapsed_ms": 44.704,
+      "admission_to_audio_queued_ms": 2.491,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "n",
+      "stop_epoch": 97,
+      "source_ms": 10.085,
+      "worker_elapsed_ms": 44.637,
+      "admission_elapsed_ms": 44.671,
+      "admission_to_audio_queued_ms": 2.495,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "n",
+      "stop_epoch": 98,
+      "source_ms": 9.885,
+      "worker_elapsed_ms": 44.449,
+      "admission_elapsed_ms": 44.476,
+      "admission_to_audio_queued_ms": 2.803,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "o",
+      "stop_epoch": 102,
+      "source_ms": 59.225,
+      "worker_elapsed_ms": 60.429,
+      "admission_elapsed_ms": 60.459,
+      "admission_to_audio_queued_ms": 2.796,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "o",
+      "stop_epoch": 103,
+      "source_ms": 49.151,
+      "worker_elapsed_ms": 51.272,
+      "admission_elapsed_ms": 51.299,
+      "admission_to_audio_queued_ms": 4.175,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "o",
+      "stop_epoch": 104,
+      "source_ms": 39.27,
+      "worker_elapsed_ms": 41.541,
+      "admission_elapsed_ms": 41.563,
+      "admission_to_audio_queued_ms": 2.405,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "o",
+      "stop_epoch": 105,
+      "source_ms": 48.936,
+      "worker_elapsed_ms": 50.996,
+      "admission_elapsed_ms": 51.012,
+      "admission_to_audio_queued_ms": 2.794,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "p",
+      "stop_epoch": 109,
+      "source_ms": 8.438,
+      "worker_elapsed_ms": 42.835,
+      "admission_elapsed_ms": 42.858,
+      "admission_to_audio_queued_ms": 2.604,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "p",
+      "stop_epoch": 110,
+      "source_ms": 8.104,
+      "worker_elapsed_ms": 48.094,
+      "admission_elapsed_ms": 48.117,
+      "admission_to_audio_queued_ms": 2.451,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "p",
+      "stop_epoch": 111,
+      "source_ms": 7.951,
+      "worker_elapsed_ms": 43.023,
+      "admission_elapsed_ms": 43.041,
+      "admission_to_audio_queued_ms": 3.818,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "p",
+      "stop_epoch": 112,
+      "source_ms": 7.638,
+      "worker_elapsed_ms": 62.004,
+      "admission_elapsed_ms": 62.057,
+      "admission_to_audio_queued_ms": 2.539,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "q",
+      "stop_epoch": 116,
+      "source_ms": 7.077,
+      "worker_elapsed_ms": 42.201,
+      "admission_elapsed_ms": 42.223,
+      "admission_to_audio_queued_ms": 2.354,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "q",
+      "stop_epoch": 117,
+      "source_ms": 6.532,
+      "worker_elapsed_ms": 66.575,
+      "admission_elapsed_ms": 66.605,
+      "admission_to_audio_queued_ms": 3.162,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "q",
+      "stop_epoch": 118,
+      "source_ms": 6.737,
+      "worker_elapsed_ms": 71.064,
+      "admission_elapsed_ms": 71.078,
+      "admission_to_audio_queued_ms": 2.279,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "q",
+      "stop_epoch": 119,
+      "source_ms": 6.122,
+      "worker_elapsed_ms": 51.153,
+      "admission_elapsed_ms": 51.196,
+      "admission_to_audio_queued_ms": 3.833,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "r",
+      "stop_epoch": 123,
+      "source_ms": 5.995,
+      "worker_elapsed_ms": 71.21,
+      "admission_elapsed_ms": 71.234,
+      "admission_to_audio_queued_ms": 2.484,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "r",
+      "stop_epoch": 124,
+      "source_ms": 5.794,
+      "worker_elapsed_ms": 40.421,
+      "admission_elapsed_ms": 40.442,
+      "admission_to_audio_queued_ms": 3.436,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "r",
+      "stop_epoch": 125,
+      "source_ms": 5.229,
+      "worker_elapsed_ms": 49.59,
+      "admission_elapsed_ms": 49.621,
+      "admission_to_audio_queued_ms": 3.043,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "r",
+      "stop_epoch": 126,
+      "source_ms": 5.262,
+      "worker_elapsed_ms": 41.138,
+      "admission_elapsed_ms": 41.162,
+      "admission_to_audio_queued_ms": 3.037,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "s",
+      "stop_epoch": 130,
+      "source_ms": 4.678,
+      "worker_elapsed_ms": 49.323,
+      "admission_elapsed_ms": 49.342,
+      "admission_to_audio_queued_ms": 2.551,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "s",
+      "stop_epoch": 131,
+      "source_ms": 14.426,
+      "worker_elapsed_ms": 38.883,
+      "admission_elapsed_ms": 38.905,
+      "admission_to_audio_queued_ms": 2.722,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "s",
+      "stop_epoch": 132,
+      "source_ms": 4.196,
+      "worker_elapsed_ms": 38.312,
+      "admission_elapsed_ms": 38.334,
+      "admission_to_audio_queued_ms": 3.043,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "s",
+      "stop_epoch": 133,
+      "source_ms": 4.042,
+      "worker_elapsed_ms": 62.49,
+      "admission_elapsed_ms": 62.514,
+      "admission_to_audio_queued_ms": 2.431,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "t",
+      "stop_epoch": 137,
+      "source_ms": 13.181,
+      "worker_elapsed_ms": 37.651,
+      "admission_elapsed_ms": 37.68,
+      "admission_to_audio_queued_ms": 2.807,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "t",
+      "stop_epoch": 138,
+      "source_ms": 12.979,
+      "worker_elapsed_ms": 57.985,
+      "admission_elapsed_ms": 58.01,
+      "admission_to_audio_queued_ms": 2.625,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "t",
+      "stop_epoch": 139,
+      "source_ms": 12.92,
+      "worker_elapsed_ms": 46.143,
+      "admission_elapsed_ms": 46.16,
+      "admission_to_audio_queued_ms": 3.128,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "t",
+      "stop_epoch": 140,
+      "source_ms": 12.477,
+      "worker_elapsed_ms": 47.502,
+      "admission_elapsed_ms": 47.524,
+      "admission_to_audio_queued_ms": 2.977,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "u",
+      "stop_epoch": 144,
+      "source_ms": 11.661,
+      "worker_elapsed_ms": 66.381,
+      "admission_elapsed_ms": 66.399,
+      "admission_to_audio_queued_ms": 3.225,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "u",
+      "stop_epoch": 145,
+      "source_ms": 11.703,
+      "worker_elapsed_ms": 56.417,
+      "admission_elapsed_ms": 56.442,
+      "admission_to_audio_queued_ms": 3.054,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "u",
+      "stop_epoch": 146,
+      "source_ms": 10.987,
+      "worker_elapsed_ms": 57.626,
+      "admission_elapsed_ms": 57.658,
+      "admission_to_audio_queued_ms": 2.912,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "u",
+      "stop_epoch": 147,
+      "source_ms": 21.348,
+      "worker_elapsed_ms": 51.109,
+      "admission_elapsed_ms": 51.131,
+      "admission_to_audio_queued_ms": 2.855,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "v",
+      "stop_epoch": 151,
+      "source_ms": 60.578,
+      "worker_elapsed_ms": 62.367,
+      "admission_elapsed_ms": 62.384,
+      "admission_to_audio_queued_ms": 2.76,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "v",
+      "stop_epoch": 152,
+      "source_ms": 50.286,
+      "worker_elapsed_ms": 52.604,
+      "admission_elapsed_ms": 52.632,
+      "admission_to_audio_queued_ms": 3.682,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "v",
+      "stop_epoch": 153,
+      "source_ms": 50.161,
+      "worker_elapsed_ms": 52.727,
+      "admission_elapsed_ms": 52.746,
+      "admission_to_audio_queued_ms": 3.821,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "v",
+      "stop_epoch": 154,
+      "source_ms": 50.012,
+      "worker_elapsed_ms": 52.704,
+      "admission_elapsed_ms": 52.767,
+      "admission_to_audio_queued_ms": 2.611,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "w",
+      "stop_epoch": 158,
+      "source_ms": 9.079,
+      "worker_elapsed_ms": 110.708,
+      "admission_elapsed_ms": 110.79,
+      "admission_to_audio_queued_ms": 3.341,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "w",
+      "stop_epoch": 159,
+      "source_ms": 9.044,
+      "worker_elapsed_ms": 111.635,
+      "admission_elapsed_ms": 111.7,
+      "admission_to_audio_queued_ms": 2.812,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "w",
+      "stop_epoch": 160,
+      "source_ms": 18.541,
+      "worker_elapsed_ms": 121.264,
+      "admission_elapsed_ms": 121.336,
+      "admission_to_audio_queued_ms": 2.682,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "w",
+      "stop_epoch": 161,
+      "source_ms": 8.431,
+      "worker_elapsed_ms": 110.003,
+      "admission_elapsed_ms": 110.074,
+      "admission_to_audio_queued_ms": 2.756,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "x",
+      "stop_epoch": 165,
+      "source_ms": 7.735,
+      "worker_elapsed_ms": 58.871,
+      "admission_elapsed_ms": 58.891,
+      "admission_to_audio_queued_ms": 3.602,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "x",
+      "stop_epoch": 166,
+      "source_ms": 7.547,
+      "worker_elapsed_ms": 57.841,
+      "admission_elapsed_ms": 57.865,
+      "admission_to_audio_queued_ms": 3.098,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "x",
+      "stop_epoch": 167,
+      "source_ms": 7.442,
+      "worker_elapsed_ms": 57.534,
+      "admission_elapsed_ms": 57.563,
+      "admission_to_audio_queued_ms": 3.279,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "x",
+      "stop_epoch": 168,
+      "source_ms": 7.319,
+      "worker_elapsed_ms": 57.263,
+      "admission_elapsed_ms": 57.284,
+      "admission_to_audio_queued_ms": 2.418,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "y",
+      "stop_epoch": 172,
+      "source_ms": 6.692,
+      "worker_elapsed_ms": 41.951,
+      "admission_elapsed_ms": 41.975,
+      "admission_to_audio_queued_ms": 2.528,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "y",
+      "stop_epoch": 173,
+      "source_ms": 6.328,
+      "worker_elapsed_ms": 40.87,
+      "admission_elapsed_ms": 40.926,
+      "admission_to_audio_queued_ms": 2.578,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "y",
+      "stop_epoch": 174,
+      "source_ms": 5.93,
+      "worker_elapsed_ms": 50.859,
+      "admission_elapsed_ms": 50.886,
+      "admission_to_audio_queued_ms": 3.58,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "y",
+      "stop_epoch": 175,
+      "source_ms": 5.884,
+      "worker_elapsed_ms": 51.059,
+      "admission_elapsed_ms": 51.105,
+      "admission_to_audio_queued_ms": 3.371,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "z",
+      "stop_epoch": 179,
+      "source_ms": 45.157,
+      "worker_elapsed_ms": 47.634,
+      "admission_elapsed_ms": 47.65,
+      "admission_to_audio_queued_ms": 2.792,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "z",
+      "stop_epoch": 180,
+      "source_ms": 55.238,
+      "worker_elapsed_ms": 57.575,
+      "admission_elapsed_ms": 57.59,
+      "admission_to_audio_queued_ms": 3.022,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "z",
+      "stop_epoch": 181,
+      "source_ms": 45.225,
+      "worker_elapsed_ms": 45.447,
+      "admission_elapsed_ms": 45.469,
+      "admission_to_audio_queued_ms": 2.567,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "z",
+      "stop_epoch": 182,
+      "source_ms": 55.04,
+      "worker_elapsed_ms": 55.125,
+      "admission_elapsed_ms": 55.2,
+      "admission_to_audio_queued_ms": 2.976,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "A",
+      "stop_epoch": 186,
+      "source_ms": 53.784,
+      "worker_elapsed_ms": 53.818,
+      "admission_elapsed_ms": 53.852,
+      "admission_to_audio_queued_ms": 4.431,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "A",
+      "stop_epoch": 187,
+      "source_ms": 64.037,
+      "worker_elapsed_ms": 66.124,
+      "admission_elapsed_ms": 66.142,
+      "admission_to_audio_queued_ms": 3.196,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "A",
+      "stop_epoch": 188,
+      "source_ms": 64.113,
+      "worker_elapsed_ms": 66.389,
+      "admission_elapsed_ms": 66.407,
+      "admission_to_audio_queued_ms": 2.216,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    },
+    {
+      "letter": "A",
+      "stop_epoch": 189,
+      "source_ms": 53.423,
+      "worker_elapsed_ms": 54.098,
+      "admission_elapsed_ms": 54.125,
+      "admission_to_audio_queued_ms": 3.69,
+      "engine_id": "dectalk",
+      "voice_id": "paul"
+    }
+  ]
+}

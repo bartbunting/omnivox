@@ -88,6 +88,15 @@ Versioning for published releases.
 
 ### Fixed
 
+- Reduce DECtalk completion and short-letter startup delays by requesting finer
+  Windows timer scheduling only during active synthesis and native cleanup.
+  Synchronization, marker ordering, parameter restoration and PCM are retained;
+  idle helpers hold no timer request.
+
+- Waiting speech wakes when an isolated native call releases engine or process
+  capacity, avoiding an extra polling delay during replacement and recovery.
+  Cancellation deadlines and native concurrency limits are unchanged.
+
 - DECtalk batches custom voice controls with plain text after checking each
   preset once per helper. Actual native settings are verified before output,
   avoiding repeated pre-speech synchronization. Embedded native commands retain

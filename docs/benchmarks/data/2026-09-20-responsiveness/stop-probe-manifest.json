@@ -1,0 +1,50 @@
+[
+  {
+    "name": "grace-0-0",
+    "command": [
+      "/usr/bin/python3",
+      "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-bursts.py",
+      "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-0-0",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe"
+    ],
+    "exit_code": 0,
+    "grace_ms": 0
+  },
+  {
+    "name": "grace-5-0",
+    "command": [
+      "/usr/bin/python3",
+      "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-bursts.py",
+      "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-5-0",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe"
+    ],
+    "exit_code": 0,
+    "grace_ms": 5
+  },
+  {
+    "name": "grace-5-1",
+    "command": [
+      "/usr/bin/python3",
+      "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-bursts.py",
+      "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-5-1",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe"
+    ],
+    "exit_code": 0,
+    "grace_ms": 5
+  },
+  {
+    "name": "grace-0-1",
+    "command": [
+      "/usr/bin/python3",
+      "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-bursts.py",
+      "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-0-1",
+      "--program",
+      "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe"
+    ],
+    "exit_code": 0,
+    "grace_ms": 0
+  }
+]

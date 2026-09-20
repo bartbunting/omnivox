@@ -1,0 +1,218 @@
+{
+  "harness": {
+    "/home/bart/src/emacsvox/utils/voice_benchmark.py": "8ad2f093174d86e1ab05097e010abcbbfaabf61e7f523aa2c93d77f5cb79f639",
+    "/home/bart/src/emacsvox/utils/voice_benchmark_server.py": "54120e495c097971015eb54489c48ce47b926deb7cb075b72d9c1ff43f5cf1e8",
+    "/home/bart/src/omnivox/tools/benchmark_server.py": "71cfa6545064133ff776a4ed220957d7f476cb89e2f8bd2e0b6845cf3e75bb8b"
+  },
+  "jobs": [
+    {
+      "median": 2.955443,
+      "n": 30,
+      "p95": 3.530315,
+      "repeat": 0,
+      "report": "00-before-dectalk/raw.json",
+      "route": "dectalk",
+      "sha256": "e2d343d7c7298d688c17736a9a0f92f47e44c7ac0a7df569d2742ea2924dbd57",
+      "target": "before"
+    },
+    {
+      "median": 3.263749,
+      "n": 30,
+      "p95": 3.984796,
+      "repeat": 0,
+      "report": "01-before-espeak/raw.json",
+      "route": "espeak",
+      "sha256": "0985519cc7a9beded68517f63039ff00218ffc9289fb8c4cf4fd373d1913e7d7",
+      "target": "before"
+    },
+    {
+      "median": 5.488704,
+      "n": 30,
+      "p95": 7.43976,
+      "repeat": 0,
+      "report": "02-before-eloquence/raw.json",
+      "route": "eloquence",
+      "sha256": "47f5e7bb05a93dc2c655dad93c78f508dfb0f1a07f6055603c2d2c55956705e9",
+      "target": "before"
+    },
+    {
+      "median": 3.364955,
+      "n": 30,
+      "p95": 4.278629,
+      "repeat": 0,
+      "report": "03-after-espeak/raw.json",
+      "route": "espeak",
+      "sha256": "1628bf5e69636bc5a352b65f6bdeb38393eb123a32d39bad010a70878e8bbdd9",
+      "target": "after"
+    },
+    {
+      "median": 6.042693,
+      "n": 30,
+      "p95": 8.171346,
+      "repeat": 0,
+      "report": "04-after-eloquence/raw.json",
+      "route": "eloquence",
+      "sha256": "f901cef7865b79618fe2af584aa8c67fe38232a514fa1e5302923d1dc0751714",
+      "target": "after"
+    },
+    {
+      "median": 4.053966,
+      "n": 30,
+      "p95": 6.728984,
+      "repeat": 0,
+      "report": "05-after-dectalk/raw.json",
+      "route": "dectalk",
+      "sha256": "6537429339ab14376a1ee3c1fabfa3712f3d535d2176b188b7db4f0f5f83d222",
+      "target": "after"
+    },
+    {
+      "median": 2.972667,
+      "n": 30,
+      "p95": 3.65097,
+      "repeat": 1,
+      "report": "06-before-espeak/raw.json",
+      "route": "espeak",
+      "sha256": "e068e2308fe064c63fb87184d3f6900a32b5bc0b6a883eea6a42d17504f4a138",
+      "target": "before"
+    },
+    {
+      "median": 2.752215,
+      "n": 30,
+      "p95": 3.319739,
+      "repeat": 1,
+      "report": "07-before-dectalk/raw.json",
+      "route": "dectalk",
+      "sha256": "db4c5143b055ae354afc9137605ffb2c47f4d180491cf37f478700ad3a3607ef",
+      "target": "before"
+    },
+    {
+      "median": 3.349234,
+      "n": 30,
+      "p95": 4.244842,
+      "repeat": 1,
+      "report": "08-after-dectalk/raw.json",
+      "route": "dectalk",
+      "sha256": "83dd544defdc53f2a522f5153e03fc772a9d3d7d4dabedcb035904075d166143",
+      "target": "after"
+    },
+    {
+      "median": 5.337663,
+      "n": 30,
+      "p95": 7.088415,
+      "repeat": 1,
+      "report": "09-before-eloquence/raw.json",
+      "route": "eloquence",
+      "sha256": "3029c323b6def41cb17039cee1717ed8cb2c765058603e59bd3a6a9ccabcbfe9",
+      "target": "before"
+    },
+    {
+      "median": 5.247192,
+      "n": 30,
+      "p95": 6.54544,
+      "repeat": 1,
+      "report": "10-after-eloquence/raw.json",
+      "route": "eloquence",
+      "sha256": "0047db83016e7f96f64a217b2cd2e965aa425e256c5136a4f482e1c787a5de17",
+      "target": "after"
+    },
+    {
+      "median": 3.282964,
+      "n": 30,
+      "p95": 4.076959,
+      "repeat": 1,
+      "report": "11-after-espeak/raw.json",
+      "route": "espeak",
+      "sha256": "4bef86233ddc61e83db3a506c7674be650c1193f4636acbc944c159fbf31af8b",
+      "target": "after"
+    },
+    {
+      "median": 5.084949,
+      "n": 30,
+      "p95": 7.024492,
+      "repeat": 2,
+      "report": "12-after-eloquence/raw.json",
+      "route": "eloquence",
+      "sha256": "a00457bc4c01764919835f18c1aa1f1ef1c498e4c8753adf4d9151105624177d",
+      "target": "after"
+    },
+    {
+      "median": 2.887202,
+      "n": 30,
+      "p95": 3.352789,
+      "repeat": 2,
+      "report": "13-before-dectalk/raw.json",
+      "route": "dectalk",
+      "sha256": "a8405129e868166fc169e0f96b2e0b4e3b024a43a0034a1b77e361042495546c",
+      "target": "before"
+    },
+    {
+      "median": 5.254424,
+      "n": 30,
+      "p95": 7.31293,
+      "repeat": 2,
+      "report": "14-before-eloquence/raw.json",
+      "route": "eloquence",
+      "sha256": "a196d6e8a1686ac777230e5e5e55cf2a6202b1ace15641a72fcc370078ca88bc",
+      "target": "before"
+    },
+    {
+      "median": 2.944411,
+      "n": 30,
+      "p95": 3.766194,
+      "repeat": 2,
+      "report": "15-before-espeak/raw.json",
+      "route": "espeak",
+      "sha256": "c5828e9e34f6b07ff3108c679a92364998dd28edd54d0dc00376f6f429d05005",
+      "target": "before"
+    },
+    {
+      "median": 3.074086,
+      "n": 30,
+      "p95": 4.187919,
+      "repeat": 2,
+      "report": "16-after-espeak/raw.json",
+      "route": "espeak",
+      "sha256": "8cbc7ff63a43a2481d581c9dc06df4c781a207bd0e3eb3ea4f8d9522030807d2",
+      "target": "after"
+    },
+    {
+      "median": 3.577803,
+      "n": 30,
+      "p95": 4.277055,
+      "repeat": 2,
+      "report": "17-after-dectalk/raw.json",
+      "route": "dectalk",
+      "sha256": "00258683683c6913bfff238a6d976ae6d63c2d3052a543ca1eaee0360b4fd282",
+      "target": "after"
+    }
+  ],
+  "kind": "focused line diagnosis; software onset, no acoustic onset",
+  "targets": {
+    "after": {
+      "payload": {
+        "DECtalk.dll": "ac0bda78b1c42f2503eb9ce1b85096b3555099cf2282a941cf73cc80f2370583",
+        "OmnivoxDectalkHelper32.exe": "b7f07601865080d0106214c8b8c8d4a4db770f198ca84a957098d7545ad29e1b",
+        "OmnivoxEloquenceHelper32.exe": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8",
+        "libgcc_s_seh-1.dll": "273073618002c7c3736535b74619a2a84725f349e3d618926b0434657bf156c7",
+        "libstdc++-6.dll": "38f844a00cb9f8864c5c4967859b4e53f6d9936659a1cdbbbb5f869886150203",
+        "omnivox.exe": "13e56b66355b8abcf9ce673424c198e844b490ee2700321d5f419d3f29b41476"
+      },
+      "program": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe",
+      "provenance": "format=emacsvox-omnivox-provenance-v1\nbuild_id=577414114415d7b0\nemacsvox_commit=55a31047285cd183a3ee34f368007466d0341e15\nomnivox_commit=bd95655b2e0ec729b5482189e7906057056c0ce1\nbuild_kind=local-dirty-worktree\nemacsvox_worktree_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\nomnivox_worktree_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\ncargo_lock_sha256=686268250a87215a747f0b39652208ca9edd9071883aa730cdff2f2eb53170f1\ntoolchain_lock_sha256=7a400a4767c6f47eba02a60d7c2bf9b7ddfb2c6fc60abb8867548e3bd788c996\ndockerfile_sha256=33e2df54152f81abd75143954a5aaaab0c20e098970afba68d8b024fb7169efa\nrelease_image_id=sha256:3186f03b16a6b9cc62befb0902a40974b6297426483582464e3c421bb9873204\nrustc=rustc 1.97.1 (8bab26f4f 2026-07-14)\nmingw_gcc=x86_64-w64-mingw32-gcc-win32 (GCC) 12-win32\nroslyn_csc=5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)\nroslyn_csc_sha256=4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee\nroslyn_nupkg_sha256=302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401\nnet40_reference_assemblies_nupkg_sha256=54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694\ntarget=x86_64-pc-windows-gnu\nomnivox_features=none\nwindows_rustflags=-C link-arg=-Wl,--no-insert-timestamp\nwindows_strip=SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all\nomnivox_executable_sha256=13e56b66355b8abcf9ce673424c198e844b490ee2700321d5f419d3f29b41476\nunstripped_diagnostics=retained-local-not-staged\nespeak_data_sha256=9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718\nrhvoice_companion=local-omnivox-build\nrhvoice_companion_tree_sha256=10766d9f32c95b87f632504373b899e2b900b847b6cdf312f69936b12fbab24e\nrhvoice_runtime=external-user-supplied-not-bundled\nrhvoice_configuration=recorded-windows-paths\nrhvoice_library_sha256=3014e72aa5a989c3082cbbc42977919601a8444f4e6dcdb73e5ae0c664272aed\nrhvoice_data_tree_sha256=a20abbc6f19bdef73b1f97e57c8fd3cb5c15e7fc3d1c04aafa9cde6f1254c5ce\nrhvoice_config_tree_sha256=not-configured\nflite_companion=local-omnivox-build\nflite_companion_tree_sha256=d8724057875b148c2df1fb2343abcf0cf8fdfee87e6d7029c499a8c7a7add269\nflite_target=x86_64-pc-windows-gnu\nflite_compiled_voice=cmu_us_slt\nrutts_companion=local-omnivox-build\nrutts_companion_tree_sha256=dee1c1242494be2e2d85a6117be776c9bb84e8c324c07b1353af07f594696640\nrutts_target=x86_64-pc-windows-gnu\nrutts_version=6.3.3\nrutts_built_in_voices=male,female\nrutts_rulex=not-included\ntgspeechbox_companion=local-omnivox-experimental-build\ntgspeechbox_companion_tree_sha256=b006cb635f25fbc2702a8101fa41f5c2a83b907a1d53ff1d1a1e80f042e8e789\ntgspeechbox_target=x86_64-pc-windows-gnu\ntgspeechbox_markers=exact_requested_anchors\ntgspeechbox_rate_mapping=calibrated_eloquence_v1\ntgspeechbox_build_environment=wsl-host-development-only\ntgspeechbox_cxx=x86_64-w64-mingw32-g++-posix (GCC) 13-posix\ntgspeechbox_cxx_sha256=43befe0a8b6f3b40f54b5fac3717b4bf1cf56a2373b7b9bbbe21956211c16046\npiper_companion=not-included\npiper_companion_version=not-included\npiper_companion_commit=not-included\npiper_companion_archive_sha256=not-included\npiper_companion_tree_sha256=not-included\npiper_model=not-included\npiper_model_sha256=not-observed\npiper_model_config_sha256=not-observed\neloquence_runtime=external-user-supplied-not-bundled\neloquence_runtime_sha256=external-not-observed\ndectalk_runtime=bundled-pinned-archive\nwindows_helpers_source=omnivox\nwindows_helpers_license=GPL-2.0-or-later\nbuild_method=incremental-main-executable-reuse\nincremental_base_build_id=626ad994ff49f015\nreused_payload_manifest_sha256=4503a6b1dfa032cef3fbe1c0195505445c0f2f23c5a6a213f0fee1ac68cbc14b\n",
+      "sha256": "13e56b66355b8abcf9ce673424c198e844b490ee2700321d5f419d3f29b41476"
+    },
+    "before": {
+      "payload": {
+        "DECtalk.dll": "ac0bda78b1c42f2503eb9ce1b85096b3555099cf2282a941cf73cc80f2370583",
+        "OmnivoxDectalkHelper32.exe": "c4e605f39977781b30e867f61929fa3215a0d34d77afe56af3bf2dcd0cf7f258",
+        "OmnivoxEloquenceHelper32.exe": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8",
+        "libgcc_s_seh-1.dll": "273073618002c7c3736535b74619a2a84725f349e3d618926b0434657bf156c7",
+        "libstdc++-6.dll": "38f844a00cb9f8864c5c4967859b4e53f6d9936659a1cdbbbb5f869886150203",
+        "omnivox.exe": "e9fa4e3f86171e3b4294eb315e1ec0ac1c4afb938e05aaad5b672ab4a9e6a30c"
+      },
+      "program": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe",
+      "provenance": "format=emacsvox-omnivox-provenance-v1\nbuild_id=6414dbbfa3e8543a\nemacsvox_commit=55a31047285cd183a3ee34f368007466d0341e15\nomnivox_commit=3eec4f36ad8c0588c35010bc9685aaa3fa13f217\nbuild_kind=local-dirty-worktree\nemacsvox_worktree_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\nomnivox_worktree_sha256=0ffbdac94de58b527475318cc4170877c84032c0fe4369690105b71cce11df5a\ncargo_lock_sha256=686268250a87215a747f0b39652208ca9edd9071883aa730cdff2f2eb53170f1\ntoolchain_lock_sha256=7a400a4767c6f47eba02a60d7c2bf9b7ddfb2c6fc60abb8867548e3bd788c996\ndockerfile_sha256=33e2df54152f81abd75143954a5aaaab0c20e098970afba68d8b024fb7169efa\nrelease_image_id=sha256:3186f03b16a6b9cc62befb0902a40974b6297426483582464e3c421bb9873204\nrustc=rustc 1.97.1 (8bab26f4f 2026-07-14)\nmingw_gcc=x86_64-w64-mingw32-gcc-win32 (GCC) 12-win32\nroslyn_csc=5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)\nroslyn_csc_sha256=4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee\nroslyn_nupkg_sha256=302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401\nnet40_reference_assemblies_nupkg_sha256=54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694\ntarget=x86_64-pc-windows-gnu\nomnivox_features=none\nwindows_rustflags=-C link-arg=-Wl,--no-insert-timestamp\nwindows_strip=SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all\nomnivox_executable_sha256=e9fa4e3f86171e3b4294eb315e1ec0ac1c4afb938e05aaad5b672ab4a9e6a30c\nunstripped_diagnostics=retained-local-not-staged\nespeak_data_sha256=9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718\nrhvoice_companion=local-omnivox-build\nrhvoice_companion_tree_sha256=1bd7f2dd3945a1d5407ca0f7f2a7cfa6c5fd153296ba27461dda5219dba5e38e\nrhvoice_runtime=external-user-supplied-not-bundled\nrhvoice_configuration=recorded-windows-paths\nrhvoice_library_sha256=3014e72aa5a989c3082cbbc42977919601a8444f4e6dcdb73e5ae0c664272aed\nrhvoice_data_tree_sha256=a20abbc6f19bdef73b1f97e57c8fd3cb5c15e7fc3d1c04aafa9cde6f1254c5ce\nrhvoice_config_tree_sha256=not-configured\nflite_companion=local-omnivox-build\nflite_companion_tree_sha256=f8cde6a675df35dda36a3f139f6746ba0bbd568eba14fa30140d67958ff922bd\nflite_target=x86_64-pc-windows-gnu\nflite_compiled_voice=cmu_us_slt\nrutts_companion=local-omnivox-build\nrutts_companion_tree_sha256=c91f5eb180d5b491de7a8fcb7b31d02e09e0afa05f1f13987602987409d2f662\nrutts_target=x86_64-pc-windows-gnu\nrutts_version=6.3.3\nrutts_built_in_voices=male,female\nrutts_rulex=not-included\ntgspeechbox_companion=local-omnivox-experimental-build\ntgspeechbox_companion_tree_sha256=c8a0d634efb6642a3bc4b9ffe7960070020d132d4148de37fa8809d76a39afb9\ntgspeechbox_target=x86_64-pc-windows-gnu\ntgspeechbox_markers=exact_requested_anchors\ntgspeechbox_rate_mapping=calibrated_eloquence_v1\ntgspeechbox_build_environment=wsl-host-development-only\ntgspeechbox_cxx=x86_64-w64-mingw32-g++-posix (GCC) 13-posix\ntgspeechbox_cxx_sha256=43befe0a8b6f3b40f54b5fac3717b4bf1cf56a2373b7b9bbbe21956211c16046\npiper_companion=not-included\npiper_companion_version=not-included\npiper_companion_commit=not-included\npiper_companion_archive_sha256=not-included\npiper_companion_tree_sha256=not-included\npiper_model=not-included\npiper_model_sha256=not-observed\npiper_model_config_sha256=not-observed\neloquence_runtime=external-user-supplied-not-bundled\neloquence_runtime_sha256=external-not-observed\ndectalk_runtime=bundled-pinned-archive\nwindows_helpers_source=omnivox\nwindows_helpers_license=GPL-2.0-or-later\nbuild_method=incremental-main-executable-reuse\nincremental_base_build_id=f8b3b04d3243ee76\nreused_payload_manifest_sha256=8f5bdbff92ed5b63356ef43d9ad03deb589dfd5f1167b978b6458d5da9f1a81f\n",
+      "sha256": "e9fa4e3f86171e3b4294eb315e1ec0ac1c4afb938e05aaad5b672ab4a9e6a30c"
+    }
+  }
+}

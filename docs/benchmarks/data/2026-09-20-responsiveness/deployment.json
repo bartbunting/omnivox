@@ -1,0 +1,16 @@
+{
+  "commits": {
+    "timer": "f8abb0b",
+    "wake_admission": "1dfe948",
+    "lock_scope": "bd95655"
+  },
+  "runtime": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0",
+  "launcher": "/home/bart/bin/emacsvox-development",
+  "launcher_sha256": "3a1303d1317ee7a6f30bcd7e60b888109c039cb4be3efab3e52e10fafe217387",
+  "main_sha256": "13e56b66355b8abcf9ce673424c198e844b490ee2700321d5f419d3f29b41476",
+  "dectalk_helper_sha256": "b7f07601865080d0106214c8b8c8d4a4db770f198ca84a957098d7545ad29e1b",
+  "fresh_compiled_emacs_acceptance": "passed using identical candidate launcher bytes, private main/notification/reconnected workers, null audio",
+  "existing_sessions_restarted": false,
+  "default_runtime": "versions/e1ecdb481ee08fd0",
+  "experimental_stop_grace_deployed": false
+}

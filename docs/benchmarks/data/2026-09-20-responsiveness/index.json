@@ -1,0 +1,1352 @@
+{
+  "source_commit": "bd95655b2e0ec729b5482189e7906057056c0ce1",
+  "emacsvox_commit": "55a31047285cd183a3ee34f368007466d0341e15",
+  "dectalk_source_commit": "69ebb459137a7a8d92ed41da8362233eaa173efc",
+  "before_runtime": "6414dbbfa3e8543a",
+  "after_runtime": "577414114415d7b0",
+  "full_candidate_base": "626ad994ff49f015",
+  "measurement_limits": [
+    "software timing; muted device or null backend",
+    "private helper timer experiment has exact matched PCM/marker sequences",
+    "native macOS and acoustic onset not measured",
+    "stop-grace experiment not deployed"
+  ],
+  "observed_inputs": {
+    "/home/bart/src/omnivox/omnivox-cli/src/engine_execution.rs": {
+      "sha256": "9c787ca8903af58ffa890b8caa3dc93c0a5ee3cb5a36585498930a0caf10b94a",
+      "bytes": 50382
+    },
+    "/home/bart/src/omnivox/windows-helpers/dectalk/OmnivoxDectalkCapture.cs": {
+      "sha256": "f4be4e2b587711eeb5acd00e8b07a41cd7068038813abcf4ea3c3cf84ec618f7",
+      "bytes": 55634
+    },
+    "/home/bart/src/omnivox/tools/DectalkExecutionAudit.cs": {
+      "sha256": "460a5f026bf2c6c453abd11354412aae538ba970ebe035b8d464c97bce9a5d42",
+      "bytes": 42638
+    },
+    "/home/bart/src/omnivox/tools/test_helper6_dectalk.py": {
+      "sha256": "98d09a75f06a731d60c827b6c00d012820693fc7574a85063008fdf47359ad58",
+      "bytes": 13001
+    },
+    "/home/bart/src/omnivox/tools/stress_helper.py": {
+      "sha256": "e6cbe4098286d77178ce2ddc95522a5c4ab7b7bb3a8b9d0a6436b8da4c687ef0",
+      "bytes": 26342
+    },
+    "/home/bart/src/omnivox/tools/benchmark_server.py": {
+      "sha256": "71cfa6545064133ff776a4ed220957d7f476cb89e2f8bd2e0b6845cf3e75bb8b",
+      "bytes": 34964
+    },
+    "/home/bart/src/emacsvox/utils/voice_benchmark.py": {
+      "sha256": "8ad2f093174d86e1ab05097e010abcbbfaabf61e7f523aa2c93d77f5cb79f639",
+      "bytes": 24621
+    },
+    "/home/bart/src/emacsvox/utils/voice_benchmark_server.py": {
+      "sha256": "54120e495c097971015eb54489c48ce47b926deb7cb075b72d9c1ff43f5cf1e8",
+      "bytes": 11826
+    },
+    "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/run-server-lines.py": {
+      "sha256": "ddce611169b507c3898c24ffbfa7995f2d9f13cdf77766be528dae8574cbdca4",
+      "bytes": 2784
+    },
+    "/home/bart/src/dectalk/src/dapi/src/api/ttsapi.c": {
+      "sha256": "455e666ac1bdff1b3361cb37b11aa669bbf9a0b1e19c9c23776a39b123e80d00",
+      "bytes": 467220
+    },
+    "/mnt/c/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/DECtalk.dll": {
+      "sha256": "af25879d858846aaaa80b8f9626b1cbf4e57a1ab0467e8e2d82990558033c852",
+      "bytes": 633344
+    },
+    "/mnt/c/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/dtalk_us.dic": {
+      "sha256": "72271446c6d656842b389ff67f2bfafd6e0d4732f8a3a37442133dfb206206e7",
+      "bytes": 397940
+    },
+    "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/timer-probe/bin/OmnivoxDectalkHelper32.exe": {
+      "sha256": "64940d6cd3c283ba2d14f29c9755a530be060394c006192e72cc6bd3d23238a4",
+      "bytes": 93696
+    },
+    "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/stop-probe/bin/OmnivoxDectalkHelper32.exe": {
+      "sha256": "795b17ce98cfb1eccbf0b239626f1cadc310e0df865418bfca0c2c56d1199cf4",
+      "bytes": 94208
+    }
+  },
+  "files": {
+    "acceptance-manifest.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/acceptance-manifest.json",
+      "original_sha256": "5b883276b0a752762d2025fad61c9fbc727ff90863897226ddcbc963f0cdaaca",
+      "original_bytes": 7220,
+      "stored_sha256": "5b883276b0a752762d2025fad61c9fbc727ff90863897226ddcbc963f0cdaaca"
+    },
+    "acceptance.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/acceptance.log",
+      "original_sha256": "0c14d791661e60a89997fe8808d60243d5b1d8a87c7955be060d0fc0f439dd39",
+      "original_bytes": 591,
+      "stored_sha256": "d1062892c3386ec221acce81933ff5423b217e69b06dc83f26ac846ad2c8b13f"
+    },
+    "after-PROVENANCE": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-PROVENANCE",
+      "original_sha256": "6ba41185f9d1531dbe868d7a74e07f83b38d27833acce0514458047aebe3ac32",
+      "original_bytes": 3632,
+      "stored_sha256": "6ba41185f9d1531dbe868d7a74e07f83b38d27833acce0514458047aebe3ac32"
+    },
+    "after-SHA256SUMS": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-SHA256SUMS",
+      "original_sha256": "4503a6b1dfa032cef3fbe1c0195505445c0f2f23c5a6a213f0fee1ac68cbc14b",
+      "original_bytes": 46163,
+      "stored_sha256": "4503a6b1dfa032cef3fbe1c0195505445c0f2f23c5a6a213f0fee1ac68cbc14b"
+    },
+    "after-bursts/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts/results.json",
+      "original_sha256": "eb8250c8745bc6dec932290e62dfafb7a49423ca9ee021cec24398b0404aec71",
+      "original_bytes": 25674,
+      "stored_sha256": "eb8250c8745bc6dec932290e62dfafb7a49423ca9ee021cec24398b0404aec71"
+    },
+    "after-bursts/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts/stderr.log",
+      "original_sha256": "251e57ac174aaa12c6e43e6041ea47741b92e092fda8a83f7f137946ef68d21d",
+      "original_bytes": 904278,
+      "stored_sha256": "eb95069c58600605b033e3b8fc6230ac42b14686f26e18ac19259f41c852061a"
+    },
+    "after-bursts-1/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts-1/results.json",
+      "original_sha256": "1a2ea3f21208cb345503f84170ecba8e683bb4a0b6b3ffbf4998a2b40b2ccb08",
+      "original_bytes": 25738,
+      "stored_sha256": "1a2ea3f21208cb345503f84170ecba8e683bb4a0b6b3ffbf4998a2b40b2ccb08"
+    },
+    "after-bursts-1/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts-1/stderr.log",
+      "original_sha256": "e30061074e441bd6f2ca7af9e1e5890e07de4ceadda69b31cc8e623ccb589f5b",
+      "original_bytes": 904201,
+      "stored_sha256": "8a0168143b8454b91c93e657379b85efc7ebf612ccb6db42de887a6070fa1ba8"
+    },
+    "after-bursts-1.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts-1.log",
+      "original_sha256": "b5207f38a27eba79ecfbdf4e1f62122aba917d4b52f153433bd14a339e2ab6fd",
+      "original_bytes": 833,
+      "stored_sha256": "f17b9b282caac7392bcee40c13d6d7dcfdd2549e19e769ca35012005651ea2a1"
+    },
+    "after-bursts-2/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts-2/results.json",
+      "original_sha256": "2b629a820c9efa5267609020b72b61f0eebb713af5cb8527f348272a52b54bb2",
+      "original_bytes": 25728,
+      "stored_sha256": "2b629a820c9efa5267609020b72b61f0eebb713af5cb8527f348272a52b54bb2"
+    },
+    "after-bursts-2/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts-2/stderr.log",
+      "original_sha256": "190b1293a4b2c13b9f122058e611a2069459273b92d2b69338c606348f1a6b83",
+      "original_bytes": 907669,
+      "stored_sha256": "ef06943b49517333ea22a3e8f284f67b05c2638a25d7f84a7bac283e6fa764dc"
+    },
+    "after-bursts-2.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts-2.log",
+      "original_sha256": "2f870ba77d1aced3f6de22e942011f7ebc4bb637f75ccf9b1f338facc8f2a621",
+      "original_bytes": 831,
+      "stored_sha256": "e06342487ca98c4a095533284f8be3f0d1d2c9c3a3702ddf3562fcc3a76b9071"
+    },
+    "after-bursts.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts.log",
+      "original_sha256": "e5a7e16af93de95882dabd9ee8498cb928ca7442dfb95bec6d4da18442d0f39d",
+      "original_bytes": 834,
+      "stored_sha256": "d8387e9fc3315e5305fe940e689715e705cddf92801527cd46937a8660eed925"
+    },
+    "after-fast/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-fast/results.json",
+      "original_sha256": "ed9592be87b48c50b5caf3e7b483ac0263a45543d0bbcb57e6306bda1a135389",
+      "original_bytes": 7079,
+      "stored_sha256": "ed9592be87b48c50b5caf3e7b483ac0263a45543d0bbcb57e6306bda1a135389"
+    },
+    "after-fast/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-fast/stderr.log",
+      "original_sha256": "508478252044056bacb8a4db9e0058616a25a4dbe74525e9ffd2a2e65a51d059",
+      "original_bytes": 135518,
+      "stored_sha256": "e0f694c4b123c2edd030bfe2ac36d37a6e4a2f6d838350af45acfe8a930b6188"
+    },
+    "after-fast.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-fast.log",
+      "original_sha256": "d6156fd5aa5a09cf2b4063e7e76b57d8feaf98cb86ad417e86057caadc39ddb4",
+      "original_bytes": 413,
+      "stored_sha256": "e5be57e8209a7ee0e07c7605d4d3f7c659e8e2f0cd7e4e9c7d944c8cb2abd2aa"
+    },
+    "after-letters-0/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-letters-0/results.json",
+      "original_sha256": "6676e829c5910709fc33f04312b9f47d152e7e55e3c043d5cd1f574703a809fe",
+      "original_bytes": 31398,
+      "stored_sha256": "6676e829c5910709fc33f04312b9f47d152e7e55e3c043d5cd1f574703a809fe"
+    },
+    "after-letters-0/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-letters-0/stderr.log",
+      "original_sha256": "7484726c67ba8424572f63b1f4d68d4671edf7e5b2fef9d97c395328b7f79e41",
+      "original_bytes": 673192,
+      "stored_sha256": "b25e949a89ee2033d9579274dcc67c465e0f913e97e3dd6a2bdc24526319f2c4"
+    },
+    "after-letters-0.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-letters-0.log",
+      "original_sha256": "94a292a5a4af009619ddf8e8eea1ea8a88ecf4ff55c57922ba00ae69e9be5c8c",
+      "original_bytes": 2783,
+      "stored_sha256": "9fc908143be8f10d1b10b32c660b915cb76d7e70046feab81b1d103cba0830f7"
+    },
+    "after-letters-1/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-letters-1/results.json",
+      "original_sha256": "ed103df03cbc9943ceb0a734c8c74378645534defcc08b357aae1fee847b6d3e",
+      "original_bytes": 31396,
+      "stored_sha256": "ed103df03cbc9943ceb0a734c8c74378645534defcc08b357aae1fee847b6d3e"
+    },
+    "after-letters-1/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-letters-1/stderr.log",
+      "original_sha256": "a87d05c0df7cb0800bae61cbc417c41b33b31082940d27f1cc42862c374f6610",
+      "original_bytes": 673173,
+      "stored_sha256": "b248339fb93f0252e09b9ea5e3582e38f9e6e171ab0e27f5cf881026d8392acc"
+    },
+    "after-letters-1.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-letters-1.log",
+      "original_sha256": "01b3a8b04a540d73af3b1425b666e4c6f7d6e9e6ea23a9eba19a2a3798590bb6",
+      "original_bytes": 2797,
+      "stored_sha256": "54dcc5f012d743e28cd41596852b1339c5ad1466c068034bea93407e169a14a0"
+    },
+    "after-slow/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-slow/results.json",
+      "original_sha256": "af0ec15e9c1507701b4a90bfdaec2de75da429853d27529e9a2be2739e09a7dd",
+      "original_bytes": 7045,
+      "stored_sha256": "af0ec15e9c1507701b4a90bfdaec2de75da429853d27529e9a2be2739e09a7dd"
+    },
+    "after-slow/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-slow/stderr.log",
+      "original_sha256": "893a3d044b52d4f7f78fcd7b837db70846c78126124819a2851a1e2fbd198b18",
+      "original_bytes": 133096,
+      "stored_sha256": "26a02d42707921914c6339412d794b6ff5c377c648c70135c28181f55e42978b"
+    },
+    "after-slow.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-slow.log",
+      "original_sha256": "c1417c418fcbebafc07e8c43dadcf5e9460192d0fb40b49fd2d5f4189fb63aa9",
+      "original_bytes": 406,
+      "stored_sha256": "5614d8c1c7e6e5f8b387fafc5acbfe1675025692fba5728a47eee9976fada704"
+    },
+    "archive-evidence.py": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/archive-evidence.py",
+      "original_sha256": "ecb5b07b82f7a5950a24bf9d94a1aaf01bcc5c9bfa6ae0660b5153ec4a65f2c7",
+      "original_bytes": 3294,
+      "stored_sha256": "ecb5b07b82f7a5950a24bf9d94a1aaf01bcc5c9bfa6ae0660b5153ec4a65f2c7"
+    },
+    "before-PROVENANCE": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-PROVENANCE",
+      "original_sha256": "382666491e1083df852b507c81863fff15e8762bac77d9bf5b2b230727589215",
+      "original_bytes": 3632,
+      "stored_sha256": "382666491e1083df852b507c81863fff15e8762bac77d9bf5b2b230727589215"
+    },
+    "before-SHA256SUMS": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-SHA256SUMS",
+      "original_sha256": "8f5bdbff92ed5b63356ef43d9ad03deb589dfd5f1167b978b6458d5da9f1a81f",
+      "original_bytes": 46163,
+      "stored_sha256": "8f5bdbff92ed5b63356ef43d9ad03deb589dfd5f1167b978b6458d5da9f1a81f"
+    },
+    "before-bursts/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts/results.json",
+      "original_sha256": "175715e773588974f503761150e3bc6ed69ef1acc7e2fbaba149b34295dc274f",
+      "original_bytes": 20887,
+      "stored_sha256": "175715e773588974f503761150e3bc6ed69ef1acc7e2fbaba149b34295dc274f"
+    },
+    "before-bursts/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts/stderr.log",
+      "original_sha256": "c57faf1b78147e62b1df97817cace00094c5bc06546e0e7314514b3fad7ebe5f",
+      "original_bytes": 738382,
+      "stored_sha256": "ab24a6c7022fca31e2d1cdc11b8ed92a4098779ec3821945ae9caf7243f67415"
+    },
+    "before-bursts-1/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts-1/results.json",
+      "original_sha256": "a8785bd54a0a55881442ecc6380429136edf3dd8fc6583e26d260f6d944f0d0d",
+      "original_bytes": 21084,
+      "stored_sha256": "a8785bd54a0a55881442ecc6380429136edf3dd8fc6583e26d260f6d944f0d0d"
+    },
+    "before-bursts-1/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts-1/stderr.log",
+      "original_sha256": "b6ee5cb89b76b19e221bdb268c7f94891b87f5cc44bb8ae6fc19406d16636ded",
+      "original_bytes": 737567,
+      "stored_sha256": "3906e294cf15b5f9b8cedc46f0ba8d9bf82edfad3532abee054b5aef503efed4"
+    },
+    "before-bursts-1.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts-1.log",
+      "original_sha256": "c01e7a1152122093877ce86b2e6d51ed5717f85e7dff7945402ef94e9d56bc8e",
+      "original_bytes": 832,
+      "stored_sha256": "86b25dcfc64bb819d1582ce61ae62c328679bf035a5d37654c74f358abf38d47"
+    },
+    "before-bursts-2/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts-2/results.json",
+      "original_sha256": "18e53afb068af9c034e852e61ddbdf0d4a9b91e244faf74cab572b387b7e2803",
+      "original_bytes": 21392,
+      "stored_sha256": "18e53afb068af9c034e852e61ddbdf0d4a9b91e244faf74cab572b387b7e2803"
+    },
+    "before-bursts-2/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts-2/stderr.log",
+      "original_sha256": "7a720c1bf1478e987fadba0144a0e8f112d084316a55df09dca7385fb97e1acf",
+      "original_bytes": 744235,
+      "stored_sha256": "737f023debf6d5b73043f84f2d0e6026cec305007a76294a14a3e6babcc89ace"
+    },
+    "before-bursts-2.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts-2.log",
+      "original_sha256": "55958eb49f41baca619385ae5a3f41ab1772a1550e5abe852961c701450581df",
+      "original_bytes": 835,
+      "stored_sha256": "ae5b04b3606427368dadb8e0c0d372c00bfa836e475fd8422762799b40e3c107"
+    },
+    "before-bursts.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts.log",
+      "original_sha256": "34ed904246775119169f268eef277cab140fbb4f192c27266fd8c0a2296fad7b",
+      "original_bytes": 834,
+      "stored_sha256": "c73ef9e906e0f0220bc7fc216fb2ff8cb26ef68adc6aa2fa85ce666994de0245"
+    },
+    "before-letters-0/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-letters-0/results.json",
+      "original_sha256": "ff93b138801a0fbe94ac687933bfd867e38e7cde5e4b5fea9133e12e490c021a",
+      "original_bytes": 31410,
+      "stored_sha256": "ff93b138801a0fbe94ac687933bfd867e38e7cde5e4b5fea9133e12e490c021a"
+    },
+    "before-letters-0/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-letters-0/stderr.log",
+      "original_sha256": "211d418ed38a7534eb94171ecb0bbbd2a448a7ab35bc8af390670b3b24ec36e9",
+      "original_bytes": 673815,
+      "stored_sha256": "e257966fb6e1610540157d6c0b4c36561beedc822bac82f69ea8f5254100c817"
+    },
+    "before-letters-0.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-letters-0.log",
+      "original_sha256": "fc74b8f6f27c25af1ec882d703eaa553fb7971a6304363432248183acb603fe9",
+      "original_bytes": 2791,
+      "stored_sha256": "37f0af5440577e9bb83a9893a765b58789cceecf7e31903849dd0d71ac0b2209"
+    },
+    "before-letters-1/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-letters-1/results.json",
+      "original_sha256": "7b5d1841401393ec957bdd11ff02da3a26417ed652a99c169e3fbf1f3669bed6",
+      "original_bytes": 31433,
+      "stored_sha256": "7b5d1841401393ec957bdd11ff02da3a26417ed652a99c169e3fbf1f3669bed6"
+    },
+    "before-letters-1/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-letters-1/stderr.log",
+      "original_sha256": "90a952b2a1a5365c6dcfc9a9657b8e22b3d190545fcb632da8ebc7ff38254e2f",
+      "original_bytes": 673799,
+      "stored_sha256": "02525e21475ae94575e68b9626fdc00989ce7c8354d10be16e11e20e32f3e29a"
+    },
+    "before-letters-1.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-letters-1.log",
+      "original_sha256": "deffa20836701bef7a36fb0bd042f6451e2eef05a6d14e3f780f43a1031e4800",
+      "original_bytes": 2825,
+      "stored_sha256": "4a2917ba7ca464a944afdb4d3cd95ab713b1f140a849c36a56f6d579cdf821a2"
+    },
+    "candidate.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/candidate.json",
+      "original_sha256": "3721f64410e813bacafce95b2435fcfed0aedf9d37dce196c9d147f308fbe3d8",
+      "original_bytes": 350,
+      "stored_sha256": "3721f64410e813bacafce95b2435fcfed0aedf9d37dce196c9d147f308fbe3d8"
+    },
+    "clippy.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/clippy.log",
+      "original_sha256": "3d1eb19e51509bd92a6c5ecd17e8056dc2c4a4e859d206875ce8ff1bc003c50e",
+      "original_bytes": 142,
+      "stored_sha256": "5ebd7e16ec2b5fb7d663c14ddd646f65e9b6b05bd87de2d570685dedeac358e6"
+    },
+    "converter-tail.rs": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/converter-tail.rs",
+      "original_sha256": "f76a1666bc3d6ab55a9174e18affb974b517d566acad978d16862802b5c05505",
+      "original_bytes": 524,
+      "stored_sha256": "f76a1666bc3d6ab55a9174e18affb974b517d566acad978d16862802b5c05505"
+    },
+    "converter-tail.txt": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/converter-tail.txt",
+      "original_sha256": "1c40ac545bdfeead084fb274d3a042a8b7ec19f6514c9809dc8d4890bb559dfe",
+      "original_bytes": 146,
+      "stored_sha256": "1c40ac545bdfeead084fb274d3a042a8b7ec19f6514c9809dc8d4890bb559dfe"
+    },
+    "custom-lines/00-after-legacy/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/00-after-legacy/job.json",
+      "original_sha256": "bf147118f209a7cb0080786995a5a5ca054701a0b620e4b72cf8a73f80497230",
+      "original_bytes": 439,
+      "stored_sha256": "bf147118f209a7cb0080786995a5a5ca054701a0b620e4b72cf8a73f80497230"
+    },
+    "custom-lines/00-after-legacy/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/00-after-legacy/raw.json",
+      "original_sha256": "f5b0323bdba78ce8ad02274f049323900c397e0099dabaededba4f9724aa2312",
+      "original_bytes": 12015,
+      "stored_sha256": "f5b0323bdba78ce8ad02274f049323900c397e0099dabaededba4f9724aa2312"
+    },
+    "custom-lines/00-after-legacy/server-logs/omnivox-20260920T000723Z-1670493-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/00-after-legacy/server-logs/omnivox-20260920T000723Z-1670493-part000001.log",
+      "original_sha256": "705ba8b81483a2a58fd73e1c3d36c7d6d9741201d11fafca4f23fad9e7930850",
+      "original_bytes": 73348,
+      "stored_sha256": "4e2374fc99ec0e5be92e937dfc65a369355ce24410cec683397d943045a97f22"
+    },
+    "custom-lines/00-after-legacy/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/00-after-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "custom-lines/01-before-legacy/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/01-before-legacy/job.json",
+      "original_sha256": "bf147118f209a7cb0080786995a5a5ca054701a0b620e4b72cf8a73f80497230",
+      "original_bytes": 439,
+      "stored_sha256": "bf147118f209a7cb0080786995a5a5ca054701a0b620e4b72cf8a73f80497230"
+    },
+    "custom-lines/01-before-legacy/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/01-before-legacy/raw.json",
+      "original_sha256": "16ae8c490ff9f50238cff05c47d929db0e4a604b609e97eee3dcf8479260982b",
+      "original_bytes": 12020,
+      "stored_sha256": "16ae8c490ff9f50238cff05c47d929db0e4a604b609e97eee3dcf8479260982b"
+    },
+    "custom-lines/01-before-legacy/server-logs/omnivox-20260920T000725Z-1670530-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/01-before-legacy/server-logs/omnivox-20260920T000725Z-1670530-part000001.log",
+      "original_sha256": "35b400b130c38d9d37c0022363d2f3af92465fe77867c51087ac579c83de861b",
+      "original_bytes": 73345,
+      "stored_sha256": "a75b2b8ea3894a577a1f91ce3380036abe86d66f862c77d515ecafc42e91e4a0"
+    },
+    "custom-lines/01-before-legacy/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/01-before-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "custom-lines/02-before-native/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/02-before-native/job.json",
+      "original_sha256": "c34bfa7d5786f74f61ffed0c8878773b00c9d037971d514227779b6906a70e0a",
+      "original_bytes": 439,
+      "stored_sha256": "c34bfa7d5786f74f61ffed0c8878773b00c9d037971d514227779b6906a70e0a"
+    },
+    "custom-lines/02-before-native/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/02-before-native/raw.json",
+      "original_sha256": "0570ddb420d83de09821e45a69676cf8f4bcc7e39e3d6fbe591ece402b545c46",
+      "original_bytes": 23255,
+      "stored_sha256": "0570ddb420d83de09821e45a69676cf8f4bcc7e39e3d6fbe591ece402b545c46"
+    },
+    "custom-lines/02-before-native/server-logs/omnivox-20260920T000727Z-1670569-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/02-before-native/server-logs/omnivox-20260920T000727Z-1670569-part000001.log",
+      "original_sha256": "4070f97b9b49bc44575a29f9bb4156193e854bda67c2f77a4aa090e682fd822d",
+      "original_bytes": 73380,
+      "stored_sha256": "d4497eb314ca6e7b714d15d278bb3fc0c6dbd0940f099f280ebfe87cc36faee8"
+    },
+    "custom-lines/02-before-native/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/02-before-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "custom-lines/03-after-native/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/03-after-native/job.json",
+      "original_sha256": "c34bfa7d5786f74f61ffed0c8878773b00c9d037971d514227779b6906a70e0a",
+      "original_bytes": 439,
+      "stored_sha256": "c34bfa7d5786f74f61ffed0c8878773b00c9d037971d514227779b6906a70e0a"
+    },
+    "custom-lines/03-after-native/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/03-after-native/raw.json",
+      "original_sha256": "d79497f349c04db21669c2f1e4649ee4acd02896592003c863cbde024adf1201",
+      "original_bytes": 23254,
+      "stored_sha256": "d79497f349c04db21669c2f1e4649ee4acd02896592003c863cbde024adf1201"
+    },
+    "custom-lines/03-after-native/server-logs/omnivox-20260920T000729Z-1670616-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/03-after-native/server-logs/omnivox-20260920T000729Z-1670616-part000001.log",
+      "original_sha256": "79f4fbcfecec309e72180f3f7dbe239556bc8b2c0bb4a5a0a96ef00f15505fb9",
+      "original_bytes": 73366,
+      "stored_sha256": "be4e7dd0664e1d0e08c7e91dd0528a1c96bb659ca6ecb98ae83b86170602fb27"
+    },
+    "custom-lines/03-after-native/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/03-after-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "custom-lines/04-before-native/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/04-before-native/job.json",
+      "original_sha256": "c34bfa7d5786f74f61ffed0c8878773b00c9d037971d514227779b6906a70e0a",
+      "original_bytes": 439,
+      "stored_sha256": "c34bfa7d5786f74f61ffed0c8878773b00c9d037971d514227779b6906a70e0a"
+    },
+    "custom-lines/04-before-native/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/04-before-native/raw.json",
+      "original_sha256": "c17a2daecbf6aa43f7cc189206e9bf29cd35c0fc37c63c5843275a672935b280",
+      "original_bytes": 23254,
+      "stored_sha256": "c17a2daecbf6aa43f7cc189206e9bf29cd35c0fc37c63c5843275a672935b280"
+    },
+    "custom-lines/04-before-native/server-logs/omnivox-20260920T000731Z-1670656-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/04-before-native/server-logs/omnivox-20260920T000731Z-1670656-part000001.log",
+      "original_sha256": "391e86ea8ce6db47730c706b88c74b1d4d7267b737648ce98b8324bd3b3542fd",
+      "original_bytes": 73381,
+      "stored_sha256": "6fc125b75dd36d0eb617d888d5e16d123624d6e4d296372347f844517d32f061"
+    },
+    "custom-lines/04-before-native/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/04-before-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "custom-lines/05-after-legacy/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/05-after-legacy/job.json",
+      "original_sha256": "bf147118f209a7cb0080786995a5a5ca054701a0b620e4b72cf8a73f80497230",
+      "original_bytes": 439,
+      "stored_sha256": "bf147118f209a7cb0080786995a5a5ca054701a0b620e4b72cf8a73f80497230"
+    },
+    "custom-lines/05-after-legacy/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/05-after-legacy/raw.json",
+      "original_sha256": "ab1f8968c6a4d3b523db6146633f798ff42efdb11fa76ed6ef6e263461f43203",
+      "original_bytes": 12020,
+      "stored_sha256": "ab1f8968c6a4d3b523db6146633f798ff42efdb11fa76ed6ef6e263461f43203"
+    },
+    "custom-lines/05-after-legacy/server-logs/omnivox-20260920T000733Z-1670719-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/05-after-legacy/server-logs/omnivox-20260920T000733Z-1670719-part000001.log",
+      "original_sha256": "9f30afa0a4787820899639a40664e0868a789960d6ffd209bb7968589793238c",
+      "original_bytes": 73350,
+      "stored_sha256": "879e1adccd080cef236249f2a782fb0c2f25774a2e30d339d403c194cdd112e2"
+    },
+    "custom-lines/05-after-legacy/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/05-after-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "custom-lines/06-before-legacy/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/06-before-legacy/job.json",
+      "original_sha256": "bf147118f209a7cb0080786995a5a5ca054701a0b620e4b72cf8a73f80497230",
+      "original_bytes": 439,
+      "stored_sha256": "bf147118f209a7cb0080786995a5a5ca054701a0b620e4b72cf8a73f80497230"
+    },
+    "custom-lines/06-before-legacy/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/06-before-legacy/raw.json",
+      "original_sha256": "6e9bd9e9660c652d270df2228b51944be00aec40299f379d9dea756c2f4e32ad",
+      "original_bytes": 12016,
+      "stored_sha256": "6e9bd9e9660c652d270df2228b51944be00aec40299f379d9dea756c2f4e32ad"
+    },
+    "custom-lines/06-before-legacy/server-logs/omnivox-20260920T000735Z-1670756-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/06-before-legacy/server-logs/omnivox-20260920T000735Z-1670756-part000001.log",
+      "original_sha256": "586839eef2a772f6a101a0a09ab0701755f0dac55d3ca39de48ddd87ffc7bc5b",
+      "original_bytes": 73349,
+      "stored_sha256": "3bc56fd62e3574fd8114ee11b6ee866d94f3ac5040f514084ff44cfcd073a55e"
+    },
+    "custom-lines/06-before-legacy/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/06-before-legacy/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "custom-lines/07-after-native/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/07-after-native/job.json",
+      "original_sha256": "c34bfa7d5786f74f61ffed0c8878773b00c9d037971d514227779b6906a70e0a",
+      "original_bytes": 439,
+      "stored_sha256": "c34bfa7d5786f74f61ffed0c8878773b00c9d037971d514227779b6906a70e0a"
+    },
+    "custom-lines/07-after-native/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/07-after-native/raw.json",
+      "original_sha256": "d7eab8c9616a6e36aced3817ecf2a97d419430eed935a4b1553d986933e5ca8b",
+      "original_bytes": 23258,
+      "stored_sha256": "d7eab8c9616a6e36aced3817ecf2a97d419430eed935a4b1553d986933e5ca8b"
+    },
+    "custom-lines/07-after-native/server-logs/omnivox-20260920T000736Z-1670982-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/07-after-native/server-logs/omnivox-20260920T000736Z-1670982-part000001.log",
+      "original_sha256": "9c00cc136e96732c7d940d5f95dd1c4f968a90c4b0d0bc7cb144f3983995d62c",
+      "original_bytes": 73376,
+      "stored_sha256": "7a3b350178b8bab76015b03076b739edd3f198682932d39eb2d1778bd7003aed"
+    },
+    "custom-lines/07-after-native/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/07-after-native/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "custom-lines/manifest.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/manifest.json",
+      "original_sha256": "e633e2a291fd3add94922c3b870e11570c6e61009aa688d467bf06a8322c9f8f",
+      "original_bytes": 12087,
+      "stored_sha256": "e633e2a291fd3add94922c3b870e11570c6e61009aa688d467bf06a8322c9f8f"
+    },
+    "custom-lines/summary.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines/summary.json",
+      "original_sha256": "cb488f56ea7d1bc48226fc72009a7cdcd76526202e7cdb2d9bfafbec5617f4d2",
+      "original_bytes": 923,
+      "stored_sha256": "cb488f56ea7d1bc48226fc72009a7cdcd76526202e7cdb2d9bfafbec5617f4d2"
+    },
+    "custom-lines.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines.log",
+      "original_sha256": "7b102bfdcb31ea989a408fc5f8df0e062479b7646d5ceb37db82d6ba48f218be",
+      "original_bytes": 2790,
+      "stored_sha256": "dcb2c2517e2086c3619d3c7853b31882b919332026b88b5763922837dd25e682"
+    },
+    "dectalk-audit.stderr.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/dectalk-audit.stderr",
+      "original_sha256": "59e2928dd32f1ff1fc6a462a0c21cbb055282a1570d94ab0219cb4ab374875e0",
+      "original_bytes": 292334,
+      "stored_sha256": "debe53a9c6eb5c90fc646ec417de12652e2044e36aefd5753f346276138598e3"
+    },
+    "deployment.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/deployment.json",
+      "original_sha256": "ff918c442ad1fd9799da10eccd091880c8fce87f6136ceeb233373f9101df425",
+      "original_bytes": 802,
+      "stored_sha256": "ff918c442ad1fd9799da10eccd091880c8fce87f6136ceeb233373f9101df425"
+    },
+    "emacs-preflight.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/emacs-preflight.log",
+      "original_sha256": "c081697de5254b261252bc221597bfaeff6d458fc2a95d94d422d7d75fbfabae",
+      "original_bytes": 1185,
+      "stored_sha256": "0d985ad087f37d63042d79280e88baaec0748ebde12f6f85fc6d196a27e3b8b3"
+    },
+    "fresh-emacs.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/fresh-emacs.log",
+      "original_sha256": "8508711b76ffb98fa162d4d636420fcb9d6d8e362de0e85fbee2f6362e37d453",
+      "original_bytes": 664,
+      "stored_sha256": "1a596cc78a447ed142f60335d50e8542e7327d1802354091fad63c8dfcdc9257"
+    },
+    "grace-0-0/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-0-0/results.json",
+      "original_sha256": "676efdbd699e567b9eca1dc6c23c5f33af1c7707e6907fe1a77712053c435448",
+      "original_bytes": 25725,
+      "stored_sha256": "676efdbd699e567b9eca1dc6c23c5f33af1c7707e6907fe1a77712053c435448"
+    },
+    "grace-0-0/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-0-0/stderr.log",
+      "original_sha256": "81265a22bbe5b0bbba22f90fa98dd9d470c7f9b0591059ac54b4fff14fd125b1",
+      "original_bytes": 900058,
+      "stored_sha256": "8e0ed8fb0b4863bb0e717ad051037cf80d5ca9e7cbf6fa711b1a1e5c4aaa70f9"
+    },
+    "grace-0-0.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-0-0.log",
+      "original_sha256": "40889696e4539f37562049a755b0cad349ee0803c8d99dcadb7fb3ea1372da05",
+      "original_bytes": 833,
+      "stored_sha256": "3fdec574dea207070e4bdd917ecf969920109a5c205c8c67edc6f09ba707ecd7"
+    },
+    "grace-0-1/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-0-1/results.json",
+      "original_sha256": "f7c750015c1ac7fbc921ffe548ad8eaf373a60291f5a7f3b6a47c34391785610",
+      "original_bytes": 25254,
+      "stored_sha256": "f7c750015c1ac7fbc921ffe548ad8eaf373a60291f5a7f3b6a47c34391785610"
+    },
+    "grace-0-1/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-0-1/stderr.log",
+      "original_sha256": "d9e647bc944a53f751475e5b2a6c1230103d6f2f816e05e4a30796e662d219b2",
+      "original_bytes": 881110,
+      "stored_sha256": "187d9ad0840f62822b09438a27f280fdde7ee0d0173f0e19580859a177f87a52"
+    },
+    "grace-0-1.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-0-1.log",
+      "original_sha256": "83612d0599ac2374bfdf6fbf3acc50b3ba750d47d30636991cff7a60803ae3df",
+      "original_bytes": 829,
+      "stored_sha256": "9457671e81748df24b84b61fbcd711dcd879318a219edd2425941d7735c5518e"
+    },
+    "grace-5-0/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-5-0/results.json",
+      "original_sha256": "b2ba042a520956033272b43401f64cbe9577daa75af440b6c9e504526d48034c",
+      "original_bytes": 25411,
+      "stored_sha256": "b2ba042a520956033272b43401f64cbe9577daa75af440b6c9e504526d48034c"
+    },
+    "grace-5-0/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-5-0/stderr.log",
+      "original_sha256": "b7dd7e28a3746f0559bd31fb121c78acff5e563ba81566bc772eb0a6c602edb9",
+      "original_bytes": 897882,
+      "stored_sha256": "36dc677e1fb8773fdd4e48f4b70099e9d9bb63d5865c4c674e278c891b3fac12"
+    },
+    "grace-5-0.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-5-0.log",
+      "original_sha256": "22f007c4f5902327d97a53140a1c262ce2e2fd9003e1b8c2dda313ffc0eb28bc",
+      "original_bytes": 829,
+      "stored_sha256": "9988acf2804c9eb114f95d03a249fe60ef9fbed3a33d3e32998ca77821a6ab64"
+    },
+    "grace-5-1/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-5-1/results.json",
+      "original_sha256": "bf73f8a3d0b6133a3c697c13b5085fea6717c8971820bb6f4fc998ae082def75",
+      "original_bytes": 25674,
+      "stored_sha256": "bf73f8a3d0b6133a3c697c13b5085fea6717c8971820bb6f4fc998ae082def75"
+    },
+    "grace-5-1/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-5-1/stderr.log",
+      "original_sha256": "6cab71aa0416ed706e6b3dd2cbadcfed2f3b91d24663aee120f2cdd47fc03603",
+      "original_bytes": 903646,
+      "stored_sha256": "76d7c8cde8215ccd6eb2b5947416ddb4ac2b8ece2087d59e15576442f009b1f1"
+    },
+    "grace-5-1.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/grace-5-1.log",
+      "original_sha256": "a30034222102ce92ca90dbb0c31f4b5d5b4a897272a951b72a9432695e3b4dc2",
+      "original_bytes": 829,
+      "stored_sha256": "ef596a66077065755972d4d5c26a9f67dd3b478bcc328483782c1046240d2ae0"
+    },
+    "helper-build.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/helper-build.log",
+      "original_sha256": "f774f01c1462ba48e4c54accec1808d0865966fc0d2da2d30f5ed4757e84c29c",
+      "original_bytes": 727,
+      "stored_sha256": "54f738b1dda7ae3cf2e282900aff84b0531f1aaa12206e0bdddcadc5c5f2bbbd"
+    },
+    "helper-stress.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/helper-stress.json",
+      "original_sha256": "abaeb940a2e6d9117de74de7e2de71f87f1616827bb3c54df12a4e7017b3b5b7",
+      "original_bytes": 6542,
+      "stored_sha256": "abaeb940a2e6d9117de74de7e2de71f87f1616827bb3c54df12a4e7017b3b5b7"
+    },
+    "helper-stress.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/helper-stress.log",
+      "original_sha256": "93425ea6a634efa82e8b758f3a98666a894140ec43abbe2776f2450b66c998bf",
+      "original_bytes": 421,
+      "stored_sha256": "3028207c81a17a129ce5a05d1bf96a30dbe10599ef51bec8f29dd23251980f02"
+    },
+    "helper6.json.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/helper6.json",
+      "original_sha256": "703f2cc0309ce8a926955b1296ac507fd9342b240e8908ff7f768de0c2e541b4",
+      "original_bytes": 1720810,
+      "stored_sha256": "bb052fe670a4d7b09141642c0fc3bb898f433f026662e8be60895cee6a9fad2a"
+    },
+    "helper6.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/helper6.log",
+      "original_sha256": "e675a983f979c5a54eda3210b5e33b30b3aec4d2ce6f186a8ac97f71ba6c36e6",
+      "original_bytes": 130,
+      "stored_sha256": "c478984c95d8eb16bc317c567ea8a7f02ab7452115f4446d5811b006bcbaab67"
+    },
+    "isolation-review-tests.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/isolation-review-tests.log",
+      "original_sha256": "23cd4d84e0e779fe79472338b1bc6fa6958f3a070ece98dc06ca392386b5cfb9",
+      "original_bytes": 2023,
+      "stored_sha256": "3e81b012da0cf8dec00230cc307c2ce677ccab92d1bbaec8946788130710c604"
+    },
+    "isolation-tests.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/isolation-tests.log",
+      "original_sha256": "3950b0023f818ef181d736dc58d51ca77f9412d2d2f835bcaebb4f1af15f7c9d",
+      "original_bytes": 2023,
+      "stored_sha256": "eaf7c8bb99fd84cb9cc798395fee18d622f7334a5ff86ed925acb053ca6049b3"
+    },
+    "measure-slot-wakeup.py": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/measure-slot-wakeup.py",
+      "original_sha256": "26ee3b2212d77f116bc323c9fab4a8c8d5eea3f6a8f833010152de022a2226ab",
+      "original_bytes": 3350,
+      "stored_sha256": "26ee3b2212d77f116bc323c9fab4a8c8d5eea3f6a8f833010152de022a2226ab"
+    },
+    "measure-stop-grace.py": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/measure-stop-grace.py",
+      "original_sha256": "ddae00b29e987e062aa347406ea227857c2aa2c0d71de51f52c8f1301d883f3f",
+      "original_bytes": 1307,
+      "stored_sha256": "ddae00b29e987e062aa347406ea227857c2aa2c0d71de51f52c8f1301d883f3f"
+    },
+    "measure-timer.py": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/measure-timer.py",
+      "original_sha256": "4bc4816130ed596a9ef1833a024efea86a0f35bc0a0619022cc02f39da6a5a37",
+      "original_bytes": 2236,
+      "stored_sha256": "4bc4816130ed596a9ef1833a024efea86a0f35bc0a0619022cc02f39da6a5a37"
+    },
+    "ordinary-lines/00-before-dectalk/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/00-before-dectalk/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "stored_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8"
+    },
+    "ordinary-lines/00-before-dectalk/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/00-before-dectalk/raw.json",
+      "original_sha256": "e2d343d7c7298d688c17736a9a0f92f47e44c7ac0a7df569d2742ea2924dbd57",
+      "original_bytes": 17908,
+      "stored_sha256": "e2d343d7c7298d688c17736a9a0f92f47e44c7ac0a7df569d2742ea2924dbd57"
+    },
+    "ordinary-lines/00-before-dectalk/server-logs/omnivox-20260920T000654Z-1669519-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/00-before-dectalk/server-logs/omnivox-20260920T000654Z-1669519-part000001.log",
+      "original_sha256": "59ef43c67c68b53f63d1f10d68c7eeb5778e9f8006712ca0b747ab2a653957c1",
+      "original_bytes": 100944,
+      "stored_sha256": "13967c35d22360e5c8818e82d08c4b82396feda90fd5fb7dfd28bf4b4f869065"
+    },
+    "ordinary-lines/00-before-dectalk/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/00-before-dectalk/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/01-before-espeak/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/01-before-espeak/job.json",
+      "original_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1",
+      "original_bytes": 642,
+      "stored_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1"
+    },
+    "ordinary-lines/01-before-espeak/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/01-before-espeak/raw.json",
+      "original_sha256": "0985519cc7a9beded68517f63039ff00218ffc9289fb8c4cf4fd373d1913e7d7",
+      "original_bytes": 18143,
+      "stored_sha256": "0985519cc7a9beded68517f63039ff00218ffc9289fb8c4cf4fd373d1913e7d7"
+    },
+    "ordinary-lines/01-before-espeak/server-logs/omnivox-20260920T000656Z-1669583-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/01-before-espeak/server-logs/omnivox-20260920T000656Z-1669583-part000001.log",
+      "original_sha256": "0ca67c94d43cebb9f314d77fc24850c709554cebaf318f25f4518d2ca1564606",
+      "original_bytes": 68283,
+      "stored_sha256": "02d672de490b6f37447ef1bc42d7b5d7352aa41424e4bd1e4f101c626324d09d"
+    },
+    "ordinary-lines/01-before-espeak/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/01-before-espeak/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/02-before-eloquence/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/02-before-eloquence/job.json",
+      "original_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f",
+      "original_bytes": 450,
+      "stored_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f"
+    },
+    "ordinary-lines/02-before-eloquence/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/02-before-eloquence/raw.json",
+      "original_sha256": "47f5e7bb05a93dc2c655dad93c78f508dfb0f1a07f6055603c2d2c55956705e9",
+      "original_bytes": 17907,
+      "stored_sha256": "47f5e7bb05a93dc2c655dad93c78f508dfb0f1a07f6055603c2d2c55956705e9"
+    },
+    "ordinary-lines/02-before-eloquence/server-logs/omnivox-20260920T000658Z-1669624-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/02-before-eloquence/server-logs/omnivox-20260920T000658Z-1669624-part000001.log",
+      "original_sha256": "a5b5eee54f4be1a4e69d0eb17cc1455744e854e16aab08e71c1d213e6d801994",
+      "original_bytes": 101247,
+      "stored_sha256": "f8f07996f852a409f8534eacf10b100cacaca846d87ef25fdef919a5031075cc"
+    },
+    "ordinary-lines/02-before-eloquence/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/02-before-eloquence/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/03-after-espeak/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/03-after-espeak/job.json",
+      "original_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1",
+      "original_bytes": 642,
+      "stored_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1"
+    },
+    "ordinary-lines/03-after-espeak/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/03-after-espeak/raw.json",
+      "original_sha256": "1628bf5e69636bc5a352b65f6bdeb38393eb123a32d39bad010a70878e8bbdd9",
+      "original_bytes": 18140,
+      "stored_sha256": "1628bf5e69636bc5a352b65f6bdeb38393eb123a32d39bad010a70878e8bbdd9"
+    },
+    "ordinary-lines/03-after-espeak/server-logs/omnivox-20260920T000659Z-1669658-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/03-after-espeak/server-logs/omnivox-20260920T000659Z-1669658-part000001.log",
+      "original_sha256": "27f8f3dcf51359ad74de64b5d6287fdd405016e6dd2a65d7f8675d583536c053",
+      "original_bytes": 68280,
+      "stored_sha256": "f4b13f817bdb061a79e22c4ffffa6965f5424c980111f3f41af8a30f121ed49d"
+    },
+    "ordinary-lines/03-after-espeak/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/03-after-espeak/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/04-after-eloquence/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/04-after-eloquence/job.json",
+      "original_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f",
+      "original_bytes": 450,
+      "stored_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f"
+    },
+    "ordinary-lines/04-after-eloquence/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/04-after-eloquence/raw.json",
+      "original_sha256": "f901cef7865b79618fe2af584aa8c67fe38232a514fa1e5302923d1dc0751714",
+      "original_bytes": 17917,
+      "stored_sha256": "f901cef7865b79618fe2af584aa8c67fe38232a514fa1e5302923d1dc0751714"
+    },
+    "ordinary-lines/04-after-eloquence/server-logs/omnivox-20260920T000700Z-1669698-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/04-after-eloquence/server-logs/omnivox-20260920T000700Z-1669698-part000001.log",
+      "original_sha256": "1167e412e3086c3a690b957b53fb97235b3064c849302d3828bf539f614cdc80",
+      "original_bytes": 101298,
+      "stored_sha256": "1fd027526e235c68d87061fbb78a6bafc7a650a0ad285839ed7fadede297a782"
+    },
+    "ordinary-lines/04-after-eloquence/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/04-after-eloquence/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/05-after-dectalk/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/05-after-dectalk/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "stored_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8"
+    },
+    "ordinary-lines/05-after-dectalk/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/05-after-dectalk/raw.json",
+      "original_sha256": "6537429339ab14376a1ee3c1fabfa3712f3d535d2176b188b7db4f0f5f83d222",
+      "original_bytes": 17906,
+      "stored_sha256": "6537429339ab14376a1ee3c1fabfa3712f3d535d2176b188b7db4f0f5f83d222"
+    },
+    "ordinary-lines/05-after-dectalk/server-logs/omnivox-20260920T000702Z-1669825-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/05-after-dectalk/server-logs/omnivox-20260920T000702Z-1669825-part000001.log",
+      "original_sha256": "38f0b4d50f61b047d3a3fb8fe409e20f2549e077daea72287ca7074d622d851b",
+      "original_bytes": 101153,
+      "stored_sha256": "6f704cdf4eda42ef36bdf140728b624e1157ee1b471f1d87895adfa56184d02a"
+    },
+    "ordinary-lines/05-after-dectalk/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/05-after-dectalk/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/06-before-espeak/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/06-before-espeak/job.json",
+      "original_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1",
+      "original_bytes": 642,
+      "stored_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1"
+    },
+    "ordinary-lines/06-before-espeak/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/06-before-espeak/raw.json",
+      "original_sha256": "e068e2308fe064c63fb87184d3f6900a32b5bc0b6a883eea6a42d17504f4a138",
+      "original_bytes": 18148,
+      "stored_sha256": "e068e2308fe064c63fb87184d3f6900a32b5bc0b6a883eea6a42d17504f4a138"
+    },
+    "ordinary-lines/06-before-espeak/server-logs/omnivox-20260920T000703Z-1669955-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/06-before-espeak/server-logs/omnivox-20260920T000703Z-1669955-part000001.log",
+      "original_sha256": "7a355ff606bf3c37144bf6cb452be8edcd35a32ed0f18a80bc3474b0af7cfed7",
+      "original_bytes": 68286,
+      "stored_sha256": "3ee7de8a26b9e5a46a0ad2d6271678246f7942b04f8921518c2401440c8c36fa"
+    },
+    "ordinary-lines/06-before-espeak/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/06-before-espeak/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/07-before-dectalk/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/07-before-dectalk/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "stored_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8"
+    },
+    "ordinary-lines/07-before-dectalk/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/07-before-dectalk/raw.json",
+      "original_sha256": "db4c5143b055ae354afc9137605ffb2c47f4d180491cf37f478700ad3a3607ef",
+      "original_bytes": 17899,
+      "stored_sha256": "db4c5143b055ae354afc9137605ffb2c47f4d180491cf37f478700ad3a3607ef"
+    },
+    "ordinary-lines/07-before-dectalk/server-logs/omnivox-20260920T000705Z-1670005-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/07-before-dectalk/server-logs/omnivox-20260920T000705Z-1670005-part000001.log",
+      "original_sha256": "9a883cf938d65084313f9e3ac2c471305d80c3b9f43e7851ce4af30ae1e5fcf0",
+      "original_bytes": 101155,
+      "stored_sha256": "589cf7c80adc766bdd688212b5da7561952dc281a3928e707743a55941bb5f9c"
+    },
+    "ordinary-lines/07-before-dectalk/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/07-before-dectalk/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/08-after-dectalk/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/08-after-dectalk/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "stored_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8"
+    },
+    "ordinary-lines/08-after-dectalk/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/08-after-dectalk/raw.json",
+      "original_sha256": "83dd544defdc53f2a522f5153e03fc772a9d3d7d4dabedcb035904075d166143",
+      "original_bytes": 17905,
+      "stored_sha256": "83dd544defdc53f2a522f5153e03fc772a9d3d7d4dabedcb035904075d166143"
+    },
+    "ordinary-lines/08-after-dectalk/server-logs/omnivox-20260920T000707Z-1670046-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/08-after-dectalk/server-logs/omnivox-20260920T000707Z-1670046-part000001.log",
+      "original_sha256": "42e5363197d32fabd3eee35d985f044fd276395b38f8b0f78c9e332d7fbbbc9c",
+      "original_bytes": 101150,
+      "stored_sha256": "e0a54f390df31fe95c55edded14263074bbb957feb4797247394b5e607837b41"
+    },
+    "ordinary-lines/08-after-dectalk/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/08-after-dectalk/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/09-before-eloquence/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/09-before-eloquence/job.json",
+      "original_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f",
+      "original_bytes": 450,
+      "stored_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f"
+    },
+    "ordinary-lines/09-before-eloquence/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/09-before-eloquence/raw.json",
+      "original_sha256": "3029c323b6def41cb17039cee1717ed8cb2c765058603e59bd3a6a9ccabcbfe9",
+      "original_bytes": 17905,
+      "stored_sha256": "3029c323b6def41cb17039cee1717ed8cb2c765058603e59bd3a6a9ccabcbfe9"
+    },
+    "ordinary-lines/09-before-eloquence/server-logs/omnivox-20260920T000709Z-1670086-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/09-before-eloquence/server-logs/omnivox-20260920T000709Z-1670086-part000001.log",
+      "original_sha256": "97658935fb76e7ff05eba694076433e34e27969ed8323ae1e71ed71a8b3e750a",
+      "original_bytes": 101242,
+      "stored_sha256": "14a2b6043f002ef0420ff509beb1810c6577be606072fa02a92eb0c24b601c88"
+    },
+    "ordinary-lines/09-before-eloquence/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/09-before-eloquence/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/10-after-eloquence/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/10-after-eloquence/job.json",
+      "original_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f",
+      "original_bytes": 450,
+      "stored_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f"
+    },
+    "ordinary-lines/10-after-eloquence/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/10-after-eloquence/raw.json",
+      "original_sha256": "0047db83016e7f96f64a217b2cd2e965aa425e256c5136a4f482e1c787a5de17",
+      "original_bytes": 17907,
+      "stored_sha256": "0047db83016e7f96f64a217b2cd2e965aa425e256c5136a4f482e1c787a5de17"
+    },
+    "ordinary-lines/10-after-eloquence/server-logs/omnivox-20260920T000710Z-1670119-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/10-after-eloquence/server-logs/omnivox-20260920T000710Z-1670119-part000001.log",
+      "original_sha256": "270e53dddfcef777dd895fdd19cb0ed9a8758fbef0a1f86104aeb3e7e7ebf7b7",
+      "original_bytes": 101233,
+      "stored_sha256": "5980b6b278e98cd5a3bc0b58c9cc2a870781ffb76138d5414f2379eeace0691e"
+    },
+    "ordinary-lines/10-after-eloquence/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/10-after-eloquence/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/11-after-espeak/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/11-after-espeak/job.json",
+      "original_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1",
+      "original_bytes": 642,
+      "stored_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1"
+    },
+    "ordinary-lines/11-after-espeak/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/11-after-espeak/raw.json",
+      "original_sha256": "4bef86233ddc61e83db3a506c7674be650c1193f4636acbc944c159fbf31af8b",
+      "original_bytes": 18146,
+      "stored_sha256": "4bef86233ddc61e83db3a506c7674be650c1193f4636acbc944c159fbf31af8b"
+    },
+    "ordinary-lines/11-after-espeak/server-logs/omnivox-20260920T000711Z-1670152-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/11-after-espeak/server-logs/omnivox-20260920T000711Z-1670152-part000001.log",
+      "original_sha256": "aa0c8c84e4e7c2e001bbc9bd95ef6cb168a9264386e52e053d850fc806a6540b",
+      "original_bytes": 68283,
+      "stored_sha256": "5e1f498798d4d42a1e5c5791dbb0efc6cfa9efed6df4179bc5765a742dc38bfe"
+    },
+    "ordinary-lines/11-after-espeak/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/11-after-espeak/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/12-after-eloquence/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/12-after-eloquence/job.json",
+      "original_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f",
+      "original_bytes": 450,
+      "stored_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f"
+    },
+    "ordinary-lines/12-after-eloquence/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/12-after-eloquence/raw.json",
+      "original_sha256": "a00457bc4c01764919835f18c1aa1f1ef1c498e4c8753adf4d9151105624177d",
+      "original_bytes": 17909,
+      "stored_sha256": "a00457bc4c01764919835f18c1aa1f1ef1c498e4c8753adf4d9151105624177d"
+    },
+    "ordinary-lines/12-after-eloquence/server-logs/omnivox-20260920T000713Z-1670212-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/12-after-eloquence/server-logs/omnivox-20260920T000713Z-1670212-part000001.log",
+      "original_sha256": "3c8adedf084868c38837ffa81a4328be6618911e20bb432a1937479b2d34ae7f",
+      "original_bytes": 101241,
+      "stored_sha256": "dea260ef774b288596670c2af23b1010ee7c5b6bd04e742738352d877b51ca9c"
+    },
+    "ordinary-lines/12-after-eloquence/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/12-after-eloquence/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/13-before-dectalk/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/13-before-dectalk/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "stored_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8"
+    },
+    "ordinary-lines/13-before-dectalk/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/13-before-dectalk/raw.json",
+      "original_sha256": "a8405129e868166fc169e0f96b2e0b4e3b024a43a0034a1b77e361042495546c",
+      "original_bytes": 17897,
+      "stored_sha256": "a8405129e868166fc169e0f96b2e0b4e3b024a43a0034a1b77e361042495546c"
+    },
+    "ordinary-lines/13-before-dectalk/server-logs/omnivox-20260920T000714Z-1670247-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/13-before-dectalk/server-logs/omnivox-20260920T000714Z-1670247-part000001.log",
+      "original_sha256": "d21d17205fd09d5c4b1f91fb7dcb12fd92d3dfae4c8757439c52a61d7f754fa0",
+      "original_bytes": 101148,
+      "stored_sha256": "35f552e1ca3b0955e956dd177eaf0b75718f69aefeccdcddc49066d09f1f883c"
+    },
+    "ordinary-lines/13-before-dectalk/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/13-before-dectalk/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/14-before-eloquence/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/14-before-eloquence/job.json",
+      "original_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f",
+      "original_bytes": 450,
+      "stored_sha256": "4fb61fd4a6548e5dbbada3eefb98d4b6c9e5980ac51b4ad32e7132bba140d78f"
+    },
+    "ordinary-lines/14-before-eloquence/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/14-before-eloquence/raw.json",
+      "original_sha256": "a196d6e8a1686ac777230e5e5e55cf2a6202b1ace15641a72fcc370078ca88bc",
+      "original_bytes": 17907,
+      "stored_sha256": "a196d6e8a1686ac777230e5e5e55cf2a6202b1ace15641a72fcc370078ca88bc"
+    },
+    "ordinary-lines/14-before-eloquence/server-logs/omnivox-20260920T000716Z-1670292-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/14-before-eloquence/server-logs/omnivox-20260920T000716Z-1670292-part000001.log",
+      "original_sha256": "fcea167e8ba36cc354aaf18c61111ae9417bd9fde4d82e4113d0acc24c4b0ee2",
+      "original_bytes": 101244,
+      "stored_sha256": "f3694395df5a00085652cefb412ab02d0bc04d0dcacb1601500129e93cd84d80"
+    },
+    "ordinary-lines/14-before-eloquence/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/14-before-eloquence/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/15-before-espeak/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/15-before-espeak/job.json",
+      "original_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1",
+      "original_bytes": 642,
+      "stored_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1"
+    },
+    "ordinary-lines/15-before-espeak/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/15-before-espeak/raw.json",
+      "original_sha256": "c5828e9e34f6b07ff3108c679a92364998dd28edd54d0dc00376f6f429d05005",
+      "original_bytes": 18141,
+      "stored_sha256": "c5828e9e34f6b07ff3108c679a92364998dd28edd54d0dc00376f6f429d05005"
+    },
+    "ordinary-lines/15-before-espeak/server-logs/omnivox-20260920T000717Z-1670328-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/15-before-espeak/server-logs/omnivox-20260920T000717Z-1670328-part000001.log",
+      "original_sha256": "7478c4fa094e60f87a2e9663cf88286aae430718ee76a3e16ad7ea9997f40d42",
+      "original_bytes": 68276,
+      "stored_sha256": "c7dfd0a40f92a5ea826c8204e4855dae989ed5269577d510b84108d55f742acd"
+    },
+    "ordinary-lines/15-before-espeak/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/15-before-espeak/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/16-after-espeak/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/16-after-espeak/job.json",
+      "original_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1",
+      "original_bytes": 642,
+      "stored_sha256": "722507cbbcdb8d7bcf10bd104cbd7411f0022ae66f3cb7128df2dbf591ab98f1"
+    },
+    "ordinary-lines/16-after-espeak/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/16-after-espeak/raw.json",
+      "original_sha256": "8cbc7ff63a43a2481d581c9dc06df4c781a207bd0e3eb3ea4f8d9522030807d2",
+      "original_bytes": 18141,
+      "stored_sha256": "8cbc7ff63a43a2481d581c9dc06df4c781a207bd0e3eb3ea4f8d9522030807d2"
+    },
+    "ordinary-lines/16-after-espeak/server-logs/omnivox-20260920T000719Z-1670368-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/16-after-espeak/server-logs/omnivox-20260920T000719Z-1670368-part000001.log",
+      "original_sha256": "c10e31f40e81fbf0bfdf2e2c363e73cce16e1e68b5b01e9eebf40387a56d056b",
+      "original_bytes": 68280,
+      "stored_sha256": "7fa1d2ab648638fb276ab573262f6e40a43eb774e4376e89030b2fcbf0606008"
+    },
+    "ordinary-lines/16-after-espeak/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/16-after-espeak/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/17-after-dectalk/job.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/17-after-dectalk/job.json",
+      "original_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8",
+      "original_bytes": 439,
+      "stored_sha256": "d62fcd1ff0061a32bdf8c4595ed2e0b1db61d2a9178f9d9ef44d27ab908645c8"
+    },
+    "ordinary-lines/17-after-dectalk/raw.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/17-after-dectalk/raw.json",
+      "original_sha256": "00258683683c6913bfff238a6d976ae6d63c2d3052a543ca1eaee0360b4fd282",
+      "original_bytes": 17903,
+      "stored_sha256": "00258683683c6913bfff238a6d976ae6d63c2d3052a543ca1eaee0360b4fd282"
+    },
+    "ordinary-lines/17-after-dectalk/server-logs/omnivox-20260920T000721Z-1670407-part000001.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/17-after-dectalk/server-logs/omnivox-20260920T000721Z-1670407-part000001.log",
+      "original_sha256": "8d8f3540e14d31ae147b93c703f16693662548820b69e3d15b932ec30d2de75a",
+      "original_bytes": 101156,
+      "stored_sha256": "85c0eed98cb926a1a277dce036d3e5a907b0cc365459bb4d7d95f595279610ad"
+    },
+    "ordinary-lines/17-after-dectalk/worker.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/17-after-dectalk/worker.log",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    "ordinary-lines/manifest.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines/manifest.json",
+      "original_sha256": "4b1fa1560411204d7dcde90171f433cb137b760554081c15da634df7127174a8",
+      "original_bytes": 14580,
+      "stored_sha256": "4b1fa1560411204d7dcde90171f433cb137b760554081c15da634df7127174a8"
+    },
+    "ordinary-lines.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines.log",
+      "original_sha256": "8f1a3a68e6c0e373c63415c21f9da3edb5d3db5475e4b9b4c73a02bdcfbdab4a",
+      "original_bytes": 4235,
+      "stored_sha256": "2aefef32f6bb5a5086a441c95742e5f9d8bfd4d3abcd93a1b40e3f4840693602"
+    },
+    "repeat-bursts-manifest.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/repeat-bursts-manifest.json",
+      "original_sha256": "62b6273e618ae8a2f2406430b01a1a55a87edfcdf9c1bde0ee2dcfb00121de9b",
+      "original_bytes": 1659,
+      "stored_sha256": "62b6273e618ae8a2f2406430b01a1a55a87edfcdf9c1bde0ee2dcfb00121de9b"
+    },
+    "repeat-bursts.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/repeat-bursts.log",
+      "original_sha256": "c421e85ede30b2091d1fe9585ee3b4618ed8bad388bdd2e8f8da40518ca7fbf3",
+      "original_bytes": 188,
+      "stored_sha256": "f55e03266a1d065eecef4a6adfb7ebbff5cae0f39f96ac1a15e3693d7d9983b5"
+    },
+    "repeat-bursts.py": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/repeat-bursts.py",
+      "original_sha256": "07633df204a2c6f420fd01865783949665f7e77ed2b1cb2c0121cf9a6d6d5fa9",
+      "original_bytes": 875,
+      "stored_sha256": "07633df204a2c6f420fd01865783949665f7e77ed2b1cb2c0121cf9a6d6d5fa9"
+    },
+    "review-clippy.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/review-clippy.log",
+      "original_sha256": "00c21f8ea32ee2dcb918d22cdd6c435d43ff0ce44a1c79a8ecdb38d99781586f",
+      "original_bytes": 142,
+      "stored_sha256": "488dc3ffe904991c09f927adcb272d8232011484d8068be59ac090949a7dad37"
+    },
+    "run-acceptance.py": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/run-acceptance.py",
+      "original_sha256": "2c823ed9e75bd6ed88a259995d69647c603ad6b1b1ebd9a0913b96ed0d0b244c",
+      "original_bytes": 3369,
+      "stored_sha256": "2c823ed9e75bd6ed88a259995d69647c603ad6b1b1ebd9a0913b96ed0d0b244c"
+    },
+    "slot-results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/slot-results.json",
+      "original_sha256": "f11f756ad9c9563fb542ced5fcb0d35122ba86ade60bd2655bf827a99d0cb863",
+      "original_bytes": 10174,
+      "stored_sha256": "f11f756ad9c9563fb542ced5fcb0d35122ba86ade60bd2655bf827a99d0cb863"
+    },
+    "slot-summary.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/slot-summary.log",
+      "original_sha256": "add089f0544b1a8ef77fe8361c820cd79f271a14a42dc542546d877abee9d861",
+      "original_bytes": 124,
+      "stored_sha256": "4badb597235a32d97c0de2d092653060121f0bee11a70dea2c8019453ac9df46"
+    },
+    "slot-wakeup.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/slot-wakeup.log",
+      "original_sha256": "82cdce10dc9f0d298f0d58f0d1cfaca660fdf39b569a1a4ee58723d13430b786",
+      "original_bytes": 113,
+      "stored_sha256": "64836cc39e133fd1708c7cd590cdafd2a8b3cd3222d18b2561074d4e8f0345d9"
+    },
+    "stop-probe-build.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/stop-probe-build.log",
+      "original_sha256": "c40f7c1ebabee5ba04e970191fb6d2fb023f2b1fa119ee29550ee411acb4299b",
+      "original_bytes": 142,
+      "stored_sha256": "b9d953c88abe3bb8e628448aaa2a2ab1cdc21a68dab65c1dbed1695f2890ede9"
+    },
+    "stop-probe-manifest.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/stop-probe-manifest.json",
+      "original_sha256": "fa3e141e3db348a78e9227b6b469ef896bf232d4ffccfeab074796665af5bec8",
+      "original_bytes": 1691,
+      "stored_sha256": "fa3e141e3db348a78e9227b6b469ef896bf232d4ffccfeab074796665af5bec8"
+    },
+    "stop-probe-results.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/stop-probe-results.log",
+      "original_sha256": "2a087578f37d78546091d61efe33f5681e64608728b489a291e5a1b8bea86af0",
+      "original_bytes": 367,
+      "stored_sha256": "11871daf743e95bae76f4f10eac990394291a5089b8e738be7b0c5445f69d4ee"
+    },
+    "stop-probe.patch.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/stop-probe.patch",
+      "original_sha256": "6c4580359ba71c0452b709e248a49bb935539e2edd8d8b3d9c0aacd64456cf9f",
+      "original_bytes": 2289,
+      "stored_sha256": "037fcd47c94c0ba267d6f97bbf0c100c0ea16e619df027b807018d354ae61fe1"
+    },
+    "summarize.py": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/summarize.py",
+      "original_sha256": "6d658a3bce5480c027b349c9b451a55dc4917a3b65961825e09aa57b876ef0fa",
+      "original_bytes": 3756,
+      "stored_sha256": "6d658a3bce5480c027b349c9b451a55dc4917a3b65961825e09aa57b876ef0fa"
+    },
+    "summary.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/summary.json",
+      "original_sha256": "b71b2e7324194074c1f4afbcdeb010d89b7babd1bebf8f74b7ad811f0cd377bc",
+      "original_bytes": 28162,
+      "stored_sha256": "b71b2e7324194074c1f4afbcdeb010d89b7babd1bebf8f74b7ad811f0cd377bc"
+    },
+    "summary.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/summary.log",
+      "original_sha256": "8df7aebb0192b439b2e137d49ad18f8548c69c30b736a5a792c35723fd75b48c",
+      "original_bytes": 3661,
+      "stored_sha256": "a5b35e71cf7905a2ffa76dd0ae6f2c8895437e4cb2782f5e6b3dab6699e8a46d"
+    },
+    "timer-device/results.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/timer-device/results.json",
+      "original_sha256": "b1952f034d826ec683b2bd57e2c49970a38e1980503c77c1aadc0e4f9416713f",
+      "original_bytes": 21471,
+      "stored_sha256": "b1952f034d826ec683b2bd57e2c49970a38e1980503c77c1aadc0e4f9416713f"
+    },
+    "timer-device/stderr.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/timer-device/stderr.log",
+      "original_sha256": "c8a50a3488515566072f00a263339a1c7596bab004b9b847588cc4646ac48679",
+      "original_bytes": 331991,
+      "stored_sha256": "08baeec120f5325e7034b9097ffdd797bebbdb50076f2fd486206789766bb648"
+    },
+    "timer-device.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/timer-device.log",
+      "original_sha256": "5fbbc6bfd811513c16d3fa8dfc5ebbd335605e435f5187315ecd3b00038d8570",
+      "original_bytes": 411,
+      "stored_sha256": "5674b63d74f35e8e5b4fc9884e4ebe71906f3e416aa036445a577e6e37464f18"
+    },
+    "timer-probe.patch.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/timer-probe.patch",
+      "original_sha256": "86817c95fd5d3ff265695937e329d5852d9fb7f56ec80126993e4c2d7f1c8b2f",
+      "original_bytes": 1068,
+      "stored_sha256": "78a21ef9ee9f9b5792e80b5e9f242b3e30909a07a6e05135dfa4360c3d2f963a"
+    },
+    "timer-results.json.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/timer-results.json",
+      "original_sha256": "7b6681f799a616761d304dffe9f530f8461370691a1c02ec91fa2d4013ec607b",
+      "original_bytes": 1158255,
+      "stored_sha256": "3dd26ed0a2539e4a21f1bd129a56e306e75dfc8939b562f0f76975acd9c044a3"
+    },
+    "timer-summary.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/timer-summary.json",
+      "original_sha256": "de5ac72ae7e6a4b835a1bbe37876380b3d42077fc061cae8f98d7d4f9b437c92",
+      "original_bytes": 4967,
+      "stored_sha256": "de5ac72ae7e6a4b835a1bbe37876380b3d42077fc061cae8f98d7d4f9b437c92"
+    },
+    "timer-summary.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/timer-summary.log",
+      "original_sha256": "61baa2aad544c003c10d26618ecada1bbe4d1844095b66ba6d3b851ac943ac66",
+      "original_bytes": 989,
+      "stored_sha256": "20300bcd86d9ebaffd5e787d5286aa5640117715de96141a6ce0a66a6a64ecef"
+    },
+    "voices-plan-before-deployment.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/voices-plan-before-deployment.json",
+      "original_sha256": "5d60f1933d9b62593fe91860f427a82e673f6f828af3e5b09ff4ee04606e5a46",
+      "original_bytes": 2973,
+      "stored_sha256": "5d60f1933d9b62593fe91860f427a82e673f6f828af3e5b09ff4ee04606e5a46"
+    },
+    "voices-plan-used.json": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/voices-plan-used.json",
+      "original_sha256": "5d60f1933d9b62593fe91860f427a82e673f6f828af3e5b09ff4ee04606e5a46",
+      "original_bytes": 2973,
+      "stored_sha256": "5d60f1933d9b62593fe91860f427a82e673f6f828af3e5b09ff4ee04606e5a46"
+    },
+    "windows-build-retry.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/windows-build-retry.log",
+      "original_sha256": "ee2ee687816e3bb7423a32b7be1fb2a7a45657f0bdb7d41cd913e3ba1e60a6b0",
+      "original_bytes": 58424,
+      "stored_sha256": "691d00d0a8d8003081519777717838d58805e41342ac45c1bcfadb294dea4e3f"
+    },
+    "windows-build.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/windows-build.log",
+      "original_sha256": "f831265e33836669da09f62c4e3f68688f6d60f6f6c14bde8b5fa82e7614be55",
+      "original_bytes": 3996,
+      "stored_sha256": "160753eb021f606a0fb8499d148b357f767126566a054b08eabee10e2341082f"
+    },
+    "windows-final-main-build.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/windows-final-main-build.log",
+      "original_sha256": "04b93f7497f5cfae5128df48b25cceed6467b061285add9adcde07cccb8d01cc",
+      "original_bytes": 1028,
+      "stored_sha256": "79c203202cdb2382ba1623ed914babb1d160842a8aec7a3acef3eae3f1ea4307"
+    },
+    "workspace-tests.log.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/workspace-tests.log",
+      "original_sha256": "f5347fbfa6daa502acdaa1432e165a90fc4673e134928b0644615459a1a91c27",
+      "original_bytes": 96797,
+      "stored_sha256": "42caa699ea70a05e655eb4ee6a02f9d2b2a47115b30fd23f8e6fae31ddaaa2b7"
+    },
+    "dectalk-audit.json.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/dectalk-audit.json",
+      "original_sha256": "42a733c5d61079d8dab04805f9234a132b467d35ec9e3fd13f26594922201621",
+      "original_bytes": 6621,
+      "stored_sha256": "808fd1fc0b12da814ed74496505c3e8b4c4061bc74cd13db3d3b5d8d80a77317"
+    },
+    "notification-slot.rs.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/notification-slot.rs",
+      "original_sha256": "c38fd0ded98e72869ebc2536ce4de5647ad52260ede4114af67a4c7b408d20b5",
+      "original_bytes": 6781,
+      "stored_sha256": "c52c2b0521aa1124f6c2a6203e08f75bc35177fa3066cb57152a497a0043d450"
+    },
+    "polling-slot.rs.gz": {
+      "original_path": "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/polling-slot.rs",
+      "original_sha256": "98dad4915e91791d3a6a4ac323f30eb96ad0e6fd3012998da5935c947414df57",
+      "original_bytes": 5773,
+      "stored_sha256": "e3cc7bfdbed9bcb8fc046de585edc48fd2c03e60ba6f4c2e4e9e987211c7fe65"
+    }
+  }
+}

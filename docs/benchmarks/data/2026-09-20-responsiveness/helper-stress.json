@@ -1,0 +1,257 @@
+{
+  "configuration": {
+    "cancel_every": 10,
+    "cancel_probe": true,
+    "engine_id": "dectalk",
+    "health_every": 25,
+    "helper_argument_count": 1,
+    "helper_name": "OmnivoxDectalkHelper32.exe",
+    "iterations": 200,
+    "require_streaming": true,
+    "required_acss": [],
+    "resource_sample_every": 25,
+    "voice_id": "paul"
+  },
+  "created_at": "2026-09-19T23:50:27.192896+00:00",
+  "helper": {
+    "capabilities": {
+      "acss": {
+        "average_pitch": true,
+        "pitch_range": true,
+        "rate": true,
+        "richness": true,
+        "stress": true,
+        "volume": true
+      },
+      "audio_output": "streaming_pcm",
+      "cancellation": "synthesis_and_playback",
+      "concurrency": {
+        "mode": "serialized"
+      },
+      "language_switching": false,
+      "markers": {
+        "native_index": true,
+        "phoneme": true,
+        "requested_anchors": "word_boundary",
+        "sentence": true,
+        "word": true
+      },
+      "native_extensions": [],
+      "text_repertoire": "iso_8859_1"
+    },
+    "engine_id": "dectalk",
+    "version": "v4.99 Github NORMAL ACCESS32 ",
+    "voice_id": "paul"
+  },
+  "host": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "report_version": 1,
+  "resources": {
+    "error": null,
+    "process_id": 47900,
+    "provider": "windows-cim",
+    "samples": [
+      {
+        "cpu_100ns": 2187500,
+        "elapsed_ms": 4238.765242014779,
+        "handle_count": 351,
+        "iteration": 0,
+        "phase": "started",
+        "private_bytes": 15998976,
+        "thread_count": 10,
+        "working_set_bytes": 28561408
+      },
+      {
+        "cpu_100ns": 2500000,
+        "elapsed_ms": 6069.006231991807,
+        "handle_count": 351,
+        "iteration": 0,
+        "phase": "ready",
+        "private_bytes": 16158720,
+        "thread_count": 10,
+        "working_set_bytes": 29364224
+      },
+      {
+        "cpu_100ns": 6250000,
+        "elapsed_ms": 8802.813174988842,
+        "handle_count": 411,
+        "iteration": 25,
+        "phase": "interval",
+        "private_bytes": 20996096,
+        "thread_count": 10,
+        "working_set_bytes": 35811328
+      },
+      {
+        "cpu_100ns": 8593750,
+        "elapsed_ms": 11342.959608999081,
+        "handle_count": 426,
+        "iteration": 50,
+        "phase": "interval",
+        "private_bytes": 21192704,
+        "thread_count": 10,
+        "working_set_bytes": 36020224
+      },
+      {
+        "cpu_100ns": 11093750,
+        "elapsed_ms": 14091.474638989894,
+        "handle_count": 462,
+        "iteration": 75,
+        "phase": "interval",
+        "private_bytes": 21323776,
+        "thread_count": 10,
+        "working_set_bytes": 36167680
+      },
+      {
+        "cpu_100ns": 13281250,
+        "elapsed_ms": 16622.451992006972,
+        "handle_count": 458,
+        "iteration": 100,
+        "phase": "interval",
+        "private_bytes": 21573632,
+        "thread_count": 12,
+        "working_set_bytes": 36360192
+      },
+      {
+        "cpu_100ns": 16250000,
+        "elapsed_ms": 19067.51061300747,
+        "handle_count": 412,
+        "iteration": 125,
+        "phase": "interval",
+        "private_bytes": 21495808,
+        "thread_count": 11,
+        "working_set_bytes": 36339712
+      },
+      {
+        "cpu_100ns": 19375000,
+        "elapsed_ms": 21386.81504598935,
+        "handle_count": 447,
+        "iteration": 150,
+        "phase": "interval",
+        "private_bytes": 21495808,
+        "thread_count": 11,
+        "working_set_bytes": 36339712
+      },
+      {
+        "cpu_100ns": 21562500,
+        "elapsed_ms": 23775.60279899626,
+        "handle_count": 487,
+        "iteration": 175,
+        "phase": "interval",
+        "private_bytes": 21532672,
+        "thread_count": 11,
+        "working_set_bytes": 36380672
+      },
+      {
+        "cpu_100ns": 23437500,
+        "elapsed_ms": 26363.018817995908,
+        "handle_count": 482,
+        "iteration": 200,
+        "phase": "interval",
+        "private_bytes": 21532672,
+        "thread_count": 11,
+        "working_set_bytes": 36442112
+      },
+      {
+        "cpu_100ns": 23437500,
+        "elapsed_ms": 28339.287865994265,
+        "handle_count": 487,
+        "iteration": 200,
+        "phase": "before_shutdown",
+        "private_bytes": 21532672,
+        "thread_count": 11,
+        "working_set_bytes": 36442112
+      }
+    ],
+    "steady_state_summary": {
+      "metrics": {
+        "cpu_100ns": {
+          "first": 2500000,
+          "growth": 20937500,
+          "last": 23437500,
+          "maximum": 23437500,
+          "minimum": 2500000
+        },
+        "handle_count": {
+          "first": 351,
+          "growth": 136,
+          "last": 487,
+          "maximum": 487,
+          "minimum": 351
+        },
+        "private_bytes": {
+          "first": 16158720,
+          "growth": 5373952,
+          "last": 21532672,
+          "maximum": 21573632,
+          "minimum": 16158720
+        },
+        "thread_count": {
+          "first": 10,
+          "growth": 1,
+          "last": 11,
+          "maximum": 12,
+          "minimum": 10
+        },
+        "working_set_bytes": {
+          "first": 29364224,
+          "growth": 7077888,
+          "last": 36442112,
+          "maximum": 36442112,
+          "minimum": 29364224
+        }
+      },
+      "sample_count": 10
+    },
+    "summary": {
+      "metrics": {
+        "cpu_100ns": {
+          "first": 2187500,
+          "growth": 21250000,
+          "last": 23437500,
+          "maximum": 23437500,
+          "minimum": 2187500
+        },
+        "handle_count": {
+          "first": 351,
+          "growth": 136,
+          "last": 487,
+          "maximum": 487,
+          "minimum": 351
+        },
+        "private_bytes": {
+          "first": 15998976,
+          "growth": 5533696,
+          "last": 21532672,
+          "maximum": 21573632,
+          "minimum": 15998976
+        },
+        "thread_count": {
+          "first": 10,
+          "growth": 1,
+          "last": 11,
+          "maximum": 12,
+          "minimum": 10
+        },
+        "working_set_bytes": {
+          "first": 28561408,
+          "growth": 7880704,
+          "last": 36442112,
+          "maximum": 36442112,
+          "minimum": 28561408
+        }
+      },
+      "sample_count": 11
+    }
+  },
+  "result": {
+    "cancellation_probes": 21,
+    "duration_seconds": 28.40395348300808,
+    "frames": 5871487,
+    "markers": 12002,
+    "pcm_bytes": 11742974,
+    "status": "completed",
+    "syntheses": 200
+  }
+}

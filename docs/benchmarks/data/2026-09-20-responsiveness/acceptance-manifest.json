@@ -1,0 +1,192 @@
+{
+  "programs": {
+    "before": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe",
+    "after": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe"
+  },
+  "jobs": [
+    {
+      "name": "slot-wakeup",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/measure-slot-wakeup.py"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "before-letters-0",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-letters.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-letters-0",
+        "--program",
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe",
+        "--letters",
+        "abcdefghijklmnopqrstuvwxyzA",
+        "--iterations",
+        "4",
+        "--gap-ms",
+        "300"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "after-letters-0",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-letters.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-letters-0",
+        "--program",
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe",
+        "--letters",
+        "abcdefghijklmnopqrstuvwxyzA",
+        "--iterations",
+        "4",
+        "--gap-ms",
+        "300"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "after-letters-1",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-letters.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-letters-1",
+        "--program",
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe",
+        "--letters",
+        "abcdefghijklmnopqrstuvwxyzA",
+        "--iterations",
+        "4",
+        "--gap-ms",
+        "300"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "before-letters-1",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-letters.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-letters-1",
+        "--program",
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe",
+        "--letters",
+        "abcdefghijklmnopqrstuvwxyzA",
+        "--iterations",
+        "4",
+        "--gap-ms",
+        "300"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "before-bursts",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-bursts.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/before-bursts",
+        "--program",
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "after-bursts",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-bursts.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-bursts",
+        "--program",
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "after-slow",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-letters.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-slow",
+        "--program",
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe",
+        "--iterations",
+        "6",
+        "--rate",
+        "50"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "after-fast",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-letter-playback-reserve/measure-letters.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/after-fast",
+        "--program",
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe",
+        "--iterations",
+        "6",
+        "--rate",
+        "150"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "ordinary-lines",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/emacsvox/.benchmarks/dectalk-reset-implementation-2026-09-20/run-server-lines.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/ordinary-lines",
+        "--target",
+        "before=/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe",
+        "--target",
+        "after=/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe",
+        "--iterations",
+        "30",
+        "--repeats",
+        "3"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "custom-lines",
+      "command": [
+        "/usr/bin/python3",
+        "/home/bart/src/omnivox/docs/benchmarks/data/2026-09-20-dectalk-batched-parameters/compare-server.py",
+        "/home/bart/src/emacsvox/.benchmarks/responsiveness-2026-09-20/custom-lines",
+        "--emacsvox",
+        "/home/bart/src/emacsvox",
+        "--plan",
+        "/home/bart/src/emacsvox/.benchmarks/voices.json",
+        "--target",
+        "before=/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe",
+        "--target",
+        "after=/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/577414114415d7b0/omnivox.exe",
+        "--iterations",
+        "20",
+        "--repeats",
+        "2"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "hashes": {
+    "before": {
+      "DECtalk.dll": "ac0bda78b1c42f2503eb9ce1b85096b3555099cf2282a941cf73cc80f2370583",
+      "libgcc_s_seh-1.dll": "273073618002c7c3736535b74619a2a84725f349e3d618926b0434657bf156c7",
+      "libstdc++-6.dll": "38f844a00cb9f8864c5c4967859b4e53f6d9936659a1cdbbbb5f869886150203",
+      "omnivox.exe": "e9fa4e3f86171e3b4294eb315e1ec0ac1c4afb938e05aaad5b672ab4a9e6a30c",
+      "OmnivoxDectalkHelper32.exe": "c4e605f39977781b30e867f61929fa3215a0d34d77afe56af3bf2dcd0cf7f258",
+      "OmnivoxEloquenceHelper32.exe": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8"
+    },
+    "after": {
+      "DECtalk.dll": "ac0bda78b1c42f2503eb9ce1b85096b3555099cf2282a941cf73cc80f2370583",
+      "libgcc_s_seh-1.dll": "273073618002c7c3736535b74619a2a84725f349e3d618926b0434657bf156c7",
+      "libstdc++-6.dll": "38f844a00cb9f8864c5c4967859b4e53f6d9936659a1cdbbbb5f869886150203",
+      "omnivox.exe": "13e56b66355b8abcf9ce673424c198e844b490ee2700321d5f419d3f29b41476",
+      "OmnivoxDectalkHelper32.exe": "b7f07601865080d0106214c8b8c8d4a4db770f198ca84a957098d7545ad29e1b",
+      "OmnivoxEloquenceHelper32.exe": "9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8"
+    }
+  }
+}

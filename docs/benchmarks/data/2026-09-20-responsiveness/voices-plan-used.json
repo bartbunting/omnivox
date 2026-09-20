@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "omnivox_root": "/home/bart/src/omnivox",
+  "emacs": "/home/bart/opt/emacs-31/bin/emacs-31.0.90",
+  "rate": 225,
+  "timeout": 30,
+  "seed": 71423,
+  "audio_output": "null",
+  "display": "xvfb",
+  "runtime_inputs": {
+    "OMNIVOX_DECTALK_DLL": "/mnt/c/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/DECtalk.dll",
+    "ESPEAK_NG_DATA": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/espeak-data/9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "dectalk-dictionary": "/mnt/c/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/dtalk_us.dic",
+    "eloquence-runtime": "/mnt/c/Program Files (x86)/Freedom Scientific/Shared/Eloquence/6.1"
+  },
+  "targets": [
+    {
+      "id": "baseline",
+      "server": "/home/bart/src/emacsvox/servers/omnivox",
+      "program": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/34e353095d7cfd73/omnivox.exe",
+      "emacsvox_root": "/home/bart/src/emacsvox",
+      "environment": {
+        "OMNIVOX_PROGRAM": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/34e353095d7cfd73/omnivox.exe",
+        "OMNIVOX_DECTALK_DLL": "C:/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/DECtalk.dll",
+        "ESPEAK_NG_DATA": "C:/Users/bart/AppData/Local/Emacsvox/Omnivox/espeak-data/9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+        "RUST_LOG": "warn",
+        "OMNIVOX_ECI_DLL": "C:/Program Files (x86)/Freedom Scientific/Shared/Eloquence/6.1/ECI.DLL"
+      },
+      "native": true,
+      "ui": true
+    },
+    {
+      "id": "current",
+      "server": "/home/bart/src/emacsvox/servers/omnivox",
+      "program": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe",
+      "emacsvox_root": "/home/bart/src/emacsvox",
+      "environment": {
+        "OMNIVOX_PROGRAM": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6414dbbfa3e8543a/omnivox.exe",
+        "OMNIVOX_DECTALK_DLL": "C:/Users/bart/AppData/Local/Omnivox/runtimes/dectalk/x86/DECtalk.dll",
+        "ESPEAK_NG_DATA": "C:/Users/bart/AppData/Local/Emacsvox/Omnivox/espeak-data/9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+        "RUST_LOG": "warn",
+        "OMNIVOX_ECI_DLL": "C:/Program Files (x86)/Freedom Scientific/Shared/Eloquence/6.1/ECI.DLL"
+      },
+      "native": true,
+      "ui": true
+    }
+  ],
+  "routes": [
+    {
+      "id": "eloquence",
+      "engine": "eloquence",
+      "voice": "v1",
+      "parameter": "breathiness",
+      "value": 35
+    },
+    {
+      "id": "dectalk",
+      "engine": "dectalk",
+      "voice": "paul",
+      "parameter": "sm",
+      "value": 61
+    },
+    {
+      "id": "espeak",
+      "engine": "espeak",
+      "voice": "espeak:gmw\\en",
+      "exclude_cases": {
+        "dense": "Windows eSpeak reports 14 of 15 requested anchors on both 1.10.0 and current; retained in .benchmarks/baseline-probe/espeak-dense and .benchmarks/smoke-03/0012-current-espeak-legacy-cold."
+      }
+    }
+  ]
+}
