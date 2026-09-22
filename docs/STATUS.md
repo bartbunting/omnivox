@@ -321,6 +321,17 @@ the matching verified GitHub release.
 | Linux x64 | eSpeak NG; RHVoice accepted; optional Piper and Flite companions verified | Yes (Ubuntu 24.04 ABI baseline) |
 | Linux ARM64 | Flite companion verified; generic server artifact pending | No current generic workflow artifact |
 
+macOS core installation is also available through the
+[official Homebrew tap](https://github.com/bartbunting/homebrew-omnivox), initially
+packaging Omnivox 1.12.0. Its
+[native CI run](https://github.com/bartbunting/homebrew-omnivox/actions/runs/35784117656)
+passed on Apple Silicon and Intel: archive verification, formula style and audit,
+installation, eSpeak and Apple WAV synthesis, reinstall, a packaging-revision
+upgrade, and removal. This does not establish audible Emacs acceptance or an
+upgrade between different upstream releases. Formula updates remain an explicit
+post-release step; optional engines are separate. See
+[macOS installation](../.github/DEPLOYMENT.md#macos-with-homebrew).
+
 The checked-in workflow builds, tests, and runs Clippy on all five release
 targets using native runners. Linux x64 is built on Ubuntu 24.04; compatibility
 with older glibc distributions is not claimed. Linux ARM64 has no workflow

@@ -261,6 +261,14 @@ speech responsiveness, as the WSLg stalled-buffer result demonstrates.
 
 ## Deployment and user diagnostics
 
+The initial macOS Homebrew tap is delivered for Apple Silicon and Intel; it is
+no longer future packaging work. Installation and ongoing formula updates are
+documented in the [deployment guide](../../.github/DEPLOYMENT.md#macos-with-homebrew),
+with verification evidence in [STATUS.md](../STATUS.md). Remaining Homebrew
+acceptance is a real upgrade between upstream versions and audible Emacs use.
+Formula updates are manual; automatic post-release pull requests remain a
+possible later improvement, not an implemented release step.
+
 1. Decide whether Linux ARM64 should join the Linux x64 GitHub artifact and
    runtime-test matrices, and evaluate a broader Linux ABI baseline than the
    current Ubuntu 24.04 build.

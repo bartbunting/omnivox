@@ -117,6 +117,24 @@ for ownership and data flow.
 
 ## Binary releases
 
+On macOS (Apple Silicon or Intel), install [Homebrew](https://brew.sh), then run:
+
+```sh
+brew install bartbunting/omnivox/omnivox
+"$(brew --prefix omnivox)/bin/omnivox" --version
+"$(brew --prefix omnivox)/bin/omnivox" --check
+```
+
+The check should play a tone and speak a confirmation. The
+[official tap](https://github.com/bartbunting/homebrew-omnivox) selects and
+checksum-verifies the matching published Mac archive, including its eSpeak data
+and notices. It supplies Apple system speech and eSpeak without a Rust build.
+Emacs and Emacsvox or Emacspeak are installed separately.
+
+Upgrade with `brew update` followed by `brew upgrade omnivox`, then restart your
+speech server. See [macOS installation](.github/DEPLOYMENT.md#macos-with-homebrew)
+for stable executable paths, Emacs setup, optional engines, and removal.
+
 [GitHub Releases](https://github.com/bartbunting/omnivox/releases) provides
 native archives for Linux x64, macOS Apple Silicon and Intel, and Windows x64
 and ARM64. Archives produced by the current workflow contain the executable,
@@ -142,6 +160,9 @@ the executable after extraction. User-visible release changes are recorded in
 [CHANGELOG.md](CHANGELOG.md).
 
 ## Prerequisites
+
+These tools are needed for source builds, not for the Homebrew or release-archive
+installation above.
 
 - [rustup](https://rustup.rs/). The checked-in `rust-toolchain.toml` selects
   the exact supported Rust release.
