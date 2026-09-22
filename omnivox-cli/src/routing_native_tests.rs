@@ -16,6 +16,7 @@ enum ReceiptBehavior {
     DuplicateAfterAudio,
     Cancel,
     Empty,
+    EmptyWhitespace,
     EmptyWithoutStart,
     WrongCount,
 }
@@ -130,7 +131,10 @@ impl TtsEngine for NativeEngine {
             sink.audio(AudioBuffer::empty())?;
             return Ok(SynthesisStreamCompletion { frame_count: 0 });
         }
-        if matches!(self.behavior, ReceiptBehavior::Empty) {
+        if matches!(self.behavior, ReceiptBehavior::Empty)
+            || (matches!(self.behavior, ReceiptBehavior::EmptyWhitespace)
+                && r.text.trim().is_empty())
+        {
             sink.start(SynthesisStreamStart {
                 engine_id: self.descriptor().id,
                 actual_voice: r.requested_voice.clone(),
@@ -560,16 +564,19 @@ fn empty_native_stream_does_not_commit_application_evidence() {
     let knowledge = [ParameterKnowledge::Ready(&c)];
     let mut routing = snapshot(&engines, native_definition());
     let mut sink = NativeSink::default();
-    assert!(matches!(
-        execute(
+    let outcome = execute(
             &engines,
             &mut routing,
             &style(&Default::default(), &knowledge, UnavailablePolicy::Require),
             &mut sink,
             None
-        ),
-        PreparedSynthesisOutcome::Streamed(SynthesisStreamCompletion { frame_count: 0 })
-    ));
+        );
+    let PreparedSynthesisOutcome::Buffered { result, attempt } = outcome else {
+        panic!("empty native output must remain available for pipeline completion");
+    };
+    assert!(result.audio.is_empty());
+    assert_eq!(result.actual_voice, Some(PhysicalVoiceId::new("dectalk", "Paul")));
+    assert!(attempt.native_application.is_some());
     assert!(sink.inner.attempts.is_empty());
     let broken = NativeEngine::new(
         "dectalk",
@@ -593,6 +600,92 @@ fn empty_native_stream_does_not_commit_application_evidence() {
         PreparedSynthesisOutcome::Exhausted
     ));
     assert!(sink.inner.attempts.is_empty());
+}
+
+#[test]
+fn native_timeline_continues_after_silent_markdown_punctuation() {
+    use crate::pipeline::{process_presentation_timeline_v4, BatchStatus, DispatchEffects, SynthCtx};
+    use omnivox_audio::{AudioBackend, AudioFileLoader, AudioStreams, PlaybackStatus, TimelineAudioRenderer};
+    use omnivox_tts::timeline_protocol::PresentationDeliveryPolicy;
+    use omnivox_tts::timeline_v4::{LayeredSpeechSpan, MixedSpeechSpan, PresentationTimelineV4};
+
+    let engine = NativeEngine::new("dectalk", "Paul", true, None, ReceiptBehavior::EmptyWhitespace);
+    let mut engines = EngineRegistry::new();
+    engines.register(engine.clone()).unwrap();
+    let routing = snapshot(&engines, native_definition())
+        .with_parameter_catalogues(vec![Arc::new(metadata("dectalk", "Paul"))]);
+    let streams = AudioStreams::new_with_backend(8, 8, 8, AudioBackend::Null).unwrap();
+    let control = streams.control();
+    let generation = AtomicU64::new(1);
+    let lifecycle = crate::lifecycle::RequestLifecycle::default();
+    let tickets = Mutex::new(Vec::new());
+    let effects = Mutex::new(DispatchEffects::new());
+    let renderer = Mutex::new(TimelineAudioRenderer::new());
+    let observations = Mutex::new(crate::voice_observations::VoiceObservations::native(
+        Arc::new(crate::native_plans::NativePlanReferences::default()),
+    ));
+    let failed = std::sync::atomic::AtomicBool::new(false);
+    let ctx = SynthCtx {
+        letter_navigation: false,
+        gen: 1,
+        gen_counter: &generation,
+        cancellation: None,
+        lifecycle: &lifecycle,
+        engine: engine.as_ref(),
+        control: &control,
+        playback_tickets: Some(&tickets),
+        presentation_clock: None,
+        pending_overlays: None,
+        timeline_renderer: Some(&renderer),
+        effect_processor: Some(&effects),
+        marker_span_id: None,
+        marker_dispatch: None,
+        voice_observations: Some(&observations),
+        batch_failed: Some(&failed),
+    };
+    let timeline = PresentationTimelineV4 {
+        protocol_version: 5,
+        generation: 1,
+        dispatch_id: 1,
+        registry_generation: 41,
+        delivery_policy: PresentationDeliveryPolicy::Ordered,
+        replacement_key: None,
+        // Markdown markup reaches synthesis as its own whitespace-only span.
+        spans: ["Install the ", " ", "Omnivox speech server", " "]
+            .into_iter()
+            .enumerate()
+            .map(|(index, text)| MixedSpeechSpan::EngineLayered(LayeredSpeechSpan {
+                id: index as u64 + 1,
+                text: text.into(),
+                logical_voice_id: "bolden".into(),
+                context: Default::default(),
+                placement: Default::default(),
+            }))
+            .collect(),
+        actions: vec![],
+    };
+    let state = omnivox_core::TtsState {
+        punctuation_level: omnivox_core::PunctuationLevel::None,
+        ..Default::default()
+    };
+    assert_eq!(
+        process_presentation_timeline_v4(
+            timeline, state, &ctx, &AudioFileLoader::new(), &engines,
+            &RuntimeEngineHealth::default(), routing,
+        ),
+        BatchStatus::Completed,
+    );
+    assert!(!failed.load(Ordering::Acquire));
+    let calls = engine.native_calls.lock().unwrap();
+    assert_eq!(calls.len(), 4);
+    assert!(calls[1].0.text.trim().is_empty());
+    assert_eq!(calls[2].0.text, "Omnivox speech server");
+    assert!(calls[3].0.text.trim().is_empty());
+    let retained = std::mem::take(&mut *tickets.lock().unwrap());
+    assert_eq!(retained.len(), 2, "silent spans must not create playback sources");
+    for ticket in retained {
+        assert_eq!(ticket.wait(), PlaybackStatus::Completed);
+    }
 }
 #[test]
 fn older_sinks_and_styles_cannot_discard_native_settings_or_evidence() {

@@ -6,6 +6,11 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Speech continues after native voice segments that produce no audio, such as
+  silent Markdown markup between ordinary text and a link.
+
 ## [1.12.0] - 2026-09-20
 
 ### Added

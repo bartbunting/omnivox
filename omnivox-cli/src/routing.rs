@@ -1160,6 +1160,7 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
             audio_accepted: false,
             output_failed: false,
         };
+        let mut empty_result = None;
         let synthesis = match &native_plan {
             omnivox_tts::engine_voice_choices::NativeChoiceExecution::Parameters(parameters) => {
                 route.engine.synthesize_stream_with_parameters(
@@ -1187,6 +1188,25 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
             }
             if !style.is_native() || completion.frame_count > 0 {
                 attempt_sink.commit_preamble()?;
+            } else {
+                // No PCM committed this attempt to the playback sink. Complete
+                // it through the buffered path so the caller can finalize its
+                // effects and timeline without inventing playback evidence.
+                let start = attempt_sink.pending_start.take().ok_or_else(|| {
+                    TtsError::SynthesisFailed("empty native stream omitted metadata".into())
+                })?;
+                let mut result = SynthesisResult::audio(
+                    start.engine_id,
+                    start.actual_voice,
+                    AudioBuffer::empty(),
+                );
+                result.degraded_acss = start.degraded_acss;
+                for (markers, anchors) in attempt_sink.pending_markers.drain(..) {
+                    result.markers.extend(markers);
+                    result.anchors.extend(anchors);
+                }
+                result.validate(&request)?;
+                empty_result = Some(result);
             }
             Ok(completion)
         });
@@ -1207,6 +1227,11 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
                 );
                 return if stale(generation, generation_counter, cancellation) {
                     choice::PreparedSynthesisOutcome::Cancelled
+                } else if let Some(result) = empty_result {
+                    choice::PreparedSynthesisOutcome::Buffered {
+                        result: Box::new(result),
+                        attempt: Box::new(attempt_sink.prepared),
+                    }
                 } else {
                     choice::PreparedSynthesisOutcome::Streamed(completion)
                 };
