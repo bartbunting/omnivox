@@ -508,29 +508,51 @@ fn unexpected_or_changed_files_retain_the_complete_installed_package() {
 
 #[test]
 fn live_and_legacy_snapshots_pin_files_until_confirmed_native_retirement() {
-    let fixture = Fixture::new();
-    let review = fixture.review();
-    let startup = Startup {
-        executable: AssetFile {
-            path: "/unused".into(),
-            bytes: 1,
-            sha256: "0".repeat(64),
-        },
-        arguments: Vec::new(),
-        working_directory: fixture.host.root.clone(),
-        configuration: None,
-        engines: None,
-        environment: crate::engine_configuration::LaunchEnvironment::from_variables([(
-            "OMNIVOX_FLITE_VOICES".into(),
-            fixture.directory.join("voice.flitevox").into_os_string(),
-        )]),
-    };
-    let (path, hash) = startup
-        .save(&fixture.host, &local::new_uuid().unwrap())
-        .unwrap();
-    assert_eq!(fixture.execute(&review).status, "blocked");
-    retention::retired(&fixture.host, &path, &hash).unwrap();
-    assert_eq!(fixture.execute(&review).status, "complete");
+    for legacy in [false, true] {
+        let fixture = Fixture::new();
+        let review = fixture.review();
+        let startup = Startup {
+            executable: AssetFile {
+                path: "/unused".into(),
+                bytes: 1,
+                sha256: "0".repeat(64),
+            },
+            arguments: Vec::new(),
+            working_directory: fixture.host.root.clone(),
+            configuration: None,
+            engines: None,
+            environment: crate::engine_configuration::LaunchEnvironment::from_variables([(
+                "OMNIVOX_FLITE_VOICES".into(),
+                fixture.directory.join("voice.flitevox").into_os_string(),
+            )]),
+        };
+        let (path, mut hash) = startup
+            .save(&fixture.host, &local::new_uuid().unwrap())
+            .unwrap();
+        if legacy {
+            let mut record = serde_json::to_value(&startup).unwrap();
+            record.as_object_mut().unwrap().remove("engines");
+            record["environment"] = serde_json::json!({
+                "OMNIVOX_FLITE_VOICES": fixture.directory.join("voice.flitevox"),
+            });
+            if cfg!(windows) {
+                record["environment"]["=C:"] = serde_json::json!(r"C:\previous directory");
+            }
+            let bytes = serde_json::to_vec(&record).unwrap();
+            fs::write(&path, &bytes).unwrap();
+            hash = verification::digest(&bytes);
+        }
+        let blockers = fixture.review().blockers;
+        assert!(
+            blockers
+                .iter()
+                .any(|reason| reason.contains("no confirmed retirement")),
+            "legacy={legacy}, blockers={blockers:?}"
+        );
+        assert_eq!(fixture.execute(&review).status, "blocked");
+        retention::retired(&fixture.host, &path, &hash).unwrap();
+        assert_eq!(fixture.execute(&review).status, "complete");
+    }
 }
 
 #[test]

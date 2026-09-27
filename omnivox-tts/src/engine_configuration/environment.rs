@@ -22,7 +22,7 @@ impl LaunchEnvironment {
         Self::from_variables(
             variables
                 .into_iter()
-                .filter(|(name, _)| !cfg!(windows) || !name.as_encoded_bytes().starts_with(b"=")),
+                .filter(|(name, _)| inherited_launch_setting(name)),
         )
     }
 
@@ -95,12 +95,20 @@ impl<'de> Deserialize<'de> for LaunchEnvironment {
             Wire::Native(variables) => variables,
             Wire::Legacy(variables) => variables
                 .into_iter()
+                // Historical Windows owner records captured vars_os directly,
+                // including drive bookkeeping. Preserve their ordinary package
+                // references while keeping native-pair records strict.
+                .filter(|(key, _)| inherited_launch_setting(OsStr::new(key)))
                 .map(|(key, value)| (key.into(), value.into()))
                 .collect(),
         };
         super::snapshot::validate_environment(&variables).map_err(serde::de::Error::custom)?;
         Ok(Self::from_variables(variables))
     }
+}
+
+fn inherited_launch_setting(name: &OsStr) -> bool {
+    !cfg!(windows) || !name.as_encoded_bytes().starts_with(b"=")
 }
 
 impl fmt::Debug for LaunchEnvironment {
@@ -130,7 +138,32 @@ mod tests {
         let decoded: LaunchEnvironment =
             serde_json::from_slice(&serde_json::to_vec(&environment).unwrap()).unwrap();
         assert_eq!(decoded, environment);
-        assert!(serde_json::from_str::<LaunchEnvironment>(r#"{"=C:":"C:\\private"}"#).is_err());
+        let explicit = [(OsString::from("=C:"), OsString::from(r"C:\private"))];
+        assert!(serde_json::from_slice::<LaunchEnvironment>(
+            &serde_json::to_vec(&explicit).unwrap()
+        )
+        .is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn historical_windows_maps_keep_package_references_despite_drive_bookkeeping() {
+        let bytes = serde_json::to_vec(&serde_json::json!({
+            "=C:": r"C:\previous working directory",
+            "OMNIVOX_PIPER_MODEL": r"C:\private package\voice.onnx",
+            "EMPTY": "",
+        }))
+        .unwrap();
+        let environment: LaunchEnvironment = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(environment.variables().count(), 2);
+        assert_eq!(
+            environment.get("OMNIVOX_PIPER_MODEL"),
+            Some(OsStr::new(r"C:\private package\voice.onnx"))
+        );
+        assert_eq!(environment.get("EMPTY"), Some(OsStr::new("")));
+        let restored: LaunchEnvironment =
+            serde_json::from_slice(&serde_json::to_vec(&environment).unwrap()).unwrap();
+        assert_eq!(restored, environment);
     }
 
     #[test]
