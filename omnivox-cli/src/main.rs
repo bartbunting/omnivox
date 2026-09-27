@@ -111,6 +111,16 @@ fn main() -> Result<()> {
             return Ok(());
         }
         "list-espeak-variants" => {
+            let startup = engine::EngineStartup::read(
+                "espeak",
+                cli.piper_model.as_deref(),
+                cli.voice_library.as_deref(),
+                cli.config_dir.as_deref(),
+            )?;
+            anyhow::ensure!(
+                startup.permits_construction("espeak"),
+                "espeak is disabled by local engine configuration"
+            );
             let engine = omnivox_tts::espeak::EspeakTtsEngine::with_variant_choices(&[])?;
             println!("{}", serde_json::to_string(&engine.variant_catalogue()?)?);
             return Ok(());
@@ -120,6 +130,7 @@ fn main() -> Result<()> {
                 &cli.engine,
                 cli.piper_model.as_deref(),
                 cli.voice_library.as_deref(),
+                cli.config_dir.as_deref(),
             )?;
             cli::cmd_list_voices(engine.as_ref());
             return Ok(());
@@ -129,6 +140,7 @@ fn main() -> Result<()> {
                 &cli.engine,
                 cli.piper_model.as_deref(),
                 cli.voice_library.as_deref(),
+                cli.config_dir.as_deref(),
             )?;
             cli::cmd_list_voices_alist(engine.as_ref());
             return Ok(());
@@ -211,6 +223,7 @@ fn main() -> Result<()> {
             &cli.engine,
             cli.piper_model.as_deref(),
             cli.voice_library.as_deref(),
+            cli.config_dir.as_deref(),
             Arc::clone(&gen_counter),
         )?
     };

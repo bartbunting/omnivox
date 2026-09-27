@@ -33,6 +33,8 @@ pub struct CliArgs {
     pub piper_model: Option<String>,
     /// Immutable runtime generation (overrides `OMNIVOX_VOICE_LIBRARY`).
     pub voice_library: Option<String>,
+    /// Absolute native configuration directory.
+    pub config_dir: Option<String>,
 }
 
 fn parse_float_flag(flag: &str, args: &[String], i: &mut usize) -> f32 {
@@ -73,6 +75,7 @@ pub fn parse_args() -> CliArgs {
         audio_output: None,
         piper_model: None,
         voice_library: None,
+        config_dir: None,
     };
 
     let mut i = 0;
@@ -107,6 +110,9 @@ pub fn parse_args() -> CliArgs {
             }
             "--piper-model" => {
                 cli.piper_model = Some(parse_string_flag("--piper-model", &args, &mut i))
+            }
+            "--config-dir" => {
+                cli.config_dir = Some(parse_string_flag("--config-dir", &args, &mut i))
             }
             "--voice-library" => {
                 cli.voice_library = Some(parse_string_flag("--voice-library", &args, &mut i))
@@ -221,6 +227,7 @@ pub fn print_help() {
     );
     println!("    --piper-model P  Piper .onnx model; keep its JSON config beside it");
     println!("    --voice-library P  Verified runtime generation (or OMNIVOX_VOICE_LIBRARY)");
+    println!("    --config-dir P  Absolute native engine configuration directory");
     println!("    --voice-library-owner  Local owned speech worker (private stdio control)");
     println!("    --voice-library-acquire  Verified local voice download (private stdio control)");
     println!("    --voice-library-service  Local installed-voice and Apply service");
@@ -371,6 +378,7 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
         &cli.engine,
         cli.piper_model.as_deref(),
         cli.voice_library.as_deref(),
+        cli.config_dir.as_deref(),
     ) {
         Ok(e) => {
             println!("  Status: OK");
@@ -626,6 +634,7 @@ pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) -> Res
         &cli.engine,
         cli.piper_model.as_deref(),
         cli.voice_library.as_deref(),
+        cli.config_dir.as_deref(),
     )
     .context("Failed to create engine")?;
     let state = dump_wav_state(cli, voice, engine.descriptor().default_voice_id.as_deref());
@@ -741,6 +750,7 @@ mod tests {
             audio_output: None,
             piper_model: None,
             voice_library: None,
+            config_dir: None,
         };
         let mut state = TtsState::default();
 
@@ -766,6 +776,7 @@ mod tests {
             audio_output: None,
             piper_model: None,
             voice_library: None,
+            config_dir: None,
         };
 
         let state = dump_wav_state(&cli, "positional-voice", Some("slt"));
@@ -793,6 +804,7 @@ mod tests {
             audio_output: None,
             piper_model: None,
             voice_library: None,
+            config_dir: None,
         };
 
         assert_eq!(
@@ -816,6 +828,7 @@ mod tests {
             audio_output: None,
             piper_model: None,
             voice_library: None,
+            config_dir: None,
         };
         for default_voice in [Some("paul"), Some("slt"), Some("male"), None] {
             let expected = default_voice.unwrap_or_default();

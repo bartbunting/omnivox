@@ -1,12 +1,12 @@
 # Extensible speech engine framework
 
 Status: Implementation in progress, 2026-09-27. Configuration version 1 below
-defines the authorized first implementation slice. The strict reader and shared
-shipped launch metadata are implemented, with a common resolver for launch fields
-and provider-owned invocations. Routing, preview and recovery paths retain local
-selection permissions; configuration-driven startup integration is pending.
-The helper host now supports retained initialization ownership and a separate
-bounded external startup batch; worker construction has not yet adopted it.
+defines the authorized first implementation slice. Standalone startup and exact
+diagnostics now share strict configuration loading, resolved launch definitions
+and provider-owned invocations. Routing and previews retain local selection
+permissions; recovery retains launch arguments and environment. External startup
+uses a separate bounded batch. Shared activation snapshots and acknowledgements
+for paired workers remain pending, as does native platform qualification.
 The later language-routing section remains a separate design proposal.
 
 The [roadmap entry](../ROADMAP.md#extensible-engine-registration) tracks the
@@ -87,7 +87,7 @@ installation root. A user manifest must name a fully absolute executable path
 on the speech host. Neither source discovers helpers from the working directory,
 unrestricted `PATH`, speech input or network searches.
 
-The proposed first version reads registration at worker startup. It supports
+The first version reads registration at worker startup. It supports
 adding engines without rebuilding Omnivox, with restart to activate changes.
 Live reload is a later lifecycle extension requiring atomic replacement,
 in-flight request retirement, removal semantics and coordination between
@@ -109,8 +109,8 @@ Choose exactly one root, with no merging across roots:
 
 | Priority | Source |
 | --- | --- |
-| 1 | Proposed CLI option `--config-dir ABSOLUTE_PATH`. |
-| 2 | Nonempty proposed environment variable `OMNIVOX_CONFIG_DIR`. |
+| 1 | CLI option `--config-dir ABSOLUTE_PATH`. |
+| 2 | Nonempty environment variable `OMNIVOX_CONFIG_DIR`. |
 | 3 | Native Windows: `%APPDATA%\omnivox`. |
 | 3 | macOS: `$HOME/Library/Application Support/Omnivox`. |
 | 3 | Other Unix: `$XDG_CONFIG_HOME/omnivox`, or `$HOME/.config/omnivox` when that variable is unset or empty. |

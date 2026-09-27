@@ -4,6 +4,9 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use omnivox_tts::contracts::EngineDescriptor;
+use omnivox_tts::engine_configuration::{
+    EngineSelectionPermissions, LaunchEnvironment, LocalRoutingPolicy,
+};
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::helper_engine::HelperEngineConfig;
 use omnivox_tts::voice_library::{
@@ -19,10 +22,19 @@ pub(crate) struct StartupLibrary {
 }
 
 impl StartupLibrary {
+    #[cfg(test)]
     pub fn from_environment(path: Option<&str>, model: Option<&str>) -> Result<Option<Self>> {
+        Self::from_captured_environment(path, model, &LaunchEnvironment::capture())
+    }
+
+    pub fn from_captured_environment(
+        path: Option<&str>,
+        model: Option<&str>,
+        environment: &LaunchEnvironment,
+    ) -> Result<Option<Self>> {
         let path = path
             .map(PathBuf::from)
-            .or_else(|| std::env::var_os("OMNIVOX_VOICE_LIBRARY").map(PathBuf::from));
+            .or_else(|| environment.get("OMNIVOX_VOICE_LIBRARY").map(PathBuf::from));
         if path.is_some() {
             anyhow::ensure!(
                 model.is_none_or(|value| !value.is_empty()),
@@ -30,7 +42,8 @@ impl StartupLibrary {
             );
             if model.is_none() {
                 anyhow::ensure!(
-                    std::env::var_os("OMNIVOX_PIPER_MODEL")
+                    environment
+                        .get("OMNIVOX_PIPER_MODEL")
                         .is_none_or(|value| value.to_str().is_some()),
                     "OMNIVOX_PIPER_MODEL is not valid Unicode"
                 );
@@ -38,8 +51,12 @@ impl StartupLibrary {
         }
         let overrides = ProviderOverrides {
             piper: model.is_some_and(|s| !s.is_empty())
-                || std::env::var_os("OMNIVOX_PIPER_MODEL").is_some_and(|s| !s.is_empty()),
-            flite: std::env::var_os("OMNIVOX_FLITE_VOICES").is_some_and(|s| !s.is_empty()),
+                || environment
+                    .get("OMNIVOX_PIPER_MODEL")
+                    .is_some_and(|s| !s.is_empty()),
+            flite: environment
+                .get("OMNIVOX_FLITE_VOICES")
+                .is_some_and(|s| !s.is_empty()),
         };
         path.map(|path| Self::read(path, overrides)).transpose()
     }
@@ -210,8 +227,21 @@ impl StartupLibrary {
         Ok(())
     }
 
+    #[cfg(test)]
     pub fn registry(&self) -> Result<EngineRegistry> {
+        self.registry_with_selection(
+            LocalRoutingPolicy::default(),
+            EngineSelectionPermissions::default(),
+        )
+    }
+
+    pub fn registry_with_selection(
+        &self,
+        policy: LocalRoutingPolicy,
+        permissions: EngineSelectionPermissions,
+    ) -> Result<EngineRegistry> {
         let mut registry = EngineRegistry::with_voice_library(&self.library, self.overrides);
+        registry.configure_local_selection(policy, permissions)?;
         for engine in ["piper", "flite", "mbrola", "rhvoice"] {
             if self.eligibility.excludes_provider(engine) {
                 registry.register_unavailable(

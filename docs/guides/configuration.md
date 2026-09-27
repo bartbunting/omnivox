@@ -19,7 +19,7 @@ the selected backend.
 | `--check` | Run the diagnostic self-test; inspect each printed status and, with device output, confirm that its tone and speech are audible. |
 | `--list-voices` | Print voices for the selected startup engine. |
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
-| `--engine NAME` | Prefer `native`, `espeak`, `piper`, `rhvoice`, `flite`, `rutts`, or experimental `tgspeechbox`/`mbrola`; Windows also accepts `winrt`, Windows/Linux accept configured `eloquence` and `dectalk` helpers, and macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
+| `--engine NAME` | Prefer a registered external ID or `native`, `espeak`, `piper`, `rhvoice`, `flite`, `rutts`, or experimental `tgspeechbox`/`mbrola`; Windows also accepts `winrt`, Windows/Linux accept configured `eloquence` and `dectalk` helpers, and macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
 | `--list-espeak-variants` | Silently list base voices and bundled variants from the selected speech host as JSON; see [eSpeak variants](../engines/espeak-variants.md). |
 | `--voice ID` | Set the startup physical voice; copy an exact ID from `--list-voices`. |
 | `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 targets the calibrated normal reference speed. |
@@ -30,6 +30,7 @@ the selected backend.
 | `--audio-target TARGET` | Route to `left`, `right`, or `both`. |
 | `--audio-output MODE` | Use `device` (the default), opt-in `pulse` on Linux, or `null`; null consumes audio without opening a device or waiting for real-time playback. |
 | `--piper-model PATH` | Supply a Piper `.onnx` model for the server or diagnostic actions. |
+| `--config-dir PATH` | Select one absolute native directory containing optional `config.json` and `helpers.d/` manifests. |
 | `--dump-wav VOICE OUTPUT [TEXT]` | Synthesize a canonical diagnostic WAV and a raw intermediate WAV. |
 | `--play-wav FILE` | Play a WAV through the Omnivox audio path. |
 
@@ -63,6 +64,42 @@ speech as consumed rather than audible.
 timeout. Null output consumes the audio without waiting for its duration.
 For `--dump-wav`, a nonempty positional `VOICE` takes precedence over
 `--voice`; pass an empty positional string to use the flag or engine default.
+
+## Local engine configuration
+
+Standalone startup and exact diagnostic actions read configuration version 1.
+Choose one root using `--config-dir`, then nonempty `OMNIVOX_CONFIG_DIR`, then
+the platform default: `%APPDATA%\omnivox` on Windows,
+`$HOME/Library/Application Support/Omnivox` on macOS, or
+`$XDG_CONFIG_HOME/omnivox` (otherwise `$HOME/.config/omnivox`) on other Unix hosts.
+Explicit roots must exist; an absent default root means no user settings.
+Roots and nonempty platform directory variables must be absolute native paths.
+
+The minimal `config.json` is `{"schema":1}`. Its optional `routing` object
+supports `preferred_engine_ids`, `fallback_engine_ids`, `disabled_engine_ids`
+and `automatic_engine_ids`. An explicitly empty preferred list keeps ordinary
+startup defaults while preserving an empty policy list. Local disablement remains
+effective after a client replaces its session routing policy.
+
+Each direct `helpers.d/*.json` file registers one external helper using `schema:1`,
+`engine_id`, an absolute `program`, and optional literal `arguments`, `enabled`
+and `timeouts`. Shipped IDs cannot be shadowed. `engine_overrides` in the main
+configuration can modify registered launch fields; existing CLI and engine-specific
+environment overrides retain priority. In-process engines accept only `enabled`,
+and managed voice-library arguments cannot be replaced.
+
+External engines can be named by `--engine`, exact voice selectors or policy
+lists. They enter unrestricted property matching only when locally named in
+`automatic_engine_ids`; that permission does not choose a startup engine.
+Edits apply to new processes, and recovery uses the retained launch definition.
+Malformed main configuration rejects startup before native construction. Invalid
+optional manifests are diagnosed independently unless a main override requires
+the failed registration.
+
+See the [version-1 contract](../plans/extensible-engine-framework.md#configuration-version-1)
+for examples, precedence and bounds. Paired-worker snapshot handoff and activation
+acknowledgements are still being implemented; native platform qualification is
+separate from these standalone configuration tests.
 
 ## Server environment
 

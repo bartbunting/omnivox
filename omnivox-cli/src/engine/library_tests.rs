@@ -47,6 +47,18 @@ impl Fixture {
         Self { root, path }
     }
 
+    fn startup(&self) -> EngineStartup {
+        EngineStartup::from_inputs(
+            "",
+            None,
+            Some(self.path.to_str().unwrap()),
+            omnivox_tts::engine_configuration::LoadedConfiguration::default(),
+            LaunchEnvironment::from_variables([]),
+            &self.root.join("omnivox"),
+        )
+        .unwrap()
+    }
+
     fn library(&self) -> StartupLibrary {
         StartupLibrary::from_environment(Some(self.path.to_str().unwrap()), None)
             .unwrap()
@@ -76,10 +88,8 @@ fn unavailable_reason(registry: &EngineRegistry, id: &str) -> String {
 #[test]
 fn absent_managed_helpers_are_reported_without_aborting_startup() {
     let fixture = Fixture::new("flite");
-    let library = fixture.library();
-    let mut registry = library.registry().unwrap();
-    register_missing_managed_helpers(&mut registry, &[], Some(&library)).unwrap();
-    assert!(unavailable_reason(&registry, "flite").contains("not found"));
+    let registry = fixture.startup().registry().unwrap();
+    assert!(unavailable_reason(&registry, "flite").contains("not configured or installed"));
     crate::voice_library::preflight_responses(&registry, "espeak").unwrap();
 }
 
@@ -87,11 +97,11 @@ fn absent_managed_helpers_are_reported_without_aborting_startup() {
 #[test]
 fn build_without_piper_retains_the_library_and_other_engine_choices() {
     let fixture = Fixture::new("piper");
-    let library = fixture.library();
-    let configs = configured_helper_configs("piper", None, Some(&library));
+    let startup = fixture.startup();
+    let configs = startup.helper_configs(false);
     assert!(configs.iter().all(|config| config.engine_id != "piper"));
-    let mut registry = library.registry().unwrap();
-    register_missing_managed_helpers(&mut registry, &configs, Some(&library)).unwrap();
+    let registry = startup.registry().unwrap();
+    let library = startup.library.as_ref().unwrap();
     assert!(unavailable_reason(&registry, "piper").contains("--features piper"));
     let status = registry.voice_library_status(0, &registry.inventory(), &[]);
     assert_eq!(
@@ -99,7 +109,13 @@ fn build_without_piper_retains_the_library_and_other_engine_choices() {
         library.library.configuration()
     );
     assert!(status.eligible_voices.is_empty());
-    assert!(create_engine("piper", None, Some(fixture.path.to_str().unwrap())).is_err());
+    assert!(create_engine(
+        "piper",
+        None,
+        Some(fixture.path.to_str().unwrap()),
+        Some(fixture.root.to_str().unwrap())
+    )
+    .is_err());
 }
 
 #[test]
@@ -108,7 +124,7 @@ fn managed_helper_failure_keeps_an_unavailable_inventory_entry() {
     let library = fixture.library();
     let pending = start_helper_initializations_with(
         vec![HelperEngineConfig::new("flite", "unused-helper")],
-        |_| -> HelperInitializationResult {
+        |_, _| -> HelperInitializationResult {
             Err(omnivox_tts::helper_engine::HelperEngineError::Transport(
                 "runtime missing".into(),
             ))
@@ -151,7 +167,13 @@ fn bad_assets_disable_only_their_provider_before_native_loading() {
     )
     .unwrap();
     assert!(unavailable_reason(&registry, "flite").contains("SHA-256"));
-    assert!(create_engine("flite", None, Some(fixture.path.to_str().unwrap())).is_err());
+    assert!(create_engine(
+        "flite",
+        None,
+        Some(fixture.path.to_str().unwrap()),
+        Some(fixture.root.to_str().unwrap())
+    )
+    .is_err());
 }
 
 #[test]
@@ -175,7 +197,7 @@ fn incomplete_managed_inventory_is_unavailable_instead_of_fatal() {
     descriptor.default_voice_id = Some("cmu_us_slt".into());
     let pending = start_helper_initializations_with(
         vec![HelperEngineConfig::new("flite", "unused-helper")],
-        move |config| HelperTtsEngine::new_deferred(config, descriptor.clone()).map(Arc::new),
+        move |config, _| HelperTtsEngine::new_deferred(config, descriptor.clone()).map(Arc::new),
     );
     let mut registry = library.registry().unwrap();
     register_initialized_helpers(

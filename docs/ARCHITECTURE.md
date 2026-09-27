@@ -188,17 +188,16 @@ terminal, preventing a late completion from removing a newer domain token.
 
 ## Configuration and engine discovery
 
-Launch configuration currently comes from CLI options, documented environment
-variables, packaged helper locations and optional immutable voice-library
-inputs. Reserved engine IDs, helper path mappings and idle defaults are shared
-through [`shipped.rs`](../omnivox-tts/src/engine_configuration/shipped.rs);
-startup order and native/provider construction remain in
-[`omnivox-cli/src/engine.rs`](../omnivox-cli/src/engine.rs). Strict external-helper
-manifest and `config.json` readers and a common launch resolver exist as library
-primitives but are not yet connected to worker startup. The resolver preserves
-field precedence, managed argument ownership and external selection permissions.
-The
-[configuration reference](guides/configuration.md) describes existing option semantics.
+Standalone startup and exact diagnostics resolve CLI options, captured environment,
+the selected configuration root, packaged helpers and immutable voice-library
+inputs before constructing engines. Strict `config.json` and `helpers.d/` readers
+feed the [common resolver](../omnivox-tts/src/engine_configuration/resolved.rs).
+Reserved IDs, path mappings and idle defaults come from
+[`shipped.rs`](../omnivox-tts/src/engine_configuration/shipped.rs); native factories,
+compiled availability and provider checks remain in the CLI. Local disablement
+prevents construction and recovery. Shared snapshots and configuration
+acknowledgements for paired worker activation remain pending. The
+[configuration reference](guides/configuration.md) describes current options.
 
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or
 AVSpeechSynthesizer on macOS. Known companions are discovered from staged paths
@@ -209,7 +208,11 @@ environment selection sets an ordinary startup preference, while other eligible
 engines remain registered for fallback. Exact diagnostics target one engine.
 
 Helpers initialize concurrently with built-in discovery and join the registry
-in deterministic order before the command loop. TGSpeechBox can register a
+in deterministic order before the command loop. External helpers use four separate
+initialization slots and a 120-second batch admission budget. Their inventory is
+available for explicit selection; unrestricted matching requires local automatic
+permission. Failed attempts retain their helper owner until cleanup is confirmed.
+TGSpeechBox can register a
 bounded, source-identified packaged descriptor cache for its native sample rate
 and prewarm one connection in the background. First synthesis joins that same
 serialized connection; its live descriptor must match the cache. Invalid/missing

@@ -1285,6 +1285,13 @@ impl HelperTtsEngine {
         Ok(true)
     }
 
+    /// Explicit live discovery on the retained owner, including after a host
+    /// rejects a negotiated descriptor. Replacement waits for prior cleanup.
+    pub fn refresh_connection(&self) -> Result<(), HelperEngineError> {
+        let _lifecycle = self.lifecycle.lock().unwrap();
+        self.install_fresh_connection()
+    }
+
     pub fn new(config: HelperEngineConfig) -> Result<Self, HelperEngineError> {
         let connector = Arc::new(ProcessHelperConnector::new(&config));
         Self::with_connector(config, connector)
