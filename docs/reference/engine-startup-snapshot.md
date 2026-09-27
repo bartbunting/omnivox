@@ -141,3 +141,21 @@ existing audio settings. Omitting the reference prepares a fresh candidate.
 The `snapshot` reply includes `activation_id`; `owner` replies include nullable
 `activation_id` (null if preparation failed). These owner receipts describe
 preparation; clients still obtain the worker's independent control acknowledgement.
+
+Emacsvox's bundled local launcher integration prepares one record for an ordinary
+deliberate speech start and compares each actual worker's acknowledgement before
+publication. This check precedes ordinary capability/routing readiness hooks.
+One-lane recovery reuses the acknowledged activation, including after lifecycle
+cleanup clears the process globals. A failed notifier during a fresh activation
+degrades to main speech and retires the old activation's notifier. Explicit
+managed Apply retains its existing preflight, two-lane replacement and rollback
+controller; its candidate shares one record and each rollback lane acknowledges
+its own previous record. Older hosts without the preparation capability retain
+the previous client startup path.
+
+The Emacsvox opt-in ERT test `omnivox-library-engine-native-pair-freezes-and-recovers`
+uses `EMACSVOX_ENGINE_FRAMEWORK_TEST_SERVER` to select a `make dev` Unix payload.
+It runs in fresh batch Emacs with isolated native storage and null audio, changes
+configuration between the lane starts, checks both worker acknowledgements,
+recovers main without replacing notifications, and verifies that a deliberate
+fresh start rejects the changed invalid configuration.
