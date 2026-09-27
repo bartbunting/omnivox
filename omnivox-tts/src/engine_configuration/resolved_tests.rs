@@ -223,6 +223,36 @@ fn disablement_and_external_permission_remain_independent_of_preference() {
 }
 
 #[test]
+fn enabling_a_manifest_preserves_routing_and_runtime_exclusions() {
+    let input = loaded(
+        r#"{"schema":1,"routing":{"disabled_engine_ids":["org.excluded"]},"engine_overrides":{"org.enabled":{"enabled":true},"org.excluded":{"enabled":true},"piper":{"enabled":true}}}"#,
+        &[
+            r#"{"schema":1,"engine_id":"org.enabled","program":"/helper","enabled":false}"#,
+            r#"{"schema":1,"engine_id":"org.excluded","program":"/helper","enabled":false}"#,
+        ],
+    );
+    let runtime = BTreeMap::from([(
+        "piper".into(),
+        RuntimeInputs {
+            unavailable: Some("managed assets failed validation".into()),
+            ..RuntimeInputs::default()
+        },
+    )]);
+    let resolved = resolve(input, &[], runtime).unwrap();
+    assert!(resolved.registration("org.enabled").unwrap().enabled);
+    assert!(!resolved.registration("org.excluded").unwrap().enabled);
+    assert!(resolved.selection_permissions().disabled("org.excluded"));
+    assert_eq!(
+        resolved
+            .registration("piper")
+            .unwrap()
+            .unavailable
+            .as_deref(),
+        Some("managed assets failed validation")
+    );
+}
+
+#[test]
 fn empty_preference_preserves_default_selection_without_populating_policy() {
     let input = loaded(
         r#"{"schema":1,"routing":{"preferred_engine_ids":[], "fallback_engine_ids":[],"automatic_engine_ids":["not.installed"]}}"#,

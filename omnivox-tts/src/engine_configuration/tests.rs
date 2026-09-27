@@ -432,6 +432,56 @@ fn root_precedence_and_native_defaults_do_not_merge() {
 }
 
 #[test]
+fn explicit_root_precedence_and_errors_apply_on_every_platform() {
+    for (platform, cli, env, base) in [
+        (Platform::Unix, "/cli", "/environment", "HOME"),
+        (Platform::MacOs, "/cli", "/environment", "HOME"),
+        (Platform::Windows, r"C:\cli", r"C:\environment", "APPDATA"),
+    ] {
+        let variables = |key: &str| match key {
+            "OMNIVOX_CONFIG_DIR" => Some(env.into()),
+            key if key == base => Some("invalid relative base".into()),
+            _ => None,
+        };
+        let root = platform
+            .configuration_root(Some(OsStr::new(cli)), variables)
+            .unwrap();
+        assert_eq!(root.path, PathBuf::from(cli));
+        assert!(root.explicit);
+        let root = platform.configuration_root(None, variables).unwrap();
+        assert_eq!(root.path, PathBuf::from(env));
+        assert!(root.explicit);
+        for invalid in ["", "relative", "~/settings"] {
+            assert!(platform
+                .configuration_root(Some(OsStr::new(invalid)), variables)
+                .is_err());
+        }
+        for invalid in [None, Some(""), Some("relative")] {
+            assert!(platform
+                .configuration_root(None, |key| {
+                    (key == base).then(|| invalid.map(Into::into)).flatten()
+                })
+                .is_err());
+        }
+        assert!(platform
+            .configuration_root(None, |key| match key {
+                "OMNIVOX_CONFIG_DIR" => Some("relative".into()),
+                key if key == base => Some(cli.into()),
+                _ => None,
+            })
+            .is_err());
+        let root = platform
+            .configuration_root(None, |key| match key {
+                "OMNIVOX_CONFIG_DIR" => Some("".into()),
+                key if key == base => Some(cli.into()),
+                _ => None,
+            })
+            .unwrap();
+        assert!(!root.explicit);
+    }
+}
+
+#[test]
 fn timeout_overrides_are_unsigned_bounded_and_partial() {
     for (name, maximum) in [
         ("startup_ms", 120_000),
@@ -601,10 +651,9 @@ fn manifest_order_collisions_and_invalid_files_preserve_unrelated_engines() {
 fn candidate_and_aggregate_limits_reject_entire_external_set() {
     let directory = Directory::new();
     for index in 0..MAX_MANIFESTS {
-        directory.write(
-            &format!("{index:02}.json"),
-            &manifest(&format!("engine{index}")),
-        );
+        let mut value = manifest(&format!("engine{index}"));
+        value["enabled"] = json!(false);
+        directory.write(&format!("{index:02}.json"), &value);
     }
     assert_eq!(directory.load().unwrap().external.len(), MAX_MANIFESTS);
     fs::write(directory.helpers().join("invalid.json"), "broken").unwrap();
@@ -703,6 +752,12 @@ fn redirected_root_is_supported_but_linked_and_special_manifests_are_not_read() 
         fs::Permissions::from_mode(0o600),
     )
     .unwrap();
+    fs::set_permissions(&directory.0, fs::Permissions::from_mode(0o0)).unwrap();
+    let unreadable = root.load();
+    fs::set_permissions(&directory.0, fs::Permissions::from_mode(0o700)).unwrap();
+    if unsafe { libc::geteuid() } != 0 {
+        assert!(unreadable.is_err());
+    }
     symlink(outer.0.join("missing"), outer.0.join("dangling")).unwrap();
     assert!(ConfigurationRoot {
         path: outer.0.join("dangling"),
@@ -710,4 +765,53 @@ fn redirected_root_is_supported_but_linked_and_special_manifests_are_not_read() 
     }
     .load()
     .is_err());
+}
+
+#[cfg(windows)]
+#[test]
+fn redirected_windows_root_is_supported_but_manifest_junctions_are_rejected() {
+    use std::path::Path;
+    use std::process::Command;
+
+    // Junctions exercise real Windows reparse points without requiring the
+    // administrator/developer-mode privilege needed to create file symlinks.
+    fn junction(link: &Path, target: &Path) {
+        let output = Command::new("cmd.exe")
+            .args(["/d", "/c", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "junction creation failed: {output:?}"
+        );
+    }
+
+    let directory = Directory::new();
+    let outer = Directory::new();
+    directory.write("valid.json", &manifest("valid"));
+    junction(&outer.0.join("redirected"), &directory.0);
+    junction(&directory.helpers().join("linked.json"), &outer.0);
+    let root = ConfigurationRoot {
+        path: outer.0.join("redirected"),
+        explicit: true,
+    };
+    let loaded = root.load().unwrap();
+    assert_eq!(loaded.external.keys().collect::<Vec<_>>(), [&"valid"]);
+    assert_eq!(loaded.diagnostics.len(), 1);
+    assert!(loaded.diagnostics[0].to_string().contains("linked.json"));
+
+    // The root may be redirected, but helpers.d itself must be ordinary.
+    let redirected_helpers = Directory::new();
+    junction(
+        &redirected_helpers.0.join("helpers.d"),
+        &directory.helpers(),
+    );
+    let loaded = redirected_helpers.load().unwrap();
+    assert!(loaded.external.is_empty());
+    assert_eq!(loaded.diagnostics.len(), 1);
+    assert!(loaded.diagnostics[0]
+        .to_string()
+        .contains("helper directory must be an ordinary directory"));
 }
