@@ -4,8 +4,8 @@ The [snapshot codec](../../omnivox-tts/src/engine_configuration/snapshot.rs)
 implements the frozen launch record required by
 [ADR 0008](../adr/0008-extensible-engine-registration.md). Standalone startup and
 local owned workers consume this record and expose a read-only acknowledgement.
-The local service can prepare one shared record for both lanes. Emacsvox
-coordination and remote-host session freezing are still being integrated.
+The local service prepares one shared record for both lanes. Emacsvox verifies
+each worker's acknowledgement, and the remote host retains one record per session.
 This record is private local startup data; no remote speech
 operation accepts it.
 
@@ -37,6 +37,12 @@ containing a byte array, or `Windows` containing a UTF-16 code-unit array.
 Paths use this representation too. Non-Unicode legacy arguments and environment
 values survive without lossy conversion; external-manifest inputs retain their
 UTF-8 requirements. No shell interpretation occurs.
+
+On Windows, initial environment capture omits inherited drive-directory entries
+whose names start with `=`, such as `=C:`. `vars_os()` exposes these hidden
+process bookkeeping entries, but they are not launch settings. Restoring a
+complete record still rejects equals signs in names; it does not silently repair
+an invalid record. All ordinary native names and values remain captured.
 
 Each registration contains required `engine_id`, `origin`, nullable `source`,
 nullable `override_source`, `enabled`, nullable `unavailable` and nullable
@@ -91,7 +97,8 @@ that many bytes of snapshot JSON. The payload must be nonempty and at most
 16 MiB. The worker consumes and validates this whole frame before parsing CLI
 startup settings or constructing engines. Following bytes remain ordinary
 speech input. Older `START\n` gates are not accepted for a local owned worker.
-The remote broker's existing gate remains separate until its integration.
+The remote broker also uses this complete frame after establishing native worker
+ownership; its authenticated session supplies the host-prepared snapshot.
 
 Transmission has a ten-second deadline. The writer is retained alongside the
 worker's pipe readers; an incomplete send enters the existing owned-tree cleanup
@@ -102,7 +109,10 @@ replacement of an unretired child.
 The retained owner envelope still pins executable identity, argv, working
 directory, native environment and optional voice-library configuration. Its
 `environment` now serializes native name/value pairs; historical UTF-8 maps
-remain readable for inspection and package retention. Its total bound is
+remain readable for inspection and package retention. On Windows only, reading
+a historical map omits its inherited drive-directory bookkeeping entries before
+validating the remaining settings. New native-pair records retain strict name
+validation. The owner envelope's total bound is
 33 MiB, allowing both owner/helper environments and existing envelope metadata;
 the nested engine record and transmitted payload retain the 16 MiB bound.
 Historical envelopes without `engines` are retained conservatively for cleanup,
@@ -155,6 +165,11 @@ the previous client startup path.
 
 The Emacsvox opt-in ERT test `omnivox-library-engine-native-pair-freezes-and-recovers`
 uses `EMACSVOX_ENGINE_FRAMEWORK_TEST_SERVER` to select a `make dev` Unix payload.
+It also accepts a fully staged Windows executable from WSL. For a Windows
+payload whose eSpeak data is stored separately, set
+`EMACSVOX_ENGINE_FRAMEWORK_TEST_ESPEAK_DATA` to the exact native path recorded in
+that runtime's `espeak-ng-data.path`. The fixture keeps host storage in native
+Windows temporary storage and launcher log pipes on the WSL filesystem.
 It runs in fresh batch Emacs with isolated native storage and null audio, changes
 configuration between the lane starts, checks both worker acknowledgements,
 recovers main without replacing notifications, and verifies that a deliberate

@@ -1,0 +1,10 @@
+{
+  "command": [
+    "make",
+    "windows-omnivox-dev"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 469.5004763829638,
+  "previous": "versions/2faa4a181c27b40c",
+  "staged": "versions/60183e3de0d6afe1"
+}

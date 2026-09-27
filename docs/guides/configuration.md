@@ -105,8 +105,10 @@ replacement. A late descriptor cannot become available after startup returns.
 See the [version-1 contract](../plans/extensible-engine-framework.md#configuration-version-1)
 for examples, precedence and bounds. Local owners retain complete startup records;
 their workers expose negotiated `engine_configuration_status_v1` with activation
-identity and configuration sources. Automatic paired-client coordination is still
-being integrated; native platform qualification is separate from framework tests.
+identity and configuration sources. Emacsvox prepares one shared record and
+checks both workers' acknowledgements; recovery retains that activation. Remote
+hosts freeze the record per authenticated session. Native platform qualification
+is separate from framework tests.
 
 ## Server environment
 

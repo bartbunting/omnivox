@@ -1,0 +1,20 @@
+{
+  "final_code_commit": "8129f5855bd7e867a4792a6603454c0cd56872b4",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "source_and_linux_payload_sha256": {
+    "omnivox-tts/src/engine_configuration/environment.rs": "838792e49e839669f64d003ae7969efe8fe7393ddf59b65e22aca98acd71196c",
+    "omnivox-tts/src/engine_configuration/snapshot.rs": "82a83afd54ece3c44c8233e22f49a413119bf0dd553d1caa0d8539131fe6ba2c",
+    "omnivox-tts/src/engine_configuration/snapshot_tests.rs": "3c8659008a32494a53344d45aeaeaac22ca6089abaca42d63fe21ce0c4a0d28b",
+    "omnivox-tts/src/voice_library/installation/removal/tests.rs": "67aa3c4a48066df3c12bc2d9044b16fcc180c71c89653d7ba28648888a67a06c",
+    "tools/verify_engine_configuration.py": "3f598ccf4d961c627f1874c49081f6725c54b1afdd4540cb15223f7cac4fb53c",
+    "target/debug/omnivox": "c8c95c16b7a1567eebc800568fb90f399b9b5fe750355c96f052597c9a07bde5"
+  },
+  "linux_process_payload_code": "3faea73",
+  "first_windows_runtime": "60183e3de0d6afe1",
+  "first_windows_runtime_code": "3faea73",
+  "emacsvox_commit": "1ff3f466b87ebe32c8022d3f98d37dc756e9d5a3",
+  "emacsvox_test_commit": "6c053fbc5e2468c84a4df795ea7bdba42ff1c9f6",
+  "emacsvox_test_sha256": "d7a0799c724e06d0cb3c3036811655253ef2d6ceb6c1a5f0bdad4d612c7fea05",
+  "windows_unit_test_binary_sha256": "c1e536152c406800793a6cda4fe2c9f2d0435f2e6f4df35c7c550d96e0413ccd",
+  "qualification_note": "Initial aggregate qualification records the Unix-only local Emacs fixture failure. The adapted fixture final pass is in windows-compiled-emacs-result.json and windows-compiled-emacs-third.log."
+}

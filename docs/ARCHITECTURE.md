@@ -496,7 +496,8 @@ implemented v1 registration readers, coordinated helper-launch snapshots and
 external automatic-selection permissions under accepted
 [ADR 0008](adr/0008-extensible-engine-registration.md). The
 [startup deadline regression checks](benchmarks/2026-09-27-engine-startup-deadline.md)
-now pass; completion of the acceptance matrix and native platform qualification
+and [Windows process checks](benchmarks/2026-09-28-windows-engine-snapshot.md)
+now pass; completion of the acceptance matrix and broader platform qualification
 remain outstanding. Richer language matching
 is a separate future increment. The [roadmap](ROADMAP.md) tracks outstanding work.
 

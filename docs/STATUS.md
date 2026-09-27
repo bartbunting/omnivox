@@ -64,11 +64,12 @@ include the source and CI identities; formula updates remain explicit.
 
 ## Current limitations
 
-- Engine configuration v1 passes expanded Linux process acceptance, but the
-  rebuilt native Windows runtime rejects launch snapshots before inventory.
-  Its launcher default was restored to the previous available runtime. Native
-  qualification and the remaining framework acceptance matrix are pending; see
-  the [acceptance report](benchmarks/2026-09-27-engine-framework-acceptance.md).
+- Engine configuration v1 passes expanded Linux and native Windows process
+  acceptance. Windows capture now omits hidden drive-directory bookkeeping, and
+  historical owner records retain package references through retirement; see
+  the [Windows evidence](benchmarks/2026-09-28-windows-engine-snapshot.md).
+  The complete framework acceptance audit and broader platform qualification
+  remain pending.
   The earlier startup-deadline ownership gap has been
   [fixed and regression-tested](benchmarks/2026-09-27-engine-startup-deadline.md).
 - Speech Dispatcher is unimplemented.
