@@ -5,7 +5,9 @@ defines the authorized first implementation slice. Standalone startup and exact
 diagnostics now share strict configuration loading, resolved launch definitions
 and provider-owned invocations. Routing and previews retain local selection
 permissions; recovery retains launch arguments and environment. External startup
-uses a separate bounded batch. The [private snapshot codec](../reference/engine-startup-snapshot.md)
+uses a separate four-slot batch; the
+[blocked-initialization deadline gap](../benchmarks/2026-09-27-engine-framework.md#reproduced-startup-deadline-gap)
+remains unresolved. The [private snapshot codec](../reference/engine-startup-snapshot.md)
 retains complete launch records and managed inputs. Local owners persist and
 hand these records to their workers without rediscovery. Emacsvox coordinates
 shared local preparation, actual worker acknowledgement and retained recovery;

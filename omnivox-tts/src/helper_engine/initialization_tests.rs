@@ -139,3 +139,98 @@ fn stalled_real_helper_is_reaped_at_the_batch_deadline() {
     assert!(engine.current_connection().is_err());
     assert!(engine.retiring_connection.lock().unwrap().is_none());
 }
+
+// These regressions deliberately release their blocked operations after 500ms,
+// so reproducing the known gap never leaves a thread or fixture process behind.
+// Remove the ignores when expired initialization can remain owned without
+// delaying ordinary startup or allowing a concurrent replacement.
+struct BlockedStartupConnector {
+    release: Arc<AtomicBool>,
+    peer: Arc<MockConnection>,
+}
+
+impl HelperConnector for BlockedStartupConnector {
+    fn connect(&self) -> Result<Arc<dyn HelperConnection>, HelperEngineError> {
+        while !self.release.load(Ordering::Acquire) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        Ok(self.peer.clone())
+    }
+}
+
+#[test]
+#[ignore = "known deadline gap: synchronous connector blocks admission owner"]
+fn startup_deadline_does_not_wait_for_a_blocked_connector() {
+    let release = Arc::new(AtomicBool::new(false));
+    let peer = Arc::new(MockConnection::new(
+        helper_descriptor("eloquence", "1"),
+        MockSynthesisMode::Complete,
+    ));
+    let engine = HelperTtsEngine::without_connection(
+        mock_config("eloquence"),
+        Arc::new(BlockedStartupConnector {
+            release: release.clone(),
+            peer: peer.clone(),
+        }),
+        None,
+    )
+    .unwrap();
+    let releaser = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(500));
+        release.store(true, Ordering::Release);
+    });
+    let started = Instant::now();
+    let result = engine.initialize_before(started + Duration::from_millis(100));
+    let elapsed = started.elapsed();
+    releaser.join().unwrap();
+    assert!(result.is_err());
+    assert!(engine.current_connection().is_err());
+    eprintln!(
+        "blocked connector: budget_ms=100 return_ms={}",
+        elapsed.as_millis()
+    );
+    assert!(
+        elapsed < Duration::from_millis(300),
+        "startup waited for blocked connector: {elapsed:?}"
+    );
+}
+
+#[test]
+#[ignore = "known deadline gap: unconfirmed cleanup leaves initialization write blocked"]
+fn startup_deadline_does_not_wait_for_unconfirmed_writer_cleanup() {
+    let peer = Arc::new(StalledInitialization {
+        inner: MockConnection::new(
+            helper_descriptor("eloquence", "1"),
+            MockSynthesisMode::Complete,
+        ),
+        describe: false,
+        block_write: true,
+    });
+    peer.inner.cleanup_fails.store(true, Ordering::Release);
+    let engine = HelperTtsEngine::without_connection(
+        mock_config("eloquence"),
+        Arc::new(InitializationConnector(peer.clone())),
+        None,
+    )
+    .unwrap();
+    let released = peer.clone();
+    let releaser = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(500));
+        released.inner.cleanup_fails.store(false, Ordering::Release);
+        released.inner.terminate().unwrap();
+    });
+    let started = Instant::now();
+    let result = engine.initialize_before(started + Duration::from_millis(100));
+    let elapsed = started.elapsed();
+    releaser.join().unwrap();
+    assert!(result.is_err());
+    assert!(engine.current_connection().is_err());
+    eprintln!(
+        "unconfirmed writer cleanup: budget_ms=100 return_ms={}",
+        elapsed.as_millis()
+    );
+    assert!(
+        elapsed < Duration::from_millis(300),
+        "startup waited for unconfirmed cleanup: {elapsed:?}"
+    );
+}

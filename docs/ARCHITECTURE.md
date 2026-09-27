@@ -199,9 +199,11 @@ prevents construction and recovery. A [private snapshot codec](reference/engine-
 retains complete launch records, native environment values and exact managed
 generation bytes. Local owners save and hand this record to their child through
 the owned startup gate; rollback/reuse retains it without rediscovery. Coordinated
-Emacsvox preparation and remote-host session freezing remain pending. The local
-service can prepare a common record, and each worker's control status independently
-acknowledges the record it consumed. The
+Emacsvox preparation shares that record across lanes and checks each actual
+worker's acknowledgement before publication. Remote brokers retain one complete
+snapshot per authenticated session, including recovery after both lanes disconnect.
+The local service prepares common candidate records for managed Apply; rollback
+retains each previous lane's own record. The
 [configuration reference](guides/configuration.md) describes current options.
 
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or
@@ -482,12 +484,13 @@ See [diagnostics.md](guides/diagnostics.md) for evidence collection.
 
 ## Proposed extensions
 
-The [extensible-engine framework](plans/extensible-engine-framework.md) proposes
-shared launch registration, `helpers.d/` manifests and `config.json` policy.
-Its [ADR 0008](adr/0008-extensible-engine-registration.md) is accepted for v1; these
-readers, coordinated helper-launch snapshots and external automatic-selection
-permissions are not current features. Richer language matching is a separate
-future increment. The [roadmap](ROADMAP.md) tracks outstanding work.
+The [extensible-engine framework](plans/extensible-engine-framework.md) has
+implemented v1 registration readers, coordinated helper-launch snapshots and
+external automatic-selection permissions under accepted
+[ADR 0008](adr/0008-extensible-engine-registration.md). Its
+[startup deadline ownership gap](benchmarks/2026-09-27-engine-framework.md#reproduced-startup-deadline-gap)
+and native platform qualification remain outstanding. Richer language matching
+is a separate future increment. The [roadmap](ROADMAP.md) tracks outstanding work.
 
 Performance claims belong to the [retained evidence](benchmarks/README.md).
 Source consumption, protocol success and process liveness do not prove acoustic

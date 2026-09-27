@@ -15,6 +15,7 @@ actual runs and their limits.
 | Routing | Stable physical identities, ordered logical choices, runtime fallback, exclusions, health circuits and asynchronous helper recovery. | [Architecture](ARCHITECTURE.md#voice-identity-routing-and-tuning) |
 | Voice customization | Shared → actual choice → context composition; private exact/full previews; typed qualified native controls. Control envelope 1, timeline versions 1–5, markers 1–4 and helper versions 1–6 retain compatibility. | [Layered tuning](protocols/voice-choice-tuning.org), [native parameters](protocols/engine-voice-parameters.md) |
 | Discovery | Concurrent helper initialization before initial inventory, verified bounded caches and on-demand exact eSpeak variants. | [Architecture](ARCHITECTURE.md#configuration-and-engine-discovery), [variants](engines/espeak-variants.md) |
+| Engine configuration v1 | Strict local `config.json`/helper manifests, immutable launch snapshots, local permissions, paired startup/Apply acknowledgements and remote session retention. Development acceptance remains incomplete. | [Configuration](guides/configuration.md), [evidence and deadline gap](benchmarks/2026-09-27-engine-framework.md) |
 | Managed voices | Reviewed Piper, Flite, MBROLA and RHVoice acquisition; disabled installation, immutable generations, explicit two-worker Apply/rollback and reviewed removal. | [Voice management](guides/voice-management.md), [formats](reference/voice-library.org) |
 | Native validation | Disposable bounded native probes, before/after evidence, ownership journals and recorded-cleanup recovery. | [Validation](guides/native-voice-validation.md) |
 | Synthesis | Buffered and bounded progressive PCM, source-mapped anchors, actual-attempt settings and no replay after audio commitment. | [Helper protocol](protocols/helper.md), [prepared synthesis](reference/prepared-synthesis.md) |
@@ -63,8 +64,11 @@ include the source and CI identities; formula updates remain explicit.
 
 ## Current limitations
 
-- Independent helper manifests and `config.json` policy are proposals, not
-  implemented configuration. Speech Dispatcher is also unimplemented.
+- Engine configuration v1 has a reproduced startup-deadline ownership gap for
+  blocked launch or unconfirmed writer cleanup. Native Windows qualification
+  and the remaining framework acceptance matrix are pending; see the
+  [evidence report](benchmarks/2026-09-27-engine-framework.md).
+- Speech Dispatcher is unimplemented.
 - Language selectors match exact case-insensitive tags. General language-range
   matching, automatic detection and language-preserving global fallback are not
   implemented; multilingual native coverage remains incomplete.

@@ -1,0 +1,19 @@
+Emacsvox version 2026.9.5 is valid for check.
+Emacsvox byte-code is current.
+EMACSVOX_ORG_SOURCE="/home/bart/src/emacsvox/docs/manual/emacsvox.org" \
+EMACSVOX_ORG_OUTPUT="/home/bart/src/emacsvox/.docs-preview/org-manual/emacsvox-org.texi" \
+/home/bart/opt/emacs-31/bin/emacs -Q --batch -L utils -l utils/emacsvox-org-export.el \
+	-f emacsvox-org-export-batch
+Exported Org manual to /home/bart/src/emacsvox/.docs-preview/org-manual/emacsvox-org.texi
+Previewed Org manual at /home/bart/src/emacsvox/.docs-preview/org-manual/emacsvox-org.html
+Built Org Info at /home/bart/src/emacsvox/.docs-preview/org-manual/emacsvox-org.info
+Exported Org manual to /home/bart/src/emacsvox/.docs-preview/org-manual/emacsvox-body.texi
+Org-generated Texinfo is current and its Info node topology is compatible.
+EMACSVOX_MAKEINFO="makeinfo" \
+EMACSVOX_INSTALL_INFO="install-info" \
+/home/bart/opt/emacs-31/bin/emacs -Q --batch -L utils -l utils/emacsvox-docs-check.el \
+	-f emacsvox-docs-check-batch
+Loading emacsvox-preamble...
+Loading plain-voices...
+Loading voice-setup...
+Emacsvox documentation is current and structurally valid.
