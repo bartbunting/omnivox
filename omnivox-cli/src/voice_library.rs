@@ -252,6 +252,7 @@ impl StartupLibrary {
         self.registry_with_selection(
             LocalRoutingPolicy::default(),
             EngineSelectionPermissions::default(),
+            None,
         )
     }
 
@@ -259,9 +260,14 @@ impl StartupLibrary {
         &self,
         policy: LocalRoutingPolicy,
         permissions: EngineSelectionPermissions,
+        snapshot: Option<&omnivox_tts::engine_configuration::LaunchSnapshot>,
     ) -> Result<EngineRegistry> {
         let mut registry = EngineRegistry::with_voice_library(&self.library, self.overrides);
-        registry.configure_local_selection(policy, permissions)?;
+        if let Some(snapshot) = snapshot {
+            registry.configure_startup_snapshot(snapshot)?;
+        } else {
+            registry.configure_local_selection(policy, permissions)?;
+        }
         for engine in ["piper", "flite", "mbrola", "rhvoice"] {
             if self.eligibility.excludes_provider(engine) {
                 registry.register_unavailable(

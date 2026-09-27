@@ -11,7 +11,7 @@ import sys
 import tempfile
 import uuid
 
-from verify_local_voice_owner import Peer
+from verify_local_voice_owner import Peer, startup_environment
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,32 +61,50 @@ def main():
             description = peer.request("describe")
             return peer, description
 
-        first, initial = owner(environment)
+        service = Peer(server, "--voice-library-service", environment)
+        peers.append(service)
+        assert service.request("host")["engine_configuration_version"] == 1
+        prepared = service.request("engine-snapshot")
+        assert prepared["type"] == "prepared_startup"
+        common = dict(environment, OMNIVOX_OWNED_ENGINE_STARTUP=prepared["startup"],
+                      OMNIVOX_OWNED_ENGINE_STARTUP_SHA256=prepared["startup_sha256"])
+        first, initial = owner(dict(common, OMNIVOX_AUDIO_TARGET="left"))
         assert not initial["retired"] and initial["startup_error"] is None, initial
         initial_inventory = first.request("inventory", control=True)
         assert initial_inventory["preferred_engine_id"] == "org.fixture"
         retained = json.loads(Path(initial["startup"]).read_text())
         activation = retained["engines"]["activation_id"]
+        assert activation == prepared["activation_id"] == initial["activation_id"]
+        assert "engine_configuration_v1" in first.request("capabilities", control=True)["features"]
+        first_ack = first.request("engine_configuration_status_v1", control=True)
+        assert first_ack["activation_id"] == activation
+        assert first_ack["configuration_root"] == str(configuration)
+        registration = next(row for row in first_ack["registrations"] if row["engine_id"] == "org.fixture")
+        assert registration["origin"] == "external_helper" and registration["source"] == "helpers.d/fixture.json"
 
         # Mutate every discovery input before starting the other worker. The
         # retained executable/argv/environment must still reach the real helper.
         shutil.rmtree(manifests)
         (configuration / "config.json").write_text('{"schema":1,"invalid":true}')
-        changed = dict(environment, OMNIVOX_FIXTURE_PRIVATE="changed private value",
-                       OMNIVOX_ENGINE="espeak", OMNIVOX_OWNED_STARTUP=initial["startup"],
-                       OMNIVOX_OWNED_STARTUP_SHA256=initial["startup_sha256"])
+        changed = dict(common, OMNIVOX_FIXTURE_PRIVATE="changed private value",
+                       OMNIVOX_ENGINE="espeak", OMNIVOX_AUDIO_TARGET="right")
         second, recovered = owner(changed)
         assert not recovered["retired"] and recovered["startup_error"] is None, recovered
         recovered_inventory = second.request("inventory", control=True)
         assert recovered_inventory["preferred_engine_id"] == "org.fixture"
         copied = json.loads(Path(recovered["startup"]).read_text())
         assert copied["engines"]["activation_id"] == activation
+        second_ack = second.request("engine_configuration_status_v1", control=True)
+        assert second_ack["activation_id"] == recovered["activation_id"] == activation
+        assert copied["engines"] == retained["engines"]
+        assert startup_environment(retained)["OMNIVOX_AUDIO_TARGET"] == "left"
+        assert startup_environment(copied)["OMNIVOX_AUDIO_TARGET"] == "right"
         launches = [json.loads(line) for line in (root / "argv.jsonl").read_text().splitlines()]
         assert launches == [arguments, arguments]
         environments = [json.loads(line) for line in (root / "environment.jsonl").read_text().splitlines()]
         assert {item["value"] for item in environments} == {"retained private value"}
         assert len({item["pid"] for item in environments}) == 2
-        assert "private" not in json.dumps([initial_inventory, recovered_inventory])
+        assert "private" not in json.dumps([initial_inventory, recovered_inventory, first_ack, second_ack])
 
         # Retiring one lane leaves the other's independently owned helper alive.
         assert first.request("retire", worker=initial["worker"])["type"] == "retired"
@@ -106,7 +124,7 @@ def main():
                                             sha256=hashlib.sha256(program_bytes).hexdigest())
         for index in range(40):
             stalled_record["engines"]["environment"].append([
-                {"Unix": list(f"LARGE_{index}".encode())}, {"Unix": [120] * 32000}])
+                {"Unix": list(f"OMNIVOX_FIXTURE_LARGE_{index}".encode())}, {"Unix": [120] * 32000}])
         stalled_path = Path(initial["startup"]).parent / (str(uuid.uuid4()) + ".json")
         stalled_bytes = json.dumps(stalled_record).encode()
         stalled_path.write_bytes(stalled_bytes)
@@ -115,7 +133,10 @@ def main():
                                        OMNIVOX_OWNED_STARTUP_SHA256=hashlib.sha256(stalled_bytes).hexdigest()))
         assert rejected["retired"] and "transmission did not complete" in rejected["startup_error"], rejected
         assert stalled.request("retire", worker=rejected["worker"])["type"] == "retired"
-        print("Frozen owner startup, two independent helpers, file/environment mutation, fresh-activation rejection, blocked startup write and retirement passed")
+        (configuration / "config.json").write_text('{"schema":1}')
+        fresh_prepared = service.request("engine-snapshot")
+        assert fresh_prepared["type"] == "prepared_startup" and fresh_prepared["activation_id"] != activation
+        print("Shared preparation, independent worker acknowledgements/audio targets, frozen file/environment inputs, fresh activation, blocked startup write and retirement passed")
     finally:
         errors = []
         for peer in reversed(peers):

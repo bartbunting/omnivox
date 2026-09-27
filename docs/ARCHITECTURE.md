@@ -199,8 +199,9 @@ prevents construction and recovery. A [private snapshot codec](reference/engine-
 retains complete launch records, native environment values and exact managed
 generation bytes. Local owners save and hand this record to their child through
 the owned startup gate; rollback/reuse retains it without rediscovery. Coordinated
-Emacsvox preparation, remote-host session freezing and configuration
-acknowledgements for paired activation remain pending. The
+Emacsvox preparation and remote-host session freezing remain pending. The local
+service can prepare a common record, and each worker's control status independently
+acknowledges the record it consumed. The
 [configuration reference](guides/configuration.md) describes current options.
 
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or

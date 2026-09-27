@@ -24,6 +24,10 @@ pub struct Request {
     #[serde(default)]
     pub generation: String,
     #[serde(default)]
+    pub startup: String,
+    #[serde(default)]
+    pub startup_sha256: String,
+    #[serde(default)]
     pub expected_sha256: String,
     #[serde(default)]
     pub plan_json: String,
@@ -74,6 +78,7 @@ pub enum Reply {
         events: Vec<super::acquisition::Progress>,
     },
     Host {
+        engine_configuration_version: u32,
         removal_version: u32,
         catalogue_providers: Vec<String>,
         root: String,
@@ -87,6 +92,7 @@ pub enum Reply {
         configuration: Option<VoiceLibraryConfiguration>,
         retired: bool,
         startup_error: Option<String>,
+        activation_id: Option<String>,
     },
     Retired {
         worker: String,
@@ -95,6 +101,13 @@ pub enum Reply {
         startup: String,
         startup_sha256: String,
         configuration: VoiceLibraryConfiguration,
+        activation_id: String,
+    },
+    PreparedStartup {
+        startup: String,
+        startup_sha256: String,
+        configuration: Option<VoiceLibraryConfiguration>,
+        activation_id: String,
     },
     Library {
         index: IndexDocument,
@@ -243,6 +256,7 @@ impl Host {
     }
     pub fn reply(&self) -> Reply {
         Reply::Host {
+            engine_configuration_version: 1,
             removal_version: 1,
             catalogue_providers: vec![
                 "piper".into(),
@@ -280,6 +294,8 @@ impl Startup {
             "OMNIVOX_OWNED_STARTUP",
             "OMNIVOX_OWNED_STARTUP_SHA256",
             "OMNIVOX_OWNED_LIBRARY",
+            "OMNIVOX_OWNED_ENGINE_STARTUP",
+            "OMNIVOX_OWNED_ENGINE_STARTUP_SHA256",
         ] {
             environment = environment.with_variable(name, None);
         }
@@ -348,6 +364,23 @@ impl Startup {
         self.configuration = self.library()?.map(|library| library.configuration());
         self.engines = None;
         Ok(())
+    }
+
+    /// Preserve the shared engine record while projecting the existing
+    /// notification audio settings onto this independently owned worker.
+    pub fn with_lane_audio(mut self, environment: &LaunchEnvironment) -> Self {
+        for name in [
+            "ALSA_DEFAULT",
+            "SWIFTMAC_AUDIO_TARGET",
+            "SHARPWIN_AUDIO_TARGET",
+            "PULSE_SINK",
+            "OMNIVOX_AUDIO_TARGET",
+        ] {
+            self.environment = self
+                .environment
+                .with_variable(name, environment.get(name).map(std::ffi::OsStr::to_owned));
+        }
+        self
     }
     pub fn read(path: &Path, expected: &str) -> Result<Self, LibraryError> {
         sha256(expected)?;

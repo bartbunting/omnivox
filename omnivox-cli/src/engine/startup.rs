@@ -166,10 +166,14 @@ impl EngineStartup {
         let resolved = self.snapshot.resolved();
         let permissions = resolved.selection_permissions();
         let mut registry = if let Some(library) = &self.library {
-            library.registry_with_selection(resolved.routing.clone(), permissions)?
+            library.registry_with_selection(
+                resolved.routing.clone(),
+                permissions,
+                Some(&self.snapshot),
+            )?
         } else {
             let mut registry = EngineRegistry::new();
-            registry.configure_local_selection(resolved.routing.clone(), permissions)?;
+            registry.configure_startup_snapshot(&self.snapshot)?;
             registry
         };
         for registration in resolved.registrations().filter(|entry| self.publish(entry)) {

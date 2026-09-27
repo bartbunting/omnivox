@@ -98,9 +98,9 @@ the failed registration.
 
 See the [version-1 contract](../plans/extensible-engine-framework.md#configuration-version-1)
 for examples, precedence and bounds. Local owners retain complete startup records;
-coordinated paired-worker preparation and activation
-acknowledgements are still being implemented; native platform qualification is
-separate from these standalone configuration tests.
+their workers expose negotiated `engine_configuration_status_v1` with activation
+identity and configuration sources. Automatic paired-client coordination is still
+being integrated; native platform qualification is separate from framework tests.
 
 ## Server environment
 

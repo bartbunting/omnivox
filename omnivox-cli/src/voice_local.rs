@@ -189,8 +189,17 @@ fn service(host: Host) -> Result<()> {
                     drop(profile);
                     // Capture this launcher's current native inputs. The old
                     // worker's separately retained snapshot is only for rollback.
-                    let mut startup = Startup::capture(&host)?;
-                    startup.candidate(&path)?;
+                    let mut startup = if request.startup.is_empty() {
+                        anyhow::ensure!(
+                            request.startup_sha256.is_empty(),
+                            "startup digest requires a startup reference"
+                        );
+                        let mut startup = Startup::capture(&host)?;
+                        startup.candidate(&path)?;
+                        startup
+                    } else {
+                        shared_startup(Path::new(&request.startup), &request.startup_sha256)?
+                    };
                     anyhow::ensure!(
                         startup.configuration.as_ref() == Some(&candidate.configuration),
                         "snapshot candidate changed"
@@ -201,6 +210,18 @@ fn service(host: Host) -> Result<()> {
                         startup: path.to_string_lossy().into(),
                         startup_sha256: digest,
                         configuration: candidate.configuration,
+                        activation_id: startup.engines.as_ref().unwrap().activation_id().into(),
+                    })
+                }
+                "engine-snapshot" if activation.is_none() => {
+                    let mut startup = Startup::capture(&host)?;
+                    prepare_engines(&mut startup)?;
+                    let (path, digest) = startup.save_prepared(&host, &local::new_uuid()?)?;
+                    Ok(Reply::PreparedStartup {
+                        startup: path.to_string_lossy().into(),
+                        startup_sha256: digest,
+                        configuration: startup.configuration.clone(),
+                        activation_id: startup.engines.as_ref().unwrap().activation_id().into(),
                     })
                 }
                 "begin" if activation.is_none() => {
@@ -403,7 +424,14 @@ fn owner(host: Host) -> Result<()> {
     let mut path = std::path::PathBuf::new();
     let mut digest = String::new();
     let mut configuration = None;
+    let mut activation_id = None;
     let start = (|| -> Result<()> {
+        anyhow::ensure!(
+            std::env::var_os("OMNIVOX_OWNED_ENGINE_STARTUP").is_none()
+                || (std::env::var_os("OMNIVOX_OWNED_STARTUP").is_none()
+                    && std::env::var_os("OMNIVOX_OWNED_LIBRARY").is_none()),
+            "shared engine startup conflicts with another retained startup or generation"
+        );
         let mut startup = if let Some(path) = std::env::var_os("OMNIVOX_OWNED_STARTUP") {
             let retained = Startup::read(
                 Path::new(&path),
@@ -415,6 +443,12 @@ fn owner(host: Host) -> Result<()> {
                 "retained startup predates engine snapshots; prepare a fresh activation"
             );
             retained
+        } else if let Some(path) = std::env::var_os("OMNIVOX_OWNED_ENGINE_STARTUP") {
+            shared_startup(
+                Path::new(&path),
+                &std::env::var("OMNIVOX_OWNED_ENGINE_STARTUP_SHA256")
+                    .context("missing shared engine startup digest")?,
+            )?
         } else {
             Startup::capture(&host)?
         };
@@ -424,6 +458,10 @@ fn owner(host: Host) -> Result<()> {
         prepare_engines(&mut startup)?;
         (path, digest) = startup.save(&host, &worker_id)?;
         configuration = startup.configuration.clone();
+        activation_id = startup
+            .engines
+            .as_ref()
+            .map(|snapshot| snapshot.activation_id().to_owned());
         let result = Worker::spawn(&startup, &output, &mut worker);
         if let Some(worker) = &mut worker {
             worker.snapshot = Some((host.clone(), path.clone(), digest.clone()));
@@ -471,6 +509,7 @@ fn owner(host: Host) -> Result<()> {
                         configuration: configuration.clone(),
                         retired: worker.as_ref().is_none_or(|worker| worker.cleaned),
                         startup_error: startup_error.clone(),
+                        activation_id: activation_id.clone(),
                     }),
                     "retire" if request.worker == worker_id => match cleanup(&mut worker) {
                         Ok(()) => {
@@ -539,6 +578,19 @@ fn prepare_engines(startup: &mut Startup) -> Result<()> {
     }
     startup.verify()?;
     Ok(())
+}
+
+fn shared_startup(path: &Path, digest: &str) -> Result<Startup> {
+    anyhow::ensure!(
+        path.is_absolute(),
+        "shared startup reference must be absolute"
+    );
+    let startup = Startup::read(path, digest)?;
+    anyhow::ensure!(
+        startup.engines.is_some(),
+        "shared startup lacks a complete engine snapshot"
+    );
+    Ok(startup.with_lane_audio(&omnivox_tts::engine_configuration::LaunchEnvironment::capture()))
 }
 
 fn cleanup(worker: &mut Option<Worker>) -> Result<()> {

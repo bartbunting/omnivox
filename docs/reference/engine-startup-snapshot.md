@@ -3,9 +3,10 @@
 The [snapshot codec](../../omnivox-tts/src/engine_configuration/snapshot.rs)
 implements the frozen launch record required by
 [ADR 0008](../adr/0008-extensible-engine-registration.md). Standalone startup and
-local owned workers consume this record. Coordinated Emacsvox preparation,
-remote-host session freezing and paired activation acknowledgements are still
-being integrated. This record is private local startup data; no remote speech
+local owned workers consume this record and expose a read-only acknowledgement.
+The local service can prepare one shared record for both lanes. Emacsvox
+coordination and remote-host session freezing are still being integrated.
+This record is private local startup data; no remote speech
 operation accepts it.
 
 ## Complete record
@@ -72,6 +73,8 @@ no debug projection and must not be copied into speech logs or public status.
 Public diagnostics may expose activation identity, engine ID, origin,
 configuration source and availability. The implementation plan tracks the
 remaining [paired-worker acceptance](../plans/extensible-engine-framework.md#acceptance-checklist).
+The [control acknowledgement](../protocols/control.md#engine-configuration-acknowledgement)
+is projected from the record bound to the worker before engine publication.
 
 ## Local owner handoff
 
@@ -113,3 +116,28 @@ The process acceptance command is
 files/environment between launches, checks independent retirement and verifies
 that a fresh activation rejects the now-invalid main configuration. This is
 null-output framework coverage, not native adapter or audible qualification.
+
+## Shared preparation through the existing local service
+
+The local `host` reply advertises `engine_configuration_version: 1`. A local
+service request `engine-snapshot` prepares a fresh activation before constructing
+any speech worker. Its `prepared_startup` reply contains `startup`,
+`startup_sha256`, nullable managed `configuration` and `activation_id`. Full
+launch data stays in the private retained file.
+
+Both owners can receive that same reference through
+`OMNIVOX_OWNED_ENGINE_STARTUP` and `OMNIVOX_OWNED_ENGINE_STARTUP_SHA256`. These
+settings conflict with `OMNIVOX_OWNED_STARTUP` or `OMNIVOX_OWNED_LIBRARY`; ambiguous
+selection fails. Shared preparation preserves all engine inputs and overlays
+only the existing per-lane process audio settings: `ALSA_DEFAULT`,
+`SWIFTMAC_AUDIO_TARGET`, `SHARPWIN_AUDIO_TARGET`, `PULSE_SINK` and
+`OMNIVOX_AUDIO_TARGET`. Helpers keep the common frozen environment. Each owner
+saves its resulting complete startup separately for its own retirement/rollback.
+
+The managed `snapshot` request can additionally carry `startup` and
+`startup_sha256` from the first lane's prepared candidate. It reuses that engine
+record, checks the managed candidate identity and captures the other lane's
+existing audio settings. Omitting the reference prepares a fresh candidate.
+The `snapshot` reply includes `activation_id`; `owner` replies include nullable
+`activation_id` (null if preparation failed). These owner receipts describe
+preparation; clients still obtain the worker's independent control acknowledgement.

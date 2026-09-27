@@ -76,11 +76,40 @@ pub struct EngineRegistry {
     library_configuration: Option<crate::voice_library::VoiceLibraryConfiguration>,
     selection_permissions: EngineSelectionPermissions,
     local_routing_policy: LocalRoutingPolicy,
+    engine_configuration: Option<crate::engine_configuration::EngineConfigurationStatus>,
 }
 
 impl EngineRegistry {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Bind acknowledgement to the complete launch record consumed by this
+    /// worker, before any engine (including unavailable entries) is published.
+    pub fn configure_startup_snapshot(
+        &mut self,
+        snapshot: &crate::engine_configuration::LaunchSnapshot,
+    ) -> Result<(), EngineRegistryError> {
+        if !self.is_empty() || self.engine_configuration.is_some() {
+            return Err(EngineRegistryError::PolicyAlreadyPublished);
+        }
+        self.configure_local_selection(
+            snapshot.resolved().routing.clone(),
+            snapshot.resolved().selection_permissions(),
+        )?;
+        self.engine_configuration =
+            Some(crate::engine_configuration::EngineConfigurationStatus::from_snapshot(snapshot));
+        Ok(())
+    }
+
+    pub fn engine_configuration_status(
+        &self,
+        generation: u64,
+        engines: &[EngineDescriptor],
+    ) -> Option<crate::engine_configuration::EngineConfigurationStatus> {
+        self.engine_configuration
+            .as_ref()
+            .map(|status| status.with_inventory(generation, engines))
     }
 
     /// Freeze local permissions before native construction/registration. Session
@@ -90,7 +119,7 @@ impl EngineRegistry {
         policy: LocalRoutingPolicy,
         mut permissions: EngineSelectionPermissions,
     ) -> Result<(), EngineRegistryError> {
-        if !self.is_empty() {
+        if !self.is_empty() || self.engine_configuration.is_some() {
             return Err(EngineRegistryError::PolicyAlreadyPublished);
         }
         permissions.include_disabled(&policy.disabled_engine_ids);

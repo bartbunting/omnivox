@@ -25,6 +25,46 @@ not need Tcl escaping and remain separate structured fields.
 
 ## Request Record
 
+### Engine configuration acknowledgement
+
+`engine_configuration_v1` enables the read-only request and response
+`engine_configuration_status_v1` in envelope version 1. A request contains only
+`protocol_version`, `request_id` and `type`; duplicate keys and additional fields
+are rejected. It accepts no UUID, executable definition, path or replacement
+configuration from the client.
+
+The response contains required `activation_id`, `inventory_generation`, nullable
+`configuration_root` and `registrations`. It acknowledges the complete frozen
+record actually consumed by this worker. A context without a bound record omits
+the capability and returns `unsupported_operation` for the request.
+
+Registrations are sorted by canonical `engine_id`, including unavailable and
+disabled entries. Each contains required `engine_id`, `origin`, nullable `source`,
+nullable `override_source`, `enabled` and `availability`. Origins are `in_process`,
+`shipped_helper` or `external_helper`. Sources are native paths relative to the
+reported configuration root, normally `helpers.d/NAME.json` and `config.json`.
+They identify configuration files, not helper executables. Availability uses the
+existing tagged shape and current cached inventory; diagnostic reasons longer
+than 512 UTF-8 bytes are shortened with an ellipsis. Status performs no file,
+engine or recovery I/O. The normal control bounds apply.
+`enabled` reports frozen local enablement, including local routing exclusions;
+session exclusions and runtime health remain in ordinary inventory/policy status.
+
+Clients compare each worker's activation UUID with the prepared owner's UUID
+before completing coordinated activation. Inventory generations are independent
+between lanes and need not match. UUID equality identifies retained configuration;
+it does not establish runtime health, native binary identity, managed asset
+verification or audible output. Existing routing readiness and managed-library
+proofs remain separate requirements. Status is safe over the remote speech
+transport; preparing and handing off executable definitions remains private to
+the speech host.
+
+The [complete fixture](../protocol-fixtures/engine-configuration-status-v1.json)
+and [private startup contract](../reference/engine-startup-snapshot.md) distinguish
+the public acknowledgement from the private launch record. Paired client
+orchestration remains an integration requirement; this capability alone does not
+claim that an older client prepared its workers together.
+
 ### Negotiated voice-library status
 
 Servers advertising `voice_library_v1` implement request and response `voice_library_status_v1`

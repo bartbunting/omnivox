@@ -1,0 +1,140 @@
+{
+  "protocol_version": 1,
+  "request_id": 71,
+  "type": "engine_configuration_status_v1",
+  "activation_id": "11111111-1111-4111-8111-111111111111",
+  "inventory_generation": 9,
+  "configuration_root": "/home/example/.config/omnivox",
+  "registrations": [
+    {
+      "engine_id": "dectalk",
+      "origin": "shipped_helper",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "unavailable",
+        "reason": "helper executable is not configured or installed"
+      }
+    },
+    {
+      "engine_id": "eloquence",
+      "origin": "shipped_helper",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "unavailable",
+        "reason": "helper executable is not configured or installed"
+      }
+    },
+    {
+      "engine_id": "espeak",
+      "origin": "in_process",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "available"
+      }
+    },
+    {
+      "engine_id": "flite",
+      "origin": "shipped_helper",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "unavailable",
+        "reason": "helper executable is not configured or installed"
+      }
+    },
+    {
+      "engine_id": "macos",
+      "origin": "in_process",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "unavailable",
+        "reason": "engine is not available on this platform"
+      }
+    },
+    {
+      "engine_id": "mbrola",
+      "origin": "shipped_helper",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "unavailable",
+        "reason": "helper executable is not configured or installed"
+      }
+    },
+    {
+      "engine_id": "org.example",
+      "origin": "external_helper",
+      "source": "helpers.d/example.json",
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "available"
+      }
+    },
+    {
+      "engine_id": "piper",
+      "origin": "shipped_helper",
+      "source": null,
+      "override_source": "config.json",
+      "enabled": false,
+      "availability": {
+        "status": "unavailable",
+        "reason": "disabled by local engine configuration"
+      }
+    },
+    {
+      "engine_id": "rhvoice",
+      "origin": "shipped_helper",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "unavailable",
+        "reason": "helper executable is not configured or installed"
+      }
+    },
+    {
+      "engine_id": "rutts",
+      "origin": "shipped_helper",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "unavailable",
+        "reason": "helper executable is not configured or installed"
+      }
+    },
+    {
+      "engine_id": "tgspeechbox",
+      "origin": "shipped_helper",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "unavailable",
+        "reason": "helper executable is not configured or installed"
+      }
+    },
+    {
+      "engine_id": "winrt",
+      "origin": "in_process",
+      "source": null,
+      "override_source": null,
+      "enabled": true,
+      "availability": {
+        "status": "unavailable",
+        "reason": "engine is not available on this platform"
+      }
+    }
+  ]
+}

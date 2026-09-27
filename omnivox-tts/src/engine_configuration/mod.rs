@@ -11,6 +11,7 @@ mod resolved;
 mod selection;
 pub mod shipped;
 mod snapshot;
+mod status;
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -26,6 +27,7 @@ pub use resolved::{
 };
 pub use selection::EngineSelectionPermissions;
 pub use snapshot::{LaunchSnapshot, ManagedLaunch, MAX_SNAPSHOT_BYTES};
+pub use status::{EngineConfigurationStatus, RegistrationStatus};
 
 pub const MAX_CONFIG_BYTES: usize = 128 * 1024;
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;

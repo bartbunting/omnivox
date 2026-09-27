@@ -19,6 +19,30 @@ fn documented_control_inventory_matches_wire_types() {
 }
 
 #[test]
+fn documented_engine_configuration_acknowledgement_matches_bounded_wire_types() {
+    let response: ControlResponseEnvelope = serde_json::from_str(include_str!(
+        "../../docs/protocol-fixtures/engine-configuration-status-v1.json"
+    ))
+    .expect("documented engine configuration status must deserialize");
+    let encoded = omnivox_tts::control::encode_response(&response).unwrap();
+    assert_eq!(
+        omnivox_tts::control::decode_response(&encoded).unwrap(),
+        response
+    );
+    let ControlResponse::EngineConfigurationStatusV1(status) = response.response else {
+        panic!("expected engine configuration status")
+    };
+    assert_eq!(
+        status.registrations.len(),
+        omnivox_tts::engine_configuration::shipped::ENGINES.len() + 1
+    );
+    assert!(status
+        .registrations
+        .windows(2)
+        .all(|entries| entries[0].engine_id < entries[1].engine_id));
+}
+
+#[test]
 fn documented_timeline_matches_wire_types_and_semantic_validation() {
     let timeline: PresentationTimelineEnvelope = serde_json::from_str(include_str!(
         "../../docs/protocol-fixtures/presentation-timeline-v3.json"

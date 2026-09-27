@@ -65,6 +65,7 @@ pub enum ControlRequest {
     Capabilities,
     Inventory,
     VoiceLibraryStatusV1,
+    EngineConfigurationStatusV1,
     GetEngineParametersV1(crate::engine_parameters::CatalogueQuery),
     ExplainVoiceParametersV1(crate::voice_explanation::ExplanationRequest),
     RegisterLogicalVoices {
@@ -199,6 +200,7 @@ pub struct ControlResponseEnvelope {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ControlResponse {
     VoiceLibraryStatusV1(crate::voice_library::VoiceLibraryStatus),
+    EngineConfigurationStatusV1(crate::engine_configuration::EngineConfigurationStatus),
     VoiceParametersExplainedV1(crate::voice_explanation::ExplanationResponse),
     EngineParametersV1 {
         engine_id: String,
@@ -353,6 +355,7 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
             | ControlRequest::PreviewVoiceV2(_)
             | ControlRequest::PreviewVoiceV3(_)
             | ControlRequest::VoiceLibraryStatusV1
+            | ControlRequest::EngineConfigurationStatusV1
             | ControlRequest::GetEngineParametersV1(_)
             | ControlRequest::ExplainVoiceParametersV1(_)
     ) {
@@ -360,6 +363,15 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
         // but no key in the new message may occur twice.
         serde_json::from_slice::<DuplicateFreeJson>(&bytes)
             .map_err(ControlCodecError::InvalidJson)?;
+    }
+    if matches!(request.request, ControlRequest::EngineConfigurationStatusV1) {
+        let value: serde_json::Value =
+            serde_json::from_slice(&bytes).map_err(ControlCodecError::InvalidJson)?;
+        if value.as_object().is_none_or(|fields| fields.len() != 3) {
+            return Err(ControlCodecError::InvalidJson(serde::de::Error::custom(
+                "engine configuration status takes no additional fields",
+            )));
+        }
     }
     Ok(request)
 }
@@ -462,6 +474,37 @@ pub fn process_control_request_with_parameters(
     voice_library: Option<&crate::voice_library::VoiceLibraryStatus>,
     parameter_knowledge: &[crate::engine_voice_choices::ParameterKnowledge<'_>],
 ) -> ControlResponseEnvelope {
+    process_control_request_with_configuration(
+        payload,
+        server_version,
+        inventory_generation,
+        preferred_engine_id,
+        engines,
+        engine_runtime,
+        logical_voices,
+        routing_policy,
+        voice_library,
+        parameter_knowledge,
+        None,
+    )
+}
+
+/// Read-only configuration acknowledgement from the actual worker startup.
+/// This context contains public metadata only, never executable definitions.
+#[allow(clippy::too_many_arguments)]
+pub fn process_control_request_with_configuration(
+    payload: &str,
+    server_version: &str,
+    inventory_generation: u64,
+    preferred_engine_id: &str,
+    engines: &[EngineDescriptor],
+    engine_runtime: &[EngineRuntimeStatus],
+    logical_voices: &mut LogicalVoiceRegistry,
+    routing_policy: &mut RoutingPolicyRegistry,
+    voice_library: Option<&crate::voice_library::VoiceLibraryStatus>,
+    parameter_knowledge: &[crate::engine_voice_choices::ParameterKnowledge<'_>],
+    configuration: Option<&crate::engine_configuration::EngineConfigurationStatus>,
+) -> ControlResponseEnvelope {
     match decode_request(payload) {
         Ok(request) if request.protocol_version != CONTROL_PROTOCOL_VERSION => error_response(
             Some(request.request_id),
@@ -472,6 +515,18 @@ pub fn process_control_request_with_parameters(
             ),
         ),
         Ok(request) => match request.request {
+            ControlRequest::EngineConfigurationStatusV1 => match configuration {
+                Some(status) => ControlResponseEnvelope {
+                    protocol_version: CONTROL_PROTOCOL_VERSION,
+                    request_id: Some(request.request_id),
+                    response: ControlResponse::EngineConfigurationStatusV1(status.clone()),
+                },
+                None => error_response(
+                    Some(request.request_id),
+                    ControlErrorCode::UnsupportedOperation,
+                    "engine configuration status is unavailable in this context".into(),
+                ),
+            },
             ControlRequest::VoiceLibraryStatusV1 => match voice_library {
                 Some(status) => ControlResponseEnvelope {
                     protocol_version: CONTROL_PROTOCOL_VERSION,
@@ -527,6 +582,7 @@ pub fn process_control_request_with_parameters(
                     ]
                     .into_iter()
                     .chain(voice_library.map(|_| "voice_library_v1".to_owned()))
+                    .chain(configuration.map(|_| "engine_configuration_v1".to_owned()))
                     .collect(),
                     deprecated_commands: DEPRECATED_PROTOCOL_COMMANDS
                         .iter()

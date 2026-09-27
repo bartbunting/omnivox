@@ -17,7 +17,7 @@ use omnivox_tts::contracts::{
     MAX_RATE_OFFSET_POINTS, MIN_RATE_OFFSET_POINTS,
 };
 use omnivox_tts::control::{
-    decode_request, format_control_event, process_control_request_with_parameters,
+    decode_request, format_control_event, process_control_request_with_configuration,
     ControlErrorCode, ControlRequest, ControlResponse, ControlResponseEnvelope, PreviewStatus,
     VoicePreviewRequest, CONTROL_PROTOCOL_VERSION, MAX_PREVIEW_TEXT_BYTES,
 };
@@ -3540,6 +3540,10 @@ fn handle_command(
                         &inventory.engines,
                         &routing_policy.policy().disabled_engine_ids,
                     );
+                    let configuration_status = engine_registry.engine_configuration_status(
+                        routing_policy.inventory_generation(inventory.generation),
+                        &inventory.engines,
+                    );
                     // Only native registration needs a cache snapshot. Reading it
                     // never waits for speech or requests missing engine metadata.
                     let cached = if matches!(
@@ -3559,7 +3563,7 @@ fn handle_command(
                             omnivox_tts::engine_voice_choices::ParameterKnowledge::Ready(catalogue)
                         })
                         .collect::<Vec<_>>();
-                    let response = process_control_request_with_parameters(
+                    let response = process_control_request_with_configuration(
                         payload,
                         crate::VERSION,
                         inventory.generation,
@@ -3570,6 +3574,7 @@ fn handle_command(
                         routing_policy,
                         Some(&library_status),
                         &knowledge,
+                        configuration_status.as_ref(),
                     );
                     write_control_response(&response);
                 }
@@ -3745,7 +3750,7 @@ mod tests {
         .unwrap();
         let request = serde_json::from_value(fixtures["messages"]["registration"].clone()).unwrap();
         let mut registry = LogicalVoiceRegistry::default();
-        let response = process_control_request_with_parameters(
+        let response = omnivox_tts::control::process_control_request_with_parameters(
             &omnivox_tts::control::encode_request(&request).unwrap(),
             "test",
             12,

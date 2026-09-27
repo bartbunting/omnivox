@@ -357,11 +357,7 @@ impl ProcessHelperConnection {
         arguments: &[OsString],
         environment: &LaunchEnvironment,
     ) -> Result<Self, HelperEngineError> {
-        info!(
-            engine_id,
-            program = %program.display(),
-            "Starting TTS helper process"
-        );
+        info!(engine_id, "Starting TTS helper process");
         let mut command = Command::new(program);
         environment.apply(&mut command);
         let mut child = command
@@ -371,10 +367,7 @@ impl ProcessHelperConnection {
             .stderr(Stdio::inherit())
             .spawn()
             .map_err(|error| {
-                HelperEngineError::Transport(format!(
-                    "could not start {}: {error}",
-                    program.display()
-                ))
+                HelperEngineError::Transport(format!("could not start {engine_id} helper: {error}"))
             })?;
         let child_id = child.id();
         info!(engine_id, child_id, "TTS helper process started");
