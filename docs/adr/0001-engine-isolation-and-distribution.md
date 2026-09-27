@@ -45,9 +45,9 @@ directory or an unrestricted library path. Validate architecture, required
 symbols and supported versions before native calls. A 32-bit runtime uses a
 32-bit helper even with a 64-bit server.
 
-The adapter owns native initialization, serialization, text encoding and cleanup.
+The adapter handles native initialization, serialization, text encoding and cleanup.
 It rejects unrepresentable text rather than silently replacing characters.
-It returns PCM and truthful timing/capability metadata to Omnivox, which owns
+It returns PCM and truthful timing/capability metadata to Omnivox, which handles
 mixing, effects and playback. Direct external playback requires an explicit
 capability reduction or another decision. Common framing, bounded cancellation,
 cleanup and recovery remain in the shared host. An unavailable optional engine

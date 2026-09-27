@@ -193,5 +193,5 @@ missing after supervisor loss, conflicting work stays blocked. Standalone
 Recovery can explicitly abandon an interrupted run only with the required
 recorded cleanup. It preserves the journal, damaged bytes and any report;
 abandonment is not validation success. The [journal contract](../reference/voice-operation-journals.md)
-owns exact states, verification and recovery meanings. [Voice management](voice-management.md)
-owns installation, candidate startup and coordinated two-lane Apply/rollback.
+defines exact states, verification and recovery meanings. [Voice management](voice-management.md)
+describes installation, candidate startup and coordinated two-lane Apply/rollback.

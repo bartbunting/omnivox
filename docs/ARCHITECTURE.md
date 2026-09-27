@@ -25,7 +25,7 @@ of stop or newer commands.
 
 A local Emacsvox session uses separate foreground and notification workers.
 Each owns its registry, queues, helper instances, cancellation and output lanes.
-Helpers isolate native synthesis; the main worker owns audio conversion, effects,
+Helpers isolate native synthesis; the main worker handles audio conversion, effects,
 scheduling and playback. Native libraries never move into the Emacs client.
 
 The local `--voice-library-owner` path gates a worker behind established native
@@ -67,7 +67,7 @@ elisp/                 standalone upstream-Emacspeak compatibility adapter
 ```
 
 The main server is `omnivox-cli`. Omnivox-specific data contracts live in
-`omnivox-tts`; the audio crate owns the single canonical `AudioBuffer`. The
+`omnivox-tts`; the audio crate defines the single canonical `AudioBuffer`. The
 core crate remains independent of any one engine. The Windows and Linux legacy
 engine helpers are separate executables with GPL-2.0-or-later source licenses.
 
@@ -193,7 +193,7 @@ variables, packaged helper locations and optional immutable voice-library
 inputs. Engine IDs, helper path mappings and startup order are still enumerated
 in [`omnivox-cli/src/engine.rs`](../omnivox-cli/src/engine.rs). There is no generic
 external-helper manifest reader or `config.json` policy reader yet. The
-[configuration reference](guides/configuration.md) owns existing option semantics.
+[configuration reference](guides/configuration.md) describes existing option semantics.
 
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or
 AVSpeechSynthesizer on macOS. Known companions are discovered from staged paths
@@ -260,7 +260,7 @@ mutating applied configuration. Terminal evidence distinguishes attempts,
 accepted PCM and source starts. Both speech workers negotiate capabilities and
 acknowledge independently. The
 [prepared-attempt reference](reference/prepared-synthesis.md) describes execution
-and ticket ownership; the [control protocol](protocols/control.md) owns
+and ticket ownership; the [control protocol](protocols/control.md) specifies
 versioned operations, bounds and compatibility.
 
 Bundled eSpeak variants are derived on demand from a bounded live suffix
@@ -324,7 +324,7 @@ See [helper.md](protocols/helper.md) and
 ## Installed assets and activation
 
 The voice library separates installed files, desired enablement, immutable runtime
-generations and active workers. Omnivox's local service owns bounded acquisition,
+generations and active workers. Omnivox's local service manages bounded acquisition,
 storage, validation, removal and native worker ownership. Emacsvox supplies the
 reviewed catalogue and coordinates explicit Apply for its two speech lanes.
 Downloads/imports start disabled; install/enable alone does not restart speech.
@@ -471,7 +471,7 @@ shared launch registration, `helpers.d/` manifests and `config.json` policy.
 Its [ADR 0008](adr/0008-extensible-engine-registration.md) is proposed; these
 readers, coordinated helper-launch snapshots and external automatic-selection
 permissions are not current features. Richer language matching is a separate
-future increment. The [roadmap](ROADMAP.md) owns delivery status.
+future increment. The [roadmap](ROADMAP.md) tracks outstanding work.
 
 Performance claims belong to the [retained evidence](benchmarks/README.md).
 Source consumption, protocol success and process liveness do not prove acoustic

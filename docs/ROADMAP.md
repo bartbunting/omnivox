@@ -1,9 +1,9 @@
 # Omnivox Roadmap
 
-**Reviewed:** 2026-09-27. Existing delivery priorities are retained.
-This is the outstanding backlog. [Status](STATUS.md) owns current coverage,
-[architecture](ARCHITECTURE.md) owns implementation, and the
-[evidence index](benchmarks/README.md) owns observations and comparisons.
+**Reviewed:** 2026-09-27.
+This is the outstanding backlog. [Status](STATUS.md) records current coverage,
+[architecture](ARCHITECTURE.md) describes implementation, and the
+[evidence index](benchmarks/README.md) links observations and comparisons.
 Follow the [documentation guide](DOCUMENTATION-GUIDE.md) for proposal lifecycle.
 
 ## Direction
@@ -15,24 +15,39 @@ vary; a port or a passing unit suite is not complete native/audible acceptance.
 
 ## Feature backlog
 
-| Rank | Feature | First useful outcome |
-| --- | --- | --- |
-| 1a | Responsive Linux speech under WSL | Reproducible Windows/Linux comparison launches, measured command-to-sound and stop-to-silence, and a native PulseAudio experiment against the current ALSA bridge. |
-| 1b | Streaming macOS system voices | Begin playback from AVSpeechSynthesizer callbacks before the complete utterance is synthesized, with bounded buffering, reliable cancellation and native Mac listening/latency acceptance. |
-| 2 | Voice selection and installation assistance | Browse, preview, install/import, test, and select additional voices through Emacsvox's Voice Workbench, with engine-specific installation support. |
-| 3 | Audio-device selection and recovery | Named devices, a deliberate follow-default policy, disconnect/reconnect recovery, and separate foreground/notification destinations. |
-| 4 | Speech and audio doctor | Explain the selected executable, backend, device, engine, voice, fallback reason, buffer settings, and recovery action. |
-| 5 | Reliable remote workstation setup | Real SSH-host acceptance now passes with Windows device/null output and Linux null output. Extend outage, interactive, matched-release, and macOS coverage before graduating the preview. |
-| 6 | Portable speech and output profiles | Switch voice/rate/routing preferences and Windows-versus-Linux launch choices without carrying incompatible runtime paths between platforms. |
-| 7 | Omnivox pronunciation dictionaries | Per-language and per-application corrections that preserve original-text offsets for markers and navigation. |
-| 8 | Pause and resume for long reading | Resume a bounded reading session with defined behavior for intervening navigation, cancellation, and engines without precise markers. |
-| 9 | Linux ARM64 main-server distribution | Native runtime acceptance and main-server archives/Debian packages, beyond existing ARM64 companion coverage. |
-| 10 | Another compact neural engine | Evaluate an isolated sherpa-onnx helper, including Kitten Nano, against latency, cancellation, memory, intelligibility, and model-licence requirements. |
+Outstanding items are listed without a priority ranking:
 
-Features 1a and 1b share the top responsiveness priority, ahead of adding another
-engine. The earlier companion-manager proposal is part of feature 2. The earlier
-first-speech/navigation-latency proposal is part of feature 1 and the
-cross-platform evidence work below. Existing engine hardening remains a
+- **Responsive Linux speech under WSL:** complete matched-build listening,
+  physical command-to-sound/stop-to-silence comparisons and longer-running
+  acceptance of the implemented native PulseAudio backend.
+- **Streaming macOS system voices:** complete real Emacsvox listening and
+  physical latency/cancellation acceptance of the implemented callback streaming.
+- **Voice selection and installation assistance:** extend native and fresh-client
+  acceptance, interrupted-operation recovery and operating-system voice setup.
+- **Audio-device selection and recovery:** named devices, a deliberate
+  follow-default policy, disconnect/reconnect recovery, and separate
+  foreground/notification destinations.
+- **Speech and audio doctor:** explain the selected executable, backend, device,
+  engine, voice, fallback reason, buffer settings, and recovery action.
+- **Reliable remote workstation setup:** extend outage, interactive,
+  matched-release, and macOS coverage before graduating the preview.
+- **Portable speech and output profiles:** switch voice/rate/routing preferences
+  and Windows-versus-Linux launch choices without carrying incompatible runtime
+  paths between platforms.
+- **Omnivox pronunciation dictionaries:** per-language and per-application
+  corrections that preserve original-text offsets for markers and navigation.
+- **Pause and resume for long reading:** resume a bounded reading session with
+  defined behavior for intervening navigation, cancellation, and engines without
+  precise markers.
+- **Linux ARM64 main-server distribution:** native runtime acceptance and
+  main-server archives/Debian packages, beyond existing ARM64 companion coverage.
+- **Another compact neural engine:** evaluate an isolated sherpa-onnx helper,
+  including Kitten Nano, against latency, cancellation, memory, intelligibility,
+  and model-licence requirements.
+
+The earlier companion-manager proposal is part of voice installation assistance.
+The earlier first-speech/navigation-latency proposal is part of responsiveness
+and the cross-platform evidence work below. Existing engine hardening remains a
 release requirement throughout this feature work.
 
 ### First delivery slice
@@ -94,8 +109,7 @@ launch snapshots. Runtime implementation has not started.
 The first slice proves configuration, inventory, diagnostics, selection and
 recovery with a redistributable fake helper. Real native integrations require
 separate qualification. Language-routing enhancements remain a separate versioned
-proposal; registration does not authorize them. This entry does not reorder the
-ranked backlog.
+proposal; registration does not authorize them.
 
 ### Audio-output scope
 
@@ -167,7 +181,7 @@ markers. Measure physical output, underruns, device changes and competing load.
 - **Speech Dispatcher:** resolve external-playback capabilities and lifecycle
   in [the feasibility proposal](plans/speech-dispatcher.md) before implementation.
 - **Multi-device output:** define explicit-device/follow-default ownership,
-  notification separation, fallback and reconnect under feature 3.
+  notification separation, fallback and reconnect as part of audio-device work.
 - **Remote expansion:** broader exposure needs a new boundary review; preview
   qualification alone does not authorize network, resource or multi-user changes.
 - **Additional effects:** preserve marker and terminal semantics when duration
@@ -177,7 +191,7 @@ markers. Measure physical output, underruns, device changes and competing load.
 
 ## Experimental ideas
 
-Feasibility work below is outside the ranked backlog and does not establish
+Feasibility work below is outside the feature backlog and does not establish
 platform support or implementation approval.
 
 ### iOS remote speech receiver over Tailscale

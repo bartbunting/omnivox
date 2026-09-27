@@ -3,9 +3,9 @@
 Implemented development format 1; reviewed 2026-09-27.
 
 This follows [ADR 0007](../adr/0007-managed-voice-lifecycle.md) and the
-[voice-library contract](voice-library.org). Omnivox owns capture,
+[voice-library contract](voice-library.org). Omnivox performs capture,
 comparison and publication. Helpers still only load and synthesize voices;
-they do not own reports, catalogues or downloads.
+they do not manage reports, catalogues or downloads.
 
 ## Meaning and scope
 

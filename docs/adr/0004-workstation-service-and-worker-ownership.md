@@ -54,5 +54,5 @@ SSH setup and platform/acoustic acceptance remain explicit operational work.
 Native TLS, general network listeners, multi-user sharing, resource uploads and
 automatic tunnel management are deferred. Direct tailnet or iOS receiver access
 would require revisiting this boundary rather than merely changing a bind address.
-The [remote protocol](../protocols/remote.md) owns exact framing and the
-[operations guide](../guides/remote-speech.md) owns setup and acceptance status.
+The [remote protocol](../protocols/remote.md) specifies exact framing and the
+[operations guide](../guides/remote-speech.md) describes setup and acceptance status.

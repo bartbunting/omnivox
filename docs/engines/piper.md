@@ -8,7 +8,7 @@ use v1.6.4 or later, or build the current source.
 ## Payload boundary
 
 The main `omnivox` executable discovers Piper but does not link libpiper. The
-separate companion owns libpiper, ONNX Runtime, and its matching generated
+separate companion contains libpiper, ONNX Runtime, and its matching generated
 eSpeak data:
 
 ```text

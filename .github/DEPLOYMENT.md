@@ -365,7 +365,7 @@ Emacsvox's bundled adapter.
 ## Emacsvox Windows deployment
 
 Emacsvox does not consume this generic CI archive for its reproducible WSL to
-Windows integration. The sibling Emacsvox repository owns a pinned Windows-GNU
+Windows integration. The sibling Emacsvox repository provides a pinned Windows-GNU
 build, 32-bit helper builds, runtime inputs, provenance, content-addressed
 staging, and Windows-local runtime copy:
 

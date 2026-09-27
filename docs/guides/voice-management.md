@@ -11,7 +11,7 @@ RHVoice; runtime availability and platform support remain provider-specific.
 Installation does not restart speech. New imports start disabled. Enabling a
 voice changes desired state; the existing active pointer and speech processes
 retain their previous configuration. Emacsvox supplies reviewed download
-catalogues; Omnivox owns acquisition, managed storage and native validation.
+catalogues; Omnivox handles acquisition, managed storage and native validation.
 Package updates and implicit legacy voice-ID adoption remain separate work.
 The local provider supplies owned speech workers, retained Apply
 leases and active-pointer publication for Emacsvox's two-lane controller.

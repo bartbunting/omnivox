@@ -39,7 +39,7 @@ process boundary. Accepted ADRs continue to govern
 
 ## Components and responsibilities
 
-| Component | Owns |
+| Component | Responsibilities |
 | --- | --- |
 | Registration loader | Validated local launch definitions and configuration provenance. |
 | Engine registry | Stable identities, availability, current descriptors and helper lifecycle. |
@@ -282,7 +282,7 @@ helper launch fields for it. An override cannot change identity, origin,
 capabilities or automatic-selection permission.
 
 Provider-owned managed load arguments cannot be replaced by local `arguments`.
-Reject that combination when managed configuration owns the invocation; preserve
+Reject that combination when managed configuration controls the invocation; preserve
 existing explicit legacy model/data override semantics and all provider checks.
 A missing or conflicting external registration cannot be resurrected through an
 override. An override targeting such a registration is a main-configuration
@@ -560,7 +560,7 @@ architecture, required interfaces and resources; a failed explicit selection
 must not silently select another installation. Paths are native to the speech
 host, not the client.
 
-The adapter owns conversion from wire UTF-8 to its native encoding and must
+The adapter converts wire UTF-8 to its native encoding and must
 reject unrepresentable text rather than replace characters silently. Encoding
 repertoire, spoken language and voice identity remain distinct. The current
 finite repertoire enum may need a negotiated extension for additional encodings;
@@ -572,11 +572,11 @@ Return PCM to Omnivox rather than playing directly. Publish streaming support
 only when audio is emitted during synthesis. Keep native queues bounded under
 backpressure. Markers are optional; timing and source offsets must be truthful,
 and progressive markers must precede the audio reaching their frame. The server
-owns continuous conversion, effects and playback completion.
+handles continuous conversion, effects and playback completion.
 
 Use calibrated or explicitly provisional common-control mappings. Reset native
 state between independent requests, including cancellation and failures. The
-host owns framing, terminal response ordering and protocol limits; an adapter
+host handles framing, terminal response ordering and protocol limits; an adapter
 must not duplicate that machinery or accept executable commands from speech
 configuration.
 

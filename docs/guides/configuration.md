@@ -395,7 +395,7 @@ fallback and report their failure through inventory and exact diagnostics.
 
 ## Emacsvox adapter
 
-Emacsvox owns its client settings, voice editor, saved palettes and launcher
+Emacsvox provides its client settings, voice editor, saved palettes and launcher
 configuration. Use its [speech-backend manual](https://github.com/bartbunting/emacsvox/blob/master/docs/manual/chapters/speech-backends.org)
 for the current interface. The Omnivox CLI/environment options above configure
 the speech host; client preferences are applied through negotiated runtime
@@ -432,7 +432,7 @@ Use `omnivox-set-rate`, `omnivox-select-voice`, and the volume/pitch commands
 for live changes. The `dtk-*` names in this example belong to upstream
 Emacspeak and are intentionally not Emacsvox configuration names.
 
-## Ownership details
+## Implementation details
 
 CLI parsing lives in `omnivox-cli/src/cli.rs`. Process-wide channel selection
 is applied during engine/audio initialization. Runtime state commands are

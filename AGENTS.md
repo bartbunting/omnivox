@@ -116,9 +116,9 @@
 
 ## Windows helpers and deployment
 
-- Windows helper source and build targets are owned under `windows-helpers`;
+- Windows helper source and build targets are maintained under `windows-helpers`;
   preserve their GPL-2.0-or-later notices and separate executable boundary.
-- Final Windows deployment is owned by the sibling Emacsvox repository. Use
+- Final Windows deployment is managed in the sibling Emacsvox repository. Use
   `make windows-omnivox-main-dev` there when its guard accepts a main-server or
   main-only audio-output change and a verified development runtime is already
   staged. Use `make windows-omnivox-dev` when that guard rejects helper,

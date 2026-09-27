@@ -9,7 +9,7 @@ Current implementation status is tracked in [[file:../STATUS.md][STATUS.md]];
 * Status and scope
 
 The implemented composition order is shared settings, selected choice, then
-contextual overrides, under [[file:../adr/0006-voice-selection-and-customization.md][ADR 0006]]. This document owns the layered wire
+contextual overrides, under [[file:../adr/0006-voice-selection-and-customization.md][ADR 0006]]. This document specifies the layered wire
 contract. Control envelope 1, remote envelope 1 and earlier registration,
 preview and timeline versions retain their compatibility rules. Native controls
 extend these rules in [[file:engine-voice-parameters.md][the native-parameter contract]].

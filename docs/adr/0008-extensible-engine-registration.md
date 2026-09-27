@@ -15,7 +15,7 @@ real adapter. Separate startup and diagnostic definitions risk disagreement.
 
 Maintained helpers already load user-supplied runtimes under ADR 0001. Adapter
 maintenance, helper distribution and runtime supply should remain independent
-choices, sharing a protocol and preserving engine/voice identity when ownership
+choices, sharing a protocol and preserving engine/voice identity when maintenance
 or distribution changes.
 
 ## Proposed decision
@@ -33,7 +33,7 @@ and shipped defaults. IDs must match descriptors and cannot shadow shipped IDs
 or other external registrations. Configuration cannot invent runtime validation,
 voices or capabilities.
 
-The speech host owns registration. External programs require fully absolute
+The speech host handles registration. External programs require fully absolute
 native paths and literal argument vectors. Exclude working-directory/PATH
 discovery, shell expansion, network discovery and executable definitions supplied
 through speech protocols. Registering a helper authorizes local code to run;
@@ -73,9 +73,9 @@ settings. Automatic discovery introduces executable code implicitly. In-process
 external loading conflicts with isolation; unrestricted automatic selection lets
 an added voice change existing speech without an explicit preference.
 
-The [specification](../plans/extensible-engine-framework.md) owns exact schemas,
+The [specification](../plans/extensible-engine-framework.md) defines exact schemas,
 precedence, bounds and acceptance criteria. The
-[roadmap](../ROADMAP.md#extensible-engine-registration) owns delivery.
+[roadmap](../ROADMAP.md#extensible-engine-registration) tracks remaining work.
 The first slice uses a fake helper; real native integrations retain separate
 qualification. Language-routing changes, live reload and a configuration UI are
 later increments. This proposal does not authorize their implementation or change

@@ -1,7 +1,7 @@
 # Engine voice parameters: wire and compatibility contract
 
 Accepted contract, originally defined on 2026-09-17 and consolidated under
-[ADR 0006](../adr/0006-voice-selection-and-customization.md). This document owns
+[ADR 0006](../adr/0006-voice-selection-and-customization.md). This document specifies
 native-parameter wire shapes and semantics. Current implementation and platform
 qualification belong to [STATUS.md](../STATUS.md).
 
@@ -10,7 +10,7 @@ timeline-5 speech, marker-4 receipts, strict native previews and read-only
 planned/applied explanations. Qualified Windows Eloquence and DECtalk adapters
 use helper 6; older protocol shapes and common controls retain compatibility.
 Capability advertisement does not imply every runtime supplies native controls.
-Emacsvox owns catalogue-driven editing and sparse per-choice persistence.
+Emacsvox provides catalogue-driven editing and sparse per-choice persistence.
 
 The [independent fixtures](../protocol-fixtures/engine-voice-parameters.json)
 exercise codecs and composition. Dated planner, binding, cancellation, helper,
@@ -98,7 +98,7 @@ An adjustable voice descriptor also requires verified reset support, even when
 the user only sets explicit values; omission must never inherit a prior request.
 An unknown descriptor kind can be retained as bounded inert client data, but is
 never executable. An unknown native operation shape is rejected. Profile code,
-not remote metadata, owns actual native calls and dependency planning.
+not remote metadata, controls actual native calls and dependency planning.
 
 `mappings` contains `{common_inputs, native_outputs}` records. Inputs are the
 existing common dimensions, including `rate`/`rate_offset` and volume when the

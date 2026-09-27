@@ -93,7 +93,7 @@ provenance checks.
 
 ## Integration boundary
 
-Emacsvox owns the complete structured adapter and Windows staging. Upstream
+Emacsvox provides the complete structured adapter and Windows staging. Upstream
 Emacspeak uses this repository's smaller `elisp/omnivox-voices.el`, whose
 `dtk-*` names are upstream API names. Do not mix those variable names with
 Emacsvox's intentional `tts-*` namespace or bundled adapter.

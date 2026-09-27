@@ -18,7 +18,7 @@ administrative exclusions or falsely acknowledging a successful activation.
 
 ### Separate ownership and state
 
-Omnivox owns shared formats, acquisition, managed storage, native validation and
+Omnivox provides shared formats, acquisition, managed storage, native validation and
 the local service. Emacsvox supplies the initial reviewed catalogue, accessible
 interaction and coordination of foreground/notification workers. Downloaded
 files belong to the user; imported files keep external ownership. Assets and

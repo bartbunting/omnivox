@@ -4,13 +4,18 @@ Use documentation to make current behavior, accepted constraints, proposals and
 evidence easy to distinguish. Each fact has one maintained home; other documents
 summarize it briefly and link there. Git retains implementation history.
 
+Use direct verbs for documentation and component responsibilities: a reference
+specifies a contract, a guide explains setup, and a component provides a service.
+Reserve ownership terms for specific technical relationships, such as resource
+lifetimes, process supervision, exclusive access and file ownership.
+
 ## Choose the document
 
-| Document | Required when | Owns |
+| Document | Required when | Contents |
 | --- | --- | --- |
 | [ADR](adr/README.md) | A durable architectural choice changes boundaries, ownership, compatibility, dependencies, distribution, or a significant quality tradeoff. | Context, decision, alternatives, consequences and related decisions. |
 | [Architecture](ARCHITECTURE.md) | Implemented component responsibilities, data flow or lifecycle change. | A coherent account of the current system and its invariants, linked to rationale and exact contracts. |
-| [Roadmap](ROADMAP.md) | Work is proposed, prioritized, scoped, deferred or completed. | Delivery priorities, outstanding acceptance and links to active plans. |
+| [Roadmap](ROADMAP.md) | Work is proposed, scoped, deferred or completed. | Outstanding work, remaining acceptance and links to active plans. |
 | Plan / implementation specification in `plans/` | Nontrivial future work needs a concrete contract, sequence or acceptance checklist. | Proposed behavior, non-goals, open decisions, compatibility, delivery slices and verification criteria. |
 | Protocol or persisted-format contract | Messages, serialized fields, defaults, limits, ordering or compatibility change. | Exact normative shapes and semantics, negotiation, examples and version rules. |
 | Operations/reference guide | Users or operators must install, configure, diagnose or use a feature. | Current supported commands, prerequisites, behavior and limitations. |
@@ -37,10 +42,10 @@ Keep the root index, architecture, status, roadmap, licensing and this guide in
 - `adr/`: numbered durable architectural choices.
 
 The [documentation index](README.md) is the common navigation entry; avoid an
-extra index or document when a short section in its existing owner suffices.
+extra index or document when a short section in an existing document suffices.
 Engine guides link shared configuration and managed-voice procedures instead of
-copying them. The Emacsvox repository owns its client UI/settings documentation;
-this repository owns the upstream Emacspeak compatibility adapter.
+copying them. The Emacsvox repository documents its client UI and settings;
+this repository documents the upstream Emacspeak compatibility adapter.
 
 Protocol examples under `protocol-fixtures/` are executable test inputs; keep
 those paths stable unless the test integration is deliberately changed. Each
@@ -167,6 +172,6 @@ network access or changing either checkout. Commit/tag-pinned historical URLs
 remain historical. General external availability needs a separate network audit.
 
 Run affected fixture/code tests when executable contracts change. Follow the
-owning repository's additional documentation gates for cross-repository edits.
+relevant repository's additional documentation gates for cross-repository edits.
 Never change a published changelog section or a retained measurement merely to
 make a documentation check pass.

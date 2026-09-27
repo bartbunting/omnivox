@@ -3,7 +3,7 @@
 Start with the repository [README](../README.md) for installation and first use.
 This index separates current instructions, exact contracts, proposed work and
 retained evidence. The [documentation guide](DOCUMENTATION-GUIDE.md) defines
-ownership and maintenance rules.
+document responsibilities and maintenance rules.
 
 ## Current behavior and design
 

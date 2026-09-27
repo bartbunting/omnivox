@@ -1,7 +1,7 @@
 # Speech Dispatcher integration feasibility
 
 Status: unimplemented proposal. [The roadmap](../ROADMAP.md#explicit-future-proposals)
-tracks priority; [ADR 0001](../adr/0001-engine-isolation-and-distribution.md)
+tracks outstanding work; [ADR 0001](../adr/0001-engine-isolation-and-distribution.md)
 governs native isolation. This is a feasibility investigation, not a ready-to-build
 backend specification. No dependency or public protocol change is accepted here.
 

@@ -12,7 +12,7 @@ complete worker cleanup records remains blocked.
 
 ## Ownership and frozen input
 
-Omnivox owns these management primitives, alongside its shared library formats;
+Omnivox provides these management primitives, alongside its shared library formats;
 the CLI exposes development preparation and inspection. Helpers do not call the
 storage primitives. The caller supplies an existing operations directory and a
 locally generated operation UUID. Creating an operation adds only its new UUID
@@ -103,7 +103,7 @@ restart are deliberately absent from recovery inspection.
 
 ## Local commands
 
-The [native validation guide](../guides/native-voice-validation.md#operation-commands) owns the
+The [native validation guide](../guides/native-voice-validation.md#operation-commands) describes the
 preparation, inspection, execution and recovery commands. These commands do not
 constitute a negotiated remote management API.
 

@@ -286,7 +286,7 @@ The test suite changes frequently, so documentation does not embed a test
 count. A passing suite establishes correctness coverage; it is not a latency
 measurement.
 
-`tools/build.py` owns the distributable build step because Cargo has no
+`tools/build.py` runs the distributable build step because Cargo has no
 reliable post-build hook: it runs a locked Cargo build, identifies the actual
 `espeak-rs-sys` output reported by Cargo, and stages its data and notices in the
 same profile directory as the executable, together with `LICENSE` and
@@ -309,8 +309,8 @@ speech have separate workers. See the [remote setup guide](docs/guides/remote-sp
 
 ## Emacsvox on Windows under WSL
 
-Omnivox owns the Eloquence and DECtalk helper source and build targets. The
-Emacsvox repository owns the reproducible Windows bundle, pinned helper build
+Omnivox contains the Eloquence and DECtalk helper source and build targets. The
+Emacsvox repository provides the reproducible Windows bundle, pinned helper build
 inputs, runtime provenance, and content-addressed launcher selection:
 
 ```sh
