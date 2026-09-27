@@ -247,7 +247,7 @@ impl PiperTtsEngine {
 
     /// Map the host rate to Piper's inverse duration scale.
     fn map_rate_to_length_scale(rate: f32) -> f32 {
-        // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+        // Measured reference and saturation policy: docs/reference/rate-calibration.md.
         const CALIBRATION: &[(f32, f32)] = &[
             (0.0, 2.000_000),
             (0.1, 1.688_762),

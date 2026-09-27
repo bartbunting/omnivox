@@ -138,7 +138,7 @@ mod impl_windows {
 
         /// Map the host rate to WinRT's speaking-rate multiplier.
         pub(crate) fn map_rate(rate: f32) -> f64 {
-            // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+            // Measured reference and saturation policy: docs/reference/rate-calibration.md.
             const CALIBRATION: &[(f32, f32)] = &[
                 (0.0, 0.500_000),
                 (0.1, 0.572_672),

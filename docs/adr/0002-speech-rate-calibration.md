@@ -34,7 +34,7 @@ or an explicitly labelled provisional mapping.
 
 Changes require retained before/after audits and tests for native bounds and
 monotonicity. Keep measured corpora, executable/runtime identity and repetitions
-with the results. The [calibration reference](../RATE-CALIBRATION.md) owns exact
+with the results. The [calibration reference](../reference/rate-calibration.md) owns exact
 tables, invocation and interpretation; the [audit archive](../rate-audits/README.md)
 and [benchmark index](../benchmarks/README.md) preserve evidence.
 

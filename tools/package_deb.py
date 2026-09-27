@@ -129,7 +129,7 @@ def stage(profile: Path, root: Path) -> list[Path]:
     copy_file(REPOSITORY / "elisp/omnivox-voices.el",
               root / "usr/share/emacs/site-lisp/omnivox/omnivox-voices.el")
     copy_file(REPOSITORY / "windows-helpers/COPYING", docs / "GPL-2")
-    copy_file(REPOSITORY / "docs/DEBIAN.md", docs / "README.Debian")
+    copy_file(REPOSITORY / "docs/guides/debian-packages.md", docs / "README.Debian")
     (docs / "copyright").write_text(
         "Omnivox-authored source: MIT; see LICENSE.\n"
         "The main executable incorporates eSpeak NG: GPL-3.0-or-later.\n"

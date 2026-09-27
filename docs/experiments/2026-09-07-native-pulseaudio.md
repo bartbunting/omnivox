@@ -48,7 +48,7 @@ The local full-profile launchers are now:
 Both Linux full-profile launchers use Emacs 31 and `~/.emacsvox.d`, including
 the saved engine preferences. Native logs have their own directory,
 `~/.local/state/emacsvox/omnivox-linux-pulse`. `--diagnose` works from both WSL
-and the Windows batch launcher. See [WSL-AUDIO.md](../WSL-AUDIO.md) for commands
+and the Windows batch launcher. See [WSL-AUDIO.md](../guides/wsl-audio-comparison.md) for commands
 and the isolated comparison workflow. Existing user sessions were left running.
 
 ## Runtime and measurement scope

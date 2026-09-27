@@ -4,7 +4,7 @@ This is the current implementation overview, reconciled on 2026-09-27.
 The [decision index](adr/README.md) explains architectural choices;
 [protocol references](README.md#protocol-specifications) define exact contracts;
 [status](STATUS.md) records platform/runtime qualification and
-[the roadmap](plans/NEXT_STEPS.md) tracks future work. Accepted design,
+[the roadmap](ROADMAP.md) tracks future work. Accepted design,
 implemented behavior, native qualification and published releases are distinct.
 
 ## Runtime boundary
@@ -32,7 +32,7 @@ The local `--voice-library-owner` path gates a worker behind established native
 job/process-group ownership, captures exact startup configuration and acknowledges
 retirement only after its tree and output reader exit. The local management
 service coordinates installation and Apply; it is separate from speech admission.
-See [local activation](VOICE-INSTALLATION.md#local-provider).
+See [local activation](guides/voice-management.md#local-provider).
 
 An optional `--serve` broker authenticates loopback network connections before
 spawning stdio workers. Each foreground/notification lane owns a worker and
@@ -43,7 +43,7 @@ jobs with kill-on-close semantics and cannot initialize engines before job
 assignment completes. Remote workers use a restricted icon loader and cancel
 on EOF; ordinary stdio workers retain their drain-on-EOF behavior. See
 [ADR 0004](adr/0004-workstation-service-and-worker-ownership.md) and the
-[remote protocol](protocols/REMOTE-PROTOCOL.md).
+[remote protocol](protocols/remote.md).
 
 ```text
 omnivox-core/          legacy commands, queue/state types, pure timeline model
@@ -193,7 +193,7 @@ variables, packaged helper locations and optional immutable voice-library
 inputs. Engine IDs, helper path mappings and startup order are still enumerated
 in [`omnivox-cli/src/engine.rs`](../omnivox-cli/src/engine.rs). There is no generic
 external-helper manifest reader or `config.json` policy reader yet. The
-[configuration reference](ENV-VARS.md) owns existing option semantics.
+[configuration reference](guides/configuration.md) owns existing option semantics.
 
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or
 AVSpeechSynthesizer on macOS. Known companions are discovered from staged paths
@@ -245,29 +245,29 @@ then span context. Policy fallback has no choice patch. Each attempt starts from
 its selected adapter's qualified defaults, applies common controls once, and
 prepares its effects with the route identity. Failed attempts cannot leak settings
 or effects. Legacy/layered boundaries separate effect ownership. Measured common
-rate curves and native saturation follow [rate calibration](RATE-CALIBRATION.md).
+rate curves and native saturation follow [rate calibration](reference/rate-calibration.md).
 
 Qualified native controls use typed adapter catalogues and sparse edits. Catalogue
 queries are bounded/read-only and connection/runtime scoped; they do not load all
 models or restart speech. Runtime replacement invalidates metadata qualification.
 The actual helper validates native application; marker-4 receipts describe the
 choice/application at first consumed PCM, not merely a predicted route or successful
-parameter query. See the [native contract](engine-voice-parameters.md).
+parameter query. See the [native contract](protocols/engine-voice-parameters.md).
 
 Exact previews preserve the exact physical target. Complete previews use a private
 voice/policy/context snapshot and may perform its permitted fallback without
 mutating applied configuration. Terminal evidence distinguishes attempts,
 accepted PCM and source starts. Both speech workers negotiate capabilities and
 acknowledge independently. The
-[prepared-attempt reference](PREPARED-SYNTHESIS.md) describes execution
-and ticket ownership; the [control protocol](protocols/CONTROL-PROTOCOL.md) owns
+[prepared-attempt reference](reference/prepared-synthesis.md) describes execution
+and ticket ownership; the [control protocol](protocols/control.md) owns
 versioned operations, bounds and compatibility.
 
 Bundled eSpeak variants are derived on demand from a bounded live suffix
 catalogue. Explicit combinations validate exact native identity and exclusions;
 automatic/property matching keeps the compact base inventory. Selecting a variant
 neither mutates a managed load set nor restarts workers. See
-[eSpeak variants](ESPEAK-VARIANTS.md).
+[eSpeak variants](engines/espeak-variants.md).
 
 ## Native-call isolation and helper engines
 
@@ -314,12 +314,12 @@ Adapters retain platform-specific native ownership behind this common contract:
 | Linux ECI/DECtalk | Dedicated native owner threads, absolute architecture-checked ELF libraries and bounded cancellation-aware PCM/marker queues. ECI aborts via its callback; DECtalk coordinates reset outside callback locks. System dependencies remain linker-owned. |
 | MBROLA | Explicit private helper owns sequential frontend/runtime children, per-request verified inputs and bounded buffered output. It advertises no streaming or markers. |
 
-The [engine guides](README.md#operations-and-releases) own ABI details, runtime
+The [engine guides](README.md#engine-guides) own ABI details, runtime
 loading and platform acceptance. Component supply and licensing remain independent
 of helper protocol capability under [ADR 0001](adr/0001-engine-isolation-and-distribution.md).
 
-See [HELPER-PROTOCOL.md](protocols/HELPER-PROTOCOL.md) and
-[ENGINE-ISOLATION.md](ENGINE-ISOLATION.md).
+See [helper.md](protocols/helper.md) and
+[native-call-isolation.md](reference/native-call-isolation.md).
 
 ## Installed assets and activation
 
@@ -353,10 +353,10 @@ Removal checks ownership and active/rollback/session references, preserving
 external files, runtimes and saved palette choices. Stronger crash/power-loss
 recovery and platform qualification remain explicit limits, not implied by a
 successful generation acknowledgement. The
-[voice-library contract](voice-library-contract.org),
-[installation guide](VOICE-INSTALLATION.md),
-[validation guide](VOICE-VALIDATION.md) and
-[removal guide](VOICE-UNINSTALLATION.md) own their detailed formats and operations.
+[voice-library contract](reference/voice-library.org),
+[installation guide](guides/voice-management.md),
+[validation guide](guides/native-voice-validation.md) and
+[removal guide](guides/voice-management.md#managed-voice-uninstallation) own their detailed formats and operations.
 
 ## Text preparation and source offsets
 
@@ -373,7 +373,7 @@ speech. The compatibility separator never reaches punctuation expansion as
 literal markup. Structured actions retain original UTF-8 offsets through text
 preparation and chunking; the selected engine resolves mapped anchors. Exact
 punctuation sets, segmentation and offset rules live in
-[TEXT-CHUNKING.md](TEXT-CHUNKING.md).
+[text-chunking.md](reference/text-chunking.md).
 
 ## Audio and presentation ownership
 
@@ -462,16 +462,16 @@ the sole synthesis worker is exceptional: the process logs a forced backtrace
 and exits with status 70 so Emacs can replace the whole server rather than keep
 a live control channel attached to a dead worker.
 
-See [DIAGNOSTICS.md](DIAGNOSTICS.md) for evidence collection.
+See [diagnostics.md](guides/diagnostics.md) for evidence collection.
 
 ## Proposed extensions
 
-The [extensible-engine framework](plans/EXTENSIBLE-ENGINE-FRAMEWORK.md) proposes
+The [extensible-engine framework](plans/extensible-engine-framework.md) proposes
 shared launch registration, `helpers.d/` manifests and `config.json` policy.
 Its [ADR 0008](adr/0008-extensible-engine-registration.md) is proposed; these
 readers, coordinated helper-launch snapshots and external automatic-selection
 permissions are not current features. Richer language matching is a separate
-future increment. The [roadmap](plans/NEXT_STEPS.md) owns delivery status.
+future increment. The [roadmap](ROADMAP.md) owns delivery status.
 
 Performance claims belong to the [retained evidence](benchmarks/README.md).
 Source consumption, protocol success and process liveness do not prove acoustic

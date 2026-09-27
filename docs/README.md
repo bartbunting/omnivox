@@ -1,137 +1,107 @@
 # Omnivox Documentation
 
-The repository [README](../README.md) is the project entry point. This index
-separates maintained behavior, wire contracts, operations, future plans, and
-historical material so a proposal cannot be mistaken for a shipped feature.
-The [documentation guide](DOCUMENTATION-GUIDE.md) defines when to write an ADR,
-plan, contract or evidence report and how to maintain each.
+Start with the repository [README](../README.md) for installation and first use.
+This index separates current instructions, exact contracts, proposed work and
+retained evidence. The [documentation guide](DOCUMENTATION-GUIDE.md) defines
+ownership and maintenance rules.
 
 ## Current behavior and design
 
-- [STATUS.md](STATUS.md) — implemented features, limitations, platform support,
-  and validation boundaries.
-- [ARCHITECTURE.md](ARCHITECTURE.md) — runtime ownership, admission, routing,
-  cancellation, audio, and failure handling.
-- [ENV-VARS.md](ENV-VARS.md) — command-line, environment, Emacsvox, and upstream
-  Emacspeak configuration.
-- [TEXT-CHUNKING.md](TEXT-CHUNKING.md) — maintained chunking behavior and source
-  offset rules.
-- [ENGINE-ISOLATION.md](ENGINE-ISOLATION.md) — containment for uncancellable
-  native synthesis.
-- [Prepared synthesis](PREPARED-SYNTHESIS.md) — actual-attempt settings,
-  transactional handoff, effects, tickets and playback observations.
-- [LICENSING.md](LICENSING.md) — component boundaries and binary-distribution
-  licensing. The root [LICENSE](../LICENSE) contains the MIT text for
-  Omnivox-authored source.
-
-- [Remote workstation speech](REMOTE.md) — preview setup, SSH forwarding,
-  authentication, and Linux/Windows acceptance limits.
+- [Architecture](ARCHITECTURE.md): runtime components, ownership, routing,
+  cancellation, audio and failure handling.
+- [Status](STATUS.md): implemented capabilities, platform qualification and limits.
+- [Roadmap](ROADMAP.md): outstanding work and links to active proposals.
+- [Licensing](LICENSING.md): component supply and distribution boundaries.
 
 ## Architecture decision records
 
-The [decision index](adr/README.md) groups the accepted architectural choices
-and identifies proposals. Read the architecture reference for current behavior;
-follow its decision links for rationale and constraints. The active decisions
-cover engine isolation/distribution, rate calibration, progressive audio,
-workstation ownership, PulseAudio, voice customization and managed voices.
-Extensible engine registration remains proposed and is tracked through the
-[roadmap](plans/NEXT_STEPS.md#extensible-engine-registration).
-
-## Protocol specifications
-
-- [Legacy line protocol](protocols/LEGACY-PROTOCOL.md) — baseline Emacspeak
-  command grammar, state, queueing, and limits.
-- [Control protocol](protocols/CONTROL-PROTOCOL.md) — discovery, inventory,
-  routing policy, preview, tracked completion, and marker dispatch.
-- [Presentation timeline](protocols/PRESENTATION-TIMELINE-PROTOCOL.md) —
-  structured Aural timelines, multipart transport, actions, and degradation.
-- [Engine helper protocol](protocols/HELPER-PROTOCOL.md) — isolated synthesis
-  engine process contract.
-- [Remote protocol](protocols/REMOTE-PROTOCOL.md) — preview handshake, framing,
-  authentication, session ownership, and reconnect behavior.
-- [Validated fixtures](protocol-fixtures/) — JSON and JSONL examples checked
-  against the public Rust wire types by `omnivox-tts` tests.
-- [Layered voice tuning](per-fallback-voice-tuning.org) and
-  [native voice parameters](engine-voice-parameters.md) — authoritative
-  cross-protocol composition and compatibility contracts.
-- [Voice-library formats](voice-library-contract.org),
-  [validation evidence](voice-validation-evidence-design.md) and
-  [operation journals](voice-operation-journal-design.md) — persisted metadata,
-  observation and local ownership contracts.
+The [ADR index](adr/README.md) records durable choices and distinguishes accepted
+decisions from proposals. Accepted design, implementation, platform qualification
+and release publication are different states. Extensible engine registration
+remains [proposed](ROADMAP.md#extensible-engine-registration).
 
 ## Operations and releases
 
-- [Voice installation and activation](VOICE-INSTALLATION.md),
-  [native validation](VOICE-VALIDATION.md) and
-  [voice removal](VOICE-UNINSTALLATION.md) — local managed-asset operations,
-  explicit activation and cleanup limits.
-- [eSpeak variants](ESPEAK-VARIANTS.md) — live discovery, on-demand combinations,
-  legacy startup compatibility, exact identity and development acceptance limits.
-- [MBROLA prototype](MBROLA-PROTOTYPE.md) — private pinned frontend/runtime,
-  opt-in setup, test evidence and production boundaries.
+| Task | Guide |
+| --- | --- |
+| Configure a speech host | [CLI, environment and adapters](guides/configuration.md) |
+| Diagnose speech failures | [Logs, lifecycle tracing and crash dumps](guides/diagnostics.md) |
+| Manage downloaded/imported voices | [Installation, enablement, Apply/rollback and removal](guides/voice-management.md) |
+| Validate native voice inputs | [Disposable checks, saved evidence and operation commands](guides/native-voice-validation.md) |
+| Use workstation speech remotely | [Preview setup, SSH and recovery](guides/remote-speech.md) |
+| Install/build Debian packages | [Debian packages](guides/debian-packages.md) |
+| Compare Windows/Linux speech under WSLg | [Development comparison workflow](guides/wsl-audio-comparison.md) |
+| Build, verify or release payloads | [Deployment](../.github/DEPLOYMENT.md), [workflow reference](../.github/workflows/README.md), [developer tools](../tools/README.md) |
 
-- [Debian packages](DEBIAN.md) — amd64 installation, development and release
-  packaging, corresponding source, and Ubuntu verification.
+Published history remains in the [changelog](../CHANGELOG.md).
 
-- [RHVOICE.md](RHVOICE.md) — user-installed runtime requirements, platform
-  status, explicit paths, verification, licensing, and removal.
-- [FLITE.md](FLITE.md) — SLT-only companion installation, source build,
-  optional local `.flitevox` voices, verification, licensing, and removal.
-- [RUTTS.md](RUTTS.md) — self-contained Russian companion installation,
-  source build, text repertoire, pronunciation, verification, and removal.
-- [TGSPEECHBOX.md](TGSPEECHBOX.md) — experimental formant companion, Windows
-  x64 release installation/build, profiles, controls, verification, and licensing.
-- [PIPER.md](PIPER.md) — optional companion build, layout, model setup,
-  verification, upgrade, and removal.
-- [Windows capture helpers](../windows-helpers/README.md) — Eloquence and
-  DECtalk helper ownership, build, test, runtime, and licensing boundaries.
-- [Linux capture helpers](../linux-helpers/README.md) — development
-  Eloquence/Outloud and DECtalk interfaces for user-installed runtimes.
-- [DIAGNOSTICS.md](DIAGNOSTICS.md) — log collection, privacy boundaries, and
-  optional Windows crash dumps.
-- [Benchmark evidence](benchmarks/README.md) — immutable reports, raw samples,
-  provenance, checksums, and measurement limitations.
-- [WSLg audio experiment](experiments/2026-09-06-wslg-audio.md) — local
-  Linux/Windows comparison launches, PulseAudio buffer observations, and
-  outstanding acoustic acceptance; an experiment rather than a shipped preset.
-- [WSLg comparison workflow](WSL-AUDIO.md) — prepare separate Windows/Linux
-  session launchers, inspect runtime selection, and repeat buffer/shutdown
-  probes using the repository's development tool.
-- [Linux helper parity](experiments/2026-09-07-linux-helper-parity.md) — native
-  timing and voice-expression support, runtime evidence and remaining
-  differences from the Windows adapters.
-- [Native PulseAudio trial](experiments/2026-09-07-native-pulseaudio.md) — direct
-  Linux output, full-profile launchers, buffer and monitor evidence, and
-  remaining WSLg latency limits.
-- [Release and deployment guide](../.github/DEPLOYMENT.md) — archives,
-  verification, installation, and physical acceptance checks.
-- [Workflow reference](../.github/workflows/README.md) — CI and release job
-  behavior.
-- [Developer tools](../tools/README.md) — build staging, archive verification,
-  diagnostics, stress tools, and manual audio tests.
-- [CHANGELOG.md](../CHANGELOG.md) — published and unreleased user-visible
-  changes.
+## Engine guides
 
-## Plans and historical material
+Keep one guide per engine or distinct native feature. Each identifies runtime
+supply, configuration, verification and platform limits.
 
-- [NEXT_STEPS.md](plans/NEXT_STEPS.md) is the active roadmap, including the
-  prioritized feature backlog, voice-installation scope, extensible engine
-  registration proposal, and platform-specific audio-output work. It links to
-  the relevant proposals and specifications; its entries are not promises of
-  current behavior.
-- [PIPER-RELEASE.md](plans/PIPER-RELEASE.md) records completed companion release work. Its remaining release
-  requirements and evidence are being incorporated into maintained references.
-- [SPEECHD-PLAN.md](plans/SPEECHD-PLAN.md) is an unimplemented design proposal
-  that must be reconciled with current engine contracts before use.
-- [CHUNKING-IMPLEMENTATION.md](history/CHUNKING-IMPLEMENTATION.md) is a short
-  redirect from an obsolete implementation report to the maintained chunking
-  reference. Git history holds other retired phase plans.
+| Engine | Guide |
+| --- | --- |
+| Piper | [Companion, models and release maintenance](engines/piper.md) |
+| RHVoice | [User runtime and external/managed data](engines/rhvoice.md) |
+| Flite | [SLT companion and external voices](engines/flite.md) |
+| RuTTS | [Russian companion and text repertoire](engines/rutts.md) |
+| TGSpeechBox | [Experimental formant companion](engines/tgspeechbox.md) |
+| MBROLA | [Explicit development companion](engines/mbrola.md) |
+| eSpeak NG variants | [On-demand combinations and exact identity](engines/espeak-variants.md) |
+| macOS voices | [Native streaming and verification](engines/macos.md) |
+| Eloquence and DECtalk | [Windows helpers](../windows-helpers/README.md), [Linux helpers](../linux-helpers/README.md) |
 
-## Maintenance rule
+The platform helper build READMEs remain with the code they maintain.
 
-Follow the [documentation guide](DOCUMENTATION-GUIDE.md). Keep current behavior,
-accepted decisions, proposals and evidence distinct. Completed plans contribute
-their lasting contracts and results to maintained references and evidence;
-Git retains discarded implementation history. Preserve raw measurements when
-retiring old prose. Run `make docs-check` after moving or linking documents and
-check changed anchors and Org/cross-repository references separately.
+## Protocol specifications
+
+- [Legacy line protocol](protocols/legacy.md): Emacspeak command grammar and state.
+- [Control protocol](protocols/control.md): discovery, inventory, routing,
+  previews, completion and marker events.
+- [Presentation timeline](protocols/presentation-timeline.md): structured spans,
+  multipart transport, actions and degradation.
+- [Engine helper protocol](protocols/helper.md): isolated synthesis processes.
+- [Remote protocol](protocols/remote.md): authenticated preview transport.
+- [Voice-choice tuning](protocols/voice-choice-tuning.org): authoritative layered
+  composition and compatibility across protocol versions.
+- [Native voice parameters](protocols/engine-voice-parameters.md): authoritative
+  native catalogue, composition, preview and evidence contract.
+- [Protocol fixtures](protocol-fixtures/): executable examples consumed by Rust
+  tests. Their paths and wire contents are independent of prose reorganization.
+
+## Implementation and format references
+
+- [Native-call isolation](reference/native-call-isolation.md): quarantine and
+  bounded capacity for uncancellable native calls.
+- [Prepared synthesis](reference/prepared-synthesis.md): attempts, transactional
+  audio commitment, effects, tickets and consumption evidence.
+- [Text chunking](reference/text-chunking.md): preprocessing and original offsets.
+- [Rate calibration](reference/rate-calibration.md): mappings, measured reference
+  curves, reproduction and interpretation.
+- [Voice-library formats](reference/voice-library.org): storage, identity,
+  eligibility, generations and activation.
+- [Operation journals](reference/voice-operation-journals.md): persistent
+  ownership, transitions, cleanup and recovery.
+- [Validation evidence](reference/validation-evidence.md): saved observations,
+  comparison and publication limits.
+
+## Evidence
+
+Use the [evidence index](benchmarks/README.md) to choose a matched performance
+baseline or find native/functional acceptance. Benchmark packs, experiment
+reports and [rate audits](rate-audits/README.md) retain their existing paths,
+raw samples, reproduction inputs and provenance. Functional pass counts do not
+establish performance or audible acceptance. Reruns create new reports.
+
+## Active proposals
+
+The [roadmap](ROADMAP.md) is the entry to future work. Current detailed proposals:
+
+- [Extensible engine framework](plans/extensible-engine-framework.md): independent
+  registration, configuration and lifecycle; language routing is a later increment.
+- [Speech Dispatcher feasibility](plans/speech-dispatcher.md): external playback,
+  capability reductions and completion questions before implementation.
+
+Completed plans contribute lasting requirements to guides/references and results
+to evidence, then leave the working tree. Git retains the implementation history.

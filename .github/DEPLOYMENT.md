@@ -5,7 +5,7 @@
 The updated release workflow also produces `omnivox_VERSION-1_amd64.deb` for
 Ubuntu 24.04 and 26.04. This core package is built on Ubuntu 24.04, covered by
 the unified checksum manifest, and tested again after download from the draft
-release. See the [Debian guide](../docs/DEBIAN.md) for installation and its
+release. See the [Debian guide](../docs/guides/debian-packages.md) for installation and its
 matching corresponding-source archive. Earlier releases do not gain this asset.
 
 The checked-in GitHub Actions workflow publishes these release archives:
@@ -333,21 +333,21 @@ Copy-Item -Recurse -Force windows-helpers-source "$destination\windows-helpers-s
 For a release that lists Piper, verify and extract the matching companion into
 the generic executable's directory; its one top-level `piper/` directory keeps
 the runtime isolated. Supply a separately reviewed voice model and follow the
-[Piper companion guide](../docs/PIPER.md). Other optional helper engines still
+[Piper companion guide](../docs/engines/piper.md). Other optional helper engines still
 require adjacent executables and user-supplied runtimes. For Flite, extract the
 matching companion's `flite/` directory beside the generic executable; its
 built-in SLT voice requires no additional runtime. See the
-[Flite companion guide](../docs/FLITE.md). For RuTTS, extract the matching
+[Flite companion guide](../docs/engines/flite.md). For RuTTS, extract the matching
 companion's `rutts/` directory beside the generic executable; its built-in
 male and female voices require no additional runtime. See the
-[RuTTS companion guide](../docs/RUTTS.md). For TGSpeechBox on Windows x64,
+[RuTTS companion guide](../docs/engines/rutts.md). For TGSpeechBox on Windows x64,
 extract the companion's `tgspeechbox/` directory beside the generic executable. Its
 packs and eSpeak NG phonemizer data are included. Its rate is calibrated against
 Eloquence and it exposes exact requested anchors, but not general word or
 sentence markers. See the
-[TGSpeechBox companion guide](../docs/TGSPEECHBOX.md). The generic `rhvoice/`
+[TGSpeechBox companion guide](../docs/engines/tgspeechbox.md). The generic `rhvoice/`
 helper still requires a separately installed compatible runtime and voice; see the
-[RHVoice guide](../docs/RHVOICE.md). The
+[RHVoice guide](../docs/engines/rhvoice.md). The
 [Windows helper guide](../windows-helpers/README.md#runtime-requirements-and-installation)
 documents the complete Eloquence and DECtalk requirements, the durable DECtalk
 binary, and the separately labelled newer-build path.
@@ -359,7 +359,7 @@ OS-provided per-file exception that you understand. Build from reviewed source
 when local policy requires signed software.
 
 The repository adapter is for upstream Emacspeak. Follow [README.md](../README.md)
-and [ENV-VARS.md](../docs/ENV-VARS.md) rather than mixing those `dtk-*` names with
+and [configuration.md](../docs/guides/configuration.md) rather than mixing those `dtk-*` names with
 Emacsvox's bundled adapter.
 
 ## Emacsvox Windows deployment

@@ -31,7 +31,7 @@ The feature remains preview.
 
 The fixture SHA-256 for the runs below is
 `2d265bbcd2625b0db156d6c7d85b3606315e2947c995fe5819c3890d57937ce2`.
-See [the repeatable commands](../REMOTE.md#repeatable-real-ssh-check).
+See [the repeatable commands](../guides/remote-speech.md#repeatable-real-ssh-check).
 
 ## Results
 

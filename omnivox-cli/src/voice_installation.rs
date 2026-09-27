@@ -33,7 +33,7 @@ pub fn run(args: &[String]) -> Result<()> {
     };
     anyhow::ensure!(
         args.len() == count,
-        "{command}: wrong argument count; see docs/VOICE-INSTALLATION.md"
+        "{command}: wrong argument count; see docs/guides/voice-management.md"
     );
     let root = Path::new(&args[1]);
     if command == "--initialize-voice-library" {

@@ -12,7 +12,7 @@ by a repeatable stall during rapid up/down movement in Dired. The user reported
 that TGSpeechBox survived the same movement and eSpeak stalled again after
 switching back.
 
-An isolated terminal Emacs session using the [Linux trial launcher](../WSL-AUDIO.md)
+An isolated terminal Emacs session using the [Linux trial launcher](../guides/wsl-audio-comparison.md)
 reproduced the problem. Omnivox stayed alive and admitted new requests, but the
 speech worker stopped finishing them. A debugger backtrace showed:
 

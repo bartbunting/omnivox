@@ -92,7 +92,7 @@ def plugin_directory(directory: Path | None) -> Path:
             return candidate.resolve()
     raise ValueError(
         "ALSA PulseAudio plugins are missing. Supply --alsa-plugin-dir from a "
-        "compatible installed or privately extracted package; see docs/WSL-AUDIO.md."
+        "compatible installed or privately extracted package; see docs/guides/wsl-audio-comparison.md."
     )
 
 

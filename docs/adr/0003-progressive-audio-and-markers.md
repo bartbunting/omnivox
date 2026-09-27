@@ -98,6 +98,6 @@ completion boundaries. Proportional or IPA-derived markers invent precision
 without a source mapping. None is an acceptable substitute.
 
 Exact wire shapes and bounds remain in the
-[helper](../protocols/HELPER-PROTOCOL.md),
-[control](../protocols/CONTROL-PROTOCOL.md) and
-[timeline](../protocols/PRESENTATION-TIMELINE-PROTOCOL.md) references.
+[helper](../protocols/helper.md),
+[control](../protocols/control.md) and
+[timeline](../protocols/presentation-timeline.md) references.

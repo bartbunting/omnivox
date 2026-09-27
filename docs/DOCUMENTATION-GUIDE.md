@@ -10,7 +10,7 @@ summarize it briefly and link there. Git retains implementation history.
 | --- | --- | --- |
 | [ADR](adr/README.md) | A durable architectural choice changes boundaries, ownership, compatibility, dependencies, distribution, or a significant quality tradeoff. | Context, decision, alternatives, consequences and related decisions. |
 | [Architecture](ARCHITECTURE.md) | Implemented component responsibilities, data flow or lifecycle change. | A coherent account of the current system and its invariants, linked to rationale and exact contracts. |
-| [Roadmap](plans/NEXT_STEPS.md) | Work is proposed, prioritized, scoped, deferred or completed. | Delivery priorities, outstanding acceptance and links to active plans. |
+| [Roadmap](ROADMAP.md) | Work is proposed, prioritized, scoped, deferred or completed. | Delivery priorities, outstanding acceptance and links to active plans. |
 | Plan / implementation specification in `plans/` | Nontrivial future work needs a concrete contract, sequence or acceptance checklist. | Proposed behavior, non-goals, open decisions, compatibility, delivery slices and verification criteria. |
 | Protocol or persisted-format contract | Messages, serialized fields, defaults, limits, ordering or compatibility change. | Exact normative shapes and semantics, negotiation, examples and version rules. |
 | Operations/reference guide | Users or operators must install, configure, diagnose or use a feature. | Current supported commands, prerequisites, behavior and limitations. |
@@ -24,11 +24,32 @@ New engine adapters need a separate ADR only when existing process, runtime and
 distribution policies do not settle their choices. A plan is not required for a
 small straightforward change. Avoid creating a document for each commit.
 
-New wire references belong in `protocols/` with independently checked examples
-under `protocol-fixtures/`. Existing cross-cutting contracts such as
-`voice-library-contract.org`, `per-fallback-voice-tuning.org` and
-`engine-voice-parameters.md` retain their authoritative roles; do not create a
-second schema description elsewhere merely for a different filename.
+## Locations and naming
+
+Keep the root index, architecture, status, roadmap, licensing and this guide in
+`docs/`. Use lowercase descriptive names in subject directories:
+
+- `engines/`: engine setup, runtime supply and engine-specific verification.
+- `guides/`: installation, configuration, operation and diagnostic procedures.
+- `reference/`: internal algorithms and persisted-format contracts.
+- `protocols/`: exact wire contracts, including cross-protocol tuning rules.
+- `plans/`: active proposals and nontrivial future implementation specifications.
+- `adr/`: numbered durable architectural choices.
+
+The [documentation index](README.md) is the common navigation entry; avoid an
+extra index or document when a short section in its existing owner suffices.
+Engine guides link shared configuration and managed-voice procedures instead of
+copying them. The Emacsvox repository owns its client UI/settings documentation;
+this repository owns the upstream Emacspeak compatibility adapter.
+
+Protocol examples under `protocol-fixtures/` are executable test inputs; keep
+those paths stable unless the test integration is deliberately changed. Each
+wire or storage contract has one authoritative home. A move does not create a
+second schema, change the format version or promote a proposal to implementation.
+
+Keep existing `benchmarks/`, `experiments/` and `rate-audits/` evidence packs
+intact. The [evidence index](benchmarks/README.md) groups performance baselines,
+functional acceptance and investigations without rearranging raw inputs.
 
 ## ADR lifecycle
 
@@ -137,10 +158,14 @@ Org references, repository instructions and paired Emacsvox references. Keep the
 README as navigation, the roadmap as the entry to future work, and the ADR index
 as the entry to decisions. Avoid maintaining duplicate lists in each.
 
-Run `make docs-check` and `git diff --check` before review/commit. The current
-documentation checker validates tracked Markdown file targets; also review
-changed fragment anchors and Org/cross-repository links, which that checker does
-not fully cover. Stage new documents before running the tracked-file check.
+Run `make docs-check` and `git diff --check` before review/commit. Stage new
+documents before checking tracked sources. The link checker covers Markdown and
+Org targets and anchors, and current-branch GitHub links to this repository.
+For paired Emacsvox references, use `make docs-check-paired
+EMACSVOX_SOURCE_DIRECTORY=/path/to/emacsvox`; it checks incoming links without
+network access or changing either checkout. Commit/tag-pinned historical URLs
+remain historical. General external availability needs a separate network audit.
+
 Run affected fixture/code tests when executable contracts change. Follow the
 owning repository's additional documentation gates for cross-repository edits.
 Never change a published changelog section or a retained measurement merely to

@@ -32,7 +32,7 @@ passed on both architectures.
 These checks establish this storage slice's behavior, not persistent ownership
 of the native validator or full installation/activation recovery. Full Windows
 server/companion and MSVC acceptance remain separate, as recorded in
-[the validator guide](../VOICE-VALIDATION.md).
+[the validator guide](../guides/native-voice-validation.md).
 
 ### Admitted native execution
 

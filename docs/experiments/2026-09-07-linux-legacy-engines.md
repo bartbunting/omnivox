@@ -89,5 +89,5 @@ advertised. Linux rate mappings are provisional pending a retained audit.
 
 Playback completion and mixer/protocol timing do not measure physical
 command-to-sound or stop-to-silence latency. Listening comparisons and physical
-capture remain part of the [WSLg experiment](../WSL-AUDIO.md). This work does
+capture remain part of the [WSLg experiment](../guides/wsl-audio-comparison.md). This work does
 not establish the cause of the historical Outloud/dtk-soft WSL delays.

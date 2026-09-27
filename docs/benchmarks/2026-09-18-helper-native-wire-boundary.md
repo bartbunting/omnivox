@@ -1,6 +1,6 @@
 # Native parameter helper wire boundary, 2026-09-18
 
-This is a compatibility prerequisite for [helper 6](../engine-voice-parameters.md),
+This is a compatibility prerequisite for [helper 6](../protocols/engine-voice-parameters.md),
 following the internal [DECtalk execution slice](2026-09-18-dectalk-native-execution.md).
 It does not advertise helper 6 or expose the native editor.
 

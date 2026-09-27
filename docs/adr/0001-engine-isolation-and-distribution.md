@@ -18,7 +18,7 @@ Process topology and permission to distribute a runtime are independent choices.
 
 A built-in engine calls its runtime inside Omnivox, whether statically or
 dynamically linked. A helper runs a dedicated executable using the bounded,
-versioned [helper protocol](../protocols/HELPER-PROTOCOL.md). A detached native
+versioned [helper protocol](../protocols/helper.md). A detached native
 call inside Omnivox is not a helper boundary.
 
 A helper is required for a different-architecture ABI, a user-supplied runtime

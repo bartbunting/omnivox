@@ -69,8 +69,10 @@
   not alter historical measurements. Use `docs/benchmarks/README.md` for matched
   baseline comparisons and distinguish source timing from acoustic output.
 - Before documentation commits, stage new files and run `make docs-check` plus
-  `git diff --check`. Review changed fragment, Org and cross-repository references
-  separately. Documentation-only edits require no Rust build or native benchmark;
+  `git diff --check`. The gate checks Markdown/Org targets and anchors. For paired
+  Emacsvox changes also run `make docs-check-paired` with its checkout selected;
+  network availability of other URLs is a separate check. Documentation-only
+  edits require no Rust build or native benchmark;
   executable contract/fixture changes retain the appropriate implementation gates.
 
 ## Rust, formatting, and verification

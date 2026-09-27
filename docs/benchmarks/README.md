@@ -22,7 +22,7 @@ acceptance on every platform.
 | Native control overhead | [Parameter timing](2026-09-20-dectalk-parameter-timing.md), [batched parameters](2026-09-20-dectalk-batched-parameters.md), [reset placement experiment](2026-09-20-dectalk-reset-latency.md) | DECtalk runtime-specific measurements; distinguish private prototypes from shipped behavior. |
 | End-to-end server responsiveness | [Responsiveness investigation](2026-09-20-responsiveness.md) | Preserve the reported compiler confound; use the later matched resampler comparison for that question. |
 | Cancellation and runtime resources | [Windows helper cancellation](2026-09-17-windows-helper-cancellation.md), [RuTTS acceptance](2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md) | Helper protocol/retirement and process counters; not acoustic stop-to-silence. |
-| Speech-rate consistency | [Rate calibration](../RATE-CALIBRATION.md), [retained rate audits](../rate-audits/README.md) | Corpus/WAV duration and WPM, distinct from synthesis throughput. |
+| Speech-rate consistency | [Rate calibration](../reference/rate-calibration.md), [retained rate audits](../rate-audits/README.md) | Corpus/WAV duration and WPM, distinct from synthesis throughput. |
 | WSL output experiments | [WSLg evidence](../experiments/2026-09-06-wslg-audio.md), [native PulseAudio trial](../experiments/2026-09-07-native-pulseaudio.md) | Local software observations and listening limits; no general acoustic parity claim. |
 
 Earlier baselines remain available:

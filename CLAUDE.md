@@ -12,14 +12,14 @@ not duplicate test counts, status lists, or phase-by-phase roadmaps.
 - [STATUS.md](docs/STATUS.md) — implemented behavior and current limitations.
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) — runtime ownership, hot path, bounds,
   replacement, cancellation, and lifecycle invariants.
-- [CONTROL-PROTOCOL.md](docs/protocols/CONTROL-PROTOCOL.md) — version 1 control, legacy
+- [control.md](docs/protocols/control.md) — version 1 control, legacy
   framing, tracked completion, and marker dispatch.
-- [PRESENTATION-TIMELINE-PROTOCOL.md](docs/protocols/PRESENTATION-TIMELINE-PROTOCOL.md) —
+- [presentation-timeline.md](docs/protocols/presentation-timeline.md) —
   structured timeline versions and multipart transport.
-- [HELPER-PROTOCOL.md](docs/protocols/HELPER-PROTOCOL.md) — isolated engine process contract.
-- [ENV-VARS.md](docs/ENV-VARS.md) — CLI, environment, Emacsvox, and upstream
+- [helper.md](docs/protocols/helper.md) — isolated engine process contract.
+- [configuration.md](docs/guides/configuration.md) — CLI, environment, Emacsvox, and upstream
   Emacspeak configuration boundaries.
-- [NEXT_STEPS.md](docs/plans/NEXT_STEPS.md) — remaining work only.
+- [ROADMAP.md](docs/ROADMAP.md) — remaining work only.
 
 When those documents disagree, inspect the code and update the relevant
 canonical reference rather than adding another explanation here.

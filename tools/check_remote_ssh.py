@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Opt-in real SSH/Emacs acceptance; see docs/REMOTE.md for prerequisites.
+"""Opt-in real SSH/Emacs acceptance; see docs/guides/remote-speech.md for prerequisites.
 
 Only this check's private service, tunnel, token, and remote snapshot are owned.
 No installed configuration, checkout, runtime, or existing tunnel is changed.

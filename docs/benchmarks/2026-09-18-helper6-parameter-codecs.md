@@ -1,7 +1,7 @@
 # Reserved helper-6 parameter codecs, 2026-09-18
 
 This follows the [legacy wire boundary](2026-09-18-helper-native-wire-boundary.md)
-and implements the next part of the [accepted contract](../engine-voice-parameters.md).
+and implements the next part of the [accepted contract](../protocols/engine-voice-parameters.md).
 It adds no advertised capability or live helper operation.
 
 ## Implementation

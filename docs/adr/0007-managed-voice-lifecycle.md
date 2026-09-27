@@ -124,8 +124,8 @@ or treating one worker's acknowledgement as successful Apply would violate these
 boundaries. Rejecting all ordinary speech for an optional failed provider would
 defeat engine isolation; silently discarding exclusion metadata is equally invalid.
 
-Exact formats live in the [voice-library contract](../voice-library-contract.org).
-[Installation](../VOICE-INSTALLATION.md), [validation](../VOICE-VALIDATION.md) and
-[removal](../VOICE-UNINSTALLATION.md) document current commands and qualification.
+Exact formats live in the [voice-library contract](../reference/voice-library.org).
+[Installation](../guides/voice-management.md), [validation](../guides/native-voice-validation.md) and
+[removal](../guides/voice-management.md#managed-voice-uninstallation) document current commands and qualification.
 [Retained results](../benchmarks/2026-09-27-retained-validation-results.md) preserve
 historical tests without embedding an implementation diary in this decision.

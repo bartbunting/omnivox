@@ -73,9 +73,9 @@ settings. Automatic discovery introduces executable code implicitly. In-process
 external loading conflicts with isolation; unrestricted automatic selection lets
 an added voice change existing speech without an explicit preference.
 
-The [specification](../plans/EXTENSIBLE-ENGINE-FRAMEWORK.md) owns exact schemas,
+The [specification](../plans/extensible-engine-framework.md) owns exact schemas,
 precedence, bounds and acceptance criteria. The
-[roadmap](../plans/NEXT_STEPS.md#extensible-engine-registration) owns delivery.
+[roadmap](../ROADMAP.md#extensible-engine-registration) owns delivery.
 The first slice uses a fake helper; real native integrations retain separate
 qualification. Language-routing changes, live reload and a configuration UI are
 later increments. This proposal does not authorize their implementation or change

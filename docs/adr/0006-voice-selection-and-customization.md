@@ -83,9 +83,9 @@ new operation names and capability bundles distinguish complete previews,
 layered tuning and native parameters. Layered tuning requires timeline 4/marker
 3; native parameters use timeline 5/marker 4 and helper 6. On-demand eSpeak
 variants have their own capability. Exact fields, limits and fixtures belong to
-the [control reference](../protocols/CONTROL-PROTOCOL.md),
-[layered contract](../per-fallback-voice-tuning.org) and
-[native contract](../engine-voice-parameters.md).
+the [control reference](../protocols/control.md),
+[layered contract](../protocols/voice-choice-tuning.org) and
+[native contract](../protocols/engine-voice-parameters.md).
 
 Advertise a capability only when its complete promised path works, including
 registration, ordinary speech, private previews and truthful execution evidence.

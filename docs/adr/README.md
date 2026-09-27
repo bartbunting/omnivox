@@ -2,7 +2,7 @@
 
 These records explain durable choices and their tradeoffs. Read the
 [architecture reference](../ARCHITECTURE.md) for current implemented behavior and
-the [roadmap](../plans/NEXT_STEPS.md) for outstanding work. Accepted decisions
+the [roadmap](../ROADMAP.md) for outstanding work. Accepted decisions
 constrain implementation; acceptance alone is not evidence that a feature ships.
 Proposed records do not override accepted decisions.
 

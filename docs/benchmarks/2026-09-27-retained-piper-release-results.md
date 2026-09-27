@@ -85,5 +85,5 @@ Source: `docs/plans/PIPER-RELEASE.md` at `ca38781`.
 7. **Completed for source builds, candidates, and tag releases:** document
    installation, model/config discovery, engine inventory, fallback,
    diagnostics, upgrade, and removal in the
-   [Piper companion guide](../PIPER.md), including the unsigned-binary boundary
+   [Piper companion guide](../engines/piper.md), including the unsigned-binary boundary
    and checksum-verification requirement.

@@ -32,7 +32,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Check documentation links
-        run: python3 tools/check_markdown_links.py
+        run: make docs-check
 
       - name: Check release guards, archive layout, and asset contract
         run: make deb-package-test release-archive-test release-asset-test
