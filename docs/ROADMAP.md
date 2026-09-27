@@ -184,6 +184,16 @@ markers. Measure physical output, underruns, device changes and competing load.
   records, and confirmed process cleanup. A broad unification project has no
   demonstrated benefit. Any cleanup needs local and remote startup, failure,
   recovery and independent notification-speech checks.
+- **Make remote worker retirement explicit:** when startup or recovery next
+  changes, give remote cleanup a deadline and a checked result, retaining
+  ownership if child-process or pipe cleanup cannot be confirmed. The remote
+  path currently ignores termination errors and waits without a deadline;
+  local ownership already checks cleanup. A normal disconnect hang has not
+  been established, so this is deferred hardening rather than a confirmed
+  outage. Test failed termination, surviving descendants, blocked pipes,
+  service shutdown and both speech lanes on Linux and Windows. Keep the
+  existing rule that a replacement waits for confirmed cleanup; share small
+  ownership utilities only where they simplify these checks.
 
 ## Explicit future proposals
 
