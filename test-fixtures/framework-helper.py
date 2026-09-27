@@ -6,6 +6,7 @@ from a path containing spaces. This fixture is never part of a release payload.
 import argparse
 import base64
 import json
+import os
 import sys
 import time
 
@@ -14,9 +15,13 @@ parser.add_argument("--descriptor", required=True)
 parser.add_argument("--record", required=True)
 parser.add_argument("--tag", default="")
 parser.add_argument("--hang", action="store_true")
+parser.add_argument("--record-environment")
 args = parser.parse_args()
 with open(args.record, "a", encoding="utf-8") as record:
     record.write(json.dumps(sys.argv[1:]) + "\n")
+if args.record_environment:
+    with open(args.record_environment, "a", encoding="utf-8") as record:
+        record.write(json.dumps(dict(pid=os.getpid(), value=os.environ.get("OMNIVOX_FIXTURE_PRIVATE"))) + "\n")
 if args.hang:
     time.sleep(300)
 with open(args.descriptor, encoding="utf-8") as source:

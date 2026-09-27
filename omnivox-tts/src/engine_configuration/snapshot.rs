@@ -531,7 +531,7 @@ fn validate_managed_invocations(
     Ok(())
 }
 
-fn validate_environment(variables: &[(OsString, OsString)]) -> Result<()> {
+pub(super) fn validate_environment(variables: &[(OsString, OsString)]) -> Result<()> {
     for (name, value) in variables {
         require(
             !name.is_empty() && native_without_nul(name) && native_without_nul(value),

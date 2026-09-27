@@ -195,6 +195,7 @@ fn service(host: Host) -> Result<()> {
                         startup.configuration.as_ref() == Some(&candidate.configuration),
                         "snapshot candidate changed"
                     );
+                    prepare_engines(&mut startup)?;
                     let (path, digest) = startup.save_prepared(&host, &local::new_uuid()?)?;
                     Ok(Reply::Snapshot {
                         startup: path.to_string_lossy().into(),
@@ -277,9 +278,8 @@ impl Worker {
         let tree = platform::Tree::for_speech()?;
         let mut command = Command::new(&startup.executable.path);
         command.args(&startup.arguments);
+        startup.environment.apply(&mut command);
         command
-            .env_clear()
-            .envs(&startup.environment)
             // Local ownership needs the START barrier, not the remote
             // broker's restriction to bundled icon identifiers.
             .env_remove("OMNIVOX_REMOTE_WORKER")
@@ -323,12 +323,29 @@ impl Worker {
                     Ok(())
                 })?,
         );
-        worker
-            .child
-            .stdin
-            .as_mut()
-            .context("missing owned stdin")?
-            .write_all(b"START\n")?;
+        let snapshot = startup
+            .engines
+            .clone()
+            .context("owner lacks frozen engine startup")?;
+        let mut stdin = worker.child.stdin.take().context("missing owned stdin")?;
+        let (sender, receiver) = mpsc::sync_channel(1);
+        // A complete record may exceed pipe capacity. Retain its writer with
+        // the owned tree and bound transmission; cleanup also joins this pipe.
+        worker.readers.push(
+            thread::Builder::new()
+                .name("owned-speech-startup".into())
+                .spawn(move || {
+                    let result =
+                        crate::worker_startup::write(&mut stdin, &snapshot).map(|()| stdin);
+                    let _ = sender.send(result);
+                    Ok(())
+                })?,
+        );
+        worker.child.stdin = Some(
+            receiver
+                .recv_timeout(Duration::from_secs(10))
+                .context("owned worker startup transmission did not complete")??,
+        );
         Ok(())
     }
     fn cleanup(&mut self) -> Result<()> {
@@ -388,17 +405,23 @@ fn owner(host: Host) -> Result<()> {
     let mut configuration = None;
     let start = (|| -> Result<()> {
         let mut startup = if let Some(path) = std::env::var_os("OMNIVOX_OWNED_STARTUP") {
-            Startup::read(
+            let retained = Startup::read(
                 Path::new(&path),
                 &std::env::var("OMNIVOX_OWNED_STARTUP_SHA256")
                     .context("missing native startup digest")?,
-            )?
+            )?;
+            anyhow::ensure!(
+                retained.engines.is_some(),
+                "retained startup predates engine snapshots; prepare a fresh activation"
+            );
+            retained
         } else {
             Startup::capture(&host)?
         };
         if let Some(path) = std::env::var_os("OMNIVOX_OWNED_LIBRARY") {
             startup.candidate(Path::new(&path))?;
         }
+        prepare_engines(&mut startup)?;
         (path, digest) = startup.save(&host, &worker_id)?;
         configuration = startup.configuration.clone();
         let result = Worker::spawn(&startup, &output, &mut worker);
@@ -498,6 +521,24 @@ fn owner(host: Host) -> Result<()> {
             }
         }
     }
+}
+
+fn prepare_engines(startup: &mut Startup) -> Result<()> {
+    if startup.engines.is_none() {
+        startup.engines = Some(
+            crate::engine::EngineStartup::capture(
+                "",
+                None,
+                None,
+                None,
+                startup.environment.clone(),
+                Path::new(&startup.executable.path),
+            )?
+            .snapshot,
+        );
+    }
+    startup.verify()?;
+    Ok(())
 }
 
 fn cleanup(worker: &mut Option<Worker>) -> Result<()> {

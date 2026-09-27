@@ -69,7 +69,7 @@ fn record(
         snapshot == host.root.join("sessions").join(format!("{worker}.json")),
         "startup snapshot is outside this host",
     )?;
-    let bytes = read_bounded(open_file(snapshot, false)?, MAX_RUNTIME_BYTES)?;
+    let bytes = read_bounded(open_file(snapshot, false)?, local::MAX_STARTUP_BYTES)?;
     require(
         verification::digest(&bytes) == expected,
         "startup snapshot changed before retirement",

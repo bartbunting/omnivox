@@ -44,6 +44,7 @@ mod voice_observations;
 mod voice_operations;
 mod voice_validation;
 mod work_queue;
+mod worker_startup;
 
 use anyhow::Result;
 use omnivox_audio::AudioFileLoader;

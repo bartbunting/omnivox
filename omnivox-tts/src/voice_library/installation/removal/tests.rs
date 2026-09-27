@@ -1,6 +1,5 @@
 use super::*;
 use crate::voice_library::local::{Host, Startup};
-use std::collections::BTreeMap;
 
 fn write_catalogue_file(directory: &Path, file: &catalogue::DownloadFile) -> AssetFile {
     let relative: PathBuf = file.filename().unwrap().split('/').collect();
@@ -520,13 +519,10 @@ fn live_and_legacy_snapshots_pin_files_until_confirmed_native_retirement() {
         arguments: Vec::new(),
         working_directory: fixture.host.root.clone(),
         configuration: None,
-        environment: BTreeMap::from([(
+        engines: None,
+        environment: crate::engine_configuration::LaunchEnvironment::from_variables([(
             "OMNIVOX_FLITE_VOICES".into(),
-            fixture
-                .directory
-                .join("voice.flitevox")
-                .to_string_lossy()
-                .into(),
+            fixture.directory.join("voice.flitevox").into_os_string(),
         )]),
     };
     let (path, hash) = startup
@@ -550,13 +546,10 @@ fn prepared_snapshots_and_storage_gate_do_not_invent_live_owners() {
         arguments: Vec::new(),
         working_directory: fixture.host.root.clone(),
         configuration: None,
-        environment: BTreeMap::from([(
+        engines: None,
+        environment: crate::engine_configuration::LaunchEnvironment::from_variables([(
             "OMNIVOX_PIPER_MODEL".into(),
-            fixture
-                .directory
-                .join("voice.flitevox")
-                .to_string_lossy()
-                .into(),
+            fixture.directory.join("voice.flitevox").into_os_string(),
         )]),
     };
     startup

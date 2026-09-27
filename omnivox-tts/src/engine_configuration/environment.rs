@@ -4,6 +4,8 @@ use std::fmt;
 use std::process::Command;
 use std::sync::Arc;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 /// Private immutable native environment shared by launch and recovery.
 #[derive(Clone, PartialEq, Eq)]
 pub struct LaunchEnvironment(Arc<BTreeMap<OsString, OsString>>);
@@ -38,8 +40,55 @@ impl LaunchEnvironment {
         command.env_clear().envs(self.0.iter());
     }
 
+    /// Change one host-owned setting using the launch platform's key semantics.
+    /// Engine snapshots retain the original value; this returns a new record.
+    pub fn with_variable(&self, key: &str, value: Option<OsString>) -> Self {
+        let mut command = Command::new("unused-environment-projection");
+        self.apply(&mut command);
+        if let Some(value) = value {
+            command.env(key, value);
+        } else {
+            command.env_remove(key);
+        }
+        Self::from_variables(
+            command
+                .get_envs()
+                .filter_map(|(key, value)| value.map(|value| (key.to_owned(), value.to_owned()))),
+        )
+    }
+
     pub(super) fn variables(&self) -> impl Iterator<Item = (&OsString, &OsString)> {
         self.0.iter()
+    }
+}
+
+impl Serialize for LaunchEnvironment {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.variables().collect::<Vec<_>>().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for LaunchEnvironment {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        // Existing retained owner records used UTF-8 maps. They remain readable
+        // for inspection and package-retention decisions after an upgrade.
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Wire {
+            Native(Vec<(OsString, OsString)>),
+            Legacy(BTreeMap<String, String>),
+        }
+        let variables = match Wire::deserialize(deserializer)
+            .map_err(|_| serde::de::Error::custom("invalid private launch environment"))?
+        {
+            Wire::Native(variables) => variables,
+            Wire::Legacy(variables) => variables
+                .into_iter()
+                .map(|(key, value)| (key.into(), value.into()))
+                .collect(),
+        };
+        super::snapshot::validate_environment(&variables).map_err(serde::de::Error::custom)?;
+        Ok(Self::from_variables(variables))
     }
 }
 
@@ -52,6 +101,43 @@ impl fmt::Debug for LaunchEnvironment {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn retained_legacy_maps_and_native_records_preserve_values() {
+        let environment: LaunchEnvironment =
+            serde_json::from_str(r#"{"EMPTY":"","PRIVATE":"value"}"#).unwrap();
+        let bytes = serde_json::to_vec(&environment).unwrap();
+        let restored: LaunchEnvironment = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(restored, environment);
+        let changed = restored
+            .with_variable("PRIVATE", Some("replacement".into()))
+            .with_variable("EMPTY", None);
+        assert_eq!(changed.get("PRIVATE"), Some(OsStr::new("replacement")));
+        assert_eq!(changed.get("EMPTY"), None);
+        assert_eq!(environment.get("PRIVATE"), Some(OsStr::new("value")));
+        assert_eq!(environment.get("EMPTY"), Some(OsStr::new("")));
+        assert!(serde_json::from_str::<LaunchEnvironment>(r#"{"BAD=NAME":"value"}"#).is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn inherited_windows_key_spelling_does_not_change_override_precedence() {
+        let environment =
+            LaunchEnvironment::from_variables([("Omnivox_Piper_Model".into(), "inherited".into())]);
+        let changed = environment.with_variable("OMNIVOX_PIPER_MODEL", Some("candidate".into()));
+        assert_eq!(changed.variables().count(), 1);
+        assert_eq!(
+            changed.get("OMNIVOX_PIPER_MODEL"),
+            Some(OsStr::new("candidate"))
+        );
+        assert_eq!(
+            changed
+                .with_variable("OMNIVOX_PIPER_MODEL", None)
+                .variables()
+                .count(),
+            0
+        );
+    }
 
     #[test]
     fn applying_a_snapshot_replaces_pending_environment_without_disclosure() {

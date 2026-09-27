@@ -1,17 +1,15 @@
 //! Capture and resolve all startup inputs before any native engine is created.
 use super::*;
 use omnivox_tts::engine_configuration::{
-    EngineOrigin, ResolvedConfiguration, ResolvedRegistration, RuntimeInputs, RuntimeInvocation,
-    Timeouts,
+    EngineOrigin, LaunchSnapshot, ResolvedConfiguration, ResolvedRegistration, RuntimeInputs,
+    RuntimeInvocation, Timeouts,
 };
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 
 pub(crate) struct EngineStartup {
-    pub resolved: ResolvedConfiguration,
+    pub snapshot: LaunchSnapshot,
     pub library: Option<StartupLibrary>,
-    pub requested: String,
-    piper_selected: bool,
 }
 
 impl EngineStartup {
@@ -21,19 +19,37 @@ impl EngineStartup {
         library: Option<&str>,
         config_dir: Option<&str>,
     ) -> Result<Self> {
-        let environment = LaunchEnvironment::capture();
+        if let Some(snapshot) = crate::worker_startup::snapshot() {
+            return Ok(Self::from_snapshot(snapshot.clone()));
+        }
+        Self::capture(
+            engine,
+            model,
+            library,
+            config_dir,
+            LaunchEnvironment::capture(),
+            &std::env::current_exe()?,
+        )
+    }
+
+    pub fn from_snapshot(snapshot: LaunchSnapshot) -> Self {
+        let library = snapshot.managed().map(StartupLibrary::from_frozen);
+        Self { snapshot, library }
+    }
+
+    pub fn capture(
+        engine: &str,
+        model: Option<&str>,
+        library: Option<&str>,
+        config_dir: Option<&str>,
+        environment: LaunchEnvironment,
+        executable: &Path,
+    ) -> Result<Self> {
         let root = Platform::native().configuration_root(config_dir.map(OsStr::new), |key| {
             environment.get(key).map(OsStr::to_owned)
         })?;
         let loaded = root.load()?;
-        Self::from_inputs(
-            engine,
-            model,
-            library,
-            loaded,
-            environment,
-            &std::env::current_exe()?,
-        )
+        Self::from_inputs(engine, model, library, loaded, environment, executable)
     }
 
     pub(super) fn from_inputs(
@@ -137,28 +153,26 @@ impl EngineStartup {
             // Diagnostic CLI modes do not install a tracing subscriber.
             eprintln!("Engine configuration: {diagnostic}");
         }
-        Ok(Self {
+        let snapshot = LaunchSnapshot::prepare(
             resolved,
-            library,
+            library.as_ref().map(StartupLibrary::freeze),
             requested,
             piper_selected,
-        })
+        )?;
+        Ok(Self { snapshot, library })
     }
 
     pub fn registry(&self) -> Result<EngineRegistry> {
-        let permissions = self.resolved.selection_permissions();
+        let resolved = self.snapshot.resolved();
+        let permissions = resolved.selection_permissions();
         let mut registry = if let Some(library) = &self.library {
-            library.registry_with_selection(self.resolved.routing.clone(), permissions)?
+            library.registry_with_selection(resolved.routing.clone(), permissions)?
         } else {
             let mut registry = EngineRegistry::new();
-            registry.configure_local_selection(self.resolved.routing.clone(), permissions)?;
+            registry.configure_local_selection(resolved.routing.clone(), permissions)?;
             registry
         };
-        for registration in self
-            .resolved
-            .registrations()
-            .filter(|entry| self.publish(entry))
-        {
+        for registration in resolved.registrations().filter(|entry| self.publish(entry)) {
             if registry
                 .inventory()
                 .iter()
@@ -178,15 +192,15 @@ impl EngineStartup {
     }
 
     fn publish(&self, entry: &ResolvedRegistration) -> bool {
-        if entry.engine_id == "piper" && !self.piper_selected {
+        if entry.engine_id == "piper" && !self.snapshot.piper_selected() {
             return false;
         }
         entry.helper.is_some()
             || entry.source.is_some()
             || entry.override_source.is_some()
             || !entry.enabled
-            || self.requested == entry.engine_id
-            || routing_references(&self.resolved.routing, &entry.engine_id)
+            || self.snapshot.requested() == entry.engine_id
+            || routing_references(&self.snapshot.resolved().routing, &entry.engine_id)
             || self
                 .library
                 .as_ref()
@@ -194,7 +208,8 @@ impl EngineStartup {
     }
 
     pub fn helper_configs(&self, external: bool) -> Vec<HelperEngineConfig> {
-        self.resolved
+        self.snapshot
+            .resolved()
             .registrations()
             .filter(|entry| {
                 entry.unavailable.is_none()
@@ -206,22 +221,24 @@ impl EngineStartup {
     }
 
     pub fn permits_construction(&self, id: &str) -> bool {
-        self.resolved
+        self.snapshot
+            .resolved()
             .registration(id)
             .is_some_and(|entry| entry.unavailable.is_none())
     }
 
     pub fn order(&self) -> Vec<String> {
-        self.resolved.startup_order(
-            &self.requested,
-            &engine_preference_order(&self.requested, native_registry_engine_id()),
+        self.snapshot.resolved().startup_order(
+            self.snapshot.requested(),
+            &engine_preference_order(self.snapshot.requested(), native_registry_engine_id()),
             native_registry_engine_id().unwrap_or("espeak"),
         )
     }
 
     pub fn external_priority(&self) -> &str {
-        if self.requested.is_empty() {
-            self.resolved
+        if self.snapshot.requested().is_empty() {
+            self.snapshot
+                .resolved()
                 .routing
                 .preferred_engine_ids
                 .as_ref()
@@ -229,7 +246,7 @@ impl EngineStartup {
                 .map(String::as_str)
                 .unwrap_or("")
         } else {
-            &self.requested
+            self.snapshot.requested()
         }
     }
 }

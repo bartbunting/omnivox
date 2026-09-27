@@ -6,8 +6,10 @@ diagnostics now share strict configuration loading, resolved launch definitions
 and provider-owned invocations. Routing and previews retain local selection
 permissions; recovery retains launch arguments and environment. External startup
 uses a separate bounded batch. The [private snapshot codec](../reference/engine-startup-snapshot.md)
-retains complete launch records and managed inputs. Handoff and acknowledgements
-for paired workers remain pending, as does native platform qualification.
+retains complete launch records and managed inputs. Local owners persist and
+hand these records to their workers without rediscovery. Coordinated Emacsvox
+preparation, remote-host session freezing and paired acknowledgements remain
+pending, as does native platform qualification.
 The later language-routing section remains a separate design proposal.
 
 The [roadmap entry](../ROADMAP.md#extensible-engine-registration) tracks the

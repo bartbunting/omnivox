@@ -7,9 +7,25 @@ import os
 from pathlib import Path
 import queue
 import shutil
+import struct
 import subprocess
 import tempfile
 import threading
+
+
+def startup_environment(record):
+    """Read native retained values, also accepting historical UTF-8 maps."""
+    environment = record["environment"]
+    if isinstance(environment, dict):
+        return environment
+
+    def native(value):
+        if "Unix" in value:
+            return bytes(value["Unix"]).decode("utf-8", errors="surrogateescape")
+        units = value["Windows"]
+        return struct.pack("<" + "H" * len(units), *units).decode("utf-16-le", errors="surrogatepass")
+
+    return {native(name): native(value) for name, value in environment}
 
 
 class Peer:
@@ -121,7 +137,7 @@ def main():
             filename = record["startup"].replace("\\", "/").rsplit("/", 1)[-1]
             return json.loads((root / "sessions" / filename).read_text())
 
-        assert startup(snapshot)["environment"]["OMNIVOX_TEST_LAUNCHER_SETTING"] == "candidate"
+        assert startup_environment(startup(snapshot))["OMNIVOX_TEST_LAUNCHER_SETTING"] == "candidate"
         assert service.request("begin", generation=generation, operation=str(uuid.uuid4()), plan_json="{}")["type"] == "candidate"
         competitor = peer("--voice-library-service")
         assert competitor.request("inspect")["type"] == "error"
@@ -131,7 +147,7 @@ def main():
         owner = peer("--voice-library-owner", dict(environment, OMNIVOX_TEST_LAUNCHER_SETTING="previous"))
         description = owner.request("describe")
         assert description["type"] == "owner" and not description["retired"]
-        assert startup(description)["environment"]["OMNIVOX_TEST_LAUNCHER_SETTING"] == "previous"
+        assert startup_environment(startup(description))["OMNIVOX_TEST_LAUNCHER_SETTING"] == "previous"
         assert owner.request("retire", worker=str(uuid.uuid4()))["type"] == "error"
         capabilities = owner.request("capabilities", control=True)
         assert "voice_library_v1" in capabilities["features"]

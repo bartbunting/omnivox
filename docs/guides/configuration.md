@@ -97,7 +97,8 @@ optional manifests are diagnosed independently unless a main override requires
 the failed registration.
 
 See the [version-1 contract](../plans/extensible-engine-framework.md#configuration-version-1)
-for examples, precedence and bounds. Paired-worker snapshot handoff and activation
+for examples, precedence and bounds. Local owners retain complete startup records;
+coordinated paired-worker preparation and activation
 acknowledgements are still being implemented; native platform qualification is
 separate from these standalone configuration tests.
 

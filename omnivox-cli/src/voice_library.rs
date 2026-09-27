@@ -5,7 +5,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use omnivox_tts::contracts::EngineDescriptor;
 use omnivox_tts::engine_configuration::{
-    EngineSelectionPermissions, LaunchEnvironment, LocalRoutingPolicy,
+    EngineSelectionPermissions, LaunchEnvironment, LocalRoutingPolicy, ManagedLaunch,
 };
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::helper_engine::HelperEngineConfig;
@@ -22,6 +22,26 @@ pub(crate) struct StartupLibrary {
 }
 
 impl StartupLibrary {
+    pub fn from_frozen(managed: &ManagedLaunch) -> Self {
+        Self {
+            path: managed.path.clone(),
+            library: managed.library.clone(),
+            eligibility: Arc::new(VoiceEligibility::from_library(
+                &managed.library,
+                managed.overrides,
+            )),
+            overrides: managed.overrides,
+        }
+    }
+
+    pub fn freeze(&self) -> ManagedLaunch {
+        ManagedLaunch {
+            path: self.path.clone(),
+            library: self.library.clone(),
+            overrides: self.overrides,
+        }
+    }
+
     #[cfg(test)]
     pub fn from_environment(path: Option<&str>, model: Option<&str>) -> Result<Option<Self>> {
         Self::from_captured_environment(path, model, &LaunchEnvironment::capture())

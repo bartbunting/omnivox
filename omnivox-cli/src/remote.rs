@@ -268,6 +268,9 @@ pub(crate) fn managed_worker() -> bool {
 }
 
 pub fn await_worker_start() -> Result<()> {
+    if std::env::var_os("OMNIVOX_OWNED_WORKER").is_some() {
+        return crate::worker_startup::receive_owned();
+    }
     if managed_worker() {
         let mut start = [0u8; 6];
         io::stdin()

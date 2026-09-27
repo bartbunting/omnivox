@@ -141,7 +141,7 @@ fn captured_environment_and_cli_preferences_feed_the_same_launch_resolution() {
         .find(|config| config.engine_id == "flite")
         .unwrap();
     assert_eq!(config.program, Path::new("/captured/flite"));
-    assert_eq!(config.environment, startup.resolved.environment);
+    assert_eq!(config.environment, startup.snapshot.resolved().environment);
 }
 
 #[test]

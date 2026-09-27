@@ -508,20 +508,21 @@ pub fn create_engine(
     config_dir: Option<&str>,
 ) -> Result<Arc<dyn TtsEngine>> {
     let startup = EngineStartup::read(engine_name, piper_model, voice_library, config_dir)?;
-    let ids = if startup.requested.is_empty() {
+    let ids = if startup.snapshot.requested().is_empty() {
         startup.order()
     } else {
-        vec![if startup.requested == "native" {
+        vec![if startup.snapshot.requested() == "native" {
             native_registry_engine_id().unwrap_or("espeak").to_owned()
         } else {
-            startup.requested.clone()
+            startup.snapshot.requested().to_owned()
         }]
     };
     let mut last_error = None;
     for id in ids {
         let attempt = (|| -> Result<Arc<dyn TtsEngine>> {
             let registration = startup
-                .resolved
+                .snapshot
+                .resolved()
                 .registration(&id)
                 .ok_or_else(|| anyhow::anyhow!("unknown TTS engine: {id}"))?;
             anyhow::ensure!(

@@ -2,9 +2,11 @@
 
 The [snapshot codec](../../omnivox-tts/src/engine_configuration/snapshot.rs)
 implements the frozen launch record required by
-[ADR 0008](../adr/0008-extensible-engine-registration.md). Worker handoff and paired
-activation acknowledgements are still being integrated. This record is private
-local startup data; no remote speech operation accepts it.
+[ADR 0008](../adr/0008-extensible-engine-registration.md). Standalone startup and
+local owned workers consume this record. Coordinated Emacsvox preparation,
+remote-host session freezing and paired activation acknowledgements are still
+being integrated. This record is private local startup data; no remote speech
+operation accepts it.
 
 ## Complete record
 
@@ -70,3 +72,44 @@ no debug projection and must not be copied into speech logs or public status.
 Public diagnostics may expose activation identity, engine ID, origin,
 configuration source and availability. The implementation plan tracks the
 remaining [paired-worker acceptance](../plans/extensible-engine-framework.md#acceptance-checklist).
+
+## Local owner handoff
+
+The local owner resolves all engine inputs before constructing its child and
+saves the complete `engines` record inside its existing retained `Startup`
+envelope. Candidate-generation preparation does the same after applying the
+candidate's managed-provider inputs. A deliberate new capture generates a fresh
+activation UUID. Reusing a retained startup preserves it and does not read the
+main configuration or manifests again. Native asset checks still run.
+
+After assigning the child to its owned process tree, the owner writes the exact
+seven bytes `START1\n`, then a four-byte unsigned big-endian payload length, then
+that many bytes of snapshot JSON. The payload must be nonempty and at most
+16 MiB. The worker consumes and validates this whole frame before parsing CLI
+startup settings or constructing engines. Following bytes remain ordinary
+speech input. Older `START\n` gates are not accepted for a local owned worker.
+The remote broker's existing gate remains separate until its integration.
+
+Transmission has a ten-second deadline. The writer is retained alongside the
+worker's pipe readers; an incomplete send enters the existing owned-tree cleanup
+path. A retirement receipt requires the child, descendants and pipe tasks to
+finish. A failed transmission does not detach an untracked writer or authorize
+replacement of an unretired child.
+
+The retained owner envelope still pins executable identity, argv, working
+directory, native environment and optional voice-library configuration. Its
+`environment` now serializes native name/value pairs; historical UTF-8 maps
+remain readable for inspection and package retention. Its total bound is
+33 MiB, allowing both owner/helper environments and existing envelope metadata;
+the nested engine record and transmitted payload retain the 16 MiB bound.
+Historical envelopes without `engines` are retained conservatively for cleanup,
+but cannot restart a current owned worker by silently rereading configuration.
+They require a fresh activation. Existing snapshot hashes, private-file creation
+and retirement/preparation receipts remain in force.
+
+The process acceptance command is
+`python3 tools/verify_engine_configuration.py target/debug/omnivox` after
+`make dev`. It exercises two actual Unix owners and helper processes, mutates
+files/environment between launches, checks independent retirement and verifies
+that a fresh activation rejects the now-invalid main configuration. This is
+null-output framework coverage, not native adapter or audible qualification.
