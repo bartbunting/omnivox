@@ -10,7 +10,7 @@ retains complete launch records and managed inputs. Local owners persist and
 hand these records to their workers without rediscovery. Emacsvox coordinates
 shared local preparation, actual worker acknowledgement and retained recovery;
 managed Apply shares the candidate and verifies rollback against each old record.
-Remote-host session freezing remains pending. Native
+Remote hosts retain the shared snapshot per authenticated session. Native
 platform qualification remains separate.
 The later language-routing section remains a separate design proposal.
 

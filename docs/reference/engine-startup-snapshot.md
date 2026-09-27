@@ -159,3 +159,20 @@ It runs in fresh batch Emacs with isolated native storage and null audio, change
 configuration between the lane starts, checks both worker acknowledgements,
 recovers main without replacing notifications, and verifies that a deliberate
 fresh start rejects the changed invalid configuration.
+
+## Remote workstation ownership
+
+The broker captures native environment, working directory and executable path
+locally and prepares one complete engine snapshot per authenticated session.
+It hands the same bounded private frame to each owned worker only after process
+tree ownership is established. The pipe writer is retained and joined, including
+when startup transmission times out and retires the tree. TCP clients never
+provide these launch definitions.
+
+The session retains its snapshot while either or both lanes are disconnected.
+Another session can replace it only after both previous workers retire. Service
+shutdown ends this in-memory retention; no remote management store is added.
+The UUID remains a configuration identity and does not attest executable bytes.
+`tools/test_remote_service.py` covers actual lane acknowledgements, changed local
+files, recovery after total disconnect, and fresh-session validation. Its opt-in
+Emacs acceptance also checks independent recovery and deliberate restart.

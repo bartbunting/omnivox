@@ -32,6 +32,22 @@ One session owns both lanes. A duplicate lane is busy until its former worker
 has been retired; the client may retry. Ownership is released when both lanes
 have been retired. At most four connections may be authenticating or active.
 
+The service prepares an engine configuration from workstation files and its
+environment on the first authenticated lane of a session. Both workers receive
+that complete private snapshot and expose the same `engine_configuration_v1`
+activation identity through ordinary control requests. Recovery with the same
+session ID reuses it even after both lanes disconnect. A different session ID,
+admitted only after the old lanes retire, prepares a fresh configuration.
+Stopping the service ends this in-memory retention; restarting it prepares a
+new activation. This adds no remote operation for supplying executable
+definitions, arguments or environment settings.
+
+Emacsvox uses a new session for deliberate speech restart, and preserves the
+session for automatic lane recovery. When the host advertises the configuration
+feature, it checks each worker's actual acknowledgement against its live peer
+before publication. The existing capability/routing readiness hooks follow
+that check. Older hosts retain ordinary negotiation.
+
 ## Established transport
 
 After readiness, the existing stdio protocol is forwarded bidirectionally.
@@ -47,7 +63,8 @@ handoff prevents an unresponsive worker consuming unlimited memory. Socket
 writes time out after two seconds; a handoff that stays full for two seconds
 or a transport error retires the lane. Disconnect cancels speech by terminating its owned worker tree;
 queued speech and incomplete records are discarded. Reconnection creates new
-workers and repeats configuration; it does not restore pending utterances.
+workers from the retained engine snapshot and repeats client voice/routing
+registration; it does not restore pending utterances.
 
 The worker accepts the complete `voice_choice_tuning_v1`,
 `presentation_timeline_v4`, `playback_marker_events_v3` bundle over this same
