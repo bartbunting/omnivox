@@ -204,7 +204,8 @@ worker's acknowledgement before publication. Remote brokers retain one complete
 snapshot per authenticated session, including recovery after both lanes disconnect.
 The local service prepares common candidate records for managed Apply; rollback
 retains each previous lane's own record. The
-[configuration reference](guides/configuration.md) describes current options.
+[configuration reference](reference/engine-configuration.md) specifies the file
+formats and selection rules; the [guide](guides/configuration.md) explains setup.
 
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or
 AVSpeechSynthesizer on macOS. Known companions are discovered from staged paths
@@ -491,15 +492,12 @@ See [diagnostics.md](guides/diagnostics.md) for evidence collection.
 
 ## Proposed extensions
 
-The [extensible-engine framework](plans/extensible-engine-framework.md) has
-implemented v1 registration readers, coordinated helper-launch snapshots and
-external automatic-selection permissions under accepted
-[ADR 0008](adr/0008-extensible-engine-registration.md). The
-[startup deadline regression checks](benchmarks/2026-09-27-engine-startup-deadline.md)
-and [Windows process checks](benchmarks/2026-09-28-windows-engine-snapshot.md)
-now pass; completion of the acceptance matrix and broader platform qualification
-remain outstanding. Richer language matching
-is a separate future increment. The [roadmap](ROADMAP.md) tracks outstanding work.
+[Language-aware voice selection](plans/language-routing.md) remains a proposal.
+The engine-registration framework and configuration v1 are implemented under
+[ADR 0008](adr/0008-extensible-engine-registration.md); the
+[acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) records the
+completed first slice and its platform limits. The [roadmap](ROADMAP.md) tracks
+remaining native qualification and future extensions.
 
 Performance claims belong to the [retained evidence](benchmarks/README.md).
 Source consumption, protocol success and process liveness do not prove acoustic

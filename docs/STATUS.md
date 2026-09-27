@@ -15,7 +15,7 @@ actual runs and their limits.
 | Routing | Stable physical identities, ordered logical choices, runtime fallback, exclusions, health circuits and asynchronous helper recovery. | [Architecture](ARCHITECTURE.md#voice-identity-routing-and-tuning) |
 | Voice customization | Shared → actual choice → context composition; private exact/full previews; typed qualified native controls. Control envelope 1, timeline versions 1–5, markers 1–4 and helper versions 1–6 retain compatibility. | [Layered tuning](protocols/voice-choice-tuning.org), [native parameters](protocols/engine-voice-parameters.md) |
 | Discovery | Concurrent helper initialization before initial inventory, verified bounded caches and on-demand exact eSpeak variants. | [Architecture](ARCHITECTURE.md#configuration-and-engine-discovery), [variants](engines/espeak-variants.md) |
-| Engine configuration v1 | Strict local `config.json`/helper manifests, immutable launch snapshots, local permissions, paired startup/Apply acknowledgements and remote session retention. Blocked startup retains ownership without delaying admission; full development acceptance remains incomplete. | [Configuration](guides/configuration.md), [integration evidence](benchmarks/2026-09-27-engine-framework.md), [deadline fix](benchmarks/2026-09-27-engine-startup-deadline.md) |
+| Engine configuration v1 | Strict local `config.json`/helper manifests, immutable launch snapshots, local permissions, paired startup/Apply acknowledgements and remote session retention. Blocked startup retains ownership without delaying admission; the first implementation slice passes its development acceptance checks. | [Configuration](guides/configuration.md), [acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) |
 | Managed voices | Reviewed Piper, Flite, MBROLA and RHVoice acquisition; disabled installation, immutable generations, explicit two-worker Apply/rollback and reviewed removal. | [Voice management](guides/voice-management.md), [formats](reference/voice-library.org) |
 | Native validation | Disposable bounded native probes, before/after evidence, ownership journals and recorded-cleanup recovery. | [Validation](guides/native-voice-validation.md) |
 | Synthesis | Buffered and bounded progressive PCM, source-mapped anchors, actual-attempt settings and no replay after audio commitment. | [Helper protocol](protocols/helper.md), [prepared synthesis](reference/prepared-synthesis.md) |
@@ -68,8 +68,8 @@ include the source and CI identities; formula updates remain explicit.
   acceptance. Windows capture now omits hidden drive-directory bookkeeping, and
   historical owner records retain package references through retirement; see
   the [Windows evidence](benchmarks/2026-09-28-windows-engine-snapshot.md).
-  The complete framework acceptance audit and broader platform qualification
-  remain pending.
+  The [first-slice audit](benchmarks/2026-09-28-engine-framework-audit.md) is complete.
+  Broader native qualification, including macOS process checks, remains pending.
   The earlier startup-deadline ownership gap has been
   [fixed and regression-tested](benchmarks/2026-09-27-engine-startup-deadline.md).
 - Speech Dispatcher is unimplemented.

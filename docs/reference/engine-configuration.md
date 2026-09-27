@@ -1,28 +1,16 @@
-# Extensible speech engine framework
+# Engine configuration version 1
 
-Status: Implementation in progress, 2026-09-27. Configuration version 1 below
-defines the authorized first implementation slice. Standalone startup and exact
-diagnostics now share strict configuration loading, resolved launch definitions
-and provider-owned invocations. Routing and previews retain local selection
-permissions; recovery retains launch arguments and environment. External startup
-uses a separate four-slot batch and retains unfinished attempts after admission
-expires. The [deadline regression report](../benchmarks/2026-09-27-engine-startup-deadline.md)
-records the ownership and publication checks. The [private snapshot codec](../reference/engine-startup-snapshot.md)
-retains complete launch records and managed inputs. Local owners persist and
-hand these records to their workers without rediscovery. Emacsvox coordinates
-shared local preparation, actual worker acknowledgement and retained recovery;
-managed Apply shares the candidate and verifies rollback against each old record.
-Remote hosts retain the shared snapshot per authenticated session. Native
-platform qualification remains separate. Expanded Linux and native Windows
-process acceptance passes after fixing inherited drive-directory capture and
-historical Windows record compatibility; see the
-[Windows report](../benchmarks/2026-09-28-windows-engine-snapshot.md).
-The later language-routing section remains a separate design proposal.
+Omnivox can run an independently installed speech helper without being rebuilt.
+A helper manifest tells it which program to run; the main configuration controls
+engine choices and local overrides. Settings take effect at the next deliberate
+restart. A worker recovering from failure keeps its original settings.
 
-The [roadmap entry](../ROADMAP.md#extensible-engine-registration) tracks the
-delivery scope. [ADR 0008](../adr/0008-extensible-engine-registration.md)
-records the architectural choices and alternatives; this document defines the
-detailed configuration contract and implementation acceptance criteria.
+This reference specifies the implemented version-1 contract accepted in
+[ADR 0008](../adr/0008-extensible-engine-registration.md). Start with the
+[configuration guide](../guides/configuration.md#local-engine-configuration)
+for setup. The [acceptance audit](../benchmarks/2026-09-28-engine-framework-audit.md)
+records automated and process coverage, including its platform limits.
+[Language-routing extensions](../plans/language-routing.md) remain a proposal.
 
 ## Purpose and scope
 
@@ -80,7 +68,7 @@ claim streaming or marker support, or override negotiated capabilities.
 
 ## Unified registration model
 
-Normalize all engine sources into one internal registration model:
+All engine sources use one internal registration model:
 
 1. Compiled in-process adapters supply a factory and retain their existing
    process boundary.
@@ -97,7 +85,7 @@ installation root. A user manifest must name a fully absolute executable path
 on the speech host. Neither source discovers helpers from the working directory,
 unrestricted `PATH`, speech input or network searches.
 
-The first version reads registration at worker startup. It supports
+Version 1 reads registration when preparing startup. It supports
 adding engines without rebuilding Omnivox, with restart to activate changes.
 Live reload is a later lifecycle extension requiring atomic replacement,
 in-flight request retirement, removal semantics and coordination between
@@ -136,7 +124,8 @@ The root contains optional `config.json` and optional `helpers.d/`. Read only
 direct regular files whose names end in `.json`, in UTF-8 filename order. Do not
 recurse or follow symlink/reparse-point manifest entries; diagnose such entries.
 Resolve the selected root itself once, so a redirected user configuration root
-is supported. Ignore editor autosaves and other non-JSON names.
+is supported. The `helpers.d` directory itself must be an ordinary directory.
+Ignore editor autosaves and other non-JSON names.
 
 A missing `config.json` means defaults; a missing `helpers.d` means no external
 helpers. Existing but unreadable files/directories are not treated as absent.
@@ -233,9 +222,12 @@ deadline. Cancellation grace and cleanup limits are not configurable.
 At most four external helper initializations run concurrently. Prioritize an
 explicit startup engine, then external IDs lexically. A 120-second batch
 admission deadline starts when external initialization begins; each operation
-also retains its own deadline. At the batch deadline retire outstanding attempts
-and mark unstarted helpers unavailable with a startup-budget reason. Cleanup
-retains its separate bounded lifecycle; unconfirmed cleanup forbids replacement.
+also retains its own deadline. At the batch deadline, stop admitting work and
+mark unfinished or unstarted helpers unavailable with a startup-budget reason.
+An unfinished launch or I/O
+call retains its owner and slot until it finishes; a late connection is retired
+and cannot become available. Cleanup retains its separate bounded lifecycle;
+unconfirmed cleanup forbids replacement.
 Initialize shipped engines independently so an external queue cannot consume
 all their initialization slots. Do not retry external initialization in a loop
 during startup. Later explicit rescans/recovery use the existing admission rules.
@@ -351,7 +343,7 @@ Move deployment choices into validated data while keeping native behavior and
 safety invariants in code. Use shipped defaults so ordinary installations do
 not require configuration files.
 
-| Current responsibility | Proposed home |
+| Responsibility | Implemented home |
 | --- | --- |
 | Helper IDs, platform filenames and adjacent companion layouts | Shipped registration metadata plus external manifests. |
 | Legacy helper environment-variable names and aliases | Compatibility metadata feeding the same registration loader. |
@@ -359,21 +351,16 @@ not require configuration files.
 | Startup/request/synthesis-idle timeout defaults | Registration defaults and bounded local overrides. |
 | Startup engine preference | Configurable ordered policy with existing platform defaults. |
 | Session preferred/fallback/disabled engines | Existing versioned routing policy, extended rather than duplicated. |
-| Per-language voice/engine preferences and cross-language fallback | Proposed versioned routing policy. |
 | Voices, languages, capabilities and native parameter catalogue | Live helper descriptors and negotiated metadata. |
 | Native entry points, ABI, thread ownership, text conversion and calibrated mappings | Adapter code and qualified adapter data. |
 | Framing, validation, hard limits, cancellation watchdog and PCM commitment | Common host/server code. |
 | Built-in OS adapter construction and compiled feature availability | Compiled factories. |
 | Managed asset verification, download/removal operations and release provenance | Existing provider and packaging implementations. |
 
-The current duplication is concentrated in
-[`omnivox-cli/src/engine.rs`](../../omnivox-cli/src/engine.rs): helper lists,
-filename/environment mappings, startup order, timeout exceptions and separate
-exact-engine creation. There are also specialized inventory-cache/prewarm paths
-and [managed-provider hooks](../../omnivox-cli/src/voice_library.rs). Extract
-static launch data first. Cache trust, provider asset validation and native
-initialization behavior need explicit interfaces; arbitrary manifest flags must
-not bypass them.
+The shared [launch resolver](../../omnivox-tts/src/engine_configuration/resolved.rs)
+combines static registration data with CLI and provider inputs. Specialized
+inventory caches, prewarming, managed asset checks and native initialization
+remain in their maintained implementations; manifest fields cannot bypass them.
 
 ### Resolution order and immutable snapshots
 
@@ -421,7 +408,8 @@ mutable files and merely echo a supplied UUID. The client/owner compares their
 actual configuration acknowledgements before completing coordinated activation.
 An ordinary standalone invocation owns its own snapshot and UUID.
 
-The private snapshot handoff belongs to the existing local worker/owner path.
+The private [snapshot handoff](engine-startup-snapshot.md) belongs to the
+existing local worker/owner path.
 Its transport must carry the complete frozen configuration, preserve the input
 bounds above and reject partial snapshots before engine construction. It is
 local startup data, never a remote speech operation accepting executable
@@ -432,8 +420,9 @@ attest binary bytes, loaded vendor libraries, or audible output.
 
 Keep the normalized launch record and environment private. Diagnostics expose
 the activation UUID, engine ID, origin/configuration source and availability;
-raw environment and argument values are not included. Reading config or probing
-a helper never writes files, installs libraries or publishes releases.
+raw environment and argument values are not included. The configuration reader
+never writes user configuration or installs libraries.
+Registering a helper does not install or package its runtime.
 
 ## Selection eligibility
 
@@ -446,7 +435,6 @@ default speech merely because a matching voice appeared.
 | --- | --- |
 | Exact physical voice or explicit engine selector | Yes, if enabled and available. |
 | Preferred/fallback policy explicitly naming the engine | Yes, within that policy's scope. |
-| Future language-specific policy explicitly naming its voice or engine | Yes, for that language rule when implemented. |
 | Unrestricted language/gender matching across inventory | No, unless named in local `automatic_engine_ids`. |
 | Administratively disabled engine or voice | No, regardless of selector or preference. |
 
@@ -456,8 +444,6 @@ default selection, language matching and recovery. Preserve the existing
 eligibility behavior of shipped engines during the registration migration.
 
 ## Language selection
-
-### Existing behavior
 
 A [voice descriptor](../../omnivox-tts/src/contracts.rs) has one optional
 language string. A selector can name an exact voice, an engine default, or
@@ -490,60 +476,6 @@ language commands are [deprecated](../../omnivox-core/src/command.rs).
 Emacsvox already exposes logical-language and property selectors, configurable
 engine priority/fallback, and language-grouped voice browsing. Grouping voices
 under a language in the UI does not change the server's exact-match semantics.
-
-### Proposed direction
-
-This is a later versioned increment; none of the following adds a version-1
-configuration field. Make language an explicit routing input with predictable
-fallback, while preserving exact voice choices. Add this through negotiated
-routing semantics; do not silently reinterpret existing selectors or change old
-saved policies.
-
-- Accept explicit language context for a speech request or span, with the
-  logical voice's language and then a configured default as fallbacks. Capture
-  this context with the admitted request, not mutable process-global state.
-- Add ordered language rules selecting voices or engines, independent of how
-  those helpers were installed. Prefer the requested language across eligible
-  engines before permitting a change of language.
-- Keep explicit physical choices authoritative. Exact previews remain exact.
-  Language policy fills automatic choices and permitted fallback; it does not
-  silently replace an explicitly chosen voice because metadata differs.
-- Separate exact tag matching from language-range matching. Retain legacy exact
-  matching; offer [RFC 4647 basic filtering](https://www.rfc-editor.org/rfc/rfc4647.html#section-3.3.1)
-  for explicit range rules. A range `fr` can match `fr-CA` or `fr-FR`; `fr-CA`
-  does not directly match `fr-FR`. An ordered rule can prefer `fr-CA`, then `fr`.
-  Do not infer relationships between distinct languages or script variants.
-- Within a language match tier, apply explicit voice/engine preferences, then
-  deterministic existing defaults. For automatic routing, try the most specific
-  configured language tier across its eligible engines before a broader tier.
-- Make cross-language fallback an explicit policy choice: fail the route, or
-  use a configured fallback and report language degradation. Unknown language
-  metadata cannot satisfy a strict language requirement. Unlabelled requests
-  retain ordinary configured default behavior.
-- Expose requested language, matched voice language, resolution stage and any
-  relaxation in bounded diagnostics. Preserve successful ordinary fallback
-  when the policy permits it; do not label a different-language voice an exact
-  match.
-
-As a conceptual policy, a French-Canadian request might try a selected `fr-CA`
-voice, another eligible `fr-CA` voice, then an explicitly permitted `fr` range.
-Only a separate cross-language fallback rule would allow an English default.
-The concrete storage and wire schema must make these stages explicit.
-
-Initially, clients can use the existing language-bearing logical definitions
-and property selectors. A later negotiated extension is needed for per-request
-or per-span language context and changed matching/fallback semantics. Language
-rules should extend the existing generation-safe policy, not introduce another
-independently mutable routing table. Both speech workers and previews must use
-the same admitted semantics.
-
-Automatic detection and mixed-language segmentation remain optional later
-features. They need confidence, override and short-text behavior of their own.
-A future client detector can supply explicit context without changing the
-helper registration contract. Engines needing an in-voice language argument
-or multiple advertised languages require a negotiated descriptor/request
-extension; selecting a voice is sufficient for the initial single-language
-voice model.
 
 ## Helper contract
 
@@ -615,124 +547,3 @@ Retain hard framing/audio/marker limits from the
 [protocol reference](../protocols/helper.md). Configuration can choose
 operational deadlines within bounds; it cannot disable validation, loosen
 cancellation ownership or bypass managed asset verification.
-
-## First implementation slice
-
-Deliver and verify these changes in separate commits:
-
-1. Establish the strict configuration reader and shared registration metadata,
-   preserving existing engine defaults and compatibility inputs.
-2. Resolve immutable launch definitions and connect startup, exact diagnostics
-   and bounded helper initialization to the same registry.
-3. Enforce local/session exclusions and external automatic-selection permission
-   throughout resolution, previews, synthesis and recovery.
-4. Carry complete prepared snapshots through local ownership and paired Emacsvox
-   activation, including acknowledgements and rollback.
-5. Complete the process-based fake-helper acceptance matrix and reconcile current
-   references, guides and qualification status with verified behavior.
-
-Tests accompany each implementation commit; the final matrix adds coverage across
-the complete path. Native integration qualification remains separate.
-
-Implement the version-1 registration/configuration reader, normalized registry
-and shared launch resolution, then connect server startup, exact diagnostics,
-selection and recovery. Preserve existing engine behavior without new settings.
-External registration and maintained helpers use the same lifecycle. Keep all
-current native adapter, provider verification and release behavior intact.
-
-Activation is restart-based. The first slice includes local/session disablement
-composition, external automatic-selection permission and coordinated startup
-snapshots. It does not include new language matching, per-span language context,
-a configuration UI, per-helper environment overlays, new caching/prewarming
-policy, executable installation or live reload. Those features cannot appear as
-accepted-but-ignored configuration fields.
-
-A redistributable fake helper supplies deterministic descriptors, short PCM,
-controlled failures and cancellation barriers. It must be launchable from a
-path containing spaces and register a previously unknown engine ID. Exercise
-that helper through the actual process client, not just a parser or mocked
-registry. A real third-party runtime is not needed to prove registration.
-
-## Acceptance checklist
-
-All items below are implementation acceptance criteria, not claims of tests
-already performed for this document.
-
-- [ ] **Compatibility:** no files, an absent default root, and `{"schema":1}`
-  preserve platform defaults, aliases, environment overrides, shipped inventory,
-  exact diagnostics, provider arguments and existing engine order.
-- [ ] **Root resolution:** test CLI/environment/default precedence on Windows,
-  macOS and Unix; WSL launches use the native worker's root. Relative/empty
-  explicit roots, missing variables and unreadable selected roots fail as
-  specified. No lookup uses the working directory or network.
-- [ ] **Strict reader:** unknown/duplicate/escaped keys, null, wrong types,
-  noninteger/overflow values, unsupported schemas, trailing content and malformed
-  UTF-8 fail before spawn. A single UTF-8 BOM works. Test every stated size/count
-  bound at and beyond its boundary, including disabled/invalid manifests.
-- [ ] **Paths and arguments:** absolute Windows drive/UNC and Unix paths work;
-  drive-relative, root-relative and device paths fail. Spaces and empty arguments
-  survive exactly; shell-looking text is never expanded by the launcher.
-  Symlink/reparse manifest entries and editor autosaves follow the stated rules.
-- [ ] **Identity:** shuffled file order produces the same registry; duplicate
-  external IDs all fail, reserved IDs remain intact on every platform/feature
-  combination, and descriptor/voice ownership mismatches are rejected.
-- [ ] **Overrides:** exercise every precedence layer, partial timeout merging,
-  complete argument replacement, unknown IDs, in-process restrictions and managed
-  argument conflicts. Explicit enablement can override manifest disablement but
-  cannot remove routing exclusions, restore an invalid/missing registration or
-  relax native asset checks. A rejected external set with a dependent launch
-  override fails main-configuration validation.
-- [ ] **Timeouts and startup:** test default values and both edges of every
-  allowed range. Four-slot external initialization prioritizes the selected
-  engine, bounds the batch, retires timed-out children and preserves shipped
-  initialization. Blocked reads/writes/native initialization retain hard cleanup
-  and cancellation rules; no repeated startup retry loop develops.
-- [ ] **Registration path:** add a fake helper by writing one manifest, then
-  start a fresh server. Verify its real engine ID and voices in inventory,
-  exact voice listing/preview and normal speech, with no server rebuild.
-- [ ] **Selection matrix:** exact voice, explicit engine, local/session preferred
-  and fallback lists may select an external engine in their defined scope.
-  Unrestricted property matching and startup defaults cannot select it merely
-  because it was registered. Local automatic opt-in permits property matching
-  without changing startup order.
-- [ ] **Disablement:** manifest/override `enabled:false` causes no spawn or
-  recovery. Local routing and voice exclusions survive session replacement,
-  exact requests, preview and recovery. Session disablement remains reversible
-  within its own scope; it cannot clear the local floor.
-- [ ] **Failure isolation:** malformed optional files, an absent executable or
-  runtime, bad descriptors, crashes and hangs preserve unrelated eligible speech.
-  Invalid main policy fails startup instead of enabling excluded voices. Exact
-  operations never report successful substitution.
-- [ ] **Protocol and audio:** negotiate supported helper versions, exercise
-  buffered/progressive/empty synthesis and bounded markers/PCM, and reject
-  malformed or miscorrelated frames through the existing client. Cancellation
-  suppresses late PCM; post-commit failure never replays through another engine.
-- [ ] **Recovery snapshot:** change/delete files and change the launching
-  environment after startup; recovery uses the retained selection and environment
-  and revalidates the actual runtime. A new activation reads the new settings.
-  Unconfirmed child cleanup prevents replacement.
-- [ ] **Two workers:** foreground and notification use the same prepared snapshot
-  and acknowledge it independently. Mutate files between their launches to prove
-  neither rereads them. Verify independent cancellation, partial-startup rollback,
-  reconnect and fresh activation under the existing owner lifecycle.
-- [ ] **Distribution independence:** run the same fake adapter as an external
-  registration and as a shipped-definition fixture, with identical physical IDs
-  and protocol behavior. Promotion collisions are diagnosed and never import
-  an old executable override silently. Package no private runtime to pass this
-  test.
-- [ ] **Diagnostics:** identify activation, source, engine and failure without
-  dumping arguments, environment or speech. Report retained unavailable routing
-  references and explicit startup fallback distinctly from successful exact
-  selection. Configuration reads and tests leave user files unchanged.
-
-Native adapter acceptance remains a separate gate for an actual maintained
-engine: runtime loading, voices, encoding, controls, real PCM, cancellation and
-repeat use on each supported platform/ABI. Compile-only, protocol, native PCM
-and listening results must remain distinguishable. Changed Windows helpers and
-protocols use Emacsvox's full development staging before live acceptance.
-
-The later language increment requires its own negotiated schema and paired
-client/server coverage for exact/range matching, region/script tags, unknown
-metadata, explicit choices, cross-engine same-language fallback, cross-language
-policy, previews and both workers. Its future configuration example must carry
-a new schema number; version-1 readers reject it in full.

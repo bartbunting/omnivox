@@ -79,5 +79,5 @@ performance claim follows from them. No macOS native qualification was attempted
 
 Investigate native Windows launch-snapshot validation, add a native regression,
 then repeat full development staging and process/client qualification. The
-[framework acceptance matrix](../plans/extensible-engine-framework.md#acceptance-checklist)
+[framework acceptance matrix](2026-09-28-engine-framework-audit.md#acceptance-checklist)
 and final documentation reconciliation remain incomplete.

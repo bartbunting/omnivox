@@ -2,7 +2,8 @@
 
 - Status: Accepted
 - Accepted: 2026-09-27; maintainer authorized configuration version 1 and the
-  first implementation slice. Implementation and qualification remain pending.
+  first implementation slice. See [status](../STATUS.md) for implementation and
+  qualification; acceptance alone establishes neither.
 - Extends: [Engine isolation](0001-engine-isolation-and-distribution.md).
 - Related: [Local activation](0007-managed-voice-lifecycle.md),
   [speech-host boundary](0004-workstation-service-and-worker-ownership.md).
@@ -74,8 +75,9 @@ settings. Automatic discovery introduces executable code implicitly. In-process
 external loading conflicts with isolation; unrestricted automatic selection lets
 an added voice change existing speech without an explicit preference.
 
-The [specification](../plans/extensible-engine-framework.md) defines exact schemas,
-precedence, bounds and acceptance criteria. The
+The [configuration reference](../reference/engine-configuration.md) defines exact
+schemas, precedence and bounds. The [acceptance audit](../benchmarks/2026-09-28-engine-framework-audit.md)
+records coverage of the first-slice criteria. The
 [roadmap](../ROADMAP.md#extensible-engine-registration) tracks remaining work.
 The first slice uses a fake helper; real native integrations retain separate
 qualification. Language-routing changes, live reload and a configuration UI are

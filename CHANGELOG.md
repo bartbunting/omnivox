@@ -6,6 +6,15 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Register independently installed speech helpers through version-1 JSON
+  configuration without rebuilding Omnivox. Local settings control engine
+  preferences, exclusions, executable paths, arguments and timeouts.
+- Share prepared engine settings across foreground and notification speech.
+  Recovery keeps those settings; a deliberate restart reads configuration changes.
+  Exact voice checks and previews also support registered helpers.
+
 ### Fixed
 
 - Speech continues after native voice segments that produce no audio, such as

@@ -60,6 +60,7 @@ samples and a reproducible comparison.
 - [Extensible engine configuration and the original startup deadline gap](2026-09-27-engine-framework.md)
 - [Engine startup deadline fix and retained ownership checks](2026-09-27-engine-startup-deadline.md)
 - [Engine framework process acceptance and native Windows startup blocker](2026-09-27-engine-framework-acceptance.md)
+- [Engine framework version-1 acceptance audit](2026-09-28-engine-framework-audit.md)
 - [Windows engine snapshot capture and historical retention fixes](2026-09-28-windows-engine-snapshot.md)
 
 - [Windows native voice default audit](2026-09-09-windows-native-defaults.md)

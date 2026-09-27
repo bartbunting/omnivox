@@ -77,6 +77,8 @@ The platform helper build READMEs remain with the code they maintain.
 - [Prepared synthesis](reference/prepared-synthesis.md): attempts, transactional
   audio commitment, effects, tickets and consumption evidence.
 - [Text chunking](reference/text-chunking.md): preprocessing and original offsets.
+- [Engine configuration](reference/engine-configuration.md): version-1 helper
+  manifests, local policy, overrides and startup rules.
 - [Rate calibration](reference/rate-calibration.md): mappings, measured reference
   curves, reproduction and interpretation.
 - [Voice-library formats](reference/voice-library.org): storage, identity,
@@ -98,8 +100,8 @@ establish performance or audible acceptance. Reruns create new reports.
 
 The [roadmap](ROADMAP.md) is the entry to future work. Current detailed proposals:
 
-- [Extensible engine framework](plans/extensible-engine-framework.md): independent
-  registration, configuration and lifecycle; language routing is a later increment.
+- [Language-aware voice selection](plans/language-routing.md): explicit language
+  matching and fallback beyond the existing exact-match rules.
 - [Speech Dispatcher feasibility](plans/speech-dispatcher.md): external playback,
   capability reductions and completion questions before implementation.
 

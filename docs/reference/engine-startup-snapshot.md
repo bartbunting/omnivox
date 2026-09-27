@@ -77,8 +77,8 @@ by the preparing caller; workers consume the retained valid registration set.
 Full records contain private paths, arguments and environment values. They have
 no debug projection and must not be copied into speech logs or public status.
 Public diagnostics may expose activation identity, engine ID, origin,
-configuration source and availability. The implementation plan tracks the
-remaining [paired-worker acceptance](../plans/extensible-engine-framework.md#acceptance-checklist).
+configuration source and availability. The [acceptance audit](../benchmarks/2026-09-28-engine-framework-audit.md#acceptance-checklist)
+records shared-worker, recovery and rollback coverage.
 The [control acknowledgement](../protocols/control.md#engine-configuration-acknowledgement)
 is projected from the record bound to the worker before engine publication.
 

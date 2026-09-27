@@ -1,0 +1,20 @@
+{
+  "source_commit": "d17b12c3453616a0b4bb65f92ce744601d9e11ad",
+  "test_source_files": {
+    "omnivox-tts/src/engine_configuration/tests.rs": "b27604995add4c699bdc80758af06d1139e515be61645bcfde0b8eadd8c4ffa3",
+    "omnivox-tts/src/engine_configuration/resolved_tests.rs": "d599d1f3d2789155c9c620373fd284d29f432f52738d920e5ea8fdb1fe2777fe"
+  },
+  "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6",
+  "host": "Linux 6.18.33.2-microsoft-standard-WSL2 x86_64 GNU/Linux",
+  "host_uid": "1000",
+  "commands": [
+    "make fmt-check",
+    "cargo +1.97.1 test --locked -p omnivox-tts --lib engine_configuration::",
+    "cargo +1.97.1 test --locked --workspace",
+    "cargo +1.97.1 test --locked -p omnivox-tts --no-default-features --target x86_64-pc-windows-gnu --lib engine_configuration:: -- --test-threads=1",
+    "cargo +1.97.1 clippy --locked --workspace --all-targets -- -D warnings",
+    "cargo +1.97.1 clippy --locked -p omnivox-tts --no-default-features --all-targets --target x86_64-pc-windows-gnu -- -D warnings"
+  ],
+  "command_results": "All commands exited 0. Windows test executable ran through WSL interop.",
+  "scope": "Test-only changes. Existing runnable payloads were not rebuilt or redeployed."
+}

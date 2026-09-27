@@ -102,7 +102,7 @@ its engine owner and slot while a launch, I/O or cleanup call remains unfinished
 Explicit retry waits for that attempt to finish and confirms cleanup before
 replacement. A late descriptor cannot become available after startup returns.
 
-See the [version-1 contract](../plans/extensible-engine-framework.md#configuration-version-1)
+See the [version-1 contract](../reference/engine-configuration.md#configuration-version-1)
 for examples, precedence and bounds. Local owners retain complete startup records;
 their workers expose negotiated `engine_configuration_status_v1` with activation
 identity and configuration sources. Emacsvox prepares one shared record and

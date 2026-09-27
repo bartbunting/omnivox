@@ -1,6 +1,6 @@
 # Omnivox Roadmap
 
-**Reviewed:** 2026-09-27.
+**Reviewed:** 2026-09-28.
 This is the outstanding backlog. [Status](STATUS.md) records current coverage,
 [architecture](ARCHITECTURE.md) describes implementation, and the
 [evidence index](benchmarks/README.md) links observations and comparisons.
@@ -99,21 +99,19 @@ need reviewed provenance and terms under [ADR 0007](adr/0007-managed-voice-lifec
 
 ### Extensible engine registration
 
-The [framework specification](plans/extensible-engine-framework.md) and
-[accepted ADR 0008](adr/0008-extensible-engine-registration.md) cover both
-independently maintained helpers and maintained adapters loading separately
-supplied runtimes. They define strict JSON `helpers.d/` manifests, `config.json`
-policy, unified discovery and lifecycle, explicit selection and coordinated
-launch snapshots. Configuration v1 runtime integration is implemented; acceptance
-remains incomplete. Expanded Linux and native Windows process checks pass; the
-Windows snapshot capture and historical-record issues are fixed. See the
-[Windows evidence](benchmarks/2026-09-28-windows-engine-snapshot.md). Complete the
-acceptance-matrix audit and reconcile the lasting configuration reference.
+[Configuration version 1](reference/engine-configuration.md) and its accepted
+first implementation slice are complete under
+[ADR 0008](adr/0008-extensible-engine-registration.md). Independently installed
+helpers can register without rebuilding Omnivox. Local settings govern selection;
+both speech workers share prepared settings and retain them through recovery.
+The [acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) maps all
+16 requirements to tests and Linux/Windows process evidence.
 
-The first slice proves configuration, inventory, diagnostics, selection and
-recovery with a redistributable fake helper. Real native integrations require
-separate qualification. Language-routing enhancements remain a separate versioned
-proposal; registration does not authorize them.
+Broader native platform and engine qualification remains separate, including
+native macOS process checks. [Language-aware voice selection](plans/language-routing.md)
+is a proposed later increment requiring agreed matching, fallback and versioning
+rules. A configuration UI, live reload, per-helper environment settings and
+executable installation are also outside the completed scope.
 
 ### Audio-output scope
 
