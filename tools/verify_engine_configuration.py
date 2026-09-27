@@ -131,9 +131,11 @@ def main():
         assert "engine_configuration_v1" in first.request("capabilities", control=True)["features"]
         first_ack = first.request("engine_configuration_status_v1", control=True)
         assert first_ack["activation_id"] == activation
-        assert first_ack["configuration_root"] == native(configuration)
+        # Windows canonicalization may add the native verbatim path prefix.
+        assert local(first_ack["configuration_root"]).resolve() == configuration.resolve(), first_ack
         registration = next(row for row in first_ack["registrations"] if row["engine_id"] == "org.fixture")
-        assert registration["origin"] == "external_helper" and registration["source"] == "helpers.d/fixture.json"
+        source = r"helpers.d\fixture.json" if args.windows else "helpers.d/fixture.json"
+        assert registration["origin"] == "external_helper" and registration["source"] == source, registration
 
         preview = json.loads((ROOT / "docs/protocol-fixtures/voice-choice-tuning.json").read_text())["messages"]["preview"]
         for field in ("type", "protocol_version", "request_id", "expected_base_rate"):
