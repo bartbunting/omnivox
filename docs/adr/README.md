@@ -15,13 +15,13 @@ Proposed records do not override accepted decisions.
 | [0005: Native PulseAudio output](0005-native-pulseaudio-output.md) | Accepted | Optional backend, priming, idle/stop and output recovery. |
 | [0006: Voice selection and customization](0006-voice-selection-and-customization.md) | Accepted | Actual-choice tuning, private previews, typed native controls and variants. |
 | [0007: Managed voice lifecycle](0007-managed-voice-lifecycle.md) | Accepted | Installed/desired/active state, providers, validation, activation and fallback. |
-| [0008: Extensible engine registration](0008-extensible-engine-registration.md) | Proposed | Shared registration and explicit local configuration for independent helpers. |
+| [0008: Extensible engine registration](0008-extensible-engine-registration.md) | Accepted | Shared registration and explicit local configuration for independent helpers; configuration v1 and its first implementation slice. |
 
 The maintainer authorized a one-time consolidation and renumbering on 2026-09-27.
 These are the replacement records; older numbers apply only to earlier Git
 revisions. Pre-consolidation records are available in Git at `cdd6176` and are
 not retained as parallel files or redirects. The replacement preserves accepted
-policy; the extensibility decision remains proposed. Recorded test observations
+policy; the extensibility decision was subsequently accepted for its v1 scope. Recorded test observations
 were preserved in the [evidence archive](../benchmarks/README.md).
 
 Numbers are stable after this baseline. For a task, read this index, the relevant

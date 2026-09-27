@@ -468,7 +468,7 @@ See [diagnostics.md](guides/diagnostics.md) for evidence collection.
 
 The [extensible-engine framework](plans/extensible-engine-framework.md) proposes
 shared launch registration, `helpers.d/` manifests and `config.json` policy.
-Its [ADR 0008](adr/0008-extensible-engine-registration.md) is proposed; these
+Its [ADR 0008](adr/0008-extensible-engine-registration.md) is accepted for v1; these
 readers, coordinated helper-launch snapshots and external automatic-selection
 permissions are not current features. Richer language matching is a separate
 future increment. The [roadmap](ROADMAP.md) tracks outstanding work.

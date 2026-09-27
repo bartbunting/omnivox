@@ -1,7 +1,8 @@
 # ADR 0008: Extensible engine registration
 
-- Status: Proposed
-- Revised: 2026-09-27 during documentation consolidation; not accepted or implemented.
+- Status: Accepted
+- Accepted: 2026-09-27; maintainer authorized configuration version 1 and the
+  first implementation slice. Implementation and qualification remain pending.
 - Extends: [Engine isolation](0001-engine-isolation-and-distribution.md).
 - Related: [Local activation](0007-managed-voice-lifecycle.md),
   [speech-host boundary](0004-workstation-service-and-worker-ownership.md).
@@ -18,7 +19,7 @@ maintenance, helper distribution and runtime supply should remain independent
 choices, sharing a protocol and preserving engine/voice identity when maintenance
 or distribution changes.
 
-## Proposed decision
+## Decision
 
 Normalize compiled in-process factories, shipped helper definitions and explicit
 external registrations into one registry consumed by startup, inventory, exact
@@ -78,5 +79,5 @@ precedence, bounds and acceptance criteria. The
 [roadmap](../ROADMAP.md#extensible-engine-registration) tracks remaining work.
 The first slice uses a fake helper; real native integrations retain separate
 qualification. Language-routing changes, live reload and a configuration UI are
-later increments. This proposal does not authorize their implementation or change
-current runtime/distribution behavior.
+later increments. Acceptance covers configuration version 1 and the first slice;
+it does not authorize those later increments or change distribution policy.

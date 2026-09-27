@@ -100,11 +100,12 @@ need reviewed provenance and terms under [ADR 0007](adr/0007-managed-voice-lifec
 ### Extensible engine registration
 
 The [framework specification](plans/extensible-engine-framework.md) and
-[proposed ADR 0008](adr/0008-extensible-engine-registration.md) cover both
+[accepted ADR 0008](adr/0008-extensible-engine-registration.md) cover both
 independently maintained helpers and maintained adapters loading separately
 supplied runtimes. They define strict JSON `helpers.d/` manifests, `config.json`
 policy, unified discovery and lifecycle, explicit selection and coordinated
-launch snapshots. Runtime implementation has not started.
+launch snapshots. Configuration v1 is authorized for implementation; runtime
+integration and acceptance remain outstanding.
 
 The first slice proves configuration, inventory, diagnostics, selection and
 recovery with a redistributable fake helper. Real native integrations require

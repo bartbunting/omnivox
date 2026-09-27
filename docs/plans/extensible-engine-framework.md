@@ -1,11 +1,11 @@
 # Extensible speech engine framework
 
-Status: Implementation specification proposal, 2026-09-27. Configuration
-version 1 below defines the first implementation slice. It is not implemented
-yet. The later language-routing section remains a separate design proposal.
+Status: Accepted for implementation, 2026-09-27. Configuration version 1 below
+defines the authorized first implementation slice. Runtime integration is pending.
+The later language-routing section remains a separate design proposal.
 
 The [roadmap entry](../ROADMAP.md#extensible-engine-registration) tracks the
-delivery scope. [Proposed ADR 0008](../adr/0008-extensible-engine-registration.md)
+delivery scope. [ADR 0008](../adr/0008-extensible-engine-registration.md)
 records the architectural choices and alternatives; this document defines the
 detailed configuration contract and implementation acceptance criteria.
 
@@ -602,6 +602,22 @@ operational deadlines within bounds; it cannot disable validation, loosen
 cancellation ownership or bypass managed asset verification.
 
 ## First implementation slice
+
+Deliver and verify these changes in separate commits:
+
+1. Establish the strict configuration reader and shared registration metadata,
+   preserving existing engine defaults and compatibility inputs.
+2. Resolve immutable launch definitions and connect startup, exact diagnostics
+   and bounded helper initialization to the same registry.
+3. Enforce local/session exclusions and external automatic-selection permission
+   throughout resolution, previews, synthesis and recovery.
+4. Carry complete prepared snapshots through local ownership and paired Emacsvox
+   activation, including acknowledgements and rollback.
+5. Complete the process-based fake-helper acceptance matrix and reconcile current
+   references, guides and qualification status with verified behavior.
+
+Tests accompany each implementation commit; the final matrix adds coverage across
+the complete path. Native integration qualification remains separate.
 
 Implement the version-1 registration/configuration reader, normalized registry
 and shared launch resolution, then connect server startup, exact diagnostics,
