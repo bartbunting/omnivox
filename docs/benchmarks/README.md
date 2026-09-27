@@ -57,7 +57,8 @@ These reports qualify behavior and native integrations. A passing functional
 check is not a performance baseline unless the report also records measured
 samples and a reproducible comparison.
 
-- [Extensible engine configuration and the remaining startup deadline gap](2026-09-27-engine-framework.md)
+- [Extensible engine configuration and the original startup deadline gap](2026-09-27-engine-framework.md)
+- [Engine startup deadline fix and retained ownership checks](2026-09-27-engine-startup-deadline.md)
 
 - [Windows native voice default audit](2026-09-09-windows-native-defaults.md)
 - [Windows native parameter bindings and limits, 2026-09-17](2026-09-17-native-parameter-bindings.md)

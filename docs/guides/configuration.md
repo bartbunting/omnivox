@@ -96,6 +96,12 @@ Malformed main configuration rejects startup before native construction. Invalid
 optional manifests are diagnosed independently unless a main override requires
 the failed registration.
 
+External startup has four admission slots and one 120-second batch budget,
+independent of shipped engines. A timed-out attempt stays unavailable and keeps
+its engine owner and slot while a launch, I/O or cleanup call remains unfinished.
+Explicit retry waits for that attempt to finish and confirms cleanup before
+replacement. A late descriptor cannot become available after startup returns.
+
 See the [version-1 contract](../plans/extensible-engine-framework.md#configuration-version-1)
 for examples, precedence and bounds. Local owners retain complete startup records;
 their workers expose negotiated `engine_configuration_status_v1` with activation

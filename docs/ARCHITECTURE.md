@@ -219,6 +219,13 @@ in deterministic order before the command loop. External helpers use four separa
 initialization slots and a 120-second batch admission budget. Their inventory is
 available for explicit selection; unrestricted matching requires local automatic
 permission. Failed attempts retain their helper owner until cleanup is confirmed.
+An owned initialization task keeps its engine, lifecycle lock and process-wide
+slot while a launch, protocol I/O or cleanup call remains unfinished, even after the
+admission caller returns. Only that caller can publish a negotiated connection;
+an expired or discarded candidate is retired. Explicit retry joins the old task
+before attempting cleanup or another launch. Shipped initialization keeps its
+independent admission path. The [deadline regression report](benchmarks/2026-09-27-engine-startup-deadline.md)
+records controlled blocked-I/O and ownership checks.
 TGSpeechBox can register a
 bounded, source-identified packaged descriptor cache for its native sample rate
 and prewarm one connection in the background. First synthesis joins that same
@@ -487,9 +494,10 @@ See [diagnostics.md](guides/diagnostics.md) for evidence collection.
 The [extensible-engine framework](plans/extensible-engine-framework.md) has
 implemented v1 registration readers, coordinated helper-launch snapshots and
 external automatic-selection permissions under accepted
-[ADR 0008](adr/0008-extensible-engine-registration.md). Its
-[startup deadline ownership gap](benchmarks/2026-09-27-engine-framework.md#reproduced-startup-deadline-gap)
-and native platform qualification remain outstanding. Richer language matching
+[ADR 0008](adr/0008-extensible-engine-registration.md). The
+[startup deadline regression checks](benchmarks/2026-09-27-engine-startup-deadline.md)
+now pass; completion of the acceptance matrix and native platform qualification
+remain outstanding. Richer language matching
 is a separate future increment. The [roadmap](ROADMAP.md) tracks outstanding work.
 
 Performance claims belong to the [retained evidence](benchmarks/README.md).
