@@ -1842,11 +1842,16 @@ pub(crate) fn run_server(
         crate::parameter_queries::ParameterQueries::new().with_native_plans(native_plans);
     let mut pending = PendingBatch::default();
     let mut current_gen: u64 = 0;
-    let mut logical_voices = LogicalVoiceRegistry::default();
+    let mut logical_voices = LogicalVoiceRegistry::with_engine_permissions(
+        engine_registry.selection_permissions().clone(),
+    );
     let mut presentation_generations = PresentationGenerations::default();
     let keyed_cancellations = KeyedCancellationRegistry::default();
     let preferred_engine_id = engine.descriptor().id;
-    let mut routing_policy = RoutingPolicyRegistry::new(preferred_engine_id.clone());
+    let mut routing_policy = RoutingPolicyRegistry::with_local_policy(
+        preferred_engine_id.clone(),
+        engine_registry.local_routing_policy(),
+    );
 
     let (input_tx, input_rx) = mpsc::sync_channel::<io::Result<String>>(INPUT_QUEUE_CAPACITY);
     let input_handle = std::thread::Builder::new()
@@ -2751,7 +2756,8 @@ pub(crate) fn prepare_voice_preview_v3(
         .iter()
         .map(|c| ParameterKnowledge::Ready(c.as_ref()))
         .collect::<Vec<_>>();
-    let mut private = LogicalVoiceRegistry::default();
+    let mut private =
+        LogicalVoiceRegistry::with_engine_permissions(engines.selection_permissions().clone());
     private
         .register_v3(
             VoiceRegistrationV3 {
@@ -2795,7 +2801,8 @@ fn prepare_voice_preview_v2(
         }
     }
     VoicePreviewResponseV2::validate_metadata_budget(base_rate, &disabled)?;
-    let mut private = LogicalVoiceRegistry::default();
+    let mut private =
+        LogicalVoiceRegistry::with_engine_permissions(engines.selection_permissions().clone());
     private
         .register_v2(
             1,
@@ -2858,7 +2865,9 @@ fn prepare_voice_preview(
             disabled_engine_ids.push(engine.clone());
         }
     }
-    let mut private = LogicalVoiceRegistry::default();
+    let mut private = LogicalVoiceRegistry::with_engine_permissions(
+        engine_registry.selection_permissions().clone(),
+    );
     private
         .register(
             1,
@@ -2928,7 +2937,9 @@ fn dispatch_preview(
         return;
     }
 
-    let mut preview_registry = LogicalVoiceRegistry::default();
+    let mut preview_registry = LogicalVoiceRegistry::with_engine_permissions(
+        engine_registry.selection_permissions().clone(),
+    );
     let registration = preview_registry.register(
         1,
         vec![LogicalVoiceDefinition {

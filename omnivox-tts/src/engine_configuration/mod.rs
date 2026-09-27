@@ -7,6 +7,7 @@ mod environment;
 mod files;
 mod json;
 mod paths;
+mod selection;
 pub mod shipped;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -18,6 +19,7 @@ use thiserror::Error;
 pub use environment::LaunchEnvironment;
 pub use files::{ConfigurationRoot, LoadedConfiguration, ManifestRegistration};
 pub use paths::Platform;
+pub use selection::EngineSelectionPermissions;
 
 pub const MAX_CONFIG_BYTES: usize = 128 * 1024;
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;

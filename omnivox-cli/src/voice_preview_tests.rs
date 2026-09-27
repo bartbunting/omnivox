@@ -629,6 +629,40 @@ fn decode_record(record: &str) -> ControlResponseEnvelope {
 }
 
 #[test]
+fn private_preview_respects_external_selection_permission_at_audio_execution() {
+    use omnivox_tts::engine_configuration::{EngineSelectionPermissions, LocalRoutingPolicy};
+    use std::collections::BTreeSet;
+    let external = PreviewEngine::new("aaa.external", "voice", Behavior::Buffered);
+    let shipped = PreviewEngine::new("espeak", "en", Behavior::Buffered);
+    let mut engines = EngineRegistry::new();
+    engines
+        .configure_local_selection(
+            LocalRoutingPolicy::default(),
+            EngineSelectionPermissions::new(
+                BTreeSet::new(),
+                BTreeSet::from(["aaa.external".into()]),
+                &BTreeSet::new(),
+            ),
+        )
+        .unwrap();
+    engines.register(external.clone()).unwrap();
+    engines.register(shipped.clone()).unwrap();
+    let applied = RoutingPolicyRegistry::new("espeak");
+    let mut draft = request();
+    draft.preferences = vec![VoiceSelector::Properties {
+        engine_id: None,
+        language: Some("en-AU".into()),
+        gender: None,
+    }];
+    draft.fallback_policy.preferred_engines = vec![];
+    let prepared = prepare_voice_preview(draft, 0.65, &engines, &applied).unwrap();
+    let result = run(prepared, &engines, false);
+    assert_eq!(result.status, BatchStatus::Completed);
+    assert!(external.requests.lock().unwrap().is_empty());
+    assert!(!shipped.requests.lock().unwrap().is_empty());
+}
+
+#[test]
 fn complete_preview_executes_shared_wire_examples() {
     let wire: Vec<_> = include_str!("../../test-fixtures/voice-preview-wire.txt")
         .lines()

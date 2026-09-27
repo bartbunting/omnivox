@@ -1,8 +1,9 @@
 # Extensible speech engine framework
 
 Status: Implementation in progress, 2026-09-27. Configuration version 1 below
-defines the authorized first implementation slice. The strict reader and reserved
-engine metadata are implemented as library primitives; runtime integration is pending.
+defines the authorized first implementation slice. The strict reader and shared
+shipped launch metadata are implemented. Routing, preview and recovery paths retain
+local selection permissions; configuration-driven startup integration is pending.
 The later language-routing section remains a separate design proposal.
 
 The [roadmap entry](../ROADMAP.md#extensible-engine-registration) tracks the

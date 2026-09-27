@@ -9,9 +9,10 @@ use omnivox_tts::contracts::{
     LogicalVoiceDefinition, NormalizedAcss, PhysicalVoiceId, PostSynthesisApplication,
     PostSynthesisDimension, PostSynthesisStyle, VoiceSelector,
 };
+use omnivox_tts::engine_configuration::EngineSelectionPermissions;
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
-use omnivox_tts::resolver::{resolve_voice, resolve_voice_for_text, VoiceResolution};
+use omnivox_tts::resolver::{resolve_voice_with_permissions, VoiceResolution};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
 use omnivox_tts::voice_choices::{LayeredVoiceDefinition, RegisteredVoiceDefinition};
 use omnivox_tts::{
@@ -46,6 +47,7 @@ pub struct LogicalVoiceRoutingSnapshot {
     fallback_policy: FallbackPolicy,
     inventory: Vec<EngineDescriptor>,
     disabled_engine_ids: Vec<String>,
+    engine_permissions: EngineSelectionPermissions,
 }
 
 impl LogicalVoiceRoutingSnapshot {
@@ -74,6 +76,7 @@ impl LogicalVoiceRoutingSnapshot {
         engine_registry: &EngineRegistry,
     ) -> Self {
         Self {
+            engine_permissions: engine_registry.selection_permissions().clone(),
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
@@ -92,6 +95,7 @@ impl LogicalVoiceRoutingSnapshot {
         routing_policy: &RoutingPolicyRegistry,
     ) -> Self {
         Self {
+            engine_permissions: engine_registry.selection_permissions().clone(),
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
@@ -113,6 +117,7 @@ impl LogicalVoiceRoutingSnapshot {
         routing_policy: &RoutingPolicyRegistry,
     ) -> Self {
         Self {
+            engine_permissions: engine_registry.selection_permissions().clone(),
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
@@ -132,6 +137,7 @@ impl LogicalVoiceRoutingSnapshot {
         disabled_engine_ids: Vec<String>,
     ) -> Self {
         let mut snapshot = Self {
+            engine_permissions: engine_registry.selection_permissions().clone(),
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
@@ -239,6 +245,7 @@ impl LogicalVoiceRoutingSnapshot {
             .saturating_add(fallback_policy_payload_bytes(&self.fallback_policy))
             .saturating_add(inventory)
             .saturating_add(string_vec_payload_bytes(&self.disabled_engine_ids))
+            .saturating_add(self.engine_permissions.retained_bytes())
     }
 
     /// Return the first currently usable engine in global preferred/fallback
@@ -406,12 +413,13 @@ impl LogicalVoiceRoutingSnapshot {
             .ok_or_else(|| {
                 format!("logical voice {logical_voice_id} no longer has a definition")
             })?;
-        let mut resolution = match text {
-            Some(text) => {
-                resolve_voice_for_text(&self.inventory, definition, &self.fallback_policy, text)
-            }
-            None => resolve_voice(&self.inventory, definition, &self.fallback_policy),
-        }
+        let mut resolution = resolve_voice_with_permissions(
+            &self.inventory,
+            definition,
+            &self.fallback_policy,
+            text,
+            &self.engine_permissions,
+        )
         .map_err(|error| error.to_string())?;
         if let Some(index) = self.preview_choice_index {
             if resolution.reason != omnivox_tts::resolver::ResolutionReason::Preferred {
@@ -2083,6 +2091,52 @@ mod tests {
             .register(1, vec![definition], fallback_policy, &engines.inventory())
             .unwrap();
         LogicalVoiceRoutingSnapshot::capture(&logical_voices, engines)
+    }
+
+    #[test]
+    fn external_selection_permission_survives_dispatch_inventory_refresh() {
+        use omnivox_tts::engine_configuration::LocalRoutingPolicy;
+        use std::collections::BTreeSet;
+        let mut engines = EngineRegistry::new();
+        engines
+            .configure_local_selection(
+                LocalRoutingPolicy::default(),
+                EngineSelectionPermissions::new(
+                    BTreeSet::new(),
+                    BTreeSet::from(["aaa.external".into()]),
+                    &BTreeSet::new(),
+                ),
+            )
+            .unwrap();
+        register_engine(&mut engines, "aaa.external", &["external"]);
+        register_engine(&mut engines, "espeak", &["en"]);
+        let property = VoiceSelector::Properties {
+            engine_id: None,
+            language: Some("en-US".into()),
+            gender: None,
+        };
+        let mut automatic = snapshot(
+            &engines,
+            definition(vec![property]),
+            FallbackPolicy::default(),
+        );
+        automatic.replace_inventory(engines.inventory());
+        let route = automatic.resolve_current("source-code", &engines).unwrap();
+        assert_eq!(route.resolution.realized.engine_id, "espeak");
+        let explicit = snapshot(
+            &engines,
+            definition(vec![exact("aaa.external", "external")]),
+            FallbackPolicy::default(),
+        );
+        assert_eq!(
+            explicit
+                .resolve_current("source-code", &engines)
+                .unwrap()
+                .resolution
+                .realized
+                .engine_id,
+            "aaa.external"
+        );
     }
 
     #[test]
