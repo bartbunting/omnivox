@@ -534,7 +534,7 @@ pub fn create_engine(
                 library.verify_assets(&id)?;
             }
             let engine = if let Some(config) = &registration.helper {
-                let engine = HelperTtsEngine::prepare(config.clone())?;
+                let engine = Arc::new(HelperTtsEngine::prepare(config.clone())?);
                 if registration.origin
                     == omnivox_tts::engine_configuration::EngineOrigin::ExternalHelper
                 {
@@ -544,7 +544,7 @@ pub fn create_engine(
                 } else {
                     engine.prewarm_connection()?;
                 }
-                Arc::new(engine) as Arc<dyn TtsEngine>
+                engine as Arc<dyn TtsEngine>
             } else {
                 construct_in_process(&id)?
             };

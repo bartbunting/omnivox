@@ -189,7 +189,7 @@ fn launch_failure_does_not_disclose_private_launch_fields_in_status_reasons() {
     );
     config.arguments = vec!["private argument".into()];
     let engine = crate::helper_engine::HelperTtsEngine::prepare(config).unwrap();
-    let error = engine
+    let error = std::sync::Arc::new(engine)
         .initialize_before(std::time::Instant::now() + std::time::Duration::from_secs(1))
         .unwrap_err()
         .to_string();

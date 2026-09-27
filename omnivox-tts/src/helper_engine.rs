@@ -1253,6 +1253,9 @@ pub struct HelperTtsEngine {
     stop_epoch: AtomicU64,
     active_request_id: Arc<AtomicU64>,
     cancellations_by_target: Mutex<HashMap<u64, Arc<TargetCancellation>>>,
+    // A timed-out initialization keeps its handle here and an Arc to this owner
+    // in the worker. Only finished workers are joined, before another admission.
+    initialization: Mutex<Option<JoinHandle<()>>>,
     lifecycle: Mutex<()>,
     dispatch: Mutex<()>,
     applied_plans: Mutex<VecDeque<AppliedPlan>>,
@@ -1265,17 +1268,6 @@ impl HelperTtsEngine {
     pub fn prepare(config: HelperEngineConfig) -> Result<Self, HelperEngineError> {
         let connector = Arc::new(ProcessHelperConnector::new(&config));
         Self::without_connection(config, connector, None)
-    }
-
-    /// Initialize within an admission budget. Cleanup has its own bounded
-    /// deadline and ownership remains here even when cleanup is unconfirmed.
-    pub fn initialize_before(&self, deadline: Instant) -> Result<bool, HelperEngineError> {
-        let _lifecycle = cleanup_lock(&self.lifecycle, deadline)?;
-        if self.current_connection().is_ok() {
-            return Ok(false);
-        }
-        self.install_fresh_connection_before(Some(deadline))?;
-        Ok(true)
     }
 
     /// Explicit live discovery on the retained owner, including after a host
@@ -1350,6 +1342,7 @@ impl HelperTtsEngine {
             stop_epoch: AtomicU64::new(0),
             active_request_id: Arc::new(AtomicU64::new(0)),
             cancellations_by_target: Mutex::new(HashMap::new()),
+            initialization: Mutex::new(None),
             lifecycle: Mutex::new(()),
             dispatch: Mutex::new(()),
             applied_plans: Mutex::new(VecDeque::new()),
@@ -1384,12 +1377,19 @@ impl HelperTtsEngine {
     }
 
     fn install_fresh_connection(&self) -> Result<(), HelperEngineError> {
-        self.install_fresh_connection_before(None)
+        self.install_fresh_connection_with(None, |connection, descriptor, protocol_version| {
+            self.publish_connection(connection, descriptor, protocol_version, None)
+        })
     }
 
-    fn install_fresh_connection_before(
+    fn install_fresh_connection_with(
         &self,
         deadline: Option<Instant>,
+        publish: impl FnOnce(
+            Arc<dyn HelperConnection>,
+            EngineDescriptor,
+            u16,
+        ) -> Result<(), HelperEngineError>,
     ) -> Result<(), HelperEngineError> {
         let started_at = Instant::now();
         info!(
@@ -1438,18 +1438,10 @@ impl HelperTtsEngine {
             *retiring = None;
             return Err(HelperEngineError::Timeout("external startup budget"));
         }
-        *self.descriptor.write().unwrap() = Some(descriptor);
-        self.descriptor_is_deferred.store(false, Ordering::Release);
-        self.protocol_version
-            .store(u64::from(protocol_version), Ordering::Release);
-        {
-            let mut current = self.connection.write().unwrap();
-            let epoch = self
-                .parameter_cache_epoch
-                .load(Ordering::Relaxed)
-                .saturating_add(1);
-            self.parameter_cache_epoch.store(epoch, Ordering::Release);
-            *current = Some(connection);
+        if let Err(error) = publish(Arc::clone(&connection), descriptor, protocol_version) {
+            connection.terminate()?;
+            *retiring = None;
+            return Err(error);
         }
         *retiring = None;
         info!(
@@ -1458,6 +1450,36 @@ impl HelperTtsEngine {
             elapsed_ms = started_at.elapsed().as_millis(),
             "TTS helper connection ready"
         );
+        Ok(())
+    }
+
+    // The installer retains lifecycle and retirement ownership while publishing,
+    // including when the admission caller accepts an owned worker's result.
+    fn publish_connection(
+        &self,
+        connection: Arc<dyn HelperConnection>,
+        descriptor: EngineDescriptor,
+        protocol_version: u16,
+        deadline: Option<Instant>,
+    ) -> Result<(), HelperEngineError> {
+        let mut published_descriptor =
+            initialization::publication_lock(&self.descriptor, deadline)?;
+        let mut current = initialization::publication_lock(&self.connection, deadline)?;
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            return Err(HelperEngineError::Timeout("external startup budget"));
+        }
+        // All potentially waiting locks are acquired before deciding to publish.
+        // The admission caller alone commits this state, before returning success.
+        *published_descriptor = Some(descriptor);
+        self.descriptor_is_deferred.store(false, Ordering::Release);
+        self.protocol_version
+            .store(u64::from(protocol_version), Ordering::Release);
+        let epoch = self
+            .parameter_cache_epoch
+            .load(Ordering::Relaxed)
+            .saturating_add(1);
+        self.parameter_cache_epoch.store(epoch, Ordering::Release);
+        *current = Some(connection);
         Ok(())
     }
 
@@ -2345,6 +2367,10 @@ impl TtsEngine for HelperTtsEngine {
 
 impl Drop for HelperTtsEngine {
     fn drop(&mut self) {
+        // An initialization worker retains this engine until its I/O and
+        // lifecycle work end. If it releases the last Arc, Drop runs there:
+        // never join its own handle. Its engine resources remain owned through
+        // the existing final cleanup below.
         if let Ok(connection) = self.connection.get_mut() {
             if let Some(connection) = connection.take() {
                 if let Err(error) = connection.terminate() {

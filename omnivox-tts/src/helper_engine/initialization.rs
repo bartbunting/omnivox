@@ -1,7 +1,224 @@
 use super::*;
+use std::sync::atomic::AtomicUsize;
+use std::sync::OnceLock;
 
 const EXTERNAL_INITIALIZATIONS: usize = 4;
 pub const EXTERNAL_STARTUP_BUDGET: Duration = Duration::from_secs(120);
+
+/// Includes attempts whose callers have timed out while launch, I/O or cleanup
+/// is still running. Explicit recovery shares the startup limit.
+#[derive(Default)]
+pub(super) struct InitializationSlots {
+    active: AtomicUsize,
+}
+
+impl InitializationSlots {
+    fn acquire(
+        self: &Arc<Self>,
+        deadline: Instant,
+    ) -> Result<InitializationSlot, HelperEngineError> {
+        loop {
+            check_budget(deadline)?;
+            if self
+                .active
+                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |active| {
+                    (active < EXTERNAL_INITIALIZATIONS).then_some(active + 1)
+                })
+                .is_ok()
+            {
+                return Ok(InitializationSlot(Arc::clone(self)));
+            }
+            thread::sleep(
+                HELPER_CLEANUP_POLL.min(deadline.saturating_duration_since(Instant::now())),
+            );
+        }
+    }
+}
+
+struct InitializationSlot(Arc<InitializationSlots>);
+
+impl Drop for InitializationSlot {
+    fn drop(&mut self) {
+        self.0.active.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
+fn check_budget(deadline: Instant) -> Result<(), HelperEngineError> {
+    if Instant::now() >= deadline {
+        Err(HelperEngineError::Timeout("external startup budget"))
+    } else {
+        Ok(())
+    }
+}
+
+pub(super) fn publication_lock<T>(
+    lock: &RwLock<T>,
+    deadline: Option<Instant>,
+) -> Result<std::sync::RwLockWriteGuard<'_, T>, HelperEngineError> {
+    let Some(deadline) = deadline else {
+        return lock
+            .write()
+            .map_err(|_| HelperEngineError::Transport("helper publication lock poisoned".into()));
+    };
+    loop {
+        check_budget(deadline)?;
+        match lock.try_write() {
+            Ok(guard) => return Ok(guard),
+            Err(TryLockError::Poisoned(_)) => {
+                return Err(HelperEngineError::Transport(
+                    "helper publication lock poisoned".into(),
+                ));
+            }
+            Err(TryLockError::WouldBlock) => thread::sleep(
+                HELPER_CLEANUP_POLL.min(deadline.saturating_duration_since(Instant::now())),
+            ),
+        }
+    }
+}
+
+struct PreparedInitialization {
+    connection: Arc<dyn HelperConnection>,
+    descriptor: EngineDescriptor,
+    protocol_version: u16,
+    accepted: mpsc::SyncSender<()>,
+}
+
+// Field order keeps the slot occupied through the engine's final Drop, if the
+// host has already gone away. The worker owns no join handle outside the engine.
+struct InitializationTask {
+    engine: Arc<HelperTtsEngine>,
+    _slot: InitializationSlot,
+}
+
+impl InitializationTask {
+    fn run(
+        self,
+        deadline: Instant,
+        results: mpsc::SyncSender<Result<Option<PreparedInitialization>, HelperEngineError>>,
+    ) {
+        let mut results = Some(results);
+        let mut initialize = || {
+            let _lifecycle = cleanup_lock(&self.engine.lifecycle, deadline)?;
+            check_budget(deadline)?;
+            if self.engine.current_connection().is_ok() {
+                let _ = results.take().unwrap().send(Ok(None));
+                return Ok(());
+            }
+            self.engine.install_fresh_connection_with(
+                Some(deadline),
+                |connection, descriptor, protocol_version| {
+                    let (accepted, decision) = mpsc::sync_channel(1);
+                    results
+                        .take()
+                        .unwrap()
+                        .send(Ok(Some(PreparedInitialization {
+                            connection,
+                            descriptor,
+                            protocol_version,
+                            accepted,
+                        })))
+                        .map_err(|_| HelperEngineError::Timeout("external startup budget"))?;
+                    // The result sender is gone before waiting for acceptance.
+                    // Dropping the receiver therefore drops even an unread
+                    // candidate and wakes this wait. Lifecycle and retirement
+                    // remain held until acceptance or cleanup.
+                    decision
+                        .recv()
+                        .map_err(|_| HelperEngineError::Timeout("external startup budget"))
+                },
+            )
+        };
+        if let Err(error) = initialize() {
+            if let Some(results) = results {
+                let _ = results.send(Err(error));
+            }
+        }
+    }
+}
+
+impl HelperTtsEngine {
+    /// Wait for initialization within an admission budget. Unfinished launch,
+    /// protocol I/O and cleanup retain this engine and a process-wide slot after
+    /// timeout. A later call joins the completed attempt before retrying.
+    pub fn initialize_before(
+        self: &Arc<Self>,
+        deadline: Instant,
+    ) -> Result<bool, HelperEngineError> {
+        static SLOTS: OnceLock<Arc<InitializationSlots>> = OnceLock::new();
+        self.initialize_with_slots(deadline, SLOTS.get_or_init(Default::default))
+    }
+
+    pub(super) fn initialize_with_slots(
+        self: &Arc<Self>,
+        deadline: Instant,
+        slots: &Arc<InitializationSlots>,
+    ) -> Result<bool, HelperEngineError> {
+        check_budget(deadline)?;
+        let mut pending = cleanup_lock(&self.initialization, deadline)?;
+        Self::join_initialization_before(&mut pending, deadline)?;
+        check_budget(deadline)?;
+        if self.current_connection().is_ok() {
+            return Ok(false);
+        }
+        let task = InitializationTask {
+            engine: Arc::clone(self),
+            _slot: slots.acquire(deadline)?,
+        };
+        let (results, waiting) = mpsc::sync_channel(1);
+        *pending = Some(
+            thread::Builder::new()
+                .name("omnivox-helper-initialization".into())
+                .spawn(move || task.run(deadline, results))
+                .map_err(|error| {
+                    HelperEngineError::Transport(format!("could not start initialization: {error}"))
+                })?,
+        );
+        match waiting.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+            Ok(Ok(prepared)) => {
+                // A queued response can be received after the deadline. Dropping
+                // it tells the owner to retire, without any late publication.
+                check_budget(deadline)?;
+                if let Some(prepared) = prepared {
+                    self.publish_connection(
+                        prepared.connection,
+                        prepared.descriptor,
+                        prepared.protocol_version,
+                        Some(deadline),
+                    )?;
+                    let _ = prepared.accepted.send(());
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
+            }
+            Ok(Err(error)) => Err(error),
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                Err(HelperEngineError::Timeout("external startup budget"))
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => Err(HelperEngineError::Transport(
+                "helper initialization worker failed".into(),
+            )),
+        }
+    }
+
+    pub(super) fn join_initialization_before(
+        pending: &mut Option<JoinHandle<()>>,
+        deadline: Instant,
+    ) -> Result<(), HelperEngineError> {
+        if let Some(worker) = pending.as_ref() {
+            while !worker.is_finished() {
+                check_budget(deadline)?;
+                thread::sleep(
+                    HELPER_CLEANUP_POLL.min(deadline.saturating_duration_since(Instant::now())),
+                );
+            }
+        }
+        if let Some(worker) = pending.take() {
+            let _ = worker.join();
+        }
+        Ok(())
+    }
+}
 
 /// The prepared engine is retained on both success and failure. An explicit
 /// rescan must reuse it; cleanup ownership cannot be replaced with a new object.
@@ -53,8 +270,9 @@ pub fn initialize_external_helpers(
 }
 
 /// Dedicated external slots keep the queue independent of shipped startup.
-/// Scoped workers are all joined, including panic paths; none can publish late.
-fn run_initializations<T: Sync>(
+/// Scoped admission waiters are joined, including panic paths. Their owned I/O
+/// attempts can outlive a timeout, retaining slots without publishing late.
+pub(super) fn run_initializations<T: Sync>(
     jobs: &[T],
     budget: Duration,
     initialize: impl Fn(&T, Instant) -> Result<(), String> + Sync,
@@ -116,7 +334,6 @@ fn run_initializations<T: Sync>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::AtomicUsize;
 
     #[test]
     fn concurrency_is_bounded_and_every_admitted_job_runs_once() {
