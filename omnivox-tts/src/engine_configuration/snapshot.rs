@@ -537,8 +537,8 @@ pub(super) fn validate_environment(variables: &[(OsString, OsString)]) -> Result
             !name.is_empty() && native_without_nul(name) && native_without_nul(value),
             "invalid snapshot environment",
         )?;
-        // Windows' hidden drive-directory entries start with '=' and are not
-        // accepted by std::process::Command. vars_os does not return those.
+        // Capture omits Windows' hidden drive-directory entries. A complete
+        // record must already contain launch settings, never those entries.
         require(
             !name.as_encoded_bytes().contains(&b'='),
             "invalid snapshot environment name",

@@ -108,6 +108,21 @@ fn complete_record_round_trips_without_files_or_environment_reads() {
 }
 
 #[test]
+fn captured_native_environment_can_prepare_and_restore_a_snapshot() {
+    let mut resolved = resolved(None);
+    resolved.environment = LaunchEnvironment::capture();
+    for registration in resolved.registrations.values_mut() {
+        if let Some(helper) = &mut registration.helper {
+            helper.environment = resolved.environment.clone();
+        }
+    }
+    let expected = resolved.environment.clone();
+    let snapshot = LaunchSnapshot::prepare(resolved, None, "".into(), false).unwrap();
+    let decoded = LaunchSnapshot::parse(&snapshot.to_bytes().unwrap()).unwrap();
+    assert_eq!(decoded.resolved.environment, expected);
+}
+
+#[test]
 fn every_complete_record_field_is_required_even_when_nullable() {
     let snapshot = prepared();
     let value = serde_json::to_value(&snapshot).unwrap();
@@ -237,6 +252,7 @@ fn environment_rejects_duplicates_and_invalid_native_process_values() {
         vec![("DUP", "a"), ("DUP", "b")],
         vec![("", "value")],
         vec![("KEY=VALUE", "value")],
+        vec![("=C:", "C:\\private")],
         vec![("KEY\0", "value")],
         vec![("KEY", "value\0")],
     ] {
@@ -317,11 +333,17 @@ fn managed_generation_keeps_exact_bytes_hash_and_provider_owned_arguments() {
     assert!(Path::new(&decoded.managed().unwrap().path).is_absolute());
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 #[test]
-fn native_non_utf8_environment_and_legacy_arguments_survive_handoff() {
+fn native_non_unicode_environment_and_legacy_arguments_survive_handoff() {
+    #[cfg(unix)]
     use std::os::unix::ffi::OsStringExt;
+    #[cfg(windows)]
+    use std::os::windows::ffi::OsStringExt;
+    #[cfg(unix)]
     let native = OsString::from_vec(vec![b'a', 0xff, b'b']);
+    #[cfg(windows)]
+    let native = OsString::from_wide(&[b'a' as u16, 0xd800, b'b' as u16]);
     let mut resolved = resolved(None);
     resolved.environment = LaunchEnvironment::from_variables([(native.clone(), native.clone())]);
     for registration in resolved.registrations.values_mut() {

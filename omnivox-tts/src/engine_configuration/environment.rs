@@ -12,7 +12,18 @@ pub struct LaunchEnvironment(Arc<BTreeMap<OsString, OsString>>);
 
 impl LaunchEnvironment {
     pub fn capture() -> Self {
-        Self::from_variables(std::env::vars_os())
+        Self::from_inherited_variables(std::env::vars_os())
+    }
+
+    fn from_inherited_variables(variables: impl IntoIterator<Item = (OsString, OsString)>) -> Self {
+        // Windows includes hidden drive-directory entries such as '=C:' in
+        // vars_os(). They are process bookkeeping, not launch settings. Keep
+        // the complete-record validator strict for explicitly supplied data.
+        Self::from_variables(
+            variables
+                .into_iter()
+                .filter(|(name, _)| !cfg!(windows) || !name.as_encoded_bytes().starts_with(b"=")),
+        )
     }
 
     pub fn from_variables(variables: impl IntoIterator<Item = (OsString, OsString)>) -> Self {
@@ -101,6 +112,26 @@ impl fmt::Debug for LaunchEnvironment {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(windows)]
+    #[test]
+    fn inherited_drive_directories_are_omitted_without_changing_native_values() {
+        use std::os::windows::ffi::OsStringExt;
+        let private = OsString::from_wide(&[b'x' as u16, 0xd800]);
+        let environment = LaunchEnvironment::from_inherited_variables([
+            ("=C:".into(), "C:\\private working directory".into()),
+            ("=D:".into(), "D:\\another directory".into()),
+            ("PRIVATE".into(), private.clone()),
+            ("EMPTY".into(), "".into()),
+        ]);
+        assert_eq!(environment.variables().count(), 2);
+        assert_eq!(environment.get("PRIVATE"), Some(private.as_os_str()));
+        assert_eq!(environment.get("EMPTY"), Some(OsStr::new("")));
+        let decoded: LaunchEnvironment =
+            serde_json::from_slice(&serde_json::to_vec(&environment).unwrap()).unwrap();
+        assert_eq!(decoded, environment);
+        assert!(serde_json::from_str::<LaunchEnvironment>(r#"{"=C:":"C:\\private"}"#).is_err());
+    }
 
     #[test]
     fn retained_legacy_maps_and_native_records_preserve_values() {
