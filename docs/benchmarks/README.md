@@ -78,6 +78,7 @@ samples and a reproducible comparison.
 - [Public engine parameter catalogues, 2026-09-18](2026-09-18-public-parameter-catalogues.md)
 - [Native parameter client activation](2026-09-19-native-client-activation.md)
 - [Retained native-validation and routing test results](2026-09-27-retained-validation-results.md)
+- [Retained layered-routing acceptance results](2026-09-27-retained-routing-results.md)
 
 ## Preservation policy
 

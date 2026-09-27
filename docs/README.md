@@ -3,6 +3,8 @@
 The repository [README](../README.md) is the project entry point. This index
 separates maintained behavior, wire contracts, operations, future plans, and
 historical material so a proposal cannot be mistaken for a shipped feature.
+The [documentation guide](DOCUMENTATION-GUIDE.md) defines when to write an ADR,
+plan, contract or evidence report and how to maintain each.
 
 ## Current behavior and design
 
@@ -16,6 +18,8 @@ historical material so a proposal cannot be mistaken for a shipped feature.
   offset rules.
 - [ENGINE-ISOLATION.md](ENGINE-ISOLATION.md) — containment for uncancellable
   native synthesis.
+- [Prepared synthesis](PREPARED-SYNTHESIS.md) — actual-attempt settings,
+  transactional handoff, effects, tickets and playback observations.
 - [LICENSING.md](LICENSING.md) — component boundaries and binary-distribution
   licensing. The root [LICENSE](../LICENSE) contains the MIT text for
   Omnivox-authored source.
@@ -47,9 +51,20 @@ Extensible engine registration remains proposed and is tracked through the
   authentication, session ownership, and reconnect behavior.
 - [Validated fixtures](protocol-fixtures/) — JSON and JSONL examples checked
   against the public Rust wire types by `omnivox-tts` tests.
+- [Layered voice tuning](per-fallback-voice-tuning.org) and
+  [native voice parameters](engine-voice-parameters.md) — authoritative
+  cross-protocol composition and compatibility contracts.
+- [Voice-library formats](voice-library-contract.org),
+  [validation evidence](voice-validation-evidence-design.md) and
+  [operation journals](voice-operation-journal-design.md) — persisted metadata,
+  observation and local ownership contracts.
 
 ## Operations and releases
 
+- [Voice installation and activation](VOICE-INSTALLATION.md),
+  [native validation](VOICE-VALIDATION.md) and
+  [voice removal](VOICE-UNINSTALLATION.md) — local managed-asset operations,
+  explicit activation and cleanup limits.
 - [eSpeak variants](ESPEAK-VARIANTS.md) — live discovery, on-demand combinations,
   startup enablement, exact identity and development acceptance limits.
 - [MBROLA prototype](MBROLA-PROTOTYPE.md) — private pinned frontend/runtime,
@@ -115,9 +130,9 @@ Extensible engine registration remains proposed and is tracked through the
 
 ## Maintenance rule
 
-Describe shipped behavior in the current references or protocol
-specifications, future work in `plans/`, and obsolete context in `history/`.
-Use `adr/` for accepted architectural decisions and their rationale.
-Keep testable examples in `protocol-fixtures/` and update their Rust validation
-when a wire contract changes. Run `make docs-check` after moving or linking a
-document; CI applies the same local-link check to every tracked Markdown file.
+Follow the [documentation guide](DOCUMENTATION-GUIDE.md). Keep current behavior,
+accepted decisions, proposals and evidence distinct. Completed plans contribute
+their lasting contracts and results to maintained references and evidence;
+Git retains discarded implementation history. Preserve raw measurements when
+retiring old prose. Run `make docs-check` after moving or linking documents and
+check changed anchors and Org/cross-repository references separately.

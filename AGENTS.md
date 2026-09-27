@@ -44,11 +44,34 @@
 ## Architecture and worktree
 
 - Before changing architecture, engine process boundaries, helper protocols,
-  release contents, or packaging policy, read every architecture decision
-  record under `docs/adr/` and follow all accepted decisions. Do not rely on a
-  single record in isolation; later records may refine earlier decisions.
+  release contents, or packaging policy, read `docs/ARCHITECTURE.md` and
+  `docs/adr/README.md`, then the applicable accepted decisions and their linked
+  dependencies. Read all accepted records for cross-cutting changes or uncertain
+  scope. Follow every applicable accepted constraint; proposals do not override
+  them. Use `docs/DOCUMENTATION-GUIDE.md` to decide whether the change needs an
+  ADR, plan, protocol/reference update or evidence report.
 - Preserve all existing tracked and untracked work. Never clean, reset, stash,
   or discard a dirty worktree to satisfy a build precondition.
+
+## Documentation and evidence
+
+- Keep decisions, current architecture, delivery plans, exact contracts and
+  observations in their designated documents. Keep the roadmap as the entry to
+  future work and the ADR index as the entry to decisions. Do not append
+  implementation diaries or obsolete next steps to ADRs or protocol references.
+- ADR IDs are stable after the authorized 2026-09-27 consolidation. Material
+  changes to accepted decisions use a new, linked ADR; a proposed record remains
+  proposed until the maintainer accepts its defined scope. Acceptance alone does
+  not establish implementation, platform qualification or release publication.
+- Preserve benchmark raw data, test reports, fixtures, reproduction inputs and
+  provenance. Extract unique observations before retiring a plan or diary.
+  Record missing evidence honestly. Reruns create new reports; link repairs must
+  not alter historical measurements. Use `docs/benchmarks/README.md` for matched
+  baseline comparisons and distinguish source timing from acoustic output.
+- Before documentation commits, stage new files and run `make docs-check` plus
+  `git diff --check`. Review changed fragment, Org and cross-repository references
+  separately. Documentation-only edits require no Rust build or native benchmark;
+  executable contract/fixture changes retain the appropriate implementation gates.
 
 ## Rust, formatting, and verification
 

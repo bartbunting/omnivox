@@ -875,7 +875,7 @@ ACSS dimensions are `rate`, `average_pitch`, `pitch_range`, `stress`,
 semantics. The [paired wire contract](../per-fallback-voice-tuning.org) specifies
 required fields, strict sparse patches, registry generations, selected-row
 identity and bounded accepted/started evidence; its design-snapshot status is
-historical. The [implementation handoff](../per-fallback-streaming-handoff.md)
+historical. The [implementation handoff](../PREPARED-SYNTHESIS.md)
 records current acceptance evidence and client integration status.
 
 Version-3 playback events retain existing event kinds and add

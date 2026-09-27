@@ -8,6 +8,10 @@ architecture or a chronological implementation diary; see
 [STATUS.md](../STATUS.md), [ARCHITECTURE.md](../ARCHITECTURE.md), and Git
 history for
 those records.
+New plans and their completion follow the
+[documentation guide](../DOCUMENTATION-GUIDE.md#plans-and-specifications).
+Performance and native acceptance results are retained in the
+[evidence index](../benchmarks/README.md).
 
 ## Direction
 
@@ -91,11 +95,11 @@ backend opt-in. Evaluate an optional Windows WASAPI PCM-output helper while
 keeping synthesis on Linux if the shared RDP path remains unreliable. That
 bridge is not implemented.
 
-Separately, start voice management with Piper model discovery/selection, Flite
-voice import, and platform-native installation guidance. Emacsvox owns the
-accessible UI and guided installation workflow; Omnivox owns engine/voice
-inventory, capability reporting, test synthesis, and useful failure details.
-This milestone does not promise a particular release date or version.
+Voice acquisition, import, enablement and explicit two-worker activation are now
+implemented through the [local service](../VOICE-INSTALLATION.md). Remaining
+work includes the platform and live-client acceptance below. Emacsvox owns the
+accessible UI and reviewed catalogue; Omnivox owns storage, native operations,
+inventory and failure details. No particular delivery date is promised.
 
 ### macOS native voice streaming delivery slice
 
@@ -154,10 +158,10 @@ retirement evidence conservatively retain files; they have no force-cleanup
 path. Listening acceptance of the Emacsvox interaction remains separate from
 the native storage and lifecycle checks.
 
-| Engine family | Proposed assistance and current constraint |
+| Engine family | Current boundary and remaining qualification |
 | --- | --- |
-| Piper | Catalog and verified download of the model plus its JSON configuration and model card. The current integration has one configured model; selecting among several requires bounded loading, memory, and eviction behavior. Models remain separate from companion releases. |
-| Flite | Import and validate local `.flitevox` files first. The current v2.2 companion accepts only English Clustergen files with `eng`/`usenglish` initializers and reports `flitevox:INTERNAL_NAME`; it has no runtime voice downloader. |
+| Piper | Reviewed downloads and imports feed explicit activation. Each helper holds one selected model on demand, shared by its speakers. Extend native/live-client acceptance without loading every installed model. Models remain separate from companion releases. |
+| Flite | Reviewed downloads/imports feed the selected managed load set. The v2.2 companion accepts compatible English Clustergen files and reports `flitevox:INTERNAL_NAME`; acquisition remains local-service work, not an engine-side downloader. |
 | Windows/macOS native speech | Guide the user through supported operating-system voice installation, then rescan the actual WinRT/AVSpeechSynthesizer inventory and test it. A voice appearing in Narrator or another application is not proof that Omnivox's synthesis API can use it. |
 | RHVoice | Guide compatible user-installed C API runtimes separately from external or reviewed managed voice/language data. A Windows SAPI installation does not establish compatibility with the helper's C API loader. Preserve per-voice terms and the provider boundaries in ADRs 0001 and 0007. |
 | eSpeak NG, RuTTS, TGSpeechBox | Expose the choices actually reported by the bundled/staged engine. Do not imply that every engine provides independently downloadable voices. |

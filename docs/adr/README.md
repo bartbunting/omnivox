@@ -28,3 +28,5 @@ Numbers are stable after this baseline. For a task, read this index, the relevan
 accepted records and their linked dependencies. Read all accepted records when
 scope spans the architecture or affected dependencies are uncertain. Keep the
 index and cross-links current when a decision is added or superseded.
+The [documentation guide](../DOCUMENTATION-GUIDE.md#adr-lifecycle) defines the
+threshold for an ADR, its lifecycle and the one-time consolidation exception.

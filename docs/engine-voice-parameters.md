@@ -1,149 +1,24 @@
 # Engine voice parameters: wire and compatibility contract
 
-Accepted implementation boundary, 2026-09-17. This mirrors the semantic design
-in Emacsvox commit `e0e83d71d`, under [ADR 0006](adr/0006-voice-selection-and-customization.md).
-The [JSON fixtures](protocol-fixtures/engine-voice-parameters.json) are independent
-examples for codecs and composition. The typed metadata and pure planner now
-consume the parameter and composition examples. Public catalogue discovery is
-implemented, as are v3 registration and ordinary timeline-5 speech with marker-4
-receipts. Strict native previews and read-only draft/applied explanations are also
-implemented, and the complete native capability bundle is advertised. Emacsvox
-provides catalogue-driven editing and sparse per-choice persistence. The
-[native audit](benchmarks/2026-09-17-native-voice-parameters.md) does not replace
-the remaining execution and cancellation tests.
+Accepted contract, originally defined on 2026-09-17 and consolidated under
+[ADR 0006](adr/0006-voice-selection-and-customization.md). This document owns
+native-parameter wire shapes and semantics. Current implementation and platform
+qualification belong to [STATUS.md](STATUS.md).
 
-## Implementation status
+The implemented capability bundle includes typed catalogues, v3 registration,
+timeline-5 speech, marker-4 receipts, strict native previews and read-only
+planned/applied explanations. Qualified Windows Eloquence and DECtalk adapters
+use helper 6; older protocol shapes and common controls retain compatibility.
+Capability advertisement does not imply every runtime supplies native controls.
+Emacsvox owns catalogue-driven editing and sparse per-choice persistence.
 
-`omnivox-tts::native_parameters` implements bounded typed catalogues and sparse
-native blocks, runtime/voice identity checks, range and scope validation, value
-provenance, contextual masking and deterministic side-effect ordering. Its JSON
-readers reject duplicate keys and unknown fields. Unknown schemas can survive
-an inert save/load round trip but cannot execute against a different catalogue.
-The generic planner rejects dependency cycles and side effects whose target has
-no restorable value; an adapter-specific execution plan is still required for
-profiles with those dependencies.
-
-Adapters supply their already composed and mapped common values. The independent
-fixtures include those inputs and expected results, preserving the existing
-mapping formulas rather than introducing a second calibration here. Unit tests
-cover equal-value context (including zero rate offset), omission/default/zero,
-unknown default values, separate choices for the same physical voice, stale
-runtime evidence and all-or-nothing native validation. They exercise planning;
-they do not establish native reset, actual synthesis fallback or cancellation.
-
-The Windows helpers now contain optional ECI voice APIs and DECtalk parameter
-readback. The [binding audit](benchmarks/2026-09-17-native-parameter-bindings.md)
-checks their endpoints, ordinary resets, unit-mode guards and missing bindings
-against the installed runtimes. Both Windows adapters now connect their
-qualified native controls to helper 6.
-The pre-existing Windows cancellation ordering race was fixed and qualified in
-[the cancellation follow-up](benchmarks/2026-09-17-windows-helper-cancellation.md).
-
-Eloquence now has an internal native execution path for its qualified Windows
-ECI 6.1 American English runtime. It validates and freezes sparse integer/default
-edits, composes them with existing common mappings and explicit context, applies
-on its STA owner thread, verifies readback before PCM, and restores the pristine
-preset on success, cancellation and failure. The
-[execution audit](benchmarks/2026-09-18-eloquence-native-execution.md) exercises the
-actual helper bytes. Its helper-6 catalogue, explanations and application
-receipts are now connected; ordinary public native speech is described below.
-
-DECtalk now also has an internal execution path for its 28 qualified design
-voice controls. It synchronizes command-only preparation, verifies readback
-before PCM, and coordinates native cancellation with pristine restoration.
-Its [execution report](benchmarks/2026-09-18-dectalk-native-execution.md) records
-the accepted runtime and verification scope. Ordinary common mappings remain
-unchanged, including clamping performed by DECtalk itself. Its
-[helper-6 handler](benchmarks/2026-09-18-dectalk-helper6.md) now exposes all 28
-controls, planned explanations that account for those clamps, and verified
-applied receipts. Catalogue queries do not touch the active native voice.
-
-The legacy helper wire boundary now rejects duplicate members and unknown
-request/synthesis fields instead of silently discarding future native controls.
-The Windows host checks strict JSON before dictionary parsing. Existing versions,
-valid request shapes and unowned-error compatibility remain intact. The
-[wire-boundary report](benchmarks/2026-09-18-helper-native-wire-boundary.md)
-records the regression and compatibility checks for versions 1–5.
-
-`helper_protocol::parameters` now provides the helper-6 parameter
-request/response codecs, correlated application evidence and atomic catalogue
-page assembly. It reuses the legacy duplicate-free envelope reader and common
-synthesis validation, while keeping the negotiated 1–5 readers unchanged.
-The [codec report](benchmarks/2026-09-18-helper6-parameter-codecs.md) records its
-scope. Both Windows helpers now execute these messages when 6 is explicitly
-negotiated, and the Rust parent now offers 6 before the unchanged older versions. The
-[handler report](benchmarks/2026-09-18-eloquence-helper6.md) records direct wire
-and native acceptance. Catalogue reads use immutable metadata and unknown
-preset defaults, avoiding owner-thread waits or voice changes. Verified native
-readback is retained only as applied-plan evidence.
-
-The Rust planner and native request path now serve explicit timeline-5
-requests. Common mappings and the native capability advertisement remain unchanged.
-The [parent integration](benchmarks/2026-09-18-helper6-parent.md) connects strict
-negotiation, ordinary and native synthesis, per-request application evidence,
-and bounded catalogue/explanation queries. Queries return busy during speech;
-they never connect a deferred helper or restart one to obtain metadata.
-Public [read-only catalogue discovery](benchmarks/2026-09-18-public-parameter-catalogues.md)
-now reaches those current-worker queries
-through the `engine_parameter_catalogue_v1` capability. Admission and replies are
-bounded independently of the speech command thread. Native explanations are connected below; the Emacs editor remains next.
-Adapter integration must preserve the old common path, including its existing clamps; native edit ranges are separately
-qualified and must not silently recalibrate common controls.
-
-Internal [native choice admission and preparation](benchmarks/2026-09-18-native-choice-admission.md)
-now stores engine-layered definitions in the existing registry generation domain.
-It validates complete replacements against immutable current metadata, preserves
-unavailable settings, and prepares the actual selected choice with its common
-context and runtime identity. Registration performs no engine I/O. Older speech
-paths reject these definitions instead of discarding native settings. Native
-timelines, public playback evidence and private previews are connected below;
-explanations are connected below and editing remains pending. The native execution
-bundle is not advertised.
-
-Internal [routed native execution](benchmarks/2026-09-18-native-routed-execution.md)
-now prepares and executes each actual choice through the shared buffered or
-progressive path. Native receipts remain tentative until the existing
-transactional audio handoff; failed pre-audio attempts cannot contaminate a
-fallback. Cancellation and post-commit no-replay rules remain in force. Private
-selection retains original choice identity, and older request/output paths
-reject native data rather than silently dropping it.
-
-The [connection-owned catalogue cache](benchmarks/2026-09-18-parameter-catalogue-cache.md)
-now assembles complete validated public query replies for internal admission and
-routing. Reads use immutable snapshots without engine I/O or waits; runtime
-replacement invalidates their qualification. Entry and encoded-content budgets
-bound retention. Cached metadata stays usable during ordinary speech, while
-native execution still validates the actual runtime identity. Public native
-speech request codecs and playback/preview evidence are connected below;
-explanations are connected below; client integration remains before this path is
-available to Emacs.
-
-Public [v3 registration](benchmarks/2026-09-18-public-native-registration.md)
-now accepts mixed legacy, layered and engine-layered definitions against the
-connection's cached metadata. The complete acknowledgement is checked before
-publishing the registry, including per-choice native status and resolution under
-current administrative policy. Idempotent retries can refresh status without
-rewriting definitions or querying engines. The native capability remains
-unadvertised until speech, private previews and playback evidence are complete.
-
-[Native timelines and playback receipts](benchmarks/2026-09-18-native-timelines.md)
-now connect timeline 5 to ordinary buffered and streaming execution. Admission
-freezes cached catalogue metadata alongside the logical registry. Marker 4
-reports the actual choice and native application only at the first consumed
-frame; helper preparation alone does not publish playback evidence. Applied
-plan IDs are bounded, connection-owned references tied to the runtime observed
-before synthesis. Strict previews, explanations and the Emacs editor are now
-connected; per-engine runtime qualification still controls native availability.
-
-[Strict native previews](benchmarks/2026-09-18-native-previews.md) now accept
-`preview_voice_v3` and return `preview_voice_completed_v3`. Private admission
-freezes native choices, catalogue metadata, rate, context and administrative
-policy. The shared executor requires faithful native application; absent
-metadata or inapplicable controls fail rather than silently playing common-only
-settings. Terminal receipts distinguish accepted PCM from actual source starts,
-retain connection-owned plan references, and remain bounded even when truncated.
-The complete bundle includes these previews and the draft/applied explanations.
-Client acceptance exercises the editor and independent speech connections.
+The [independent fixtures](protocol-fixtures/engine-voice-parameters.json)
+exercise codecs and composition. Dated planner, binding, cancellation, helper,
+route, preview and client observations are indexed in
+[retained evidence](benchmarks/README.md#functional-acceptance-and-additional-reports).
+Keep actual runtime qualification and current test requirements distinct from
+those historical observations. The
+[prepared-attempt reference](PREPARED-SYNTHESIS.md) explains playback ownership.
 
 ## Shared rules
 
