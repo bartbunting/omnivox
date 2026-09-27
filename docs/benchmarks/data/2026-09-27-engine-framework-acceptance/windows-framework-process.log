@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/bart/src/omnivox/tools/verify_engine_configuration.py", line 229, in <module>
+    main()
+    ~~~~^^
+  File "/home/bart/src/omnivox/tools/verify_engine_configuration.py", line 102, in main
+    assert "voice" in diagnostic("--engine", "org.fixture", "--list-voices-alist")
+                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bart/src/omnivox/tools/verify_engine_configuration.py", line 99, in diagnostic
+    assert (result.returncode == 0) == success, (result.returncode, result.stderr[-2000:])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (1, 'Error: launch snapshot: invalid or incomplete launch snapshot\n')

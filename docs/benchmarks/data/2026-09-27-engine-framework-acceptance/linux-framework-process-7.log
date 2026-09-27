@@ -1,0 +1,9 @@
+Exact voice listing, missing-engine rejection and canonical WAV synthesis passed
+Traceback (most recent call last):
+  File "/home/bart/src/omnivox/tools/verify_engine_configuration.py", line 229, in <module>
+    main()
+    ~~~~^^
+  File "/home/bart/src/omnivox/tools/verify_engine_configuration.py", line 154, in main
+    assert terminal == b"__EMACSVOX_TRACKED__ 9901 completed\n", terminal
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: b'__EMACSVOX_MARKER__ eyJwcm90b2NvbF92ZXJzaW9uIjoxLCJkaXNwYXRjaF9pZCI6OTkwMSwic2VxdWVuY2UiOjEsInR5cGUiOiJ1dHRlcmFuY2Vfc3RhcnRlZCIsInV0dGVyYW5jZV9pZCI6MSwidGV4dCI6Ik9yZGluYXJ5IGZpeHR1cmUgc3BlZWNoIGRvdCAiLCJlbmdpbmVfaWQiOiJvcmcuZml4dHVyZSIsImFjdHVhbF92b2ljZSI6eyJlbmdpbmVfaWQiOiJvcmcuZml4dHVyZSIsInZvaWNlX2lkIjoidm9pY2UifSwibG9naWNhbF92b2ljZV9pZCI6bnVsbCwic2FtcGxlX3JhdGUiOjQ0MTAwLCJmcmFtZV9jb3VudCI6NDEzOH0=\n'

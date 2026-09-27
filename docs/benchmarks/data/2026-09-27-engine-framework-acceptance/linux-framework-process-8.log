@@ -1,0 +1,3 @@
+Exact voice listing, missing-engine rejection and canonical WAV synthesis passed
+Explicit preview and ordinary tracked speech passed
+Shared preparation, independent worker acknowledgements/audio targets, frozen file/environment inputs, fresh activation, blocked startup write and retirement passed

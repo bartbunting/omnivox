@@ -64,10 +64,13 @@ include the source and CI identities; formula updates remain explicit.
 
 ## Current limitations
 
-- Engine configuration v1 has a reproduced startup-deadline ownership gap for
-  blocked launch or unconfirmed writer cleanup. Native Windows qualification
-  and the remaining framework acceptance matrix are pending; see the
-  [evidence report](benchmarks/2026-09-27-engine-framework.md).
+- Engine configuration v1 passes expanded Linux process acceptance, but the
+  rebuilt native Windows runtime rejects launch snapshots before inventory.
+  Its launcher default was restored to the previous available runtime. Native
+  qualification and the remaining framework acceptance matrix are pending; see
+  the [acceptance report](benchmarks/2026-09-27-engine-framework-acceptance.md).
+  The earlier startup-deadline ownership gap has been
+  [fixed and regression-tested](benchmarks/2026-09-27-engine-startup-deadline.md).
 - Speech Dispatcher is unimplemented.
 - Language selectors match exact case-insensitive tags. General language-range
   matching, automatic detection and language-preserving global fallback are not

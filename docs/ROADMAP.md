@@ -104,8 +104,10 @@ The [framework specification](plans/extensible-engine-framework.md) and
 independently maintained helpers and maintained adapters loading separately
 supplied runtimes. They define strict JSON `helpers.d/` manifests, `config.json`
 policy, unified discovery and lifecycle, explicit selection and coordinated
-launch snapshots. Configuration v1 is authorized for implementation; runtime
-integration and acceptance remain outstanding.
+launch snapshots. Configuration v1 runtime integration is implemented; acceptance
+remains incomplete. Expanded Linux process checks pass, but native Windows
+launch-snapshot validation blocks live qualification; see the
+[acceptance report](benchmarks/2026-09-27-engine-framework-acceptance.md).
 
 The first slice proves configuration, inventory, diagnostics, selection and
 recovery with a redistributable fake helper. Real native integrations require

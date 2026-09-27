@@ -13,7 +13,10 @@ hand these records to their workers without rediscovery. Emacsvox coordinates
 shared local preparation, actual worker acknowledgement and retained recovery;
 managed Apply shares the candidate and verifies rollback against each old record.
 Remote hosts retain the shared snapshot per authenticated session. Native
-platform qualification remains separate.
+platform qualification remains separate. Expanded Linux process acceptance
+passes, while the full Windows development build fails live verification at
+launch-snapshot validation; see the
+[acceptance report](../benchmarks/2026-09-27-engine-framework-acceptance.md).
 The later language-routing section remains a separate design proposal.
 
 The [roadmap entry](../ROADMAP.md#extensible-engine-registration) tracks the

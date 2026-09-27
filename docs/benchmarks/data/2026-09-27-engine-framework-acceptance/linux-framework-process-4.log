@@ -1,0 +1,9 @@
+Exact voice listing, missing-engine rejection and canonical WAV synthesis passed
+Traceback (most recent call last):
+  File "/home/bart/src/omnivox/tools/verify_engine_configuration.py", line 225, in <module>
+    main()
+    ~~~~^^
+  File "/home/bart/src/omnivox/tools/verify_engine_configuration.py", line 145, in main
+    assert result["status"] == "completed", result
+           ~~~~~~^^^^^^^^^^
+KeyError: 'status'

@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/home/bart/src/omnivox/tools/verify_engine_configuration.py", line 226, in <module>
+    main()
+    ~~~~^^
+  File "/home/bart/src/omnivox/tools/verify_engine_configuration.py", line 106, in main
+    with wave.open(str(wav_path), "rb") as wav:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/wave.py", line 661, in open
+    return Wave_read(f)
+  File "/usr/lib/python3.14/wave.py", line 286, in __init__
+    self.initfp(f)
+    ~~~~~~~~~~~^^^
+  File "/usr/lib/python3.14/wave.py", line 266, in initfp
+    self._read_fmt_chunk(chunk)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/usr/lib/python3.14/wave.py", line 387, in _read_fmt_chunk
+    raise Error('unknown format: %r' % (wFormatTag,))
+wave.Error: unknown format: 3
