@@ -251,6 +251,15 @@ pub fn parse_command(line: &str) -> Result<Command, ParseError> {
     Err(ParseError::InvalidFormat(line.to_string()))
 }
 
+/// Parse a numeric setting without admitting NaN, infinity or float overflow.
+pub fn parse_finite_float(value: &str) -> Result<f32, &'static str> {
+    value
+        .parse::<f32>()
+        .ok()
+        .filter(|value| value.is_finite())
+        .ok_or("expected a finite number")
+}
+
 /// Parse a bounded legacy silence duration; zero remains a valid no-op.
 pub fn parse_silence_duration(arguments: &str) -> Result<u32, String> {
     let duration = arguments
@@ -557,6 +566,18 @@ mod tests {
             "",
         ] {
             assert!(parse_silence_duration(value).is_err(), "{value}");
+        }
+    }
+
+    #[test]
+    fn numeric_settings_reject_nonfinite_values_without_changing_finite_ranges() {
+        for value in [
+            "NaN", "nan", "inf", "-inf", "Infinity", "1e999", "-1e999", "", "text",
+        ] {
+            assert!(parse_finite_float(value).is_err(), "{value}");
+        }
+        for (value, expected) in [("0", 0.0), ("0.75", 0.75), ("-2", -2.0), ("300", 300.0)] {
+            assert_eq!(parse_finite_float(value), Ok(expected));
         }
     }
 

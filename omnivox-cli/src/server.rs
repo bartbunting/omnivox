@@ -6,7 +6,7 @@ use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, StreamType,
     TimelineAudioRenderer, ToneGenerator,
 };
-use omnivox_core::command::parse_silence_duration;
+use omnivox_core::command::{parse_finite_float, parse_silence_duration};
 use omnivox_core::{
     parse_command, parse_presentation_tone_arguments, parse_tone_arguments,
     state::{CapitalizationPresentation, ChannelMode, PunctuationLevel},
@@ -3596,7 +3596,7 @@ fn handle_command(
         // --- State management ---
         CommandId::TtsSetSpeechRate => {
             if let Some(rate) = command.args {
-                if let Ok(r) = rate.parse::<f32>() {
+                if let Ok(r) = parse_finite_float(&rate) {
                     state.speech_rate = normalize_rate(r);
                     debug!("Speech rate: {}", state.speech_rate);
                 }
@@ -3612,7 +3612,7 @@ fn handle_command(
 
         CommandId::TtsSetPitchMultiplier => {
             if let Some(pitch) = command.args {
-                if let Ok(p) = pitch.parse::<f32>() {
+                if let Ok(p) = parse_finite_float(&pitch) {
                     state.pitch_multiplier = p;
                     debug!("Pitch: {}", p);
                 }
@@ -3621,7 +3621,7 @@ fn handle_command(
 
         CommandId::TtsSetVoiceVolume => {
             if let Some(vol) = command.args {
-                if let Ok(v) = vol.parse::<f32>() {
+                if let Ok(v) = parse_finite_float(&vol) {
                     state.voice_volume = v;
                 }
             }
@@ -3629,7 +3629,7 @@ fn handle_command(
 
         CommandId::TtsSetToneVolume => {
             if let Some(vol) = command.args {
-                if let Ok(v) = vol.parse::<f32>() {
+                if let Ok(v) = parse_finite_float(&vol) {
                     state.tone_volume = v;
                 }
             }
@@ -3637,7 +3637,7 @@ fn handle_command(
 
         CommandId::TtsSetSoundVolume => {
             if let Some(vol) = command.args {
-                if let Ok(v) = vol.parse::<f32>() {
+                if let Ok(v) = parse_finite_float(&vol) {
                     state.sound_volume = v;
                 }
             }
@@ -3645,7 +3645,7 @@ fn handle_command(
 
         CommandId::TtsSetCharacterScale => {
             if let Some(scale) = command.args {
-                if let Ok(s) = scale.parse::<f32>() {
+                if let Ok(s) = parse_finite_float(&scale) {
                     state.character_scale = s;
                 }
             }
@@ -3681,7 +3681,7 @@ fn handle_command(
                         state.punctuation_level = punct;
                     }
                     state.split_caps = parts[1] == "1";
-                    if let Ok(r) = parts[3].parse::<f32>() {
+                    if let Ok(r) = parse_finite_float(parts[3]) {
                         state.speech_rate = normalize_rate(r);
                     }
                 }
@@ -3979,6 +3979,91 @@ mod tests {
             Err(PendingOverflow::ItemCount { .. })
         ));
         assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn invalid_numeric_commands_preserve_previous_settings() {
+        let streams = omnivox_audio::AudioStreams::new_with_backend(
+            4,
+            4,
+            4,
+            omnivox_audio::AudioBackend::Null,
+        )
+        .unwrap();
+        let control = streams.control();
+        let (tx, _receiver) = synthesis_channel();
+        let engines = EngineRegistry::new();
+        let health = RuntimeEngineHealth::new();
+        let queries = crate::parameter_queries::ParameterQueries::new();
+        let mut routing = RoutingPolicyRegistry::new("");
+        let mut voices = LogicalVoiceRegistry::default();
+        let mut pending = PendingBatch::default();
+        let mut generation = 0;
+        let counter = Arc::new(AtomicU64::new(0));
+        let mut state = TtsState {
+            speech_rate: 0.73,
+            pitch_multiplier: 1.11,
+            voice_volume: 0.7,
+            tone_volume: 0.4,
+            sound_volume: 0.3,
+            character_scale: 1.2,
+            ..TtsState::default()
+        };
+        let values = |state: &TtsState| {
+            [
+                state.speech_rate,
+                state.pitch_multiplier,
+                state.voice_volume,
+                state.tone_volume,
+                state.sound_volume,
+                state.character_scale,
+            ]
+        };
+        let previous = values(&state);
+        for command in [
+            "tts_set_speech_rate",
+            "tts_set_pitch_multiplier",
+            "tts_set_voice_volume",
+            "tts_set_tone_volume",
+            "tts_set_sound_volume",
+            "tts_set_character_scale",
+            "tts_sync_state all 1 0",
+        ] {
+            for value in ["NaN", "inf", "-inf", "1e999", "-1e999", "invalid"] {
+                handle_command(
+                    parse_command(&format!("{command} {value}")).unwrap(),
+                    &mut state,
+                    &mut pending,
+                    &mut generation,
+                    &counter,
+                    &engines,
+                    &health,
+                    "",
+                    &mut routing,
+                    &mut voices,
+                    &queries,
+                    &control,
+                    &tx,
+                );
+                assert_eq!(values(&state), previous, "{command} {value}");
+            }
+        }
+        handle_command(
+            parse_command("tts_set_voice_volume 0.25").unwrap(),
+            &mut state,
+            &mut pending,
+            &mut generation,
+            &counter,
+            &engines,
+            &health,
+            "",
+            &mut routing,
+            &mut voices,
+            &queries,
+            &control,
+            &tx,
+        );
+        assert_eq!(state.voice_volume, 0.25);
     }
 
     #[test]

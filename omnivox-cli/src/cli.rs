@@ -2,6 +2,7 @@
 
 use anyhow::{Context, Result};
 use omnivox_audio::{AudioBackend, AudioFileLoader, AudioStreams, StreamType, ToneGenerator};
+use omnivox_core::command::parse_finite_float;
 use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
 use omnivox_tts::{SynthesisRequest, TtsEngine, TtsSettings};
@@ -40,8 +41,8 @@ pub struct CliArgs {
 fn parse_float_flag(flag: &str, args: &[String], i: &mut usize) -> f32 {
     *i += 1;
     if *i < args.len() {
-        args[*i].parse::<f32>().unwrap_or_else(|_| {
-            eprintln!("Error: {} requires a number", flag);
+        parse_finite_float(&args[*i]).unwrap_or_else(|_| {
+            eprintln!("Error: {} requires a finite number", flag);
             std::process::exit(1);
         })
     } else {

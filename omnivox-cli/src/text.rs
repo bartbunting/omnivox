@@ -458,7 +458,8 @@ pub fn extract_voice(codes: &str) -> Option<String> {
 }
 
 pub fn extract_pitch(codes: &str) -> Option<f32> {
-    extract_regex_group(&PITCH_RE, codes).and_then(|s| s.parse().ok())
+    extract_regex_group(&PITCH_RE, codes)
+        .and_then(|s| omnivox_core::command::parse_finite_float(&s).ok())
 }
 
 pub fn extract_logical_voice(codes: &str) -> Option<String> {
@@ -842,6 +843,9 @@ mod tests {
         assert_eq!(extract_pitch("[[pitch 1.5]]"), Some(1.5f32));
         assert_eq!(extract_pitch("[[pitch 0.8]]"), Some(0.8f32));
         assert_eq!(extract_pitch("no pitch here"), None);
+        for value in ["NaN", "inf", "-inf", "1e999"] {
+            assert_eq!(extract_pitch(&format!("[[pitch {value}]]")), None);
+        }
     }
 
     #[test]

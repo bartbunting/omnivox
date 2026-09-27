@@ -17,6 +17,7 @@ Versioning for published releases.
 
 ### Fixed
 
+- Reject non-finite numeric settings before they can produce invalid audio.
 - Limit requested silences to 15 seconds, preventing oversized silence commands
   from exhausting the speech process's memory.
 - Speech continues after native voice segments that produce no audio, such as

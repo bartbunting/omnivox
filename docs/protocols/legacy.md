@@ -118,10 +118,11 @@ value remains in effect.
 | `tts_set_speech_channel` | `left`, `right`, or `both` | Route the speech stream only. Process startup routing applies to all three streams. |
 | `tts_reset` | none | Perform a hard stop, restore default state, and clear the pending batch. |
 
-The direct float setters use Rust floating-point parsing without explicitly
-rejecting non-finite values or enforcing every conventional adapter range at
-this layer. Callers should remain inside the ranges above; a backend or audio
-stage may clamp or reject other values.
+Numeric settings, including inline pitch, reject NaN, infinity and numeric
+overflow. Invalid direct settings leave the previous numeric value in effect;
+invalid command-line numeric options exit with an error. Finite values retain
+their existing normalization and adapter ranges. Callers should remain inside
+the ranges above; a backend or audio stage may clamp or reject other values.
 
 `tts_sync_state PUNCTUATION SPLIT_CAPS LEGACY_CAPS RATE` updates punctuation,
 split-caps state, and speech rate in one record. At least four fields are

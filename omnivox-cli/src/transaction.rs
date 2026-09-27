@@ -1,6 +1,6 @@
 //! Atomic validation and generation tracking for framed presentations.
 
-use omnivox_core::command::parse_silence_duration;
+use omnivox_core::command::{parse_finite_float, parse_silence_duration};
 use omnivox_core::state::{CapitalizationPresentation, ChannelMode, PunctuationLevel};
 use omnivox_core::{
     parse_command, parse_presentation_tone_arguments, parse_tone_arguments, Command, CommandId,
@@ -364,7 +364,7 @@ fn validate_command(command: &Command) -> Result<(), String> {
 }
 
 fn valid_float(value: &str) -> bool {
-    value.parse::<f32>().is_ok_and(f32::is_finite)
+    parse_finite_float(value).is_ok()
 }
 
 #[cfg(test)]

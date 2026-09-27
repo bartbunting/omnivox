@@ -14,6 +14,8 @@ import subprocess
 import tempfile
 import unittest
 
+from verify_release import read_wav
+
 ROOT = Path(__file__).resolve().parents[1]
 PROGRAM = os.environ.get("OMNIVOX_INPUT_TEST_PROGRAM", str(ROOT / "target/debug/omnivox"))
 WINDOWS = os.name == "nt" or os.environ.get("OMNIVOX_INPUT_TEST_WINDOWS") == "1"
@@ -54,6 +56,25 @@ class InputValidationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Invalid silence:", result.stderr)
         self.assertIn("__EMACSVOX_TRACKED__ 41 completed", result.stdout)
+
+    def test_command_line_rejects_nonfinite_settings_before_writing_audio(self):
+        output = self.root / "invalid.wav"
+        for flag in ["--rate", "--pitch", "--voice-volume", "--tone-volume", "--sound-volume"]:
+            for value in ["NaN", "inf", "-inf", "1e999"]:
+                with self.subTest(flag=flag, value=value):
+                    result = self.run_omnivox(
+                        flag, value, "--dump-wav", "en", native_path(output), "Invalid setting.")
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("requires a finite number", result.stderr)
+                    self.assertFalse(output.exists())
+                    self.assertFalse(output.with_name("invalid_raw.wav").exists())
+
+    def test_finite_settings_still_produce_valid_audio(self):
+        output = self.root / "valid.wav"
+        result = self.run_omnivox(
+            "--voice-volume", "0.5", "--dump-wav", "en", native_path(output), "Valid audio.")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        read_wav(output, canonical=True)
 
     @unittest.skipUnless(os.name == "posix" and not WINDOWS, "POSIX memory limit")
     def test_huge_silence_cannot_exhaust_process_memory(self):
