@@ -24,7 +24,7 @@ Unix workers have private process groups. Windows workers belong to private
 jobs with kill-on-close semantics and cannot initialize engines before job
 assignment completes. Remote workers use a restricted icon loader and cancel
 on EOF; ordinary stdio workers retain their drain-on-EOF behavior. See
-[ADR 0008](adr/0008-remote-workstation-service.md) and the
+[ADR 0004](adr/0004-workstation-service-and-worker-ownership.md) and the
 [remote protocol](protocols/REMOTE-PROTOCOL.md).
 
 ```text
@@ -232,7 +232,7 @@ English rate; RuTTS uses same-language Russian evidence, and an engine
 saturates when its native rate control has no further headroom. Calibration is
 based on canonical WAV duration, never engine startup or wall-clock synthesis
 time. The policy and reproducible evidence procedure are in
-[ADR 0004](adr/0004-per-engine-speech-rate-calibration.md) and
+[ADR 0002](adr/0002-speech-rate-calibration.md) and
 [RATE-CALIBRATION.md](RATE-CALIBRATION.md).
 
 ## Native-call isolation and helper engines
@@ -423,7 +423,7 @@ attaching progressive sources immediately and deliberately removing real-time
 device and acoustic timing from the run.
 
 Linux also has an opt-in native `pulse` backend governed by
-[ADR 0009](adr/0009-native-pulseaudio-output.md). The same source wrappers feed
+[ADR 0005](adr/0005-native-pulseaudio-output.md). The same source wrappers feed
 three independent PulseAudio streams, which the server mixes on its default
 sink. Each has a source worker and native event thread. It requests 20 ms
 buffering, writes about 5 ms at a time, drains/corks when idle, and retires a
@@ -461,7 +461,7 @@ a live control channel attached to a dead worker.
 
 See [DIAGNOSTICS.md](DIAGNOSTICS.md) for evidence collection.
 
-Bundled eSpeak variants follow [ADR 0014](adr/0014-on-demand-espeak-variants.md):
+Bundled eSpeak variants follow [ADR 0006](adr/0006-voice-selection-and-customization.md):
 the live descriptor contains a bounded suffix catalogue alongside its base voices.
 Exact resolution derives only the requested combination and shares validation
 between registration, preview, normal speech and guarded direct synthesis.

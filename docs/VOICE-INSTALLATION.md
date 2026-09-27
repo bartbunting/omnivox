@@ -1,7 +1,7 @@
 # Installed voices and local activation
 
 These local commands implement the installed-state part of
-[ADR 0012](adr/0012-voice-library-and-model-lifecycle.md) and the
+[ADR 0007](adr/0007-managed-voice-lifecycle.md) and the
 [voice-library contract](voice-library-contract.org). They register validated
 local Piper models and external Flite voices, persist desired enablement, and
 prepare immutable generations for the client's explicit Apply operation. The

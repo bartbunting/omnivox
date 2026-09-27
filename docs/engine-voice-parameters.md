@@ -1,7 +1,7 @@
 # Engine voice parameters: wire and compatibility contract
 
 Accepted implementation boundary, 2026-09-17. This mirrors the semantic design
-in Emacsvox commit `e0e83d71d`, under [ADR 0015](adr/0015-engine-described-voice-parameters.md).
+in Emacsvox commit `e0e83d71d`, under [ADR 0006](adr/0006-voice-selection-and-customization.md).
 The [JSON fixtures](protocol-fixtures/engine-voice-parameters.json) are independent
 examples for codecs and composition. The typed metadata and pure planner now
 consume the parameter and composition examples. Public catalogue discovery is

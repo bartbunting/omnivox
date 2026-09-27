@@ -294,7 +294,7 @@ operation's terminal response shape with no accepted audio.
 
 [Wire fixtures](../../test-fixtures/voice-preview.json) and their paired Base64
 records are checked together, and executed by the server's simulated-engine
-tests. [ADR 0010](../adr/0010-complete-voice-preview.md) records the boundary.
+tests. [ADR 0006](../adr/0006-voice-selection-and-customization.md) records the boundary.
 
 When `relative_rate_v1` is advertised, previews and presentation speech spans
 may include a signed integer `rate_offset` from `-20` through `20`. Omnivox adds

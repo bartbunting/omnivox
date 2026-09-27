@@ -100,5 +100,5 @@ measured headroom earlier than Eloquence; TGSpeechBox saturates from host rate
 `1.2`. Rate remains monotonic at and above that point, but further host
 increases cannot make that engine faster.
 
-See [ADR 0004](adr/0004-per-engine-speech-rate-calibration.md) for the policy
+See [ADR 0002](adr/0002-speech-rate-calibration.md) for the policy
 and rationale.

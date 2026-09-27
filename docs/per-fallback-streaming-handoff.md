@@ -3,7 +3,7 @@
 Status: server bundle implemented and accepted, 2026-09-09; Emacsvox client
 integration remains pending. The original High handoff was reviewed against Omnivox `0cbfa93` on
 `voice-choice-tuning`; typed composition and registration are already tested.
-[ADR 0011](adr/0011-per-fallback-voice-tuning.md) and the
+[ADR 0006](adr/0006-voice-selection-and-customization.md) and the
 [paired wire contract](per-fallback-voice-tuning.org) remain authoritative.
 No new user choice, wire field, dependency, helper protocol, calibration or
 process boundary is introduced by this review. Continue implementation at High.

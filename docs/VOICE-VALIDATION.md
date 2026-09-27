@@ -179,7 +179,7 @@ creation, non-overwriting publication and cancellation on its native filesystem.
 
 Full Windows server/companion validation and MSVC acceptance also remain separate
 work. The existing Windows GNU main staging limitation is recorded in
-[ADR 0012](adr/0012-voice-library-and-model-lifecycle.md).
+[ADR 0007](adr/0007-managed-voice-lifecycle.md).
 
 The validator can save and compare observed executable, companion and voice
 inputs. The [installed-voice store](VOICE-INSTALLATION.md) now registers admitted,

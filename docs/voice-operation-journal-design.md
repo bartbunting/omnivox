@@ -3,7 +3,7 @@
 Status: Development implementation boundary, 2026-09-16.
 
 This implements development validation operations under
-[ADR 0012](adr/0012-voice-library-and-model-lifecycle.md) and the
+[ADR 0007](adr/0007-managed-voice-lifecycle.md) and the
 [voice-library contract](voice-library-contract.org). It provides preparation,
 profile admission, native execution, exclusive operation ownership and recovery
 inspection and abandonment using recorded cleanup. It does not publish packages,

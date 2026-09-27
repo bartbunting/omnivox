@@ -39,4 +39,4 @@ previews, ordinary speech with exact playback markers, missing-voice fallback,
 engine disablement and unchanged worker PIDs.
 For a separate data tree, pass `--espeak-data NATIVE_PARENT`. These checks use
 null output; they do not establish audible acceptance or support on untested
-platforms. See [ADR 0014](adr/0014-on-demand-espeak-variants.md).
+platforms. See [ADR 0006](adr/0006-voice-selection-and-customization.md).

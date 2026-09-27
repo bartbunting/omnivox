@@ -5,7 +5,7 @@ version 1 below defines the first implementation slice. It is not implemented
 yet. The later language-routing section remains a separate design proposal.
 
 The [roadmap entry](NEXT_STEPS.md#extensible-engine-registration) tracks the
-delivery scope. [Proposed ADR 0019](../adr/0019-extensible-engine-registration.md)
+delivery scope. [Proposed ADR 0008](../adr/0008-extensible-engine-registration.md)
 records the architectural choices and alternatives; this document defines the
 detailed configuration contract and implementation acceptance criteria.
 
@@ -29,13 +29,13 @@ contracts. A registration cannot grant itself any of those capabilities.
 
 The existing [helper protocol](../protocols/HELPER-PROTOCOL.md) remains the
 process boundary. Accepted ADRs continue to govern
-[engine isolation](../adr/0001-speech-engine-process-boundaries.md),
-[rate calibration](../adr/0004-per-engine-speech-rate-calibration.md),
-[progressive audio](../adr/0006-bounded-progressive-synthesis.md),
-[remote ownership](../adr/0008-remote-workstation-service.md),
-[voice eligibility](../adr/0012-voice-library-and-model-lifecycle.md),
-[native parameters](../adr/0015-engine-described-voice-parameters.md), and
-[startup fallback](../adr/0017-managed-engine-startup-fallback.md).
+[engine isolation](../adr/0001-engine-isolation-and-distribution.md),
+[rate calibration](../adr/0002-speech-rate-calibration.md),
+[progressive audio](../adr/0003-progressive-audio-and-markers.md),
+[remote ownership](../adr/0004-workstation-service-and-worker-ownership.md),
+[voice eligibility](../adr/0007-managed-voice-lifecycle.md),
+[native parameters](../adr/0006-voice-selection-and-customization.md), and
+[startup fallback](../adr/0007-managed-voice-lifecycle.md).
 
 ## Components and responsibilities
 

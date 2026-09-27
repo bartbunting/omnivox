@@ -25,26 +25,13 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 
 ## Architecture decision records
 
-- [ADR 0001: Speech Engine Process Boundaries](adr/0001-speech-engine-process-boundaries.md)
-  — criteria for built-in engines and isolated helpers.
-- [ADR 0002: RHVoice and Flite Companion Policy](adr/0002-rhvoice-and-flite-companions.md)
-  — runtime, voice-data, platform, and distribution boundaries for the two
-  optional companions.
-- [ADR 0003: Source-built RuTTS Companion](adr/0003-rutts-source-built-companion.md)
-  — pinned source, process, text-encoding, platform, and RuLex boundaries.
-- [ADR 0004: Per-engine Speech-rate Calibration](adr/0004-per-engine-speech-rate-calibration.md)
-  — measured normalized-rate policy, saturation, and evidence requirements.
-- [ADR 0005: Experimental TGSpeechBox Companion](adr/0005-experimental-tgspeechbox-companion.md)
-  — pinned beta source, helper, GPL, initial-rate, and release boundaries.
-- [ADR 0006: Bounded Progressive Synthesis](adr/0006-bounded-progressive-synthesis.md)
-  — protocol-v5 PCM/marker interleaving, backpressure, conversion, and fallback.
-- [ADR 0007: TGSpeechBox Calibration and Requested Anchors](adr/0007-tgspeechbox-calibration-and-anchors.md)
-  — measured rate mapping and truthful index-backed presentation anchors.
-
-- [ADR 0008: Remote Workstation Service](adr/0008-remote-workstation-service.md)
-  — loopback authentication, separate workers, and remote resource boundaries.
-- [ADR 0009: Native PulseAudio Output](adr/0009-native-pulseaudio-output.md)
-  — optional Linux output, buffering, cancellation and idle lifecycle.
+The [decision index](adr/README.md) groups the accepted architectural choices
+and identifies proposals. Read the architecture reference for current behavior;
+follow its decision links for rationale and constraints. The active decisions
+cover engine isolation/distribution, rate calibration, progressive audio,
+workstation ownership, PulseAudio, voice customization and managed voices.
+Extensible engine registration remains proposed and is tracked through the
+[roadmap](plans/NEXT_STEPS.md#extensible-engine-registration).
 
 ## Protocol specifications
 

@@ -87,4 +87,4 @@ sleep/resume, repeated recovery during interactive editing, installed-client
 and matched-release payload checks, and listening confirmation. The current
 test models prompt SSH loss with a broken connection; it does not establish
 recovery timing for an undetected network blackhole. Automatic production
-tunnel management remains deferred under ADR 0008.
+tunnel management remains deferred under ADR 0004.

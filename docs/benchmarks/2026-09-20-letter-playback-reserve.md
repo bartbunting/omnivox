@@ -28,7 +28,7 @@ and null output retain their previous buffering behavior.
 
 PCM, trimming, resampling, character-rate scaling, uppercase pitch, marker order,
 queue capacity, cancellation and native helper behavior are unchanged. See
-[ADR 0018](../adr/0018-letter-navigation-playback-reserve.md).
+[ADR 0003](../adr/0003-progressive-audio-and-markers.md).
 
 Progressive `l` requests now log correlated first and final consumed frames.
 Device playback reports the first PCM wait longer than its 2 ms receive poll,

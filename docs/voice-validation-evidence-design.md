@@ -2,7 +2,7 @@
 
 Status: Accepted implementation boundary, 2026-09-16. Development format 1.
 
-This follows [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md) and the
+This follows [ADR 0007](adr/0007-managed-voice-lifecycle.md) and the
 [voice-library contract](voice-library-contract.org). Omnivox owns capture,
 comparison and publication. Helpers still only load and synthesize voices;
 they do not own reports, catalogues or downloads.

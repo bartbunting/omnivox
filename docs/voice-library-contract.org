@@ -4,7 +4,8 @@
 
 * Status and scope
 
-Accepted on 2026-09-15 with Omnivox ADR 0012 and Emacsvox ADR 0019.
+Accepted on 2026-09-15 with Emacsvox ADR 0019. The Omnivox decision is now
+consolidated in [[file:adr/0007-managed-voice-lifecycle.md][ADR 0007]].
 This is the authoritative contract; implementation proceeds in tested slices.
 Emacsvox's =docs/engine-management-design.org= supplies the interaction and
 delivery plan. Existing single-model Piper and explicit Flite paths continue
@@ -59,7 +60,7 @@ enables or deletes an asset.
 * Common encoding and limits
 
 Files are UTF-8 JSON objects. Existing Piper/Flite documents use
-=schema_version: 1=. [[file:adr/0013-mbrola-voice-library.md][ADR 0013]] adds schema 2 for catalogues, management
+=schema_version: 1=. [[file:adr/0007-managed-voice-lifecycle.md][ADR 0007]] adds schema 2 for catalogues, management
 indexes and runtime generations containing the MBROLA provider. Readers retain
 schema 1 support; writers retain schema 1 when no new provider is selected.
 Active pointers, validation plans, evidence and control/helper envelopes keep

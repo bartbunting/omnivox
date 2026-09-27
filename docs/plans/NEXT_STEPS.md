@@ -101,7 +101,7 @@ This milestone does not promise a particular release date or version.
 
 Requested on 2026-09-17 alongside WSL responsiveness. The development adapter
 now connects AVSpeechSynthesizer callbacks to the existing progressive synthesis
-and playback path under [ADR 0006](../adr/0006-bounded-progressive-synthesis.md),
+and playback path under [ADR 0003](../adr/0003-progressive-audio-and-markers.md),
 with bounded buffering and continuous sample-rate conversion. Native adapter
 and full-server checks pass on Intel and Apple Silicon; the
 [streaming guide](../MACOS-STREAMING.md) records implementation and acceptance.
@@ -159,14 +159,14 @@ the native storage and lifecycle checks.
 | Piper | Catalog and verified download of the model plus its JSON configuration and model card. The current integration has one configured model; selecting among several requires bounded loading, memory, and eviction behavior. Models remain separate from companion releases. |
 | Flite | Import and validate local `.flitevox` files first. The current v2.2 companion accepts only English Clustergen files with `eng`/`usenglish` initializers and reports `flitevox:INTERNAL_NAME`; it has no runtime voice downloader. |
 | Windows/macOS native speech | Guide the user through supported operating-system voice installation, then rescan the actual WinRT/AVSpeechSynthesizer inventory and test it. A voice appearing in Narrator or another application is not proof that Omnivox's synthesis API can use it. |
-| RHVoice | Guide compatible C API runtime, language-data, and voice-data installation separately, with per-voice terms. A Windows SAPI installation does not establish compatibility with the helper's C API loader. Keep runtime and data user-installed under ADR 0002. |
+| RHVoice | Guide compatible user-installed C API runtimes separately from external or reviewed managed voice/language data. A Windows SAPI installation does not establish compatibility with the helper's C API loader. Preserve per-voice terms and the provider boundaries in ADRs 0001 and 0007. |
 | eSpeak NG, RuTTS, TGSpeechBox | Expose the choices actually reported by the bundled/staged engine. Do not imply that every engine provides independently downloadable voices. |
 | Eloquence and DECtalk | Diagnose the user-supplied vendor runtime and available voices; provide vendor installation guidance within the existing helper boundary. |
 
 Preserve per-engine provenance and licensing decisions in
-[ADR 0001](../adr/0001-speech-engine-process-boundaries.md),
-[ADR 0002](../adr/0002-rhvoice-and-flite-companions.md), and the later companion
-ADRs. Installation assistance is not permission to redistribute arbitrary
+[ADR 0001](../adr/0001-engine-isolation-and-distribution.md) and the
+[managed-provider decision](../adr/0007-managed-voice-lifecycle.md).
+Installation assistance is not permission to redistribute arbitrary
 models or runtimes, or to make a speech engine download assets automatically.
 
 ### Extensible engine registration
@@ -180,7 +180,7 @@ portable configuration work in features 2 and 6. The framework covers both:
   with compatible installations can share the adapter implementation while
   runtime distribution retains its existing component policy.
 
-[Proposed ADR 0019](../adr/0019-extensible-engine-registration.md) records the
+[Proposed ADR 0008](../adr/0008-extensible-engine-registration.md) records the
 shared registry, explicit local registration, selection and lifecycle decisions.
 The [implementation specification](EXTENSIBLE-ENGINE-FRAMEWORK.md) defines
 versioned JSON manifests in `helpers.d/`, policy and overrides in `config.json`,
@@ -377,7 +377,7 @@ interruptions, Bluetooth routing, and battery use. The desktop service's
 separate worker processes need an iOS-compatible lifecycle design. Both the
 current Omnivox listener and Emacsvox client enforce loopback addresses;
 direct tailnet access requires an explicit revision of
-[ADR 0008](../adr/0008-remote-workstation-service.md) and review of the other
+[ADR 0004](../adr/0004-workstation-service-and-worker-ownership.md) and review of the other
 accepted process-boundary decisions before implementation.
 
 Develop and test portable Rust and Emacsvox changes on Linux/WSL. Use a Mac

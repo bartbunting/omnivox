@@ -180,8 +180,9 @@ NG for Unicode-to-IPA conversion, so the combined helper is distributed under
 GPLv3 and its complete notices must remain with it. The separately published
 corresponding-source artifact contains the complete inputs needed for the
 combined helper. See [LICENSING.md](LICENSING.md) and
-[ADR 0005](adr/0005-experimental-tgspeechbox-companion.md) together with its
-[calibration and marker refinement](adr/0007-tgspeechbox-calibration-and-anchors.md).
+[ADR 0001](adr/0001-engine-isolation-and-distribution.md) together with its
+[rate calibration](adr/0002-speech-rate-calibration.md) and
+[requested-anchor contract](adr/0003-progressive-audio-and-markers.md).
 
 Remove the `tgspeechbox/` directory and unset
 `OMNIVOX_TGSPEECHBOX_HELPER` to remove the engine. Omnivox continues with its

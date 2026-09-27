@@ -3,7 +3,8 @@
 #+startup: content
 
 Imported from Emacsvox contract commit =1efc8d60fd061435e16290eda172c199b3ab0add=.
-Implementation status is tracked in ADR 0011 and the worktree commits.
+Current implementation status is tracked in [[file:STATUS.md][STATUS.md]];
+[[file:adr/0006-voice-selection-and-customization.md][ADR 0006]] records the decision.
 
 * Status and scope
 

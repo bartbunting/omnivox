@@ -1,8 +1,8 @@
 # Managed voice uninstallation
 
 The development local service removes reviewed Piper, Flite and MBROLA
-downloads under the ownership rules in [ADR 0012](adr/0012-voice-library-and-model-lifecycle.md)
-and [ADR 0013](adr/0013-mbrola-voice-library.md). Emacsvox supplies the accessible
+downloads under the ownership rules in [ADR 0007](adr/0007-managed-voice-lifecycle.md).
+Emacsvox supplies the accessible
 review and confirmation. The remote speech socket has no removal operation.
 
 Removal is package-wide: all speakers sharing a Piper model appear in the

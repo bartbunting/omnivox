@@ -1,6 +1,6 @@
 # macOS native voice streaming
 
-The development AVSpeechSynthesizer adapter implements ADR 0006's existing
+The development AVSpeechSynthesizer adapter implements ADR 0003's existing
 progressive synthesis contract. It remains built in under ADR 0001, uses the
 existing playback pipeline and requires no new dependency or wire protocol.
 

@@ -1,7 +1,7 @@
 # MBROLA prototype
 
 This is a local engineering experiment, not a supported companion or a release
-payload. [ADR 0013](adr/0013-mbrola-voice-library.md) adds managed English voice
+payload. [ADR 0007](adr/0007-managed-voice-lifecycle.md) adds managed English voice
 downloads to this explicitly configured companion. It retains the existing
 helper protocol, mixer, cancellation and fallback contracts. Library documents
 selecting MBROLA use schema 2; existing schema-1 libraries remain supported.

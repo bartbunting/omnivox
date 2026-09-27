@@ -172,7 +172,7 @@ x64 GNU companion is a separate experimental release asset. Its deterministic
 corresponding-source artifact contains the exact Omnivox tree, vendored Cargo
 and eSpeak NG sources, and the locked TGSpeechBox archive. See the
 [TGSpeechBox companion guide](TGSPEECHBOX.md) and
-[ADR 0005](adr/0005-experimental-tgspeechbox-companion.md).
+[ADR 0001](adr/0001-engine-isolation-and-distribution.md).
 
 ## Proprietary engines and other dependencies
 

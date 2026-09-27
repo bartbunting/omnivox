@@ -12,7 +12,7 @@ the system `libpulse.so.0`. Speech, tones and sound icons have independent
 persistent streams, source workers and native event threads. PulseAudio mixes
 them; Emacsvox foreground and notification remain separate Omnivox processes.
 Engine helpers, voice policy, effects, progressive prebuffering and marker
-semantics remain shared. See [ADR 0009](../adr/0009-native-pulseaudio-output.md).
+semantics remain shared. See [ADR 0005](../adr/0005-native-pulseaudio-output.md).
 
 The native backend requests 20 ms total latency, writes at most 220 frames
 (4.99 ms), drains and corks idle streams, and flushes its own stream on a

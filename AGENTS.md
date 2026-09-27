@@ -101,5 +101,5 @@
   `make windows-omnivox` for a clean reproducible release that rebuilds every
   payload.
 - Passing the main-only path guard does not waive an ADR's deployment
-  requirements: ADR 0010 requires full development staging for its public
+  requirements: ADR 0006 requires full development staging for its public
   protocol changes.
