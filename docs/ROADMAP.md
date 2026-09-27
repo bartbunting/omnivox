@@ -171,6 +171,20 @@ markers. Measure physical output, underruns, device changes and competing load.
 - Complete fresh Voice Workbench Apply/undo, compatibility and divergent
   main/notification inventory acceptance in Emacsvox.
 
+## Low-priority maintenance
+
+- **Review shared local and remote speech startup:** revisit when other startup
+  or recovery work touches these paths. Most speech handling is already shared;
+  the expected benefit is a small cleanup. Compare repeated worker-start and
+  startup-timeout handling in [local ownership](../omnivox-cli/src/voice_local.rs)
+  and [remote connections](../omnivox-cli/src/remote.rs), plus Emacsvox's checks
+  that workers received the expected settings. Extract common steps only where
+  that makes the code easier to understand and test. Keep the existing
+  connection methods, remote authentication and access limits, local recovery
+  records, and confirmed process cleanup. A broad unification project has no
+  demonstrated benefit. Any cleanup needs local and remote startup, failure,
+  recovery and independent notification-speech checks.
+
 ## Explicit future proposals
 
 - **sherpa-onnx, Inflect Micro and Kitten Nano:** evaluate one isolated adapter,
