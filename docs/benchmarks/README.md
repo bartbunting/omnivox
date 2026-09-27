@@ -80,6 +80,10 @@ samples and a reproducible comparison.
 - [Retained native-validation and routing test results](2026-09-27-retained-validation-results.md)
 - [Retained layered-routing acceptance results](2026-09-27-retained-routing-results.md)
 
+- [Retained voice-management verification](2026-09-27-retained-voice-management-results.md)
+- [Retained platform and companion observations](2026-09-27-retained-platform-results.md)
+- [Retained Piper release qualification](2026-09-27-retained-piper-release-results.md)
+
 ## Preservation policy
 
 Treat a committed evidence pack as immutable. Do not replace its raw samples

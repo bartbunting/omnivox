@@ -333,7 +333,7 @@ when the first PCM frame is consumed. Preparation, empty audio, cancellation
 before consumption and failed pre-audio fallback attempts cannot publish them.
 The existing receipt and remote-line limits apply before queuing PCM.
 
-Native feature negotiation remains unadvertised until strict previews and
-explanation operations complete the public execution bundle. Explicit development
-probes can exercise these messages; clients must continue using advertised
-capabilities.
+The server advertises native timelines with the complete native-parameter
+bundle, including strict previews and explanation operations. Clients must
+negotiate capabilities on each connection; a supported timeline version does
+not imply that every available engine supplies qualified native controls.

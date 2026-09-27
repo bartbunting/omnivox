@@ -1,4 +1,4 @@
-#+title: Voice Library and Activation Contract, Version 1
+#+title: Voice Library and Activation Formats
 #+date: 2026-09-15
 #+startup: content
 
@@ -6,7 +6,8 @@
 
 Accepted on 2026-09-15 with Emacsvox ADR 0019. The Omnivox decision is now
 consolidated in [[file:adr/0007-managed-voice-lifecycle.md][ADR 0007]].
-This is the authoritative contract; implementation proceeds in tested slices.
+This is the authoritative implemented format and activation contract. Current
+platform qualification is recorded in [[file:STATUS.md][STATUS.md]].
 Emacsvox's =docs/engine-management-design.org= supplies the interaction and
 delivery plan. Existing single-model Piper and explicit Flite paths continue
 to work until the maintainer explicitly adopts a library.
@@ -18,7 +19,8 @@ pass the same acceptance checks before exposing activation.
 
 Version 1 covers storage, identity, eligibility, Piper model/speaker selection,
 Flite file selection and coordinated restart. Schema 2 adds the reviewed English
-MBROLA development companion. Other providers still require their own native
+MBROLA development companion; schema 3 adds reviewed RHVoice voice/language
+packages with a separately supplied runtime. Other providers require their own native
 interfaces or approving a download catalogue. No new dependency, release pin,
 model redistribution or helper-process boundary follows from this contract.
 
@@ -429,12 +431,10 @@ against another program rewriting a user-owned file.
 
 * Delivery and acceptance checks
 
-Implement in separate commits: typed storage/identity and
-fixtures; managed Piper model/speaker selection; eligibility and negotiated
-status; local transaction/activation provider; accessible enablement/import;
-reviewed Piper acquisition; Flite acquisition. Flite managed load-set support
-must pass before offering its general enablement UI. MBROLA still needs the
-frontend/database/helper feasibility decision from the parent design.
+Current local procedures are described in [[file:VOICE-INSTALLATION.md][voice management]] and
+[[file:VOICE-VALIDATION.md][native validation]]. Keep the following acceptance obligations when changing
+the implemented formats or lifecycle. Outstanding qualification and recovery
+work belong to [[file:plans/NEXT_STEPS.md][the roadmap]].
 
 Required behavioral checks include:
 
@@ -491,7 +491,7 @@ that a worker is still alive. Failures retain operation files for inspection.
 Automatic download resume, updates and crash/power-loss recovery beyond
 existing native admission checks remain further work.
 
-Explicit reviewed removal of managed Piper, Flite and MBROLA packages is
+Explicit reviewed removal of managed Piper, Flite, MBROLA and RHVoice packages is
 specified in [[file:VOICE-UNINSTALLATION.md][the uninstallation guide]]. It preserves imported files,
 built-in voices, saved choices and uncertain live references. Package-wide
 removal requires disabled speakers and no active or rollback use; it has a

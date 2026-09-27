@@ -281,7 +281,9 @@ cleanup; it provides no new process-tree authority after an active-worker crash.
 
 The standalone `--validate-voice-library` diagnostic retains its existing behavior
 and does not participate in profile admission. The operation command is the path
-for admitted management work. The voice-library capability remains unadvertised.
+for admitted management work. The speech server separately advertises
+`voice_library_v1` and reports configuration and eligibility; that capability
+does not make an interrupted validation successful.
 
 The [command probe](../tools/verify_voice_operations.py) checks exact input
 preservation, refusal to overwrite, damaged-journal inspection and absence of
@@ -293,142 +295,9 @@ that normal owner retirement releases the lease without waiting for that child.
 
 ## Verification
 
-### Original per-operation foundation
-
-For the original per-operation foundation at source
-`f10a32f3b32c72ad9b79accd3019f49b7bee65b2`, Linux passed all 11 shared
-operation tests, the staged command probe and the locked workspace suite
-(785 passed, one existing ignored test). Workspace Clippy with Piper features,
-formatting and local documentation-link checks also passed. Native Windows x64
-GNU passed all nine applicable operation tests on its native temporary filesystem,
-including real owner termination and interrupted/torn-journal inspection.
-The Unix-only tests cover symbolic links and descriptor inheritance across fork.
-
-Native Intel and Apple Silicon macOS passed at the same source in
-[verification run 35045813419](https://github.com/bartbunting/omnivox/actions/runs/35045813419).
-Each host passed all 11 operation tests and the staged command probe, together
-with the workflow's repeated supervisor tests, saved-evidence checks, full native
-Piper/Flite validation probe and Clippy gate. The deterministic fork regression
-passed on both architectures.
-
-These checks establish this storage slice's behavior, not persistent ownership
-of the native validator or full installation/activation recovery. Full Windows
-server/companion and MSVC acceptance remain separate, as recorded in
-[the validator guide](VOICE-VALIDATION.md).
-
-### Admitted native execution
-
-At `cdffab6533a8bfdce51d2b0137bb9d1787109984`, Linux passed the locked workspace
-suite (796 passed, one existing ignored test), including 20 operation/admission
-tests and seven supervisor/command tests. The staged native probe passed with
-Piper speakers, compiled-in SLT and an exported external Flite voice. It verifies
-sequential admitted runs, per-attempt evidence binding, confirmed cancellation,
-blocked admission after manager death and refusal to treat a report as completion
-when the final journal append is missing. Workspace Clippy with Piper features,
-formatting and local documentation-link checks passed.
-
-Native Windows x64 GNU passed all 18 applicable operation/admission tests and ten
-supervisor/command tests on its native temporary filesystem. These include killed
-profile owners and refusal to open START after an ownership-record failure.
-The subsequent import-only portability cleanup at `347684c` passed Windows-target
-Clippy for the shared library and CLI with Piper discovery enabled, plus a Linux
-shared-library compile check. Full Windows server/companion and MSVC acceptance,
-power-loss recovery, speech playback and activation remain separate.
-
-Native Intel and Apple Silicon macOS passed at `cdffab6` in
-[verification run 35048372336](https://github.com/bartbunting/omnivox/actions/runs/35048372336).
-Each host passed all 20 operation/admission tests, the repeated supervisor tests
-including refusal to open START after a recording failure, native Clippy, the
-full Piper/Flite probe including external Flite, and the preparation/inspection
-command checks. The probe verified both profile release after confirmed
-cancellation and blocked admission after manager death or a lost terminal append.
-
-### Recorded-cleanup recovery verification
-
-The recovery implementation and native probe are committed in `a76d403` and
-`39ecbe2`; `eb8b376` fixes only preservation-test portability. Linux passed the
-locked workspace suite (800 passed, one existing ignored test), workspace Clippy
-with Piper features, formatting, documentation links and the metadata command
-probe. All 24 operation/admission tests passed again after the test-only fixes.
-The staged silent Piper/Flite probe, including an exported external Flite voice,
-verified explicit abandonment after a lost final journal append, preservation of
-the original report/history, idempotent recovery, refusal to reuse the old attempt
-and admission of fresh validation. Missing cleanup after manager death still
-blocks recovery and later admission even after the test observes those processes
-exit.
-
-At `eb8b376`, native Windows x64 GNU passed all 22 applicable operation/admission
-tests and ten supervisor/command tests. Windows-target and workspace Clippy passed.
-The preservation checks release the Windows lock before reading its file and
-compare canonical paths, including native extended path prefixes. Full Windows
-server/companion and MSVC acceptance, power-loss recovery, playback and activation
-remain separate.
-
-Native Intel and Apple Silicon macOS passed at
-`eb8b3768f11a54b054de4fd71ffed13b4c4d64e4` in
-[verification run 35050429897](https://github.com/bartbunting/omnivox/actions/runs/35050429897).
-Each host passed all 24 operation/admission tests, repeated supervisor tests,
-evidence checks, native Clippy, the full silent Piper/Flite probe including
-external Flite, and metadata command checks. Both verified recovery after a lost
-terminal append and continued refusal when worker cleanup had not been recorded.
-The canonical-path comparison also handles macOS temporary-directory aliases.
-
-### Separate supervisor verification
-
-The implementation and fault probes are committed in `431e716` and `c63e7c6`.
-Linux passed the locked workspace suite (803 passed, one existing ignored test),
-workspace Clippy with Piper features, formatting and documentation links. The
-metadata command probe rejects closed and malformed supervisor startup gates
-without changing the prepared journal or initializing admission. The staged
-silent Piper/Flite probe, including an exported external Flite voice, distinguishes
-manager death from supervisor death: the former records confirmed cancellation
-and permits fresh admission; the latter keeps incomplete work blocked. It observes
-the independent supervisor and all tested native descendants exit before checking
-the retained outcome.
-
-Native Windows x64 GNU passed all 13 supervisor/command tests and Windows-target
-Clippy. The lifetime test uses a real manager process and observes supervisor exit
-through a native wait handle after both explicit cancellation and manager death.
-These are process-control and component checks; full Windows server/companion and
-MSVC acceptance remain separate. They do not establish recovery after the
-supervisor itself dies, filesystem power loss, or whole-job/host shutdown.
-
-Native Intel and Apple Silicon macOS passed at
-`c63e7c629bb7608ef1a2ab8ae0a2e36bd271788d` in
-[verification run 35052109946](https://github.com/bartbunting/omnivox/actions/runs/35052109946).
-Each host passed the supervisor suite five times, all 24 operation/admission tests,
-evidence tests, native Clippy, the full silent Piper/Flite probe including external
-Flite, and the metadata command probe. Both distinguished confirmed cleanup after
-manager death from blocked recovery after supervisor death.
-
-### Damaged completion verification
-
-The recovery change and native probe are committed in `261f07a` and `6a35e57`.
-Linux passed all 805 locked workspace tests (one existing ignored test), including
-26 operation/admission tests. These cover a real writer killed after a partial
-terminal append, explicit abandonment, preserved damaged bytes, refusal to reuse
-the attempt, and rejection of later changes to the damaged suffix. Missing
-cleanup or damage to the validating record still blocks new work.
-
-The staged silent Piper/Flite probe, including an exported external Flite voice,
-passed both missing and torn final-write scenarios after actual native cleanup.
-It verifies idempotent recovery, inspection and fresh validation, while retaining
-the original operation files. The metadata command probe, workspace Clippy with
-Piper features, formatting, Python syntax and documentation-link checks passed.
-
-Native Windows x64 GNU passed all 24 applicable operation/admission tests on its
-native temporary filesystem, including the killed-writer case. Windows-target
-Clippy passed. Full Windows server/companion and MSVC acceptance remain separate;
-these results do not establish cleanup recovery for active workers, power-loss
-durability, speech playback or installation/activation transactions.
-
-Native Intel and Apple Silicon macOS passed at
-`6a35e57a9e97efffd8d0472f34ab428425f49784` in
-[verification run 35053686464](https://github.com/bartbunting/omnivox/actions/runs/35053686464).
-Both passed all 26 operation/admission tests, five repetitions of the supervisor
-suite, evidence tests, native Clippy, the full silent Piper/Flite probe including
-external Flite, and metadata command checks. Both verified explicit recovery of
-the torn final write and continued refusal when worker cleanup was missing.
+Dated native ownership, interrupted-write and recovery observations are preserved
+in [the voice-management evidence report](benchmarks/2026-09-27-retained-voice-management-results.md).
+Current platform limits belong to [STATUS.md](STATUS.md).
 
 ## Additional recovery hardening
 
@@ -442,8 +311,6 @@ absence, not a reusable numeric PID or a matching report from another attempt. T
 also account for incomplete worker records, damaged receipts and journals without
 a verified validating prefix without inventing success.
 
-On 2026-09-16 the maintainer prioritized installation and activation over this
-additional recovery hardening. Continue those features while retaining the
-existing refusal to reuse unresolved native work. Do not add force-clearing or
-treat missing cleanup as success. The voice-library capability remains
-unadvertised until the complete runtime and client activation contract works.
+Installation and two-lane activation use these ownership primitives. Further
+reconciliation remains follow-up hardening under the [roadmap](plans/NEXT_STEPS.md).
+Do not add force-clearing or treat missing cleanup as success.

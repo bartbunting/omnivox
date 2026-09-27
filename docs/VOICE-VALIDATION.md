@@ -159,23 +159,8 @@ The [macOS Voice Validation workflow](../.github/workflows/voice-validation-maco
 runs native component tests and the full Piper/Flite probe on Intel and Apple
 Silicon, on manual dispatch or pushes to `ci/macos-voice-validation-*` branches.
 It builds the supported staged payloads and uses only bundled/generated
-voice fixtures. Native Intel and Apple Silicon checks passed in
-[verification run 35035356056](https://github.com/bartbunting/omnivox/actions/runs/35035356056)
-at source commit `9107e6f578094c6dfba90a75d4a62a6a390c2179`. Each host passed six
-supervision tests five times, including a deterministic zombie-group regression,
-then the full Piper/Flite probe and its ownership fault checks. Native Clippy
-also passed for the validator and its prepared dependencies. These are silent
-validation checks, not acoustic or coordinated-activation acceptance.
-
-Saved-evidence checks subsequently passed on both native Mac architectures in
-[run 35042369039](https://github.com/bartbunting/omnivox/actions/runs/35042369039)
-at source commit `7ff386693701d8a7a50cb10be615f455062516ca`. Each host passed seven
-shared evidence tests, repeated supervision tests, native Piper/Flite report
-creation and comparison, stale-input rejection, and refusal to publish after
-cancellation or supervisor death. Linux passed the same integration probe and
-the workspace/Clippy gates. Native Windows x64 GNU component tests passed six
-shared evidence checks and eight supervision/command checks, including report
-creation, non-overwriting publication and cancellation on its native filesystem.
+voice fixtures. Dated validation and saved-report observations are preserved in the
+[voice-management evidence report](benchmarks/2026-09-27-retained-voice-management-results.md).
 
 Full Windows server/companion validation and MSVC acceptance also remain separate
 work. The existing Windows GNU main staging limitation is recorded in

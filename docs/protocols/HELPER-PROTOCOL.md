@@ -32,20 +32,20 @@ The host starts every session with `hello` and supplies the versions it
 supports:
 
 ```json
-{"protocol_version":5,"request_id":1,"type":"hello","supported_protocol_versions":[5,4,3,2,1]}
+{"protocol_version":6,"request_id":1,"type":"hello","supported_protocol_versions":[6,5,4,3,2,1]}
 ```
 
 The helper selects a common version and describes its implementation:
 
 ```json
-{"protocol_version":5,"request_id":1,"type":"hello","selected_protocol_version":5,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
+{"protocol_version":6,"request_id":1,"type":"hello","selected_protocol_version":6,"helper_name":"Eloquence x86 helper","helper_version":"0.1.0"}
 ```
 
 No inventory or synthesis request is valid until this exchange succeeds.
 Unknown types or fields added by a later incompatible contract require a new
 protocol version; helpers must not guess at incompatible semantics.
 
-Omnivox offers version 5 first and retries each older supported envelope after
+Omnivox offers version 6 first and retries each older supported envelope after
 an `unsupported_version` response. Every later frame uses the selected version.
 Versions 1 through 3 remain byte-compatible with their original contracts.
 
@@ -304,7 +304,8 @@ helper 6 catalogue queries, native synthesis settings and application evidence.
 The Rust parent offers 6 first; Eloquence and DECtalk can select it. Other
 helpers and missing-runtime Windows hosts retain 1–5 with unchanged request
 shapes. Ordinary speech does not depend on native support. Public native speech
-operations and the Emacs editor are not exposed yet.
+operations and the Emacs editor negotiate the complete capability bundle;
+runtime qualification still determines which native controls are available.
 
 `omnivox_tts::helper_protocol::parameters` provides the new/extended Rust message
 codecs and catalogue assembly. A separate parent session decoder handles shared
@@ -345,7 +346,7 @@ and a common-only confirmation for a strict native request. The
 [Eloquence](../benchmarks/2026-09-18-eloquence-helper6.md) and
 [DECtalk](../benchmarks/2026-09-18-dectalk-helper6.md) handler reports separate
 direct helper qualification from [parent integration](../benchmarks/2026-09-18-helper6-parent.md)
-and the remaining public/client work.
+and [public/client acceptance](../benchmarks/2026-09-19-native-client-activation.md).
 
 Parent catalogue and explanation APIs use nonblocking lifecycle admission: active
 speech, startup or recovery yields `busy` immediately. An absent connection is

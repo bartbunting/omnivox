@@ -107,8 +107,7 @@ ownership or cleanup in another invocation.
 
 ## Delivery and verification
 
-The shared evidence layer is the first implementation slice. The development
-validator then exposes optional save and compare operations, documented in the
+The validator exposes optional save and compare operations, documented in the
 [validator guide](VOICE-VALIDATION.md). Component tests cover content/policy
 changes, unsafe/incomplete inventories, exact speaker/generation identities,
 bounded parsing and non-overwriting publication. Native integration checks
@@ -117,6 +116,7 @@ changed inputs or native failure.
 
 Native Windows filesystem/component checks and both native Mac architectures
 must be distinguished from full Windows server/companion acceptance and
-power-loss recovery. Storage transactions, interrupted-operation ownership,
-full candidate startup/status and coordinated two-lane rollback remain later
-work. The voice-library capability remains unadvertised.
+power-loss recovery. [Managed installation and activation](VOICE-INSTALLATION.md)
+use separate operation-ownership and two-lane verification rules. The server
+advertises `voice_library_v1`; this report alone cannot authorize activation
+or resolve interrupted ownership. Current qualification is in [STATUS.md](STATUS.md).

@@ -66,7 +66,7 @@ Extensible engine registration remains proposed and is tracked through the
   [voice removal](VOICE-UNINSTALLATION.md) — local managed-asset operations,
   explicit activation and cleanup limits.
 - [eSpeak variants](ESPEAK-VARIANTS.md) — live discovery, on-demand combinations,
-  startup enablement, exact identity and development acceptance limits.
+  legacy startup compatibility, exact identity and development acceptance limits.
 - [MBROLA prototype](MBROLA-PROTOTYPE.md) — private pinned frontend/runtime,
   opt-in setup, test evidence and production boundaries.
 
@@ -119,9 +119,8 @@ Extensible engine registration remains proposed and is tracked through the
   registration proposal, and platform-specific audio-output work. It links to
   the relevant proposals and specifications; its entries are not promises of
   current behavior.
-- [PIPER-RELEASE.md](plans/PIPER-RELEASE.md) records the audited gap between
-  the experimental Piper helper and a reproducible cross-platform companion
-  release, including the source-acquisition decision required before work.
+- [PIPER-RELEASE.md](plans/PIPER-RELEASE.md) records completed companion release work. Its remaining release
+  requirements and evidence are being incorporated into maintained references.
 - [SPEECHD-PLAN.md](plans/SPEECHD-PLAN.md) is an unimplemented design proposal
   that must be reconciled with current engine contracts before use.
 - [CHUNKING-IMPLEMENTATION.md](history/CHUNKING-IMPLEMENTATION.md) is a short

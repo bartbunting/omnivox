@@ -8,18 +8,15 @@ Current implementation status is tracked in [[file:STATUS.md][STATUS.md]];
 
 * Status and scope
 
-The maintainer selected A: shared settings, selected choice, then contextual
-overrides. [[https://github.com/bartbunting/emacsvox/blob/1efc8d60fd061435e16290eda172c199b3ab0add/docs/adr/0017-per-fallback-voice-tuning.org][ADR 0017]] and the [[https://github.com/bartbunting/emacsvox/blob/1efc8d60fd061435e16290eda172c199b3ab0add/docs/voice-editor-fallback-tuning-contract.org][storage/runtime contract]] govern this extension.
-This document completes the XHI contract slice. It specifies future behavior;
-neither endpoint implements these messages yet. Switch to High for the tested
-implementation slices. Mirror this contract and the accepted decision into
-Omnivox's ADR/protocol documentation before implementing its endpoint.
+The implemented composition order is shared settings, selected choice, then
+contextual overrides, under [[file:adr/0006-voice-selection-and-customization.md][ADR 0006]]. This document owns the layered wire
+contract. Control envelope 1, remote envelope 1 and earlier registration,
+preview and timeline versions retain their compatibility rules. Native controls
+extend these rules in [[file:engine-voice-parameters.md][the native-parameter contract]].
 
-The baseline inspected is Omnivox 1.9.0, commit
-=69d1e9496be68eaa27f06908b10b2fc5591a9918=. Control envelope 1, remote envelope 1,
-old registration/preview operations, and timeline versions 1–3 keep their
-contracts. No helper API, engine calibration, dependency or minimum release
-change is part of this slice.
+Server and client negotiate the complete capability bundle below. Implementation
+and platform qualification are recorded separately in [[file:STATUS.md][STATUS.md]] and the
+[[file:benchmarks/README.md][evidence index]]; a capability does not establish audible acceptance.
 
 * Negotiation and framing
 
@@ -355,19 +352,19 @@ owned requests through the layered path; retain a visible limitation for opaque
 legacy forms. Intermediate protocol support alone must not enable customization
 in a client that still loses patches in ordinary speech.
 
-* Fixtures and handoff
+* Fixtures and verification
 
 [[https://github.com/bartbunting/emacsvox/blob/1efc8d60fd061435e16290eda172c199b3ab0add/test/fixtures/voice-editor/fallback-tuning-wire.json][Wire examples]] contain request/response objects, invalid-input mutations,
 context/default projection cases, and expected execution/compatibility outcomes.
 They complement the [[https://github.com/bartbunting/emacsvox/blob/1efc8d60fd061435e16290eda172c199b3ab0add/test/fixtures/voice-editor/fallback-tuning-design.json][raw-unit composition examples]]. Data-only checks verify
 syntax, bounds, identity references, framing and expected arithmetic. They do
-not prove either future codec or actual synthesis behavior.
+not prove actual synthesis behavior on their own.
 
-At High, copy these independent examples into paired server/client tests and
-exercise final encoding/decoding, fake-engine requests, accepted PCM and consumed
+The checked server examples are in [[file:protocol-fixtures/voice-choice-tuning.json][voice-choice-tuning.json]]. Paired server/client
+regressions must exercise final encoding/decoding, fake-engine requests, accepted PCM and consumed
 first frames. Test default clearing through native settings, failure before and
 after commitment, same-engine and duplicate-selector choices, policy fallback,
 mixed legacy spans, multipart rejection, stale registry/late replies, both lanes
 and disconnect without replay. Exercise the [[https://github.com/bartbunting/emacsvox/blob/1efc8d60fd061435e16290eda172c199b3ab0add/test/fixtures/voice-editor/fallback-tuning-storage.el][storage promotion/save-retry example]]
-through the real readers and writers before enabling them. Listening acceptance
-remains a separate final slice.
+through the real readers and writers. Listening acceptance remains separate
+from codec and null-output verification.

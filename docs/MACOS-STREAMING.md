@@ -71,21 +71,8 @@ complete main-server payload and uses the existing benchmark and stress tools
 on two simultaneous null-output processes. Those checks cover all six workload
 types, exact physical routing, replacement and hard stops.
 
-The final [native acceptance run](https://github.com/bartbunting/omnivox/actions/runs/35167821767)
-passed on Intel and Apple Silicon running macOS 15.7.9 at source commit
-`382c338812e2f6af1f8ca2f923225763d9b04363`:
-
-- Each architecture passed five native queue/lifecycle regressions, ten Rust
-  adapter checks and native Clippy. Gordon, Karen and Catherine each passed
-  progressive delivery, full-result collection, repeated cancellation,
-  consumer failure and subsequent synthesis.
-- Each complete server payload passed two simultaneous speech processes with
-  exact Gordon routing and null audio output. Each process exercised all six
-  benchmark workloads with two measured samples per workload, six replacement
-  iterations and three hard stops. The workflow artifacts retain the reports,
-  voice identifier, host details, source commit and executable hashes.
-- The Linux locked workspace suite passed 840 tests, with one existing ignored
-  test; workspace Clippy and formatting checks also passed.
+Native Intel and Apple Silicon observations are retained in the
+[platform evidence report](benchmarks/2026-09-27-retained-platform-results.md#macos-progressive-synthesis).
 
 Listening through Emacsvox, physical command-to-sound and stop-to-silence
 measurements, and comparison with buffered playback remain open. No audio device

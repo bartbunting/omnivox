@@ -1,6 +1,6 @@
 # Managed voice uninstallation
 
-The development local service removes reviewed Piper, Flite and MBROLA
+The development local service removes reviewed Piper, Flite, MBROLA and RHVoice
 downloads under the ownership rules in [ADR 0007](adr/0007-managed-voice-lifecycle.md).
 Emacsvox supplies the accessible
 review and confirmation. The remote speech socket has no removal operation.
@@ -77,9 +77,6 @@ a file open against deletion, checks the partial result and detached index,
 then releases the handle and resumes the same operation. Its speech output is
 null; these are storage/lifecycle checks, not listening acceptance.
 
-Development checks on 2026-09-17 passed for the reviewed Piper Kristin, Flite
-AWB/RMS and MBROLA us1/us2/us3 downloads on Linux, and Flite AWB/RMS and all
-three MBROLA downloads on native Windows. Shared Piper speakers, active and
-rollback generations, other profiles, ownership failures and interrupted
-metadata/unlink handling have regression coverage. Native macOS uninstallation
-and spoken Emacsvox acceptance remain unverified.
+Dated removal observations are preserved in the
+[voice-management evidence report](benchmarks/2026-09-27-retained-voice-management-results.md).
+See [STATUS.md](STATUS.md) for current platform qualification.
