@@ -20,6 +20,7 @@ use omnivox_audio::ProgressivePcmCanonicalizer;
 use crate::contracts::{
     AudioOutputMode, CancellationSupport, ConcurrencyModel, EngineDescriptor, PhysicalVoiceId,
 };
+use crate::engine_configuration::LaunchEnvironment;
 use crate::engine_registry::validate_descriptor as validate_registry_descriptor;
 use crate::helper_protocol::{
     read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
@@ -128,6 +129,8 @@ pub struct HelperEngineConfig {
     pub engine_id: String,
     pub program: PathBuf,
     pub arguments: Vec<OsString>,
+    /// Retained across deferred startup and every recovery connection.
+    pub environment: LaunchEnvironment,
     pub startup_timeout: Duration,
     pub request_timeout: Duration,
     pub synthesis_idle_timeout: Duration,
@@ -139,6 +142,7 @@ impl HelperEngineConfig {
             engine_id: engine_id.into(),
             program: program.into(),
             arguments: Vec::new(),
+            environment: LaunchEnvironment::capture(),
             startup_timeout: Duration::from_secs(10),
             request_timeout: Duration::from_secs(10),
             synthesis_idle_timeout: Duration::from_secs(10),
@@ -290,6 +294,7 @@ struct ProcessHelperConnector {
     engine_id: String,
     program: PathBuf,
     arguments: Vec<OsString>,
+    environment: LaunchEnvironment,
 }
 
 impl ProcessHelperConnector {
@@ -298,6 +303,7 @@ impl ProcessHelperConnector {
             engine_id: config.engine_id.clone(),
             program: config.program.clone(),
             arguments: config.arguments.clone(),
+            environment: config.environment.clone(),
         }
     }
 }
@@ -308,6 +314,7 @@ impl HelperConnector for ProcessHelperConnector {
             &self.engine_id,
             &self.program,
             &self.arguments,
+            &self.environment,
         )?))
     }
 }
@@ -330,13 +337,16 @@ impl ProcessHelperConnection {
         engine_id: &str,
         program: &Path,
         arguments: &[OsString],
+        environment: &LaunchEnvironment,
     ) -> Result<Self, HelperEngineError> {
         info!(
             engine_id,
             program = %program.display(),
             "Starting TTS helper process"
         );
-        let mut child = Command::new(program)
+        let mut command = Command::new(program);
+        environment.apply(&mut command);
+        let mut child = command
             .args(arguments)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -3625,6 +3635,36 @@ mod tests {
         assert!(failed.terminated.load(Ordering::Acquire));
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn process_connector_reuses_the_owned_environment_after_retirement() {
+        let mut config = HelperEngineConfig::new("environment-fixture", "/bin/sh");
+        config.environment = LaunchEnvironment::from_variables([(
+            "OMNIVOX_ENVIRONMENT_FIXTURE".into(),
+            "captured".into(),
+        )]);
+        config.arguments = vec!["-c".into(), r#"printf '{"protocol_version":1,"request_id":1,"type":"hello","selected_protocol_version":1,"helper_name":"%s","helper_version":"fixture"}\n' "$OMNIVOX_ENVIRONMENT_FIXTURE""#.into()];
+        let connector = ProcessHelperConnector::new(&config);
+        config.environment = LaunchEnvironment::from_variables([(
+            "OMNIVOX_ENVIRONMENT_FIXTURE".into(),
+            "changed".into(),
+        )]);
+        for _ in 0..2 {
+            let connection = connector.connect().unwrap();
+            let response = connection.receive(Duration::from_secs(2)).unwrap();
+            assert!(
+                matches!(response.body, HelperResponseBody::Hello { helper_name, .. } if helper_name == "captured")
+            );
+            connection.terminate().unwrap();
+        }
+        let connection = ProcessHelperConnector::new(&config).connect().unwrap();
+        let response = connection.receive(Duration::from_secs(2)).unwrap();
+        assert!(
+            matches!(response.body, HelperResponseBody::Hello { helper_name, .. } if helper_name == "changed")
+        );
+        connection.terminate().unwrap();
+    }
+
     #[cfg(any(unix, windows))]
     #[test]
     fn process_cleanup_kills_before_waiting_for_a_blocked_writer() {
@@ -3642,7 +3682,13 @@ mod tests {
             ],
         );
         let connection = Arc::new(
-            ProcessHelperConnection::spawn("cleanup-test", Path::new(program), &arguments).unwrap(),
+            ProcessHelperConnection::spawn(
+                "cleanup-test",
+                Path::new(program),
+                &arguments,
+                &LaunchEnvironment::capture(),
+            )
+            .unwrap(),
         );
         let writer_connection = Arc::clone(&connection);
         let (locked, ready) = mpsc::channel();
@@ -3675,6 +3721,7 @@ mod tests {
             "cleanup-test",
             Path::new("/bin/sh"),
             &["-c".into(), "sleep 0.5 & exit 0".into()],
+            &LaunchEnvironment::capture(),
         )
         .unwrap();
         let deadline = Instant::now() + Duration::from_secs(2);

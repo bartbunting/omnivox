@@ -217,6 +217,9 @@ invented voices. Asynchronous recovery can rescan them under one bounded attempt
 per helper; managed rescans repeat asset and exact-inventory checks. Registry
 reads use an atomic cached descriptor/generation snapshot and perform no engine
 initialization. Successful discovery publishes descriptor and handle together.
+Each helper launch definition captures its native environment. Deferred connection
+and recovery reuse that environment along with the retained program and arguments;
+they do not inherit later process-environment changes.
 
 ## Voice identity, routing and tuning
 

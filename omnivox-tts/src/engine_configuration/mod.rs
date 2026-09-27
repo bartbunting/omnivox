@@ -3,6 +3,7 @@
 //! Registration, launch overrides and local routing permissions remain distinct
 //! from live descriptors and managed asset verification.
 
+mod environment;
 mod files;
 mod json;
 mod paths;
@@ -14,6 +15,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 use thiserror::Error;
 
+pub use environment::LaunchEnvironment;
 pub use files::{ConfigurationRoot, LoadedConfiguration, ManifestRegistration};
 pub use paths::Platform;
 
