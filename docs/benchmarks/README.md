@@ -1,12 +1,31 @@
 # Benchmark Evidence
 
-This directory keeps reviewable benchmark evidence produced by
-`tools/benchmark_server.py`. Each evidence pack has a dated report and a
-matching directory under `data/` containing the unmodified JSON reports and a
-`SHA256SUMS` manifest. Cross-engine packs also retain their exact input under
-`plans/`.
+This directory keeps dated performance measurements and functional acceptance
+reports. Performance packs retain raw samples, provenance, reproduction inputs
+and checksums where recorded; functional-only reports are labelled separately.
+The maintained harnesses are documented in the
+[tools reference](../../tools/README.md#server-lifecycle-benchmarks).
+Cross-engine suite inputs live under `plans/`; unmodified measurements and logs
+live under `data/`. A missing raw artifact or measurement is a coverage gap,
+not an implied successful result.
 
-Recorded baselines:
+## Performance comparisons and baselines
+
+Choose a baseline matching the path being changed. The following are retained
+observations, not universal performance thresholds or a claim of current
+acceptance on every platform.
+
+| Concern | Retained comparison / reproduction source | Measurement boundary |
+| --- | --- | --- |
+| Warm/cold synthesis and resampling | [Progressive resampler reuse](2026-09-20-progressive-resampler-reuse.md) | Windows GNU, null output; matched compiler control, raw timing and workload plans. |
+| Legacy letter navigation | [Letter playback reserve](2026-09-20-letter-playback-reserve.md), [initial investigation](2026-09-20-dectalk-letter-navigation.md) | Muted Windows device runs; first/final mixer-source consumption, stalls and rapid replacement. |
+| Native control overhead | [Parameter timing](2026-09-20-dectalk-parameter-timing.md), [batched parameters](2026-09-20-dectalk-batched-parameters.md), [reset placement experiment](2026-09-20-dectalk-reset-latency.md) | DECtalk runtime-specific measurements; distinguish private prototypes from shipped behavior. |
+| End-to-end server responsiveness | [Responsiveness investigation](2026-09-20-responsiveness.md) | Preserve the reported compiler confound; use the later matched resampler comparison for that question. |
+| Cancellation and runtime resources | [Windows helper cancellation](2026-09-17-windows-helper-cancellation.md), [RuTTS acceptance](2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md) | Helper protocol/retirement and process counters; not acoustic stop-to-silence. |
+| Speech-rate consistency | [Rate calibration](../RATE-CALIBRATION.md), [retained rate audits](../rate-audits/README.md) | Corpus/WAV duration and WPM, distinct from synthesis throughput. |
+| WSL output experiments | [WSLg evidence](../experiments/2026-09-06-wslg-audio.md), [native PulseAudio trial](../experiments/2026-09-07-native-pulseaudio.md) | Local software observations and listening limits; no general acoustic parity claim. |
+
+Earlier baselines remain available:
 
 - [2026-09-20 Windows x64 progressive resampler reuse](2026-09-20-progressive-resampler-reuse.md)
   compares repeated speech before and after bounded filter reuse, and records
@@ -32,6 +51,34 @@ Recorded baselines:
   covers both built-in voices, exact routing, cancellation, resource sampling,
   mixed queues, hard stops, fallback, and repeated helper recovery.
 
+## Functional acceptance and additional reports
+
+These reports qualify behavior and native integrations. A passing functional
+check is not a performance baseline unless the report also records measured
+samples and a reproducible comparison.
+
+- [Windows native voice default audit](2026-09-09-windows-native-defaults.md)
+- [Windows native parameter bindings and limits, 2026-09-17](2026-09-17-native-parameter-bindings.md)
+- [Windows native voice parameter audit, 2026-09-17](2026-09-17-native-voice-parameters.md)
+- [DECtalk helper-6 handlers, 2026-09-18](2026-09-18-dectalk-helper6.md)
+- [DECtalk native parameter execution, 2026-09-18](2026-09-18-dectalk-native-execution.md)
+- [Eloquence helper-6 handlers, 2026-09-18](2026-09-18-eloquence-helper6.md)
+- [Eloquence native parameter execution, 2026-09-18](2026-09-18-eloquence-native-execution.md)
+- [Native parameter helper wire boundary, 2026-09-18](2026-09-18-helper-native-wire-boundary.md)
+- [Reserved helper-6 parameter codecs, 2026-09-18](2026-09-18-helper6-parameter-codecs.md)
+- [Helper-6 parent integration, 2026-09-18](2026-09-18-helper6-parent.md)
+- [Native choice admission and preparation, 2026-09-18](2026-09-18-native-choice-admission.md)
+- [Strict native private previews](2026-09-18-native-previews.md)
+- [Routed native voice execution, 2026-09-18](2026-09-18-native-routed-execution.md)
+- [Native synthesis execution, 2026-09-18](2026-09-18-native-synthesis-execution.md)
+- [Native timelines and consumed-audio receipts](2026-09-18-native-timelines.md)
+- [Connection-owned parameter catalogue cache](2026-09-18-parameter-catalogue-cache.md)
+- [Public native parameter explanations](2026-09-18-public-native-explanations.md)
+- [Public native voice registration](2026-09-18-public-native-registration.md)
+- [Public engine parameter catalogues, 2026-09-18](2026-09-18-public-parameter-catalogues.md)
+- [Native parameter client activation](2026-09-19-native-client-activation.md)
+- [Retained native-validation and routing test results](2026-09-27-retained-validation-results.md)
+
 ## Preservation policy
 
 Treat a committed evidence pack as immutable. Do not replace its raw samples
@@ -52,3 +99,31 @@ From a data directory, verify one pack with:
 ```sh
 sha256sum --check SHA256SUMS
 ```
+
+## Comparing a future candidate
+
+1. Select the affected workloads, baseline and acceptance criteria before the
+   run. Match OS/architecture, compiler/optimization settings, engine/runtime,
+   voice/model, speech rate, effects, audio backend, worker count and harness.
+   Record unavoidable differences and do not attribute them to the code change.
+2. Retain exact source/build identifiers, executable/helper/runtime/data hashes,
+   hardware and environment, commands, warmups, repetitions, ordering, clock and
+   measurement point. Preserve failed, cancelled and excluded samples with their
+   reasons. Do not silently remove outliers or count replacement as throughput.
+3. Run baseline and candidate under matched conditions, preferably interleaved
+   blocks. Compare cold and warm behavior separately. Report absolute and
+   relative changes, distributions and sample counts; insufficient tail samples
+   cannot establish p95/p99 stability.
+4. Pair timing with cancellation, correctness, PCM/marker and resource checks.
+   Use `benchmark_server.py` / `benchmark_suite.py` for lifecycle timing,
+   `stress_server.py` for mixed work and recovery, `stress_helper.py` for native
+   cancellation and resource growth, and `audit_speech_rates.py` for duration.
+   The tools reference gives invocation and scope for each.
+5. Save a new dated report, complete raw results and reproduction inputs. State
+   the comparison threshold and its rationale; an experiment's existing threshold
+   does not become a project-wide release rule automatically. Keep the baseline.
+
+Physical onset/stop-to-silence, audible underruns, intelligibility, long-session
+resource growth and platforms without matched retained samples still require
+appropriate new acceptance measurements. The documentation consolidation did
+not run those measurements or establish new regression thresholds.
