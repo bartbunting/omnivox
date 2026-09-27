@@ -224,8 +224,9 @@ Actions are applied in input order when several resolve to the same frame.
   its resolved boundary.
 
 An individual OGG/WAV file is limited to 16 MiB on disk and 30 seconds decoded.
-A tone is limited to 24 kHz and 60 seconds; inserted silence is limited to 60
-seconds. Resource preparation permits at most 64 MiB of retained canonical
+A tone is limited to 24 kHz and 60 seconds; inserted silence must be from 1
+through 15,000 ms. Longer requests are rejected, not shortened. Resource
+preparation permits at most 64 MiB of retained canonical
 `f32` PCM storage per presentation. Repeated references to one shared decoded
 file count once, while predicted private channel/pan/effect copies, generated
 tones, inserted silence, and effect tails count against the same budget.

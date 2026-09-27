@@ -6,6 +6,7 @@ use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, StreamType,
     TimelineAudioRenderer, ToneGenerator,
 };
+use omnivox_core::command::parse_silence_duration;
 use omnivox_core::{
     parse_command, parse_presentation_tone_arguments, parse_tone_arguments,
     state::{CapitalizationPresentation, ChannelMode, PunctuationLevel},
@@ -3090,9 +3091,12 @@ fn handle_command(
 
         CommandId::Silence => {
             if let Some(dur_str) = command.args {
-                if let Ok(dur) = dur_str.parse::<u32>() {
-                    debug!("Queue silence: {}ms", dur);
-                    queue_pending_item(pending, QueueItem::Silence { duration: dur });
+                match parse_silence_duration(&dur_str) {
+                    Ok(duration) => {
+                        debug!("Queue silence: {}ms", duration);
+                        queue_pending_item(pending, QueueItem::Silence { duration });
+                    }
+                    Err(error) => warn!("Invalid silence: {error}"),
                 }
             }
         }

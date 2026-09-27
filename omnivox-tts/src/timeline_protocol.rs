@@ -48,6 +48,8 @@ pub const MAX_TIMELINE_RESOURCE_PATH_BYTES: usize = 4096;
 pub const MAX_TIMELINE_TONE_FREQUENCY_HZ: f32 = 24_000.0;
 /// Longest duration accepted by a structured tone action.
 pub const MAX_TIMELINE_TONE_DURATION_MS: u32 = 60_000;
+/// Longest duration accepted by a structured silence action.
+pub const MAX_TIMELINE_SILENCE_DURATION_MS: u32 = 15_000;
 
 /// One atomic presentation and its tracked playback identity.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -782,7 +784,7 @@ pub(crate) fn validate_action(
             validate_normalized(*pan, &format!("tone action {} pan", action.id))
         }
         PresentationAction::Silence { duration_ms } => invalid_if(
-            *duration_ms == 0 || *duration_ms > 60_000,
+            *duration_ms == 0 || *duration_ms > MAX_TIMELINE_SILENCE_DURATION_MS,
             format!("silence action {} has an invalid duration", action.id),
         ),
         PresentationAction::SemanticEvent => Ok(()),
@@ -948,6 +950,22 @@ mod tests {
             decode_presentation_timeline(&format!("{{{encoded}}}")).unwrap(),
             timeline
         );
+    }
+
+    #[test]
+    fn silence_actions_are_limited_to_fifteen_seconds() {
+        let mut timeline = timeline();
+        for duration_ms in [1, 15_000] {
+            timeline.actions[0].action = PresentationAction::Silence { duration_ms };
+            let encoded = encode_presentation_timeline(&timeline).unwrap();
+            assert_eq!(decode_presentation_timeline(&encoded).unwrap(), timeline);
+        }
+        for duration_ms in [0, 15_001, 60_000, u32::MAX] {
+            timeline.actions[0].action = PresentationAction::Silence { duration_ms };
+            // Encode without the checked writer to exercise untrusted wire input.
+            let encoded = STANDARD.encode(serde_json::to_vec(&timeline).unwrap());
+            assert!(decode_presentation_timeline(&encoded).is_err());
+        }
     }
 
     #[test]

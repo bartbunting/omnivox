@@ -20,6 +20,9 @@ pub const MAX_PRESENTATION_TONE_FREQUENCY_HZ: f32 = 24_000.0;
 /// Longest queued presentation tone accepted on the wire.
 pub const MAX_PRESENTATION_TONE_DURATION_MS: u32 = 60_000;
 
+/// Longest silence accepted by legacy commands and structured timelines.
+pub const MAX_SILENCE_DURATION_MS: u32 = 15_000;
+
 /// Legacy commands retained only so migration failures are explicit.
 ///
 /// Omnivox routes language through registered logical voices and routes a
@@ -246,6 +249,19 @@ pub fn parse_command(line: &str) -> Result<Command, ParseError> {
     }
 
     Err(ParseError::InvalidFormat(line.to_string()))
+}
+
+/// Parse a bounded legacy silence duration; zero remains a valid no-op.
+pub fn parse_silence_duration(arguments: &str) -> Result<u32, String> {
+    let duration = arguments
+        .parse::<u32>()
+        .map_err(|_| "silence duration must be an unsigned integer".to_owned())?;
+    if duration > MAX_SILENCE_DURATION_MS {
+        return Err(format!(
+            "silence duration must be at most {MAX_SILENCE_DURATION_MS} ms"
+        ));
+    }
+    Ok(duration)
 }
 
 fn parse_bounded_tone_values(frequency: &str, duration: &str) -> Result<ToneCommand, String> {
@@ -523,6 +539,25 @@ mod tests {
         let cmd = parse_command("sh 100").unwrap();
         assert_eq!(cmd.id, CommandId::Silence);
         assert_eq!(cmd.args, Some("100".to_string()));
+    }
+
+    #[test]
+    fn silence_duration_rejects_oversized_and_malformed_requests() {
+        for duration in [0, 1, 15_000] {
+            assert_eq!(parse_silence_duration(&duration.to_string()), Ok(duration));
+        }
+        for value in [
+            "15001",
+            "3600000",
+            "4294967295",
+            "4294967296",
+            "-1",
+            "1.5",
+            "1 2",
+            "",
+        ] {
+            assert!(parse_silence_duration(value).is_err(), "{value}");
+        }
     }
 
     #[test]

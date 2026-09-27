@@ -17,6 +17,8 @@ Versioning for published releases.
 
 ### Fixed
 
+- Limit requested silences to 15 seconds, preventing oversized silence commands
+  from exhausting the speech process's memory.
 - Speech continues after native voice segments that produce no audio, such as
   silent Markdown markup between ordinary text and a link.
 

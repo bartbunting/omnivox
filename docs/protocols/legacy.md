@@ -55,7 +55,7 @@ subsequent items within it.
 | `q` | text | Queue speech text. The braced form preserves surrounding whitespace inside the braces. |
 | `c` | inline codes | Queue batch-local voice, logical-voice, or pitch changes described below. |
 | `t` | `FREQUENCY_HZ DURATION_MS` | Queue an independent tone. Frequency must be finite and greater than zero through 24,000 Hz; duration is 1 through 60,000 ms. |
-| `sh` | `DURATION_MS` | Queue silence on the speech timeline. The value must fit an unsigned 32-bit integer. |
+| `sh` | `DURATION_MS` | Queue silence on the speech timeline. The value must be an integer from 0 through 15,000 ms; zero is a no-op. Longer requests are rejected, not shortened. |
 | `a` | path | Queue a WAV or OGG audio icon on the sound stream. |
 | `d` | none | Dispatch the pending batch. An empty dispatch is a no-op. |
 

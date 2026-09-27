@@ -1,5 +1,6 @@
 //! Atomic validation and generation tracking for framed presentations.
 
+use omnivox_core::command::parse_silence_duration;
 use omnivox_core::state::{CapitalizationPresentation, ChannelMode, PunctuationLevel};
 use omnivox_core::{
     parse_command, parse_presentation_tone_arguments, parse_tone_arguments, Command, CommandId,
@@ -305,7 +306,7 @@ fn validate_command(command: &Command) -> Result<(), String> {
         CommandId::EmacsvoxTone => {
             arguments.is_some_and(|value| parse_presentation_tone_arguments(value).is_ok())
         }
-        CommandId::Silence => arguments.is_some_and(|value| value.parse::<u32>().is_ok()),
+        CommandId::Silence => arguments.is_some_and(|value| parse_silence_duration(value).is_ok()),
         CommandId::AudioIcon => arguments.is_some_and(|value| parse_resource_path(value).is_ok()),
         CommandId::TtsSetPunctuations => {
             arguments.is_some_and(|value| PunctuationLevel::parse(value).is_some())
@@ -509,6 +510,27 @@ mod tests {
                 .is_err());
         }
         assert_eq!(generations.latest(), 0);
+    }
+
+    #[test]
+    fn oversized_silence_rejects_the_frame_without_consuming_its_generation() {
+        assert_eq!(
+            omnivox_core::command::MAX_SILENCE_DURATION_MS,
+            omnivox_tts::timeline_protocol::MAX_TIMELINE_SILENCE_DURATION_MS
+        );
+        let generations = PresentationGenerations::default();
+        for duration in [15_001, 3_600_000, u32::MAX] {
+            assert!(generations
+                .prepare(&arguments(9, &format!("q {{before}}\nsh {duration}\nd\n")))
+                .is_err());
+            assert_eq!(generations.latest(), 0);
+        }
+        let valid = generations
+            .prepare(&arguments(9, "q {after}\nsh 15000\nd\n"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(valid.generation, 9);
+        assert_eq!(valid.commands.len(), 3);
     }
 
     #[test]

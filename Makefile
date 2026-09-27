@@ -78,6 +78,12 @@ remote-test:
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_remote_service.py
 
+# Requires a staged payload; exercises rejected inputs in isolated processes.
+.PHONY: input-validation-test
+input-validation-test:
+	PYTHONDONTWRITEBYTECODE=1 \
+		$(PYTHON) -W error::ResourceWarning tools/test_input_validation.py
+
 # Local supervisor failure checks; no SSH host or speech runtime required.
 .PHONY: remote-ssh-harness-test
 remote-ssh-harness-test:
