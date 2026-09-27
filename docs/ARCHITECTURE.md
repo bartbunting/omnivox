@@ -195,8 +195,10 @@ feed the [common resolver](../omnivox-tts/src/engine_configuration/resolved.rs).
 Reserved IDs, path mappings and idle defaults come from
 [`shipped.rs`](../omnivox-tts/src/engine_configuration/shipped.rs); native factories,
 compiled availability and provider checks remain in the CLI. Local disablement
-prevents construction and recovery. Shared snapshots and configuration
-acknowledgements for paired worker activation remain pending. The
+prevents construction and recovery. A [private snapshot codec](reference/engine-startup-snapshot.md)
+retains complete launch records, native environment values and exact managed
+generation bytes. Its worker handoff and configuration acknowledgements for
+paired activation remain pending. The
 [configuration reference](guides/configuration.md) describes current options.
 
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or

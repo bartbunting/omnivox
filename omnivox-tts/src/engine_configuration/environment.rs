@@ -37,6 +37,10 @@ impl LaunchEnvironment {
     pub fn apply(&self, command: &mut Command) {
         command.env_clear().envs(self.0.iter());
     }
+
+    pub(super) fn variables(&self) -> impl Iterator<Item = (&OsString, &OsString)> {
+        self.0.iter()
+    }
 }
 
 impl fmt::Debug for LaunchEnvironment {

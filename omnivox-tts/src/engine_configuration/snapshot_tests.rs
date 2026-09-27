@@ -1,0 +1,352 @@
+use super::*;
+use serde_json::json;
+use std::path::Path;
+
+fn resolved(managed: Option<&ManagedLaunch>) -> ResolvedConfiguration {
+    let root = std::env::temp_dir().join("omnivox absent snapshot fixture");
+    let mut loaded = LoadedConfiguration {
+        root: Some(root.clone()),
+        configuration: Configuration::parse(
+        br#"{"schema":1,"routing":{"preferred_engine_ids":[],"disabled_engine_ids":["espeak"],"automatic_engine_ids":["org.fixture"]}}"#,
+        Platform::native(),
+        ).unwrap(),
+        ..LoadedConfiguration::default()
+    };
+    let manifest = HelperManifest::parse(
+        &serde_json::to_vec(&json!({
+            "schema":1, "engine_id":"org.fixture", "program": root.join("helper with spaces"),
+            "arguments":["", "$(literal)", "private argument"],
+            "timeouts":{"startup_ms":120000,"request_ms":100,"synthesis_idle_ms":300000},
+        }))
+        .unwrap(),
+        Platform::native(),
+    )
+    .unwrap();
+    loaded.external.insert(
+        "org.fixture".into(),
+        ManifestRegistration {
+            manifest,
+            source: root.join("helpers.d/org.fixture.json"),
+        },
+    );
+    let mut inputs = BTreeMap::new();
+    if let Some(managed) = managed {
+        inputs.insert(
+            "flite".into(),
+            RuntimeInputs {
+                invocation: Some(RuntimeInvocation::Managed(vec![
+                    "--voice-library".into(),
+                    managed.path.clone().into_os_string(),
+                    "--voice-library-sha256".into(),
+                    managed.library.sha256().into(),
+                ])),
+                ..RuntimeInputs::default()
+            },
+        );
+    }
+    ResolvedConfiguration::resolve(
+        loaded,
+        &root.join("omnivox"),
+        Platform::native(),
+        LaunchEnvironment::from_variables([
+            ("PRIVATE".into(), "private value".into()),
+            ("EMPTY".into(), "".into()),
+            (
+                "OMNIVOX_FLITE_HELPER".into(),
+                root.join("flite").into_os_string(),
+            ),
+        ]),
+        &inputs,
+    )
+    .unwrap()
+}
+
+fn prepared() -> LaunchSnapshot {
+    LaunchSnapshot::prepare(resolved(None), None, "org.fixture".into(), false).unwrap()
+}
+
+fn reject_mutation(snapshot: &LaunchSnapshot, mutate: impl FnOnce(&mut Value)) {
+    let mut value = serde_json::to_value(snapshot).unwrap();
+    mutate(&mut value);
+    let bytes = serde_json::to_vec(&value).unwrap();
+    let error = LaunchSnapshot::parse(&bytes)
+        .err()
+        .expect("invalid snapshot accepted");
+    assert!(!error.to_string().contains("private value"));
+    assert!(!error.to_string().contains("private argument"));
+}
+
+#[test]
+fn complete_record_round_trips_without_files_or_environment_reads() {
+    let snapshot = prepared();
+    let bytes = snapshot.to_bytes().unwrap();
+    let decoded = LaunchSnapshot::parse(&bytes).unwrap();
+    assert_eq!(decoded.to_bytes().unwrap(), bytes);
+    assert_eq!(decoded.activation_id(), snapshot.activation_id());
+    assert_ne!(prepared().activation_id(), snapshot.activation_id());
+    assert_eq!(decoded.requested(), "org.fixture");
+    assert!(!decoded.piper_selected());
+    let retained = decoded.resolved();
+    assert_eq!(
+        retained.environment.get("PRIVATE"),
+        Some(OsStr::new("private value"))
+    );
+    assert_eq!(retained.routing.preferred_engine_ids, Some(Vec::new()));
+    assert_eq!(retained.routing.fallback_engine_ids, None);
+    assert!(!retained.registration("espeak").unwrap().enabled);
+    let external = retained.registration("org.fixture").unwrap();
+    assert_eq!(external.origin, EngineOrigin::ExternalHelper);
+    let helper = external.helper.as_ref().unwrap();
+    assert_eq!(
+        helper.arguments,
+        ["", "$(literal)", "private argument"].map(OsString::from)
+    );
+    assert_eq!(helper.environment, retained.environment);
+    assert_eq!(helper.startup_timeout, Duration::from_secs(120));
+    assert_eq!(helper.request_timeout, Duration::from_millis(100));
+    assert_eq!(helper.synthesis_idle_timeout, Duration::from_secs(300));
+}
+
+#[test]
+fn every_complete_record_field_is_required_even_when_nullable() {
+    let snapshot = prepared();
+    let value = serde_json::to_value(&snapshot).unwrap();
+    for key in value.as_object().unwrap().keys() {
+        reject_mutation(&snapshot, |value| {
+            value.as_object_mut().unwrap().remove(key);
+        });
+    }
+    for (index, entry) in value["registrations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .enumerate()
+    {
+        for key in entry.as_object().unwrap().keys() {
+            reject_mutation(&snapshot, |value| {
+                value["registrations"][index]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove(key);
+            });
+        }
+    }
+    for key in value["routing"].as_object().unwrap().keys() {
+        reject_mutation(&snapshot, |value| {
+            value["routing"].as_object_mut().unwrap().remove(key);
+        });
+    }
+}
+
+#[test]
+fn parsing_rejects_duplicate_keys_unknown_fields_and_outer_bounds() {
+    let snapshot = prepared();
+    let bytes = snapshot.to_bytes().unwrap();
+    let mut duplicate = br#"{"sch\u0065ma":1,"#.to_vec();
+    duplicate.extend_from_slice(&bytes[1..]);
+    assert!(LaunchSnapshot::parse(&duplicate).is_err());
+    let mut trailing = bytes.clone();
+    trailing.extend_from_slice(b" {}");
+    assert!(LaunchSnapshot::parse(&trailing).is_err());
+    reject_mutation(&snapshot, |value| value["extra"] = json!(true));
+    reject_mutation(&snapshot, |value| value["schema"] = json!(2));
+    reject_mutation(&snapshot, |value| {
+        value["platform"] = json!("another native platform")
+    });
+    reject_mutation(&snapshot, |value| {
+        value["activation_id"] = json!("opaque but not a UUID")
+    });
+    let mut boundary = bytes;
+    boundary.resize(MAX_SNAPSHOT_BYTES, b' ');
+    assert!(LaunchSnapshot::parse(&boundary).is_ok());
+    boundary.push(b' ');
+    assert!(LaunchSnapshot::parse(&boundary).is_err());
+    let nested = format!(
+        "{}0{}",
+        "[".repeat(MAX_JSON_DEPTH + 1),
+        "]".repeat(MAX_JSON_DEPTH + 1)
+    );
+    assert!(LaunchSnapshot::parse(nested.as_bytes()).is_err());
+    assert!(Configuration::parse(br#"{"schema":1,"routing":null}"#, Platform::native()).is_err());
+}
+
+#[test]
+fn parsing_rejects_partial_registration_sets_and_permission_changes() {
+    let snapshot = prepared();
+    reject_mutation(&snapshot, |value| {
+        value["registrations"].as_array_mut().unwrap().remove(0);
+    });
+    reject_mutation(&snapshot, |value| {
+        let entry = value["registrations"][0].clone();
+        value["registrations"].as_array_mut().unwrap().push(entry);
+    });
+    reject_mutation(&snapshot, |value| {
+        let entry = value["registrations"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|entry| entry["engine_id"] == "espeak")
+            .unwrap();
+        entry["enabled"] = json!(true);
+        entry["unavailable"] = Value::Null;
+    });
+    reject_mutation(&snapshot, |value| {
+        value["routing"]["automatic_engine_ids"] = json!(["org.fixture", "org.fixture"])
+    });
+    reject_mutation(&snapshot, |value| {
+        value["routing"]["preferred_engine_ids"] = json!(["native"])
+    });
+    for mutation in [
+        "origin",
+        "source",
+        "helper",
+        "timeout",
+        "arguments",
+        "program",
+    ] {
+        reject_mutation(&snapshot, |value| {
+            let entry = value["registrations"]
+                .as_array_mut()
+                .unwrap()
+                .iter_mut()
+                .find(|entry| entry["engine_id"] == "org.fixture")
+                .unwrap();
+            match mutation {
+                "origin" => entry["origin"] = json!("in_process"),
+                "source" => entry["source"] = Value::Null,
+                "helper" => entry["helper"] = Value::Null,
+                "timeout" => entry["helper"]["startup_ms"] = json!(120001),
+                "arguments" => {
+                    entry["helper"]["arguments"] =
+                        serde_json::to_value(vec![OsString::from("x"); 65]).unwrap()
+                }
+                "program" => {
+                    entry["helper"]["program"] =
+                        serde_json::to_value(OsStr::new("relative/helper")).unwrap()
+                }
+                _ => unreachable!(),
+            }
+        });
+    }
+}
+
+#[test]
+fn environment_rejects_duplicates_and_invalid_native_process_values() {
+    let snapshot = prepared();
+    for variables in [
+        vec![("DUP", "a"), ("DUP", "b")],
+        vec![("", "value")],
+        vec![("KEY=VALUE", "value")],
+        vec![("KEY\0", "value")],
+        vec![("KEY", "value\0")],
+    ] {
+        reject_mutation(&snapshot, |value| {
+            value["environment"] = serde_json::to_value(
+                variables
+                    .into_iter()
+                    .map(|(k, v)| (OsString::from(k), OsString::from(v)))
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap()
+        });
+    }
+    #[cfg(windows)]
+    reject_mutation(&snapshot, |value| {
+        value["environment"] = serde_json::to_value(vec![
+            (OsString::from("Path"), OsString::from("a")),
+            (OsString::from("PATH"), OsString::from("b")),
+        ])
+        .unwrap()
+    });
+}
+
+#[test]
+fn preparation_does_not_silently_replace_an_inconsistent_environment() {
+    let mut resolved = resolved(None);
+    resolved
+        .registrations
+        .get_mut("org.fixture")
+        .unwrap()
+        .helper
+        .as_mut()
+        .unwrap()
+        .environment =
+        LaunchEnvironment::from_variables([("PRIVATE".into(), "different value".into())]);
+    assert!(LaunchSnapshot::prepare(resolved, None, "".into(), false).is_err());
+}
+
+#[test]
+fn managed_generation_keeps_exact_bytes_hash_and_provider_owned_arguments() {
+    let generation = br#"{ "schema_version":1, "target_id":"11111111-1111-4111-8111-111111111111",
+      "profile_id":"22222222-2222-4222-8222-222222222222", "generation_id":"33333333-3333-4333-8333-333333333333",
+      "disabled_physical_ids":[], "piper":null, "flite":{"builtin_slt":true,"files":[]} }"#;
+    let managed = ManagedLaunch {
+        path: std::env::temp_dir().join("missing managed generation.json"),
+        library: RuntimeLibrary::parse(
+            generation,
+            if cfg!(windows) {
+                HostPlatform::Windows
+            } else {
+                HostPlatform::Posix
+            },
+        )
+        .unwrap(),
+        overrides: ProviderOverrides::default(),
+    };
+    let expected = managed.library.configuration();
+    let snapshot =
+        LaunchSnapshot::prepare(resolved(Some(&managed)), Some(managed), "".into(), false).unwrap();
+    let decoded = LaunchSnapshot::parse(&snapshot.to_bytes().unwrap()).unwrap();
+    assert_eq!(
+        decoded.managed().unwrap().library.source_bytes(),
+        generation
+    );
+    assert_eq!(decoded.managed().unwrap().library.configuration(), expected);
+    reject_mutation(&snapshot, |value| {
+        let entry = value["registrations"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|entry| entry["engine_id"] == "flite")
+            .unwrap();
+        entry["helper"]["arguments"] = json!([]);
+    });
+    reject_mutation(&snapshot, |value| {
+        value["managed"]["generation"] = json!("{}")
+    });
+    assert!(Path::new(&decoded.managed().unwrap().path).is_absolute());
+}
+
+#[cfg(unix)]
+#[test]
+fn native_non_utf8_environment_and_legacy_arguments_survive_handoff() {
+    use std::os::unix::ffi::OsStringExt;
+    let native = OsString::from_vec(vec![b'a', 0xff, b'b']);
+    let mut resolved = resolved(None);
+    resolved.environment = LaunchEnvironment::from_variables([(native.clone(), native.clone())]);
+    for registration in resolved.registrations.values_mut() {
+        if let Some(helper) = &mut registration.helper {
+            helper.environment = resolved.environment.clone();
+            if registration.origin == EngineOrigin::ShippedHelper {
+                helper.arguments = vec![native.clone()];
+            }
+        }
+    }
+    let snapshot = LaunchSnapshot::prepare(resolved, None, "".into(), false).unwrap();
+    let decoded = LaunchSnapshot::parse(&snapshot.to_bytes().unwrap()).unwrap();
+    assert_eq!(
+        decoded.resolved.environment.variables().next().unwrap(),
+        (&native, &native)
+    );
+    assert_eq!(
+        decoded
+            .resolved
+            .registration("flite")
+            .unwrap()
+            .helper
+            .as_ref()
+            .unwrap()
+            .arguments,
+        vec![native]
+    );
+}

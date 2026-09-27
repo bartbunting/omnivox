@@ -53,7 +53,7 @@ pub struct ResolvedRegistration {
 /// executable metadata but never constructs an engine or launches a process.
 #[derive(Clone)]
 pub struct ResolvedConfiguration {
-    registrations: BTreeMap<String, ResolvedRegistration>,
+    pub(super) registrations: BTreeMap<String, ResolvedRegistration>,
     pub routing: LocalRoutingPolicy,
     pub environment: LaunchEnvironment,
     pub root: Option<PathBuf>,

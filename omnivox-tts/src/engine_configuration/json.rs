@@ -5,12 +5,22 @@ use serde_json::{Map, Number, Value};
 use std::fmt;
 
 pub(super) fn parse(bytes: &[u8], limit: usize) -> Result<Value> {
+    parse_inner(bytes, limit, false)
+}
+
+/// Private complete records use required nullable fields. Public configuration
+/// keeps its stricter no-null contract.
+pub(super) fn parse_snapshot(bytes: &[u8], limit: usize) -> Result<Value> {
+    parse_inner(bytes, limit, true)
+}
+
+fn parse_inner(bytes: &[u8], limit: usize, nullable: bool) -> Result<Value> {
     if bytes.len() > limit {
         return Err(ConfigurationError::new("JSON", "file exceeds byte limit"));
     }
     let bytes = bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes);
     let mut reader = serde_json::Deserializer::from_slice(bytes);
-    let value = Node(0).deserialize(&mut reader).map_err(|_| {
+    let value = Node(0, nullable).deserialize(&mut reader).map_err(|_| {
         ConfigurationError::new(
             "JSON",
             "invalid JSON, duplicate key, null or excessive nesting",
@@ -22,7 +32,7 @@ pub(super) fn parse(bytes: &[u8], limit: usize) -> Result<Value> {
     Ok(value)
 }
 
-struct Node(usize);
+struct Node(usize, bool);
 impl<'de> DeserializeSeed<'de> for Node {
     type Value = Value;
     fn deserialize<D: serde::Deserializer<'de>>(
@@ -39,6 +49,13 @@ impl<'de> Visitor<'de> for Node {
     }
     fn visit_bool<E: Error>(self, value: bool) -> std::result::Result<Value, E> {
         Ok(Value::Bool(value))
+    }
+    fn visit_unit<E: Error>(self) -> std::result::Result<Value, E> {
+        if self.1 {
+            Ok(Value::Null)
+        } else {
+            Err(E::custom("null is not allowed"))
+        }
     }
     fn visit_i64<E: Error>(self, value: i64) -> std::result::Result<Value, E> {
         Ok(Value::Number(value.into()))
@@ -62,7 +79,7 @@ impl<'de> Visitor<'de> for Node {
             return Err(A::Error::custom("nesting limit"));
         }
         let mut values = Vec::new();
-        while let Some(value) = sequence.next_element_seed(Node(self.0 + 1))? {
+        while let Some(value) = sequence.next_element_seed(Node(self.0 + 1, self.1))? {
             values.push(value);
         }
         Ok(Value::Array(values))
@@ -76,7 +93,7 @@ impl<'de> Visitor<'de> for Node {
             if values.contains_key(&key) {
                 return Err(A::Error::custom("duplicate decoded key"));
             }
-            let value = map.next_value_seed(Node(self.0 + 1))?;
+            let value = map.next_value_seed(Node(self.0 + 1, self.1))?;
             values.insert(key, value);
         }
         Ok(Value::Object(values))
