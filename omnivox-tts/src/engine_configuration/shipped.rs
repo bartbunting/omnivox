@@ -61,8 +61,8 @@ impl ShippedEngine {
             Some(program) => PathBuf::from(program),
             None => resolve_adjacent(executable, &self.helper_candidates(platform))?,
         };
-        let mut config = HelperEngineConfig::new(self.id, program);
-        config.environment = environment.clone();
+        let mut config =
+            HelperEngineConfig::with_environment(self.id, program, environment.clone());
         config.synthesis_idle_timeout = self.synthesis_idle_timeout();
         Some(config)
     }

@@ -7,6 +7,7 @@ mod environment;
 mod files;
 mod json;
 mod paths;
+mod resolved;
 mod selection;
 pub mod shipped;
 
@@ -19,6 +20,9 @@ use thiserror::Error;
 pub use environment::LaunchEnvironment;
 pub use files::{ConfigurationRoot, LoadedConfiguration, ManifestRegistration};
 pub use paths::Platform;
+pub use resolved::{
+    EngineOrigin, ResolvedConfiguration, ResolvedRegistration, RuntimeInputs, RuntimeInvocation,
+};
 pub use selection::EngineSelectionPermissions;
 
 pub const MAX_CONFIG_BYTES: usize = 128 * 1024;

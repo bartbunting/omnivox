@@ -138,11 +138,19 @@ pub struct HelperEngineConfig {
 
 impl HelperEngineConfig {
     pub fn new(engine_id: impl Into<String>, program: impl Into<PathBuf>) -> Self {
+        Self::with_environment(engine_id, program, LaunchEnvironment::capture())
+    }
+
+    pub fn with_environment(
+        engine_id: impl Into<String>,
+        program: impl Into<PathBuf>,
+        environment: LaunchEnvironment,
+    ) -> Self {
         Self {
             engine_id: engine_id.into(),
             program: program.into(),
             arguments: Vec::new(),
-            environment: LaunchEnvironment::capture(),
+            environment,
             startup_timeout: Duration::from_secs(10),
             request_timeout: Duration::from_secs(10),
             synthesis_idle_timeout: Duration::from_secs(10),
