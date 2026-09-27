@@ -169,6 +169,34 @@ Preserve per-engine provenance and licensing decisions in
 ADRs. Installation assistance is not permission to redistribute arbitrary
 models or runtimes, or to make a speech engine download assets automatically.
 
+### Extensible engine registration
+
+Design proposal added on 2026-09-27, supporting the engine installation and
+portable configuration work in features 2 and 6. The framework covers both:
+
+- Independently maintained helpers registered locally without rebuilding
+  Omnivox or borrowing another engine's ID.
+- Omnivox-maintained helpers that load separately supplied runtimes, so users
+  with compatible installations can share the adapter implementation while
+  runtime distribution retains its existing component policy.
+
+[Proposed ADR 0019](../adr/0019-extensible-engine-registration.md) records the
+shared registry, explicit local registration, selection and lifecycle decisions.
+The [implementation specification](EXTENSIBLE-ENGINE-FRAMEWORK.md) defines
+versioned JSON manifests in `helpers.d/`, policy and overrides in `config.json`,
+precedence, bounds, failure behavior and the acceptance checklist.
+
+The first implementation slice is the strict configuration reader and unified
+registration/launch path, connected to inventory, diagnostics, selection and
+recovery. Prove the complete path with a redistributable fake helper before
+qualifying individual native integrations. Activation requires an explicit
+restart and coordinated configuration of both speech workers. Language-routing
+enhancements remain a separate versioned increment.
+
+The specification is drafted; the ADR is proposed and runtime implementation
+has not started. Existing accepted helper and distribution decisions remain in
+force. This entry does not reorder the ranked backlog.
+
 ### Audio-output scope
 
 | Platform | Evaluation direction |

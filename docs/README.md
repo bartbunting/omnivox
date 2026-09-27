@@ -113,8 +113,10 @@ historical material so a proposal cannot be mistaken for a shipped feature.
 ## Plans and historical material
 
 - [NEXT_STEPS.md](plans/NEXT_STEPS.md) is the active roadmap, including the
-  prioritized feature backlog, voice-installation scope, and platform-specific
-  audio-output work. Its entries are not promises of current behavior.
+  prioritized feature backlog, voice-installation scope, extensible engine
+  registration proposal, and platform-specific audio-output work. It links to
+  the relevant proposals and specifications; its entries are not promises of
+  current behavior.
 - [PIPER-RELEASE.md](plans/PIPER-RELEASE.md) records the audited gap between
   the experimental Piper helper and a reproducible cross-platform companion
   release, including the source-acquisition decision required before work.
