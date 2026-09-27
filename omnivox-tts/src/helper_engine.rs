@@ -40,6 +40,16 @@ use crate::helper_protocol::{parameters, session};
 mod native;
 use native::{AppliedPlan, ParameterExchange};
 
+#[path = "helper_engine/deadline.rs"]
+mod deadline;
+use deadline::{initialization_exchange, with_connection_deadline};
+
+#[path = "helper_engine/initialization.rs"]
+mod initialization;
+pub use initialization::{
+    initialize_external_helpers, ExternalHelperInitialization, EXTERNAL_STARTUP_BUDGET,
+};
+
 const HELPER_CANCEL_GRACE: Duration = Duration::from_millis(250);
 pub const HELPER_DESCRIPTOR_CACHE_FILE_NAME: &str = "VOICE-INVENTORY.json";
 const HELPER_DESCRIPTOR_CACHE_SCHEMA_VERSION: u32 = 1;
@@ -1256,6 +1266,25 @@ pub struct HelperTtsEngine {
 }
 
 impl HelperTtsEngine {
+    /// Retain ownership before the first launch. Hosts that support explicit
+    /// rescans keep this object on failure, so unconfirmed cleanup prevents a
+    /// replacement process instead of being lost with a failed constructor.
+    pub fn prepare(config: HelperEngineConfig) -> Result<Self, HelperEngineError> {
+        let connector = Arc::new(ProcessHelperConnector::new(&config));
+        Self::without_connection(config, connector, None)
+    }
+
+    /// Initialize within an admission budget. Cleanup has its own bounded
+    /// deadline and ownership remains here even when cleanup is unconfirmed.
+    pub fn initialize_before(&self, deadline: Instant) -> Result<bool, HelperEngineError> {
+        let _lifecycle = cleanup_lock(&self.lifecycle, deadline)?;
+        if self.current_connection().is_ok() {
+            return Ok(false);
+        }
+        self.install_fresh_connection_before(Some(deadline))?;
+        Ok(true)
+    }
+
     pub fn new(config: HelperEngineConfig) -> Result<Self, HelperEngineError> {
         let connector = Arc::new(ProcessHelperConnector::new(&config));
         Self::with_connector(config, connector)
@@ -1355,6 +1384,13 @@ impl HelperTtsEngine {
     }
 
     fn install_fresh_connection(&self) -> Result<(), HelperEngineError> {
+        self.install_fresh_connection_before(None)
+    }
+
+    fn install_fresh_connection_before(
+        &self,
+        deadline: Option<Instant>,
+    ) -> Result<(), HelperEngineError> {
         let started_at = Instant::now();
         info!(
             engine_id = self.config.engine_id,
@@ -1372,10 +1408,13 @@ impl HelperTtsEngine {
         self.cancellations_by_target.lock().unwrap().clear();
         self.applied_plans.lock().unwrap().clear();
 
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            return Err(HelperEngineError::Timeout("external startup budget"));
+        }
         let connection = self.connector.connect()?;
         // A failed greeting also owns a process that must be reaped before retrying.
         *retiring = Some(Arc::clone(&connection));
-        let (descriptor, protocol_version) = match self.negotiate(&connection) {
+        let (descriptor, protocol_version) = match self.negotiate(&connection, deadline) {
             Ok(negotiated) => negotiated,
             Err(error) => {
                 connection.terminate()?;
@@ -1393,6 +1432,11 @@ impl HelperTtsEngine {
                     "live helper descriptor differs from its cached voice inventory".to_owned(),
                 ));
             }
+        }
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            connection.terminate()?;
+            *retiring = None;
+            return Err(HelperEngineError::Timeout("external startup budget"));
         }
         *self.descriptor.write().unwrap() = Some(descriptor);
         self.descriptor_is_deferred.store(false, Ordering::Release);
@@ -1420,19 +1464,24 @@ impl HelperTtsEngine {
     fn negotiate(
         &self,
         connection: &Arc<dyn HelperConnection>,
+        deadline: Option<Instant>,
     ) -> Result<(EngineDescriptor, u16), HelperEngineError> {
         let mut negotiated_response = None;
         for (index, protocol_version) in session::VERSIONS.iter().enumerate() {
             let hello_id = self.allocate_request_id();
-            connection.send(&HelperRequest::with_version(
+            let request = HelperRequest::with_version(
                 *protocol_version,
                 hello_id,
                 HelperRequestBody::Hello {
                     supported_protocol_versions: session::VERSIONS[index..].to_vec(),
                 },
-            ))?;
-            let response =
-                receive_owned_response(connection, hello_id, self.config.startup_timeout)?;
+            );
+            let response = initialization_exchange(
+                connection,
+                &request,
+                self.config.startup_timeout,
+                deadline,
+            )?;
             let try_older = matches!(
                 response.body,
                 HelperResponseBody::Error {
@@ -1476,13 +1525,13 @@ impl HelperTtsEngine {
         };
 
         let describe_id = self.allocate_request_id();
-        connection.send(&HelperRequest::with_version(
+        let request = HelperRequest::with_version(
             selected_protocol_version,
             describe_id,
             HelperRequestBody::Describe,
-        ))?;
+        );
         let response =
-            receive_owned_response(connection, describe_id, self.config.request_timeout)?;
+            initialization_exchange(connection, &request, self.config.request_timeout, deadline)?;
         if response.protocol_version != selected_protocol_version {
             return Err(HelperEngineError::UnexpectedResponse(
                 "descriptor uses a different negotiated protocol version",
@@ -2318,6 +2367,7 @@ impl Drop for HelperTtsEngine {
 #[cfg(test)]
 mod tests {
     include!("helper_engine/native_tests.rs");
+    include!("helper_engine/initialization_tests.rs");
     use std::collections::VecDeque;
     use std::fs;
     use std::sync::atomic::{AtomicBool, AtomicUsize};

@@ -5,6 +5,8 @@ defines the authorized first implementation slice. The strict reader and shared
 shipped launch metadata are implemented, with a common resolver for launch fields
 and provider-owned invocations. Routing, preview and recovery paths retain local
 selection permissions; configuration-driven startup integration is pending.
+The helper host now supports retained initialization ownership and a separate
+bounded external startup batch; worker construction has not yet adopted it.
 The later language-routing section remains a separate design proposal.
 
 The [roadmap entry](../ROADMAP.md#extensible-engine-registration) tracks the
