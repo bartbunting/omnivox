@@ -4,6 +4,7 @@ use anyhow::Result;
 use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
 use omnivox_tts::contracts::EngineDescriptor;
+use omnivox_tts::engine_configuration::{shipped, LaunchEnvironment, Platform};
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::espeak::EspeakTtsEngine;
 use omnivox_tts::helper_engine::{
@@ -25,19 +26,9 @@ use tracing::{info, warn};
 use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
 use crate::voice_library::StartupLibrary;
 
-const ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_millis(500);
-const NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const TGSPEECHBOX_SAMPLE_RATE_ENVIRONMENT_VARIABLE: &str = "OMNIVOX_TGSPEECHBOX_SAMPLE_RATE";
 const TGSPEECHBOX_22050_CACHE_FILE_NAME: &str = "VOICE-INVENTORY-22050.json";
 const TGSPEECHBOX_44100_CACHE_FILE_NAME: &str = "VOICE-INVENTORY-44100.json";
-
-fn helper_synthesis_idle_timeout(engine_id: &str) -> Duration {
-    if engine_id == "eloquence" {
-        ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT
-    } else {
-        NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT
-    }
-}
 
 /// Engines initialized for one server session.
 pub struct CreatedEngines {
@@ -175,21 +166,10 @@ fn create_windows_engines(
     isolation_budget: Arc<IsolationBudget>,
 ) -> Result<CreatedEngines> {
     let forced = requested_engine(engine_name);
-    let mut helper_configs = [
-        helper_config(
-            "eloquence",
-            "OMNIVOX_ELOQUENCE_HELPER",
-            "OmnivoxEloquenceHelper32.exe",
-        ),
-        helper_config(
-            "dectalk",
-            "OMNIVOX_DECTALK_HELPER",
-            "OmnivoxDectalkHelper32.exe",
-        ),
-    ]
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>();
+    let mut helper_configs = ["eloquence", "dectalk"]
+        .into_iter()
+        .filter_map(shipped_helper_config)
+        .collect::<Vec<_>>();
     helper_configs.extend(configured_helper_configs(&forced, piper_model, library));
     let mut registry = match library {
         Some(library) => library.registry()?,
@@ -243,47 +223,12 @@ fn create_windows_engines(
     })
 }
 
-#[cfg(target_os = "windows")]
-fn helper_config(
-    engine_id: &str,
-    environment_variable: &str,
-    adjacent_filename: &str,
-) -> Option<HelperEngineConfig> {
-    helper_config_with_candidates(
-        engine_id,
-        environment_variable,
-        &[PathBuf::from(adjacent_filename)],
+fn shipped_helper_config(engine_id: &str) -> Option<HelperEngineConfig> {
+    shipped::definition(engine_id)?.helper_config(
+        &std::env::current_exe().ok()?,
+        Platform::native(),
+        &LaunchEnvironment::capture(),
     )
-}
-
-fn helper_config_with_candidates(
-    engine_id: &str,
-    environment_variable: &str,
-    adjacent_candidates: &[PathBuf],
-) -> Option<HelperEngineConfig> {
-    let explicitly_configured = std::env::var_os(environment_variable)
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from);
-    let program = match explicitly_configured {
-        Some(program) => program,
-        None => resolve_adjacent_helper(&std::env::current_exe().ok()?, adjacent_candidates)?,
-    };
-
-    let mut config = HelperEngineConfig::new(engine_id, program);
-    // Version-1 native helpers capture one complete utterance before emitting
-    // PCM. Eloquence normally returns in milliseconds, so fail over promptly
-    // when its native eciSynchronize call wedges. Other helpers retain the
-    // longer allowance needed by ordinary long passages.
-    config.synthesis_idle_timeout = helper_synthesis_idle_timeout(engine_id);
-    Some(config)
-}
-
-fn resolve_adjacent_helper(executable: &Path, candidates: &[PathBuf]) -> Option<PathBuf> {
-    let executable_dir = executable.parent()?;
-    candidates
-        .iter()
-        .map(|candidate| executable_dir.join(candidate))
-        .find(|candidate| candidate.is_file())
 }
 
 struct PendingHelperInitialization<T> {
@@ -329,7 +274,9 @@ fn initialize_server_helper(config: HelperEngineConfig) -> HelperConstructionRes
 
     let helper_directory = config.program.parent().unwrap_or_else(|| Path::new(""));
     let cache_file_name = tgspeechbox_descriptor_cache_file_name(
-        std::env::var_os(TGSPEECHBOX_SAMPLE_RATE_ENVIRONMENT_VARIABLE).as_deref(),
+        config
+            .environment
+            .get(TGSPEECHBOX_SAMPLE_RATE_ENVIRONMENT_VARIABLE),
     );
     let mut cache_path = helper_directory.join(cache_file_name);
     if cache_file_name == TGSPEECHBOX_44100_CACHE_FILE_NAME && !cache_path.is_file() {
@@ -512,40 +459,17 @@ fn spawn_tgspeechbox_prewarm(engine: Arc<HelperTtsEngine>, helper_path: PathBuf)
     }
 }
 
-fn companion_helper_config(
-    engine_id: &str,
-    environment_variable: &str,
-) -> Option<HelperEngineConfig> {
-    let candidates = companion_helper_candidates(engine_id);
-    helper_config_with_candidates(engine_id, environment_variable, &candidates)
-}
-
-fn companion_helper_candidates(engine_id: &str) -> [PathBuf; 2] {
-    let helper_filename = format!("omnivox-{engine_id}-helper{}", std::env::consts::EXE_SUFFIX);
-    [
-        PathBuf::from(engine_id).join(&helper_filename),
-        PathBuf::from(&helper_filename),
-    ]
-}
-
 fn companion_helper_configs() -> Vec<HelperEngineConfig> {
-    [
-        ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
-        ("flite", "OMNIVOX_FLITE_HELPER"),
-        ("rutts", "OMNIVOX_RUTTS_HELPER"),
-        ("tgspeechbox", "OMNIVOX_TGSPEECHBOX_HELPER"),
-    ]
-    .into_iter()
-    .filter_map(|(engine_id, environment_variable)| {
-        companion_helper_config(engine_id, environment_variable)
-    })
-    .collect()
+    ["rhvoice", "flite", "rutts", "tgspeechbox"]
+        .into_iter()
+        .filter_map(shipped_helper_config)
+        .collect()
 }
 
 // A research runtime must be explicitly selected. Never discover or distribute
 // this prototype alongside the supported companion payloads.
 fn mbrola_prototype_config() -> Option<HelperEngineConfig> {
-    let config = helper_config_with_candidates("mbrola", "OMNIVOX_MBROLA_HELPER", &[])?;
+    let config = shipped_helper_config("mbrola")?;
     if !config.program.is_absolute() {
         warn!("OMNIVOX_MBROLA_HELPER must be an absolute prototype helper path");
         return None;
@@ -665,7 +589,7 @@ fn configured_helper_configs(
     if library.is_some_and(|library| library.manages("piper")) {
         #[cfg(feature = "piper")]
         if library.is_some_and(|library| library.requires("piper")) {
-            if let Some(mut config) = companion_helper_config("piper", "OMNIVOX_PIPER_HELPER") {
+            if let Some(mut config) = shipped_helper_config("piper") {
                 config.startup_timeout = Duration::from_secs(60);
                 config.synthesis_idle_timeout = Duration::from_secs(60);
                 configs.push(config);
@@ -677,11 +601,8 @@ fn configured_helper_configs(
     configs.extend(companion_helper_configs());
     configs.extend(mbrola_prototype_config());
     #[cfg(target_os = "linux")]
-    for (id, variable) in [
-        ("eloquence", "OMNIVOX_ELOQUENCE_HELPER"),
-        ("dectalk", "OMNIVOX_DECTALK_HELPER"),
-    ] {
-        if let Some(config) = companion_helper_config(id, variable) {
+    for id in ["eloquence", "dectalk"] {
+        if let Some(config) = shipped_helper_config(id) {
             configs.push(config);
         }
     }
@@ -798,14 +719,8 @@ fn create_legacy_engine(
         forced.as_str(),
         "rhvoice" | "flite" | "rutts" | "tgspeechbox"
     ) {
-        let (engine_id, environment_variable) = match forced.as_str() {
-            "rhvoice" => ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
-            "flite" => ("flite", "OMNIVOX_FLITE_HELPER"),
-            "rutts" => ("rutts", "OMNIVOX_RUTTS_HELPER"),
-            "tgspeechbox" => ("tgspeechbox", "OMNIVOX_TGSPEECHBOX_HELPER"),
-            _ => unreachable!(),
-        };
-        match companion_helper_config(engine_id, environment_variable)
+        let engine_id = forced.as_str();
+        match shipped_helper_config(engine_id)
             .ok_or_else(|| anyhow::anyhow!("the {engine_id} helper was not found"))
             .and_then(|config| HelperTtsEngine::new(config).map_err(anyhow::Error::from))
         {
@@ -820,12 +735,7 @@ fn create_legacy_engine(
     if matches!(forced.as_str(), "eloquence" | "dectalk") {
         #[cfg(target_os = "windows")]
         {
-            let (environment_variable, adjacent_filename) = match forced.as_str() {
-                "eloquence" => ("OMNIVOX_ELOQUENCE_HELPER", "OmnivoxEloquenceHelper32.exe"),
-                "dectalk" => ("OMNIVOX_DECTALK_HELPER", "OmnivoxDectalkHelper32.exe"),
-                _ => unreachable!(),
-            };
-            let config = helper_config(&forced, environment_variable, adjacent_filename)
+            let config = shipped_helper_config(&forced)
                 .ok_or_else(|| anyhow::anyhow!("the {forced} helper was not found"))?;
             let engine = HelperTtsEngine::new(config).map_err(|error| {
                 anyhow::anyhow!("{forced} TTS helper is not available: {error}")
@@ -835,12 +745,7 @@ fn create_legacy_engine(
         }
         #[cfg(target_os = "linux")]
         {
-            let variable = if forced == "eloquence" {
-                "OMNIVOX_ELOQUENCE_HELPER"
-            } else {
-                "OMNIVOX_DECTALK_HELPER"
-            };
-            let config = companion_helper_config(&forced, variable).ok_or_else(|| {
+            let config = shipped_helper_config(&forced).ok_or_else(|| {
                 anyhow::anyhow!("the Linux {forced} helper was not found; run make linux-helpers")
             })?;
             let engine = HelperTtsEngine::new(config).map_err(|error| {
@@ -948,18 +853,13 @@ fn piper_helper_config(model: Option<&str>) -> Result<HelperEngineConfig> {
             )
         })?;
     let helper_filename = format!("omnivox-piper-helper{}", std::env::consts::EXE_SUFFIX);
-    let candidates = [
-        PathBuf::from("piper").join(&helper_filename),
-        PathBuf::from(&helper_filename),
-    ];
-    let mut config = helper_config_with_candidates("piper", "OMNIVOX_PIPER_HELPER", &candidates)
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "{} was not found in the Piper companion directory or beside Omnivox; set \
+    let mut config = shipped_helper_config("piper").ok_or_else(|| {
+        anyhow::anyhow!(
+            "{} was not found in the Piper companion directory or beside Omnivox; set \
                  OMNIVOX_PIPER_HELPER",
-                helper_filename
-            )
-        })?;
+            helper_filename
+        )
+    })?;
     config.arguments.push("--model".into());
     config.arguments.push(model.into());
     config.startup_timeout = Duration::from_secs(60);
@@ -1000,10 +900,10 @@ mod tests {
     #[cfg(target_os = "macos")]
     use super::create_engines;
     use super::{
-        companion_helper_candidates, engine_preference_order, helper_synthesis_idle_timeout,
-        resolve_adjacent_helper, start_helper_initializations_with,
+        engine_preference_order, start_helper_initializations_with,
         tgspeechbox_descriptor_cache_file_name, HelperEngineConfig,
     };
+    use omnivox_tts::engine_configuration::{shipped, Platform};
     use std::path::PathBuf;
     #[cfg(target_os = "macos")]
     use std::sync::atomic::AtomicU64;
@@ -1085,27 +985,39 @@ mod tests {
     #[test]
     fn eloquence_helper_fails_over_after_a_short_idle_timeout() {
         assert_eq!(
-            helper_synthesis_idle_timeout("eloquence"),
+            shipped::definition("eloquence")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_millis(500)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("dectalk"),
+            shipped::definition("dectalk")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("piper"),
+            shipped::definition("piper")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("rhvoice"),
+            shipped::definition("rhvoice")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("flite"),
+            shipped::definition("flite")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("rutts"),
+            shipped::definition("rutts")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
     }
@@ -1143,13 +1055,13 @@ mod tests {
             PathBuf::from("omnivox-piper-helper"),
         ];
         assert_eq!(
-            resolve_adjacent_helper(&root.join("omnivox"), &candidates),
+            shipped::resolve_adjacent(&root.join("omnivox"), &candidates),
             Some(companion.clone())
         );
 
         std::fs::remove_file(companion).unwrap();
         assert_eq!(
-            resolve_adjacent_helper(&root.join("omnivox"), &candidates),
+            shipped::resolve_adjacent(&root.join("omnivox"), &candidates),
             Some(legacy)
         );
         std::fs::remove_dir_all(root).unwrap();
@@ -1397,9 +1309,11 @@ mod tests {
         std::fs::write(&companion, b"companion").unwrap();
         std::fs::write(&legacy, b"legacy").unwrap();
 
-        let candidates = companion_helper_candidates("rhvoice");
+        let candidates = shipped::definition("rhvoice")
+            .unwrap()
+            .helper_candidates(Platform::native());
         assert_eq!(
-            resolve_adjacent_helper(&root.join("omnivox"), &candidates),
+            shipped::resolve_adjacent(&root.join("omnivox"), &candidates),
             Some(companion)
         );
 

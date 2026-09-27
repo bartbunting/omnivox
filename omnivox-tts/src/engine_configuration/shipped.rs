@@ -1,11 +1,79 @@
 //! Canonical identities are reserved even when a platform or feature is absent.
 
+use std::path::{Path, PathBuf};
+use std::time::Duration;
+
+use super::{LaunchEnvironment, Platform};
+use crate::helper_engine::HelperEngineConfig;
+
 pub const ALIASES: &[&str] = &["native"];
 
 pub struct ShippedEngine {
     pub id: &'static str,
     pub in_process: bool,
     pub helper_environment: Option<&'static str>,
+}
+
+impl ShippedEngine {
+    /// Verified installation-relative candidates only. MBROLA remains explicit.
+    pub fn helper_candidates(&self, platform: Platform) -> Vec<PathBuf> {
+        if self.in_process || self.id == "mbrola" {
+            return Vec::new();
+        }
+        if matches!(self.id, "eloquence" | "dectalk") {
+            match platform {
+                Platform::MacOs => return Vec::new(),
+                Platform::Windows => {
+                    return vec![PathBuf::from(if self.id == "eloquence" {
+                        "OmnivoxEloquenceHelper32.exe"
+                    } else {
+                        "OmnivoxDectalkHelper32.exe"
+                    })]
+                }
+                Platform::Unix => (),
+            }
+        }
+        let suffix = if platform == Platform::Windows {
+            ".exe"
+        } else {
+            ""
+        };
+        let filename = format!("omnivox-{}-helper{suffix}", self.id);
+        vec![
+            PathBuf::from(self.id).join(&filename),
+            PathBuf::from(filename),
+        ]
+    }
+
+    pub fn synthesis_idle_timeout(&self) -> Duration {
+        // Retain the qualified early failure of a wedged legacy ECI call.
+        Duration::from_millis(if self.id == "eloquence" { 500 } else { 60_000 })
+    }
+
+    pub fn helper_config(
+        &self,
+        executable: &Path,
+        platform: Platform,
+        environment: &LaunchEnvironment,
+    ) -> Option<HelperEngineConfig> {
+        let variable = self.helper_environment?;
+        let program = match environment.get(variable).filter(|value| !value.is_empty()) {
+            Some(program) => PathBuf::from(program),
+            None => resolve_adjacent(executable, &self.helper_candidates(platform))?,
+        };
+        let mut config = HelperEngineConfig::new(self.id, program);
+        config.environment = environment.clone();
+        config.synthesis_idle_timeout = self.synthesis_idle_timeout();
+        Some(config)
+    }
+}
+
+pub fn resolve_adjacent(executable: &Path, candidates: &[PathBuf]) -> Option<PathBuf> {
+    let directory = executable.parent()?;
+    candidates
+        .iter()
+        .map(|candidate| directory.join(candidate))
+        .find(|candidate| candidate.is_file())
 }
 
 pub const ENGINES: &[ShippedEngine] = &[

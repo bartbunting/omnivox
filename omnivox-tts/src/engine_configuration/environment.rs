@@ -18,6 +18,19 @@ impl LaunchEnvironment {
     }
 
     pub fn get(&self, key: &str) -> Option<&OsStr> {
+        #[cfg(windows)]
+        {
+            // Windows variable names are case-insensitive. Keep the captured
+            // spelling/bytes when passing the native environment to a child.
+            self.0
+                .iter()
+                .find(|(name, _)| {
+                    name.to_str()
+                        .is_some_and(|name| name.eq_ignore_ascii_case(key))
+                })
+                .map(|(_, value)| value.as_os_str())
+        }
+        #[cfg(not(windows))]
         self.0.get(OsStr::new(key)).map(OsString::as_os_str)
     }
 

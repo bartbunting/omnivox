@@ -75,6 +75,79 @@ fn omitted_and_empty_routing_lists_have_distinct_meanings() {
 }
 
 #[test]
+fn shipped_metadata_preserves_platform_paths_and_explicit_overrides() {
+    let directory = Directory::new();
+    let executable = directory.0.join("omnivox");
+    let definition = shipped::definition("rhvoice").unwrap();
+    let environment = LaunchEnvironment::from_variables([]);
+    let candidates = definition.helper_candidates(Platform::Unix);
+    let companion = directory.0.join(&candidates[0]);
+    let adjacent = directory.0.join(&candidates[1]);
+    fs::create_dir_all(companion.parent().unwrap()).unwrap();
+    fs::write(&companion, b"companion").unwrap();
+    fs::write(&adjacent, b"legacy").unwrap();
+    assert_eq!(
+        definition
+            .helper_config(&executable, Platform::Unix, &environment)
+            .unwrap()
+            .program,
+        companion
+    );
+    let missing_override = directory.0.join("explicit missing helper");
+    let environment = LaunchEnvironment::from_variables([(
+        "OMNIVOX_RHVOICE_HELPER".into(),
+        missing_override.clone().into_os_string(),
+    )]);
+    assert_eq!(
+        definition
+            .helper_config(&executable, Platform::Unix, &environment)
+            .unwrap()
+            .program,
+        missing_override
+    );
+    let environment =
+        LaunchEnvironment::from_variables([("OMNIVOX_RHVOICE_HELPER".into(), "".into())]);
+    assert_eq!(
+        definition
+            .helper_config(&executable, Platform::Unix, &environment)
+            .unwrap()
+            .program,
+        companion
+    );
+    assert_eq!(
+        definition.helper_candidates(Platform::Windows),
+        [
+            PathBuf::from("rhvoice").join("omnivox-rhvoice-helper.exe"),
+            PathBuf::from("omnivox-rhvoice-helper.exe")
+        ]
+    );
+    assert_eq!(
+        shipped::definition("eloquence")
+            .unwrap()
+            .helper_candidates(Platform::Windows),
+        [PathBuf::from("OmnivoxEloquenceHelper32.exe")]
+    );
+    assert_eq!(
+        shipped::definition("dectalk")
+            .unwrap()
+            .helper_candidates(Platform::Windows),
+        [PathBuf::from("OmnivoxDectalkHelper32.exe")]
+    );
+    assert!(shipped::definition("eloquence")
+        .unwrap()
+        .helper_candidates(Platform::MacOs)
+        .is_empty());
+    assert!(shipped::definition("mbrola")
+        .unwrap()
+        .helper_candidates(Platform::Unix)
+        .is_empty());
+    assert!(shipped::definition("espeak")
+        .unwrap()
+        .helper_config(&executable, Platform::Unix, &environment)
+        .is_none());
+}
+
+#[test]
 fn strict_json_rejects_ambiguous_input_without_disclosing_values() {
     for bytes in [
         br#"{"schema":1,"schema":1}"#.as_slice(),

@@ -190,9 +190,12 @@ terminal, preventing a late completion from removing a newer domain token.
 
 Launch configuration currently comes from CLI options, documented environment
 variables, packaged helper locations and optional immutable voice-library
-inputs. Engine IDs, helper path mappings and startup order are still enumerated
-in [`omnivox-cli/src/engine.rs`](../omnivox-cli/src/engine.rs). There is no generic
-external-helper manifest reader or `config.json` policy reader yet. The
+inputs. Reserved engine IDs, helper path mappings and idle defaults are shared
+through [`shipped.rs`](../omnivox-tts/src/engine_configuration/shipped.rs);
+startup order and native/provider construction remain in
+[`omnivox-cli/src/engine.rs`](../omnivox-cli/src/engine.rs). Strict external-helper
+manifest and `config.json` readers exist as library primitives but are not yet
+connected to worker startup. The
 [configuration reference](guides/configuration.md) describes existing option semantics.
 
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or
