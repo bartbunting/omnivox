@@ -873,6 +873,7 @@ dependencies = [
  "base64 0.22.1",
  "cc",
  "espeak-rs-sys",
+ "libc",
  "omnivox-audio",
  "omnivox-piper-sys",
  "once_cell",

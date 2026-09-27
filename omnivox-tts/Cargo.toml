@@ -31,6 +31,10 @@ espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"], op
 # Piper neural TTS for the out-of-process helper only
 omnivox-piper-sys = { path = "../omnivox-piper-sys", optional = true }
 
+[target.'cfg(unix)'.dependencies]
+# Open configuration files without following links or blocking on special files.
+libc = "0.2"
+
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [
     "Media_SpeechSynthesis",
