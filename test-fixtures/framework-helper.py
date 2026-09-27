@@ -6,14 +6,17 @@ from a path containing spaces. This fixture is never part of a release payload.
 import argparse
 import base64
 import json
+import math
 import os
 import sys
+import struct
 import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--descriptor", required=True)
 parser.add_argument("--record", required=True)
 parser.add_argument("--tag", default="")
+parser.add_argument("--empty", default="")
 parser.add_argument("--hang", action="store_true")
 parser.add_argument("--record-environment")
 args = parser.parse_args()
@@ -43,8 +46,9 @@ for line in sys.stdin:
                                                sample_format="pcm_s16_le"),
               actual_voice_id=descriptor["default_voice_id"])
         reply("audio_chunk", chunk=dict(sequence=0, data_base64=base64.b64encode(
-            b"\x00\x00\x00\x01\x00\xff\x00\x00").decode("ascii")))
-        reply("synthesis_completed", frame_count=4)
+            b"".join(struct.pack("<h", int(8192 * math.sin(2 * math.pi * 440 * frame / 22050)))
+                     for frame in range(2200))).decode("ascii")))
+        reply("synthesis_completed", frame_count=2200)
     elif kind == "cancel":
         reply("cancel_accepted", target_request_id=request["target_request_id"])
     elif kind == "ping":

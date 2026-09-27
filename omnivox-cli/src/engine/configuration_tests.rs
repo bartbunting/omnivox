@@ -212,6 +212,48 @@ fn unknown_helper_works_in_server_and_exact_diagnostics_with_literal_arguments()
 
 #[cfg(unix)]
 #[test]
+fn external_and_shipped_definition_paths_preserve_adapter_identity_and_pcm() {
+    let fixture = Fixture::new();
+    let id = "org.example.distribution";
+    fixture.config(&[id]);
+    let helper = fixture.helper();
+    let descriptor = fixture.descriptor(id, "descriptor.json");
+    fixture.manifest(id, &helper, &descriptor, "same adapter");
+    let root = Some(fixture.0.to_str().unwrap());
+    let startup = EngineStartup::read("", None, None, root).unwrap();
+    let definitions = startup.helper_configs(true);
+    let external = create_engines("", None, None, root, Arc::new(AtomicU64::new(0))).unwrap();
+
+    // Model promotion with a test-only compiled definition of the same adapter.
+    // It enters the actual shipped initializer/registry path with the same ID;
+    // no manifest is read and no production reserved ID is repurposed.
+    std::fs::remove_dir_all(fixture.0.join("helpers.d")).unwrap();
+    let mut shipped = EngineRegistry::new();
+    register_initialized_helpers(
+        &mut shipped,
+        start_helper_initializations(definitions, None),
+        Arc::new(AtomicU64::new(0)),
+        Arc::new(IsolationBudget::new()),
+        None,
+    )
+    .unwrap();
+    let promoted = shipped.engine(id).unwrap();
+    assert_eq!(external.preferred.descriptor(), promoted.descriptor());
+    let request = SynthesisRequest::new(
+        "distribution fixture",
+        TtsSettings {
+            voice: "voice".into(),
+            ..TtsSettings::default()
+        },
+    );
+    let original = external.preferred.synthesize(&request).unwrap();
+    let promoted = promoted.synthesize(&request).unwrap();
+    assert!(!original.audio.is_empty());
+    assert_eq!(original.audio.samples, promoted.audio.samples);
+}
+
+#[cfg(unix)]
+#[test]
 fn rescan_reuses_captured_registration_after_manifest_replacement() {
     let fixture = Fixture::new();
     fixture.config(&["org.recover", "org.fallback"]);

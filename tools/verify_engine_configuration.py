@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
-"""Exercise frozen local-owner startup against a staged Unix binary (make dev)."""
+"""Exercise configuration against make dev or a fully staged Windows payload.
+
+Pass --windows from WSL with the native Windows executable. The native fixture
+uses the existing .NET Framework compiler and no private speech runtime.
+"""
 import argparse
+import base64
 import copy
 import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
+import time
 import uuid
 
 from verify_local_voice_owner import Peer, startup_environment
+from verify_release import read_wav
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,11 +30,28 @@ SHIPPED = ["espeak", "winrt", "macos", "piper", "rhvoice", "flite", "rutts",
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("server", type=Path)
+    parser.add_argument("--windows", action="store_true", help="run a native Windows payload from WSL")
     args = parser.parse_args()
-    if os.name != "posix" or args.server.suffix.lower() == ".exe":
-        parser.error("this fixture requires a native Unix worker and Python interpreter")
+    if os.name != "posix" or (args.server.suffix.lower() == ".exe") != args.windows:
+        parser.error("select a native Unix binary or use --windows for a Windows executable from WSL")
     server = args.server.resolve()
-    root = Path(tempfile.mkdtemp(prefix="omnivox frozen launch "))
+
+    def native(path):
+        if args.windows:
+            return subprocess.check_output(["wslpath", "-w", str(path)], text=True).strip()
+        return str(path)
+
+    def local(path):
+        if args.windows:
+            return Path(subprocess.check_output(["wslpath", "-u", str(path)], text=True).strip())
+        return Path(path)
+
+    parent = None
+    if args.windows:
+        parent = local(subprocess.check_output(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+             "[IO.Path]::GetTempPath()"], text=True).strip())
+    root = Path(tempfile.mkdtemp(prefix="omnivox frozen launch ", dir=parent))
     peers = []
     try:
         configuration = root / "configuration"
@@ -35,25 +60,53 @@ def main():
         (configuration / "config.json").write_text(json.dumps(dict(
             schema=1, engine_overrides={name: dict(enabled=False) for name in SHIPPED},
             routing=dict(preferred_engine_ids=["org.fixture"]))))
-        helper = root / "helper with spaces"
-        helper.write_text("#!" + sys.executable + "\n" +
-                          (ROOT / "test-fixtures/framework-helper.py").read_text())
-        helper.chmod(0o700)
+        helper = root / ("helper with spaces.exe" if args.windows else "helper with spaces")
+        if args.windows:
+            subprocess.run([
+                "/mnt/c/Windows/Microsoft.NET/Framework64/v4.0.30319/csc.exe",
+                "/nologo", "/target:exe", "/reference:System.Web.Extensions.dll",
+                "/out:" + native(helper), native(ROOT / "test-fixtures/framework-helper.cs")],
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30, cwd=parent)
+        else:
+            helper.write_text("#!" + sys.executable + "\n" +
+                              (ROOT / "test-fixtures/framework-helper.py").read_text())
+            helper.chmod(0o700)
         descriptor = json.loads((ROOT / "docs/protocol-fixtures/control-inventory-response.json").read_text())["engines"][0]
         descriptor.update(id="org.fixture", display_name="Frozen fixture", default_voice_id="voice")
         descriptor["voices"][0]["id"] = dict(engine_id="org.fixture", voice_id="voice")
         descriptor["capabilities"]["cancellation"] = "synthesis_and_playback"
         descriptor_path = root / "descriptor.json"
         descriptor_path.write_text(json.dumps(descriptor))
-        arguments = ["--descriptor", str(descriptor_path), "--record", str(root / "argv.jsonl"),
-                     "--record-environment", str(root / "environment.jsonl"), "--tag", "$(private literal)"]
+        arguments = ["--descriptor", native(descriptor_path), "--record", native(root / "argv.jsonl"),
+                     "--record-environment", native(root / "environment.jsonl"),
+                     "--tag", "$(private literal) $HOME `literal` & *", "--empty", ""]
         (manifests / "fixture.json").write_text(json.dumps(dict(
-            schema=1, engine_id="org.fixture", program=str(helper), arguments=arguments)))
-        environment = {key: value for key, value in os.environ.items()
-                       if not key.startswith("OMNIVOX_") and key != "ESPEAK_NG_DATA"}
-        environment.update(OMNIVOX_VOICE_ROOT=str(root / "voices"),
-                           OMNIVOX_CONFIG_DIR=str(configuration), OMNIVOX_AUDIO_OUTPUT="null",
+            schema=1, engine_id="org.fixture", program=native(helper), arguments=arguments)))
+        environment = {key: os.environ[key] for key in ("PATH", "HOME", "LANG", "USER", "TMPDIR")
+                       if key in os.environ}
+        environment.update(OMNIVOX_VOICE_ROOT=native(root / "voices"),
+                           OMNIVOX_CONFIG_DIR=native(configuration), OMNIVOX_AUDIO_OUTPUT="null",
                            OMNIVOX_FIXTURE_PRIVATE="retained private value")
+        if args.windows:
+            # Values are already native paths; deliberately omit WSLENV /p.
+            environment["WSLENV"] = ":".join([
+                "OMNIVOX_VOICE_ROOT", "OMNIVOX_CONFIG_DIR", "OMNIVOX_AUDIO_OUTPUT",
+                "OMNIVOX_FIXTURE_PRIVATE", "OMNIVOX_AUDIO_TARGET", "OMNIVOX_ENGINE",
+                "OMNIVOX_OWNED_ENGINE_STARTUP", "OMNIVOX_OWNED_ENGINE_STARTUP_SHA256",
+                "OMNIVOX_OWNED_STARTUP", "OMNIVOX_OWNED_STARTUP_SHA256"])
+
+        def diagnostic(*options, success=True):
+            result = subprocess.run([str(server), *options], env=environment, text=True,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+            assert (result.returncode == 0) == success, (result.returncode, result.stderr[-2000:])
+            return result.stdout
+
+        assert "voice" in diagnostic("--engine", "org.fixture", "--list-voices-alist")
+        diagnostic("--engine", "org.missing", "--list-voices-alist", success=False)
+        wav_path = root / "fixture.wav"
+        diagnostic("--engine", "org.fixture", "--dump-wav", "voice", native(wav_path), "fixture")
+        read_wav(wav_path, canonical=True)
+        print("Exact voice listing, missing-engine rejection and canonical WAV synthesis passed", flush=True)
 
         def owner(settings):
             peer = Peer(server, "--voice-library-owner", settings)
@@ -72,15 +125,48 @@ def main():
         assert not initial["retired"] and initial["startup_error"] is None, initial
         initial_inventory = first.request("inventory", control=True)
         assert initial_inventory["preferred_engine_id"] == "org.fixture"
-        retained = json.loads(Path(initial["startup"]).read_text())
+        retained = json.loads(local(initial["startup"]).read_text())
         activation = retained["engines"]["activation_id"]
         assert activation == prepared["activation_id"] == initial["activation_id"]
         assert "engine_configuration_v1" in first.request("capabilities", control=True)["features"]
         first_ack = first.request("engine_configuration_status_v1", control=True)
         assert first_ack["activation_id"] == activation
-        assert first_ack["configuration_root"] == str(configuration)
+        assert first_ack["configuration_root"] == native(configuration)
         registration = next(row for row in first_ack["registrations"] if row["engine_id"] == "org.fixture")
         assert registration["origin"] == "external_helper" and registration["source"] == "helpers.d/fixture.json"
+
+        preview = json.loads((ROOT / "docs/protocol-fixtures/voice-choice-tuning.json").read_text())["messages"]["preview"]
+        for field in ("type", "protocol_version", "request_id", "expected_base_rate"):
+            preview.pop(field, None)
+        shared = preview["voice"]["shared"]
+        shared["acss"] = dict.fromkeys(shared["acss"])
+        shared["effects"] = dict.fromkeys(shared["effects"])
+        shared["rate_offset"] = None
+        preview["voice"] = dict(language=None, shared=shared, choices=[dict(
+            id="fixture", selector=dict(kind="exact", engine_id="org.fixture", voice_id="voice"),
+            adjustments={})])
+        preview["selection"] = dict(mode="choice", choice_id="fixture")
+        preview["context"] = {}
+        result = first.request("preview_voice_v2", control=True, **preview)
+        assert result.get("status") == "completed", result
+        assert result["last_started"]["realized"] == dict(engine_id="org.fixture", voice_id="voice"), result
+        first.process.stdin.write(b"q Ordinary fixture speech.\nemacsvox_marker_dispatch 9901\n")
+        first.process.stdin.flush()
+        started = False
+        deadline = time.monotonic() + 30
+        while True:
+            message = first.messages.get(timeout=max(0, deadline - time.monotonic()))
+            if message.startswith(b"__EMACSVOX_MARKER__ "):
+                event = json.loads(base64.b64decode(message.split()[1]))
+                assert event["dispatch_id"] == 9901, event
+                if event["type"] == "utterance_started":
+                    assert event["actual_voice"] == dict(engine_id="org.fixture", voice_id="voice"), event
+                    started = True
+            else:
+                assert message.strip() == b"__EMACSVOX_TRACKED__ 9901 completed", message
+                assert started
+                break
+        print("Explicit preview and ordinary tracked speech passed", flush=True)
 
         # Mutate every discovery input before starting the other worker. The
         # retained executable/argv/environment must still reach the real helper.
@@ -92,7 +178,7 @@ def main():
         assert not recovered["retired"] and recovered["startup_error"] is None, recovered
         recovered_inventory = second.request("inventory", control=True)
         assert recovered_inventory["preferred_engine_id"] == "org.fixture"
-        copied = json.loads(Path(recovered["startup"]).read_text())
+        copied = json.loads(local(recovered["startup"]).read_text())
         assert copied["engines"]["activation_id"] == activation
         second_ack = second.request("engine_configuration_status_v1", control=True)
         assert second_ack["activation_id"] == recovered["activation_id"] == activation
@@ -100,10 +186,10 @@ def main():
         assert startup_environment(retained)["OMNIVOX_AUDIO_TARGET"] == "left"
         assert startup_environment(copied)["OMNIVOX_AUDIO_TARGET"] == "right"
         launches = [json.loads(line) for line in (root / "argv.jsonl").read_text().splitlines()]
-        assert launches == [arguments, arguments]
+        assert launches == [arguments] * 4  # Two exact diagnostics and two owned workers.
         environments = [json.loads(line) for line in (root / "environment.jsonl").read_text().splitlines()]
         assert {item["value"] for item in environments} == {"retained private value"}
-        assert len({item["pid"] for item in environments}) == 2
+        assert len({item["pid"] for item in environments}) == 4
         assert "private" not in json.dumps([initial_inventory, recovered_inventory, first_ack, second_ack])
 
         # Retiring one lane leaves the other's independently owned helper alive.
@@ -115,21 +201,25 @@ def main():
         assert second.request("retire", worker=recovered["worker"])["type"] == "retired"
 
         # A child that never reads a frame must not strand the owner in write().
-        stalled_program = root / "worker that never opens startup"
-        stalled_program.write_text("#!" + sys.executable + "\nimport time\ntime.sleep(300)\n")
-        stalled_program.chmod(0o700)
+        stalled_program = root / ("worker that never opens startup.exe" if args.windows else "worker that never opens startup")
+        if args.windows:
+            shutil.copyfile(helper, stalled_program)
+        else:
+            stalled_program.write_text("#!" + sys.executable + "\nimport time\ntime.sleep(300)\n")
+            stalled_program.chmod(0o700)
         program_bytes = stalled_program.read_bytes()
         stalled_record = copy.deepcopy(retained)
-        stalled_record["executable"] = dict(path=str(stalled_program), bytes=len(program_bytes),
+        stalled_record["executable"] = dict(path=native(stalled_program), bytes=len(program_bytes),
                                             sha256=hashlib.sha256(program_bytes).hexdigest())
+        encoding = "Windows" if args.windows else "Unix"
         for index in range(40):
             stalled_record["engines"]["environment"].append([
-                {"Unix": list(f"OMNIVOX_FIXTURE_LARGE_{index}".encode())}, {"Unix": [120] * 32000}])
-        stalled_path = Path(initial["startup"]).parent / (str(uuid.uuid4()) + ".json")
+                {encoding: list(f"OMNIVOX_FIXTURE_LARGE_{index}".encode())}, {encoding: [120] * 32000}])
+        stalled_path = local(initial["startup"]).parent / (str(uuid.uuid4()) + ".json")
         stalled_bytes = json.dumps(stalled_record).encode()
         stalled_path.write_bytes(stalled_bytes)
         stalled_path.chmod(0o600)
-        stalled, rejected = owner(dict(environment, OMNIVOX_OWNED_STARTUP=str(stalled_path),
+        stalled, rejected = owner(dict(environment, OMNIVOX_OWNED_STARTUP=native(stalled_path),
                                        OMNIVOX_OWNED_STARTUP_SHA256=hashlib.sha256(stalled_bytes).hexdigest()))
         assert rejected["retired"] and "transmission did not complete" in rejected["startup_error"], rejected
         assert stalled.request("retire", worker=rejected["worker"])["type"] == "retired"
