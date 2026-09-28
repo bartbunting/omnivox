@@ -118,7 +118,12 @@ value remains in effect.
 | `tts_set_tone_volume` | float | Set tone gain; adapters conventionally use `0.0..1.0`. |
 | `tts_set_sound_volume` | float | Set sound/icon gain; adapters conventionally use `0.0..1.0`. |
 | `tts_set_speech_channel` | `left`, `right`, or `both` | Route the speech stream only. Process startup routing applies to all three streams. |
-| `tts_reset` | none | Perform a hard stop, restore default state, and clear the pending batch. |
+| `tts_reset` | none | Perform a hard stop, restore saved speech defaults (or built-in values where omitted), clear temporary delays and the pending batch. Retain the host chunk limit. |
+
+Saved defaults come from the worker's frozen startup configuration; reset does
+not reread files. CLI speech overrides apply at startup, while reset restores
+the saved file baseline. Subsequent client commands still take priority. See
+[saved speech defaults](../reference/engine-configuration.md#saved-speech-defaults).
 
 Numeric settings, including inline pitch, reject NaN, infinity and numeric
 overflow. Invalid direct settings leave the previous numeric value in effect;

@@ -114,6 +114,63 @@ fn speech_preferences_require_schema_two_and_a_bounded_integer() {
 }
 
 #[test]
+fn speech_defaults_are_sparse_bounded_and_strict() {
+    let parse = |defaults: Value| parse_config(&json!({"schema":2,"speech":{"defaults":defaults}}));
+    assert_eq!(
+        parse(json!({})).unwrap().speech.defaults,
+        SpeechDefaults::default()
+    );
+    for (field, min, max) in [
+        ("rate", 0.0, 2.0),
+        ("pitch", 0.5, 2.0),
+        ("voice_volume", 0.0, 1.0),
+        ("tone_volume", 0.0, 1.0),
+        ("sound_volume", 0.0, 1.0),
+        ("character_scale", 0.1, 4.0),
+    ] {
+        for value in [json!(min), json!(max)] {
+            assert!(parse(json!({field:value})).is_ok(), "{field}");
+        }
+        for value in [
+            json!(min - 0.01),
+            json!(max + 0.01),
+            json!("0.5"),
+            json!(true),
+            json!(null),
+            json!(1e300),
+        ] {
+            assert!(parse(json!({field:value})).is_err(), "{field}");
+        }
+    }
+    let saved =
+        parse(json!({"voice":"Žltý voice", "rate":0.7, "split_caps":false, "punctuation":"some"}))
+            .unwrap();
+    assert_eq!(saved.speech.defaults.voice.as_deref(), Some("Žltý voice"));
+    assert_eq!(saved.speech.defaults.rate, 0.7);
+    assert!(!saved.speech.defaults.split_caps);
+    assert_eq!(saved.speech.defaults.pitch, 1.0);
+    for value in [
+        json!({"voice":""}),
+        json!({"voice":"  "}),
+        json!({"voice":"secret\nvoice"}),
+        json!({"voice":"x".repeat(1025)}),
+        json!({"voice":null}),
+        json!({"punctuation":"ALL"}),
+        json!({"split_caps":1}),
+        json!({"unknown":0}),
+        json!(null),
+    ] {
+        assert!(parse(value).is_err());
+    }
+    assert!(Configuration::parse(
+        br#"{"schema":2,"speech":{"defaults":{"rate":0.5,"rate":0.7}}}"#,
+        Platform::Unix
+    )
+    .is_err());
+    assert!(parse_config(&json!({"schema":1,"speech":{"defaults":{}}})).is_err());
+}
+
+#[test]
 fn shipped_metadata_preserves_platform_paths_and_explicit_overrides() {
     let directory = Directory::new();
     let executable = directory.0.join("omnivox");

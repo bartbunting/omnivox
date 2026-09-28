@@ -15,7 +15,7 @@ mod status;
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use omnivox_core::settings::ChunkWordLimit;
+use omnivox_core::settings::{ChunkWordLimit, SpeechDefaults};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 use thiserror::Error;
@@ -131,7 +131,7 @@ impl EngineOverride {
     }
 }
 
-#[derive(Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Configuration {
     pub routing: LocalRoutingPolicy,
@@ -140,19 +140,64 @@ pub struct Configuration {
 }
 
 /// Complete speech preparation preferences retained by the startup snapshot.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SpeechConfiguration {
     pub max_chunk_words: ChunkWordLimit,
+    pub defaults: SpeechDefaults,
 }
 
 impl SpeechConfiguration {
     fn parse(value: Value) -> Result<Self> {
         let mut object = Object::new(value, "speech")?;
         let max_chunk_words = object.optional("max_chunk_words")?.unwrap_or_default();
+        let defaults = object
+            .take("defaults")
+            .map(parse_speech_defaults)
+            .transpose()?
+            .unwrap_or_default();
         object.finish()?;
-        Ok(Self { max_chunk_words })
+        Ok(Self {
+            max_chunk_words,
+            defaults,
+        })
     }
+}
+
+fn parse_speech_defaults(value: Value) -> Result<SpeechDefaults> {
+    let mut object = Object::new(value, "speech.defaults")?;
+    let built_in = SpeechDefaults::default();
+    let defaults = SpeechDefaults {
+        voice: object.optional("voice")?,
+        rate: object.optional("rate")?.unwrap_or(built_in.rate),
+        pitch: object.optional("pitch")?.unwrap_or(built_in.pitch),
+        voice_volume: object
+            .optional("voice_volume")?
+            .unwrap_or(built_in.voice_volume),
+        tone_volume: object
+            .optional("tone_volume")?
+            .unwrap_or(built_in.tone_volume),
+        sound_volume: object
+            .optional("sound_volume")?
+            .unwrap_or(built_in.sound_volume),
+        punctuation: object
+            .optional("punctuation")?
+            .unwrap_or(built_in.punctuation),
+        split_caps: object
+            .optional("split_caps")?
+            .unwrap_or(built_in.split_caps),
+        character_scale: object
+            .optional("character_scale")?
+            .unwrap_or(built_in.character_scale),
+    };
+    object.finish()?;
+    defaults.validate().map_err(|field| {
+        ConfigurationError::new(
+            format!("speech.defaults.{field}"),
+            "outside allowed range or invalid voice",
+        )
+    })?;
+    Ok(defaults)
 }
 
 impl Configuration {

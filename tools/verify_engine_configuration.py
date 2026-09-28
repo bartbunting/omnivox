@@ -58,7 +58,9 @@ def main():
         manifests = configuration / "helpers.d"
         manifests.mkdir(parents=True)
         (configuration / "config.json").write_text(json.dumps(dict(
-            schema=2, speech=dict(max_chunk_words=3),
+            schema=2, speech=dict(max_chunk_words=3, defaults=dict(
+                voice="saved", rate=0.7, pitch=1.1, voice_volume=0.6,
+                punctuation="none", split_caps=False, character_scale=1.4)),
             engine_overrides={name: dict(enabled=False) for name in SHIPPED},
             routing=dict(preferred_engine_ids=["org.fixture"]))))
         helper = root / ("helper with spaces.exe" if args.windows else "helper with spaces")
@@ -75,6 +77,9 @@ def main():
         descriptor = json.loads((ROOT / "docs/protocol-fixtures/control-inventory-response.json").read_text())["engines"][0]
         descriptor.update(id="org.fixture", display_name="Frozen fixture", default_voice_id="voice")
         descriptor["voices"][0]["id"] = dict(engine_id="org.fixture", voice_id="voice")
+        saved_voice = copy.deepcopy(descriptor["voices"][0])
+        saved_voice["id"]["voice_id"] = "saved"
+        descriptor["voices"].append(saved_voice)
         descriptor["capabilities"]["cancellation"] = "synthesis_and_playback"
         descriptor_path = root / "descriptor.json"
         descriptor_path.write_text(json.dumps(descriptor))
@@ -103,11 +108,30 @@ def main():
             assert (result.returncode == 0) == success, (result.returncode, result.stderr[-2000:])
             return result.stdout
 
+        def syntheses():
+            return [json.loads(line) for line in (root / "synthesis.jsonl").read_text().splitlines()]
+
+        def assert_settings(requests, voice, rate, pitch):
+            assert requests
+            for request in requests:
+                settings = request["settings"]
+                assert settings["voice_id"] == voice, settings
+                assert abs(settings["rate"] - rate) < 0.00001, settings
+                assert abs(settings["pitch"] - pitch) < 0.00001, settings
+                # Speech gain is applied once by Omnivox, never by the helper.
+                assert settings["volume"] == 1, settings
+
         assert "voice" in diagnostic("--engine", "org.fixture", "--list-voices-alist")
         diagnostic("--engine", "org.missing", "--list-voices-alist", success=False)
         wav_path = root / "fixture.wav"
         diagnostic("--engine", "org.fixture", "--dump-wav", "voice", native(wav_path), "fixture")
         read_wav(wav_path, canonical=True)
+        assert_settings(syntheses(), "voice", 0.7, 1.1)
+        diagnostic("--engine", "org.fixture", "--dump-wav", "", native(wav_path), "saved defaults")
+        assert_settings(syntheses()[-1:], "saved", 0.7, 1.1)
+        diagnostic("--engine", "org.fixture", "--rate", "0.8", "--pitch", "1.3",
+                   "--voice", "voice", "--dump-wav", "", native(wav_path), "command line")
+        assert_settings(syntheses()[-1:], "voice", 0.8, 1.3)
         print("Exact voice listing, missing-engine rejection and canonical WAV synthesis passed", flush=True)
 
         def owner(settings):
@@ -131,6 +155,7 @@ def main():
         activation = retained["engines"]["activation_id"]
         assert activation == prepared["activation_id"] == initial["activation_id"]
         assert retained["engines"]["speech"] == dict(max_chunk_words=3)
+        assert retained["engines"]["speech_defaults"]["voice"] == "saved"
         assert "engine_configuration_v1" in first.request("capabilities", control=True)["features"]
         first_ack = first.request("engine_configuration_status_v1", control=True)
         assert first_ack["activation_id"] == activation
@@ -155,8 +180,7 @@ def main():
         preview["text"] = "one two three four five six seven"
 
         def synthesis_texts():
-            return [json.loads(line)["text"] for line in
-                    (root / "synthesis.jsonl").read_text().splitlines()]
+            return [request["text"] for request in syntheses()]
 
         expected_chunks = ["one two three", "four five six", "seven"]
         before = len(synthesis_texts())
@@ -164,25 +188,34 @@ def main():
         assert result.get("status") == "completed", result
         assert result["last_started"]["realized"] == dict(engine_id="org.fixture", voice_id="voice"), result
         assert synthesis_texts()[before:] == expected_chunks
-        before = len(synthesis_texts())
-        first.process.stdin.write(b"tts_reset\nq one two three four five six seven\nemacsvox_marker_dispatch 9901\n")
-        first.process.stdin.flush()
-        started = False
-        deadline = time.monotonic() + 30
-        while True:
-            message = first.messages.get(timeout=max(0, deadline - time.monotonic()))
-            if message.startswith(b"__EMACSVOX_MARKER__ "):
-                event = json.loads(base64.b64decode(message.split()[1]))
-                assert event["dispatch_id"] == 9901, event
-                if event["type"] == "utterance_started":
-                    assert event["actual_voice"] == dict(engine_id="org.fixture", voice_id="voice"), event
-                    started = True
-            else:
-                assert message.strip() == b"__EMACSVOX_TRACKED__ 9901 completed", message
-                assert started
-                break
-        assert synthesis_texts()[before:] == expected_chunks
-        print("Configured preview and ordinary speech chunking, including reset, passed", flush=True)
+        def speak(peer, identifier, text, voice="saved", rate=0.7, pitch=1.1, commands=""):
+            before = len(syntheses())
+            peer.process.stdin.write((commands + f"q {text}\nemacsvox_marker_dispatch {identifier}\n").encode())
+            peer.process.stdin.flush()
+            started = False
+            deadline = time.monotonic() + 30
+            while True:
+                message = peer.messages.get(timeout=max(0, deadline - time.monotonic()))
+                if message.startswith(b"__EMACSVOX_MARKER__ "):
+                    event = json.loads(base64.b64decode(message.split()[1]))
+                    assert event["dispatch_id"] == identifier, event
+                    if event["type"] == "utterance_started":
+                        assert event["actual_voice"] == dict(engine_id="org.fixture", voice_id=voice), event
+                        started = True
+                else:
+                    assert message.strip() == f"__EMACSVOX_TRACKED__ {identifier} completed".encode(), message
+                    assert started
+                    break
+            requests = syntheses()[before:]
+            assert_settings(requests, voice, rate, pitch)
+            return [request["text"] for request in requests]
+
+        assert speak(first, 9901, preview["text"]) == expected_chunks
+        assert speak(first, 9902, preview["text"], voice="voice", rate=0.2, pitch=1.6,
+                     commands="tts_set_voice voice\ntts_set_speech_rate 20\ntts_set_pitch_multiplier 1.6\n") == expected_chunks
+        assert speak(first, 9903, preview["text"], commands="tts_reset\n") == expected_chunks
+        assert speak(first, 9904, "CamelCase!") == ["CamelCase!"]
+        print("Saved speech defaults, client overrides, reset, text preparation and configured chunks passed", flush=True)
 
         # Mutate every discovery input before starting the other worker. The
         # retained executable/argv/environment must still reach the real helper.
@@ -199,16 +232,18 @@ def main():
         second_ack = second.request("engine_configuration_status_v1", control=True)
         assert second_ack["activation_id"] == recovered["activation_id"] == activation
         assert copied["engines"] == retained["engines"]
+        assert speak(second, 9905, preview["text"]) == expected_chunks
+        assert speak(first, 9906, preview["text"], commands="tts_set_speech_rate 20\ntts_reset\n") == expected_chunks
         before = len(synthesis_texts())
         assert second.request("preview_voice_v2", control=True, **preview)["status"] == "completed"
         assert synthesis_texts()[before:] == expected_chunks
         assert startup_environment(retained)["OMNIVOX_AUDIO_TARGET"] == "left"
         assert startup_environment(copied)["OMNIVOX_AUDIO_TARGET"] == "right"
         launches = [json.loads(line) for line in (root / "argv.jsonl").read_text().splitlines()]
-        assert launches == [arguments] * 4  # Two exact diagnostics and two owned workers.
+        assert launches == [arguments] * 6  # Four exact diagnostics and two owned workers.
         environments = [json.loads(line) for line in (root / "environment.jsonl").read_text().splitlines()]
         assert {item["value"] for item in environments} == {"retained private value"}
-        assert len({item["pid"] for item in environments}) == 4
+        assert len({item["pid"] for item in environments}) == 6
         public_status = json.dumps([initial_inventory, recovered_inventory, first_ack, second_ack])
         # macOS legitimately reports paths under /private. Check the actual
         # private inputs, rather than a word that can occur in a public path.
@@ -223,6 +258,7 @@ def main():
                                         OMNIVOX_OWNED_STARTUP_SHA256=initial["startup_sha256"]))
         assert not restart["retired"] and restart["startup_error"] is None, restart
         assert restart["activation_id"] == activation
+        assert speak(restarted, 9907, preview["text"], commands="tts_reset\n") == expected_chunks
         before = len(synthesis_texts())
         assert restarted.request("preview_voice_v2", control=True, **preview)["status"] == "completed"
         assert synthesis_texts()[before:] == expected_chunks

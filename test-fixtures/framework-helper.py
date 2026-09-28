@@ -48,7 +48,7 @@ for line in sys.stdin:
                 record.write(json.dumps(request, ensure_ascii=False) + "\n")
         reply("synthesis_started", format=dict(sample_rate=22050, channels=1,
                                                sample_format="pcm_s16_le"),
-              actual_voice_id=descriptor["default_voice_id"])
+              actual_voice_id=request["settings"].get("voice_id") or descriptor["default_voice_id"])
         reply("audio_chunk", chunk=dict(sequence=0, data_base64=base64.b64encode(
             b"".join(struct.pack("<h", int(8192 * math.sin(2 * math.pi * 440 * frame / 22050)))
                      for frame in range(2200))).decode("ascii")))

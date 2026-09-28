@@ -61,7 +61,7 @@ impl LaunchSnapshot {
             }
         }
         let snapshot = Self {
-            schema: 2,
+            schema: 3,
             activation_id: crate::voice_library::local::new_uuid()
                 .map_err(|_| invalid("could not create activation identity"))?,
             resolved,
@@ -129,7 +129,13 @@ struct SnapshotWire {
         deserialize_with = "present_speech",
         skip_serializing_if = "Option::is_none"
     )]
-    speech: Option<SpeechConfiguration>,
+    speech: Option<ChunkSpeechWire>,
+    #[serde(
+        default,
+        deserialize_with = "present_defaults",
+        skip_serializing_if = "Option::is_none"
+    )]
+    speech_defaults: Option<SpeechDefaults>,
     platform: String,
     activation_id: String,
     registrations: Vec<RegistrationWire>,
@@ -147,8 +153,22 @@ struct SnapshotWire {
 
 fn present_speech<'de, D: Deserializer<'de>>(
     deserializer: D,
-) -> std::result::Result<Option<SpeechConfiguration>, D::Error> {
-    SpeechConfiguration::deserialize(deserializer).map(Some)
+) -> std::result::Result<Option<ChunkSpeechWire>, D::Error> {
+    ChunkSpeechWire::deserialize(deserializer).map(Some)
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChunkSpeechWire {
+    max_chunk_words: ChunkWordLimit,
+}
+
+fn present_defaults<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<SpeechDefaults>, D::Error> {
+    let defaults = SpeechDefaults::deserialize(deserializer)?;
+    defaults.validate().map_err(serde::de::Error::custom)?;
+    Ok(Some(defaults))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -203,7 +223,10 @@ impl From<&LaunchSnapshot> for SnapshotWire {
         let resolved = &snapshot.resolved;
         Self {
             schema: snapshot.schema,
-            speech: (snapshot.schema == 2).then_some(resolved.speech),
+            speech: (snapshot.schema >= 2).then_some(ChunkSpeechWire {
+                max_chunk_words: resolved.speech.max_chunk_words,
+            }),
+            speech_defaults: (snapshot.schema >= 3).then(|| resolved.speech.defaults.clone()),
             platform: std::env::consts::OS.into(),
             activation_id: snapshot.activation_id.clone(),
             registrations: resolved
@@ -269,9 +292,16 @@ impl From<&LaunchSnapshot> for SnapshotWire {
 
 impl SnapshotWire {
     fn restore(self) -> Result<LaunchSnapshot> {
-        let speech = match (self.schema, self.speech) {
-            (1, None) => SpeechConfiguration::default(),
-            (2, Some(speech)) => speech,
+        let speech = match (self.schema, self.speech, self.speech_defaults) {
+            (1, None, None) => SpeechConfiguration::default(),
+            (2, Some(speech), None) => SpeechConfiguration {
+                max_chunk_words: speech.max_chunk_words,
+                ..SpeechConfiguration::default()
+            },
+            (3, Some(speech), Some(defaults)) => SpeechConfiguration {
+                max_chunk_words: speech.max_chunk_words,
+                defaults,
+            },
             _ => return Err(invalid("unsupported or incomplete launch snapshot schema")),
         };
         require(

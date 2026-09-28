@@ -207,6 +207,15 @@ retains each previous lane's own record. The
 [configuration reference](reference/engine-configuration.md) specifies the file
 formats and selection rules; the [guide](guides/configuration.md) explains setup.
 
+Version 2 also supplies saved speech defaults under
+[ADR 0010](adr/0010-saved-speech-defaults.md). They are captured with registration
+and shared immutably by the worker's request states. Startup applies saved values
+before CLI speech overrides; subsequent client settings retain their priority.
+Reset restores the frozen file baseline and clears transient state without
+rereading files. Exact diagnostics obtain their defaults from the same capture
+that selected their engine. Private snapshot schema 3 carries every saved member;
+historical schemas 1 and 2 retain built-in defaults and their original wire shape.
+
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or
 AVSpeechSynthesizer on macOS. Known companions are discovered from staged paths
 or explicit overrides. Piper additionally requires compiled support and a

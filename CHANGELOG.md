@@ -8,6 +8,11 @@ Versioning for published releases.
 
 ### Added
 
+- Save voice, rate, pitch, volumes, punctuation, CamelCase splitting and character
+  speed in `speech.defaults`. Speech reset restores those saved values; client
+  commands can override them again. Both lanes and recovery retain the same
+  defaults, and exact speech diagnostics honor the applicable saved settings.
+
 - Configure the maximum words per synthesis chunk in version-2 `config.json`.
   The default remains 15; accepted values are 1–100. Both speech lanes and
   recovered workers retain the same setting. The 15-second silence cap remains

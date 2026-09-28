@@ -17,6 +17,7 @@ Proposed records do not override accepted decisions.
 | [0007: Managed voice lifecycle](0007-managed-voice-lifecycle.md) | Accepted | Installed/desired/active state, providers, validation, activation and fallback. |
 | [0008: Extensible engine registration](0008-extensible-engine-registration.md) | Accepted | Shared registration and explicit local configuration for independent helpers; configuration v1 and its first implementation slice. |
 | [0009: Local speech preferences](0009-local-speech-preferences.md) | Accepted | Bounded host chunk size, unchanged defaults and frozen startup compatibility. |
+| [0010: Saved speech defaults](0010-saved-speech-defaults.md) | Accepted | Saved startup/reset values, client precedence and frozen compatibility. |
 
 The maintainer authorized a one-time consolidation and renumbering on 2026-09-27.
 These are the replacement records; older numbers apply only to earlier Git

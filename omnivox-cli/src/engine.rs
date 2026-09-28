@@ -146,7 +146,7 @@ pub fn create_engines(
     Ok(CreatedEngines {
         preferred,
         registry,
-        speech: startup.snapshot.resolved().speech,
+        speech: startup.snapshot.resolved().speech.clone(),
     })
 }
 
@@ -509,6 +509,20 @@ pub fn create_engine(
     voice_library: Option<&str>,
     config_dir: Option<&str>,
 ) -> Result<Arc<dyn TtsEngine>> {
+    create_diagnostic_engine(engine_name, piper_model, voice_library, config_dir)
+        .map(|(engine, _)| engine)
+}
+
+/// Return the speech defaults from the same capture that selected this engine.
+pub fn create_diagnostic_engine(
+    engine_name: &str,
+    piper_model: Option<&str>,
+    voice_library: Option<&str>,
+    config_dir: Option<&str>,
+) -> Result<(
+    Arc<dyn TtsEngine>,
+    omnivox_tts::engine_configuration::SpeechConfiguration,
+)> {
     let startup = EngineStartup::read(engine_name, piper_model, voice_library, config_dir)?;
     let ids = if startup.snapshot.requested().is_empty() {
         startup.order()
@@ -558,7 +572,7 @@ pub fn create_engine(
             }
         })();
         match attempt {
-            Ok(engine) => return Ok(engine),
+            Ok(engine) => return Ok((engine, startup.snapshot.resolved().speech.clone())),
             Err(error) => last_error = Some(error),
         }
     }

@@ -124,6 +124,60 @@ diagnostic synthesis. Larger windows can reach the unchanged per-window
 timeline-action limit sooner; this option never relaxes action, PCM, text-byte,
 cancellation or silence limits. See [text chunking](text-chunking.md).
 
+### Saved speech defaults
+
+Version 2 also accepts `speech.defaults`, an optional object governed by
+[ADR 0010](../adr/0010-saved-speech-defaults.md). Each omitted member independently
+uses the built-in value below. Like the other public settings, null and unknown
+fields are errors. Numbers must be JSON numbers, finite and inside their range;
+strings containing numbers and boolean substitutes fail. Values are rejected,
+not clamped.
+
+| Member | Built-in value | Accepted values |
+| --- | --- | --- |
+| `voice` | Omitted; existing startup selection | Nonblank string, at most 1024 UTF-8 bytes, without control characters. Same preference as `--voice`. |
+| `rate` | `0.5` | `0.0`–`2.0`, normalized host units, not Emacspeak percentage units. |
+| `pitch` | `1.0` | `0.5`–`2.0` multiplier. |
+| `voice_volume` | `1.0` | `0.0`–`1.0`. Applied once in the host pipeline. |
+| `tone_volume` | `1.0` | `0.0`–`1.0`. |
+| `sound_volume` | `1.0` | `0.0`–`1.0`. |
+| `punctuation` | `"all"` | `"none"`, `"some"`, `"all"`. |
+| `split_caps` | `true` | Boolean controlling CamelCase splitting. |
+| `character_scale` | `1.2` | `0.1`–`4.0`, applied to the current rate for letter navigation. Native rate limits still apply. |
+
+```json
+{
+  "schema": 2,
+  "speech": {
+    "max_chunk_words": 15,
+    "defaults": {
+      "rate": 0.7,
+      "pitch": 1.1,
+      "voice_volume": 0.8,
+      "tone_volume": 0.2,
+      "punctuation": "some",
+      "split_caps": false
+    }
+  }
+}
+```
+
+At startup, built-in values are replaced by saved defaults, then by supplied CLI
+speech options. Later client commands retain priority. `tts_reset` restores the
+saved speech defaults, not CLI overrides or the latest client settings, while
+retaining the configured chunk limit. It still stops speech and clears pending
+work and temporary delays. It does not reread configuration. Both lanes and
+recovery retain the same frozen defaults; file edits require deliberate restart.
+Audio routing retains its existing reset behavior.
+
+`--check` and `--dump-wav` use saved voice/rate/pitch/speech gain from the same
+capture used for engine selection. Explicit CLI settings override them; a nonempty
+positional WAV voice has final priority. Without a saved or explicit voice,
+diagnostics retain the selected engine's default. Their raw text path does not
+apply server punctuation/CamelCase preparation or character-rate scaling.
+Exact diagnostic engine selection and private preview voice choices retain their
+existing rules; defaults cannot authorize an excluded engine or invent a voice.
+
 ## Configuration version 1
 
 Version 1 implements registration and the existing engine-routing controls,

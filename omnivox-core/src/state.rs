@@ -2,12 +2,15 @@
 //!
 //! Manages application state including voice settings, volumes, and audio routing.
 
+use std::sync::Arc;
 use std::time::Duration;
 
-use crate::settings::ChunkWordLimit;
+use crate::settings::{ChunkWordLimit, SpeechDefaults};
+use serde::{Deserialize, Serialize};
 
 /// Punctuation reading level
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum PunctuationLevel {
     /// Read only dollar sign and percent
     None,
@@ -123,6 +126,8 @@ impl Default for AudioRouting {
 /// Maintains all configuration and state for the TTS engine.
 #[derive(Debug, Clone)]
 pub struct TtsState {
+    /// Immutable saved values restored by reset, shared by admitted requests.
+    pub speech_defaults: Arc<SpeechDefaults>,
     /// Host-owned startup preference, retained by client resets.
     pub max_chunk_words: ChunkWordLimit,
     // Voice settings
@@ -156,18 +161,25 @@ pub struct TtsState {
 
 impl Default for TtsState {
     fn default() -> Self {
+        Self::from_speech_defaults(Arc::new(SpeechDefaults::default()))
+    }
+}
+
+impl TtsState {
+    pub fn from_speech_defaults(defaults: Arc<SpeechDefaults>) -> Self {
         Self {
             max_chunk_words: ChunkWordLimit::default(),
-            current_voice: String::from("en-US"),
-            pitch_multiplier: 1.0,
-            speech_rate: 0.5,
-            punctuation_level: PunctuationLevel::All,
-            split_caps: true,
+            current_voice: defaults.voice.clone().unwrap_or_else(|| "en-US".into()),
+            pitch_multiplier: defaults.pitch,
+            speech_rate: defaults.rate,
+            punctuation_level: defaults.punctuation,
+            split_caps: defaults.split_caps,
             capitalization_presentation: CapitalizationPresentation::None,
-            voice_volume: 1.0,
-            tone_volume: 1.0,
-            sound_volume: 1.0,
-            character_scale: 1.2,
+            voice_volume: defaults.voice_volume,
+            tone_volume: defaults.tone_volume,
+            sound_volume: defaults.sound_volume,
+            character_scale: defaults.character_scale,
+            speech_defaults: defaults,
             pre_delay: Duration::ZERO,
             post_delay: Duration::ZERO,
             next_pre_delay: Duration::ZERO,
@@ -184,11 +196,11 @@ impl TtsState {
         Self::default()
     }
 
-    /// Reset to default values
+    /// Restore saved speech defaults without rereading configuration files.
     pub fn reset(&mut self) {
         *self = Self {
             max_chunk_words: self.max_chunk_words,
-            ..Self::default()
+            ..Self::from_speech_defaults(Arc::clone(&self.speech_defaults))
         };
     }
 
@@ -275,6 +287,63 @@ mod tests {
         assert_eq!(state.current_voice, "en-US");
         assert_eq!(state.pitch_multiplier, 1.0);
         assert_eq!(state.max_chunk_words.get(), 30);
+    }
+
+    #[test]
+    fn reset_restores_saved_speech_and_clears_transient_state() {
+        let defaults = Arc::new(SpeechDefaults {
+            voice: Some("saved voice".into()),
+            rate: 0.75,
+            pitch: 1.3,
+            voice_volume: 0.8,
+            tone_volume: 0.2,
+            sound_volume: 0.4,
+            punctuation: PunctuationLevel::Some,
+            split_caps: false,
+            character_scale: 1.5,
+        });
+        let mut state = TtsState::from_speech_defaults(Arc::clone(&defaults));
+        state.max_chunk_words = ChunkWordLimit::try_from(30).unwrap();
+        // Admitted requests retain their own state when later commands change it.
+        let admitted = state.clone();
+        for _ in 0..2 {
+            state.current_voice = "client voice".into();
+            state.speech_rate = 0.2;
+            state.pitch_multiplier = 0.9;
+            state.voice_volume = 0.3;
+            state.tone_volume = 0.7;
+            state.sound_volume = 0.9;
+            state.punctuation_level = PunctuationLevel::None;
+            state.split_caps = true;
+            state.character_scale = 0.5;
+            state.pre_delay = Duration::from_secs(1);
+            state.post_delay = Duration::from_secs(2);
+            state.next_pre_delay = Duration::from_secs(3);
+            state.capitalization_presentation = CapitalizationPresentation::Spoken;
+            state.reset();
+            assert_eq!(state.current_voice, "saved voice");
+            assert_eq!(state.speech_rate, 0.75);
+            assert_eq!(state.pitch_multiplier, 1.3);
+            assert_eq!(
+                [state.voice_volume, state.tone_volume, state.sound_volume],
+                [0.8, 0.2, 0.4]
+            );
+            assert_eq!(state.punctuation_level, PunctuationLevel::Some);
+            assert!(!state.split_caps);
+            assert_eq!(state.character_rate(), 0.75 * 1.5);
+            assert_eq!(
+                [state.pre_delay, state.post_delay, state.next_pre_delay],
+                [Duration::ZERO; 3]
+            );
+            assert_eq!(
+                state.capitalization_presentation,
+                CapitalizationPresentation::None
+            );
+            assert_eq!(state.max_chunk_words.get(), 30);
+            assert!(Arc::ptr_eq(&state.speech_defaults, &defaults));
+        }
+        assert_eq!(admitted.current_voice, "saved voice");
+        assert_eq!(admitted.speech_rate, 0.75);
     }
 
     #[test]

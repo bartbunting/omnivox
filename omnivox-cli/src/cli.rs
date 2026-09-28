@@ -10,9 +10,10 @@ use std::io::Write as IoWrite;
 use std::sync::Arc;
 use tracing::{info, warn};
 
-use crate::engine::{create_engine, native_engine_name};
+use crate::engine::{create_diagnostic_engine, native_engine_name};
 use crate::pipeline::{build_speech_pipeline, canonicalize_synthesis_result};
 use crate::text::home_dir;
+use omnivox_tts::engine_configuration::SpeechConfiguration;
 
 // ---------------------------------------------------------------------------
 // CLI arguments
@@ -375,7 +376,7 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
     println!();
 
     println!("[engine]");
-    let engine: Arc<dyn TtsEngine> = match create_engine(
+    let (engine, speech) = match create_diagnostic_engine(
         &cli.engine,
         cli.piper_model.as_deref(),
         cli.voice_library.as_deref(),
@@ -404,7 +405,11 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
     println!();
 
     println!("[synthesis]");
-    let state = diagnostic_state(cli, engine.descriptor().default_voice_id.as_deref());
+    let state = diagnostic_state(
+        cli,
+        engine.descriptor().default_voice_id.as_deref(),
+        &speech,
+    );
     let settings = settings_from_state(&state);
     let test_request = SynthesisRequest::new("test", settings.clone());
     match engine.synthesize(&test_request).and_then(|result| {
@@ -600,17 +605,33 @@ fn settings_from_state(state: &TtsState) -> TtsSettings {
     }
 }
 
-fn diagnostic_state(cli: &CliArgs, default_voice: Option<&str>) -> TtsState {
+fn diagnostic_state(
+    cli: &CliArgs,
+    default_voice: Option<&str>,
+    speech: &SpeechConfiguration,
+) -> TtsState {
     let mut state = TtsState {
-        current_voice: default_voice.unwrap_or_default().to_owned(),
-        ..TtsState::default()
+        current_voice: speech
+            .defaults
+            .voice
+            .as_deref()
+            .or(default_voice)
+            .unwrap_or_default()
+            .to_owned(),
+        max_chunk_words: speech.max_chunk_words,
+        ..TtsState::from_speech_defaults(Arc::new(speech.defaults.clone()))
     };
     apply_cli_flags(cli, &mut state);
     state
 }
 
-fn dump_wav_state(cli: &CliArgs, positional_voice: &str, default_voice: Option<&str>) -> TtsState {
-    let mut state = diagnostic_state(cli, default_voice);
+fn dump_wav_state(
+    cli: &CliArgs,
+    positional_voice: &str,
+    default_voice: Option<&str>,
+    speech: &SpeechConfiguration,
+) -> TtsState {
+    let mut state = diagnostic_state(cli, default_voice, speech);
     if !positional_voice.is_empty() {
         state.current_voice = positional_voice.to_owned();
     }
@@ -631,14 +652,19 @@ fn raw_wav_path(output: &str) -> Result<String> {
 }
 
 pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) -> Result<()> {
-    let engine = create_engine(
+    let (engine, speech) = create_diagnostic_engine(
         &cli.engine,
         cli.piper_model.as_deref(),
         cli.voice_library.as_deref(),
         cli.config_dir.as_deref(),
     )
     .context("Failed to create engine")?;
-    let state = dump_wav_state(cli, voice, engine.descriptor().default_voice_id.as_deref());
+    let state = dump_wav_state(
+        cli,
+        voice,
+        engine.descriptor().default_voice_id.as_deref(),
+        &speech,
+    );
     let request = SynthesisRequest::new(text, settings_from_state(&state));
     let result = engine.synthesize(&request).context("Synthesis failed")?;
     result
@@ -780,7 +806,12 @@ mod tests {
             config_dir: None,
         };
 
-        let state = dump_wav_state(&cli, "positional-voice", Some("slt"));
+        let state = dump_wav_state(
+            &cli,
+            "positional-voice",
+            Some("slt"),
+            &SpeechConfiguration::default(),
+        );
         let settings = settings_from_state(&state);
 
         assert_eq!(settings.voice, "positional-voice");
@@ -809,7 +840,7 @@ mod tests {
         };
 
         assert_eq!(
-            dump_wav_state(&cli, "", Some("paul")).current_voice,
+            dump_wav_state(&cli, "", Some("paul"), &SpeechConfiguration::default()).current_voice,
             "flag-voice"
         );
     }
@@ -834,19 +865,46 @@ mod tests {
         for default_voice in [Some("paul"), Some("slt"), Some("male"), None] {
             let expected = default_voice.unwrap_or_default();
             assert_eq!(
-                diagnostic_state(&cli, default_voice).current_voice,
+                diagnostic_state(&cli, default_voice, &SpeechConfiguration::default())
+                    .current_voice,
                 expected
             );
             assert_eq!(
-                dump_wav_state(&cli, "", default_voice).current_voice,
+                dump_wav_state(&cli, "", default_voice, &SpeechConfiguration::default())
+                    .current_voice,
                 expected
             );
         }
         cli.voice = Some("invalid-explicit-voice".to_owned());
         assert_eq!(
-            diagnostic_state(&cli, Some("paul")).current_voice,
+            diagnostic_state(&cli, Some("paul"), &SpeechConfiguration::default()).current_voice,
             "invalid-explicit-voice"
         );
+
+        let mut speech = SpeechConfiguration::default();
+        speech.defaults.voice = Some("saved-voice".into());
+        speech.defaults.rate = 0.75;
+        speech.defaults.pitch = 1.25;
+        speech.defaults.voice_volume = 0.6;
+        cli.voice = None;
+        let state = diagnostic_state(&cli, Some("paul"), &speech);
+        assert_eq!(state.current_voice, "saved-voice");
+        assert_eq!(settings_from_state(&state).rate, 0.75);
+        assert_eq!(settings_from_state(&state).pitch, 1.25);
+        assert_eq!(settings_from_state(&state).volume, 1.0);
+        assert_eq!(state.voice_volume, 0.6);
+        cli.voice = Some("command-line-voice".into());
+        cli.rate = Some(0.9);
+        cli.voice_volume = Some(0.3);
+        let mut state = dump_wav_state(&cli, "positional-voice", Some("paul"), &speech);
+        assert_eq!(state.current_voice, "positional-voice");
+        assert_eq!(state.speech_rate, 0.9);
+        assert_eq!(state.voice_volume, 0.3);
+        // CLI overrides are startup choices; reset returns to the saved file.
+        state.reset();
+        assert_eq!(state.current_voice, "saved-voice");
+        assert_eq!(state.speech_rate, 0.75);
+        assert_eq!(state.voice_volume, 0.6);
     }
 
     #[test]

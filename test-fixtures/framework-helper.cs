@@ -56,6 +56,10 @@ class FrameworkHelper {
                 break;
             case "describe": Reply(id, "descriptor", "descriptor", descriptor); break;
             case "synthesize":
+                var settings = request["settings"] as Dictionary<string, object>;
+                object selectedVoice;
+                if (!settings.TryGetValue("voice_id", out selectedVoice) || selectedVoice == null)
+                    selectedVoice = descriptor["default_voice_id"];
                 if (options.ContainsKey("--record-synthesis"))
                     File.AppendAllText(options["--record-synthesis"], Json.Serialize(request) + "\n");
                 var pcm = new byte[4400];
@@ -66,7 +70,7 @@ class FrameworkHelper {
                 }
                 Reply(id, "synthesis_started", "format", new Dictionary<string, object> {
                     {"sample_rate", 22050}, {"channels", 1}, {"sample_format", "pcm_s16_le"}
-                }, "actual_voice_id", descriptor["default_voice_id"]);
+                }, "actual_voice_id", selectedVoice);
                 Reply(id, "audio_chunk", "chunk", new Dictionary<string, object> {
                     {"sequence", 0}, {"data_base64", Convert.ToBase64String(pcm)}
                 });

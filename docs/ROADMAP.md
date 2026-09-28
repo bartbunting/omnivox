@@ -219,10 +219,12 @@ markers. Measure physical output, underruns, device changes and competing load.
 
 ### Host configuration follow-up
 
-The bounded word limit is implemented in
+The bounded word limit and saved speech defaults are implemented in
 [configuration version 2](reference/engine-configuration.md#configuration-version-2).
-Keep its default at 15; native listening and matched comparisons across engines
+Keep the word-limit default at 15; native listening and matched comparisons across engines
 remain necessary before recommending a different default.
+Reset restores the saved speech baseline under
+[ADR 0010](adr/0010-saved-speech-defaults.md); client commands can override it again.
 
 The second configuration pass identified these useful next steps:
 
@@ -230,10 +232,6 @@ The second configuration pass identified these useful next steps:
   channel target and existing PulseAudio latency preference in the host file.
   Preserve command-line and launcher overrides, including independent lane
   channels. Named devices remain the separate audio-device feature above.
-- **Speech startup defaults:** save voice, rate, pitch, volumes, punctuation,
-  CamelCase splitting and character speed. Explicit client settings must retain
-  priority. Define reset behavior and exact diagnostic precedence together, and
-  freeze the defaults in the same retained startup record.
 - **Isolated-capital pitch cue:** consider exposing its fixed multiplier when
   character presentation next changes; keep semantic capitalization actions
   separate and test ordinary letter navigation.

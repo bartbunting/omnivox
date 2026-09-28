@@ -134,6 +134,36 @@ and a worker recovering after failure keeps its previous value. A normal client
 speech reset also keeps it. This setting does not divide `--dump-wav` output.
 See the [exact rules](../reference/engine-configuration.md#configuration-version-2).
 
+### Save your usual speech settings
+
+Add a `defaults` object inside `speech` in version-2 `config.json`, for example:
+
+```json
+{
+  "schema": 2,
+  "speech": {
+    "defaults": {
+      "rate": 0.7,
+      "voice_volume": 0.8,
+      "tone_volume": 0.2,
+      "punctuation": "some"
+    }
+  }
+}
+```
+
+You can also save voice, pitch, sound volume, CamelCase splitting and character
+speed. Keep existing engine and chunk settings in the same file. See the
+[field names and ranges](../reference/engine-configuration.md#saved-speech-defaults).
+Rate uses Omnivox's `0.0`–`2.0` scale: write `0.7`, not `70`.
+
+Restart speech to load the file. Command-line settings can override it at startup,
+and Emacs can change settings during the session. When Emacs resets speech,
+Omnivox returns to your saved speech defaults. Later Emacs commands can change
+them again. Editing the file alone does not change active or recovering workers.
+Omitted settings retain their built-in values. Audio output settings remain
+separate; this does not add an Emacs settings screen.
+
 ### Add your own speech engine
 
 Omnivox 1.13 adds registration for independently installed helpers. You need a

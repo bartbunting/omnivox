@@ -130,11 +130,53 @@ fn historical_snapshots_keep_fifteen_words_and_their_old_wire_shape() {
     let mut old = serde_json::to_value(prepared()).unwrap();
     old["schema"] = json!(1);
     old.as_object_mut().unwrap().remove("speech");
+    old.as_object_mut().unwrap().remove("speech_defaults");
     let decoded = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert_eq!(decoded.resolved().speech.max_chunk_words.get(), 15);
     assert_eq!(serde_json::to_value(&decoded).unwrap(), old);
     old["speech"] = json!({"max_chunk_words":30});
     assert!(LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).is_err());
+}
+
+#[test]
+fn saved_defaults_are_complete_and_old_chunk_snapshots_keep_their_wire_shape() {
+    let mut resolved = resolved(None);
+    resolved.speech.defaults.voice = Some("saved voice".into());
+    resolved.speech.defaults.rate = 0.7;
+    resolved.speech.defaults.split_caps = false;
+    let snapshot = LaunchSnapshot::prepare(resolved, None, "".into(), false).unwrap();
+    let decoded = LaunchSnapshot::parse(&snapshot.to_bytes().unwrap()).unwrap();
+    assert_eq!(decoded.resolved().speech, snapshot.resolved().speech);
+    let wire = serde_json::to_value(&snapshot).unwrap();
+    for key in wire["speech_defaults"].as_object().unwrap().keys() {
+        reject_mutation(&snapshot, |wire| {
+            wire["speech_defaults"].as_object_mut().unwrap().remove(key);
+        });
+    }
+    reject_mutation(&snapshot, |wire| wire["speech_defaults"] = json!(null));
+    reject_mutation(&snapshot, |wire| {
+        wire["speech_defaults"]["pitch"] = json!(0.49)
+    });
+    reject_mutation(&snapshot, |wire| {
+        wire["speech_defaults"]["voice"] = json!("")
+    });
+    reject_mutation(&snapshot, |wire| {
+        wire["speech_defaults"]["extra"] = json!(true)
+    });
+    for schema in [1, 2] {
+        reject_mutation(&snapshot, |wire| wire["schema"] = json!(schema));
+    }
+    let mut old = wire;
+    old["schema"] = json!(2);
+    old.as_object_mut().unwrap().remove("speech_defaults");
+    old["speech"]["max_chunk_words"] = json!(30);
+    let decoded = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
+    assert_eq!(
+        decoded.resolved().speech.defaults,
+        SpeechDefaults::default()
+    );
+    assert_eq!(decoded.resolved().speech.max_chunk_words.get(), 30);
+    assert_eq!(serde_json::to_value(&decoded).unwrap(), old);
 }
 
 #[test]
@@ -194,7 +236,7 @@ fn parsing_rejects_duplicate_keys_unknown_fields_and_outer_bounds() {
     trailing.extend_from_slice(b" {}");
     assert!(LaunchSnapshot::parse(&trailing).is_err());
     reject_mutation(&snapshot, |value| value["extra"] = json!(true));
-    reject_mutation(&snapshot, |value| value["schema"] = json!(3));
+    reject_mutation(&snapshot, |value| value["schema"] = json!(4));
     reject_mutation(&snapshot, |value| {
         value["platform"] = json!("another native platform")
     });

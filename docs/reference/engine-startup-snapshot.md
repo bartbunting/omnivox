@@ -21,8 +21,9 @@ configuration retains its separate no-null rule.
 
 | Field | Value |
 | --- | --- |
-| `schema` | Integer `2` for newly prepared records; historical `1` remains readable. |
-| `speech` | Required in schema 2: object containing required integer `max_chunk_words` from 1 through 100. Unknown fields and null fail. Absent in schema 1, which means the historical fixed 15 words. |
+| `schema` | Integer `3` for newly prepared records; historical `1` and `2` remain readable. |
+| `speech` | Required in schemas 2 and 3: object containing required integer `max_chunk_words` from 1 through 100. Unknown fields and null fail. Absent in schema 1, which means the historical fixed 15 words. |
+| `speech_defaults` | Required non-null object in schema 3, absent in schemas 1 and 2. Every [saved-default member](engine-configuration.md#saved-speech-defaults) is required, with the same validated ranges. `voice` is required but nullable: null retains the historical default selection. |
 | `platform` | Native Rust OS name, exactly matching the recipient. |
 | `activation_id` | Canonical lowercase UUID, freshly generated for a prepared activation and retained by clones/recovery. |
 | `registrations` | Complete registration records, including all reserved shipped IDs and at most 32 external IDs. Duplicate IDs fail. |
@@ -39,12 +40,13 @@ Paths use this representation too. Non-Unicode legacy arguments and environment
 values survive without lossy conversion; external-manifest inputs retain their
 UTF-8 requirements. No shell interpretation occurs.
 
-Schema-1 records retain schema 1 when serialized again, including omission of
-`speech`; they cannot carry version-2 settings. This permits retained owners to
-restart the older executable whose identity they pin. New preparations always
-emit schema 2, including the resolved default when public configuration omits
-speech settings. The two workers and every recovery attempt consume the same
-resolved value without consulting changed files. This private schema increment
+Schema-1 and schema-2 records retain their original schema and field shape when
+serialized again. Schema 1 cannot carry `speech`; neither historical schema can
+carry `speech_defaults`. Both imply the old built-in speech defaults. This permits
+retained owners to restart the older executable whose identity they pin. New
+preparations always emit schema 3, including all resolved defaults when public
+configuration omits settings. The two workers and every recovery attempt consume
+the same resolved values without consulting changed files. This private schema increment
 does not change the public `engine_configuration_version: 1` acknowledgement.
 
 On Windows, initial environment capture omits inherited drive-directory entries
@@ -136,6 +138,10 @@ files/environment between launches, checks independent retirement and verifies
 that a fresh activation rejects the now-invalid main configuration. It also
 records actual synthesis requests: both lanes, client reset and an owner
 restarted from its retained record must keep the configured three-word limit.
+The fixture has two voices and records rate/pitch as well, checking saved
+defaults, subsequent client changes and reset even after configuration becomes
+invalid. Exact diagnostic CLI/positional overrides and private preview selection
+remain independently checked.
 This is
 null-output framework coverage, not native adapter or audible qualification.
 
