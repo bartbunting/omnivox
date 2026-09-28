@@ -159,6 +159,9 @@ markers. Measure physical output, underruns, device changes and competing load.
   evidence beyond companion release gates. RuLex needs a separate provenance,
   database, licensing and cross-platform decision.
 - Preserve eSpeak's Unicode fallback, native anchors and original UTF-8 mappings.
+  Investigate the [dense-marker failure](benchmarks/2026-09-28-host-chunk-configuration.md#pre-existing-dense-marker-failure)
+  reproduced on both the pre-change release executable and the configurable
+  chunk-size build; eSpeak reports 14 of 15 requested anchors after partial audio.
 
 ## Deployment and user diagnostics
 

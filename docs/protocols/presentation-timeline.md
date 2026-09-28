@@ -108,10 +108,14 @@ framed legacy transactions. `dispatch_id` identifies marker-v2 and terminal
 records. Span and action IDs are bounded and unique in their respective
 namespaces. Version 3 permits at most 262,144 spans and 4,096 actions inside
 the 16 MiB aggregate; versions 1 and 2 permit at most 4,096 of each in their
-direct frames. After punctuation and CamelCase preparation, each 15-word
+direct frames. After punctuation and CamelCase preparation, each configured
 speech window may own at most 512 combined client actions and internal
 capitalization anchors. Logical voice, action, replacement, and effect-state
 IDs are at most 128 UTF-8 bytes; audio paths are at most 4096 UTF-8 bytes.
+The host's [chunk limit](../reference/engine-configuration.md#configuration-version-2)
+defaults to 15 words and may be configured from 1 through 100. This local setting
+does not change the wire format or raise the 512-action bound; admission and
+synthesis use the same frozen limit.
 
 ## Delivery Policy
 

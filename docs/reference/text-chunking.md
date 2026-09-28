@@ -67,6 +67,10 @@ and changes only at deliberate restart. Direct `--dump-wav` diagnostics retain
 their whole-text synthesis path. Word count is not a text-byte or audio-size
 limit; those protections remain independent.
 
+The [configuration acceptance report](../benchmarks/2026-09-28-host-chunk-configuration.md)
+records functional checks, exploratory engine measurements and their limitations.
+It does not recommend a new default or establish acoustic improvements.
+
 ## Verification
 
 Unit tests cover short/exact/long input, sentence and clause preference,

@@ -1,0 +1,30 @@
+{
+  "source_commit": "e7293afbfae866c54de61de3c198aa64fe1523e8",
+  "prior_source_commit": "c51837e08502a3abf8f41bb38be85d12e4bd6dc9",
+  "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "programs": {
+    "linux_current": {
+      "path": "/home/bart/ov113.v3MoTB/debug/omnivox",
+      "sha256": "e0fb1bae01d7eb6e95e48c0063484a0df0700eaa87e6f3e13c033f106ca51eed",
+      "bytes": 152574344
+    },
+    "linux_previous": {
+      "path": "/home/bart/ov113.v3MoTB/release/omnivox",
+      "sha256": "a263d82371164b897d58f1e0008f88b2c6de80b85e9261ea693e2a9db3cd9253",
+      "bytes": 16827040
+    },
+    "windows_current": {
+      "path": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/f2321317c67b838f/omnivox.exe",
+      "sha256": "1d43da3144430fb3cb41a1be0398c42d1ba39d641225d0284e8e801a05c24c1c",
+      "bytes": 14874624
+    }
+  },
+  "measurement": "Null-output mixer-source and terminal timing, not acoustic measurements",
+  "limitation": "Linux debug timing collected while isolated Windows build was running; exploratory, not a basis for changing default. Prior release binary used only to reproduce dense-marker failure, not as a timing comparison.",
+  "windows_staging": "make windows-omnivox-dev OMNIVOX_RUNTIME_DIR=/home/bart/src/omnivox/target/host-configuration-windows (sibling Emacsvox repository)",
+  "windows_os": "Microsoft Windows NT 10.0.26200.0",
+  "windows_espeak_data": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+  "windows_harness": "Python in WSL launching native Windows payload; WSLENV=ESPEAK_NG_DATA:OMNIVOX_ENGINE, ESPEAK_NG_DATA=windows_espeak_data above; --config-dir points to copies of the retained config-5/15/30.json in Windows-local temporary storage.",
+  "windows_timing": "Release profile, compilation complete, same six-run sequence and cases as Linux. Not directly comparable to Linux debug timings."
+}

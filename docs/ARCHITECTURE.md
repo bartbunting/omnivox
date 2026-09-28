@@ -144,9 +144,9 @@ timeline may use up to 64 ordered transport parts and a 16 MiB decoded
 aggregate. Assembly identity, order, timeout, decoded length, and the complete
 cross-referenced envelope are validated before admission. The aggregate holds
 at most 262,144 spans and 4,096 actions. Text preparation also rejects a
-15-word speech window with more than 512 combined client actions and internal
-capitalization anchors before it reaches the synthesis queue. A decodable
-invalid or stale direct timeline receives a terminal `failed` or `cancelled`
+configured speech window (15 words by default) with more than 512 combined client
+actions and internal capitalization anchors before it reaches the synthesis
+queue. A decodable invalid or stale direct timeline receives a terminal `failed` or `cancelled`
 status; an undecodable record with no trustworthy dispatch identity is
 diagnostic only.
 
