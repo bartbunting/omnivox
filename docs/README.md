@@ -17,14 +17,16 @@ document responsibilities and maintenance rules.
 
 The [ADR index](adr/README.md) records durable choices and distinguishes accepted
 decisions from proposals. Accepted design, implementation, platform qualification
-and release publication are different states. Extensible engine registration
-remains [proposed](ROADMAP.md#extensible-engine-registration).
+and release publication are different states. Engine registration version 1 is
+implemented; the [roadmap](ROADMAP.md#extensible-engine-registration) tracks
+later extensions and remaining platform qualification.
 
 ## Operations and releases
 
 | Task | Guide |
 | --- | --- |
 | Configure a speech host | [CLI, environment and adapters](guides/configuration.md) |
+| Add an independently installed engine | [Helper registration walkthrough](guides/configuration.md#add-your-own-speech-engine) |
 | Diagnose speech failures | [Logs, lifecycle tracing and crash dumps](guides/diagnostics.md) |
 | Manage downloaded/imported voices | [Installation, enablement, Apply/rollback and removal](guides/voice-management.md) |
 | Validate native voice inputs | [Disposable checks, saved evidence and operation commands](guides/native-voice-validation.md) |

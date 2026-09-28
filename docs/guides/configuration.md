@@ -110,6 +110,77 @@ checks both workers' acknowledgements; recovery retains that activation. Remote
 hosts freeze the record per authenticated session. Native platform qualification
 is separate from framework tests.
 
+### Add your own speech engine
+
+Omnivox 1.13 adds registration for independently installed helpers. You need a
+helper that speaks the [Omnivox helper protocol](../protocols/helper.md), plus
+any runtime and voices it requires. An ordinary speech-engine DLL or NVDA
+add-on is not itself an Omnivox helper. Registration does not install these files.
+
+The following Windows example uses an illustrative helper called `wintalker`.
+Replace its path and ID with those supplied by the helper's author.
+
+1. Create `%APPDATA%\omnivox\helpers.d` if it does not exist. If you selected
+   another root with `--config-dir` or `OMNIVOX_CONFIG_DIR`, use that root instead.
+   When Windows Omnivox runs from WSL, use the Windows directory and Windows
+   executable path, not the Linux configuration directory.
+2. Save the following as `wintalker.json` in `helpers.d`. Use UTF-8 JSON and
+   keep the doubled backslashes in the program path:
+
+   ```json
+   {
+     "schema": 1,
+     "engine_id": "wintalker",
+     "program": "C:\\Users\\me\\speech\\omnivox-wintalker-helper.exe",
+     "timeouts": {
+       "synthesis_idle_ms": 60000
+     }
+   }
+   ```
+
+   The helper must report the same engine ID. Do not borrow a shipped ID such
+   as `rutts`. Only register a helper you intend to run: Omnivox starts the
+   program to discover its voices even before you select one for speech.
+3. In PowerShell, use your new Omnivox executable to check the version and list
+   that helper's voices. Replace the example executable path:
+
+   ```powershell
+   $omnivox = "C:\Speech\Omnivox\omnivox.exe"
+   & $omnivox --version
+   & $omnivox --engine wintalker --list-voices
+   ```
+
+   Copy a voice ID from the result, then test synthesis with that exact voice:
+
+   ```powershell
+   & $omnivox --engine wintalker --dump-wav "VOICE_ID" "$env:TEMP\omnivox-helper.wav" "Testing my speech engine."
+   ```
+
+   Open the resulting WAV file in an audio player to check what you hear.
+   Successful file generation alone does not confirm audible voice quality.
+4. Restart your speech server deliberately. For Emacsvox, use a client revision
+   with engine-configuration support and restart the Emacsvox session so both
+   foreground and notification speech receive the new settings. Select the new
+   engine's voice through the client's voice selection interface. Existing
+   processes keep their original configuration, including during recovery.
+
+No `config.json` is needed just to register the helper. Registration alone does
+not make it the default voice. For a standalone server, select it with
+`--engine wintalker --voice VOICE_ID`; see the local routing settings above for
+saved engine preferences. Client routing settings can also affect selection.
+
+On Linux or macOS, use the configuration root listed above, a native absolute
+program path, and the same manifest fields. Do not use shell variables such as
+`$HOME` or `%APPDATA%` inside the JSON program path; they are not expanded.
+
+If the helper does not appear, repeat the exact `--engine ... --list-voices`
+command and read its error output. Check the configuration root, JSON spelling,
+absolute executable path, matching engine ID, and required runtime installation.
+A conflicting ID or invalid manifest is rejected. Timeouts outside the allowed
+ranges are also rejected; the [configuration reference](../reference/engine-configuration.md#helper-manifest)
+lists the bounds. To stop loading the helper, set `"enabled": false` in its
+manifest and restart the speech session.
+
 ## Server environment
 
 ### Engine selection
