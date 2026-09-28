@@ -90,6 +90,8 @@ samples and a reproducible comparison.
 - [Retained platform and companion observations](2026-09-27-retained-platform-results.md)
 - [Retained Piper release qualification](2026-09-27-retained-piper-release-results.md)
 
+- [Omnivox 1.13.0 candidate checks](2026-09-28-1.13-candidate.md)
+
 ## Preservation policy
 
 Treat a committed evidence pack as immutable. Do not replace its raw samples

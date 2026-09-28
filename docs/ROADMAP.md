@@ -107,8 +107,9 @@ both speech workers share prepared settings and retain them through recovery.
 The [acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) maps all
 16 requirements to tests and Linux/Windows process evidence.
 
-Broader native platform and engine qualification remains separate, including
-native macOS process checks. [Language-aware voice selection](plans/language-routing.md)
+Broader native engine qualification remains separate. External-helper process
+checks now also pass on both Macs in the [1.13 candidate checks](benchmarks/2026-09-28-1.13-candidate.md).
+[Language-aware voice selection](plans/language-routing.md)
 is a proposed later increment requiring agreed matching, fallback and versioning
 rules. A configuration UI, live reload, per-helper environment settings and
 executable installation are also outside the completed scope.

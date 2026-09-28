@@ -69,7 +69,9 @@ include the source and CI identities; formula updates remain explicit.
   historical owner records retain package references through retirement; see
   the [Windows evidence](benchmarks/2026-09-28-windows-engine-snapshot.md).
   The [first-slice audit](benchmarks/2026-09-28-engine-framework-audit.md) is complete.
-  Broader native qualification, including macOS process checks, remains pending.
+  The [1.13 candidate checks](benchmarks/2026-09-28-1.13-candidate.md) add native
+  external-helper process coverage on both Mac architectures. Qualification of
+  individual third-party runtimes remains separate.
   The earlier startup-deadline ownership gap has been
   [fixed and regression-tested](benchmarks/2026-09-27-engine-startup-deadline.md).
 - Speech Dispatcher is unimplemented.

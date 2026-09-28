@@ -1,0 +1,17 @@
+{
+  "production_source": "dd6ed9ea46e4603f79e896e80953a56ae094e1d3",
+  "final_test_source": "7327b18",
+  "rust": "1.97.1",
+  "local_host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "local_build": "CARGO_TARGET_DIR=/home/bart/ov113.v3MoTB CARGO_INCREMENTAL=0 make build",
+  "binaries": {
+    "linux": {
+      "sha256": "a263d82371164b897d58f1e0008f88b2c6de80b85e9261ea693e2a9db3cd9253",
+      "path": "/home/bart/ov113.v3MoTB/release/omnivox"
+    },
+    "windows": {
+      "sha256": "b4a4fb88d0a928d685e1d62aa7e7af6ceda30efa04451b12d959c47416325f39",
+      "path": "target/release-1.13.0-evidence/windows-candidate/omnivox.exe"
+    }
+  }
+}
