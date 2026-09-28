@@ -188,6 +188,21 @@ jobs:
           test "$(wc -c < native-smoke_raw.wav)" -gt 44
           test "$(wc -c < native-smoke.wav)" -gt 44
 
+      - name: Verify external engine registration (native Unix)
+        if: runner.os != 'Windows'
+        run: python tools/verify_engine_configuration.py artifacts/omnivox
+
+      - name: Verify input failures and recovery (native Unix)
+        if: runner.os != 'Windows'
+        run: OMNIVOX_INPUT_TEST_PROGRAM="$PWD/artifacts/omnivox" python tools/test_input_validation.py
+
+      - name: Verify input failures and recovery (native Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:OMNIVOX_INPUT_TEST_PROGRAM = (Resolve-Path artifacts\omnivox.exe).Path
+          python tools/test_input_validation.py
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
