@@ -22,6 +22,10 @@ Versioning for published releases.
 - Reject non-finite numeric settings before they can produce invalid audio.
 - Limit requested silences to 15 seconds, preventing oversized silence commands
   from exhausting the speech process's memory.
+## [1.12.1] - 2026-09-23
+
+### Fixed
+
 - Speech continues after native voice segments that produce no audio, such as
   silent Markdown markup between ordinary text and a link.
 
