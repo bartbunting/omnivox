@@ -92,6 +92,7 @@ samples and a reproducible comparison.
 
 - [Omnivox 1.13.0 candidate checks](2026-09-28-1.13-candidate.md)
 - [Windows startup watchdog test correction](2026-09-28-startup-watchdog-test.md)
+- [Omnivox 1.13.0 publication checks](2026-09-28-1.13-publication.md)
 
 ## Preservation policy
 

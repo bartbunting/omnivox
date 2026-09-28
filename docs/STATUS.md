@@ -7,6 +7,11 @@ This review adds no native qualification. Published changes belong to the
 tracks outstanding work, and [retained evidence](benchmarks/README.md) records
 actual runs and their limits.
 
+[Omnivox 1.13.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.13.0).
+The [publication checks](benchmarks/2026-09-28-1.13-publication.md) retain the
+release identity, successful gates and two investigated retries. The later
+startup-watchdog test correction is not part of the tagged source archive.
+
 ## Implemented
 
 | Area | Current capability | Maintained reference |

@@ -1,0 +1,21 @@
+{
+  "captured_at_utc": "2026-09-28T04:50:04.055996+00:00",
+  "release_tag": "v1.13.0",
+  "release_commit": "54aee84575d8a0072e5995b3705959f581e777c8",
+  "release_workflow_run": 36366520107,
+  "release_workflow_attempt": 3,
+  "release_published_at_utc": "2026-09-28T04:44:57Z",
+  "local_helper_check": {
+    "platform": "Windows x64 through WSL interop",
+    "source_archive": "omnivox-1.13.0-windows-arm64.zip",
+    "harness": "tools/test_windows_helper_startup.py",
+    "scope": "Exact 32-bit Eloquence and DECtalk helper bytes from draft archive; missing-runtime and DECtalk discovery checks only",
+    "repetitions": 1
+  },
+  "limitations": [
+    "No physical listening or audio-device acceptance",
+    "No proprietary-runtime qualification",
+    "Attempt-2 Windows ARM64 helper timeout cause remains undetermined",
+    "Post-tag test correction b6ce206 is not in the published 1.13.0 source archive"
+  ]
+}
