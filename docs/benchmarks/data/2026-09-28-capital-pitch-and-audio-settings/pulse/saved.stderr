@@ -1,0 +1,16 @@
+2026-09-28T08:10:32.219176Z  INFO Omnivox v1.13.0 starting
+2026-09-28T08:10:32.222286Z  INFO Initializing espeak-ng TTS engine
+2026-09-28T08:10:32.223407Z  INFO espeak-ng initialized with sample rate: 22050Hz
+2026-09-28T08:10:32.228087Z  INFO Registered native engine engine_id="espeak"
+2026-09-28T08:10:32.228279Z  INFO Selected startup engine engine_id="espeak"
+2026-09-28T08:10:32.228340Z  INFO TTS engines initialized
+2026-09-28T08:10:32.228391Z  INFO Found 141 voices
+2026-09-28T08:10:32.228407Z  INFO Initializing audio output audio_backend=Pulse
+2026-09-28T08:10:32.263943Z  INFO Native PulseAudio output ready (buffer request is a hint) stream="speech" requested_ms=45 actual=Some(BufferAttr { maxlength: 63488, tlength: 9696, prebuf: 8, minreq: 1760, fragsize: 4294967295 }) write_frames=220
+2026-09-28T08:10:32.267179Z  INFO Native PulseAudio output ready (buffer request is a hint) stream="tone" requested_ms=45 actual=Some(BufferAttr { maxlength: 63488, tlength: 9696, prebuf: 8, minreq: 1760, fragsize: 4294967295 }) write_frames=220
+2026-09-28T08:10:32.270492Z  INFO Native PulseAudio output ready (buffer request is a hint) stream="sound" requested_ms=45 actual=Some(BufferAttr { maxlength: 63488, tlength: 9696, prebuf: 8, minreq: 1760, fragsize: 4294967295 }) write_frames=220
+2026-09-28T08:10:32.272110Z  INFO Ready to accept commands from stdin
+2026-09-28T08:10:32.272149Z  INFO Stdin closed; waiting for synthesis worker to finish
+2026-09-28T08:10:32.272343Z  INFO Draining audio output
+2026-09-28T08:10:32.508735Z  INFO PulseAudio timing estimate (not acoustic latency) stream="tone" latency_available=true latency_usec=0 negative=false source_active=false underflows=0 active_underflows=0
+2026-09-28T08:10:32.508852Z  INFO Shutting down

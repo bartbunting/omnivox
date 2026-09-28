@@ -53,6 +53,9 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-09-28 capital pitch and audio settings](2026-09-28-capital-pitch-and-audio-settings.md)
+  records Linux and native Windows configuration, fallback, reset and recovery
+  checks, WAV channel assertions and native PulseAudio startup requests.
 - [2026-09-28 saved speech defaults](2026-09-28-saved-speech-defaults.md)
   records Linux and native Windows checks for saved preferences, overrides,
   reset, immutable recovery and historical startup compatibility.

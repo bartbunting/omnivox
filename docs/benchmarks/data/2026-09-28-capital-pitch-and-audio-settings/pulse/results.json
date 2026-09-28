@@ -1,0 +1,24 @@
+[
+  {
+    "case": "saved",
+    "expected_ms": 45,
+    "observed_requests_ms": [
+      "45",
+      "45",
+      "45"
+    ],
+    "exit_code": 0,
+    "passed": true
+  },
+  {
+    "case": "environment",
+    "expected_ms": 30,
+    "observed_requests_ms": [
+      "30",
+      "30",
+      "30"
+    ],
+    "exit_code": 0,
+    "passed": true
+  }
+]
