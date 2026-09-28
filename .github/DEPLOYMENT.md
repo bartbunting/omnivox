@@ -117,8 +117,8 @@ Compiled caches are separated by runner image for those builds.
 - External-helper registration, exact selection, shared settings and worker
   retirement through real processes on Linux x64 and both macOS architectures.
 - Rejection of invalid numeric settings, oversized silences and invalid audio
-  resources using each native server build; Unix also checks named pipes and
-  a constrained-memory silence request.
+  resources using each native server build; Unix also checks named pipes, and
+  Linux checks a constrained-memory silence request.
 - Tag-to-binary version agreement, release checksums, safe extraction, root
   payload layout, executable modes and architectures, and adjacent eSpeak data
   discovery from a relocated directory without path overrides.

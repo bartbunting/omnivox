@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 import wave
@@ -52,11 +53,13 @@ class InputValidationTests(unittest.TestCase):
             env=self.environment, **options)
 
     def test_oversized_silence_is_rejected_and_later_speech_completes(self):
-        result = self.run_omnivox(
-            input="sh 15001\nq Speech after rejection.\nemacsvox_tracked_dispatch 41\n")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Invalid silence:", result.stderr)
-        self.assertIn("__EMACSVOX_TRACKED__ 41 completed", result.stdout)
+        for duration in (15001, 3600000, 4294967295):
+            with self.subTest(duration=duration):
+                result = self.run_omnivox(input=(
+                    f"sh {duration}\nq Speech after rejection.\nemacsvox_tracked_dispatch 41\n"))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("Invalid silence:", result.stderr)
+                self.assertIn("__EMACSVOX_TRACKED__ 41 completed", result.stdout)
 
     def test_command_line_rejects_nonfinite_settings_before_writing_audio(self):
         output = self.root / "invalid.wav"
@@ -109,7 +112,7 @@ class InputValidationTests(unittest.TestCase):
         self.assertIn("__EMACSVOX_TRACKED__ 43 failed", result.stdout)
         self.assertIn("__EMACSVOX_TRACKED__ 44 completed", result.stdout)
 
-    @unittest.skipUnless(os.name == "posix" and not WINDOWS, "POSIX memory limit")
+    @unittest.skipUnless(sys.platform == "linux" and not WINDOWS, "Linux address-space limit")
     def test_huge_silence_cannot_exhaust_process_memory(self):
         import resource
 
