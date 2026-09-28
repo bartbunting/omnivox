@@ -53,6 +53,9 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-09-28 Omnivox 1.14.0 publication](2026-09-28-1.14-publication.md)
+  records all 64 passing release jobs, the immutable tag, and the exact public
+  asset set and checksums.
 - [2026-09-28 Omnivox 1.14.0 candidate](2026-09-28-1.14-candidate.md)
   records release checks and the subsequent successful physical Windows
   headphone-switching test after correcting the saved launcher selection.

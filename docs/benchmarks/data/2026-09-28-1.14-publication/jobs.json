@@ -1,0 +1,5794 @@
+[
+  {
+    "completedAt": "2026-09-28T10:20:44Z",
+    "conclusion": "success",
+    "databaseId": 108883401104,
+    "name": "Build and Test Debian Package",
+    "startedAt": "2026-09-28T10:16:03Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code and release tags",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install pinned Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install native and Debian build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build Debian package",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify installation on supported Ubuntu releases",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified Debian package",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 17,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code and release tags",
+        "number": 18,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 19,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401104"
+  },
+  {
+    "completedAt": "2026-09-28T10:23:42Z",
+    "conclusion": "success",
+    "databaseId": 108883401320,
+    "name": "Build windows-arm64",
+    "startedAt": "2026-09-28T10:17:50Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build release binary",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build portable RHVoice helper",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build Windows proprietary-runtime bridge helpers",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify Windows bridge startup without proprietary runtimes",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare artifacts (Windows)",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Prepare artifacts (Unix)",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Validate artifact payload (Windows)",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Validate artifact payload (Unix)",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Smoke-test packaged eSpeak (native Unix)",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Smoke-test packaged native macOS synthesis",
+        "number": 17,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify external engine registration (native Unix)",
+        "number": 18,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify input failures and recovery (native Unix)",
+        "number": 19,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify input failures and recovery (native Windows)",
+        "number": 20,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload artifacts",
+        "number": 21,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 39,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 40,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 41,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 42,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 43,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401320"
+  },
+  {
+    "completedAt": "2026-09-28T10:18:43Z",
+    "conclusion": "success",
+    "databaseId": 108883401391,
+    "name": "Test macos-arm64",
+    "startedAt": "2026-09-28T10:16:07Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run tests",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run clippy",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 17,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401391"
+  },
+  {
+    "completedAt": "2026-09-28T10:20:07Z",
+    "conclusion": "success",
+    "databaseId": 108883401399,
+    "name": "Build Piper Release linux-x64",
+    "startedAt": "2026-09-28T10:16:03Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared inputs without network",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Lint native Piper crates",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare locked CI-only synthesis model",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Stress persistent Piper helper session",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build Piper-enabled server",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify real synthesis from relocated archive",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 30,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 31,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 32,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 33,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401399"
+  },
+  {
+    "completedAt": "2026-09-28T10:25:41Z",
+    "conclusion": "success",
+    "databaseId": 108883401406,
+    "name": "Build Piper Release windows-x64",
+    "startedAt": "2026-09-28T10:16:19Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared inputs without network",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Lint native Piper crates",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare locked CI-only synthesis model",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Stress persistent Piper helper session",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build Piper-enabled server",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify real synthesis from relocated archive",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 30,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 31,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 32,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 33,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401406"
+  },
+  {
+    "completedAt": "2026-09-28T10:18:23Z",
+    "conclusion": "success",
+    "databaseId": 108883401420,
+    "name": "Formatting",
+    "startedAt": "2026-09-28T10:18:00Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install pinned rustfmt",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Check formatting",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Check documentation links",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Check release guards, archive layout, and asset contract",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Check WSL audio trial tools without an audio device",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401420"
+  },
+  {
+    "completedAt": "2026-09-28T10:23:15Z",
+    "conclusion": "success",
+    "databaseId": 108883401459,
+    "name": "Build macos-arm64",
+    "startedAt": "2026-09-28T10:18:51Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build release binary",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build portable RHVoice helper",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Build Windows proprietary-runtime bridge helpers",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify Windows bridge startup without proprietary runtimes",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Prepare artifacts (Windows)",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare artifacts (Unix)",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Validate artifact payload (Windows)",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Validate artifact payload (Unix)",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Smoke-test packaged eSpeak (native Unix)",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Smoke-test packaged native macOS synthesis",
+        "number": 17,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify external engine registration (native Unix)",
+        "number": 18,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify input failures and recovery (native Unix)",
+        "number": 19,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify input failures and recovery (native Windows)",
+        "number": 20,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload artifacts",
+        "number": 21,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 39,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 40,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 41,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 42,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 43,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401459"
+  },
+  {
+    "completedAt": "2026-09-28T10:23:41Z",
+    "conclusion": "success",
+    "databaseId": 108883401460,
+    "name": "Build Flite windows-arm64",
+    "startedAt": "2026-09-28T10:18:23Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native Flite crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401460"
+  },
+  {
+    "completedAt": "2026-09-28T10:16:17Z",
+    "conclusion": "success",
+    "databaseId": 108883401488,
+    "name": "Package RuTTS Source",
+    "startedAt": "2026-09-28T10:16:04Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare and verify locked RuTTS source",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify source artifact",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified source artifact",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401488"
+  },
+  {
+    "completedAt": "2026-09-28T10:17:47Z",
+    "conclusion": "success",
+    "databaseId": 108883401493,
+    "name": "Package Piper Source",
+    "startedAt": "2026-09-28T10:16:04Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify source artifact",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified source artifact",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 17,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401493"
+  },
+  {
+    "completedAt": "2026-09-28T10:22:38Z",
+    "conclusion": "success",
+    "databaseId": 108883401498,
+    "name": "Build windows-x64",
+    "startedAt": "2026-09-28T10:16:05Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build release binary",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build portable RHVoice helper",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build Windows proprietary-runtime bridge helpers",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify Windows bridge startup without proprietary runtimes",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare artifacts (Windows)",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Prepare artifacts (Unix)",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Validate artifact payload (Windows)",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Validate artifact payload (Unix)",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Smoke-test packaged eSpeak (native Unix)",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Smoke-test packaged native macOS synthesis",
+        "number": 17,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify external engine registration (native Unix)",
+        "number": 18,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify input failures and recovery (native Unix)",
+        "number": 19,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify input failures and recovery (native Windows)",
+        "number": 20,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload artifacts",
+        "number": 21,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 39,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 40,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 41,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 42,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 43,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401498"
+  },
+  {
+    "completedAt": "2026-09-28T10:28:45Z",
+    "conclusion": "success",
+    "databaseId": 108883401499,
+    "name": "Build TGSpeechBox Release Windows x64",
+    "startedAt": "2026-09-28T10:18:13Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Lint native TGSpeechBox crates",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 21,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 22,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 25,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401499"
+  },
+  {
+    "completedAt": "2026-09-28T10:31:20Z",
+    "conclusion": "success",
+    "databaseId": 108883401503,
+    "name": "Build Piper Release macos-x64",
+    "startedAt": "2026-09-28T10:16:04Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared inputs without network",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Lint native Piper crates",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare locked CI-only synthesis model",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Stress persistent Piper helper session",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build Piper-enabled server",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify real synthesis from relocated archive",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 30,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 31,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 32,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 33,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401503"
+  },
+  {
+    "completedAt": "2026-09-28T10:24:09Z",
+    "conclusion": "success",
+    "databaseId": 108883401542,
+    "name": "Test windows-arm64",
+    "startedAt": "2026-09-28T10:16:25Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run tests",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run clippy",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 17,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401542"
+  },
+  {
+    "completedAt": "2026-09-28T10:18:31Z",
+    "conclusion": "success",
+    "databaseId": 108883401560,
+    "name": "Test linux-x64",
+    "startedAt": "2026-09-28T10:16:04Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Linux build dependencies",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run tests",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run clippy",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 17,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401560"
+  },
+  {
+    "completedAt": "2026-09-28T10:19:01Z",
+    "conclusion": "success",
+    "databaseId": 108883401570,
+    "name": "Build linux-x64",
+    "startedAt": "2026-09-28T10:16:04Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build release binary",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build portable RHVoice helper",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Build Windows proprietary-runtime bridge helpers",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify Windows bridge startup without proprietary runtimes",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Prepare artifacts (Windows)",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare artifacts (Unix)",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Validate artifact payload (Windows)",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Validate artifact payload (Unix)",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Smoke-test packaged eSpeak (native Unix)",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Smoke-test packaged native macOS synthesis",
+        "number": 17,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify external engine registration (native Unix)",
+        "number": 18,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify input failures and recovery (native Unix)",
+        "number": 19,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify input failures and recovery (native Windows)",
+        "number": 20,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload artifacts",
+        "number": 21,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 39,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 40,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 41,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 42,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 43,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401570"
+  },
+  {
+    "completedAt": "2026-09-28T10:30:17Z",
+    "conclusion": "success",
+    "databaseId": 108883401606,
+    "name": "Build Piper Release macos-arm64",
+    "startedAt": "2026-09-28T10:24:45Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared inputs without network",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Lint native Piper crates",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare locked CI-only synthesis model",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Stress persistent Piper helper session",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build Piper-enabled server",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify real synthesis from relocated archive",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 30,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 31,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 32,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 33,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401606"
+  },
+  {
+    "completedAt": "2026-09-28T10:24:16Z",
+    "conclusion": "success",
+    "databaseId": 108883401607,
+    "name": "Test windows-x64",
+    "startedAt": "2026-09-28T10:18:26Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run tests",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run clippy",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 17,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401607"
+  },
+  {
+    "completedAt": "2026-09-28T10:17:22Z",
+    "conclusion": "success",
+    "databaseId": 108883401610,
+    "name": "Package TGSpeechBox Source",
+    "startedAt": "2026-09-28T10:16:04Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare and verify locked TGSpeechBox source",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify source artifact",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified source artifact",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 17,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 18,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 19,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401610"
+  },
+  {
+    "completedAt": "2026-09-28T10:18:09Z",
+    "conclusion": "success",
+    "databaseId": 108883401619,
+    "name": "Build RuTTS linux-arm64",
+    "startedAt": "2026-09-28T10:16:06Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native RuTTS crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401619"
+  },
+  {
+    "completedAt": "2026-09-28T10:25:50Z",
+    "conclusion": "success",
+    "databaseId": 108883401650,
+    "name": "Build Flite macos-x64",
+    "startedAt": "2026-09-28T10:16:05Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native Flite crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401650"
+  },
+  {
+    "completedAt": "2026-09-28T10:26:54Z",
+    "conclusion": "success",
+    "databaseId": 108883401654,
+    "name": "Build Flite macos-arm64",
+    "startedAt": "2026-09-28T10:23:22Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native Flite crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401654"
+  },
+  {
+    "completedAt": "2026-09-28T10:39:47Z",
+    "conclusion": "success",
+    "databaseId": 108883401659,
+    "name": "Test macos-x64",
+    "startedAt": "2026-09-28T10:29:00Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run tests",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Run clippy",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 17,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401659"
+  },
+  {
+    "completedAt": "2026-09-28T10:21:53Z",
+    "conclusion": "success",
+    "databaseId": 108883401714,
+    "name": "Build Flite windows-x64",
+    "startedAt": "2026-09-28T10:16:04Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native Flite crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401714"
+  },
+  {
+    "completedAt": "2026-09-28T10:16:23Z",
+    "conclusion": "success",
+    "databaseId": 108883401720,
+    "name": "Package Flite Source",
+    "startedAt": "2026-09-28T10:16:05Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare and verify locked Flite source",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify source artifact",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified source artifact",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401720"
+  },
+  {
+    "completedAt": "2026-09-28T10:24:34Z",
+    "conclusion": "success",
+    "databaseId": 108883401731,
+    "name": "Build macos-x64",
+    "startedAt": "2026-09-28T10:16:06Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build release binary",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build portable RHVoice helper",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Build Windows proprietary-runtime bridge helpers",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify Windows bridge startup without proprietary runtimes",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Prepare artifacts (Windows)",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare artifacts (Unix)",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Validate artifact payload (Windows)",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Validate artifact payload (Unix)",
+        "number": 15,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Smoke-test packaged eSpeak (native Unix)",
+        "number": 16,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Smoke-test packaged native macOS synthesis",
+        "number": 17,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify external engine registration (native Unix)",
+        "number": 18,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify input failures and recovery (native Unix)",
+        "number": 19,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Verify input failures and recovery (native Windows)",
+        "number": 20,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload artifacts",
+        "number": 21,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo build",
+        "number": 39,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache cargo registry",
+        "number": 40,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 41,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 42,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 43,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401731"
+  },
+  {
+    "completedAt": "2026-09-28T10:18:21Z",
+    "conclusion": "success",
+    "databaseId": 108883401744,
+    "name": "Build Flite linux-arm64",
+    "startedAt": "2026-09-28T10:16:06Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native Flite crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401744"
+  },
+  {
+    "completedAt": "2026-09-28T10:18:45Z",
+    "conclusion": "success",
+    "databaseId": 108883401796,
+    "name": "Build Flite linux-x64",
+    "startedAt": "2026-09-28T10:16:04Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native Flite crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401796"
+  },
+  {
+    "completedAt": "2026-09-28T10:23:18Z",
+    "conclusion": "success",
+    "databaseId": 108883401797,
+    "name": "Build RuTTS windows-arm64",
+    "startedAt": "2026-09-28T10:18:23Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native RuTTS crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401797"
+  },
+  {
+    "completedAt": "2026-09-28T10:24:01Z",
+    "conclusion": "success",
+    "databaseId": 108883401798,
+    "name": "Build RuTTS windows-x64",
+    "startedAt": "2026-09-28T10:18:34Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native RuTTS crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401798"
+  },
+  {
+    "completedAt": "2026-09-28T10:18:20Z",
+    "conclusion": "success",
+    "databaseId": 108883401803,
+    "name": "Build RuTTS linux-x64",
+    "startedAt": "2026-09-28T10:16:04Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native RuTTS crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401803"
+  },
+  {
+    "completedAt": "2026-09-28T10:34:32Z",
+    "conclusion": "success",
+    "databaseId": 108883401890,
+    "name": "Build RuTTS macos-x64",
+    "startedAt": "2026-09-28T10:26:59Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native RuTTS crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883401890"
+  },
+  {
+    "completedAt": "2026-09-28T10:28:56Z",
+    "conclusion": "success",
+    "databaseId": 108883402124,
+    "name": "Build RuTTS macos-arm64",
+    "startedAt": "2026-09-28T10:25:57Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux build dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo registry",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Cache Cargo build",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Build and stage companion",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Recheck prepared source without network",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Test and lint native RuTTS crates",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Package and verify companion",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Read workspace version",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload verified companion",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo build",
+        "number": 23,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Cache Cargo registry",
+        "number": 24,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 25,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout code",
+        "number": 26,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 27,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108883402124"
+  },
+  {
+    "completedAt": "2026-09-28T10:40:29Z",
+    "conclusion": "success",
+    "databaseId": 108891001366,
+    "name": "Package Release",
+    "startedAt": "2026-09-28T10:39:50Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout release code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download all artifacts",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Restore Unix executable permissions",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Validate release version",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Create archives",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Generate checksums",
+        "number": 8,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact packaged asset set",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Upload packaged release assets",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 19,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout release code",
+        "number": 20,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 21,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891001366"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:07Z",
+    "conclusion": "success",
+    "databaseId": 108891226090,
+    "name": "Create Draft Release",
+    "startedAt": "2026-09-28T10:40:32Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout release code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download packaged release assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Create draft release",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact draft asset set",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout release code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891226090"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:48Z",
+    "conclusion": "success",
+    "databaseId": 108891427451,
+    "name": "Verify TGSpeechBox Release Windows x64",
+    "startedAt": "2026-09-28T10:41:11Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download TGSpeechBox and generic Windows assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded TGSpeechBox archive",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427451"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:33Z",
+    "conclusion": "success",
+    "databaseId": 108891427473,
+    "name": "Verify Piper Release macos-arm64",
+    "startedAt": "2026-09-28T10:41:16Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Piper and generic assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare locked CI-only synthesis model",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Piper archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427473"
+  },
+  {
+    "completedAt": "2026-09-28T10:42:21Z",
+    "conclusion": "success",
+    "databaseId": 108891427494,
+    "name": "Verify Flite Release windows-arm64",
+    "startedAt": "2026-09-28T10:41:10Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux runtime dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Flite asset",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Flite archive",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427494"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:44Z",
+    "conclusion": "success",
+    "databaseId": 108891427538,
+    "name": "Verify Piper Release windows-x64",
+    "startedAt": "2026-09-28T10:41:12Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Piper and generic assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare locked CI-only synthesis model",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Piper archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427538"
+  },
+  {
+    "completedAt": "2026-09-28T10:44:33Z",
+    "conclusion": "success",
+    "databaseId": 108891427552,
+    "name": "Verify RuTTS Release windows-arm64",
+    "startedAt": "2026-09-28T10:41:10Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft RuTTS asset",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded RuTTS archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427552"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:48Z",
+    "conclusion": "success",
+    "databaseId": 108891427553,
+    "name": "Verify RuTTS Release macos-x64",
+    "startedAt": "2026-09-28T10:41:11Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft RuTTS asset",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded RuTTS archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427553"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:28Z",
+    "conclusion": "success",
+    "databaseId": 108891427571,
+    "name": "Verify Piper Release linux-x64",
+    "startedAt": "2026-09-28T10:41:15Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Piper and generic assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare locked CI-only synthesis model",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Piper archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427571"
+  },
+  {
+    "completedAt": "2026-09-28T10:42:08Z",
+    "conclusion": "success",
+    "databaseId": 108891427582,
+    "name": "Verify Piper Source Release",
+    "startedAt": "2026-09-28T10:41:29Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code from release tag",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft source asset",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded source artifact",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code from release tag",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427582"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:36Z",
+    "conclusion": "success",
+    "databaseId": 108891427585,
+    "name": "Verify Flite Release linux-arm64",
+    "startedAt": "2026-09-28T10:41:13Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Linux runtime dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Flite asset",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Flite archive",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427585"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:26Z",
+    "conclusion": "success",
+    "databaseId": 108891427591,
+    "name": "Verify Flite Source Release",
+    "startedAt": "2026-09-28T10:41:13Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code from release tag",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Flite source asset",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Flite source artifact",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code from release tag",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427591"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:21Z",
+    "conclusion": "success",
+    "databaseId": 108891427595,
+    "name": "Verify RuTTS Source Release",
+    "startedAt": "2026-09-28T10:41:13Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code from release tag",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft RuTTS source asset",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded RuTTS source artifact",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code from release tag",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427595"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:50Z",
+    "conclusion": "success",
+    "databaseId": 108891427617,
+    "name": "Verify Flite Release windows-x64",
+    "startedAt": "2026-09-28T10:41:14Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux runtime dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Flite asset",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Flite archive",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427617"
+  },
+  {
+    "completedAt": "2026-09-28T10:42:13Z",
+    "conclusion": "success",
+    "databaseId": 108891427630,
+    "name": "Verify Flite Release macos-x64",
+    "startedAt": "2026-09-28T10:41:37Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux runtime dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Flite asset",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Flite archive",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427630"
+  },
+  {
+    "completedAt": "2026-09-28T10:42:11Z",
+    "conclusion": "success",
+    "databaseId": 108891427652,
+    "name": "Verify Release windows-arm64",
+    "startedAt": "2026-09-28T10:41:23Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft release assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify downloaded release archive",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427652"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:21Z",
+    "conclusion": "success",
+    "databaseId": 108891427669,
+    "name": "Verify Release linux-x64",
+    "startedAt": "2026-09-28T10:41:13Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft release assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify downloaded release archive",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427669"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:34Z",
+    "conclusion": "success",
+    "databaseId": 108891427670,
+    "name": "Verify RuTTS Release macos-arm64",
+    "startedAt": "2026-09-28T10:41:16Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft RuTTS asset",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded RuTTS archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427670"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:45Z",
+    "conclusion": "success",
+    "databaseId": 108891427686,
+    "name": "Verify RuTTS Release windows-x64",
+    "startedAt": "2026-09-28T10:41:13Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft RuTTS asset",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded RuTTS archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427686"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:43Z",
+    "conclusion": "success",
+    "databaseId": 108891427696,
+    "name": "Verify Release windows-x64",
+    "startedAt": "2026-09-28T10:41:13Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft release assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify downloaded release archive",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427696"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:58Z",
+    "conclusion": "success",
+    "databaseId": 108891427708,
+    "name": "Verify Release Debian Package on Ubuntu 24.04",
+    "startedAt": "2026-09-28T10:41:13Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code from release tag",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Debian package",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded package and installation",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code from release tag",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427708"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:27Z",
+    "conclusion": "success",
+    "databaseId": 108891427719,
+    "name": "Verify RuTTS Release linux-arm64",
+    "startedAt": "2026-09-28T10:41:14Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft RuTTS asset",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded RuTTS archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427719"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:59Z",
+    "conclusion": "success",
+    "databaseId": 108891427724,
+    "name": "Verify Flite Release linux-x64",
+    "startedAt": "2026-09-28T10:41:32Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Linux runtime dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Flite asset",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Flite archive",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427724"
+  },
+  {
+    "completedAt": "2026-09-28T10:42:18Z",
+    "conclusion": "success",
+    "databaseId": 108891427725,
+    "name": "Verify Piper Release macos-x64",
+    "startedAt": "2026-09-28T10:41:39Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Piper and generic assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Prepare locked CI-only synthesis model",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Piper archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427725"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:34Z",
+    "conclusion": "success",
+    "databaseId": 108891427765,
+    "name": "Verify Release macos-arm64",
+    "startedAt": "2026-09-28T10:41:19Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft release assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify downloaded release archive",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427765"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:31Z",
+    "conclusion": "success",
+    "databaseId": 108891427781,
+    "name": "Verify RuTTS Release linux-x64",
+    "startedAt": "2026-09-28T10:41:13Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft RuTTS asset",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded RuTTS archive",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427781"
+  },
+  {
+    "completedAt": "2026-09-28T10:42:09Z",
+    "conclusion": "success",
+    "databaseId": 108891427842,
+    "name": "Verify Release macos-x64",
+    "startedAt": "2026-09-28T10:41:38Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft release assets",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify downloaded release archive",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427842"
+  },
+  {
+    "completedAt": "2026-09-28T10:42:05Z",
+    "conclusion": "success",
+    "databaseId": 108891427885,
+    "name": "Verify Release Debian Package on Ubuntu 26.04",
+    "startedAt": "2026-09-28T10:41:24Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code from release tag",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Debian package",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded package and installation",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code from release tag",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891427885"
+  },
+  {
+    "completedAt": "2026-09-28T10:41:41Z",
+    "conclusion": "success",
+    "databaseId": 108891428179,
+    "name": "Verify Flite Release macos-arm64",
+    "startedAt": "2026-09-28T10:41:18Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "skipped",
+        "name": "Install Linux runtime dependencies",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft Flite asset",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded Flite archive",
+        "number": 7,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 13,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code",
+        "number": 14,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 15,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891428179"
+  },
+  {
+    "completedAt": "2026-09-28T10:42:03Z",
+    "conclusion": "success",
+    "databaseId": 108891428220,
+    "name": "Verify TGSpeechBox Source Release",
+    "startedAt": "2026-09-28T10:41:30Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code from release tag",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Rust",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Download draft TGSpeechBox source asset",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact downloaded TGSpeechBox source artifact",
+        "number": 6,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 11,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code from release tag",
+        "number": 12,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 13,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108891428220"
+  },
+  {
+    "completedAt": "2026-09-28T10:44:46Z",
+    "conclusion": "success",
+    "databaseId": 108892508172,
+    "name": "Publish Verified Release",
+    "startedAt": "2026-09-28T10:44:36Z",
+    "status": "completed",
+    "steps": [
+      {
+        "conclusion": "success",
+        "name": "Set up job",
+        "number": 1,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Checkout verification code from release tag",
+        "number": 2,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Install Python",
+        "number": 3,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Verify exact draft asset set before publication",
+        "number": 4,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Publish draft release",
+        "number": 5,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Install Python",
+        "number": 9,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Post Checkout verification code from release tag",
+        "number": 10,
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Complete job",
+        "number": 11,
+        "status": "completed"
+      }
+    ],
+    "url": "https://github.com/bartbunting/omnivox/actions/runs/36408680993/job/108892508172"
+  }
+]
