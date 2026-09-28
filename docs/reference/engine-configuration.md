@@ -1,12 +1,13 @@
-# Engine configuration version 1
+# Engine and speech configuration
 
 Omnivox can run an independently installed speech helper without being rebuilt.
 A helper manifest tells it which program to run; the main configuration controls
 engine choices and local overrides. Settings take effect at the next deliberate
 restart. A worker recovering from failure keeps its original settings.
 
-This reference specifies the implemented version-1 contract accepted in
-[ADR 0008](../adr/0008-extensible-engine-registration.md). Start with the
+This reference specifies the version-1 contract accepted in
+[ADR 0008](../adr/0008-extensible-engine-registration.md) and the version-2
+speech extension in [ADR 0009](../adr/0009-local-speech-preferences.md). Start with the
 [configuration guide](../guides/configuration.md#local-engine-configuration)
 for setup. The [acceptance audit](../benchmarks/2026-09-28-engine-framework-audit.md)
 records automated and process coverage, including its platform limits.
@@ -90,6 +91,38 @@ adding engines without rebuilding Omnivox, with restart to activate changes.
 Live reload is a later lifecycle extension requiring atomic replacement,
 in-flight request retirement, removal semantics and coordination between
 workers. Saving a manifest must not itself restart speech.
+
+## Configuration version 2
+
+Version 2 accepts all version-1 engine settings with the same meaning and adds
+an optional `speech` object. Helper manifests still require `schema: 1`.
+
+```json
+{
+  "schema": 2,
+  "speech": {
+    "max_chunk_words": 30
+  }
+}
+```
+
+| `speech` member | Default | Inclusive allowed range |
+| --- | --- | --- |
+| `max_chunk_words` | 15 | Integer 1–100 whitespace-delimited words. |
+
+Omitting `speech` or its member keeps the default. Reject unknown members, null,
+fractions, strings and out-of-range values. Schema 1 continues to reject the
+new object. Keep version 1 for configurations used with Omnivox 1.13.0; that
+release does not implement version 2.
+
+The limit applies after text preparation to ordinary, immediate, preview and
+structured speech. Sentence and clause boundaries remain preferred. It is one
+host setting shared across engines, frozen for both workers and their recovery.
+Client resets retain it; there is no runtime command or environment override.
+Edits require a deliberate restart. `--dump-wav` remains a single whole-text
+diagnostic synthesis. Larger windows can reach the unchanged per-window
+timeline-action limit sooner; this option never relaxes action, PCM, text-byte,
+cancellation or silence limits. See [text chunking](text-chunking.md).
 
 ## Configuration version 1
 
@@ -234,7 +267,7 @@ during startup. Later explicit rescans/recovery use the existing admission rules
 
 ### Main configuration
 
-`config.json` permits only `schema`, `routing` and `engine_overrides`. `schema`
+Version-1 `config.json` permits only `schema`, `routing` and `engine_overrides`. `schema`
 is required and exactly `1`; the other objects default to empty objects. The
 minimum document is `{"schema":1}` and preserves existing behavior.
 

@@ -3,7 +3,7 @@
 ## Current behavior
 
 Omnivox prepares speech text and then divides long text into bounded synthesis
-chunks. The hard limit is 15 whitespace-delimited words. Within each 15-word
+chunks. The default limit is 15 whitespace-delimited words. Within each configured
 window it prefers the latest useful boundary in this order:
 
 1. sentence terminator or line break;
@@ -54,14 +54,18 @@ would detach requested anchors from the text sent to the engine.
 - Smaller synthesis calls improve first-result latency and cancellation
   opportunities.
 - Sentence/clause preference reduces arbitrary prosody breaks compared with a
-  fixed 15-word split.
+  fixed word-count split.
 - Multiple calls add engine setup overhead and can expose a boundary in engines
   with markedly different per-utterance prosody.
 - A hard limit is intentionally retained so a long punctuation-free line
   cannot become an unbounded synthesis call.
 
-The limit is not currently configurable. A public option should be added only
-if matched real-engine benchmarks show a useful cross-platform trade-off.
+Set `speech.max_chunk_words` in [configuration version 2](engine-configuration.md#configuration-version-2)
+to an integer from 1 through 100. Omitting it retains 15. The value is shared
+across engines and speech lanes, retained during recovery and client resets,
+and changes only at deliberate restart. Direct `--dump-wav` diagnostics retain
+their whole-text synthesis path. Word count is not a text-byte or audio-size
+limit; those protections remain independent.
 
 ## Verification
 

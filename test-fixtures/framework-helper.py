@@ -19,6 +19,7 @@ parser.add_argument("--tag", default="")
 parser.add_argument("--empty", default="")
 parser.add_argument("--hang", action="store_true")
 parser.add_argument("--record-environment")
+parser.add_argument("--record-synthesis")
 args = parser.parse_args()
 with open(args.record, "a", encoding="utf-8") as record:
     record.write(json.dumps(sys.argv[1:]) + "\n")
@@ -42,6 +43,9 @@ for line in sys.stdin:
     elif kind == "describe":
         reply("descriptor", descriptor=descriptor)
     elif kind == "synthesize":
+        if args.record_synthesis:
+            with open(args.record_synthesis, "a", encoding="utf-8") as record:
+                record.write(json.dumps(request, ensure_ascii=False) + "\n")
         reply("synthesis_started", format=dict(sample_rate=22050, channels=1,
                                                sample_format="pcm_s16_le"),
               actual_voice_id=descriptor["default_voice_id"])

@@ -37,6 +37,7 @@ const TGSPEECHBOX_44100_CACHE_FILE_NAME: &str = "VOICE-INVENTORY-44100.json";
 pub struct CreatedEngines {
     pub preferred: Arc<dyn TtsEngine>,
     pub registry: EngineRegistry,
+    pub speech: omnivox_tts::engine_configuration::SpeechConfiguration,
 }
 
 /// Create all engines that should be available to the server process.
@@ -145,6 +146,7 @@ pub fn create_engines(
     Ok(CreatedEngines {
         preferred,
         registry,
+        speech: startup.snapshot.resolved().speech,
     })
 }
 

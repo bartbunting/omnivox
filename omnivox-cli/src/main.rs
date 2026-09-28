@@ -248,7 +248,10 @@ fn main() -> Result<()> {
     .map_err(|e| anyhow::anyhow!("Audio streams init failed: {}", e))?;
     let control = streams.control();
 
-    let mut state = TtsState::default();
+    let mut state = TtsState {
+        max_chunk_words: created_engines.speech.max_chunk_words,
+        ..TtsState::default()
+    };
     apply_audio_target_env(&mut state);
     apply_cli_flags(&cli, &mut state);
 

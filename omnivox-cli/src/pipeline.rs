@@ -2674,7 +2674,10 @@ fn process_choice_preview(
             placement_pan: placement.pan,
         }
     };
-    let chunks = chunk_prepared_speech(prepare_speech_text(text, &state), 15);
+    let chunks = chunk_prepared_speech(
+        prepare_speech_text(text, &state),
+        state.max_chunk_words.get(),
+    );
     let count = chunks.len();
     for (index, chunk) in chunks.into_iter().enumerate() {
         let status = synthesize_prepared_chunk(
@@ -2913,7 +2916,10 @@ fn process_preview_inner(
             );
         }
     };
-    let chunks = chunk_prepared_speech(prepare_speech_text(text, &state), 15);
+    let chunks = chunk_prepared_speech(
+        prepare_speech_text(text, &state),
+        state.max_chunk_words.get(),
+    );
     let chunk_count = chunks.len();
     let mut realized = Some(route.realized.clone());
     let mut degraded_acss = route.acss.omitted.clone();
@@ -3750,7 +3756,7 @@ fn prepare_timeline_text_layout(
     for (index, tone) in prepared.capitalization_tones.iter_mut().enumerate() {
         tone.id = format!("omnivox.cap.{}.{}", id, index);
     }
-    let chunks = chunk_prepared_speech(prepared, 15);
+    let chunks = chunk_prepared_speech(prepared, state.max_chunk_words.get());
     let mut mapped_offset_index = 0_usize;
     let action_positions = actions
         .iter()
@@ -3976,9 +3982,11 @@ pub fn process_batch(
     let total_speech_chunks: usize = items
         .iter()
         .map(|item| match item {
-            QueueItem::Speech(text) => {
-                chunk_prepared_speech(prepare_speech_text(text, &state), 15).len()
-            }
+            QueueItem::Speech(text) => chunk_prepared_speech(
+                prepare_speech_text(text, &state),
+                state.max_chunk_words.get(),
+            )
+            .len(),
             _ => 0,
         })
         .sum();
@@ -4001,7 +4009,10 @@ pub fn process_batch(
 
         match item {
             QueueItem::Speech(text) => {
-                let chunks = chunk_prepared_speech(prepare_speech_text(&text, &state), 15);
+                let chunks = chunk_prepared_speech(
+                    prepare_speech_text(&text, &state),
+                    state.max_chunk_words.get(),
+                );
                 for chunk in chunks {
                     let is_last_speech = speech_chunk_index + 1 == total_speech_chunks;
                     let final_timeline_window = primary_window_index + 1 == total_primary_windows;
@@ -5233,22 +5244,85 @@ mod tests {
             };
         }
 
-        validate_presentation_timeline_action_windows(
-            &PresentationTimelineEnvelope {
-                protocol_version:
-                    omnivox_tts::timeline_protocol::PRESENTATION_TIMELINE_PROTOCOL_VERSION,
-                generation: 1,
-                dispatch_id: 1,
-                delivery_policy: Some(
-                    omnivox_tts::timeline_protocol::PresentationDeliveryPolicy::Ordered,
-                ),
-                replacement_key: None,
-                spans: vec![span],
-                actions,
-            },
-            &TtsState::default(),
-        )
-        .unwrap();
+        let timeline = PresentationTimelineEnvelope {
+            protocol_version:
+                omnivox_tts::timeline_protocol::PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+            generation: 1,
+            dispatch_id: 1,
+            delivery_policy: Some(
+                omnivox_tts::timeline_protocol::PresentationDeliveryPolicy::Ordered,
+            ),
+            replacement_key: None,
+            spans: vec![span],
+            actions,
+        };
+        for limit in [2, 15, 30] {
+            let state = TtsState {
+                max_chunk_words: omnivox_core::settings::ChunkWordLimit::try_from(limit).unwrap(),
+                ..TtsState::default()
+            };
+            let admission = validate_presentation_timeline_action_windows(&timeline, &state);
+            let references = timeline.actions.iter().collect::<Vec<_>>();
+            let preparation = prepare_timeline_span(
+                &timeline.spans[0],
+                &references,
+                &state,
+                &HashMap::new(),
+                &never_cancelled,
+            );
+            // At 30 words both action groups share a window and exceed its
+            // unchanged 512-action limit. Admission and synthesis must agree.
+            assert_eq!(admission.is_ok(), limit < 30);
+            assert_eq!(preparation.is_ok(), limit < 30);
+        }
+    }
+
+    #[test]
+    fn configured_chunking_keeps_unicode_actions_at_the_original_boundary() {
+        let text = "Žltý kôň číta nový riadok";
+        let offset = text.find("číta").unwrap() as u32;
+        let mut actions = semantic_timeline_actions(2);
+        for (action, affinity) in actions
+            .iter_mut()
+            .zip([PresentationAffinity::Before, PresentationAffinity::After])
+        {
+            action.position = PresentationTimelinePosition::TextOffset {
+                span_id: 1,
+                utf8_offset: offset,
+                affinity,
+            };
+        }
+        let references = actions.iter().collect::<Vec<_>>();
+        for limit in [2, 15, 100] {
+            let state = TtsState {
+                max_chunk_words: omnivox_core::settings::ChunkWordLimit::try_from(limit).unwrap(),
+                ..TtsState::default()
+            };
+            let layout = prepare_timeline_text_layout(1, text, &references, &state);
+            if limit == 2 {
+                assert_eq!(
+                    layout
+                        .chunks
+                        .iter()
+                        .map(|chunk| chunk.text.as_str())
+                        .collect::<Vec<_>>(),
+                    ["Žltý kôň", "číta nový", "riadok"]
+                );
+                assert_eq!(layout.action_positions[0].chunk_index, 1);
+                assert_eq!(layout.action_positions[0].local_offset, 0);
+                assert_eq!(layout.action_positions[1].chunk_index, 0);
+                assert_eq!(
+                    layout.action_positions[1].local_offset,
+                    "Žltý kôň".len() as u32
+                );
+            } else {
+                assert_eq!(layout.chunks.len(), 1);
+                assert!(layout
+                    .action_positions
+                    .iter()
+                    .all(|position| position.chunk_index == 0 && position.local_offset == offset));
+            }
+        }
     }
 
     #[test]

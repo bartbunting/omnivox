@@ -67,7 +67,8 @@ For `--dump-wav`, a nonempty positional `VOICE` takes precedence over
 
 ## Local engine configuration
 
-Standalone startup and exact diagnostic actions read configuration version 1.
+Standalone startup and exact diagnostic actions read configuration versions 1
+and 2. Version 2 is a post-1.13.0 addition.
 Choose one root using `--config-dir`, then nonempty `OMNIVOX_CONFIG_DIR`, then
 the platform default: `%APPDATA%\omnivox` on Windows,
 `$HOME/Library/Application Support/Omnivox` on macOS, or
@@ -109,6 +110,29 @@ identity and configuration sources. Emacsvox prepares one shared record and
 checks both workers' acknowledgements; recovery retains that activation. Remote
 hosts freeze the record per authenticated session. Native platform qualification
 is separate from framework tests.
+
+### Change the speech chunk size
+
+Omnivox normally sends at most 15 words to an engine at a time. To allow longer
+phrases, use version 2 in `config.json`, for example:
+
+```json
+{
+  "schema": 2,
+  "speech": { "max_chunk_words": 30 }
+}
+```
+
+Keep any existing routing and engine overrides in the same file. The allowed
+range is 1–100 words. Smaller chunks can produce the first result sooner but
+introduce more breaks; larger chunks can improve phrasing but increase the wait
+for a result. Omnivox still prefers sentence and clause boundaries. The default
+remains 15, and the 15-second silence limit is separate and fixed.
+
+Restart speech deliberately to apply an edit. Both lanes use the same value,
+and a worker recovering after failure keeps its previous value. A normal client
+speech reset also keeps it. This setting does not divide `--dump-wav` output.
+See the [exact rules](../reference/engine-configuration.md#configuration-version-2).
 
 ### Add your own speech engine
 

@@ -5,6 +5,7 @@
 
 pub mod command;
 pub mod queue;
+pub mod settings;
 pub mod state;
 pub mod timeline;
 

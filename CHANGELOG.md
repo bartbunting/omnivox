@@ -6,6 +6,13 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Configure the maximum words per synthesis chunk in version-2 `config.json`.
+  The default remains 15; accepted values are 1–100. Both speech lanes and
+  recovered workers retain the same setting. The 15-second silence cap remains
+  fixed.
+
 ## [1.13.0] - 2026-09-28
 
 ### Added

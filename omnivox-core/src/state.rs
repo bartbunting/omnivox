@@ -4,6 +4,8 @@
 
 use std::time::Duration;
 
+use crate::settings::ChunkWordLimit;
+
 /// Punctuation reading level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PunctuationLevel {
@@ -121,6 +123,8 @@ impl Default for AudioRouting {
 /// Maintains all configuration and state for the TTS engine.
 #[derive(Debug, Clone)]
 pub struct TtsState {
+    /// Host-owned startup preference, retained by client resets.
+    pub max_chunk_words: ChunkWordLimit,
     // Voice settings
     pub current_voice: String,
     pub pitch_multiplier: f32,
@@ -153,6 +157,7 @@ pub struct TtsState {
 impl Default for TtsState {
     fn default() -> Self {
         Self {
+            max_chunk_words: ChunkWordLimit::default(),
             current_voice: String::from("en-US"),
             pitch_multiplier: 1.0,
             speech_rate: 0.5,
@@ -181,7 +186,10 @@ impl TtsState {
 
     /// Reset to default values
     pub fn reset(&mut self) {
-        *self = Self::default();
+        *self = Self {
+            max_chunk_words: self.max_chunk_words,
+            ..Self::default()
+        };
     }
 
     /// Get the character speaking rate (speech_rate * character_scale)
@@ -257,6 +265,7 @@ mod tests {
     #[test]
     fn test_reset() {
         let mut state = TtsState {
+            max_chunk_words: ChunkWordLimit::try_from(30).unwrap(),
             current_voice: String::from("en-GB:Daniel"),
             pitch_multiplier: 1.5,
             ..TtsState::default()
@@ -265,6 +274,7 @@ mod tests {
         state.reset();
         assert_eq!(state.current_voice, "en-US");
         assert_eq!(state.pitch_multiplier, 1.0);
+        assert_eq!(state.max_chunk_words.get(), 30);
     }
 
     #[test]

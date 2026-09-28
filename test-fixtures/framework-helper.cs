@@ -56,6 +56,8 @@ class FrameworkHelper {
                 break;
             case "describe": Reply(id, "descriptor", "descriptor", descriptor); break;
             case "synthesize":
+                if (options.ContainsKey("--record-synthesis"))
+                    File.AppendAllText(options["--record-synthesis"], Json.Serialize(request) + "\n");
                 var pcm = new byte[4400];
                 for (int frame = 0; frame < 2200; frame++) {
                     short sample = (short)(8192 * Math.Sin(2 * Math.PI * 440 * frame / 22050));

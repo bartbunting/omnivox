@@ -27,6 +27,7 @@ pub struct ManagedLaunch {
 /// Intentionally no Debug implementation: paths, argv and environment are private.
 #[derive(Clone)]
 pub struct LaunchSnapshot {
+    schema: u32,
     activation_id: String,
     resolved: ResolvedConfiguration,
     managed: Option<ManagedLaunch>,
@@ -60,6 +61,7 @@ impl LaunchSnapshot {
             }
         }
         let snapshot = Self {
+            schema: 2,
             activation_id: crate::voice_library::local::new_uuid()
                 .map_err(|_| invalid("could not create activation identity"))?,
             resolved,
@@ -122,6 +124,12 @@ impl<'de> Deserialize<'de> for LaunchSnapshot {
 #[serde(deny_unknown_fields)]
 struct SnapshotWire {
     schema: u32,
+    #[serde(
+        default,
+        deserialize_with = "present_speech",
+        skip_serializing_if = "Option::is_none"
+    )]
+    speech: Option<SpeechConfiguration>,
     platform: String,
     activation_id: String,
     registrations: Vec<RegistrationWire>,
@@ -135,6 +143,12 @@ struct SnapshotWire {
     managed: Option<ManagedWire>,
     requested: String,
     piper_selected: bool,
+}
+
+fn present_speech<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<SpeechConfiguration>, D::Error> {
+    SpeechConfiguration::deserialize(deserializer).map(Some)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -188,7 +202,8 @@ impl From<&LaunchSnapshot> for SnapshotWire {
     fn from(snapshot: &LaunchSnapshot) -> Self {
         let resolved = &snapshot.resolved;
         Self {
-            schema: 1,
+            schema: snapshot.schema,
+            speech: (snapshot.schema == 2).then_some(resolved.speech),
             platform: std::env::consts::OS.into(),
             activation_id: snapshot.activation_id.clone(),
             registrations: resolved
@@ -254,7 +269,11 @@ impl From<&LaunchSnapshot> for SnapshotWire {
 
 impl SnapshotWire {
     fn restore(self) -> Result<LaunchSnapshot> {
-        require(self.schema == 1, "unsupported launch snapshot schema")?;
+        let speech = match (self.schema, self.speech) {
+            (1, None) => SpeechConfiguration::default(),
+            (2, Some(speech)) => speech,
+            _ => return Err(invalid("unsupported or incomplete launch snapshot schema")),
+        };
         require(
             self.platform == std::env::consts::OS,
             "launch snapshot platform differs",
@@ -302,10 +321,12 @@ impl SnapshotWire {
             validate_managed_invocations(managed, &registrations)?;
         }
         Ok(LaunchSnapshot {
+            schema: self.schema,
             activation_id: self.activation_id,
             resolved: ResolvedConfiguration {
                 registrations,
                 routing,
+                speech,
                 environment,
                 root,
                 // Input diagnostics were emitted by the preparing owner. A

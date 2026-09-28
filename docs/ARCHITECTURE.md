@@ -392,7 +392,9 @@ Before synthesis Omnivox:
 2. expands punctuation according to the active none/some/all level;
 3. optionally inserts spaces at lower-to-uppercase CamelCase boundaries; and
 4. chunks prepared text at a sentence, line, or clause boundary when possible,
-   with a hard limit of 15 whitespace-delimited words.
+   with a host-configured limit of 1–100 whitespace-delimited words, defaulting
+   to 15. The resolved limit is frozen with engine startup settings under
+   [ADR 0009](adr/0009-local-speech-preferences.md).
 
 Punctuation expansion is route-independent and shared by legacy and structured
 speech. The compatibility separator never reaches punctuation expansion as

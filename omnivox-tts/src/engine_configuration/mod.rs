@@ -1,4 +1,4 @@
-//! Version-1 local engine configuration. Parsing never launches code or writes files.
+//! Local engine and speech configuration. Parsing never launches code or writes files.
 //!
 //! Registration, launch overrides and local routing permissions remain distinct
 //! from live descriptors and managed asset verification.
@@ -15,6 +15,7 @@ mod status;
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use omnivox_core::settings::ChunkWordLimit;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 use thiserror::Error;
@@ -135,12 +136,44 @@ impl EngineOverride {
 pub struct Configuration {
     pub routing: LocalRoutingPolicy,
     pub engine_overrides: BTreeMap<String, EngineOverride>,
+    pub speech: SpeechConfiguration,
+}
+
+/// Complete speech preparation preferences retained by the startup snapshot.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SpeechConfiguration {
+    pub max_chunk_words: ChunkWordLimit,
+}
+
+impl SpeechConfiguration {
+    fn parse(value: Value) -> Result<Self> {
+        let mut object = Object::new(value, "speech")?;
+        let max_chunk_words = object.optional("max_chunk_words")?.unwrap_or_default();
+        object.finish()?;
+        Ok(Self { max_chunk_words })
+    }
 }
 
 impl Configuration {
     pub fn parse(bytes: &[u8], platform: Platform) -> Result<Self> {
         let mut object = Object::new(json::parse(bytes, MAX_CONFIG_BYTES)?, "config.json")?;
-        object.schema()?;
+        let schema = object.required::<u64>("schema")?;
+        if !matches!(schema, 1 | 2) {
+            return Err(ConfigurationError::new(
+                "config.json.schema",
+                "unsupported schema",
+            ));
+        }
+        let speech = if schema == 2 {
+            object
+                .take("speech")
+                .map(SpeechConfiguration::parse)
+                .transpose()?
+                .unwrap_or_default()
+        } else {
+            SpeechConfiguration::default()
+        };
         let routing = object
             .take("routing")
             .map(LocalRoutingPolicy::parse)
@@ -164,6 +197,7 @@ impl Configuration {
         Ok(Self {
             routing,
             engine_overrides,
+            speech,
         })
     }
 

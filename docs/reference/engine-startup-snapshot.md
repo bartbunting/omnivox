@@ -21,7 +21,8 @@ configuration retains its separate no-null rule.
 
 | Field | Value |
 | --- | --- |
-| `schema` | Integer `1`. |
+| `schema` | Integer `2` for newly prepared records; historical `1` remains readable. |
+| `speech` | Required in schema 2: object containing required integer `max_chunk_words` from 1 through 100. Unknown fields and null fail. Absent in schema 1, which means the historical fixed 15 words. |
 | `platform` | Native Rust OS name, exactly matching the recipient. |
 | `activation_id` | Canonical lowercase UUID, freshly generated for a prepared activation and retained by clones/recovery. |
 | `registrations` | Complete registration records, including all reserved shipped IDs and at most 32 external IDs. Duplicate IDs fail. |
@@ -37,6 +38,14 @@ containing a byte array, or `Windows` containing a UTF-16 code-unit array.
 Paths use this representation too. Non-Unicode legacy arguments and environment
 values survive without lossy conversion; external-manifest inputs retain their
 UTF-8 requirements. No shell interpretation occurs.
+
+Schema-1 records retain schema 1 when serialized again, including omission of
+`speech`; they cannot carry version-2 settings. This permits retained owners to
+restart the older executable whose identity they pin. New preparations always
+emit schema 2, including the resolved default when public configuration omits
+speech settings. The two workers and every recovery attempt consume the same
+resolved value without consulting changed files. This private schema increment
+does not change the public `engine_configuration_version: 1` acknowledgement.
 
 On Windows, initial environment capture omits inherited drive-directory entries
 whose names start with `=`, such as `=C:`. `vars_os()` exposes these hidden
@@ -124,7 +133,10 @@ The process acceptance command is
 `python3 tools/verify_engine_configuration.py target/debug/omnivox` after
 `make dev`. It exercises two actual Unix owners and helper processes, mutates
 files/environment between launches, checks independent retirement and verifies
-that a fresh activation rejects the now-invalid main configuration. This is
+that a fresh activation rejects the now-invalid main configuration. It also
+records actual synthesis requests: both lanes, client reset and an owner
+restarted from its retained record must keep the configured three-word limit.
+This is
 null-output framework coverage, not native adapter or audible qualification.
 
 ## Shared preparation through the existing local service

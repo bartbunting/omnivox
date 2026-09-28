@@ -754,6 +754,7 @@ version = "1.13.0"
 dependencies = [
  "once_cell",
  "regex",
+ "serde",
  "thiserror",
  "tracing",
  "tracing-subscriber",
@@ -876,6 +877,7 @@ dependencies = [
  "espeak-rs-sys",
  "libc",
  "omnivox-audio",
+ "omnivox-core",
  "omnivox-piper-sys",
  "once_cell",
  "serde",

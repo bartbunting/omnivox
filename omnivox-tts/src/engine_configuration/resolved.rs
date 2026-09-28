@@ -56,6 +56,7 @@ pub struct ResolvedRegistration {
 pub struct ResolvedConfiguration {
     pub(super) registrations: BTreeMap<String, ResolvedRegistration>,
     pub routing: LocalRoutingPolicy,
+    pub speech: super::SpeechConfiguration,
     pub environment: LaunchEnvironment,
     pub root: Option<PathBuf>,
     pub diagnostics: Vec<ConfigurationError>,
@@ -225,6 +226,7 @@ impl ResolvedConfiguration {
         Ok(Self {
             registrations,
             routing: loaded.configuration.routing,
+            speech: loaded.configuration.speech,
             root: loaded.root,
             diagnostics,
             environment,

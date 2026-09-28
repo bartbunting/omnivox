@@ -213,8 +213,36 @@ markers. Measure physical output, underruns, device changes and competing load.
   qualification alone does not authorize network, resource or multi-user changes.
 - **Additional effects:** preserve marker and terminal semantics when duration
   changes or output repeats.
-- **Configurable chunking:** add a control only after measurements show a useful
-  trade-off beyond the current sentence/clause-aware limit.
+
+### Host configuration follow-up
+
+The bounded word limit is implemented in
+[configuration version 2](reference/engine-configuration.md#configuration-version-2).
+Keep its default at 15; native listening and matched comparisons across engines
+remain necessary before recommending a different default.
+
+The second configuration pass identified these useful next steps:
+
+- **Existing output choices:** save the current device/PulseAudio/null backend,
+  channel target and existing PulseAudio latency preference in the host file.
+  Preserve command-line and launcher overrides, including independent lane
+  channels. Named devices remain the separate audio-device feature above.
+- **Speech startup defaults:** save voice, rate, pitch, volumes, punctuation,
+  CamelCase splitting and character speed. Explicit client settings must retain
+  priority. Define reset behavior and exact diagnostic precedence together, and
+  freeze the defaults in the same retained startup record.
+- **Isolated-capital pitch cue:** consider exposing its fixed multiplier when
+  character presentation next changes; keep semantic capitalization actions
+  separate and test ordinary letter navigation.
+- **Per-helper environment:** extend the existing registration backlog when a
+  helper needs separate runtime settings; preserve private values and immutable
+  recovery rather than adding another discovery path.
+
+Keep the 15-second requested-silence cap, protocol/message limits, native rate
+calibration, process ownership and cancellation watchdogs fixed. Playback reserve
+and silence trimming require measured audio work under their existing decisions,
+not a general configuration switch. Log location and retention belong to the
+Emacsvox launcher; its settings screen remains Emacsvox work.
 
 ## Experimental ideas
 

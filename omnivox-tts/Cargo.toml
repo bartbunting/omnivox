@@ -24,6 +24,7 @@ serde_json.workspace = true
 base64.workspace = true
 sha2.workspace = true
 omnivox-audio = { path = "../omnivox-audio" }
+omnivox-core = { path = "../omnivox-core" }
 
 # eSpeak NG backend (enabled by default; supported builds stage its runtime data)
 espeak-rs-sys = { version = "0.1", features = ["compile-espeak-intonations"], optional = true }

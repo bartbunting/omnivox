@@ -58,7 +58,8 @@ def main():
         manifests = configuration / "helpers.d"
         manifests.mkdir(parents=True)
         (configuration / "config.json").write_text(json.dumps(dict(
-            schema=1, engine_overrides={name: dict(enabled=False) for name in SHIPPED},
+            schema=2, speech=dict(max_chunk_words=3),
+            engine_overrides={name: dict(enabled=False) for name in SHIPPED},
             routing=dict(preferred_engine_ids=["org.fixture"]))))
         helper = root / ("helper with spaces.exe" if args.windows else "helper with spaces")
         if args.windows:
@@ -79,6 +80,7 @@ def main():
         descriptor_path.write_text(json.dumps(descriptor))
         arguments = ["--descriptor", native(descriptor_path), "--record", native(root / "argv.jsonl"),
                      "--record-environment", native(root / "environment.jsonl"),
+                     "--record-synthesis", native(root / "synthesis.jsonl"),
                      "--tag", "$(private literal) $HOME `literal` & *", "--empty", ""]
         (manifests / "fixture.json").write_text(json.dumps(dict(
             schema=1, engine_id="org.fixture", program=native(helper), arguments=arguments)))
@@ -128,6 +130,7 @@ def main():
         retained = json.loads(local(initial["startup"]).read_text())
         activation = retained["engines"]["activation_id"]
         assert activation == prepared["activation_id"] == initial["activation_id"]
+        assert retained["engines"]["speech"] == dict(max_chunk_words=3)
         assert "engine_configuration_v1" in first.request("capabilities", control=True)["features"]
         first_ack = first.request("engine_configuration_status_v1", control=True)
         assert first_ack["activation_id"] == activation
@@ -149,10 +152,20 @@ def main():
             adjustments={})])
         preview["selection"] = dict(mode="choice", choice_id="fixture")
         preview["context"] = {}
+        preview["text"] = "one two three four five six seven"
+
+        def synthesis_texts():
+            return [json.loads(line)["text"] for line in
+                    (root / "synthesis.jsonl").read_text().splitlines()]
+
+        expected_chunks = ["one two three", "four five six", "seven"]
+        before = len(synthesis_texts())
         result = first.request("preview_voice_v2", control=True, **preview)
         assert result.get("status") == "completed", result
         assert result["last_started"]["realized"] == dict(engine_id="org.fixture", voice_id="voice"), result
-        first.process.stdin.write(b"q Ordinary fixture speech.\nemacsvox_marker_dispatch 9901\n")
+        assert synthesis_texts()[before:] == expected_chunks
+        before = len(synthesis_texts())
+        first.process.stdin.write(b"tts_reset\nq one two three four five six seven\nemacsvox_marker_dispatch 9901\n")
         first.process.stdin.flush()
         started = False
         deadline = time.monotonic() + 30
@@ -168,7 +181,8 @@ def main():
                 assert message.strip() == b"__EMACSVOX_TRACKED__ 9901 completed", message
                 assert started
                 break
-        print("Explicit preview and ordinary tracked speech passed", flush=True)
+        assert synthesis_texts()[before:] == expected_chunks
+        print("Configured preview and ordinary speech chunking, including reset, passed", flush=True)
 
         # Mutate every discovery input before starting the other worker. The
         # retained executable/argv/environment must still reach the real helper.
@@ -185,6 +199,9 @@ def main():
         second_ack = second.request("engine_configuration_status_v1", control=True)
         assert second_ack["activation_id"] == recovered["activation_id"] == activation
         assert copied["engines"] == retained["engines"]
+        before = len(synthesis_texts())
+        assert second.request("preview_voice_v2", control=True, **preview)["status"] == "completed"
+        assert synthesis_texts()[before:] == expected_chunks
         assert startup_environment(retained)["OMNIVOX_AUDIO_TARGET"] == "left"
         assert startup_environment(copied)["OMNIVOX_AUDIO_TARGET"] == "right"
         launches = [json.loads(line) for line in (root / "argv.jsonl").read_text().splitlines()]
@@ -202,6 +219,14 @@ def main():
         # Retiring one lane leaves the other's independently owned helper alive.
         assert first.request("retire", worker=initial["worker"])["type"] == "retired"
         assert second.request("inventory", control=True)["preferred_engine_id"] == "org.fixture"
+        restarted, restart = owner(dict(environment, OMNIVOX_OWNED_STARTUP=initial["startup"],
+                                        OMNIVOX_OWNED_STARTUP_SHA256=initial["startup_sha256"]))
+        assert not restart["retired"] and restart["startup_error"] is None, restart
+        assert restart["activation_id"] == activation
+        before = len(synthesis_texts())
+        assert restarted.request("preview_voice_v2", control=True, **preview)["status"] == "completed"
+        assert synthesis_texts()[before:] == expected_chunks
+        assert restarted.request("retire", worker=restart["worker"])["type"] == "retired"
         fresh, rejected = owner(environment)
         assert rejected["retired"] and rejected["startup_error"], rejected
         assert fresh.request("retire", worker=rejected["worker"])["type"] == "retired"

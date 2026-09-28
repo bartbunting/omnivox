@@ -108,6 +108,36 @@ fn complete_record_round_trips_without_files_or_environment_reads() {
 }
 
 #[test]
+fn speech_preferences_survive_complete_snapshot_round_trips() {
+    let mut resolved = resolved(None);
+    resolved.speech.max_chunk_words = ChunkWordLimit::try_from(30).unwrap();
+    let snapshot = LaunchSnapshot::prepare(resolved, None, "".into(), false).unwrap();
+    let decoded = LaunchSnapshot::parse(&snapshot.to_bytes().unwrap()).unwrap();
+    assert_eq!(decoded.resolved().speech.max_chunk_words.get(), 30);
+    for value in [
+        json!(null),
+        json!({}),
+        json!({"max_chunk_words":0}),
+        json!({"max_chunk_words":101}),
+        json!({"max_chunk_words":30,"extra":true}),
+    ] {
+        reject_mutation(&snapshot, |wire| wire["speech"] = value);
+    }
+}
+
+#[test]
+fn historical_snapshots_keep_fifteen_words_and_their_old_wire_shape() {
+    let mut old = serde_json::to_value(prepared()).unwrap();
+    old["schema"] = json!(1);
+    old.as_object_mut().unwrap().remove("speech");
+    let decoded = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
+    assert_eq!(decoded.resolved().speech.max_chunk_words.get(), 15);
+    assert_eq!(serde_json::to_value(&decoded).unwrap(), old);
+    old["speech"] = json!({"max_chunk_words":30});
+    assert!(LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).is_err());
+}
+
+#[test]
 fn captured_native_environment_can_prepare_and_restore_a_snapshot() {
     let mut resolved = resolved(None);
     resolved.environment = LaunchEnvironment::capture();
@@ -164,7 +194,7 @@ fn parsing_rejects_duplicate_keys_unknown_fields_and_outer_bounds() {
     trailing.extend_from_slice(b" {}");
     assert!(LaunchSnapshot::parse(&trailing).is_err());
     reject_mutation(&snapshot, |value| value["extra"] = json!(true));
-    reject_mutation(&snapshot, |value| value["schema"] = json!(2));
+    reject_mutation(&snapshot, |value| value["schema"] = json!(3));
     reject_mutation(&snapshot, |value| {
         value["platform"] = json!("another native platform")
     });

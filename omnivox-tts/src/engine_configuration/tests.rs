@@ -75,6 +75,45 @@ fn omitted_and_empty_routing_lists_have_distinct_meanings() {
 }
 
 #[test]
+fn speech_preferences_require_schema_two_and_a_bounded_integer() {
+    for value in [
+        json!({"schema":1}),
+        json!({"schema":2}),
+        json!({"schema":2,"speech":{}}),
+    ] {
+        assert_eq!(
+            parse_config(&value).unwrap().speech.max_chunk_words.get(),
+            15
+        );
+    }
+    for limit in [1, 3, 15, 30, 100] {
+        let value = json!({"schema":2,"speech":{"max_chunk_words":limit}});
+        assert_eq!(
+            parse_config(&value).unwrap().speech.max_chunk_words.get(),
+            limit
+        );
+    }
+    for limit in [
+        json!(0),
+        json!(101),
+        json!(-1),
+        json!(15.0),
+        json!("15"),
+        json!(null),
+        json!(65536),
+    ] {
+        assert!(parse_config(&json!({"schema":2,"speech":{"max_chunk_words":limit}})).is_err());
+    }
+    for value in [
+        json!({"schema":1,"speech":{"max_chunk_words":30}}),
+        json!({"schema":2,"speech":null}),
+        json!({"schema":2,"speech":{"unexpected":true}}),
+    ] {
+        assert!(parse_config(&value).is_err());
+    }
+}
+
+#[test]
 fn shipped_metadata_preserves_platform_paths_and_explicit_overrides() {
     let directory = Directory::new();
     let executable = directory.0.join("omnivox");
@@ -165,7 +204,7 @@ fn strict_json_rejects_ambiguous_input_without_disclosing_values() {
         br#"{"schema":1e0}"#,
         br#"{"schema":18446744073709551616}"#,
         br#"{"schema":-1}"#,
-        br#"{"schema":2}"#,
+        br#"{"schema":3}"#,
         br#"{}"#,
         br#"[]"#,
         b"\xff",
@@ -595,7 +634,7 @@ fn optional_roots_and_missing_files_preserve_defaults_without_writes() {
     assert_eq!(fs::read_dir(&directory.0).unwrap().count(), 0);
     fs::write(directory.0.join("config.json"), br#"{"schema":1}"#).unwrap();
     assert!(directory.load().unwrap().configuration == Configuration::default());
-    fs::write(directory.0.join("config.json"), br#"{"schema":2}"#).unwrap();
+    fs::write(directory.0.join("config.json"), br#"{"schema":3}"#).unwrap();
     assert!(directory.load().is_err());
     fs::remove_file(directory.0.join("config.json")).unwrap();
     fs::create_dir(directory.0.join("config.json")).unwrap();
