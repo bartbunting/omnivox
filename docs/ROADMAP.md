@@ -24,9 +24,11 @@ Outstanding items are listed without a priority ranking:
   physical latency/cancellation acceptance of the implemented callback streaming.
 - **Voice selection and installation assistance:** extend native and fresh-client
   acceptance, interrupted-operation recovery and operating-system voice setup.
-- **Audio-device selection and recovery:** named devices, a deliberate
-  follow-default policy, disconnect/reconnect recovery, and separate
-  foreground/notification destinations.
+- **Audio-device selection and recovery:** named devices, separate
+  foreground/notification destinations, and follow-default recovery on other
+  platforms. Windows follow-default recovery is implemented under
+  [ADR 0010](adr/0010-windows-default-output-recovery.md); physical headphone
+  switching and listening acceptance remain distinct from native stream tests.
 - **Speech and audio doctor:** explain the selected executable, backend, device,
   engine, voice, fallback reason, buffer settings, and recovery action.
 - **Reliable remote workstation setup:** extend outage, interactive,
@@ -224,7 +226,7 @@ The bounded word limit and saved speech defaults are implemented in
 Keep the word-limit default at 15; native listening and matched comparisons across engines
 remain necessary before recommending a different default.
 Reset restores the saved speech baseline under
-[ADR 0010](adr/0010-saved-speech-defaults.md); client commands can override it again.
+[ADR 0009](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct); client commands can override it again.
 The [capital-letter cue](reference/engine-configuration.md#capital-letter-pitch)
 also supports a global pitch, engine overrides and an off option. Saved
 [audio output choices](reference/engine-configuration.md#audio-output-settings)

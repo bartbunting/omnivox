@@ -22,6 +22,10 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 use tracing::{debug, info};
 
+#[cfg(test)]
+#[path = "output/idle_tests.rs"]
+mod idle_tests;
+
 const SPEECH_STOP_FADE_MILLISECONDS: usize = 3;
 const SPEECH_STOP_FADE_FRAMES: usize = SAMPLE_RATE as usize * SPEECH_STOP_FADE_MILLISECONDS / 1000;
 const TONE_STOP_FADE_MILLISECONDS: usize = 5;
@@ -460,7 +464,10 @@ impl NullSink {
 
 #[derive(Clone)]
 enum ManagedSink {
+    #[cfg(any(not(windows), test))]
     Device(Arc<Sink>),
+    #[cfg(any(windows, test))]
+    FollowingDevice(Arc<crate::device::DeviceSink>),
     #[cfg(target_os = "linux")]
     Pulse(Arc<crate::pulse::PulseSink>),
     Null(Arc<NullSink>),
@@ -472,7 +479,10 @@ impl ManagedSink {
         S: Source<Item = f32> + Send + 'static,
     {
         match self {
+            #[cfg(any(not(windows), test))]
             Self::Device(sink) => sink.append(source),
+            #[cfg(any(windows, test))]
+            Self::FollowingDevice(sink) => return sink.append(source),
             Self::Null(sink) => sink.append(source),
             #[cfg(target_os = "linux")]
             Self::Pulse(sink) => return sink.append(source),
@@ -481,6 +491,13 @@ impl ManagedSink {
     }
 
     fn append_progressive(&self, mut source: ProgressivePlaybackSource) -> Result<(), AudioError> {
+        #[cfg(any(windows, test))]
+        if let Self::FollowingDevice(sink) = self {
+            return sink.append_with(move |lifetime| {
+                source.output_lifetime = Some(lifetime);
+                Box::new(source)
+            });
+        }
         #[cfg(target_os = "linux")]
         if let Self::Pulse(sink) = self {
             source.output_lifetime = Some(sink.lifetime());
@@ -492,7 +509,10 @@ impl ManagedSink {
 
     fn clear(&self) {
         match self {
+            #[cfg(any(not(windows), test))]
             Self::Device(sink) => sink.clear(),
+            #[cfg(any(windows, test))]
+            Self::FollowingDevice(sink) => sink.clear(),
             Self::Null(sink) => sink.clear(),
             #[cfg(target_os = "linux")]
             Self::Pulse(sink) => sink.clear(),
@@ -500,6 +520,7 @@ impl ManagedSink {
     }
 
     fn play(&self) {
+        #[cfg(any(not(windows), test))]
         if let Self::Device(sink) = self {
             sink.play();
         }
@@ -511,7 +532,10 @@ impl ManagedSink {
 
     fn len(&self) -> usize {
         match self {
+            #[cfg(any(not(windows), test))]
             Self::Device(sink) => sink.len(),
+            #[cfg(any(windows, test))]
+            Self::FollowingDevice(sink) => sink.len(),
             Self::Null(sink) => sink.pending.len(),
             #[cfg(target_os = "linux")]
             Self::Pulse(sink) => sink.len(),
@@ -520,7 +544,10 @@ impl ManagedSink {
 
     fn sleep_until_end(&self) {
         match self {
+            #[cfg(any(not(windows), test))]
             Self::Device(sink) => sink.sleep_until_end(),
+            #[cfg(any(windows, test))]
+            Self::FollowingDevice(sink) => sink.drain(),
             Self::Null(sink) => sink.pending.wait(),
             #[cfg(target_os = "linux")]
             Self::Pulse(sink) => sink.drain(),
@@ -592,6 +619,7 @@ pub struct AudioControl {
     speech_stop_cancellation: Arc<Mutex<CancellationToken>>,
     tone_stop_cancellation: Arc<Mutex<CancellationToken>>,
     scheduled_playback: Arc<ScheduledPlaybackState>,
+    output_generation: Arc<Mutex<Option<Arc<AtomicU64>>>>,
 }
 
 impl AudioControl {
@@ -619,7 +647,49 @@ impl AudioControl {
             speech_stop_cancellation: Arc::new(Mutex::new(CancellationToken::new())),
             tone_stop_cancellation: Arc::new(Mutex::new(CancellationToken::new())),
             scheduled_playback: Arc::new(ScheduledPlaybackState::default()),
+            output_generation: Arc::new(Mutex::new(None)),
         }
+    }
+
+    /// Bind before starting request admission. Output replacement then retires
+    /// the same generation checked by synthesis and queue predicates.
+    pub fn bind_output_generation(&self, generation: Arc<AtomicU64>) {
+        *self.output_generation.lock().unwrap() = Some(generation);
+    }
+
+    #[cfg(any(windows, test))]
+    pub(crate) fn following_device(
+        sinks: [Arc<crate::device::DeviceSink>; 3],
+        depths: [usize; 3],
+    ) -> Arc<Self> {
+        let [speech, tone, sound] = sinks;
+        Arc::new(Self::new(
+            ManagedSink::FollowingDevice(speech),
+            ManagedSink::FollowingDevice(tone),
+            ManagedSink::FollowingDevice(sound),
+            depths[0],
+            depths[1],
+            depths[2],
+        ))
+    }
+
+    /// Publish/retire queues atomically against all append, stop and overlay
+    /// gates. REPLACE only changes local queues; native work happens outside.
+    #[cfg(any(windows, test))]
+    pub(crate) fn interrupt_output(&self, replace: impl FnOnce()) {
+        let _speech = self.stream_gates[0].lock().unwrap();
+        let _tone = self.stream_gates[1].lock().unwrap();
+        let _sound = self.stream_gates[2].lock().unwrap();
+        if let Some(generation) = self.output_generation.lock().unwrap().as_ref() {
+            generation.fetch_add(1, Ordering::AcqRel);
+        }
+        for generation in self.schedule_generations.iter() {
+            generation.fetch_add(1, Ordering::AcqRel);
+        }
+        for token in [&self.speech_stop_cancellation, &self.tone_stop_cancellation] {
+            std::mem::replace(&mut *token.lock().unwrap(), CancellationToken::new()).cancel();
+        }
+        replace();
     }
 
     fn sink_and_max(&self, stream: StreamType) -> (&ManagedSink, usize) {
@@ -909,7 +979,9 @@ impl AudioControl {
                     },
                 ) {
                     Ok(Some(actual)) => actual.wait(),
-                    Ok(None) => PlaybackStatus::Completed,
+                    // The scheduled buffer is nonempty. No source means a
+                    // stop/reconfiguration won its final admission gate.
+                    Ok(None) => PlaybackStatus::Cancelled,
                     Err(error) => {
                         tracing::warn!("scheduled overlay queue error: {}", error);
                         PlaybackStatus::Cancelled
@@ -1219,9 +1291,14 @@ enum AudioStreamRuntime {
     Pulse {
         sinks: [Arc<crate::pulse::PulseSink>; 3],
     },
+    #[cfg(not(windows))]
     Device {
         _stream: OutputStream,
         _stream_handle: OutputStreamHandle,
+    },
+    #[cfg(windows)]
+    FollowingDevice {
+        _runtime: crate::device::DeviceRuntime,
     },
     Null {
         shutdown: Arc<AtomicBool>,
@@ -1291,38 +1368,53 @@ impl AudioStreams {
         tone_max_depth: usize,
         sound_max_depth: usize,
     ) -> Result<Self, AudioError> {
-        let (stream, stream_handle) = OutputStream::try_default()
-            .map_err(|e| AudioError::DeviceNotFound(format!("default device: {}", e)))?;
+        #[cfg(windows)]
+        {
+            let (runtime, control) = crate::device::DeviceRuntime::new([
+                speech_max_depth,
+                tone_max_depth,
+                sound_max_depth,
+            ])?;
+            Ok(Self {
+                runtime: AudioStreamRuntime::FollowingDevice { _runtime: runtime },
+                control,
+            })
+        }
+        #[cfg(not(windows))]
+        {
+            let (stream, stream_handle) = OutputStream::try_default()
+                .map_err(|e| AudioError::DeviceNotFound(format!("default device: {}", e)))?;
 
-        let speech_sink = ManagedSink::Device(Arc::new(
-            Sink::try_new(&stream_handle)
-                .map_err(|e| AudioError::PlaybackError(format!("speech sink: {}", e)))?,
-        ));
-        let tone_sink = ManagedSink::Device(Arc::new(
-            Sink::try_new(&stream_handle)
-                .map_err(|e| AudioError::PlaybackError(format!("tone sink: {}", e)))?,
-        ));
-        let sound_sink = ManagedSink::Device(Arc::new(
-            Sink::try_new(&stream_handle)
-                .map_err(|e| AudioError::PlaybackError(format!("sound sink: {}", e)))?,
-        ));
+            let speech_sink = ManagedSink::Device(Arc::new(
+                crate::rodio_output::new_sink(&stream_handle)
+                    .map_err(|e| AudioError::PlaybackError(format!("speech sink: {}", e)))?,
+            ));
+            let tone_sink = ManagedSink::Device(Arc::new(
+                crate::rodio_output::new_sink(&stream_handle)
+                    .map_err(|e| AudioError::PlaybackError(format!("tone sink: {}", e)))?,
+            ));
+            let sound_sink = ManagedSink::Device(Arc::new(
+                crate::rodio_output::new_sink(&stream_handle)
+                    .map_err(|e| AudioError::PlaybackError(format!("sound sink: {}", e)))?,
+            ));
 
-        let control = Arc::new(AudioControl::new(
-            speech_sink,
-            tone_sink,
-            sound_sink,
-            speech_max_depth,
-            tone_max_depth,
-            sound_max_depth,
-        ));
+            let control = Arc::new(AudioControl::new(
+                speech_sink,
+                tone_sink,
+                sound_sink,
+                speech_max_depth,
+                tone_max_depth,
+                sound_max_depth,
+            ));
 
-        Ok(Self {
-            runtime: AudioStreamRuntime::Device {
-                _stream: stream,
-                _stream_handle: stream_handle,
-            },
-            control,
-        })
+            Ok(Self {
+                runtime: AudioStreamRuntime::Device {
+                    _stream: stream,
+                    _stream_handle: stream_handle,
+                },
+                control,
+            })
+        }
     }
 
     fn new_pulse(
@@ -1508,7 +1600,7 @@ impl AudioOutput {
             return Ok(());
         }
 
-        let sink = Sink::try_new(&self.stream_handle)
+        let sink = crate::rodio_output::new_sink(&self.stream_handle)
             .map_err(|e| AudioError::PlaybackError(format!("failed to create sink: {}", e)))?;
 
         let source = BufferSource::new(buffer.samples.clone());
@@ -1523,13 +1615,13 @@ impl AudioOutput {
     pub fn play(&self, buffer: &AudioBuffer) -> Result<PlaybackHandle, AudioError> {
         if buffer.is_empty() {
             return Ok(PlaybackHandle {
-                sink: Arc::new(Sink::try_new(&self.stream_handle).map_err(|e| {
-                    AudioError::PlaybackError(format!("failed to create sink: {}", e))
-                })?),
+                sink: Arc::new(crate::rodio_output::new_sink(&self.stream_handle).map_err(
+                    |e| AudioError::PlaybackError(format!("failed to create sink: {}", e)),
+                )?),
             });
         }
 
-        let sink = Sink::try_new(&self.stream_handle)
+        let sink = crate::rodio_output::new_sink(&self.stream_handle)
             .map_err(|e| AudioError::PlaybackError(format!("failed to create sink: {}", e)))?;
 
         let source = BufferSource::new(buffer.samples.clone());
@@ -2016,8 +2108,7 @@ impl Drop for TrackedBufferSource {
 
 /// Tracked rodio source that stays alive while bounded PCM windows arrive.
 struct ProgressivePlaybackSource {
-    #[cfg(target_os = "linux")]
-    output_lifetime: Option<crate::pulse::SourceLifetime>,
+    output_lifetime: Option<crate::cancellation::OutputLifetime>,
     receiver: Receiver<ProgressivePlaybackMessage>,
     current: BufferSource,
     position: usize,
@@ -2050,7 +2141,6 @@ impl ProgressivePlaybackSource {
             pending_attachment: None,
         };
         let source = Self {
-            #[cfg(target_os = "linux")]
             output_lifetime: None,
             receiver,
             current: BufferSource::new(Vec::new()),
@@ -2093,11 +2183,10 @@ impl Iterator for ProgressivePlaybackSource {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            #[cfg(target_os = "linux")]
             if self
                 .output_lifetime
                 .as_ref()
-                .is_some_and(crate::pulse::SourceLifetime::is_cancelled)
+                .is_some_and(crate::cancellation::OutputLifetime::is_cancelled)
             {
                 self.report(PlaybackStatus::Cancelled);
                 return None;

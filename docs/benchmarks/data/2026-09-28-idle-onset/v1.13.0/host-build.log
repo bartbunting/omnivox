@@ -1,0 +1,56 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling autocfg v1.5.0
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.45
+   Compiling cfg-if v1.0.4
+   Compiling pkg-config v0.3.32
+   Compiling libc v0.2.183
+   Compiling once_cell v1.21.4
+   Compiling thiserror v1.0.69
+   Compiling memchr v2.8.0
+   Compiling strength_reduce v0.2.4
+   Compiling regex-syntax v0.8.10
+   Compiling byteorder v1.5.0
+   Compiling bitflags v2.11.0
+   Compiling lazy_static v1.5.0
+   Compiling log v0.4.29
+   Compiling cpal v0.15.3
+   Compiling tinyvec_macros v0.1.1
+   Compiling pin-project-lite v0.2.17
+   Compiling smallvec v1.15.1
+   Compiling nu-ansi-term v0.50.3
+   Compiling dasp_sample v0.11.0
+   Compiling tinyvec v1.11.0
+   Compiling thread_local v1.1.9
+   Compiling anyhow v1.0.102
+   Compiling hound v3.5.1
+   Compiling sharded-slab v0.1.7
+   Compiling ogg v0.8.0
+   Compiling libloading v0.8.9
+   Compiling tracing-core v0.1.36
+   Compiling num-traits v0.2.19
+   Compiling alsa-sys v0.3.1
+   Compiling tracing-log v0.2.0
+   Compiling lewton v0.10.2
+   Compiling aho-corasick v1.1.4
+   Compiling tracing-subscriber v0.3.23
+   Compiling syn v2.0.117
+   Compiling num-integer v0.1.46
+   Compiling num-complex v0.4.6
+   Compiling alsa v0.9.1
+   Compiling primal-check v0.3.4
+   Compiling transpose v0.2.3
+   Compiling rustfft v6.4.1
+   Compiling regex-automata v0.4.14
+   Compiling regex v1.12.3
+   Compiling thiserror-impl v1.0.69
+   Compiling tracing-attributes v0.1.31
+   Compiling tracing v0.1.44
+   Compiling rodio v0.19.0
+   Compiling omnivox-core v1.13.0 (/tmp/omnivox-idle-onset-release-tfthheo6/omnivox-core)
+   Compiling realfft v3.5.0
+   Compiling rubato v0.16.2
+   Compiling omnivox-audio v1.13.0 (/tmp/omnivox-idle-onset-release-tfthheo6/omnivox-audio)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.07s

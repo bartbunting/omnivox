@@ -1,0 +1,92 @@
+
+running 4 tests
+test output::idle_onset_repro::idle_onset_repro_after_idle ... Buffered repetition=0: idle_frames=403, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Buffered repetition=1: idle_frames=335, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Buffered repetition=2: idle_frames=267, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Buffered repetition=3: idle_frames=199, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Buffered repetition=4: idle_frames=131, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Tracked repetition=0: idle_frames=403, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Tracked repetition=1: idle_frames=335, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Tracked repetition=2: idle_frames=267, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Tracked repetition=3: idle_frames=199, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Tracked repetition=4: idle_frames=131, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Progressive repetition=0: idle_frames=403, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Progressive repetition=1: idle_frames=335, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Progressive repetition=2: idle_frames=267, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Progressive repetition=3: idle_frames=199, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+Progressive repetition=4: idle_frames=131, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+ok
+test output::idle_onset_repro::idle_onset_repro_canonical_metadata_control ... canonical queue metadata Buffered repetition=0: all 2048 frames preserved exactly
+canonical queue metadata Buffered repetition=1: all 2048 frames preserved exactly
+canonical queue metadata Buffered repetition=2: all 2048 frames preserved exactly
+canonical queue metadata Buffered repetition=3: all 2048 frames preserved exactly
+canonical queue metadata Buffered repetition=4: all 2048 frames preserved exactly
+canonical queue metadata Tracked repetition=0: all 2048 frames preserved exactly
+canonical queue metadata Tracked repetition=1: all 2048 frames preserved exactly
+canonical queue metadata Tracked repetition=2: all 2048 frames preserved exactly
+canonical queue metadata Tracked repetition=3: all 2048 frames preserved exactly
+canonical queue metadata Tracked repetition=4: all 2048 frames preserved exactly
+canonical queue metadata Progressive repetition=0: all 2048 frames preserved exactly
+canonical queue metadata Progressive repetition=1: all 2048 frames preserved exactly
+canonical queue metadata Progressive repetition=2: all 2048 frames preserved exactly
+canonical queue metadata Progressive repetition=3: all 2048 frames preserved exactly
+canonical queue metadata Progressive repetition=4: all 2048 frames preserved exactly
+ok
+test output::idle_onset_repro::idle_onset_repro_cold_and_contiguous ... cold Buffered: idle_frames=0, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+contiguous Buffered: second source preserved exactly
+cold Tracked: idle_frames=0, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+contiguous Tracked: second source preserved exactly
+cold Progressive: idle_frames=0, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1792
+contiguous Progressive: second source preserved exactly
+ok
+test output::idle_onset_repro::idle_onset_repro_tick_and_internal_silence ... tick/internal silence: lead_frames=882 amplitude=0.011 window_frames=1: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.011 window_frames=128: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.011 window_frames=256: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.011 window_frames=512: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.011 window_frames=882: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.011 window_frames=1024: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.011 window_frames=4096: preserved exactly
+tick through playback lead_frames=882 amplitude=0.011: idle_frames=403, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1650
+tick/internal silence: lead_frames=882 amplitude=0.02 window_frames=1: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.02 window_frames=128: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.02 window_frames=256: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.02 window_frames=512: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.02 window_frames=882: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.02 window_frames=1024: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.02 window_frames=4096: preserved exactly
+tick through playback lead_frames=882 amplitude=0.02: idle_frames=403, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1650
+tick/internal silence: lead_frames=882 amplitude=0.5 window_frames=1: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.5 window_frames=128: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.5 window_frames=256: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.5 window_frames=512: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.5 window_frames=882: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.5 window_frames=1024: preserved exactly
+tick/internal silence: lead_frames=882 amplitude=0.5 window_frames=4096: preserved exactly
+tick through playback lead_frames=882 amplitude=0.5: idle_frames=403, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=1650
+tick/internal silence: lead_frames=2646 amplitude=0.011 window_frames=1: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.011 window_frames=128: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.011 window_frames=256: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.011 window_frames=512: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.011 window_frames=882: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.011 window_frames=1024: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.011 window_frames=4096: preserved exactly
+tick through playback lead_frames=2646 amplitude=0.011: idle_frames=403, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=3414
+tick/internal silence: lead_frames=2646 amplitude=0.02 window_frames=1: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.02 window_frames=128: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.02 window_frames=256: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.02 window_frames=512: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.02 window_frames=882: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.02 window_frames=1024: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.02 window_frames=4096: preserved exactly
+tick through playback lead_frames=2646 amplitude=0.02: idle_frames=403, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=3414
+tick/internal silence: lead_frames=2646 amplitude=0.5 window_frames=1: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.5 window_frames=128: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.5 window_frames=256: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.5 window_frames=512: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.5 window_frames=882: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.5 window_frames=1024: preserved exactly
+tick/internal silence: lead_frames=2646 amplitude=0.5 window_frames=4096: preserved exactly
+tick through playback lead_frames=2646 amplitude=0.5: idle_frames=403, lost_input_frames=0, stretched_input_frames=256, stretched_output_frames=512, exact_tail_frames=3414
+ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 125 filtered out; finished in 0.46s

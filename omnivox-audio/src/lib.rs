@@ -6,6 +6,8 @@
 
 pub mod buffer;
 pub mod cancellation;
+#[cfg(any(windows, test))]
+mod device;
 pub mod effects;
 pub mod loader;
 pub mod output;
@@ -14,6 +16,7 @@ pub mod post_synthesis;
 pub mod progressive_pcm;
 #[cfg(target_os = "linux")]
 mod pulse;
+mod rodio_output;
 pub mod timeline;
 pub mod tone;
 

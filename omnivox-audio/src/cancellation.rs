@@ -1,6 +1,6 @@
 //! Cooperative cancellation shared by synthesis and playback.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 
 /// Cloneable cooperative-cancellation signal for one logical request.
@@ -33,6 +33,21 @@ impl CancellationToken {
     /// Return whether both handles refer to the same cancellation lifetime.
     pub fn same_token(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.cancelled, &other.cancelled)
+    }
+}
+
+/// A source belongs to one queue generation and one output connection.
+/// Closing either must also interrupt a source waiting for more PCM.
+#[derive(Clone)]
+pub(crate) struct OutputLifetime {
+    pub(crate) generation: Arc<AtomicU64>,
+    pub(crate) expected: u64,
+    pub(crate) closed: CancellationToken,
+}
+
+impl OutputLifetime {
+    pub(crate) fn is_cancelled(&self) -> bool {
+        self.closed.is_cancelled() || self.generation.load(Ordering::Acquire) != self.expected
     }
 }
 

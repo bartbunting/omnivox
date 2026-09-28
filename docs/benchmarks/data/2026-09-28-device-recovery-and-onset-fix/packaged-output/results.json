@@ -1,0 +1,43 @@
+{
+  "started_utc": "2026-09-28T09:52:09.880344+00:00",
+  "program": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/ad5be9cca3f9e40b/omnivox.exe",
+  "program_sha256": "999e4163ee585c2498731cc6b5da8f8f3b357fb0ff9239b850f1a80b48b49c48",
+  "audio": "8820 zero-valued stereo i16 frames at 44100 Hz; no acoustic measurement",
+  "processes": [
+    {
+      "channel": "left",
+      "command": [
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/ad5be9cca3f9e40b/omnivox.exe",
+        "--config-dir",
+        "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-output-check-hmd7_467\\left",
+        "--audio-output",
+        "device",
+        "--audio-target",
+        "left",
+        "--play-wav",
+        "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-output-check-hmd7_467\\zero.wav"
+      ],
+      "exit_code": 0,
+      "stdout": "Playing C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-output-check-hmd7_467\\zero.wav (17640 samples)...\n",
+      "stderr": ""
+    },
+    {
+      "channel": "right",
+      "command": [
+        "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/ad5be9cca3f9e40b/omnivox.exe",
+        "--config-dir",
+        "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-output-check-hmd7_467\\right",
+        "--audio-output",
+        "device",
+        "--audio-target",
+        "right",
+        "--play-wav",
+        "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-output-check-hmd7_467\\zero.wav"
+      ],
+      "exit_code": 0,
+      "stdout": "Playing C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-output-check-hmd7_467\\zero.wav (17640 samples)...\n",
+      "stderr": ""
+    }
+  ],
+  "finished_utc": "2026-09-28T09:52:10.556271+00:00"
+}

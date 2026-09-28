@@ -25,6 +25,9 @@ lifetimes, process supervision, exclusive access and file ownership.
 
 An ordinary bug fix, refactor within existing boundaries, test addition or
 implementation milestone needs no ADR unless it changes a significant decision.
+An additional configuration field or schema increment does not by itself justify
+a separate ADR; keep exact fields and compatibility rules in their reference
+when the existing decision already explains the policy.
 New engine adapters need a separate ADR only when existing process, runtime and
 distribution policies do not settle their choices. A plan is not required for a
 small straightforward change. Avoid creating a document for each commit.
@@ -72,14 +75,21 @@ Use a descriptive numbered filename and these sections:
 ## Consequences and alternatives
 ```
 
-Add a record when the choice would otherwise require a future contributor to
-guess why a durable constraint exists. Describe what changes, why this option
-was chosen and what costs it creates. Link detailed algorithms, schema tables,
-commands and test evidence instead of copying them into the decision.
+Before creating any new record, including a proposed ADR, obtain explicit
+approval to create it. Explain the durable choice, why the existing decisions or
+references are insufficient, and the proposed scope. Approval to implement a
+feature does not imply approval to create an ADR; approval to create a record
+does not itself accept its decision. If creation is not approved, continue work
+covered by existing decisions and keep any unresolved architectural choice open.
 
-Drafts may be edited freely while proposed. Record acceptance only when the
-maintainer accepts the decision or explicitly authorizes implementation of that
-defined scope. A documentation rewrite, passing test or completed parser does
+An approved record should explain a durable constraint that would otherwise
+require a future contributor to guess its rationale. Describe what changes, why
+this option was chosen and what costs it creates. Link detailed algorithms,
+schema tables, commands and test evidence instead of copying them into the decision.
+
+Drafts may be edited freely while proposed. Record acceptance only after explicit
+approval of the decision or authorization to implement its defined scope.
+A documentation rewrite, passing test or completed parser does
 not itself accept a proposal. Rejection records its reason. Acceptance and
 implementation/release status remain separate.
 
@@ -89,10 +99,12 @@ ADR that identifies the exact record or sections extended/superseded; link both
 ways and update the index. Do not silently treat a partial refinement as repeal
 of the whole older policy. Keep IDs stable and do not reuse numbers.
 
-The maintainer-authorized 2026-09-27 consolidation is a one-time baseline reset.
-It replaced and renumbered the young project's earlier records, preserving
-accepted constraints and evidence. That exception is not an ongoing permission
-to rewrite history or renumber the collection.
+The approved consolidations on 2026-09-27 and 2026-09-28 are explicit exceptions.
+The first replaced the earlier collection; the second combined the local
+configuration decisions and renumbered Windows output recovery. Both preserve
+accepted constraints and evidence. The [ADR index](adr/README.md) records the
+numbering changes and historical revisions. These exceptions do not authorize
+further consolidation or renumbering without explicit approval.
 
 ## Plans and specifications
 

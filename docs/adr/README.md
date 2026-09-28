@@ -16,22 +16,25 @@ Proposed records do not override accepted decisions.
 | [0006: Voice selection and customization](0006-voice-selection-and-customization.md) | Accepted | Actual-choice tuning, private previews, typed native controls and variants. |
 | [0007: Managed voice lifecycle](0007-managed-voice-lifecycle.md) | Accepted | Installed/desired/active state, providers, validation, activation and fallback. |
 | [0008: Extensible engine registration](0008-extensible-engine-registration.md) | Accepted | Shared registration and explicit local configuration for independent helpers; configuration v1 and its first implementation slice. |
-| [0009: Local speech preferences](0009-local-speech-preferences.md) | Accepted | Bounded host chunk size, unchanged defaults and frozen startup compatibility. |
-| [0010: Saved speech defaults](0010-saved-speech-defaults.md) | Accepted | Saved startup/reset values, client precedence and frozen compatibility. |
-| [0011: Capital pitch preferences](0011-capital-pitch-preferences.md) | Accepted | Global and per-engine isolated-capital cues, actual-attempt selection and frozen compatibility. |
-| [0012: Saved audio output](0012-saved-audio-output.md) | Accepted | Saved backend/channel/latency, launcher precedence, reset destination and frozen recovery. |
-| [0013: Windows default output recovery](0013-windows-default-output-recovery.md) | Accepted | Follow default endpoint changes, retire interrupted speech and recover output without restarting engines. |
+| [0009: Local speech and output preferences](0009-local-speech-preferences.md) | Accepted | Frozen local settings, speech/reset precedence, capital cues and per-lane output choices. |
+| [0010: Windows default output recovery](0010-windows-default-output-recovery.md) | Accepted | Follow default endpoint changes, retire interrupted speech and recover output without restarting engines. |
 
-The maintainer authorized a one-time consolidation and renumbering on 2026-09-27.
-These are the replacement records; older numbers apply only to earlier Git
-revisions. Pre-consolidation records are available in Git at `cdd6176` and are
-not retained as parallel files or redirects. The replacement preserves accepted
-policy; the extensibility decision was subsequently accepted for its v1 scope. Recorded test observations
-were preserved in the [evidence archive](../benchmarks/README.md).
+The approved 2026-09-27 consolidation replaced the earlier collection, available
+in Git at `cdd6176`. The approved 2026-09-28 consolidation combined the local
+configuration records, then numbered 0009–0012, into 0009 and renumbered Windows
+output recovery from 0013 to 0010. The texts before that second consolidation
+remain in Git at `3ff0dc0`; older numbers must be read in their revision's context.
 
-Numbers are stable after this baseline. For a task, read this index, the relevant
+Both consolidations preserve accepted policy. Exact configuration and snapshot
+schemas remain in their references; test observations and raw artifacts remain
+in the [evidence archive](../benchmarks/README.md). Superseded files and redirects
+are not kept as a parallel collection.
+
+Numbers remain stable. For a task, read this index, the relevant
 accepted records and their linked dependencies. Read all accepted records when
 scope spans the architecture or affected dependencies are uncertain. Keep the
-index and cross-links current when a decision is added or superseded.
+index and cross-links current when a decision is added or superseded. Creating
+any new ADR, including a proposed record, requires explicit approval in advance;
+implementation approval alone does not authorize a new record.
 The [documentation guide](../DOCUMENTATION-GUIDE.md#adr-lifecycle) defines the
-threshold for an ADR, its lifecycle and the one-time consolidation exception.
+threshold for an ADR, its lifecycle and the approved consolidation exceptions.

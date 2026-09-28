@@ -3,7 +3,7 @@
 This functional report covers the post-1.13.0 change at `f3328d6`: saved voice,
 rate, pitch, volumes and text preferences apply at startup, and reset restores
 the saved baseline. Emacs can override those settings again. See the
-[decision](../adr/0010-saved-speech-defaults.md) and
+[decision](../adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct) and
 [configuration contract](../reference/engine-configuration.md#saved-speech-defaults).
 
 ## Linux checks

@@ -1,10 +1,10 @@
-# ADR 0013: Follow the Windows default audio output
+# ADR 0010: Follow the Windows default audio output
 
 - Status: Accepted
-- Accepted: 2026-09-28; the maintainer authorized automatic Windows headphone
-  switching, cancellation of interrupted speech and recovery without restarting
-  engines.
-- Extends: [Saved audio output](0012-saved-audio-output.md).
+- Accepted: 2026-09-28 for automatic Windows headphone switching, cancellation
+  of interrupted speech and recovery without restarting engines.
+- Renumbered: 2026-09-28 from ADR 0013 during the approved consolidation.
+- Extends: [Saved audio output](0009-local-speech-preferences.md#preserve-per-lane-output-choices).
 - Related: [Progressive playback](0003-progressive-audio-and-markers.md),
   [worker ownership](0004-workstation-service-and-worker-ownership.md),
   [PulseAudio recovery](0005-native-pulseaudio-output.md).

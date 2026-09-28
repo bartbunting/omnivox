@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Windows device output follows changes to the default playback device, including
+  headphone switching. Interrupted speech is cancelled; fresh speech uses the
+  recovered output without restarting speech engines.
+
 - Save the existing audio backend, process channel and PulseAudio latency request
   in version-2 configuration. Launcher overrides retain priority, and speech
   reset restores each worker's effective startup channel.
@@ -25,6 +29,13 @@ Versioning for published releases.
   The default remains 15; accepted values are 1–100. Both speech lanes and
   recovered workers retain the same setting. The 15-second silence cap remains
   fixed.
+
+### Fixed
+
+- Preserve speech and sound onsets when device playback starts after idle.
+  Rodio's queue could interpret the first 256 stereo frames as mono, stretching
+  them to twice their duration. Keep the queue's stereo format stable through
+  idle periods and Windows output replacement.
 
 ## [1.13.0] - 2026-09-28
 

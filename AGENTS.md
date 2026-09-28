@@ -59,10 +59,16 @@
   observations in their designated documents. Keep the roadmap as the entry to
   future work and the ADR index as the entry to decisions. Do not append
   implementation diaries or obsolete next steps to ADRs or protocol references.
-- ADR IDs are stable after the authorized 2026-09-27 consolidation. Material
-  changes to accepted decisions use a new, linked ADR; a proposed record remains
-  proposed until the maintainer accepts its defined scope. Acceptance alone does
-  not establish implementation, platform qualification or release publication.
+- Obtain explicit user approval before creating any new ADR, including a
+  proposed record. First explain the durable decision, why existing records or
+  references do not cover it, and the proposed scope. Authorization to implement
+  a feature does not authorize creating an ADR. Prefer updating the appropriate
+  reference for routine settings, schema details and implementation increments.
+- ADR IDs are stable after the authorized 2026-09-28 consolidation. Material
+  changes to accepted decisions require review and, with the approval above, a
+  new linked ADR. A proposed record remains proposed until its defined decision
+  or implementation scope is explicitly accepted. Acceptance alone does not
+  establish implementation, platform qualification or release publication.
 - Preserve benchmark raw data, test reports, fixtures, reproduction inputs and
   provenance. Extract unique observations before retiring a plan or diary.
   Record missing evidence honestly. Reruns create new reports; link repairs must

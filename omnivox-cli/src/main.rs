@@ -249,6 +249,7 @@ fn main() -> Result<()> {
     )
     .map_err(|e| anyhow::anyhow!("Audio streams init failed: {}", e))?;
     let control = streams.control();
+    control.bind_output_generation(gen_counter.clone());
 
     let mut state = TtsState {
         max_chunk_words: created_engines.speech.max_chunk_words,

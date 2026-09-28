@@ -127,7 +127,7 @@ cancellation or silence limits. See [text chunking](text-chunking.md).
 ### Saved speech defaults
 
 Version 2 also accepts `speech.defaults`, an optional object governed by
-[ADR 0010](../adr/0010-saved-speech-defaults.md). Each omitted member independently
+[ADR 0009](../adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct). Each omitted member independently
 uses the built-in value below. Like the other public settings, null and unknown
 fields are errors. Numbers must be JSON numbers, finite and inside their range;
 strings containing numbers and boolean substitutes fail. Values are rejected,
@@ -213,7 +213,7 @@ support and bounds; these values do not promise equal acoustic changes.
 Ordinary speech, exact WAV diagnostics, previews and word/sentence capitalization
 actions do not receive this isolated-letter cue. Both lanes, reset and recovery
 retain the complete captured policy; applying file edits requires a deliberate
-restart. See [ADR 0011](../adr/0011-capital-pitch-preferences.md).
+restart. See [ADR 0009](../adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct).
 
 ### Audio output settings
 
@@ -258,7 +258,7 @@ unchanged. Recovery reuses saved file values and captured launch overrides.
 its raw WAV is unchanged. `--play-wav` reads the same local configuration and
 uses the output method, channel and latency without constructing speech engines
 or applying speech effects. No named-device selection or new protocol operation
-is introduced. See [ADR 0012](../adr/0012-saved-audio-output.md).
+is introduced. See [ADR 0009](../adr/0009-local-speech-preferences.md#preserve-per-lane-output-choices).
 
 ## Configuration version 1
 

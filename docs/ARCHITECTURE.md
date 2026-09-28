@@ -208,16 +208,16 @@ retains each previous lane's own record. The
 formats and selection rules; the [guide](guides/configuration.md) explains setup.
 
 Version 2 also supplies saved speech defaults under
-[ADR 0010](adr/0010-saved-speech-defaults.md). They are captured with registration
+[ADR 0009](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct). They are captured with registration
 and shared immutably by the worker's request states. Startup applies saved values
 before CLI speech overrides; subsequent client settings retain their priority.
 Reset restores the frozen file baseline and clears transient state without
 rereading files. Exact diagnostics obtain their defaults from the same capture
 that selected their engine. Private snapshot schema 5 also
-retains the [capital-pitch policy](adr/0011-capital-pitch-preferences.md): each
+retains the [capital-pitch policy](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct): each
 isolated-capital attempt selects the actual engine's cue, including fallback.
 Historical schemas retain their original defaults and wire shapes.
-Saved [audio output choices](adr/0012-saved-audio-output.md) share this capture;
+Saved [audio output choices](adr/0009-local-speech-preferences.md#preserve-per-lane-output-choices) share this capture;
 per-lane launcher overrides still win. Speech reset restores the effective
 startup channel across all process streams. PulseAudio resolves its latency
 request once for those streams and retains it during reconnect.
@@ -462,7 +462,24 @@ them. Deferred legacy icons wait for their preceding speech barriers but do not
 delay following speech; their tail still belongs to tracked completion.
 
 The default output backend connects those sinks to the operating-system audio
-device. An explicit null backend instead drains the same rodio source wrappers
+device. Rodio queues advertise a constant canonical stereo format through idle
+and source transitions, so the mixer's format conversion cannot interpret the
+first stereo samples as mono when playback resumes.
+
+On Windows, one owned output thread observes default-render/console endpoint
+notifications and opens, replaces and closes the device connection, following
+[ADR 0010](adr/0010-windows-default-output-recovery.md). Notifications hand off
+bounded events without performing device work. Replacement retires all three
+queues, pending overlays and the worker request generation before publishing
+fresh queues; sources waiting for progressive PCM also observe connection
+cancellation. Engine instances remain alive and interrupted speech is never
+replayed. Native open/close operations run outside admission and stop locks.
+Initial connection failure remains a startup error. Later failure leaves the
+worker alive but rejects fresh audio until a bounded retry, endpoint event or
+new request recovers output. Duplicate defaults and unrelated endpoint events
+retain a healthy connection.
+
+An explicit null backend instead drains the same rodio source wrappers
 as quickly as possible without opening a device. It therefore preserves queue,
 cue, cancellation, overlay-barrier, and tracked-completion behavior while
 attaching progressive sources immediately and deliberately removing real-time

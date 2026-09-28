@@ -1,7 +1,7 @@
 # ADR 0008: Extensible engine registration
 
 - Status: Accepted
-- Accepted: 2026-09-27; maintainer authorized configuration version 1 and the
+- Accepted: 2026-09-27 for configuration version 1 and the
   first implementation slice. See [status](../STATUS.md) for implementation and
   qualification; acceptance alone establishes neither.
 - Extends: [Engine isolation](0001-engine-isolation-and-distribution.md).

@@ -4,6 +4,7 @@
 mod native;
 
 use crate::buffer::{CHANNELS, SAMPLE_RATE};
+use crate::cancellation::OutputLifetime;
 use crate::{AudioError, CancellationToken};
 use rodio::Source;
 use std::collections::VecDeque;
@@ -28,18 +29,6 @@ trait PlaybackDevice {
     fn drained(&mut self) -> Result<bool, String>;
     fn cancel_drain(&mut self);
     fn report(&mut self);
-}
-
-pub(crate) struct SourceLifetime {
-    generation: Arc<AtomicU64>,
-    expected: u64,
-    closed: CancellationToken,
-}
-
-impl SourceLifetime {
-    pub(crate) fn is_cancelled(&self) -> bool {
-        self.closed.is_cancelled() || self.generation.load(Ordering::Acquire) != self.expected
-    }
 }
 
 struct Queued {
@@ -248,8 +237,8 @@ impl PulseSink {
         Ok(sink)
     }
 
-    pub(crate) fn lifetime(&self) -> SourceLifetime {
-        SourceLifetime {
+    pub(crate) fn lifetime(&self) -> OutputLifetime {
+        OutputLifetime {
             generation: self.state.generation.clone(),
             expected: self.state.generation.load(Ordering::Acquire),
             closed: self.state.queue.lock().unwrap().connection_closed.clone(),

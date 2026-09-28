@@ -210,6 +210,14 @@ the existing native PulseAudio output. `null` is silent and useful for tests.
 Choose `left`, `right` or `both` for the channel. These choices apply to speech,
 tones and sounds from that process.
 
+On Windows, `device` follows the system's default playback device, including
+headphones selected after speech starts. Switching cancels interrupted speech
+and queued sounds. Fresh speech uses the new output once it is ready; speech
+engines remain running. If no output is available, new speech is discarded
+instead of playing later. Recovery retries are bounded, and a device change or
+fresh speech can trigger another attempt. Initial startup still requires a
+working output device. This behavior is unreleased, after 1.13.0.
+
 PulseAudio also accepts `"pulse_latency_ms": 20`, from 10 to 200 milliseconds.
 This requests buffering; it does not guarantee how soon sound reaches your ears.
 Keep the default unless you have a reason to change it.

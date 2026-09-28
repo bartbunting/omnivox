@@ -53,6 +53,13 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-09-28 Windows output recovery and onset fix](2026-09-28-device-recovery-and-onset-fix.md)
+  records queue regression, recovery/cancellation, native Windows stream
+  replacement and workspace checks, with physical switching still unqualified.
+- [2026-09-28 idle playback onset](2026-09-28-idle-onset.md)
+  reproduces the release queue's 256-frame onset stretch on Linux and native
+  Windows using mixer samples; initial frame loss and lead-in collapse remain
+  unconfirmed, and no live loopback recording was made.
 - [2026-09-28 capital pitch and audio settings](2026-09-28-capital-pitch-and-audio-settings.md)
   records Linux and native Windows configuration, fallback, reset and recovery
   checks, WAV channel assertions and native PulseAudio startup requests.
