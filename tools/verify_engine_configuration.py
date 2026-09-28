@@ -192,7 +192,12 @@ def main():
         environments = [json.loads(line) for line in (root / "environment.jsonl").read_text().splitlines()]
         assert {item["value"] for item in environments} == {"retained private value"}
         assert len({item["pid"] for item in environments}) == 4
-        assert "private" not in json.dumps([initial_inventory, recovered_inventory, first_ack, second_ack])
+        public_status = json.dumps([initial_inventory, recovered_inventory, first_ack, second_ack])
+        # macOS legitimately reports paths under /private. Check the actual
+        # private inputs, rather than a word that can occur in a public path.
+        for private_input in ("OMNIVOX_FIXTURE_PRIVATE", "retained private value",
+                              "changed private value", arguments[arguments.index("--tag") + 1]):
+            assert private_input not in public_status
 
         # Retiring one lane leaves the other's independently owned helper alive.
         assert first.request("retire", worker=initial["worker"])["type"] == "retired"
