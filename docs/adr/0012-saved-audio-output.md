@@ -7,6 +7,8 @@
   its deferred process-output configuration and routing-reset behavior.
 - Related: [Native PulseAudio](0005-native-pulseaudio-output.md),
   [worker ownership](0004-workstation-service-and-worker-ownership.md).
+- Extended by: [Windows default output recovery](0013-windows-default-output-recovery.md),
+  which adds live endpoint switching inside the selected Windows device backend.
 
 ## Context
 
