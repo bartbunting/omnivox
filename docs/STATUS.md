@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Documentation reviewed:** 2026-09-27. **Workspace version:** 1.12.0.
+**Documentation reviewed:** 2026-09-28. **Workspace version:** 1.13.0.
 This review adds no native qualification. Published changes belong to the
 [changelog](../CHANGELOG.md); current implementation may include unreleased work.
 [Architecture](ARCHITECTURE.md) explains behavior, [the roadmap](ROADMAP.md)

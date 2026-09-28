@@ -6,6 +6,8 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-09-28
+
 ### Added
 
 - Register independently installed speech helpers through version-1 JSON
