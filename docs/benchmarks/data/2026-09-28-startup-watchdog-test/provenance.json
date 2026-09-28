@@ -1,0 +1,16 @@
+{
+  "release_tag": "v1.13.0",
+  "tag_commit": "54aee84575d8a0072e5995b3705959f581e777c8",
+  "correction": "b6ce206",
+  "rust": "1.97.1",
+  "local_host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "windows_version": "10.0.26200.0",
+  "windows_target": "x86_64-pc-windows-gnu",
+  "windows_test_executable_sha256": "9a2d2bd1a6407e2eb4d06588e0ffa7a6332c2336408ec09625c81bc9b29a9854",
+  "windows_build": "cargo +1.97.1 test --locked -p omnivox-tts --no-default-features --target x86_64-pc-windows-gnu --no-run",
+  "workspace": "cargo +1.97.1 test --locked --workspace",
+  "lint": "cargo +1.97.1 clippy --locked --workspace --all-targets --features omnivox-cli/piper -- -D warnings",
+  "cargo_target_dir": "/home/bart/ov113.v3MoTB",
+  "baseline_instrumentation": "Temporary test-only output recorded result, case, elapsed time and mock deadline remaining. Baseline executable hash was not retained.",
+  "share_timeout": "After 37 passing repetitions, attempt 38 exceeded the 15-second process deadline; captured output was not retained."
+}

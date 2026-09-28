@@ -91,6 +91,7 @@ samples and a reproducible comparison.
 - [Retained Piper release qualification](2026-09-27-retained-piper-release-results.md)
 
 - [Omnivox 1.13.0 candidate checks](2026-09-28-1.13-candidate.md)
+- [Windows startup watchdog test correction](2026-09-28-startup-watchdog-test.md)
 
 ## Preservation policy
 
