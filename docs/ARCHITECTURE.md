@@ -213,7 +213,7 @@ and shared immutably by the worker's request states. Startup applies saved value
 before CLI speech overrides; subsequent client settings retain their priority.
 Reset restores the frozen file baseline and clears transient state without
 rereading files. Exact diagnostics obtain their defaults from the same capture
-that selected their engine. Private snapshot schema 5 also
+that selected their engine. Private snapshot schema 6 also
 retains the [capital-pitch policy](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct): each
 isolated-capital attempt selects the actual engine's cue, including fallback.
 Historical schemas retain their original defaults and wire shapes.
@@ -404,7 +404,7 @@ successful generation acknowledgement. The
 Before synthesis Omnivox:
 
 1. consumes the established `[*]` speech separator as a boundary space;
-2. expands punctuation according to the active none/some/all level;
+2. expands punctuation through captured host tables for the active none/some/all level;
 3. optionally inserts spaces at lower-to-uppercase CamelCase boundaries; and
 4. chunks prepared text at a sentence, line, or clause boundary when possible,
    with a host-configured limit of 1–100 whitespace-delimited words, defaulting
@@ -412,10 +412,19 @@ Before synthesis Omnivox:
    [ADR 0009](adr/0009-local-speech-preferences.md).
 
 Punctuation expansion is route-independent and shared by legacy and structured
-speech. The compatibility separator never reaches punctuation expansion as
+speech. Configuration version 3 adds sparse per-level names and explicit
+preservation; both workers and reset/recovery retain the complete resolved tables.
+Built-ins cover ASCII and common Unicode punctuation, including apostrophes.
+The [configuration reference](reference/engine-configuration.md#punctuation-tables)
+specifies the tables and [the delivery plan](plans/punctuation-configuration.md)
+defers custom named profiles and their client negotiation. The local management
+service supplies review and validated revision-checked saves; Emacsvox holds
+editor drafts and offers speech restart separately. The
+[editing contract](reference/engine-configuration.md#local-punctuation-editor)
+specifies file ownership and conflict behavior.
+The compatibility separator never reaches punctuation expansion as
 literal markup. Structured actions retain original UTF-8 offsets through text
-preparation and chunking; the selected engine resolves mapped anchors. Exact
-punctuation sets, segmentation and offset rules live in
+preparation and chunking; the selected engine resolves mapped anchors. Segmentation and offset rules live in
 [text-chunking.md](reference/text-chunking.md).
 
 ## Audio and presentation ownership

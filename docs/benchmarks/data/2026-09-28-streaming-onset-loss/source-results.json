@@ -1,0 +1,101 @@
+{
+  "chirp-22050-1": {
+    "command": [
+      "/tmp/omnivox-1.14-onset-source-42kiksm_/target/debug/examples/onset_probe",
+      "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-loopback-uw2uok6u/chirp-22050-1.pcm",
+      "22050",
+      "1",
+      "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-loopback-uw2uok6u/probe-chirp-22050-1"
+    ],
+    "counts": "source=2646 buffered=5032 progressive=5292",
+    "dropped_frames": 256,
+    "dropped_ms": 5.804988662131519,
+    "shifted_overlap_max_absolute_difference": 0.0,
+    "buffered_first_8": [
+      0.01646145060658455,
+      0.03202430158853531,
+      0.03737598657608032,
+      0.034060679376125336,
+      0.031238872557878494,
+      0.033051516860723495,
+      0.035550326108932495,
+      0.03505147621035576
+    ],
+    "progressive_first_8": [
+      0.02123326063156128,
+      0.020781520754098892,
+      0.020344842225313187,
+      0.019921937957406044,
+      0.019500255584716797,
+      0.019072482362389565,
+      0.018648456782102585,
+      0.01824392005801201
+    ]
+  },
+  "chirp-16000-1": {
+    "command": [
+      "/tmp/omnivox-1.14-onset-source-42kiksm_/target/debug/examples/onset_probe",
+      "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-loopback-uw2uok6u/chirp-16000-1.pcm",
+      "16000",
+      "1",
+      "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-loopback-uw2uok6u/probe-chirp-16000-1"
+    ],
+    "counts": "source=1920 buffered=4934 progressive=5292",
+    "dropped_frames": 352,
+    "dropped_ms": 7.981859410430839,
+    "shifted_overlap_max_absolute_difference": 0.0,
+    "buffered_first_8": [
+      0.011603682301938534,
+      0.024269163608551025,
+      0.03385857492685318,
+      0.0374346561729908,
+      0.035903576761484146,
+      0.03284338489174843,
+      0.03156013414263725,
+      0.03284437954425812
+    ],
+    "progressive_first_8": [
+      0.03566361218690872,
+      0.035891734063625336,
+      0.036094509065151215,
+      0.03627357259392738,
+      0.036433905363082886,
+      0.03657880425453186,
+      0.03670680150389671,
+      0.03681299462914467
+    ]
+  },
+  "chirp-22050-1-lead": {
+    "command": [
+      "/tmp/omnivox-1.14-onset-source-42kiksm_/target/debug/examples/onset_probe",
+      "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-loopback-uw2uok6u/chirp-22050-1-lead.pcm",
+      "22050",
+      "1",
+      "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-loopback-uw2uok6u/probe-chirp-22050-1-lead"
+    ],
+    "counts": "source=3087 buffered=5914 progressive=6174",
+    "dropped_frames": 256,
+    "dropped_ms": 5.804988662131519,
+    "shifted_overlap_max_absolute_difference": 0.0,
+    "buffered_first_8": [
+      0.007694276049733162,
+      0.014918159693479538,
+      0.01730968803167343,
+      0.01561875082552433,
+      0.014165733940899372,
+      0.014898714609444141,
+      0.0159585103392601,
+      0.015611419454216957
+    ],
+    "progressive_first_8": [
+      0.015258660539984703,
+      0.015258667059242725,
+      0.015258660539984703,
+      0.015258667059242725,
+      0.015258660539984703,
+      0.015258667059242725,
+      0.015258660539984703,
+      0.015258667059242725
+    ]
+  }
+}

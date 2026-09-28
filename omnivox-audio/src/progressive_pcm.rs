@@ -71,7 +71,6 @@ pub struct ProgressivePcmCanonicalizer {
     source_channels: u16,
     resampler: Option<SincFixedIn<f32>>,
     pending_channels: Vec<Vec<f32>>,
-    output_delay_remaining: usize,
     source_frames: u64,
     output_frames: u64,
     finished: bool,
@@ -90,13 +89,11 @@ impl ProgressivePcmCanonicalizer {
         } else {
             Some(new_resampler(source_sample_rate, source_channels)?)
         };
-        let output_delay_remaining = resampler.as_ref().map_or(0, Resampler::output_delay);
         Ok(Self {
             source_sample_rate,
             source_channels,
             resampler,
             pending_channels: vec![Vec::new(); source_channels as usize],
-            output_delay_remaining,
             source_frames: 0,
             output_frames: 0,
             finished: false,
@@ -295,9 +292,11 @@ impl ProgressivePcmCanonicalizer {
             ));
         }
 
-        let skip = self.output_delay_remaining.min(first.len());
-        self.output_delay_remaining -= skip;
-        let available = first.len() - skip;
+        // SincFixedIn starts its output at the input onset. Its filter latency
+        // leaves a tail to flush at finish(), not leading padding to discard.
+        // Skipping output_delay() here would remove real speech and move PCM
+        // ahead of the native-to-canonical marker clock.
+        let available = first.len();
         let permitted = frame_limit.map_or(available, |limit| {
             usize::try_from(limit.saturating_sub(self.output_frames))
                 .unwrap_or(usize::MAX)
@@ -308,14 +307,13 @@ impl ProgressivePcmCanonicalizer {
         }
 
         let mut samples = Vec::with_capacity(permitted * CHANNELS as usize);
-        let end = skip + permitted;
         if self.source_channels == 1 {
-            for sample in &output[0][skip..end] {
+            for sample in &output[0][..permitted] {
                 samples.push(*sample);
                 samples.push(*sample);
             }
         } else {
-            for (left, right) in output[0][skip..end].iter().zip(&output[1][skip..end]) {
+            for (left, right) in output[0][..permitted].iter().zip(&output[1][..permitted]) {
                 samples.push(*left);
                 samples.push(*right);
             }
@@ -470,6 +468,66 @@ mod tests {
             collect(&[0.1, 0.25], SAMPLE_RATE, 1, &[1]),
             [0.1, 0.1, 0.25, 0.25]
         );
+    }
+
+    #[test]
+    fn resampled_onsets_and_tails_stay_at_native_marker_positions() {
+        // An exact frame count alone can hide a discarded onset followed by
+        // zero padding. Locate real PCM at the start, an interior marker and
+        // the final native frame instead, including a partial input window.
+        let frames = 1_537;
+        for rate in [
+            8_000, 10_000, 11_025, 16_000, 22_050, 44_100, 48_000, 384_000,
+        ] {
+            for channels in [1, 2] {
+                for position in [0, 700, frames - 1] {
+                    let mut input = vec![0.0; frames * channels as usize];
+                    input[position * channels as usize] = 1.0;
+                    if channels == 2 {
+                        input[position * 2 + 1] = -0.5;
+                    }
+                    let output = collect(&input, rate, channels, &[1, 7, 256, 511]);
+                    let converter = ProgressivePcmCanonicalizer::new(rate, channels).unwrap();
+                    let marker = converter.canonical_frame_offset(position as u64).unwrap();
+                    let (peak_frame, peak) = output
+                        .chunks_exact(2)
+                        .enumerate()
+                        .max_by(|(_, a), (_, b)| a[0].abs().total_cmp(&b[0].abs()))
+                        .unwrap();
+                    // Allow the sinc kernel's sub-native-frame phase and
+                    // integer marker rounding, not a whole filter delay.
+                    let tolerance = u64::from(SAMPLE_RATE.div_ceil(rate)) + 1;
+                    assert!(
+                        peak[0].abs() > 0.01 && (peak_frame as u64).abs_diff(marker) <= tolerance,
+                        "{rate} Hz/{channels} channels, native frame {position}: \
+                         peak {peak_frame} ({}) versus marker {marker}",
+                        peak[0]
+                    );
+                    for frame in output.chunks_exact(2) {
+                        let right = if channels == 1 {
+                            frame[0]
+                        } else {
+                            -0.5 * frame[0]
+                        };
+                        assert_eq!(frame[1], right);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn short_resampled_utterances_retain_audio_not_just_frame_counts() {
+        for rate in [8_000, 16_000, 22_050, 48_000] {
+            for frames in [1, 17, 127] {
+                let input = vec![0.5; frames];
+                let output = collect(&input, rate, 1, &[7]);
+                assert!(
+                    output.iter().any(|sample| sample.abs() > 0.05),
+                    "{frames} native frames at {rate} Hz became silence"
+                );
+            }
+        }
     }
 
     #[test]

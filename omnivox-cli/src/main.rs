@@ -254,6 +254,7 @@ fn main() -> Result<()> {
     let mut state = TtsState {
         max_chunk_words: created_engines.speech.max_chunk_words,
         capital_pitch: Arc::new(created_engines.speech.capital_pitch.clone()),
+        punctuation_tables: Arc::new(created_engines.speech.punctuation.clone()),
         ..TtsState::from_speech_defaults(Arc::new(created_engines.speech.defaults))
     };
     apply_startup_flags(&cli, &created_engines.audio, &mut state);

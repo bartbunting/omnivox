@@ -7,6 +7,7 @@ mod environment;
 mod files;
 mod json;
 mod paths;
+pub mod punctuation_editor;
 mod resolved;
 mod selection;
 pub mod shipped;
@@ -15,9 +16,11 @@ mod status;
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use omnivox_core::punctuation::{PunctuationTable, PunctuationTables};
 use omnivox_core::settings::{
     AudioOutputSettings, CapitalPitchSettings, ChunkWordLimit, SpeechDefaults,
 };
+use omnivox_core::state::PunctuationLevel;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 use thiserror::Error;
@@ -149,10 +152,11 @@ pub struct SpeechConfiguration {
     pub max_chunk_words: ChunkWordLimit,
     pub defaults: SpeechDefaults,
     pub capital_pitch: CapitalPitchSettings,
+    pub punctuation: PunctuationTables,
 }
 
 impl SpeechConfiguration {
-    fn parse(value: Value) -> Result<Self> {
+    fn parse(value: Value, schema: u64) -> Result<Self> {
         let mut object = Object::new(value, "speech")?;
         let max_chunk_words = object.optional("max_chunk_words")?.unwrap_or_default();
         let defaults = object
@@ -165,11 +169,31 @@ impl SpeechConfiguration {
             .map(parse_capital_pitch)
             .transpose()?
             .unwrap_or_default();
+        let mut punctuation = PunctuationTables::default();
+        if schema >= 3 {
+            if let Some(value) = object.take("punctuation") {
+                let mut overrides = Object::new(value, "speech.punctuation")?;
+                for (name, level) in [
+                    ("none", PunctuationLevel::None),
+                    ("some", PunctuationLevel::Some),
+                    ("all", PunctuationLevel::All),
+                ] {
+                    if let Some(table) = overrides.optional::<PunctuationTable>(name)? {
+                        punctuation.table_mut(level).extend(table);
+                    }
+                }
+                overrides.finish()?;
+                punctuation
+                    .validate()
+                    .map_err(|reason| ConfigurationError::new("speech.punctuation", reason))?;
+            }
+        }
         object.finish()?;
         Ok(Self {
             max_chunk_words,
             defaults,
             capital_pitch,
+            punctuation,
         })
     }
 }
@@ -238,24 +262,27 @@ fn parse_speech_defaults(value: Value) -> Result<SpeechDefaults> {
 
 impl Configuration {
     pub fn parse(bytes: &[u8], platform: Platform) -> Result<Self> {
-        let mut object = Object::new(json::parse(bytes, MAX_CONFIG_BYTES)?, "config.json")?;
+        let mut object = Object::new(
+            json::parse_configuration(bytes, MAX_CONFIG_BYTES)?,
+            "config.json",
+        )?;
         let schema = object.required::<u64>("schema")?;
-        if !matches!(schema, 1 | 2) {
+        if !matches!(schema, 1..=3) {
             return Err(ConfigurationError::new(
                 "config.json.schema",
                 "unsupported schema",
             ));
         }
-        let speech = if schema == 2 {
+        let speech = if schema >= 2 {
             object
                 .take("speech")
-                .map(SpeechConfiguration::parse)
+                .map(|value| SpeechConfiguration::parse(value, schema))
                 .transpose()?
                 .unwrap_or_default()
         } else {
             SpeechConfiguration::default()
         };
-        let audio = if schema == 2 {
+        let audio = if schema >= 2 {
             object
                 .take("audio")
                 .map(parse_audio_output)
@@ -516,3 +543,6 @@ impl Object {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod punctuation_tests;

@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Documentation reviewed:** 2026-09-28. **Workspace version:** 1.14.0.
+**Documentation reviewed:** 2026-09-28. **Workspace version:** 1.15.0 (release preparation).
 Published changes belong to the
 [changelog](../CHANGELOG.md); current implementation may include unreleased work.
 [Architecture](ARCHITECTURE.md) explains behavior, [the roadmap](ROADMAP.md)
@@ -13,6 +13,10 @@ release identity, all 64 passing jobs and verification of the 28 public assets.
 The [candidate report](benchmarks/2026-09-28-1.14-candidate.md) records local checks
 and the successful physical Windows headphone-switching follow-up.
 
+The [1.15.0 candidate](benchmarks/2026-09-28-1.15-candidate.md) completes Linux
+and native Windows checks for punctuation configuration/editor support and the
+streaming onset fix. Publication remains a separate release-workflow result.
+
 ## Implemented
 
 | Area | Current capability | Maintained reference |
@@ -23,6 +27,7 @@ and the successful physical Windows headphone-switching follow-up.
 | Discovery | Concurrent helper initialization before initial inventory, verified bounded caches and on-demand exact eSpeak variants. | [Architecture](ARCHITECTURE.md#configuration-and-engine-discovery), [variants](engines/espeak-variants.md) |
 | Engine configuration v1 | Strict local `config.json`/helper manifests, immutable launch snapshots, local permissions, paired startup/Apply acknowledgements and remote session retention. Blocked startup retains ownership without delaying admission; the first implementation slice passes its development acceptance checks. | [Configuration](guides/configuration.md), [acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) |
 | Speech configuration v2 (1.14.0) | Configurable 1–100-word synthesis windows, default 15, shared across lanes and retained on reset/recovery. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#configuration-version-2), [acceptance](benchmarks/2026-09-28-host-chunk-configuration.md) |
+| Punctuation configuration v3 (1.15.0 candidate) | Sparse names/preservation for none/some/all, unchanged ASCII defaults and common Unicode coverage. Local review/edit service and Emacs interface implemented. Linux/Windows configuration and recovery, graphical checks and the WSL-to-Windows editor pass; native macOS editor and listening acceptance remain open. | [Contract](reference/engine-configuration.md#punctuation-tables), [candidate checks](benchmarks/2026-09-28-1.15-candidate.md), [editor acceptance](benchmarks/2026-09-28-punctuation-editor.md), [two-stage plan](plans/punctuation-configuration.md) |
 | Saved speech defaults (1.14.0) | Voice, rate, pitch, volumes, punctuation, CamelCase splitting and character speed; reset restores the captured file baseline. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#saved-speech-defaults), [decision](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct), [acceptance](benchmarks/2026-09-28-saved-speech-defaults.md) |
 | Capital pitch and saved output (1.14.0) | Global capital pitch with engine overrides or off; saved backend, channel and PulseAudio latency request. Linux and native Windows process checks pass. | [Capital pitch](reference/engine-configuration.md#capital-letter-pitch), [audio settings](reference/engine-configuration.md#audio-output-settings), [acceptance](benchmarks/2026-09-28-capital-pitch-and-audio-settings.md) |
 | Managed voices | Reviewed Piper, Flite, MBROLA and RHVoice acquisition; disabled installation, immutable generations, explicit two-worker Apply/rollback and reviewed removal. | [Voice management](guides/voice-management.md), [formats](reference/voice-library.org) |

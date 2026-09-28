@@ -38,6 +38,13 @@ effect or overlay tail is emitted only after the final timeline window.
 
 ## Source mapping
 
+Before chunking, punctuation names come from the immutable
+[host tables](engine-configuration.md#punctuation-tables) for the active level.
+The reserved legacy separator `[*]` becomes one space before its constituent
+characters can be expanded. Names receive surrounding spaces and are expanded
+once. Preserved or unlisted characters pass through unchanged. The same tables
+and preparation apply regardless of engine selection or fallback.
+
 `PreparedSpeechChunk` records its UTF-8 byte range in the complete prepared
 text. Caller-requested structured timeline offsets are first remapped through
 punctuation expansion and CamelCase splitting, then assigned to one chunk with
@@ -48,6 +55,11 @@ capitalization actions explicitly, and ordinary speech preserves letter case.
 
 This is why callers must not re-split a prepared string independently: doing so
 would detach requested anchors from the text sent to the engine.
+
+A boundary before a replaced scalar maps before its leading space; the next
+source boundary maps after its trailing space. Every internal boundary of `[*]`
+maps after the resulting space. Duplicate or unsorted requested offsets retain
+their order. Subsequent CamelCase splitting and chunking retain these mappings.
 
 ## Trade-offs
 

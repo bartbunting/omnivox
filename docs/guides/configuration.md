@@ -67,8 +67,9 @@ For `--dump-wav`, a nonempty positional `VOICE` takes precedence over
 
 ## Local engine configuration
 
-Standalone startup and exact diagnostic actions read configuration versions 1
-and 2. Version 2 is available from Omnivox 1.14.0.
+Standalone startup and exact diagnostic actions read configuration versions 1–3.
+Version 2 is available from Omnivox 1.14.0; version 3 adds punctuation tables
+in Omnivox 1.15.0.
 Choose one root using `--config-dir`, then nonempty `OMNIVOX_CONFIG_DIR`, then
 the platform default: `%APPDATA%\omnivox` on Windows,
 `$HOME/Library/Application Support/Omnivox` on macOS, or
@@ -163,6 +164,49 @@ Omnivox returns to your saved speech defaults. Later Emacs commands can change
 them again. Editing the file alone does not change active or recovering workers.
 Omitted settings retain their built-in values. Output choices have their own
 `audio` section below.
+
+### Punctuation pronunciations
+
+In a supporting Emacsvox checkout, run `M-x omnivox-punctuation`, or choose
+**Punctuation** in Aural Home's **Voices and speech** group. Choose a level with
+`l`; `RET` edits a pronunciation, `a` adds a character, and `d` restores its
+default. The host supplies the table, so the editor shows the defaults of the
+selected executable. `s` saves all draft levels; `r` separately asks to restart
+both speech workers. `q` retains your draft for later. File conflicts leave
+edits available for review. This uses the existing bundled local management
+provider; remote/native-direct editing is unavailable. The screen describes
+saved settings, which may differ from active workers.
+
+The punctuation extension uses version 3 of the same `config.json`.
+Merge the following into your existing file, preserving any other settings:
+
+```json
+{
+  "schema": 3,
+  "speech": {
+    "punctuation": {
+      "some": { "'": "apostrophe", "’": "apostrophe" },
+      "all": { "!": "exclamation mark" }
+    }
+  }
+}
+```
+
+Omnivox 1.15.0 names straight, curly and modifier apostrophes at `all` by default;
+no configuration file is needed for that fix. At `some`, they remain available
+for natural pronunciation. The example opts into naming straight and right curly
+apostrophes at `some` too, including inside contractions. Emacsvox uses `some` by
+default in Org. To leave a character
+to the engine, use null, for example `"$": null`. Omitted characters keep their
+defaults, so you need only list changes. Each level is independent.
+
+Edit the file on the machine running Omnivox. A Windows worker launched from WSL
+uses the Windows configuration root. Restart both speech workers deliberately,
+or use the existing coordinated Apply operation, to capture edits. Reset and
+failure recovery keep the captured tables. Omnivox 1.14.0 and earlier do not
+support this format. See the [complete tables and rules](../reference/engine-configuration.md#punctuation-tables).
+Custom named profiles are the deferred second stage in the
+[delivery plan](../plans/punctuation-configuration.md).
 
 ### Adjust the capital-letter cue
 

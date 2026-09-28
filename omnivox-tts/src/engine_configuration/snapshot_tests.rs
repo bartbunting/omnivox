@@ -128,6 +128,7 @@ fn speech_preferences_survive_complete_snapshot_round_trips() {
 #[test]
 fn historical_snapshots_keep_fifteen_words_and_their_old_wire_shape() {
     let mut old = serde_json::to_value(prepared()).unwrap();
+    old.as_object_mut().unwrap().remove("punctuation");
     old["schema"] = json!(1);
     old.as_object_mut().unwrap().remove("speech");
     old.as_object_mut().unwrap().remove("speech_defaults");
@@ -169,6 +170,7 @@ fn saved_defaults_are_complete_and_old_chunk_snapshots_keep_their_wire_shape() {
         reject_mutation(&snapshot, |wire| wire["schema"] = json!(schema));
     }
     let mut old = wire;
+    old.as_object_mut().unwrap().remove("punctuation");
     old["schema"] = json!(2);
     old.as_object_mut().unwrap().remove("speech_defaults");
     old.as_object_mut().unwrap().remove("capital_pitch");
@@ -240,7 +242,7 @@ fn parsing_rejects_duplicate_keys_unknown_fields_and_outer_bounds() {
     trailing.extend_from_slice(b" {}");
     assert!(LaunchSnapshot::parse(&trailing).is_err());
     reject_mutation(&snapshot, |value| value["extra"] = json!(true));
-    reject_mutation(&snapshot, |value| value["schema"] = json!(6));
+    reject_mutation(&snapshot, |value| value["schema"] = json!(7));
     reject_mutation(&snapshot, |value| {
         value["platform"] = json!("another native platform")
     });
@@ -480,6 +482,7 @@ fn capital_pitch_is_frozen_and_schema_three_retains_its_old_shape() {
         reject_mutation(&snapshot, |wire| wire["schema"] = json!(schema));
     }
     let mut old = serde_json::to_value(snapshot).unwrap();
+    old.as_object_mut().unwrap().remove("punctuation");
     old["schema"] = json!(3);
     old.as_object_mut().unwrap().remove("capital_pitch");
     old.as_object_mut().unwrap().remove("audio");
@@ -522,9 +525,47 @@ fn audio_is_complete_frozen_and_old_snapshots_keep_their_shape() {
         reject_mutation(&snapshot, |wire| wire["schema"] = json!(schema));
     }
     let mut old = serde_json::to_value(snapshot).unwrap();
+    old.as_object_mut().unwrap().remove("punctuation");
     old["schema"] = json!(4);
     old.as_object_mut().unwrap().remove("audio");
     let restored = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert_eq!(restored.resolved().audio, AudioOutputSettings::default());
+    assert_eq!(serde_json::to_value(restored).unwrap(), old);
+}
+
+#[test]
+fn punctuation_is_complete_frozen_and_historical_schemas_keep_ascii_behavior() {
+    let mut resolved = resolved(None);
+    resolved
+        .speech
+        .punctuation
+        .some
+        .insert('’', Some("single quote".into()));
+    resolved.speech.punctuation.all.insert('$', None);
+    let snapshot = LaunchSnapshot::prepare(resolved, None, "".into(), false).unwrap();
+    let restored = LaunchSnapshot::parse(&snapshot.to_bytes().unwrap()).unwrap();
+    assert_eq!(
+        restored.resolved().speech.punctuation,
+        snapshot.resolved().speech.punctuation
+    );
+    for value in [
+        json!(null),
+        json!({}),
+        json!({"none":{},"some":{}}),
+        json!({"none":{},"some":{},"all":{},"custom":{}}),
+        json!({"none":{},"some":{"’":""},"all":{}}),
+        json!({"none":{},"some":{"ab":"invalid"},"all":{}}),
+    ] {
+        reject_mutation(&snapshot, |wire| wire["punctuation"] = value);
+    }
+    let mut old = serde_json::to_value(&snapshot).unwrap();
+    old["schema"] = json!(5);
+    assert!(LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).is_err());
+    old.as_object_mut().unwrap().remove("punctuation");
+    let restored = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
+    assert_eq!(
+        restored.resolved().speech.punctuation,
+        PunctuationTables::legacy()
+    );
     assert_eq!(serde_json::to_value(restored).unwrap(), old);
 }

@@ -59,7 +59,10 @@ def main():
         manifests = configuration / "helpers.d"
         manifests.mkdir(parents=True)
         (configuration / "config.json").write_text(json.dumps(dict(
-            schema=2, speech=dict(max_chunk_words=3, capital_pitch=dict(default=1.4, engines={"org.fixture":1.8}), defaults=dict(
+            schema=3, speech=dict(punctuation={
+                "none": {"’": "curl"},
+                "some": {"'": "tick", "’": "curly quote", "$": None},
+                "all": {"’": "curly quote", "!": "exclamation"}}, max_chunk_words=3, capital_pitch=dict(default=1.4, engines={"org.fixture":1.8}), defaults=dict(
                 voice="saved", rate=0.7, pitch=1.1, voice_volume=0.6,
                 punctuation="none", split_caps=False, character_scale=1.4)),
             audio=dict(backend="null", target="left", pulse_latency_ms=45),
@@ -160,7 +163,24 @@ def main():
 
         service = Peer(server, "--voice-library-service", environment)
         peers.append(service)
-        assert service.request("host")["engine_configuration_version"] == 1
+        capabilities = service.request("host")
+        assert capabilities["engine_configuration_version"] == 1
+        assert capabilities["punctuation_configuration_version"] == 1
+        original_config = json.loads((configuration / "config.json").read_text())
+        review = service.request("punctuation-review")["review"]
+        edits = copy.deepcopy(review["overrides"])
+        edits["some"]["’"] = "edited quote"
+        saved = service.request("punctuation-save", expected_sha256=review["sha256"],
+                                punctuation_json=json.dumps(edits))
+        assert saved["type"] == "punctuation_configuration", saved
+        assert saved["review"]["effective"]["some"]["’"] == "edited quote"
+        assert service.request("punctuation-save", expected_sha256=review["sha256"],
+                               punctuation_json="{}")["type"] == "error"
+        restored = service.request("punctuation-save", expected_sha256=saved["review"]["sha256"],
+                                   punctuation_json=json.dumps(review["overrides"]))
+        assert restored["type"] == "punctuation_configuration", restored
+        assert json.loads((configuration / "config.json").read_text()) == original_config
+        print("Punctuation editor review, Unicode save, stale-write rejection and unrelated settings preservation passed", flush=True)
         prepared = service.request("engine-snapshot")
         assert prepared["type"] == "prepared_startup"
         common = dict(environment, OMNIVOX_OWNED_ENGINE_STARTUP=prepared["startup"],
@@ -174,6 +194,9 @@ def main():
         assert activation == prepared["activation_id"] == initial["activation_id"]
         assert retained["engines"]["audio"] == dict(backend="null", target="left", pulse_latency_ms=45)
         assert retained["engines"]["speech"] == dict(max_chunk_words=3)
+        assert retained["engines"]["schema"] == 6
+        assert retained["engines"]["punctuation"]["some"]["’"] == "curly quote"
+        assert retained["engines"]["punctuation"]["some"]["$"] is None
         assert retained["engines"]["speech_defaults"]["voice"] == "saved"
         assert retained["engines"]["capital_pitch"] == dict(default=1.4, engines={"org.fixture":1.8})
         assert "engine_configuration_v1" in first.request("capabilities", control=True)["features"]
@@ -239,6 +262,19 @@ def main():
                      commands="tts_set_voice voice\ntts_set_speech_rate 20\ntts_set_pitch_multiplier 1.6\n") == expected_chunks
         assert speak(first, 9903, preview["text"], commands="tts_reset\nl A\n", letter_pitch=1.8) == expected_chunks
         assert speak(first, 9904, "CamelCase!") == ["CamelCase!"]
+        assert speak(first, 9910, "’") == [" curl "]
+        assert speak(first, 9911, "’", commands="tts_set_punctuations some\n") == [" curly quote "]
+        assert speak(first, 9912, "' $") == [" tick  $"]
+        assert speak(first, 9919, "donʼt") == ["donʼt"]
+        assert speak(first, 9913, "!", commands="tts_set_punctuations all\n") == [" exclamation "]
+        # No override for the modifier apostrophe: the shipped `all` table
+        # names it, including inside a contraction.
+        assert speak(first, 9920, "donʼt") == ["don apostrophe t"]
+        assert speak(first, 9914, "’", commands="tts_reset\n") == [" curl "]
+        punctuation_preview = dict(preview, text="’")
+        before = len(synthesis_texts())
+        assert first.request("preview_voice_v2", control=True, **punctuation_preview)["status"] == "completed"
+        assert synthesis_texts()[before:] == [" curl "]
         print("Saved speech defaults, capital pitch, client overrides, reset, text preparation and configured chunks passed", flush=True)
 
         # Mutate every discovery input before starting the other worker. The
@@ -256,6 +292,8 @@ def main():
         second_ack = second.request("engine_configuration_status_v1", control=True)
         assert second_ack["activation_id"] == recovered["activation_id"] == activation
         assert copied["engines"] == retained["engines"]
+        assert speak(second, 9915, "’") == [" curl "]
+        assert speak(first, 9916, "’", commands="tts_set_punctuations all\ntts_reset\n") == [" curl "]
         assert speak(second, 9905, preview["text"], commands="l A\n", letter_pitch=1.8) == expected_chunks
         assert speak(first, 9906, preview["text"], commands="tts_set_speech_rate 20\ntts_reset\nl A\n", letter_pitch=1.8) == expected_chunks
         before = len(synthesis_texts())
@@ -282,6 +320,8 @@ def main():
                                         OMNIVOX_OWNED_STARTUP_SHA256=initial["startup_sha256"]))
         assert not restart["retired"] and restart["startup_error"] is None, restart
         assert restart["activation_id"] == activation
+        assert speak(restarted, 9917, "’", commands="tts_reset\n") == [" curl "]
+        assert speak(restarted, 9918, "’", commands="tts_set_punctuations some\n") == [" curly quote "]
         assert speak(restarted, 9907, preview["text"], commands="tts_reset\nl A\n", letter_pitch=1.8) == expected_chunks
         before = len(synthesis_texts())
         assert restarted.request("preview_voice_v2", control=True, **preview)["status"] == "completed"
@@ -318,7 +358,7 @@ def main():
         (configuration / "config.json").write_text('{"schema":1}')
         fresh_prepared = service.request("engine-snapshot")
         assert fresh_prepared["type"] == "prepared_startup" and fresh_prepared["activation_id"] != activation
-        print("Shared preparation, independent worker acknowledgements/audio targets, frozen file/environment inputs, fresh activation, blocked startup write and retirement passed")
+        print("Shared preparation, independent worker acknowledgements/audio targets, frozen file/environment inputs, frozen punctuation tables, fresh activation, blocked startup write and retirement passed")
     finally:
         errors = []
         for peer in reversed(peers):

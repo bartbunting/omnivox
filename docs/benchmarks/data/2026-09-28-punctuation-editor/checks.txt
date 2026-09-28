@@ -1,0 +1,23 @@
+Omnivox base: 4aabd38048613ad5408d8b31eca76e25aa306637
+Emacsvox base: bb00d7ae58059e7fff05414e823e89b5f811b05a
+Omnivox source diff SHA256: 0a5afd2ce52bdf409a3080bd42c7b46a1d430808a7cdcacb551d439c74df4e79
+Emacsvox source diff SHA256: 3a01aabc298fde159c7f2f165984fdfed42e761161645acb2e844b11e0f87084
+target/debug/omnivox SHA256: fa41eef5f7179c59081d316b5f3dc67df9488f08b9ac625b4eead4d4489bd44e
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+Emacs 31.0.90; Linux 6.18.33.2-microsoft-standard-WSL2 x86_64
+
+cargo test --locked --workspace: PASS (2 ignored prerequisites)
+cargo clippy --locked --workspace --all-targets --features omnivox-cli/piper -- -D warnings: PASS
+make dev: PASS
+python3 tools/verify_engine_configuration.py target/debug/omnivox: PASS
+make fmt-check: PASS
+Emacsvox make headers-check: PASS
+Emacsvox make bytecode-rebuild, subsequent make bytecode: PASS
+Emacsvox compiled editor/native-service tests: 6 PASS, 1 graphical SKIP
+Emacsvox make core-test with native-service path: 923 PASS, 12 SKIP, 0 unexpected
+Emacsvox make graphical-voice-test: 38 PASS, no skips
+Emacsvox make docs-org-preview, docs-update, docs-reference, docs-release-check: PASS
+Emacsvox Aural UI/Home tests with voice-editor dependency loaded: 129 PASS
+make docs-check: PASS
+make docs-check-paired: PASS
+git diff --check and git diff --cached --check: PASS

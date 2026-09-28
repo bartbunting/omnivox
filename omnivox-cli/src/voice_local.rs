@@ -91,6 +91,21 @@ fn service(host: Host) -> Result<()> {
         let result = (|| -> Result<Reply> {
             match request.command.as_str() {
                 "host" => Ok(host.reply()),
+                "punctuation-review" | "punctuation-save" if activation.is_none() => {
+                    use omnivox_tts::engine_configuration::{punctuation_editor, Platform};
+                    let root =
+                        Platform::native().configuration_root(None, |key| std::env::var_os(key))?;
+                    let review = if request.command == "punctuation-save" {
+                        punctuation_editor::save(
+                            &root,
+                            &request.expected_sha256,
+                            request.punctuation_json.as_bytes(),
+                        )?
+                    } else {
+                        punctuation_editor::inspect(&root)?
+                    };
+                    Ok(Reply::PunctuationConfiguration { review })
+                }
                 "catalogue" if activation.is_none() => Ok(Reply::Catalogue {
                     catalogue: omnivox_tts::voice_library::catalogue::Catalogue::parse(
                         request.plan_json.as_bytes(),

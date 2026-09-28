@@ -7,6 +7,8 @@
 - Extends: [Engine isolation](0001-engine-isolation-and-distribution.md).
 - Related: [Local activation](0007-managed-voice-lifecycle.md),
   [speech-host boundary](0004-workstation-service-and-worker-ownership.md).
+- Proposed extension: [Session configuration and reload](0011-session-configuration-and-reload.md)
+  would add Omnivox-coordinated configuration replacement.
 
 ## Context
 

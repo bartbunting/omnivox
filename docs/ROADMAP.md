@@ -39,6 +39,15 @@ Outstanding items are listed without a priority ranking:
   paths between platforms.
 - **Omnivox pronunciation dictionaries:** per-language and per-application
   corrections that preserve original-text offsets for markers and navigation.
+- **Custom punctuation profiles:** stage two of the
+  [punctuation plan](plans/punctuation-configuration.md) adds named profiles,
+  discovery and Emacsvox mode/buffer selection. Stage one implements configuration
+  of the existing three levels; listening and native platform acceptance remain
+  separate from automated text and lifecycle checks.
+- **A `most` punctuation level:** deferred beyond 1.15.0. Define its shipped
+  table, negotiate support across both workers, and specify old-server fallback
+  before extending saved settings, commands and the Emacsvox editor. Preserve
+  the existing three levels; apostrophes remain at `all` by default.
 - **Pause and resume for long reading:** resume a bounded reading session with
   defined behavior for intervening navigation, cancellation, and engines without
   precise markers.
@@ -234,8 +243,18 @@ also supports a global pitch, engine overrides and an off option. Saved
 cover the existing backend, channel and PulseAudio latency request. Launcher
 choices retain priority and reset restores each worker's startup channel.
 
-The remaining configuration candidate is:
+The remaining configuration work is:
 
+- **Session configuration and reload:** [proposed ADR 0011](adr/0011-session-configuration-and-reload.md)
+  records the selected direction for Omnivox to coordinate configuration while
+  clients request changes and present results. Define controller lifetime,
+  negotiated operations, revision persistence, the shared admission boundary and
+  failure recovery before implementation. Start with speech-preference reload
+  across existing independent workers, then extend configuration Apply to helper
+  changes. Verify partial activation, client/worker/controller loss, stale retries,
+  retained reset defaults and recovery, and older-client compatibility. Process
+  consolidation, shared engine instances and remote management remain separate
+  choices. The proposal does not replace current accepted contracts.
 - **Per-helper environment:** extend the existing registration backlog when a
   helper needs separate runtime settings; preserve private values and immutable
   recovery rather than adding another discovery path.

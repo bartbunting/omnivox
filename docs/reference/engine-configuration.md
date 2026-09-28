@@ -7,7 +7,9 @@ restart. A worker recovering from failure keeps its original settings.
 
 This reference specifies the version-1 contract accepted in
 [ADR 0008](../adr/0008-extensible-engine-registration.md) and the version-2
-speech extension in [ADR 0009](../adr/0009-local-speech-preferences.md). Start with the
+speech extension in [ADR 0009](../adr/0009-local-speech-preferences.md).
+Version 3 adds punctuation tables within the same captured-preference policy.
+Start with the
 [configuration guide](../guides/configuration.md#local-engine-configuration)
 for setup. The [acceptance audit](../benchmarks/2026-09-28-engine-framework-audit.md)
 records automated and process coverage, including its platform limits.
@@ -91,6 +93,147 @@ adding engines without rebuilding Omnivox, with restart to activate changes.
 Live reload is a later lifecycle extension requiring atomic replacement,
 in-flight request retirement, removal semantics and coordination between
 workers. Saving a manifest must not itself restart speech.
+
+## Configuration version 3
+
+Version 3 adds configurable punctuation tables under the existing host-preference
+policy. It accepts all version-2 fields unchanged. Helper manifests remain
+version 1. This extension is available from Omnivox 1.15.0; earlier versions reject schema 3.
+
+### Punctuation tables
+
+`speech.punctuation` optionally contains `none`, `some` and `all` objects. Each
+maps a single Unicode scalar to a spoken name or JSON `null`. A name is expanded
+with a space on each side. `null` preserves the original character for native
+pronunciation and prosody; it does not delete it or guarantee silence. An omitted
+entry inherits that level's shipped default. An omitted level inherits its
+complete shipped table. Overrides in one level do not change the other levels.
+
+```json
+{
+  "schema": 3,
+  "speech": {
+    "punctuation": {
+      "some": { "'": "apostrophe", "’": "apostrophe", "$": null },
+      "all": { "!": "exclamation mark" }
+    }
+  }
+}
+```
+
+Keys must be exactly one non-whitespace, non-control scalar after JSON decoding.
+Names must contain 1–64 UTF-8 bytes, with no control characters or leading or
+trailing whitespace. Each resolved level, including inherited entries, is limited
+to 512 entries. The 128 KiB configuration-file limit still applies. Reject unknown
+levels, malformed names/keys, duplicate decoded keys and null in place of an
+object. Null is permitted only as a character's value. Names are literal text,
+not templates or native-engine markup, and are not recursively expanded.
+Normal CamelCase splitting and chunking follow expansion.
+
+The selected level remains `speech.defaults.punctuation` plus the existing client
+command override. Tables are host policy: both workers capture identical resolved
+tables before engine construction; admitted requests share them immutably. Reset
+restores the saved level and retains the tables. Recovery and rollback keep their
+captured tables. Deliberate restart or Apply captures file edits. Exact `--dump-wav`
+diagnostics and isolated-character speech retain their existing direct paths.
+No engine, helper or speech-protocol changes are required.
+
+All ASCII defaults are unchanged. New captures also cover the common Unicode
+forms below, even when an older configuration schema or no file is used. Unknown
+characters pass through unchanged. This is a defined default table, not a claim
+to name every character in Unicode. Any additional scalar can be configured.
+Earlier private startup schemas retain their historical ASCII-only behavior;
+[schema 6](engine-startup-snapshot.md#complete-record) freezes all resolved tables.
+
+In the following lists, a minimum of `none` means the name is spoken at all three
+levels, `some` means `some` and `all`, and `all` means only `all`. Below the minimum,
+the character is preserved. These minimums describe shipped defaults only.
+
+| ASCII characters and names | Minimum level |
+| --- | --- |
+| `$` dollar; `%` percent | `none` |
+| `!` bang; `"` quote; `#` pound; `(` left paren; `)` right paren; `*` star; `+` plus; `-` dash; `/` slash | `some` |
+| `:` colon; `;` semicolon; `<` less than; `=` equals; `>` greater than; `\` backslash; `^` caret; U+0060 backquote; `~` tilde | `some` |
+| `&` ampersand; `'` apostrophe; `,` comma; `.` dot; `?` question; `@` at; `[` left bracket; `]` right bracket; `_` underline; `{` left brace; U+007C pipe; `}` right brace | `all` |
+
+| Unicode characters (code points) | Name | Minimum level |
+| --- | --- | --- |
+| `‘` `’` `ʼ` (U+2018, U+2019, U+02BC) | apostrophe | `all` |
+| `‚` (U+201A) | low single quote | `all` |
+| `‛` (U+201B) | reversed single quote | `all` |
+| `“` `”` (U+201C, U+201D) | quote | `some` |
+| `„` (U+201E) | low double quote | `some` |
+| `‟` (U+201F) | reversed double quote | `some` |
+| `«` `»` (U+00AB, U+00BB) | left guillemet; right guillemet | `some` |
+| `‹` `›` (U+2039, U+203A) | left single guillemet; right single guillemet | `all` |
+| `‐` (U+2010) | hyphen | `some` |
+| `‑` (U+2011) | nonbreaking hyphen | `some` |
+| `‒` (U+2012) | figure dash | `some` |
+| `–` (U+2013) | en dash | `some` |
+| `—` (U+2014) | em dash | `some` |
+| `―` (U+2015) | horizontal bar | `some` |
+| `…` (U+2026) | ellipsis | `all` |
+| `•` (U+2022) | bullet | `all` |
+| `·` (U+00B7) | middle dot | `all` |
+| `′` `″` (U+2032, U+2033) | prime; double prime | `all` |
+| `−` (U+2212) | minus | `some` |
+
+Custom named levels are deferred to
+[stage two](../plans/punctuation-configuration.md#stage-two-custom-named-profiles-deferred),
+including capability negotiation and client selection.
+
+### Local punctuation editor
+
+The private local stdio service advertises `punctuation_configuration_version: 1`
+in its `host` reply. Emacsvox checks this before enabling its editor. Older
+services omit the field. These operations are absent from speech/control and
+remote socket protocols; no client-selected path or executable is accepted.
+The service uses its native configuration root selected from its environment,
+matching ordinary local startup. The bundled local launcher supplies that
+environment on WSL-to-Windows as well as local POSIX targets.
+
+Requests use the existing correlated local-service envelope:
+
+```json
+{"request_id":1,"command":"punctuation-review"}
+{"request_id":2,"command":"punctuation-save","expected_sha256":"REVIEW_TOKEN","punctuation_json":"{\"some\":{\"’\":\"apostrophe\"}}"}
+```
+
+Both succeed with `type: "punctuation_configuration"` and a `review` object:
+
+| Member | Meaning |
+| --- | --- |
+| `path` | Native configuration file path, for review only. |
+| `sha256` | Opaque 64-character lowercase hex revision bound to the resolved path, exact file bytes including absence, and shipped defaults. |
+| `defaults` | All three shipped tables, without user overrides. |
+| `overrides` | Saved sparse `speech.punctuation` object; empty if absent. |
+| `effective` | All three resolved saved tables. These do not attest live worker settings. |
+
+Review validates configuration but does not create its root, configuration file
+or editor lock. Save accepts one complete replacement overrides object, with the
+same strict bounds as public configuration. It validates before writing, upgrades
+the file to schema 3 and preserves every unrelated setting. JSON whitespace and
+ordering may change. A changed file, changed target, malformed configuration or
+busy editor returns the existing local `error` reply. No engine is constructed.
+Neither operation changes speech state or starts/stops a worker.
+
+Save requires an ordinary configuration file; file symlinks/reparse points are
+rejected. A redirected configuration root is resolved normally. A missing default
+root is created on Save; an explicitly configured root must already exist. New
+files are private on Unix and existing file permissions are retained. Cooperating
+editor writers use the permanent `.punctuation.lock` file. A same-directory
+temporary file is synced, the exact original bytes are rechecked, and rename
+publishes one complete document. Temporary files are removed after ordinary
+failure; interruption can leave a uniquely named `.punctuation-*.tmp` file.
+Readers ignore both kinds of auxiliary file. Do not remove the permanent lock
+while an editor may be saving.
+
+The byte check detects external edits observed before publication; an unrelated
+editor ignoring the lock can still race the final check and rename. Do not edit
+the same file concurrently outside this service. A lost reply or post-rename
+sync error may mean Save completed: retain the draft and refresh/review before
+retrying. No blind retry, automatic restart or global activation follows Save.
+The UI offers the established explicit two-worker restart separately.
 
 ## Configuration version 2
 
@@ -311,6 +454,7 @@ There is no version-1 reload command or new resident configuration service.
 Both file types are UTF-8 JSON objects; accept one initial UTF-8 BOM for Windows
 writers. Reject comments, trailing commas, duplicate decoded keys, unknown keys
 at every level, unsupported schemas and null in place of optional fields.
+Version 3 allows null specifically as a punctuation character's value.
 Integer fields must deserialize as unsigned integers, not floats or strings.
 String limits below count UTF-8 bytes after decoding. File limits include a BOM.
 

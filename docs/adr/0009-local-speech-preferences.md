@@ -11,6 +11,8 @@
   [PulseAudio](0005-native-pulseaudio-output.md),
   [actual-attempt tuning](0006-voice-selection-and-customization.md).
 - Extended by: [Windows default output recovery](0010-windows-default-output-recovery.md).
+- Proposed extension: [Session configuration and reload](0011-session-configuration-and-reload.md)
+  would permit explicit preference reload with retained reset and recovery state.
 
 ## Context
 

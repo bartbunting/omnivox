@@ -1,0 +1,27 @@
+{
+  "captured_utc": "2026-09-28T12:53:54.247688+00:00",
+  "version": "1.15.0",
+  "omnivox_base": "4aabd38048613ad5408d8b31eca76e25aa306637",
+  "emacsvox_base": "bb00d7ae58059e7fff05414e823e89b5f811b05a",
+  "source_diff_sha256": "fbfd95800671f3be09bb2bd5179332a19142e270a0f32c6159e34fbeff9ec370",
+  "emacsvox_source_diff_sha256": "3a01aabc298fde159c7f2f165984fdfed42e761161645acb2e844b11e0f87084",
+  "linux_executable_sha256": "60ecc09596f8c5470f6528f277216c2a4dbe69e917d2e646b80f6134b16581ec",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "workspace_tests": {
+    "passed": 1142,
+    "ignored": 2
+  },
+  "scope": [
+    "streaming onset preservation",
+    "punctuation configuration and local editor",
+    "Unicode apostrophes at all"
+  ],
+  "deferred": [
+    "most punctuation level",
+    "live configuration reload"
+  ],
+  "windows_program": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/6b22b22f62c6f7b7/omnivox.exe",
+  "windows_executable_sha256": "d5fa8fa3a7f33e683d7c9601f32d32621f19106eaa3edb30707b8045f5c37b47",
+  "windows_build_id": "6b22b22f62c6f7b7",
+  "windows_editor_checks": "passed after correcting two probe path assumptions"
+}

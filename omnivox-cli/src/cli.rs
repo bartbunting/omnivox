@@ -648,6 +648,7 @@ fn diagnostic_state(
             .to_owned(),
         max_chunk_words: speech.max_chunk_words,
         capital_pitch: Arc::new(speech.capital_pitch.clone()),
+        punctuation_tables: Arc::new(speech.punctuation.clone()),
         ..TtsState::from_speech_defaults(Arc::new(speech.defaults.clone()))
     };
     apply_startup_flags(cli, audio, &mut state);

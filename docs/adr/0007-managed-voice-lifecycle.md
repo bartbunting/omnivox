@@ -5,6 +5,8 @@
 - Related: [Runtime supply](0001-engine-isolation-and-distribution.md),
   [worker ownership](0004-workstation-service-and-worker-ownership.md),
   [voice eligibility](0006-voice-selection-and-customization.md).
+- Proposed extension: [Omnivox session coordination](0011-session-configuration-and-reload.md)
+  would transfer client-driven activation coordination to Omnivox.
 
 ## Context
 

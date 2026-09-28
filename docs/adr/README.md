@@ -18,6 +18,7 @@ Proposed records do not override accepted decisions.
 | [0008: Extensible engine registration](0008-extensible-engine-registration.md) | Accepted | Shared registration and explicit local configuration for independent helpers; configuration v1 and its first implementation slice. |
 | [0009: Local speech and output preferences](0009-local-speech-preferences.md) | Accepted | Frozen local settings, speech/reset precedence, capital cues and per-lane output choices. |
 | [0010: Windows default output recovery](0010-windows-default-output-recovery.md) | Accepted | Follow default endpoint changes, retire interrupted speech and recover output without restarting engines. |
+| [0011: Omnivox session configuration and reload](0011-session-configuration-and-reload.md) | Proposed | Omnivox coordinates configuration across independent workers; staged preference reload and later lifecycle Apply. |
 
 The approved 2026-09-27 consolidation replaced the earlier collection, available
 in Git at `cdd6176`. The approved 2026-09-28 consolidation combined the local

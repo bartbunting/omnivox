@@ -1,0 +1,7 @@
+   Compiling omnivox-cli v1.14.0 (/home/bart/src/omnivox/omnivox-cli)
+    Checking omnivox-audio v1.14.0 (/home/bart/src/omnivox/omnivox-audio)
+    Checking omnivox-tts v1.14.0 (/home/bart/src/omnivox/omnivox-tts)
+    Checking omnivox-helper-host v1.14.0 (/home/bart/src/omnivox/omnivox-helper-host)
+    Checking omnivox-linux-helpers v1.14.0 (/home/bart/src/omnivox/linux-helpers)
+    Checking omnivox-rhvoice-helper v1.14.0 (/home/bart/src/omnivox/omnivox-rhvoice-helper)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.89s

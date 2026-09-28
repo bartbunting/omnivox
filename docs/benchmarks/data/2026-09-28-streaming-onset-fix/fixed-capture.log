@@ -1,0 +1,10 @@
+helper-22050-1-streaming-fast captured 10 utterances
+helper-16000-1-streaming-fast captured 10 utterances
+helper-22050-1-streaming-lead captured 10 utterances
+helper-22050-1-buffered-fast captured 10 utterances
+helper-44100-2-streaming-fast captured 10 utterances
+helper-16000-1-streaming-fast N 10 loss [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] corr 0.99998
+helper-22050-1-buffered-fast N 10 loss [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] corr 0.99998
+helper-22050-1-streaming-fast N 10 loss [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] corr 0.99998
+helper-22050-1-streaming-lead N 10 loss [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] corr 0.99998
+helper-44100-2-streaming-fast N 10 loss [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] corr 0.99998

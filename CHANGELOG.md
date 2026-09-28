@@ -6,6 +6,29 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-09-28
+
+### Added
+
+- Review and edit punctuation through a negotiated local service used by the
+  Emacsvox editor. Save preserves unrelated configuration and rejects stale
+  file revisions; restarting speech remains a separate user action.
+
+- Configure punctuation names independently for `none`, `some` and `all` in
+  version-3 `config.json`, with sparse overrides and explicit preservation of
+  the original character. Both workers, reset and recovery retain captured tables.
+
+### Fixed
+
+- Preserve the beginning of streamed speech when converting its native sample
+  rate to 44.1 kHz. Resampler latency was incorrectly discarded as leading
+  silence, cutting about 6–8 ms from common 22.05 kHz and 16 kHz helpers.
+
+- Name curly and modifier apostrophes at `all`, alongside straight apostrophes,
+  without requiring a configuration file. Add common Unicode quotes, dashes
+  and other punctuation to the shipped tables; existing ASCII defaults and
+  natural apostrophes at `some` remain unchanged.
+
 ## [1.14.0] - 2026-09-28
 
 ### Added

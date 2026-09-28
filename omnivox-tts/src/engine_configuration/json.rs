@@ -1,4 +1,4 @@
-//! Build a bounded JSON value while rejecting duplicate decoded keys and null.
+//! Build bounded JSON values while rejecting duplicate decoded keys.
 use super::{ConfigurationError, Result, MAX_JSON_DEPTH};
 use serde::de::{DeserializeSeed, Error, MapAccess, SeqAccess, Visitor};
 use serde_json::{Map, Number, Value};
@@ -8,8 +8,38 @@ pub(super) fn parse(bytes: &[u8], limit: usize) -> Result<Value> {
     parse_inner(bytes, limit, false)
 }
 
+/// Only punctuation character values may be null in public configuration.
+/// Its typed parser checks that subtree; every other public field retains the
+/// original no-null contract, including nullable internal Rust representations.
+pub(super) fn parse_configuration(bytes: &[u8], limit: usize) -> Result<Value> {
+    fn has_null(value: &Value, path: &mut Vec<String>) -> bool {
+        if path == &["speech", "punctuation"] {
+            return false;
+        }
+        match value {
+            Value::Null => true,
+            Value::Array(values) => values.iter().any(|value| has_null(value, path)),
+            Value::Object(fields) => fields.iter().any(|(key, value)| {
+                path.push(key.clone());
+                let invalid = has_null(value, path);
+                path.pop();
+                invalid
+            }),
+            _ => false,
+        }
+    }
+    let value = parse_inner(bytes, limit, true)?;
+    if has_null(&value, &mut Vec::new()) {
+        return Err(ConfigurationError::new(
+            "JSON",
+            "null is not allowed outside punctuation entries",
+        ));
+    }
+    Ok(value)
+}
+
 /// Private complete records use required nullable fields. Public configuration
-/// keeps its stricter no-null contract.
+/// retains its separately validated null policy.
 pub(super) fn parse_snapshot(bytes: &[u8], limit: usize) -> Result<Value> {
     parse_inner(bytes, limit, true)
 }

@@ -1,0 +1,374 @@
+{
+  "helper-16000-1-streaming-fast": {
+    "matches": [
+      {
+        "captured_start": 62098,
+        "captured_frames": 5056,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -346,
+        "missing_onset_frames": 346,
+        "missing_ms": 7.845804988662131,
+        "correlation": 0.9999797074400633,
+        "gain": 0.999742098015822,
+        "body_rmse": 5.757834891367472e-05
+      },
+      {
+        "captured_start": 105245,
+        "captured_frames": 5052,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -347,
+        "missing_onset_frames": 347,
+        "missing_ms": 7.8684807256235825,
+        "correlation": 0.999979760355517,
+        "gain": 0.9997473387519293,
+        "body_rmse": 5.7503431729643004e-05
+      },
+      {
+        "captured_start": 149670,
+        "captured_frames": 5053,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -346,
+        "missing_onset_frames": 346,
+        "missing_ms": 7.845804988662131,
+        "correlation": 0.9999797653681526,
+        "gain": 0.9997461975781121,
+        "body_rmse": 5.75081501943783e-05
+      },
+      {
+        "captured_start": 193841,
+        "captured_frames": 5052,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -347,
+        "missing_onset_frames": 347,
+        "missing_ms": 7.8684807256235825,
+        "correlation": 0.9999797589071209,
+        "gain": 0.9997472939484487,
+        "body_rmse": 5.750378896274112e-05
+      },
+      {
+        "captured_start": 238011,
+        "captured_frames": 5055,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -347,
+        "missing_onset_frames": 347,
+        "missing_ms": 7.8684807256235825,
+        "correlation": 0.9999797413636677,
+        "gain": 0.9997450807233607,
+        "body_rmse": 5.7525255322997386e-05
+      },
+      {
+        "captured_start": 282180,
+        "captured_frames": 5056,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -346,
+        "missing_onset_frames": 346,
+        "missing_ms": 7.845804988662131,
+        "correlation": 0.9999797097424502,
+        "gain": 0.9997418586142605,
+        "body_rmse": 5.7574529298262346e-05
+      },
+      {
+        "captured_start": 326095,
+        "captured_frames": 5052,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -347,
+        "missing_onset_frames": 347,
+        "missing_ms": 7.8684807256235825,
+        "correlation": 0.9999797603944823,
+        "gain": 0.9997472760631947,
+        "body_rmse": 5.7504287617855405e-05
+      },
+      {
+        "captured_start": 370265,
+        "captured_frames": 5057,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -347,
+        "missing_onset_frames": 347,
+        "missing_ms": 7.8684807256235825,
+        "correlation": 0.9999797532646211,
+        "gain": 0.9997462425629569,
+        "body_rmse": 5.750943866962726e-05
+      },
+      {
+        "captured_start": 414434,
+        "captured_frames": 5056,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -346,
+        "missing_onset_frames": 346,
+        "missing_ms": 7.845804988662131,
+        "correlation": 0.9999797104430108,
+        "gain": 0.9997425655223511,
+        "body_rmse": 5.757306003391005e-05
+      },
+      {
+        "captured_start": 458348,
+        "captured_frames": 5053,
+        "reference_frames": 4934,
+        "reference_onset_relative_to_capture": -346,
+        "missing_onset_frames": 346,
+        "missing_ms": 7.845804988662131,
+        "correlation": 0.9999797596699344,
+        "gain": 0.9997466550331857,
+        "body_rmse": 5.7512966210670386e-05
+      }
+    ],
+    "excluded_nonmatching_segments": [
+      [
+        11530,
+        21088
+      ]
+    ],
+    "capture_frames": 793359,
+    "packet_flags": [
+      0
+    ]
+  },
+  "helper-22050-1-streaming-fast": {
+    "matches": [
+      {
+        "captured_start": 64701,
+        "captured_frames": 5144,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.9999797608145908,
+        "gain": 0.9997464597363992,
+        "body_rmse": 5.749890041249491e-05
+      },
+      {
+        "captured_start": 107882,
+        "captured_frames": 5145,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -251,
+        "missing_onset_frames": 251,
+        "missing_ms": 5.691609977324263,
+        "correlation": 0.9999797407858085,
+        "gain": 0.9997436304740687,
+        "body_rmse": 5.754962392296059e-05
+      },
+      {
+        "captured_start": 152342,
+        "captured_frames": 5141,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -251,
+        "missing_onset_frames": 251,
+        "missing_ms": 5.691609977324263,
+        "correlation": 0.9999797079598871,
+        "gain": 0.9997413611806637,
+        "body_rmse": 5.759047551065969e-05
+      },
+      {
+        "captured_start": 196034,
+        "captured_frames": 5141,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -251,
+        "missing_onset_frames": 251,
+        "missing_ms": 5.691609977324263,
+        "correlation": 0.999979697256597,
+        "gain": 0.999741054655286,
+        "body_rmse": 5.7597767537610405e-05
+      },
+      {
+        "captured_start": 240493,
+        "captured_frames": 5144,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.9999797228189268,
+        "gain": 0.999742962887414,
+        "body_rmse": 5.754973870464829e-05
+      },
+      {
+        "captured_start": 284698,
+        "captured_frames": 5141,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -251,
+        "missing_onset_frames": 251,
+        "missing_ms": 5.691609977324263,
+        "correlation": 0.9999797036572492,
+        "gain": 0.9997412671024555,
+        "body_rmse": 5.7588432381875365e-05
+      },
+      {
+        "captured_start": 328902,
+        "captured_frames": 5141,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -251,
+        "missing_onset_frames": 251,
+        "missing_ms": 5.691609977324263,
+        "correlation": 0.999979740827785,
+        "gain": 0.9997434996116955,
+        "body_rmse": 5.7548781935833904e-05
+      },
+      {
+        "captured_start": 372594,
+        "captured_frames": 5141,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -251,
+        "missing_onset_frames": 251,
+        "missing_ms": 5.691609977324263,
+        "correlation": 0.9999797238313252,
+        "gain": 0.999742195808958,
+        "body_rmse": 5.7571205657488816e-05
+      },
+      {
+        "captured_start": 417054,
+        "captured_frames": 5141,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -251,
+        "missing_onset_frames": 251,
+        "missing_ms": 5.691609977324263,
+        "correlation": 0.9999796919745307,
+        "gain": 0.9997409403350528,
+        "body_rmse": 5.7603809805100456e-05
+      },
+      {
+        "captured_start": 461001,
+        "captured_frames": 5146,
+        "reference_frames": 5032,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.9999797564820685,
+        "gain": 0.9997465772213,
+        "body_rmse": 5.7509091185368834e-05
+      }
+    ],
+    "excluded_nonmatching_segments": [
+      [
+        13294,
+        23179
+      ]
+    ],
+    "capture_frames": 793359,
+    "packet_flags": [
+      0
+    ]
+  },
+  "helper-22050-1-streaming-lead": {
+    "matches": [
+      {
+        "captured_start": 62867,
+        "captured_frames": 6027,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.9999795409158979,
+        "gain": 0.9997541986670141,
+        "body_rmse": 5.737973959390546e-05
+      },
+      {
+        "captured_start": 106161,
+        "captured_frames": 6023,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.999979510218668,
+        "gain": 0.9997535945657343,
+        "body_rmse": 5.7410389279987796e-05
+      },
+      {
+        "captured_start": 150735,
+        "captured_frames": 6023,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.9999795268037089,
+        "gain": 0.9997548184316143,
+        "body_rmse": 5.7387183089368e-05
+      },
+      {
+        "captured_start": 194541,
+        "captured_frames": 6023,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.9999795268188713,
+        "gain": 0.9997548185156413,
+        "body_rmse": 5.738716494537623e-05
+      },
+      {
+        "captured_start": 238859,
+        "captured_frames": 6027,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.9999795235552262,
+        "gain": 0.99975327317831,
+        "body_rmse": 5.739852200910306e-05
+      },
+      {
+        "captured_start": 282408,
+        "captured_frames": 6026,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -249,
+        "missing_onset_frames": 249,
+        "missing_ms": 5.64625850340136,
+        "correlation": 0.9999795589234767,
+        "gain": 0.9997575637601777,
+        "body_rmse": 5.735441007912467e-05
+      },
+      {
+        "captured_start": 326726,
+        "captured_frames": 6026,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -249,
+        "missing_onset_frames": 249,
+        "missing_ms": 5.64625850340136,
+        "correlation": 0.9999795535020085,
+        "gain": 0.9997564349400522,
+        "body_rmse": 5.7350625839879355e-05
+      },
+      {
+        "captured_start": 371045,
+        "captured_frames": 6023,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.9999795078703666,
+        "gain": 0.9997528351919605,
+        "body_rmse": 5.7415678058081476e-05
+      },
+      {
+        "captured_start": 415106,
+        "captured_frames": 6026,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -249,
+        "missing_onset_frames": 249,
+        "missing_ms": 5.64625850340136,
+        "correlation": 0.99997956303967,
+        "gain": 0.9997575197997323,
+        "body_rmse": 5.733707080039271e-05
+      },
+      {
+        "captured_start": 459425,
+        "captured_frames": 6023,
+        "reference_frames": 5913,
+        "reference_onset_relative_to_capture": -250,
+        "missing_onset_frames": 250,
+        "missing_ms": 5.668934240362812,
+        "correlation": 0.9999795069581237,
+        "gain": 0.999753221454195,
+        "body_rmse": 5.7415529942886555e-05
+      }
+    ],
+    "excluded_nonmatching_segments": [
+      [
+        11672,
+        21856
+      ]
+    ],
+    "capture_frames": 791154,
+    "packet_flags": [
+      0
+    ]
+  }
+}

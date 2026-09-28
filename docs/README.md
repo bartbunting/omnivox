@@ -26,6 +26,7 @@ later extensions and remaining platform qualification.
 | Task | Guide |
 | --- | --- |
 | Configure a speech host | [CLI, environment and adapters](guides/configuration.md) |
+| Change punctuation names | [Punctuation configuration](guides/configuration.md#punctuation-pronunciations) and [two-stage plan](plans/punctuation-configuration.md) |
 | Add an independently installed engine | [Helper registration walkthrough](guides/configuration.md#add-your-own-speech-engine) |
 | Diagnose speech failures | [Logs, lifecycle tracing and crash dumps](guides/diagnostics.md) |
 | Manage downloaded/imported voices | [Installation, enablement, Apply/rollback and removal](guides/voice-management.md) |

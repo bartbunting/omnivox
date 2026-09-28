@@ -53,6 +53,19 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-09-28 Omnivox 1.15.0 candidate](2026-09-28-1.15-candidate.md)
+  combines the streaming onset fix and punctuation configuration/editor checks.
+- [2026-09-28 streaming onset fix](2026-09-28-streaming-onset-fix.md)
+  records failing/passing source regressions and a matched Windows comparison:
+  all 50 fixed helper captures retain the onset.
+- [2026-09-28 streaming onset loss](2026-09-28-streaming-onset-loss.md)
+  reproduces the 1.14.0 follow-up with Windows process loopback and isolates
+  a 256/352-frame progressive conversion discard.
+- [2026-09-28 local punctuation editor](2026-09-28-punctuation-editor.md)
+  records local-service saves, Emacs draft editing and graphical navigation.
+- [2026-09-28 punctuation configuration](2026-09-28-punctuation-configuration.md)
+  records strict parsing, Unicode/source-offset regressions, historical snapshots
+  and captured pronunciations across Linux workers, reset and recovery.
 - [2026-09-28 Omnivox 1.14.0 publication](2026-09-28-1.14-publication.md)
   records all 64 passing release jobs, the immutable tag, and the exact public
   asset set and checksums.

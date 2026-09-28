@@ -5,6 +5,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::punctuation::PunctuationTables;
 use crate::settings::{CapitalPitchSettings, ChunkWordLimit, SpeechDefaults};
 use serde::{Deserialize, Serialize};
 
@@ -138,6 +139,9 @@ pub struct TtsState {
     pub pitch_multiplier: f32,
     pub speech_rate: f32,
 
+    /// Immutable host tables, shared by admitted requests and retained on reset.
+    pub punctuation_tables: Arc<PunctuationTables>,
+
     // Punctuation
     pub punctuation_level: PunctuationLevel,
     pub split_caps: bool,
@@ -175,6 +179,7 @@ impl TtsState {
         Self {
             max_chunk_words: ChunkWordLimit::default(),
             capital_pitch: Arc::new(CapitalPitchSettings::default()),
+            punctuation_tables: Arc::new(PunctuationTables::default()),
             current_voice: defaults.voice.clone().unwrap_or_else(|| "en-US".into()),
             pitch_multiplier: defaults.pitch,
             speech_rate: defaults.rate,
@@ -208,6 +213,7 @@ impl TtsState {
         *self = Self {
             max_chunk_words: self.max_chunk_words,
             capital_pitch: Arc::clone(&self.capital_pitch),
+            punctuation_tables: Arc::clone(&self.punctuation_tables),
             startup_channel_mode: self.startup_channel_mode,
             ..Self::from_speech_defaults(Arc::clone(&self.speech_defaults))
         };
@@ -314,6 +320,9 @@ mod tests {
         });
         let mut state = TtsState::from_speech_defaults(Arc::clone(&defaults));
         state.max_chunk_words = ChunkWordLimit::try_from(30).unwrap();
+        Arc::make_mut(&mut state.punctuation_tables)
+            .some
+            .insert('’', Some("single quote".into()));
         state.capital_pitch = Arc::new(CapitalPitchSettings {
             default: crate::settings::CapitalPitch::Off,
             engines: std::collections::BTreeMap::from([(
@@ -359,6 +368,16 @@ mod tests {
             assert_eq!(state.max_chunk_words.get(), 30);
             assert!(Arc::ptr_eq(&state.speech_defaults, &defaults));
             assert!(Arc::ptr_eq(&state.capital_pitch, &admitted.capital_pitch));
+            assert!(Arc::ptr_eq(
+                &state.punctuation_tables,
+                &admitted.punctuation_tables
+            ));
+            assert_eq!(
+                state
+                    .punctuation_tables
+                    .spoken_name('’', state.punctuation_level),
+                Some("single quote")
+            );
             assert_eq!(
                 state
                     .capital_pitch

@@ -1,5 +1,6 @@
 //! Text processing: punctuation expansion, CamelCase splitting, chunking, rate mapping.
 
+use omnivox_core::punctuation::PunctuationTables;
 use omnivox_core::{state::PunctuationLevel, TtsState};
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
@@ -183,7 +184,7 @@ const LEGACY_SPEECH_SEPARATOR: &str = "[*]";
 /// The reserved Emacspeak `[*]` separator is collapsed to a space before its
 /// component punctuation can be expanded.  Legacy character names such as
 /// `question[*]mark` therefore remain engine-neutral speech text.
-pub fn apply_punctuation(text: &str, level: PunctuationLevel) -> String {
+fn apply_punctuation(text: &str, level: PunctuationLevel, tables: &PunctuationTables) -> String {
     let mut result = String::with_capacity(text.len());
     let mut position = 0;
 
@@ -198,84 +199,20 @@ pub fn apply_punctuation(text: &str, level: PunctuationLevel) -> String {
             .chars()
             .next()
             .expect("position must remain within speech text");
-        let replacement = punctuation_replacement(character, level);
+        let replacement = tables.spoken_name(character, level);
 
         match replacement {
-            Some(spoken) => result.push_str(spoken),
+            Some(spoken) => {
+                result.push(' ');
+                result.push_str(spoken);
+                result.push(' ');
+            }
             None => result.push(character),
         }
         position += character.len_utf8();
     }
 
     result
-}
-
-fn punctuation_replacement(character: char, level: PunctuationLevel) -> Option<&'static str> {
-    match level {
-        PunctuationLevel::None => match character {
-            '$' => Some(" dollar "),
-            '%' => Some(" percent "),
-            _ => None,
-        },
-        PunctuationLevel::Some => match character {
-            '$' => Some(" dollar "),
-            '%' => Some(" percent "),
-            '#' => Some(" pound "),
-            '-' => Some(" dash "),
-            '"' => Some(" quote "),
-            '(' => Some(" left paren "),
-            ')' => Some(" right paren "),
-            '*' => Some(" star "),
-            ';' => Some(" semicolon "),
-            ':' => Some(" colon "),
-            '<' => Some(" less than "),
-            '>' => Some(" greater than "),
-            '\\' => Some(" backslash "),
-            '/' => Some(" slash "),
-            '+' => Some(" plus "),
-            '=' => Some(" equals "),
-            '~' => Some(" tilde "),
-            '`' => Some(" backquote "),
-            '!' => Some(" bang "),
-            '^' => Some(" caret "),
-            _ => None,
-        },
-        PunctuationLevel::All => match character {
-            '$' => Some(" dollar "),
-            '%' => Some(" percent "),
-            '#' => Some(" pound "),
-            '-' => Some(" dash "),
-            '"' => Some(" quote "),
-            '(' => Some(" left paren "),
-            ')' => Some(" right paren "),
-            '*' => Some(" star "),
-            ';' => Some(" semicolon "),
-            ':' => Some(" colon "),
-            '<' => Some(" less than "),
-            '>' => Some(" greater than "),
-            '\\' => Some(" backslash "),
-            '/' => Some(" slash "),
-            '+' => Some(" plus "),
-            '=' => Some(" equals "),
-            '~' => Some(" tilde "),
-            '`' => Some(" backquote "),
-            '!' => Some(" bang "),
-            '^' => Some(" caret "),
-            '@' => Some(" at "),
-            '_' => Some(" underline "),
-            '\'' => Some(" apostrophe "),
-            '.' => Some(" dot "),
-            ',' => Some(" comma "),
-            '&' => Some(" ampersand "),
-            '|' => Some(" pipe "),
-            '[' => Some(" left bracket "),
-            ']' => Some(" right bracket "),
-            '{' => Some(" left brace "),
-            '}' => Some(" right brace "),
-            '?' => Some(" question "),
-            _ => None,
-        },
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -309,7 +246,7 @@ pub fn insert_space_before_uppercase(input: &str) -> String {
 /// Semantic presentations carry capitalization actions explicitly.  The
 /// legacy text path therefore preserves case and leaves the tone list empty.
 pub fn prepare_speech_text(text: &str, state: &TtsState) -> PreparedSpeechText {
-    let mut processed = apply_punctuation(text, state.punctuation_level);
+    let mut processed = apply_punctuation(text, state.punctuation_level, &state.punctuation_tables);
     if state.split_caps {
         processed = insert_space_before_uppercase(&processed);
     }
@@ -332,8 +269,12 @@ pub fn prepare_speech_text_with_offsets(
         let offset = *offset as usize;
         offset <= text.len() && text.is_char_boundary(offset)
     }));
-    let (punctuated, offsets) =
-        apply_punctuation_with_offsets(text, state.punctuation_level, offsets);
+    let (punctuated, offsets) = apply_punctuation_with_offsets(
+        text,
+        state.punctuation_level,
+        &state.punctuation_tables,
+        offsets,
+    );
     let (split, offsets) = if state.split_caps {
         insert_space_before_uppercase_with_offsets(&punctuated, &offsets)
     } else {
@@ -396,6 +337,7 @@ impl OffsetMapper {
 fn apply_punctuation_with_offsets(
     text: &str,
     level: PunctuationLevel,
+    tables: &PunctuationTables,
     offsets: &[u32],
 ) -> (String, Vec<u32>) {
     let mut output = String::with_capacity(text.len());
@@ -416,8 +358,10 @@ fn apply_punctuation_with_offsets(
             .chars()
             .next()
             .expect("position must remain within speech text");
-        if let Some(replacement) = punctuation_replacement(character, level) {
+        if let Some(replacement) = tables.spoken_name(character, level) {
+            output.push(' ');
             output.push_str(replacement);
+            output.push(' ');
         } else {
             output.push(character);
         }
@@ -794,7 +738,10 @@ mod tests {
             PunctuationLevel::Some,
             PunctuationLevel::All,
         ] {
-            assert_eq!(apply_punctuation("question[*]mark", level), "question mark");
+            assert_eq!(
+                apply_punctuation("question[*]mark", level, &PunctuationTables::default()),
+                "question mark"
+            );
         }
     }
 
@@ -887,7 +834,7 @@ mod tests {
                     input.clone()
                 };
                 assert_eq!(
-                    apply_punctuation(&input, level),
+                    apply_punctuation(&input, level, &PunctuationTables::default()),
                     expected,
                     "punctuation {character:?} at level {level:?}"
                 );
@@ -920,7 +867,14 @@ mod tests {
                     prepare_speech_text_with_offsets(&input, &state, &source_offsets);
                 let expected_offsets = source_offsets
                     .iter()
-                    .map(|offset| apply_punctuation(&input[..*offset as usize], level).len() as u32)
+                    .map(|offset| {
+                        apply_punctuation(
+                            &input[..*offset as usize],
+                            level,
+                            &PunctuationTables::default(),
+                        )
+                        .len() as u32
+                    })
                     .collect::<Vec<_>>();
 
                 assert_eq!(tracked, plain, "punctuation {character:?} at {level:?}");
@@ -937,14 +891,87 @@ mod tests {
     }
 
     #[test]
-    fn non_ascii_punctuation_remains_available_for_engine_prosody() {
+    fn default_apostrophes_preserve_prose_and_speak_at_all_without_configuration() {
+        let text = "don't don’t donʼt ‘ ’";
+        let mut state = TtsState {
+            split_caps: false,
+            punctuation_level: PunctuationLevel::None,
+            ..TtsState::default()
+        };
+        assert_eq!(prepare_speech_text(text, &state).text, text);
+        state.punctuation_level = PunctuationLevel::Some;
+        assert_eq!(prepare_speech_text(text, &state).text, text);
+        let expected =
+            "don apostrophe t don apostrophe t don apostrophe t  apostrophe   apostrophe ";
+        state.punctuation_level = PunctuationLevel::All;
+        assert_eq!(prepare_speech_text(text, &state).text, expected);
+        let (prepared, offsets) =
+            prepare_speech_text_with_offsets(text, &state, &[0, text.len() as u32]);
+        assert_eq!(prepared.text, expected);
+        assert_eq!(offsets, [0, expected.len() as u32]);
+    }
+
+    #[test]
+    fn configured_names_preservation_and_unicode_offsets_agree() {
+        use std::sync::Arc;
+        let mut tables = PunctuationTables::default();
+        tables.some.insert('’', Some("apostrophe!".into()));
+        tables.some.insert('!', Some("exclamation".into()));
+        tables.some.insert('$', None);
+        tables.some.insert('※', Some("reference mark".into()));
+        let state = TtsState {
+            punctuation_tables: Arc::new(tables),
+            punctuation_level: PunctuationLevel::Some,
+            split_caps: false,
+            ..TtsState::default()
+        };
+        let input = "a’b$※![*]é";
+        let expected = "a apostrophe! b$ reference mark  exclamation  é";
+        // Unsorted, repeated boundaries include every byte boundary of [*].
+        let mut offsets = input
+            .char_indices()
+            .map(|(i, _)| i as u32)
+            .collect::<Vec<_>>();
+        offsets.push(input.len() as u32);
+        offsets.reverse();
+        offsets.push(4);
+        let (prepared, mapped) = prepare_speech_text_with_offsets(input, &state, &offsets);
+        assert_eq!(prepared.text, expected);
+        assert_eq!(prepare_speech_text(input, &state).text, expected);
+        assert_eq!(offsets, [15, 13, 12, 11, 10, 9, 6, 5, 4, 1, 0, 4]);
+        assert_eq!(mapped, [48, 46, 46, 46, 45, 32, 16, 15, 14, 1, 0, 14]);
+    }
+
+    #[test]
+    fn unicode_defaults_name_common_forms_and_preserve_unlisted_characters() {
+        let tables = PunctuationTables::default();
+        let input = "alpha—“beta”…※";
+        assert_eq!(
+            apply_punctuation(input, PunctuationLevel::None, &tables),
+            input
+        );
+        assert_eq!(
+            apply_punctuation(input, PunctuationLevel::Some, &tables),
+            "alpha em dash  quote beta quote …※"
+        );
+        assert_eq!(
+            apply_punctuation(input, PunctuationLevel::All, &tables),
+            "alpha em dash  quote beta quote  ellipsis ※"
+        );
+    }
+
+    #[test]
+    fn historical_tables_preserve_unicode_for_engine_prosody() {
         let input = "alpha—“beta”…";
         for level in [
             PunctuationLevel::None,
             PunctuationLevel::Some,
             PunctuationLevel::All,
         ] {
-            assert_eq!(apply_punctuation(input, level), input);
+            assert_eq!(
+                apply_punctuation(input, level, &PunctuationTables::legacy()),
+                input
+            );
         }
     }
 

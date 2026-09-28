@@ -4,6 +4,7 @@
 //! This includes command parsing, queue management, and state handling.
 
 pub mod command;
+pub mod punctuation;
 pub mod queue;
 pub mod settings;
 pub mod state;

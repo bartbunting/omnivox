@@ -196,7 +196,7 @@ fn at(path: &Path, reason: &'static str) -> ConfigurationError {
     ConfigurationError::new(path.display().to_string(), reason)
 }
 
-fn redirected(metadata: &Metadata) -> bool {
+pub(super) fn redirected(metadata: &Metadata) -> bool {
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;
@@ -208,7 +208,7 @@ fn redirected(metadata: &Metadata) -> bool {
     }
 }
 
-fn read_file(
+pub(super) fn read_file(
     path: &Path,
     limit: usize,
     no_links: bool,

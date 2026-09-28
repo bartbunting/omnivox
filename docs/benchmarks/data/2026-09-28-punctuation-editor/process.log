@@ -1,0 +1,4 @@
+Exact diagnostics, saved null output and saved/environment/CLI WAV channels passed
+Punctuation editor review, Unicode save, stale-write rejection and unrelated settings preservation passed
+Saved speech defaults, capital pitch, client overrides, reset, text preparation and configured chunks passed
+Shared preparation, independent worker acknowledgements/audio targets, frozen file/environment inputs, frozen punctuation tables, fresh activation, blocked startup write and retirement passed

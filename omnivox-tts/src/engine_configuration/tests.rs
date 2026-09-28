@@ -261,7 +261,7 @@ fn strict_json_rejects_ambiguous_input_without_disclosing_values() {
         br#"{"schema":1e0}"#,
         br#"{"schema":18446744073709551616}"#,
         br#"{"schema":-1}"#,
-        br#"{"schema":3}"#,
+        br#"{"schema":4}"#,
         br#"{}"#,
         br#"[]"#,
         b"\xff",
@@ -691,7 +691,7 @@ fn optional_roots_and_missing_files_preserve_defaults_without_writes() {
     assert_eq!(fs::read_dir(&directory.0).unwrap().count(), 0);
     fs::write(directory.0.join("config.json"), br#"{"schema":1}"#).unwrap();
     assert!(directory.load().unwrap().configuration == Configuration::default());
-    fs::write(directory.0.join("config.json"), br#"{"schema":3}"#).unwrap();
+    fs::write(directory.0.join("config.json"), br#"{"schema":4}"#).unwrap();
     assert!(directory.load().is_err());
     fs::remove_file(directory.0.join("config.json")).unwrap();
     fs::create_dir(directory.0.join("config.json")).unwrap();

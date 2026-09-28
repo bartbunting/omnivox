@@ -30,6 +30,8 @@ pub struct Request {
     #[serde(default)]
     pub expected_sha256: String,
     #[serde(default)]
+    pub punctuation_json: String,
+    #[serde(default)]
     pub plan_json: String,
     #[serde(default)]
     pub proofs_json: String,
@@ -79,6 +81,7 @@ pub enum Reply {
     },
     Host {
         engine_configuration_version: u32,
+        punctuation_configuration_version: u32,
         removal_version: u32,
         catalogue_providers: Vec<String>,
         root: String,
@@ -113,6 +116,9 @@ pub enum Reply {
         index: IndexDocument,
         sha256: String,
         active: Option<ActivePointer>,
+    },
+    PunctuationConfiguration {
+        review: crate::engine_configuration::punctuation_editor::Review,
     },
     RemovalReview {
         review: installation::removal::RemovalReview,
@@ -257,6 +263,7 @@ impl Host {
     pub fn reply(&self) -> Reply {
         Reply::Host {
             engine_configuration_version: 1,
+            punctuation_configuration_version: 1,
             removal_version: 1,
             catalogue_providers: vec![
                 "piper".into(),
