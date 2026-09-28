@@ -68,7 +68,7 @@ For `--dump-wav`, a nonempty positional `VOICE` takes precedence over
 ## Local engine configuration
 
 Standalone startup and exact diagnostic actions read configuration versions 1
-and 2. Version 2 is a post-1.13.0 addition.
+and 2. Version 2 is available from Omnivox 1.14.0.
 Choose one root using `--config-dir`, then nonempty `OMNIVOX_CONFIG_DIR`, then
 the platform default: `%APPDATA%\omnivox` on Windows,
 `$HOME/Library/Application Support/Omnivox` on macOS, or
@@ -216,7 +216,7 @@ and queued sounds. Fresh speech uses the new output once it is ready; speech
 engines remain running. If no output is available, new speech is discarded
 instead of playing later. Recovery retries are bounded, and a device change or
 fresh speech can trigger another attempt. Initial startup still requires a
-working output device. This behavior is unreleased, after 1.13.0.
+working output device. This behavior is available from Omnivox 1.14.0.
 
 PulseAudio also accepts `"pulse_latency_ms": 20`, from 10 to 200 milliseconds.
 This requests buffering; it does not guarantee how soon sound reaches your ears.

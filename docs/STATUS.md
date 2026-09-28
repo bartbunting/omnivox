@@ -1,6 +1,6 @@
 # Omnivox Project Status
 
-**Documentation reviewed:** 2026-09-28. **Workspace version:** 1.13.0.
+**Documentation reviewed:** 2026-09-28. **Workspace version:** 1.14.0.
 This review adds no native qualification. Published changes belong to the
 [changelog](../CHANGELOG.md); current implementation may include unreleased work.
 [Architecture](ARCHITECTURE.md) explains behavior, [the roadmap](ROADMAP.md)
@@ -11,6 +11,7 @@ actual runs and their limits.
 The [publication checks](benchmarks/2026-09-28-1.13-publication.md) retain the
 release identity, successful gates and two investigated retries. The later
 startup-watchdog test correction is not part of the tagged source archive.
+Version 1.14.0 is in release preparation; its publication is not yet established.
 
 ## Implemented
 
@@ -21,14 +22,14 @@ startup-watchdog test correction is not part of the tagged source archive.
 | Voice customization | Shared → actual choice → context composition; private exact/full previews; typed qualified native controls. Control envelope 1, timeline versions 1–5, markers 1–4 and helper versions 1–6 retain compatibility. | [Layered tuning](protocols/voice-choice-tuning.org), [native parameters](protocols/engine-voice-parameters.md) |
 | Discovery | Concurrent helper initialization before initial inventory, verified bounded caches and on-demand exact eSpeak variants. | [Architecture](ARCHITECTURE.md#configuration-and-engine-discovery), [variants](engines/espeak-variants.md) |
 | Engine configuration v1 | Strict local `config.json`/helper manifests, immutable launch snapshots, local permissions, paired startup/Apply acknowledgements and remote session retention. Blocked startup retains ownership without delaying admission; the first implementation slice passes its development acceptance checks. | [Configuration](guides/configuration.md), [acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) |
-| Speech configuration v2 (post-1.13.0) | Configurable 1–100-word synthesis windows, default 15, shared across lanes and retained on reset/recovery. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#configuration-version-2), [acceptance](benchmarks/2026-09-28-host-chunk-configuration.md) |
-| Saved speech defaults (post-1.13.0) | Voice, rate, pitch, volumes, punctuation, CamelCase splitting and character speed; reset restores the captured file baseline. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#saved-speech-defaults), [decision](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct), [acceptance](benchmarks/2026-09-28-saved-speech-defaults.md) |
-| Capital pitch and saved output (post-1.13.0) | Global capital pitch with engine overrides or off; saved backend, channel and PulseAudio latency request. Linux and native Windows process checks pass. | [Capital pitch](reference/engine-configuration.md#capital-letter-pitch), [audio settings](reference/engine-configuration.md#audio-output-settings), [acceptance](benchmarks/2026-09-28-capital-pitch-and-audio-settings.md) |
+| Speech configuration v2 (1.14.0 candidate) | Configurable 1–100-word synthesis windows, default 15, shared across lanes and retained on reset/recovery. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#configuration-version-2), [acceptance](benchmarks/2026-09-28-host-chunk-configuration.md) |
+| Saved speech defaults (1.14.0 candidate) | Voice, rate, pitch, volumes, punctuation, CamelCase splitting and character speed; reset restores the captured file baseline. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#saved-speech-defaults), [decision](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct), [acceptance](benchmarks/2026-09-28-saved-speech-defaults.md) |
+| Capital pitch and saved output (1.14.0 candidate) | Global capital pitch with engine overrides or off; saved backend, channel and PulseAudio latency request. Linux and native Windows process checks pass. | [Capital pitch](reference/engine-configuration.md#capital-letter-pitch), [audio settings](reference/engine-configuration.md#audio-output-settings), [acceptance](benchmarks/2026-09-28-capital-pitch-and-audio-settings.md) |
 | Managed voices | Reviewed Piper, Flite, MBROLA and RHVoice acquisition; disabled installation, immutable generations, explicit two-worker Apply/rollback and reviewed removal. | [Voice management](guides/voice-management.md), [formats](reference/voice-library.org) |
 | Native validation | Disposable bounded native probes, before/after evidence, ownership journals and recorded-cleanup recovery. | [Validation](guides/native-voice-validation.md) |
 | Synthesis | Buffered and bounded progressive PCM, source-mapped anchors, actual-attempt settings and no replay after audio commitment. | [Helper protocol](protocols/helper.md), [prepared synthesis](reference/prepared-synthesis.md) |
 | Presentation | Canonical stereo 44.1 kHz PCM, trimming, effects, inserted/overlaid resources, independent speech/tone/sound streams and tracked source completion. | [Architecture](ARCHITECTURE.md#audio-and-presentation-ownership) |
-| Output | Default device output, explicit null diagnostics, and opt-in native PulseAudio on Linux. Unreleased Windows output follows default endpoints and cancels interrupted speech; canonical queue metadata preserves onsets after idle. | [Configuration](guides/configuration.md), [ADR 0010](adr/0010-windows-default-output-recovery.md), [ADR 0005](adr/0005-native-pulseaudio-output.md) |
+| Output | Default device output, explicit null diagnostics, and opt-in native PulseAudio on Linux. Windows output in the 1.14.0 candidate follows default endpoints and cancels interrupted speech; canonical queue metadata preserves onsets after idle. | [Configuration](guides/configuration.md), [ADR 0010](adr/0010-windows-default-output-recovery.md), [ADR 0005](adr/0005-native-pulseaudio-output.md) |
 | Remote speech | Preview authenticated loopback service over SSH forwarding; independent foreground/notification workers and reconnect without replay. | [Remote setup](guides/remote-speech.md) |
 | Diagnostics | Correlated admission/synthesis/playback records, sensitive text opt-in and optional Windows crash dumps. | [Diagnostics](guides/diagnostics.md) |
 

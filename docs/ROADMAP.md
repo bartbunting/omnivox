@@ -27,8 +27,9 @@ Outstanding items are listed without a priority ranking:
 - **Audio-device selection and recovery:** named devices, separate
   foreground/notification destinations, and follow-default recovery on other
   platforms. Windows follow-default recovery is implemented under
-  [ADR 0010](adr/0010-windows-default-output-recovery.md); physical headphone
-  switching and listening acceptance remain distinct from native stream tests.
+  [ADR 0010](adr/0010-windows-default-output-recovery.md), with a successful
+  [physical headphone-switching check](benchmarks/2026-09-28-1.14-candidate.md#manual-headphone-follow-up).
+  Broader device and listening coverage remains separate work.
 - **Speech and audio doctor:** explain the selected executable, backend, device,
   engine, voice, fallback reason, buffer settings, and recovery action.
 - **Reliable remote workstation setup:** extend outage, interactive,

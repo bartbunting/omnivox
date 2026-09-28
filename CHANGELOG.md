@@ -6,6 +6,8 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-09-28
+
 ### Added
 
 - Windows device output follows changes to the default playback device, including

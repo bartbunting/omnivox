@@ -53,9 +53,12 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-09-28 Omnivox 1.14.0 candidate](2026-09-28-1.14-candidate.md)
+  records release checks and the subsequent successful physical Windows
+  headphone-switching test after correcting the saved launcher selection.
 - [2026-09-28 Windows output recovery and onset fix](2026-09-28-device-recovery-and-onset-fix.md)
   records queue regression, recovery/cancellation, native Windows stream
-  replacement and workspace checks, with physical switching still unqualified.
+  replacement and workspace checks before the physical follow-up above.
 - [2026-09-28 idle playback onset](2026-09-28-idle-onset.md)
   reproduces the release queue's 256-frame onset stretch on Linux and native
   Windows using mixer samples; initial frame loss and lead-in collapse remain

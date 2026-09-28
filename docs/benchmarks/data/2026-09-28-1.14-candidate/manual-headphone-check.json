@@ -1,0 +1,38 @@
+{
+  "recorded_utc": "2026-09-28T10:11:08.526487+00:00",
+  "development_build": "ad5be9cca3f9e40b",
+  "executable_sha256": "999e4163ee585c2498731cc6b5da8f8f3b357fb0ff9239b850f1a80b48b49c48",
+  "platform": "Windows x64, Windows NT 10.0.26200.0; launched from WSL2 Emacsvox",
+  "method": "User plugged and unplugged headphones in the normal Emacsvox session after correcting its saved executable pin and restarting both speech lanes.",
+  "user_result": "yes it is now working.",
+  "prior_attempt": "Used September 22 build 2faa4a181c27b40c because the saved omnivox-program setting overrode the current development bundle.",
+  "limits": [
+    "No headset model or complete voice-by-voice listening checklist recorded.",
+    "No WASAPI loopback or acoustic onset/stop timing measured.",
+    "Native Windows-GNU development executable, not the future Windows-MSVC release archive.",
+    "No new physical Linux listening acceptance."
+  ],
+  "log_selection": "Only output-device lifecycle records; spoken text and other session diagnostics excluded.",
+  "output_events": [
+    {
+      "launcher_pid": 674319,
+      "source_log": "/home/bart/.local/state/emacsvox/omnivox/omnivox-20260928T095828Z-674319-part000001.log",
+      "device_events": [
+        "2026-09-28T09:58:34.188763Z  INFO Initializing audio output audio_backend=Device",
+        "2026-09-28T09:58:34.696967Z  INFO Following Windows default audio output lifecycle_stage=\"output_device_ready\" device_id=Some(\"{0.0.0.00000000}.{4c3fe051-bea7-4199-85a3-3e10957f1b90}\")",
+        "2026-09-28T09:58:47.789925Z  INFO Following Windows default audio output lifecycle_stage=\"output_device_ready\" device_id=Some(\"{0.0.0.00000000}.{8b5bb0dc-0a59-40e2-a746-bfd1381acee9}\")",
+        "2026-09-28T09:59:03.280421Z  INFO Following Windows default audio output lifecycle_stage=\"output_device_ready\" device_id=Some(\"{0.0.0.00000000}.{4c3fe051-bea7-4199-85a3-3e10957f1b90}\")"
+      ]
+    },
+    {
+      "launcher_pid": 674322,
+      "source_log": "/home/bart/.local/state/emacsvox/omnivox/omnivox-20260928T095828Z-674322-part000001.log",
+      "device_events": [
+        "2026-09-28T09:58:34.319788Z  INFO Initializing audio output audio_backend=Device",
+        "2026-09-28T09:58:34.746599Z  INFO Following Windows default audio output lifecycle_stage=\"output_device_ready\" device_id=Some(\"{0.0.0.00000000}.{4c3fe051-bea7-4199-85a3-3e10957f1b90}\")",
+        "2026-09-28T09:58:47.844092Z  INFO Following Windows default audio output lifecycle_stage=\"output_device_ready\" device_id=Some(\"{0.0.0.00000000}.{8b5bb0dc-0a59-40e2-a746-bfd1381acee9}\")",
+        "2026-09-28T09:59:03.246359Z  INFO Following Windows default audio output lifecycle_stage=\"output_device_ready\" device_id=Some(\"{0.0.0.00000000}.{4c3fe051-bea7-4199-85a3-3e10957f1b90}\")"
+      ]
+    }
+  ]
+}
