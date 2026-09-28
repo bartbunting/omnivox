@@ -3,7 +3,73 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use crate::state::PunctuationLevel;
+use crate::state::{ChannelMode, PunctuationLevel};
+
+/// Existing host output methods; native support is checked when opening output.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AudioBackend {
+    /// Play through the system default output device in real time.
+    Device,
+    /// Use native PulseAudio on Linux.
+    Pulse,
+    /// Consume samples without opening a device or waiting for their duration.
+    Null,
+}
+
+/// Requested PulseAudio latency. This is not a measured end-to-end latency.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "u16", into = "u16")]
+pub struct PulseLatencyMs(u16);
+
+impl Default for PulseLatencyMs {
+    fn default() -> Self {
+        Self(20)
+    }
+}
+
+impl TryFrom<u16> for PulseLatencyMs {
+    type Error = &'static str;
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        if (10..=200).contains(&value) {
+            Ok(Self(value))
+        } else {
+            Err("PulseAudio latency must be an integer from 10 through 200")
+        }
+    }
+}
+
+impl From<PulseLatencyMs> for u16 {
+    fn from(value: PulseLatencyMs) -> Self {
+        value.0
+    }
+}
+
+impl PulseLatencyMs {
+    pub fn get(self) -> u32 {
+        u32::from(self.0)
+    }
+}
+
+/// Complete file baseline, captured with engine startup. Launcher overrides
+/// remain per process and are applied when output is constructed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AudioOutputSettings {
+    pub backend: AudioBackend,
+    pub target: ChannelMode,
+    pub pulse_latency_ms: PulseLatencyMs,
+}
+
+impl Default for AudioOutputSettings {
+    fn default() -> Self {
+        Self {
+            backend: AudioBackend::Device,
+            target: ChannelMode::Both,
+            pulse_latency_ms: PulseLatencyMs::default(),
+        }
+    }
+}
 
 /// Absolute host pitch for an isolated capital, or no special pitch cue.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

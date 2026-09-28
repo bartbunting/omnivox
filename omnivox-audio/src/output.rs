@@ -32,16 +32,8 @@ const PROGRESSIVE_PLAYBACK_PREBUFFER_WINDOWS: usize = 3;
 const LETTER_PLAYBACK_PREBUFFER_FRAMES: u64 = SAMPLE_RATE as u64 * 40 / 1000;
 const PROGRESSIVE_PLAYBACK_POLL_INTERVAL: Duration = Duration::from_millis(2);
 
-/// Selects whether streams play through the default device or discard samples.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AudioBackend {
-    /// Play through the default system audio device in real time.
-    Device,
-    /// Play directly through native PulseAudio on Linux (opt-in).
-    Pulse,
-    /// Consume every source as quickly as possible without opening a device.
-    Null,
-}
+pub use omnivox_core::settings::AudioBackend;
+use omnivox_core::settings::PulseLatencyMs;
 
 /// Which audio stream to route to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1263,13 +1255,33 @@ impl AudioStreams {
         sound_max_depth: usize,
         backend: AudioBackend,
     ) -> Result<Self, AudioError> {
+        Self::new_with_backend_and_latency(
+            speech_max_depth,
+            tone_max_depth,
+            sound_max_depth,
+            backend,
+            PulseLatencyMs::default(),
+        )
+    }
+
+    /// Saved latency is a fallback below the existing environment override.
+    pub fn new_with_backend_and_latency(
+        speech_max_depth: usize,
+        tone_max_depth: usize,
+        sound_max_depth: usize,
+        backend: AudioBackend,
+        pulse_latency_ms: PulseLatencyMs,
+    ) -> Result<Self, AudioError> {
         match backend {
             AudioBackend::Device => {
                 Self::new_device(speech_max_depth, tone_max_depth, sound_max_depth)
             }
-            AudioBackend::Pulse => {
-                Self::new_pulse(speech_max_depth, tone_max_depth, sound_max_depth)
-            }
+            AudioBackend::Pulse => Self::new_pulse(
+                speech_max_depth,
+                tone_max_depth,
+                sound_max_depth,
+                pulse_latency_ms,
+            ),
             AudioBackend::Null => Self::new_null(speech_max_depth, tone_max_depth, sound_max_depth),
         }
     }
@@ -1317,13 +1329,15 @@ impl AudioStreams {
         speech_max_depth: usize,
         tone_max_depth: usize,
         sound_max_depth: usize,
+        pulse_latency_ms: PulseLatencyMs,
     ) -> Result<Self, AudioError> {
         #[cfg(target_os = "linux")]
         {
+            let request = crate::pulse::configured_latency(pulse_latency_ms)?;
             let sinks = [
-                crate::pulse::PulseSink::new("speech")?,
-                crate::pulse::PulseSink::new("tone")?,
-                crate::pulse::PulseSink::new("sound")?,
+                crate::pulse::PulseSink::new("speech", request)?,
+                crate::pulse::PulseSink::new("tone", request)?,
+                crate::pulse::PulseSink::new("sound", request)?,
             ];
             let control = Arc::new(AudioControl::new(
                 ManagedSink::Pulse(sinks[0].clone()),
@@ -1340,7 +1354,12 @@ impl AudioStreams {
         }
         #[cfg(not(target_os = "linux"))]
         {
-            let _ = (speech_max_depth, tone_max_depth, sound_max_depth);
+            let _ = (
+                speech_max_depth,
+                tone_max_depth,
+                sound_max_depth,
+                pulse_latency_ms,
+            );
             Err(AudioError::DeviceNotFound(
                 "native PulseAudio output is only supported on Linux".into(),
             ))

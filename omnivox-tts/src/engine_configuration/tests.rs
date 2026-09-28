@@ -988,3 +988,60 @@ fn capital_pitch_is_sparse_bounded_and_requires_registered_engine_ids() {
         assert!(Configuration::parse(bytes, Platform::native()).is_err());
     }
 }
+
+#[test]
+fn audio_settings_are_sparse_strict_and_bounded() {
+    use omnivox_core::settings::AudioBackend;
+    use omnivox_core::state::ChannelMode;
+    for audio in [
+        json!({}),
+        json!({"backend":"device"}),
+        json!({"target":"both"}),
+        json!({"pulse_latency_ms":20}),
+    ] {
+        assert_eq!(
+            parse_config(&json!({"schema":2,"audio":audio}))
+                .unwrap()
+                .audio,
+            AudioOutputSettings::default()
+        );
+    }
+    let saved = parse_config(
+        &json!({"schema":2,"audio":{"backend":"pulse","target":"right","pulse_latency_ms":45}}),
+    )
+    .unwrap()
+    .audio;
+    assert_eq!(saved.backend, AudioBackend::Pulse);
+    assert_eq!(saved.target, ChannelMode::Right);
+    assert_eq!(saved.pulse_latency_ms.get(), 45);
+    for latency in [10, 200] {
+        parse_config(&json!({"schema":2,"audio":{"pulse_latency_ms":latency}})).unwrap();
+    }
+    for audio in [
+        json!(null),
+        json!([]),
+        json!({"backend":"Pulse"}),
+        json!({"backend":"alsa"}),
+        json!({"backend":null}),
+        json!({"target":"LEFT"}),
+        json!({"target":null}),
+        json!({"target":false}),
+        json!({"extra":true}),
+        json!({"pulse_latency_ms":9}),
+        json!({"pulse_latency_ms":201}),
+        json!({"pulse_latency_ms":10.5}),
+        json!({"pulse_latency_ms":"20"}),
+        json!({"pulse_latency_ms":null}),
+    ] {
+        assert!(
+            parse_config(&json!({"schema":2,"audio":audio})).is_err(),
+            "{audio}"
+        );
+    }
+    for bytes in [
+        br#"{"schema":1,"audio":{}}"#.as_slice(),
+        br#"{"schema":2,"audio":{"backend":"device","backend":"null"}}"#,
+    ] {
+        assert!(Configuration::parse(bytes, Platform::native()).is_err());
+    }
+}

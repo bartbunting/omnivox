@@ -71,7 +71,8 @@ impl CapitalizationPresentation {
 }
 
 /// Audio channel mode for stereo panning
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ChannelMode {
     /// Output to left channel only
     Left,
@@ -159,6 +160,8 @@ pub struct TtsState {
     pub speech_routing: AudioRouting,
     pub tone_routing: AudioRouting,
     pub sound_routing: AudioRouting,
+    /// Effective process destination after saved, environment and CLI settings.
+    pub startup_channel_mode: ChannelMode,
 }
 
 impl Default for TtsState {
@@ -189,6 +192,7 @@ impl TtsState {
             speech_routing: AudioRouting::default(),
             tone_routing: AudioRouting::default(),
             sound_routing: AudioRouting::default(),
+            startup_channel_mode: ChannelMode::Both,
         }
     }
 }
@@ -204,8 +208,10 @@ impl TtsState {
         *self = Self {
             max_chunk_words: self.max_chunk_words,
             capital_pitch: Arc::clone(&self.capital_pitch),
+            startup_channel_mode: self.startup_channel_mode,
             ..Self::from_speech_defaults(Arc::clone(&self.speech_defaults))
         };
+        self.set_process_channel_mode(self.startup_channel_mode);
     }
 
     /// Get the character speaking rate (speech_rate * character_scale)
@@ -368,6 +374,31 @@ mod tests {
         }
         assert_eq!(admitted.current_voice, "saved voice");
         assert_eq!(admitted.speech_rate, 0.75);
+    }
+
+    #[test]
+    fn reset_restores_the_startup_channel_for_every_stream() {
+        for target in [ChannelMode::Left, ChannelMode::Right, ChannelMode::Both] {
+            let mut state = TtsState {
+                startup_channel_mode: target,
+                ..TtsState::default()
+            };
+            state.set_process_channel_mode(target);
+            let admitted = state.clone();
+            state.speech_routing.channel_mode = ChannelMode::Both;
+            state.tone_routing.channel_mode = ChannelMode::Left;
+            state.sound_routing.channel_mode = ChannelMode::Right;
+            state.reset();
+            assert_eq!(
+                [
+                    state.speech_routing.channel_mode,
+                    state.tone_routing.channel_mode,
+                    state.sound_routing.channel_mode
+                ],
+                [target; 3]
+            );
+            assert_eq!(admitted.speech_routing.channel_mode, target);
+        }
     }
 
     #[test]

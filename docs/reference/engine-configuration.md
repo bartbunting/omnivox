@@ -95,7 +95,7 @@ workers. Saving a manifest must not itself restart speech.
 ## Configuration version 2
 
 Version 2 accepts all version-1 engine settings with the same meaning and adds
-an optional `speech` object. Helper manifests still require `schema: 1`.
+optional `speech` and `audio` objects. Helper manifests still require `schema: 1`.
 
 ```json
 {
@@ -110,9 +110,9 @@ an optional `speech` object. Helper manifests still require `schema: 1`.
 | --- | --- | --- |
 | `max_chunk_words` | 15 | Integer 1–100 whitespace-delimited words. |
 
-Omitting `speech` or its member keeps the default. Reject unknown members, null,
-fractions, strings and out-of-range values. Schema 1 continues to reject the
-new object. Keep version 1 for configurations used with Omnivox 1.13.0; that
+Omitting `max_chunk_words` keeps its default. Reject null, fractions, strings
+and out-of-range word limits. Unknown members fail throughout the configuration.
+Schema 1 continues to reject both new objects. Keep version 1 for configurations used with Omnivox 1.13.0; that
 release does not implement version 2.
 
 The limit applies after text preparation to ordinary, immediate, preview and
@@ -168,7 +168,7 @@ saved speech defaults, not CLI overrides or the latest client settings, while
 retaining the configured chunk limit. It still stops speech and clears pending
 work and temporary delays. It does not reread configuration. Both lanes and
 recovery retain the same frozen defaults; file edits require deliberate restart.
-Audio routing retains its existing reset behavior.
+Audio routing restores the effective startup destination described below.
 
 `--check` and `--dump-wav` use saved voice/rate/pitch/speech gain from the same
 capture used for engine selection. Explicit CLI settings override them; a nonempty
@@ -214,6 +214,51 @@ Ordinary speech, exact WAV diagnostics, previews and word/sentence capitalizatio
 actions do not receive this isolated-letter cue. Both lanes, reset and recovery
 retain the complete captured policy; applying file edits requires a deliberate
 restart. See [ADR 0011](../adr/0011-capital-pitch-preferences.md).
+
+### Audio output settings
+
+Version 2 accepts an optional top-level `audio` object. All members are optional;
+omission uses the built-in value. Null, unknown and duplicate fields fail.
+
+| Member | Built-in value | Accepted values |
+| --- | --- | --- |
+| `backend` | `"device"` | Exact strings `"device"`, `"pulse"`, `"null"`. |
+| `target` | `"both"` | Exact strings `"left"`, `"right"`, `"both"`, applied to all three process streams. |
+| `pulse_latency_ms` | `20` | JSON integer from 10 through 200; no string or floating-point substitute. |
+
+```json
+{
+  "schema": 2,
+  "audio": { "backend": "device", "target": "both", "pulse_latency_ms": 20 }
+}
+```
+
+Precedence is `--audio-output` / `--audio-target`, then `OMNIVOX_AUDIO_OUTPUT` /
+`OMNIVOX_AUDIO_TARGET`, then the file. `OMNIVOX_PULSE_LATENCY_MS` overrides the
+saved latency request; there is no latency CLI flag. Existing CLI/environment
+parsing and invalid-value behavior remain: invalid backend selection fails;
+invalid channel overrides are diagnosed and skipped. The file is always strict.
+Malformed PulseAudio environment values and `PULSE_LATENCY_MSEC` are rejected
+when opening PulseAudio; other backends do not consume those variables.
+
+`device` uses the existing system default device; `pulse` requires Linux and
+usable native PulseAudio; `null` consumes samples without sound or a device.
+An unsupported selected backend fails rather than falling back. A valid launcher
+override may replace a platform-inapplicable saved backend. The latency is a
+request, not a measured output delay, and is retained for native reconnect.
+
+The common file baseline is captured once with engine startup. Each lane then
+applies its retained launcher choices. `tts_reset` restores that effective
+startup channel for speech, tones and sounds, including after a temporary
+`tts_set_speech_channel` command. It leaves the constructed backend and latency
+unchanged. Recovery reuses saved file values and captured launch overrides.
+
+`--check` uses the selected output and routes its test tone and speech.
+`--dump-wav` applies the channel to processed WAV samples but opens no output;
+its raw WAV is unchanged. `--play-wav` reads the same local configuration and
+uses the output method, channel and latency without constructing speech engines
+or applying speech effects. No named-device selection or new protocol operation
+is introduced. See [ADR 0012](../adr/0012-saved-audio-output.md).
 
 ## Configuration version 1
 

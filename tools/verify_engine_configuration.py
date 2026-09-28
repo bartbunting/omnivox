@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import struct
 import sys
 import tempfile
 import time
@@ -61,6 +62,7 @@ def main():
             schema=2, speech=dict(max_chunk_words=3, capital_pitch=dict(default=1.4, engines={"org.fixture":1.8}), defaults=dict(
                 voice="saved", rate=0.7, pitch=1.1, voice_volume=0.6,
                 punctuation="none", split_caps=False, character_scale=1.4)),
+            audio=dict(backend="null", target="left", pulse_latency_ms=45),
             engine_overrides={name: dict(enabled=False) for name in SHIPPED},
             routing=dict(preferred_engine_ids=["org.fixture"]))))
         helper = root / ("helper with spaces.exe" if args.windows else "helper with spaces")
@@ -92,7 +94,7 @@ def main():
         environment = {key: os.environ[key] for key in ("PATH", "HOME", "LANG", "USER", "TMPDIR")
                        if key in os.environ}
         environment.update(OMNIVOX_VOICE_ROOT=native(root / "voices"),
-                           OMNIVOX_CONFIG_DIR=native(configuration), OMNIVOX_AUDIO_OUTPUT="null",
+                           OMNIVOX_CONFIG_DIR=native(configuration),
                            OMNIVOX_FIXTURE_PRIVATE="retained private value")
         if args.windows:
             # Values are already native paths; deliberately omit WSLENV /p.
@@ -102,11 +104,19 @@ def main():
                 "OMNIVOX_OWNED_ENGINE_STARTUP", "OMNIVOX_OWNED_ENGINE_STARTUP_SHA256",
                 "OMNIVOX_OWNED_STARTUP", "OMNIVOX_OWNED_STARTUP_SHA256"])
 
-        def diagnostic(*options, success=True):
-            result = subprocess.run([str(server), *options], env=environment, text=True,
+        def diagnostic(*options, success=True, overrides=None):
+            result = subprocess.run([str(server), *options], env=dict(environment, **(overrides or {})), text=True,
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
             assert (result.returncode == 0) == success, (result.returncode, result.stderr[-2000:])
             return result.stdout
+
+        def assert_wav_target(path, target):
+            data = path.read_bytes()
+            assert data[36:40] == b"data"  # Omnivox's canonical float-WAV writer.
+            frames = list(struct.iter_unpack("<ff", data[44:]))
+            peaks = [max(abs(frame[channel]) for frame in frames) for channel in (0, 1)]
+            for channel, peak in zip(("left", "right"), peaks):
+                assert (peak > 0.0001) if target in (channel, "both") else peak == 0, (target, peaks)
 
         def syntheses():
             return [json.loads(line) for line in (root / "synthesis.jsonl").read_text().splitlines()]
@@ -126,13 +136,21 @@ def main():
         wav_path = root / "fixture.wav"
         diagnostic("--engine", "org.fixture", "--dump-wav", "voice", native(wav_path), "fixture")
         read_wav(wav_path, canonical=True)
+        assert_wav_target(wav_path, "left")
         assert_settings(syntheses(), "voice", 0.7, 1.1)
         diagnostic("--engine", "org.fixture", "--dump-wav", "", native(wav_path), "saved defaults")
         assert_settings(syntheses()[-1:], "saved", 0.7, 1.1)
         diagnostic("--engine", "org.fixture", "--rate", "0.8", "--pitch", "1.3",
-                   "--voice", "voice", "--dump-wav", "", native(wav_path), "command line")
+                   "--voice", "voice", "--audio-target", "both", "--dump-wav", "", native(wav_path), "command line",
+                   overrides={"OMNIVOX_AUDIO_TARGET":"right"})
         assert_settings(syntheses()[-1:], "voice", 0.8, 1.3)
-        print("Exact voice listing, missing-engine rejection and canonical WAV synthesis passed", flush=True)
+        assert_wav_target(wav_path, "both")
+        diagnostic("--engine", "org.fixture", "--dump-wav", "", native(wav_path), "environment channel",
+                   overrides={"OMNIVOX_AUDIO_TARGET":"right"})
+        assert_wav_target(wav_path, "right")
+        assert "Null output: OK" in diagnostic("--engine", "org.fixture", "--check")
+        diagnostic("--play-wav", native(wav_path))
+        print("Exact diagnostics, saved null output and saved/environment/CLI WAV channels passed", flush=True)
 
         def owner(settings):
             peer = Peer(server, "--voice-library-owner", settings)
@@ -154,6 +172,7 @@ def main():
         retained = json.loads(local(initial["startup"]).read_text())
         activation = retained["engines"]["activation_id"]
         assert activation == prepared["activation_id"] == initial["activation_id"]
+        assert retained["engines"]["audio"] == dict(backend="null", target="left", pulse_latency_ms=45)
         assert retained["engines"]["speech"] == dict(max_chunk_words=3)
         assert retained["engines"]["speech_defaults"]["voice"] == "saved"
         assert retained["engines"]["capital_pitch"] == dict(default=1.4, engines={"org.fixture":1.8})
@@ -245,10 +264,10 @@ def main():
         assert startup_environment(retained)["OMNIVOX_AUDIO_TARGET"] == "left"
         assert startup_environment(copied)["OMNIVOX_AUDIO_TARGET"] == "right"
         launches = [json.loads(line) for line in (root / "argv.jsonl").read_text().splitlines()]
-        assert launches == [arguments] * 6  # Four exact diagnostics and two owned workers.
+        assert launches == [arguments] * 8  # Six exact engine diagnostics and two owned workers.
         environments = [json.loads(line) for line in (root / "environment.jsonl").read_text().splitlines()]
         assert {item["value"] for item in environments} == {"retained private value"}
-        assert len({item["pid"] for item in environments}) == 6
+        assert len({item["pid"] for item in environments}) == 8
         public_status = json.dumps([initial_inventory, recovered_inventory, first_ack, second_ack])
         # macOS legitimately reports paths under /private. Check the actual
         # private inputs, rather than a word that can occur in a public path.

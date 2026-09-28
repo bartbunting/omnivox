@@ -19,6 +19,7 @@ Proposed records do not override accepted decisions.
 | [0009: Local speech preferences](0009-local-speech-preferences.md) | Accepted | Bounded host chunk size, unchanged defaults and frozen startup compatibility. |
 | [0010: Saved speech defaults](0010-saved-speech-defaults.md) | Accepted | Saved startup/reset values, client precedence and frozen compatibility. |
 | [0011: Capital pitch preferences](0011-capital-pitch-preferences.md) | Accepted | Global and per-engine isolated-capital cues, actual-attempt selection and frozen compatibility. |
+| [0012: Saved audio output](0012-saved-audio-output.md) | Accepted | Saved backend/channel/latency, launcher precedence, reset destination and frozen recovery. |
 
 The maintainer authorized a one-time consolidation and renumbering on 2026-09-27.
 These are the replacement records; older numbers apply only to earlier Git

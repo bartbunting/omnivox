@@ -4,6 +4,8 @@
 - Accepted: 2026-09-28; the maintainer chose saved settings, rather than built-in
   settings, as the speech-reset baseline.
 - Extends: [Local speech preferences](0009-local-speech-preferences.md).
+- Extended by: [Saved audio output](0012-saved-audio-output.md), which defines
+  process output settings and replaces the earlier routing-reset behavior.
 - Related: [Engine registration](0008-extensible-engine-registration.md),
   [voice tuning](0006-voice-selection-and-customization.md),
   [worker ownership](0004-workstation-service-and-worker-ownership.md).

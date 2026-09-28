@@ -161,8 +161,8 @@ Restart speech to load the file. Command-line settings can override it at startu
 and Emacs can change settings during the session. When Emacs resets speech,
 Omnivox returns to your saved speech defaults. Later Emacs commands can change
 them again. Editing the file alone does not change active or recovering workers.
-Omitted settings retain their built-in values. Audio output settings remain
-separate; this does not add an Emacs settings screen.
+Omitted settings retain their built-in values. Output choices have their own
+`audio` section below.
 
 ### Adjust the capital-letter cue
 
@@ -190,6 +190,35 @@ Keep this alongside existing settings in the same file, then restart speech.
 Reset and recovery retain it. This controls character navigation; capitalization
 announcements and tones within words or sentences keep their separate controls.
 See the [exact rules](../reference/engine-configuration.md#capital-letter-pitch).
+
+### Save audio output choices
+
+Add `audio` alongside `speech` in version-2 `config.json`:
+
+```json
+{
+  "schema": 2,
+  "audio": {
+    "backend": "device",
+    "target": "both"
+  }
+}
+```
+
+`device` plays through your system's default output. On Linux, `pulse` selects
+the existing native PulseAudio output. `null` is silent and useful for tests.
+Choose `left`, `right` or `both` for the channel. These choices apply to speech,
+tones and sounds from that process.
+
+PulseAudio also accepts `"pulse_latency_ms": 20`, from 10 to 200 milliseconds.
+This requests buffering; it does not guarantee how soon sound reaches your ears.
+Keep the default unless you have a reason to change it.
+
+Command-line choices override launcher environment settings, which override
+this file. Normal speech and notifications can therefore keep separate channels.
+Reset restores each worker's startup channel, and recovery retains its output
+settings. Restart speech deliberately to apply file edits. See the
+[exact rules](../reference/engine-configuration.md#audio-output-settings).
 
 ### Add your own speech engine
 

@@ -132,6 +132,7 @@ fn historical_snapshots_keep_fifteen_words_and_their_old_wire_shape() {
     old.as_object_mut().unwrap().remove("speech");
     old.as_object_mut().unwrap().remove("speech_defaults");
     old.as_object_mut().unwrap().remove("capital_pitch");
+    old.as_object_mut().unwrap().remove("audio");
     let decoded = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert_eq!(decoded.resolved().speech.max_chunk_words.get(), 15);
     assert_eq!(serde_json::to_value(&decoded).unwrap(), old);
@@ -171,6 +172,7 @@ fn saved_defaults_are_complete_and_old_chunk_snapshots_keep_their_wire_shape() {
     old["schema"] = json!(2);
     old.as_object_mut().unwrap().remove("speech_defaults");
     old.as_object_mut().unwrap().remove("capital_pitch");
+    old.as_object_mut().unwrap().remove("audio");
     old["speech"]["max_chunk_words"] = json!(30);
     let decoded = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert_eq!(
@@ -238,7 +240,7 @@ fn parsing_rejects_duplicate_keys_unknown_fields_and_outer_bounds() {
     trailing.extend_from_slice(b" {}");
     assert!(LaunchSnapshot::parse(&trailing).is_err());
     reject_mutation(&snapshot, |value| value["extra"] = json!(true));
-    reject_mutation(&snapshot, |value| value["schema"] = json!(5));
+    reject_mutation(&snapshot, |value| value["schema"] = json!(6));
     reject_mutation(&snapshot, |value| {
         value["platform"] = json!("another native platform")
     });
@@ -480,10 +482,49 @@ fn capital_pitch_is_frozen_and_schema_three_retains_its_old_shape() {
     let mut old = serde_json::to_value(snapshot).unwrap();
     old["schema"] = json!(3);
     old.as_object_mut().unwrap().remove("capital_pitch");
+    old.as_object_mut().unwrap().remove("audio");
     let restored = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert_eq!(
         restored.resolved().speech.capital_pitch,
         CapitalPitchSettings::default()
     );
+    assert_eq!(serde_json::to_value(restored).unwrap(), old);
+}
+
+#[test]
+fn audio_is_complete_frozen_and_old_snapshots_keep_their_shape() {
+    let mut resolved = resolved(None);
+    resolved.audio = AudioOutputSettings {
+        backend: omnivox_core::settings::AudioBackend::Null,
+        target: omnivox_core::state::ChannelMode::Left,
+        pulse_latency_ms: omnivox_core::settings::PulseLatencyMs::try_from(45).unwrap(),
+    };
+    let snapshot = LaunchSnapshot::prepare(resolved, None, "".into(), false).unwrap();
+    let restored = LaunchSnapshot::parse(&snapshot.to_bytes().unwrap()).unwrap();
+    assert_eq!(restored.resolved().audio, snapshot.resolved().audio);
+    for key in ["backend", "target", "pulse_latency_ms"] {
+        reject_mutation(&snapshot, |wire| {
+            wire["audio"].as_object_mut().unwrap().remove(key);
+        });
+    }
+    for audio in [
+        json!(null),
+        json!({}),
+        json!({"backend":"device","target":"both","pulse_latency_ms":201}),
+        json!({"backend":"unknown","target":"both","pulse_latency_ms":20}),
+    ] {
+        reject_mutation(&snapshot, |wire| wire["audio"] = audio);
+    }
+    reject_mutation(&snapshot, |wire| {
+        wire.as_object_mut().unwrap().remove("audio");
+    });
+    for schema in 1..=4 {
+        reject_mutation(&snapshot, |wire| wire["schema"] = json!(schema));
+    }
+    let mut old = serde_json::to_value(snapshot).unwrap();
+    old["schema"] = json!(4);
+    old.as_object_mut().unwrap().remove("audio");
+    let restored = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
+    assert_eq!(restored.resolved().audio, AudioOutputSettings::default());
     assert_eq!(serde_json::to_value(restored).unwrap(), old);
 }

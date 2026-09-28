@@ -1,8 +1,12 @@
 //! CLI argument parsing and non-server commands (--check, --list-voices, etc.).
 
 use anyhow::{Context, Result};
-use omnivox_audio::{AudioBackend, AudioFileLoader, AudioStreams, StreamType, ToneGenerator};
+use omnivox_audio::{
+    AudioBackend, AudioEffect, AudioFileLoader, AudioStreams, ChannelRouter, StreamType,
+    ToneGenerator,
+};
 use omnivox_core::command::parse_finite_float;
+use omnivox_core::settings::AudioOutputSettings;
 use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
 use omnivox_tts::{SynthesisRequest, TtsEngine, TtsSettings};
@@ -145,15 +149,35 @@ fn parse_audio_backend(value: &str, source: &str) -> Result<AudioBackend> {
     }
 }
 
-pub fn selected_audio_backend(cli: &CliArgs) -> Result<AudioBackend> {
-    if let Some(value) = cli.audio_output.as_deref() {
-        return parse_audio_backend(value, "--audio-output");
+pub fn audio_backend_override(cli: &CliArgs) -> Result<Option<AudioBackend>> {
+    resolve_audio_backend_override(
+        cli.audio_output.as_deref(),
+        std::env::var_os("OMNIVOX_AUDIO_OUTPUT").as_deref(),
+    )
+}
+
+fn resolve_audio_backend_override(
+    cli: Option<&str>,
+    environment: Option<&std::ffi::OsStr>,
+) -> Result<Option<AudioBackend>> {
+    if let Some(value) = cli {
+        return parse_audio_backend(value, "--audio-output").map(Some);
     }
-    match std::env::var("OMNIVOX_AUDIO_OUTPUT") {
-        Ok(value) => parse_audio_backend(&value, "OMNIVOX_AUDIO_OUTPUT"),
-        Err(std::env::VarError::NotPresent) => Ok(AudioBackend::Device),
-        Err(error) => anyhow::bail!("Invalid OMNIVOX_AUDIO_OUTPUT value: {error}"),
-    }
+    environment
+        .map(|value| {
+            let value = value
+                .to_str()
+                .context("OMNIVOX_AUDIO_OUTPUT is not Unicode")?;
+            parse_audio_backend(value, "OMNIVOX_AUDIO_OUTPUT")
+        })
+        .transpose()
+}
+
+pub fn apply_startup_flags(cli: &CliArgs, audio: &AudioOutputSettings, state: &mut TtsState) {
+    state.set_process_channel_mode(audio.target);
+    crate::engine::apply_audio_target_env(state);
+    apply_cli_flags(cli, state);
+    state.startup_channel_mode = state.speech_routing.channel_mode;
 }
 
 pub fn apply_cli_flags(cli: &CliArgs, state: &mut TtsState) {
@@ -376,7 +400,7 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
     println!();
 
     println!("[engine]");
-    let (engine, speech) = match create_diagnostic_engine(
+    let (engine, speech, audio) = match create_diagnostic_engine(
         &cli.engine,
         cli.piper_model.as_deref(),
         cli.voice_library.as_deref(),
@@ -409,6 +433,7 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
         cli,
         engine.descriptor().default_voice_id.as_deref(),
         &speech,
+        &audio,
     );
     let settings = settings_from_state(&state);
     let test_request = SynthesisRequest::new("test", settings.clone());
@@ -441,18 +466,19 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
     println!();
 
     println!("[audio output]");
-    let audio_backend = match selected_audio_backend(cli) {
-        Ok(backend) => backend,
+    let audio_backend = match audio_backend_override(cli) {
+        Ok(backend) => backend.unwrap_or(audio.backend),
         Err(error) => {
             println!("  Configuration: FAILED - {error}");
             return Err(error);
         }
     };
-    match AudioStreams::new_with_backend(
+    match AudioStreams::new_with_backend_and_latency(
         crate::SPEECH_MAX_DEPTH,
         crate::TONE_MAX_DEPTH,
         crate::SOUND_MAX_DEPTH,
         audio_backend,
+        audio.pulse_latency_ms,
     ) {
         Ok(streams) => {
             match audio_backend {
@@ -461,7 +487,8 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
                 AudioBackend::Null => println!("  Null output: OK (no audio device opened)"),
             }
 
-            let tone_buf = ToneGenerator::generate(440.0, 200, 0.5);
+            let mut tone_buf = ToneGenerator::generate(440.0, 200, 0.5);
+            crate::pipeline::build_tone_pipeline(&state).process(&mut tone_buf)?;
             match queue_diagnostic_audio(&streams, StreamType::Tone, &tone_buf) {
                 Ok(_) if audio_backend == AudioBackend::Null => {
                     println!("  Test tone (440Hz): consumed")
@@ -609,6 +636,7 @@ fn diagnostic_state(
     cli: &CliArgs,
     default_voice: Option<&str>,
     speech: &SpeechConfiguration,
+    audio: &AudioOutputSettings,
 ) -> TtsState {
     let mut state = TtsState {
         current_voice: speech
@@ -622,7 +650,7 @@ fn diagnostic_state(
         capital_pitch: Arc::new(speech.capital_pitch.clone()),
         ..TtsState::from_speech_defaults(Arc::new(speech.defaults.clone()))
     };
-    apply_cli_flags(cli, &mut state);
+    apply_startup_flags(cli, audio, &mut state);
     state
 }
 
@@ -631,8 +659,9 @@ fn dump_wav_state(
     positional_voice: &str,
     default_voice: Option<&str>,
     speech: &SpeechConfiguration,
+    audio: &AudioOutputSettings,
 ) -> TtsState {
-    let mut state = diagnostic_state(cli, default_voice, speech);
+    let mut state = diagnostic_state(cli, default_voice, speech, audio);
     if !positional_voice.is_empty() {
         state.current_voice = positional_voice.to_owned();
     }
@@ -653,7 +682,7 @@ fn raw_wav_path(output: &str) -> Result<String> {
 }
 
 pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) -> Result<()> {
-    let (engine, speech) = create_diagnostic_engine(
+    let (engine, speech, audio) = create_diagnostic_engine(
         &cli.engine,
         cli.piper_model.as_deref(),
         cli.voice_library.as_deref(),
@@ -665,6 +694,7 @@ pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) -> Res
         voice,
         engine.descriptor().default_voice_id.as_deref(),
         &speech,
+        &audio,
     );
     let request = SynthesisRequest::new(text, settings_from_state(&state));
     let result = engine.synthesize(&request).context("Synthesis failed")?;
@@ -703,17 +733,31 @@ pub fn cmd_dump_wav(cli: &CliArgs, voice: &str, output: &str, text: &str) -> Res
 }
 
 pub fn cmd_play_wav(cli: &CliArgs, path: &str) -> Result<()> {
-    let streams = AudioStreams::new_with_backend(
+    // Audio-only diagnostics share the strict reader without constructing engines.
+    let root = omnivox_tts::engine_configuration::Platform::native()
+        .configuration_root(cli.config_dir.as_deref().map(std::ffi::OsStr::new), |key| {
+            std::env::var_os(key)
+        })?;
+    let loaded = root.load()?;
+    for diagnostic in &loaded.diagnostics {
+        warn!("{diagnostic}");
+    }
+    let audio = loaded.configuration.audio;
+    let streams = AudioStreams::new_with_backend_and_latency(
         crate::SPEECH_MAX_DEPTH,
         crate::TONE_MAX_DEPTH,
         crate::SOUND_MAX_DEPTH,
-        selected_audio_backend(cli)?,
+        audio_backend_override(cli)?.unwrap_or(audio.backend),
+        audio.pulse_latency_ms,
     )
     .context("Audio init failed")?;
+    let mut state = TtsState::default();
+    apply_startup_flags(cli, &audio, &mut state);
     let loader = AudioFileLoader::with_cache();
-    let buf = loader
+    let mut buf = loader
         .load(std::path::Path::new(path))
         .with_context(|| format!("Failed to load {path}"))?;
+    ChannelRouter::new(state.speech_routing.channel_mode).process(&mut buf)?;
     println!("Playing {} ({} samples)...", path, buf.samples.len());
     queue_diagnostic_audio(&streams, StreamType::Speech, &buf).context("Queue failed")?;
     streams.drain();
@@ -812,6 +856,7 @@ mod tests {
             "positional-voice",
             Some("slt"),
             &SpeechConfiguration::default(),
+            &AudioOutputSettings::default(),
         );
         let settings = settings_from_state(&state);
 
@@ -841,7 +886,14 @@ mod tests {
         };
 
         assert_eq!(
-            dump_wav_state(&cli, "", Some("paul"), &SpeechConfiguration::default()).current_voice,
+            dump_wav_state(
+                &cli,
+                "",
+                Some("paul"),
+                &SpeechConfiguration::default(),
+                &AudioOutputSettings::default()
+            )
+            .current_voice,
             "flag-voice"
         );
     }
@@ -866,19 +918,36 @@ mod tests {
         for default_voice in [Some("paul"), Some("slt"), Some("male"), None] {
             let expected = default_voice.unwrap_or_default();
             assert_eq!(
-                diagnostic_state(&cli, default_voice, &SpeechConfiguration::default())
-                    .current_voice,
+                diagnostic_state(
+                    &cli,
+                    default_voice,
+                    &SpeechConfiguration::default(),
+                    &AudioOutputSettings::default()
+                )
+                .current_voice,
                 expected
             );
             assert_eq!(
-                dump_wav_state(&cli, "", default_voice, &SpeechConfiguration::default())
-                    .current_voice,
+                dump_wav_state(
+                    &cli,
+                    "",
+                    default_voice,
+                    &SpeechConfiguration::default(),
+                    &AudioOutputSettings::default()
+                )
+                .current_voice,
                 expected
             );
         }
         cli.voice = Some("invalid-explicit-voice".to_owned());
         assert_eq!(
-            diagnostic_state(&cli, Some("paul"), &SpeechConfiguration::default()).current_voice,
+            diagnostic_state(
+                &cli,
+                Some("paul"),
+                &SpeechConfiguration::default(),
+                &AudioOutputSettings::default()
+            )
+            .current_voice,
             "invalid-explicit-voice"
         );
 
@@ -888,7 +957,7 @@ mod tests {
         speech.defaults.pitch = 1.25;
         speech.defaults.voice_volume = 0.6;
         cli.voice = None;
-        let state = diagnostic_state(&cli, Some("paul"), &speech);
+        let state = diagnostic_state(&cli, Some("paul"), &speech, &AudioOutputSettings::default());
         assert_eq!(state.current_voice, "saved-voice");
         assert_eq!(settings_from_state(&state).rate, 0.75);
         assert_eq!(settings_from_state(&state).pitch, 1.25);
@@ -897,7 +966,13 @@ mod tests {
         cli.voice = Some("command-line-voice".into());
         cli.rate = Some(0.9);
         cli.voice_volume = Some(0.3);
-        let mut state = dump_wav_state(&cli, "positional-voice", Some("paul"), &speech);
+        let mut state = dump_wav_state(
+            &cli,
+            "positional-voice",
+            Some("paul"),
+            &speech,
+            &AudioOutputSettings::default(),
+        );
         assert_eq!(state.current_voice, "positional-voice");
         assert_eq!(state.speech_rate, 0.9);
         assert_eq!(state.voice_volume, 0.3);
@@ -923,5 +998,34 @@ mod tests {
             AudioBackend::Pulse
         );
         assert!(parse_audio_backend("silent", "test").is_err());
+    }
+    #[test]
+    fn backend_precedence_is_cli_then_environment_then_saved() {
+        use std::ffi::OsStr;
+        for saved in [
+            AudioBackend::Device,
+            AudioBackend::Pulse,
+            AudioBackend::Null,
+        ] {
+            assert_eq!(
+                resolve_audio_backend_override(None, None)
+                    .unwrap()
+                    .unwrap_or(saved),
+                saved
+            );
+            assert_eq!(
+                resolve_audio_backend_override(None, Some(OsStr::new("null")))
+                    .unwrap()
+                    .unwrap_or(saved),
+                AudioBackend::Null
+            );
+            assert_eq!(
+                resolve_audio_backend_override(Some("device"), Some(OsStr::new("invalid")))
+                    .unwrap(),
+                Some(AudioBackend::Device)
+            );
+        }
+        assert!(resolve_audio_backend_override(None, Some(OsStr::new("invalid"))).is_err());
+        assert!(resolve_audio_backend_override(Some("invalid"), Some(OsStr::new("null"))).is_err());
     }
 }

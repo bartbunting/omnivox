@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Save the existing audio backend, process channel and PulseAudio latency request
+  in version-2 configuration. Launcher overrides retain priority, and speech
+  reset restores each worker's effective startup channel.
+
 - Configure the capital-letter pitch cue globally or per engine, including an
   off option that preserves ordinary pitch. Fallback uses the actual engine's
   setting; the existing absolute `1.5` cue remains the default.

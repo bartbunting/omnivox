@@ -112,9 +112,12 @@ pub(crate) struct PulseSink {
     worker: Mutex<Option<JoinHandle<()>>>,
 }
 
-fn latency_ms(value: Option<&str>) -> Result<u32, AudioError> {
+fn latency_ms(
+    value: Option<&str>,
+    saved: omnivox_core::settings::PulseLatencyMs,
+) -> Result<u32, AudioError> {
     match value {
-        None => Ok(20),
+        None => Ok(saved.get()),
         Some(value) => value
             .parse::<u32>()
             .ok()
@@ -127,22 +130,28 @@ fn latency_ms(value: Option<&str>) -> Result<u32, AudioError> {
     }
 }
 
+pub(crate) fn configured_latency(
+    saved: omnivox_core::settings::PulseLatencyMs,
+) -> Result<u32, AudioError> {
+    if std::env::var_os("PULSE_LATENCY_MSEC").is_some() {
+        return Err(AudioError::PlaybackError(
+            "unset PULSE_LATENCY_MSEC for native PulseAudio; use OMNIVOX_PULSE_LATENCY_MS instead"
+                .into(),
+        ));
+    }
+    let request = std::env::var("OMNIVOX_PULSE_LATENCY_MS")
+        .map(Some)
+        .or_else(|error| match error {
+            std::env::VarError::NotPresent => Ok(None),
+            _ => Err(AudioError::PlaybackError(
+                "OMNIVOX_PULSE_LATENCY_MS is not Unicode".into(),
+            )),
+        })?;
+    latency_ms(request.as_deref(), saved)
+}
+
 impl PulseSink {
-    pub(crate) fn new(name: &'static str) -> Result<Arc<Self>, AudioError> {
-        if std::env::var_os("PULSE_LATENCY_MSEC").is_some() {
-            return Err(AudioError::PlaybackError(
-                "unset PULSE_LATENCY_MSEC for native PulseAudio; use OMNIVOX_PULSE_LATENCY_MS instead".into(),
-            ));
-        }
-        let request = std::env::var("OMNIVOX_PULSE_LATENCY_MS")
-            .map(Some)
-            .or_else(|error| match error {
-                std::env::VarError::NotPresent => Ok(None),
-                _ => Err(AudioError::PlaybackError(
-                    "OMNIVOX_PULSE_LATENCY_MS is not Unicode".into(),
-                )),
-            })?;
-        let request = latency_ms(request.as_deref())?;
+    pub(crate) fn new(name: &'static str, request: u32) -> Result<Arc<Self>, AudioError> {
         Self::start(name, move |closed| {
             native::Client::open(name, request, closed)
         })
@@ -612,12 +621,24 @@ pub(crate) mod tests {
 
     #[test]
     fn latency_request_is_bounded_and_independent_of_alsa_defaults() {
-        assert_eq!(latency_ms(None).unwrap(), 20);
+        assert_eq!(latency_ms(None, Default::default()).unwrap(), 20);
+        let saved = omnivox_core::settings::PulseLatencyMs::try_from(45).unwrap();
+        assert_eq!(latency_ms(None, saved).unwrap(), 45);
+        assert_eq!(latency_ms(Some("30"), saved).unwrap(), 30);
+        assert!(latency_ms(Some("201"), saved).is_err());
         for value in ["10", "20", "50", "200"] {
-            assert_eq!(latency_ms(Some(value)).unwrap().to_string(), value);
+            assert_eq!(
+                latency_ms(Some(value), Default::default())
+                    .unwrap()
+                    .to_string(),
+                value
+            );
         }
         for value in ["", "0", "9", "201", "-20", "NaN", "default", "20ms"] {
-            assert!(latency_ms(Some(value)).is_err(), "{value}");
+            assert!(
+                latency_ms(Some(value), Default::default()).is_err(),
+                "{value}"
+            );
         }
     }
 

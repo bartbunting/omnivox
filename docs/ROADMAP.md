@@ -226,14 +226,13 @@ remain necessary before recommending a different default.
 Reset restores the saved speech baseline under
 [ADR 0010](adr/0010-saved-speech-defaults.md); client commands can override it again.
 The [capital-letter cue](reference/engine-configuration.md#capital-letter-pitch)
-also supports a global pitch, engine overrides and an off option.
+also supports a global pitch, engine overrides and an off option. Saved
+[audio output choices](reference/engine-configuration.md#audio-output-settings)
+cover the existing backend, channel and PulseAudio latency request. Launcher
+choices retain priority and reset restores each worker's startup channel.
 
-The second configuration pass identified these useful next steps:
+The remaining configuration candidate is:
 
-- **Existing output choices:** save the current device/PulseAudio/null backend,
-  channel target and existing PulseAudio latency preference in the host file.
-  Preserve command-line and launcher overrides, including independent lane
-  channels. Named devices remain the separate audio-device feature above.
 - **Per-helper environment:** extend the existing registration backlog when a
   helper needs separate runtime settings; preserve private values and immutable
   recovery rather than adding another discovery path.

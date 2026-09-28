@@ -15,7 +15,9 @@ mod status;
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use omnivox_core::settings::{CapitalPitchSettings, ChunkWordLimit, SpeechDefaults};
+use omnivox_core::settings::{
+    AudioOutputSettings, CapitalPitchSettings, ChunkWordLimit, SpeechDefaults,
+};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 use thiserror::Error;
@@ -137,6 +139,7 @@ pub struct Configuration {
     pub routing: LocalRoutingPolicy,
     pub engine_overrides: BTreeMap<String, EngineOverride>,
     pub speech: SpeechConfiguration,
+    pub audio: AudioOutputSettings,
 }
 
 /// Complete speech preparation preferences retained by the startup snapshot.
@@ -252,6 +255,15 @@ impl Configuration {
         } else {
             SpeechConfiguration::default()
         };
+        let audio = if schema == 2 {
+            object
+                .take("audio")
+                .map(parse_audio_output)
+                .transpose()?
+                .unwrap_or_default()
+        } else {
+            AudioOutputSettings::default()
+        };
         let routing = object
             .take("routing")
             .map(LocalRoutingPolicy::parse)
@@ -276,6 +288,7 @@ impl Configuration {
             routing,
             engine_overrides,
             speech,
+            audio,
         })
     }
 
@@ -310,6 +323,20 @@ impl Configuration {
         }
         Ok(())
     }
+}
+
+fn parse_audio_output(value: Value) -> Result<AudioOutputSettings> {
+    let mut object = Object::new(value, "audio")?;
+    let defaults = AudioOutputSettings::default();
+    let result = AudioOutputSettings {
+        backend: object.optional("backend")?.unwrap_or(defaults.backend),
+        target: object.optional("target")?.unwrap_or(defaults.target),
+        pulse_latency_ms: object
+            .optional("pulse_latency_ms")?
+            .unwrap_or(defaults.pulse_latency_ms),
+    };
+    object.finish()?;
+    Ok(result)
 }
 
 impl LocalRoutingPolicy {
