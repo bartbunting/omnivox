@@ -53,6 +53,9 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-09-28 saved speech defaults](2026-09-28-saved-speech-defaults.md)
+  records Linux and native Windows checks for saved preferences, overrides,
+  reset, immutable recovery and historical startup compatibility.
 - [2026-09-28 host chunk-size configuration](2026-09-28-host-chunk-configuration.md)
   records frozen startup/reset behavior, strict compatibility checks, exploratory
   real-engine timing and a separately reproduced pre-existing marker failure.

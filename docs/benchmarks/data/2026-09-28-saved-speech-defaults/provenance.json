@@ -1,0 +1,71 @@
+{
+  "source_commit": "f3328d6b7be67cf71ff4d95f54f13af4a96cecdd",
+  "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "linux_host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "windows_os": "Microsoft Windows NT 10.0.26200.0",
+  "programs": {
+    "linux_debug": {
+      "path": "/home/bart/ov113.v3MoTB/debug/omnivox",
+      "sha256": "ba2ff5f948f7fd50e3c4b20c2ab0df23459088f1346ccfe6df0d8d5b1fe60d31",
+      "bytes": 152947752
+    },
+    "windows_release": {
+      "path": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/b30b362ffab3bb87/omnivox.exe",
+      "sha256": "da3e5e13d9b86322f13a6bd16a80de9e7e9bed440dbf8541f0af84baa1988325",
+      "bytes": 14905344
+    }
+  },
+  "windows_staging": {
+    "command": "make windows-omnivox-dev OMNIVOX_RUNTIME_DIR=/home/bart/src/omnivox/target/speech-defaults-windows",
+    "cwd": "/home/bart/src/emacsvox",
+    "native_runtime": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\Omnivox\\runtime\\b30b362ffab3bb87",
+    "provenance_file": "windows-PROVENANCE",
+    "installed_launcher_changed": false
+  },
+  "linux_environment": {
+    "CARGO_TARGET_DIR": "/home/bart/ov113.v3MoTB",
+    "CARGO_INCREMENTAL": "0",
+    "OMNIVOX_PIPER_INPUTS_DIR": "/home/bart/src/omnivox/target/piper-inputs/1.7.0/x86_64-unknown-linux-gnu"
+  },
+  "fixture_sources": [
+    {
+      "path": "tools/verify_engine_configuration.py",
+      "sha256": "7b77b00c2df25a3a3dfb00c65ec5d14e4a2f0476ca710d6b5b5b66029bf23738",
+      "bytes": 18527
+    },
+    {
+      "path": "tools/verify_local_voice_owner.py",
+      "sha256": "760cd0c2d2d60958c729a6d175bb7e135b56bf7b60f16d177e5498ab31a0c588",
+      "bytes": 8575
+    },
+    {
+      "path": "tools/verify_release.py",
+      "sha256": "c201c7a3883ee7829cb75ef69b9e64eb1b44d1e8957fc90b2018c28fa8062d1d",
+      "bytes": 22026
+    },
+    {
+      "path": "test-fixtures/framework-helper.py",
+      "sha256": "809db9f03e14fc2b5b36ff4a292e2be22714dbe66084c958cd47c553b1060d81",
+      "bytes": 2674
+    },
+    {
+      "path": "test-fixtures/framework-helper.cs",
+      "sha256": "f3aa106820427ae7252bfb8f9a55337eff61fc2b1b451c6dba96cca2b1a91f4d",
+      "bytes": 4231
+    },
+    {
+      "path": "docs/protocol-fixtures/control-inventory-response.json",
+      "sha256": "e9be1f95e9aa1646a0ed9f70d8a905a35cdaf01362709c4e603320a43d3d4349",
+      "bytes": 1918
+    },
+    {
+      "path": "docs/protocol-fixtures/voice-choice-tuning.json",
+      "sha256": "bc39cf9b269343d46084c2eff9e93621e579f983ef4e99c7bd69760a5bb1028d",
+      "bytes": 22056
+    }
+  ],
+  "measurement": "Functional assertions only; helper request capture and server lifecycle events with null output. No acoustic or timing samples.",
+  "deadlines": "Python monotonic clocks; test wall durations in logs are not speech latency measurements.",
+  "limitations": "Fixture tone is not native speech qualification. No macOS run, listening, physical sound measurements or native long-running stress. Temporary per-request traces are removed by the successful harness."
+}

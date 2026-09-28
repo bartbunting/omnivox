@@ -5,6 +5,8 @@
   second pass over useful host settings. Implementation and qualification remain
   separate from acceptance.
 - Extends: [Engine registration](0008-extensible-engine-registration.md).
+- Extended by: [Saved speech defaults and reset](0010-saved-speech-defaults.md),
+  including the private startup schema-3 extension.
 - Related: [Progressive audio and markers](0003-progressive-audio-and-markers.md),
   [worker ownership](0004-workstation-service-and-worker-ownership.md).
 
