@@ -53,6 +53,9 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-09-28 Omnivox 1.15.0 publication](2026-09-28-1.15-publication.md)
+  records all 64 passing release jobs, the Windows ARM64 timeout and successful
+  retry, and the exact public asset set and checksums.
 - [2026-09-28 Omnivox 1.15.0 candidate](2026-09-28-1.15-candidate.md)
   combines the streaming onset fix and punctuation configuration/editor checks.
 - [2026-09-28 streaming onset fix](2026-09-28-streaming-onset-fix.md)
