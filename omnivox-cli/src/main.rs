@@ -250,6 +250,7 @@ fn main() -> Result<()> {
 
     let mut state = TtsState {
         max_chunk_words: created_engines.speech.max_chunk_words,
+        capital_pitch: Arc::new(created_engines.speech.capital_pitch.clone()),
         ..TtsState::from_speech_defaults(Arc::new(created_engines.speech.defaults))
     };
     apply_audio_target_env(&mut state);

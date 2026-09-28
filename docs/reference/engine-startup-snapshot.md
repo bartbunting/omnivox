@@ -21,9 +21,10 @@ configuration retains its separate no-null rule.
 
 | Field | Value |
 | --- | --- |
-| `schema` | Integer `3` for newly prepared records; historical `1` and `2` remain readable. |
-| `speech` | Required in schemas 2 and 3: object containing required integer `max_chunk_words` from 1 through 100. Unknown fields and null fail. Absent in schema 1, which means the historical fixed 15 words. |
-| `speech_defaults` | Required non-null object in schema 3, absent in schemas 1 and 2. Every [saved-default member](engine-configuration.md#saved-speech-defaults) is required, with the same validated ranges. `voice` is required but nullable: null retains the historical default selection. |
+| `schema` | Integer `4` for newly prepared records; historical `1`–`3` remain readable. |
+| `speech` | Required in schemas 2–4: object containing required integer `max_chunk_words` from 1 through 100. Unknown fields and null fail. Absent in schema 1, which means the historical fixed 15 words. |
+| `speech_defaults` | Required non-null object in schemas 3–4, absent in schemas 1 and 2. Every [saved-default member](engine-configuration.md#saved-speech-defaults) is required, with the same validated ranges. `voice` is required but nullable: null retains the historical default selection. |
+| `capital_pitch` | Required non-null object in schema 4, absent in earlier schemas. Both `default` and `engines` are required, with the [public value and registered-ID rules](engine-configuration.md#capital-letter-pitch). Earlier schemas imply the historical fixed cue. |
 | `platform` | Native Rust OS name, exactly matching the recipient. |
 | `activation_id` | Canonical lowercase UUID, freshly generated for a prepared activation and retained by clones/recovery. |
 | `registrations` | Complete registration records, including all reserved shipped IDs and at most 32 external IDs. Duplicate IDs fail. |
@@ -40,11 +41,11 @@ Paths use this representation too. Non-Unicode legacy arguments and environment
 values survive without lossy conversion; external-manifest inputs retain their
 UTF-8 requirements. No shell interpretation occurs.
 
-Schema-1 and schema-2 records retain their original schema and field shape when
-serialized again. Schema 1 cannot carry `speech`; neither historical schema can
+Historical schemas 1–3 retain their original schema and field shape when
+serialized again. Schema 1 cannot carry `speech`; schemas 1 and 2 cannot
 carry `speech_defaults`. Both imply the old built-in speech defaults. This permits
 retained owners to restart the older executable whose identity they pin. New
-preparations always emit schema 3, including all resolved defaults when public
+preparations always emit schema 4, including all resolved defaults when public
 configuration omits settings. The two workers and every recovery attempt consume
 the same resolved values without consulting changed files. This private schema increment
 does not change the public `engine_configuration_version: 1` acknowledgement.

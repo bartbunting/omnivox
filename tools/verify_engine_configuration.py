@@ -58,7 +58,7 @@ def main():
         manifests = configuration / "helpers.d"
         manifests.mkdir(parents=True)
         (configuration / "config.json").write_text(json.dumps(dict(
-            schema=2, speech=dict(max_chunk_words=3, defaults=dict(
+            schema=2, speech=dict(max_chunk_words=3, capital_pitch=dict(default=1.4, engines={"org.fixture":1.8}), defaults=dict(
                 voice="saved", rate=0.7, pitch=1.1, voice_volume=0.6,
                 punctuation="none", split_caps=False, character_scale=1.4)),
             engine_overrides={name: dict(enabled=False) for name in SHIPPED},
@@ -156,6 +156,7 @@ def main():
         assert activation == prepared["activation_id"] == initial["activation_id"]
         assert retained["engines"]["speech"] == dict(max_chunk_words=3)
         assert retained["engines"]["speech_defaults"]["voice"] == "saved"
+        assert retained["engines"]["capital_pitch"] == dict(default=1.4, engines={"org.fixture":1.8})
         assert "engine_configuration_v1" in first.request("capabilities", control=True)["features"]
         first_ack = first.request("engine_configuration_status_v1", control=True)
         assert first_ack["activation_id"] == activation
@@ -188,7 +189,7 @@ def main():
         assert result.get("status") == "completed", result
         assert result["last_started"]["realized"] == dict(engine_id="org.fixture", voice_id="voice"), result
         assert synthesis_texts()[before:] == expected_chunks
-        def speak(peer, identifier, text, voice="saved", rate=0.7, pitch=1.1, commands=""):
+        def speak(peer, identifier, text, voice="saved", rate=0.7, pitch=1.1, commands="", letter_pitch=None):
             before = len(syntheses())
             peer.process.stdin.write((commands + f"q {text}\nemacsvox_marker_dispatch {identifier}\n").encode())
             peer.process.stdin.flush()
@@ -207,15 +208,19 @@ def main():
                     assert started
                     break
             requests = syntheses()[before:]
+            if letter_pitch is not None:
+                assert requests[0]["text"] == "a", requests
+                assert_settings(requests[:1], voice, rate * 1.4, letter_pitch)
+                requests = requests[1:]
             assert_settings(requests, voice, rate, pitch)
             return [request["text"] for request in requests]
 
         assert speak(first, 9901, preview["text"]) == expected_chunks
         assert speak(first, 9902, preview["text"], voice="voice", rate=0.2, pitch=1.6,
                      commands="tts_set_voice voice\ntts_set_speech_rate 20\ntts_set_pitch_multiplier 1.6\n") == expected_chunks
-        assert speak(first, 9903, preview["text"], commands="tts_reset\n") == expected_chunks
+        assert speak(first, 9903, preview["text"], commands="tts_reset\nl A\n", letter_pitch=1.8) == expected_chunks
         assert speak(first, 9904, "CamelCase!") == ["CamelCase!"]
-        print("Saved speech defaults, client overrides, reset, text preparation and configured chunks passed", flush=True)
+        print("Saved speech defaults, capital pitch, client overrides, reset, text preparation and configured chunks passed", flush=True)
 
         # Mutate every discovery input before starting the other worker. The
         # retained executable/argv/environment must still reach the real helper.
@@ -232,8 +237,8 @@ def main():
         second_ack = second.request("engine_configuration_status_v1", control=True)
         assert second_ack["activation_id"] == recovered["activation_id"] == activation
         assert copied["engines"] == retained["engines"]
-        assert speak(second, 9905, preview["text"]) == expected_chunks
-        assert speak(first, 9906, preview["text"], commands="tts_set_speech_rate 20\ntts_reset\n") == expected_chunks
+        assert speak(second, 9905, preview["text"], commands="l A\n", letter_pitch=1.8) == expected_chunks
+        assert speak(first, 9906, preview["text"], commands="tts_set_speech_rate 20\ntts_reset\nl A\n", letter_pitch=1.8) == expected_chunks
         before = len(synthesis_texts())
         assert second.request("preview_voice_v2", control=True, **preview)["status"] == "completed"
         assert synthesis_texts()[before:] == expected_chunks
@@ -258,7 +263,7 @@ def main():
                                         OMNIVOX_OWNED_STARTUP_SHA256=initial["startup_sha256"]))
         assert not restart["retired"] and restart["startup_error"] is None, restart
         assert restart["activation_id"] == activation
-        assert speak(restarted, 9907, preview["text"], commands="tts_reset\n") == expected_chunks
+        assert speak(restarted, 9907, preview["text"], commands="tts_reset\nl A\n", letter_pitch=1.8) == expected_chunks
         before = len(synthesis_texts())
         assert restarted.request("preview_voice_v2", control=True, **preview)["status"] == "completed"
         assert synthesis_texts()[before:] == expected_chunks

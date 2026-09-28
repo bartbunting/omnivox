@@ -61,7 +61,7 @@ impl LaunchSnapshot {
             }
         }
         let snapshot = Self {
-            schema: 3,
+            schema: 4,
             activation_id: crate::voice_library::local::new_uuid()
                 .map_err(|_| invalid("could not create activation identity"))?,
             resolved,
@@ -136,6 +136,12 @@ struct SnapshotWire {
         skip_serializing_if = "Option::is_none"
     )]
     speech_defaults: Option<SpeechDefaults>,
+    #[serde(
+        default,
+        deserialize_with = "present_capital_pitch",
+        skip_serializing_if = "Option::is_none"
+    )]
+    capital_pitch: Option<CapitalPitchSettings>,
     platform: String,
     activation_id: String,
     registrations: Vec<RegistrationWire>,
@@ -169,6 +175,14 @@ fn present_defaults<'de, D: Deserializer<'de>>(
     let defaults = SpeechDefaults::deserialize(deserializer)?;
     defaults.validate().map_err(serde::de::Error::custom)?;
     Ok(Some(defaults))
+}
+
+fn present_capital_pitch<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<CapitalPitchSettings>, D::Error> {
+    let settings = CapitalPitchSettings::deserialize(deserializer)?;
+    validate_capital_pitch(&settings).map_err(serde::de::Error::custom)?;
+    Ok(Some(settings))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -227,6 +241,7 @@ impl From<&LaunchSnapshot> for SnapshotWire {
                 max_chunk_words: resolved.speech.max_chunk_words,
             }),
             speech_defaults: (snapshot.schema >= 3).then(|| resolved.speech.defaults.clone()),
+            capital_pitch: (snapshot.schema >= 4).then(|| resolved.speech.capital_pitch.clone()),
             platform: std::env::consts::OS.into(),
             activation_id: snapshot.activation_id.clone(),
             registrations: resolved
@@ -292,17 +307,23 @@ impl From<&LaunchSnapshot> for SnapshotWire {
 
 impl SnapshotWire {
     fn restore(self) -> Result<LaunchSnapshot> {
-        let speech = match (self.schema, self.speech, self.speech_defaults) {
+        let mut speech = match (self.schema, self.speech, self.speech_defaults) {
             (1, None, None) => SpeechConfiguration::default(),
             (2, Some(speech), None) => SpeechConfiguration {
                 max_chunk_words: speech.max_chunk_words,
                 ..SpeechConfiguration::default()
             },
-            (3, Some(speech), Some(defaults)) => SpeechConfiguration {
+            (3 | 4, Some(speech), Some(defaults)) => SpeechConfiguration {
                 max_chunk_words: speech.max_chunk_words,
                 defaults,
+                ..SpeechConfiguration::default()
             },
             _ => return Err(invalid("unsupported or incomplete launch snapshot schema")),
+        };
+        speech.capital_pitch = match (self.schema, self.capital_pitch) {
+            (1..=3, None) => CapitalPitchSettings::default(),
+            (4, Some(settings)) => settings,
+            _ => return Err(invalid("unsupported or incomplete capital pitch settings")),
         };
         require(
             self.platform == std::env::consts::OS,
@@ -345,6 +366,14 @@ impl SnapshotWire {
                 .iter()
                 .all(|entry| registrations.contains_key(entry.id)),
             "incomplete shipped registration set",
+        )?;
+        require(
+            speech
+                .capital_pitch
+                .engines
+                .keys()
+                .all(|id| registrations.contains_key(id)),
+            "capital pitch engine is not registered",
         )?;
         let managed = self.managed.map(ManagedWire::restore).transpose()?;
         if let Some(managed) = &managed {

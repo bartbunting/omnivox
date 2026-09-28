@@ -619,6 +619,7 @@ fn diagnostic_state(
             .unwrap_or_default()
             .to_owned(),
         max_chunk_words: speech.max_chunk_words,
+        capital_pitch: Arc::new(speech.capital_pitch.clone()),
         ..TtsState::from_speech_defaults(Arc::new(speech.defaults.clone()))
     };
     apply_cli_flags(cli, &mut state);

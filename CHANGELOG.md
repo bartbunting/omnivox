@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Configure the capital-letter pitch cue globally or per engine, including an
+  off option that preserves ordinary pitch. Fallback uses the actual engine's
+  setting; the existing absolute `1.5` cue remains the default.
+
 - Save voice, rate, pitch, volumes, punctuation, CamelCase splitting and character
   speed in `speech.defaults`. Speech reset restores those saved values; client
   commands can override them again. Both lanes and recovery retain the same

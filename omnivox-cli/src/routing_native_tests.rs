@@ -713,6 +713,7 @@ fn older_sinks_and_styles_cannot_discard_native_settings_or_evidence() {
         settings: &settings,
         acss: None,
         effects: None,
+        capital_pitch: None,
     };
     assert!(matches!(
         execute(&engines, &mut routing, &legacy, &mut sink, None),

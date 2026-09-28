@@ -903,6 +903,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
     anchors: &[RequestedAnchor],
     settings: &TtsSettings,
     requested_acss: Option<&NormalizedAcss>,
+    capital_pitch: Option<&omnivox_core::settings::CapitalPitchSettings>,
     route: &mut LogicalRoute,
     routing: &mut LogicalVoiceRoutingSnapshot,
     engine_registry: &EngineRegistry,
@@ -919,6 +920,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
             settings,
             acss: requested_acss,
             effects: None,
+            capital_pitch,
         },
         route,
         routing,
@@ -1738,6 +1740,9 @@ fn record_runtime_failure(
 
 #[cfg(test)]
 mod tests {
+    mod capital_pitch_tests {
+        include!("capital_pitch_tests.rs");
+    }
     mod choice_tests {
         include!("routing_choice_tests.rs");
         mod native_tests {
@@ -2484,6 +2489,7 @@ mod tests {
             &[],
             &TtsSettings::default(),
             None,
+            None,
             &mut route,
             &mut routes,
             &engines,
@@ -2543,6 +2549,7 @@ mod tests {
             &anchors,
             &TtsSettings::default(),
             None,
+            None,
             &mut route,
             &mut routes,
             &engines,
@@ -2588,6 +2595,7 @@ mod tests {
             "hello",
             &anchors,
             &TtsSettings::default(),
+            None,
             None,
             &mut route,
             &mut routes,
@@ -2665,6 +2673,7 @@ mod tests {
                 &[],
                 &TtsSettings::default(),
                 None,
+                None,
                 &mut route,
                 &mut routes,
                 &engines,
@@ -2692,6 +2701,7 @@ mod tests {
                 "fresh speech",
                 &[],
                 &TtsSettings::default(),
+                None,
                 None,
                 &mut route,
                 &mut routes,
@@ -2744,6 +2754,7 @@ mod tests {
             "hello",
             &[],
             &TtsSettings::default(),
+            None,
             None,
             &mut route,
             &mut routes,

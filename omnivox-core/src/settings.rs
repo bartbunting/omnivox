@@ -1,8 +1,75 @@
 //! Validated host preferences shared by configuration and speech preparation.
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::state::PunctuationLevel;
+
+/// Absolute host pitch for an isolated capital, or no special pitch cue.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "CapitalPitchWire", into = "CapitalPitchWire")]
+pub enum CapitalPitch {
+    Off,
+    Value(f32),
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum CapitalPitchWire {
+    Number(f32),
+    Text(String),
+}
+
+impl TryFrom<CapitalPitchWire> for CapitalPitch {
+    type Error = &'static str;
+    fn try_from(value: CapitalPitchWire) -> Result<Self, Self::Error> {
+        match value {
+            CapitalPitchWire::Number(value)
+                if value.is_finite() && (0.5..=2.0).contains(&value) =>
+            {
+                Ok(Self::Value(value))
+            }
+            CapitalPitchWire::Text(value) if value == "off" => Ok(Self::Off),
+            _ => Err("capital pitch must be a number from 0.5 through 2.0 or off"),
+        }
+    }
+}
+
+impl From<CapitalPitch> for CapitalPitchWire {
+    fn from(value: CapitalPitch) -> Self {
+        match value {
+            CapitalPitch::Off => Self::Text("off".into()),
+            CapitalPitch::Value(value) => Self::Number(value),
+        }
+    }
+}
+
+/// Complete immutable cue policy. Public input may omit either member; private
+/// startup records require both. Engine references are validated by the host.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CapitalPitchSettings {
+    pub default: CapitalPitch,
+    pub engines: BTreeMap<String, CapitalPitch>,
+}
+
+impl Default for CapitalPitchSettings {
+    fn default() -> Self {
+        Self {
+            default: CapitalPitch::Value(1.5),
+            engines: BTreeMap::new(),
+        }
+    }
+}
+
+impl CapitalPitchSettings {
+    pub fn pitch_for(&self, engine_id: &str, ordinary_pitch: f32) -> f32 {
+        match self.engines.get(engine_id).unwrap_or(&self.default) {
+            CapitalPitch::Off => ordinary_pitch,
+            CapitalPitch::Value(value) => *value,
+        }
+    }
+}
 
 /// Complete saved speech defaults. Public configuration fills omitted members;
 /// private startup records must carry every member, including nullable voice.

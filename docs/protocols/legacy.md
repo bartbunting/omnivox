@@ -90,7 +90,7 @@ is used.
 |---|---|---|
 | `s` | none | Hard stop: advance the generation, stop all audio streams and registered engines, cancel older queued synthesis, and clear the pending batch. |
 | `tts_say` | text | Interrupt older speech and speak one string immediately. Tone and sound streams are not stopped. |
-| `l` | text | Interrupt older speech and speak the supplied letter/text using character-rate and capitalization handling. |
+| `l` | text | Interrupt older speech and speak the supplied letter/text using character-rate handling and the [saved capital-pitch policy](../reference/engine-configuration.md#capital-letter-pitch). |
 | `p` | path | Play a WAV or OGG file immediately on the sound stream without dispatching or clearing the pending batch. |
 | `version` | none | Speak the Omnivox version; it is not printed as a legacy response. |
 | `tts_exit` | none | Exit the process successfully. |

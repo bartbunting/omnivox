@@ -15,7 +15,7 @@ mod status;
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use omnivox_core::settings::{ChunkWordLimit, SpeechDefaults};
+use omnivox_core::settings::{CapitalPitchSettings, ChunkWordLimit, SpeechDefaults};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 use thiserror::Error;
@@ -145,6 +145,7 @@ pub struct Configuration {
 pub struct SpeechConfiguration {
     pub max_chunk_words: ChunkWordLimit,
     pub defaults: SpeechDefaults,
+    pub capital_pitch: CapitalPitchSettings,
 }
 
 impl SpeechConfiguration {
@@ -156,12 +157,44 @@ impl SpeechConfiguration {
             .map(parse_speech_defaults)
             .transpose()?
             .unwrap_or_default();
+        let capital_pitch = object
+            .take("capital_pitch")
+            .map(parse_capital_pitch)
+            .transpose()?
+            .unwrap_or_default();
         object.finish()?;
         Ok(Self {
             max_chunk_words,
             defaults,
+            capital_pitch,
         })
     }
+}
+
+fn parse_capital_pitch(value: Value) -> Result<CapitalPitchSettings> {
+    let mut object = Object::new(value, "speech.capital_pitch")?;
+    let result = CapitalPitchSettings {
+        default: object
+            .optional("default")?
+            .unwrap_or(CapitalPitchSettings::default().default),
+        engines: object.optional("engines")?.unwrap_or_default(),
+    };
+    object.finish()?;
+    validate_capital_pitch(&result)?;
+    Ok(result)
+}
+
+fn validate_capital_pitch(settings: &CapitalPitchSettings) -> Result<()> {
+    if settings.engines.len() > MAX_ENGINE_IDS {
+        return Err(ConfigurationError::new(
+            "speech.capital_pitch.engines",
+            "too many entries",
+        ));
+    }
+    for id in settings.engines.keys() {
+        validate_reference(id, "speech.capital_pitch.engines")?;
+    }
+    Ok(())
 }
 
 fn parse_speech_defaults(value: Value) -> Result<SpeechDefaults> {
@@ -249,6 +282,14 @@ impl Configuration {
     /// Resolve references only after conflicts and whole-set failures are known.
     /// Managed invocation ownership is validated by the launch resolver.
     pub fn validate_overrides(&self, external_ids: &BTreeSet<String>) -> Result<()> {
+        for id in self.speech.capital_pitch.engines.keys() {
+            if shipped::definition(id).is_none() && !external_ids.contains(id) {
+                return Err(ConfigurationError::new(
+                    "speech.capital_pitch.engines",
+                    "override requires a valid registered engine",
+                ));
+            }
+        }
         for (id, value) in &self.engine_overrides {
             match shipped::definition(id) {
                 Some(definition) if definition.in_process && value.has_launch_fields() => {

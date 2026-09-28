@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::settings::{ChunkWordLimit, SpeechDefaults};
+use crate::settings::{CapitalPitchSettings, ChunkWordLimit, SpeechDefaults};
 use serde::{Deserialize, Serialize};
 
 /// Punctuation reading level
@@ -130,6 +130,8 @@ pub struct TtsState {
     pub speech_defaults: Arc<SpeechDefaults>,
     /// Host-owned startup preference, retained by client resets.
     pub max_chunk_words: ChunkWordLimit,
+    /// Host cue policy, selected again for each actual engine attempt.
+    pub capital_pitch: Arc<CapitalPitchSettings>,
     // Voice settings
     pub current_voice: String,
     pub pitch_multiplier: f32,
@@ -169,6 +171,7 @@ impl TtsState {
     pub fn from_speech_defaults(defaults: Arc<SpeechDefaults>) -> Self {
         Self {
             max_chunk_words: ChunkWordLimit::default(),
+            capital_pitch: Arc::new(CapitalPitchSettings::default()),
             current_voice: defaults.voice.clone().unwrap_or_else(|| "en-US".into()),
             pitch_multiplier: defaults.pitch,
             speech_rate: defaults.rate,
@@ -200,6 +203,7 @@ impl TtsState {
     pub fn reset(&mut self) {
         *self = Self {
             max_chunk_words: self.max_chunk_words,
+            capital_pitch: Arc::clone(&self.capital_pitch),
             ..Self::from_speech_defaults(Arc::clone(&self.speech_defaults))
         };
     }
@@ -304,6 +308,13 @@ mod tests {
         });
         let mut state = TtsState::from_speech_defaults(Arc::clone(&defaults));
         state.max_chunk_words = ChunkWordLimit::try_from(30).unwrap();
+        state.capital_pitch = Arc::new(CapitalPitchSettings {
+            default: crate::settings::CapitalPitch::Off,
+            engines: std::collections::BTreeMap::from([(
+                "custom".into(),
+                crate::settings::CapitalPitch::Value(1.8),
+            )]),
+        });
         // Admitted requests retain their own state when later commands change it.
         let admitted = state.clone();
         for _ in 0..2 {
@@ -341,6 +352,19 @@ mod tests {
             );
             assert_eq!(state.max_chunk_words.get(), 30);
             assert!(Arc::ptr_eq(&state.speech_defaults, &defaults));
+            assert!(Arc::ptr_eq(&state.capital_pitch, &admitted.capital_pitch));
+            assert_eq!(
+                state
+                    .capital_pitch
+                    .pitch_for("custom", state.pitch_multiplier),
+                1.8
+            );
+            assert_eq!(
+                state
+                    .capital_pitch
+                    .pitch_for("other", state.pitch_multiplier),
+                1.3
+            );
         }
         assert_eq!(admitted.current_voice, "saved voice");
         assert_eq!(admitted.speech_rate, 0.75);

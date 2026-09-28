@@ -131,6 +131,7 @@ fn historical_snapshots_keep_fifteen_words_and_their_old_wire_shape() {
     old["schema"] = json!(1);
     old.as_object_mut().unwrap().remove("speech");
     old.as_object_mut().unwrap().remove("speech_defaults");
+    old.as_object_mut().unwrap().remove("capital_pitch");
     let decoded = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert_eq!(decoded.resolved().speech.max_chunk_words.get(), 15);
     assert_eq!(serde_json::to_value(&decoded).unwrap(), old);
@@ -169,6 +170,7 @@ fn saved_defaults_are_complete_and_old_chunk_snapshots_keep_their_wire_shape() {
     let mut old = wire;
     old["schema"] = json!(2);
     old.as_object_mut().unwrap().remove("speech_defaults");
+    old.as_object_mut().unwrap().remove("capital_pitch");
     old["speech"]["max_chunk_words"] = json!(30);
     let decoded = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
     assert_eq!(
@@ -236,7 +238,7 @@ fn parsing_rejects_duplicate_keys_unknown_fields_and_outer_bounds() {
     trailing.extend_from_slice(b" {}");
     assert!(LaunchSnapshot::parse(&trailing).is_err());
     reject_mutation(&snapshot, |value| value["extra"] = json!(true));
-    reject_mutation(&snapshot, |value| value["schema"] = json!(4));
+    reject_mutation(&snapshot, |value| value["schema"] = json!(5));
     reject_mutation(&snapshot, |value| {
         value["platform"] = json!("another native platform")
     });
@@ -443,4 +445,45 @@ fn native_non_unicode_environment_and_legacy_arguments_survive_handoff() {
             .arguments,
         vec![native]
     );
+}
+
+#[test]
+fn capital_pitch_is_frozen_and_schema_three_retains_its_old_shape() {
+    use omnivox_core::settings::CapitalPitch;
+    let mut resolved = resolved(None);
+    resolved.speech.capital_pitch.default = CapitalPitch::Off;
+    resolved
+        .speech
+        .capital_pitch
+        .engines
+        .insert("org.fixture".into(), CapitalPitch::Value(1.7));
+    let snapshot = LaunchSnapshot::prepare(resolved, None, "".into(), false).unwrap();
+    let restored = LaunchSnapshot::parse(&snapshot.to_bytes().unwrap()).unwrap();
+    assert_eq!(restored.resolved().speech, snapshot.resolved().speech);
+    for value in [
+        json!(null),
+        json!({}),
+        json!({"default":1.5}),
+        json!({"engines":{}}),
+        json!({"default":0,"engines":{}}),
+        json!({"default":1.5,"engines":{"unregistered":1.5}}),
+        json!({"default":1.5,"engines":{},"extra":true}),
+    ] {
+        reject_mutation(&snapshot, |wire| wire["capital_pitch"] = value);
+    }
+    reject_mutation(&snapshot, |wire| {
+        wire.as_object_mut().unwrap().remove("capital_pitch");
+    });
+    for schema in 1..=3 {
+        reject_mutation(&snapshot, |wire| wire["schema"] = json!(schema));
+    }
+    let mut old = serde_json::to_value(snapshot).unwrap();
+    old["schema"] = json!(3);
+    old.as_object_mut().unwrap().remove("capital_pitch");
+    let restored = LaunchSnapshot::parse(&serde_json::to_vec(&old).unwrap()).unwrap();
+    assert_eq!(
+        restored.resolved().speech.capital_pitch,
+        CapitalPitchSettings::default()
+    );
+    assert_eq!(serde_json::to_value(restored).unwrap(), old);
 }

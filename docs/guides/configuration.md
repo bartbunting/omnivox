@@ -164,6 +164,33 @@ them again. Editing the file alone does not change active or recovering workers.
 Omitted settings retain their built-in values. Audio output settings remain
 separate; this does not add an Emacs settings screen.
 
+### Adjust the capital-letter cue
+
+When reviewing characters, Omnivox normally speaks capitals at pitch `1.5`.
+You can save another value and make exceptions for particular engines:
+
+```json
+{
+  "schema": 2,
+  "speech": {
+    "capital_pitch": {
+      "default": 1.5,
+      "engines": { "espeak": 1.3, "piper": "off" }
+    }
+  }
+}
+```
+
+These are illustrative values. Numbers from `0.5` to `2.0` set the capital's
+pitch directly; they do not multiply your ordinary pitch. Use `"off"` to keep
+ordinary pitch for capitals too. An engine without an override uses `default`.
+User-added engines can have overrides under their registered IDs.
+
+Keep this alongside existing settings in the same file, then restart speech.
+Reset and recovery retain it. This controls character navigation; capitalization
+announcements and tones within words or sentences keep their separate controls.
+See the [exact rules](../reference/engine-configuration.md#capital-letter-pitch).
+
 ### Add your own speech engine
 
 Omnivox 1.13 adds registration for independently installed helpers. You need a

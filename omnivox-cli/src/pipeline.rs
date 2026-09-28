@@ -2246,6 +2246,7 @@ fn synthesize_routed_chunk(
             &settings,
             requested_acss,
             requested_effects,
+            None,
             state,
             is_last_speech,
             final_timeline_window,
@@ -2346,6 +2347,7 @@ fn synthesize_routed_chunk_progressively(
     settings: &TtsSettings,
     requested_acss: Option<&NormalizedAcss>,
     requested_effects: Option<&PostSynthesisStyle>,
+    capital_pitch: Option<&omnivox_core::settings::CapitalPitchSettings>,
     state: &TtsState,
     is_last_speech: bool,
     final_timeline_window: bool,
@@ -2399,6 +2401,7 @@ fn synthesize_routed_chunk_progressively(
         anchors,
         settings,
         requested_acss,
+        capital_pitch,
         route,
         routing,
         engine_registry,
@@ -2510,15 +2513,11 @@ fn initial_legacy_route(
     }
 }
 
-const ISOLATED_CAPITAL_PITCH_MULTIPLIER: f32 = 1.5;
-
-fn prepare_isolated_letter(text: &str, state: &mut TtsState) -> String {
-    if text.chars().next().is_some_and(char::is_uppercase) {
-        // Preserve the established character-review cue independently of the
-        // Aural presentation selected for capitalization in words and lines.
-        state.pitch_multiplier = ISOLATED_CAPITAL_PITCH_MULTIPLIER;
-    }
-    text.chars().flat_map(char::to_lowercase).collect()
+fn prepare_isolated_letter(text: &str) -> (String, bool) {
+    (
+        text.chars().flat_map(char::to_lowercase).collect(),
+        text.chars().next().is_some_and(char::is_uppercase),
+    )
 }
 
 /// Speak one character through the same runtime fallback path as queued speech.
@@ -2539,19 +2538,29 @@ pub fn process_letter(
     }
     state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
     state.speech_rate = state.character_rate();
-    let letter = prepare_isolated_letter(text, &mut state);
+    let (letter, uppercase) = prepare_isolated_letter(text);
+    let capital_pitch = uppercase.then_some(state.capital_pitch.as_ref());
+    let settings = TtsSettings {
+        voice: state.current_voice.clone(),
+        rate: state.speech_rate,
+        pitch: state.pitch_multiplier,
+        volume: 1.0,
+    };
     let status = if let Some(mut content_route) =
         initial_legacy_route(&state, ctx, &mut routing, engine_registry)
     {
-        match synthesize_routed_chunk(
+        match synthesize_routed_chunk_progressively(
             &letter,
             &[],
-            &[],
+            &settings,
             None,
             None,
+            capital_pitch,
             &state,
             true,
             true,
+            &[],
+            &[],
             &mut content_route,
             &mut routing,
             engine_registry,
@@ -2564,12 +2573,10 @@ pub fn process_letter(
             RoutedChunkOutcome::Failed | RoutedChunkOutcome::Exhausted => BatchStatus::Failed,
         }
     } else {
-        let settings = TtsSettings {
-            voice: state.current_voice.clone(),
-            rate: state.speech_rate,
-            pitch: state.pitch_multiplier,
-            volume: 1.0,
-        };
+        let mut settings = settings;
+        if let Some(capitals) = capital_pitch {
+            settings.pitch = capitals.pitch_for(&ctx.engine.descriptor().id, settings.pitch);
+        }
         if synthesize_chunk_with_tones(&letter, &[], &settings, &state, true, true, ctx) {
             BatchStatus::Completed
         } else {
@@ -3339,6 +3346,7 @@ fn process_prepared_timeline(
                             settings: &settings,
                             acss: requested_acss,
                             effects: active_effects.as_ref(),
+                            capital_pitch: None,
                         }
                     }
                     PreparedTimelineStyle::EngineLayered { context, placement } => {
@@ -4192,7 +4200,6 @@ pub fn process_batch(
 mod tests {
     use super::*;
     use omnivox_audio::{AudioBackend, AudioStreams, PlaybackStatus};
-    use omnivox_core::state::CapitalizationPresentation;
 
     struct PipelineTestEngine;
 
@@ -4827,24 +4834,13 @@ mod tests {
     }
 
     #[test]
-    fn isolated_capital_uses_pitch_without_presentation_actions() {
-        let mut state = TtsState::default();
-        for presentation in [
-            CapitalizationPresentation::None,
-            CapitalizationPresentation::Spoken,
-            CapitalizationPresentation::Tone,
-            CapitalizationPresentation::SpokenTone,
-            CapitalizationPresentation::Custom,
-        ] {
-            state.capitalization_presentation = presentation;
-            state.pitch_multiplier = 0.8;
-            assert_eq!(prepare_isolated_letter("A", &mut state), "a");
-            assert_eq!(state.pitch_multiplier, ISOLATED_CAPITAL_PITCH_MULTIPLIER);
-        }
-
-        state.pitch_multiplier = 0.8;
-        assert_eq!(prepare_isolated_letter("a", &mut state), "a");
-        assert_eq!(state.pitch_multiplier, 0.8);
+    fn isolated_letter_preparation_retains_unicode_and_capital_detection() {
+        assert_eq!(prepare_isolated_letter("A"), ("a".into(), true));
+        assert_eq!(prepare_isolated_letter("a"), ("a".into(), false));
+        assert_eq!(prepare_isolated_letter("Č"), ("č".into(), true));
+        assert_eq!(prepare_isolated_letter("İ"), ("i\u{307}".into(), true));
+        assert_eq!(prepare_isolated_letter("7"), ("7".into(), false));
+        assert_eq!(prepare_isolated_letter(""), ("".into(), false));
     }
 
     #[test]

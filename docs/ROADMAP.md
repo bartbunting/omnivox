@@ -225,6 +225,8 @@ Keep the word-limit default at 15; native listening and matched comparisons acro
 remain necessary before recommending a different default.
 Reset restores the saved speech baseline under
 [ADR 0010](adr/0010-saved-speech-defaults.md); client commands can override it again.
+The [capital-letter cue](reference/engine-configuration.md#capital-letter-pitch)
+also supports a global pitch, engine overrides and an off option.
 
 The second configuration pass identified these useful next steps:
 
@@ -232,9 +234,6 @@ The second configuration pass identified these useful next steps:
   channel target and existing PulseAudio latency preference in the host file.
   Preserve command-line and launcher overrides, including independent lane
   channels. Named devices remain the separate audio-device feature above.
-- **Isolated-capital pitch cue:** consider exposing its fixed multiplier when
-  character presentation next changes; keep semantic capitalization actions
-  separate and test ordinary letter navigation.
 - **Per-helper environment:** extend the existing registration backlog when a
   helper needs separate runtime settings; preserve private values and immutable
   recovery rather than adding another discovery path.

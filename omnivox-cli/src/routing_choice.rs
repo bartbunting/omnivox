@@ -13,6 +13,7 @@ pub(crate) enum AttemptStyle<'a> {
         settings: &'a TtsSettings,
         acss: Option<&'a NormalizedAcss>,
         effects: Option<&'a PostSynthesisStyle>,
+        capital_pitch: Option<&'a omnivox_core::settings::CapitalPitchSettings>,
     },
     Layered {
         context: &'a VoiceStylePatch,
@@ -98,6 +99,7 @@ impl AttemptStyle<'_> {
                 settings,
                 acss,
                 effects,
+                ..
             } => (
                 (*settings).clone(),
                 acss.map_or_else(
@@ -193,6 +195,13 @@ impl AttemptStyle<'_> {
         };
         settings.voice = route.realized.voice_id.clone();
         apply_normalized_acss(&mut settings, &acss.style);
+        if let Self::Legacy {
+            capital_pitch: Some(capitals),
+            ..
+        } = self
+        {
+            settings.pitch = capitals.pitch_for(&route.realized.engine_id, settings.pitch);
+        }
         let prepared = PreparedVoiceAttempt {
             kind: match self {
                 Self::EngineLayered { .. } => VoiceAttemptKind::EngineLayered,

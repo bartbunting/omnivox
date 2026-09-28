@@ -911,3 +911,80 @@ fn redirected_windows_root_is_supported_but_manifest_junctions_are_rejected() {
         .to_string()
         .contains("helper directory must be an ordinary directory"));
 }
+
+#[test]
+fn capital_pitch_is_sparse_bounded_and_requires_registered_engine_ids() {
+    use omnivox_core::settings::CapitalPitch;
+    let config = parse_config(&json!({"schema":2,"speech":{"capital_pitch":{
+        "default":1.4,"engines":{"espeak":"off","org.fixture":1.8}
+    }}}))
+    .unwrap();
+    assert_eq!(config.speech.capital_pitch.pitch_for("winrt", 0.8), 1.4);
+    assert_eq!(config.speech.capital_pitch.pitch_for("espeak", 0.8), 0.8);
+    assert_eq!(
+        config.speech.capital_pitch.pitch_for("org.fixture", 0.8),
+        1.8
+    );
+    assert!(config.validate_overrides(&BTreeSet::new()).is_err());
+    config
+        .validate_overrides(&BTreeSet::from(["org.fixture".into()]))
+        .unwrap();
+    for value in [json!(0.5), json!(2), json!("off")] {
+        parse_config(&json!({"schema":2,"speech":{"capital_pitch":{"default":value}}})).unwrap();
+    }
+    assert_eq!(
+        parse_config(&json!({"schema":2,"speech":{"capital_pitch":{}}}))
+            .unwrap()
+            .speech
+            .capital_pitch
+            .default,
+        CapitalPitch::Value(1.5)
+    );
+    for value in [
+        json!(null),
+        json!(false),
+        json!(true),
+        json!(0),
+        json!(0.49),
+        json!(2.01),
+        json!(1e100),
+        json!("1.5"),
+        json!("OFF"),
+        json!({}),
+        json!([]),
+    ] {
+        for field in ["default", "engine"] {
+            let cue = if field == "default" {
+                json!({"default":value})
+            } else {
+                json!({"engines":{"espeak":value}})
+            };
+            assert!(
+                parse_config(&json!({"schema":2,"speech":{"capital_pitch":cue}})).is_err(),
+                "{field}: {value}"
+            );
+        }
+    }
+    for cue in [
+        json!(null),
+        json!({"extra":1}),
+        json!({"engines":null}),
+        json!({"engines":{"native":1.5}}),
+        json!({"engines":{"bad id":1.5}}),
+    ] {
+        assert!(parse_config(&json!({"schema":2,"speech":{"capital_pitch":cue}})).is_err());
+    }
+    let engines: BTreeMap<_, _> = (0..=MAX_ENGINE_IDS)
+        .map(|n| (format!("engine{n}"), 1.5))
+        .collect();
+    assert!(
+        parse_config(&json!({"schema":2,"speech":{"capital_pitch":{"engines":engines}}})).is_err()
+    );
+    for bytes in [
+        br#"{"schema":2,"speech":{"capital_pitch":{"default":1.4,"default":1.5}}}"#.as_slice(),
+        br#"{"schema":2,"speech":{"capital_pitch":{"engines":{"espeak":1.4,"espeak":"off"}}}}"#,
+        br#"{"schema":1,"speech":{"capital_pitch":{"default":1.5}}}"#,
+    ] {
+        assert!(Configuration::parse(bytes, Platform::native()).is_err());
+    }
+}

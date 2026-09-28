@@ -178,6 +178,43 @@ apply server punctuation/CamelCase preparation or character-rate scaling.
 Exact diagnostic engine selection and private preview voice choices retain their
 existing rules; defaults cannot authorize an excluded engine or invent a voice.
 
+### Capital-letter pitch
+
+Version 2 accepts an optional `speech.capital_pitch` object:
+
+```json
+{
+  "schema": 2,
+  "speech": {
+    "capital_pitch": {
+      "default": 1.5,
+      "engines": { "espeak": 1.3, "piper": "off" }
+    }
+  }
+}
+```
+
+Both members are optional: `default` is `1.5` when omitted, and `engines`
+defaults to an empty map. Each value must be a finite JSON number in
+`0.5`–`2.0` or the exact string `"off"`. Null, booleans, numeric strings,
+unknown fields and duplicate keys fail. At most 64 engine entries are accepted;
+keys must be canonical shipped IDs or valid external registrations. Missing or
+conflicting external registrations cannot be referenced. Disabled or unavailable
+registered engines may retain their preferences without becoming eligible.
+
+Only the legacy `l` command uses this policy, when its input begins with a
+Unicode uppercase character. The established lowercase conversion remains.
+Each actual engine attempt uses its override or the global default, including
+fallback before audio commitment. A number replaces ordinary host pitch; it is
+not multiplied by the current pitch. `"off"` preserves ordinary pitch, whereas
+`1.0` explicitly selects host pitch `1.0`. Engines retain their native pitch
+support and bounds; these values do not promise equal acoustic changes.
+
+Ordinary speech, exact WAV diagnostics, previews and word/sentence capitalization
+actions do not receive this isolated-letter cue. Both lanes, reset and recovery
+retain the complete captured policy; applying file edits requires a deliberate
+restart. See [ADR 0011](../adr/0011-capital-pitch-preferences.md).
+
 ## Configuration version 1
 
 Version 1 implements registration and the existing engine-routing controls,
