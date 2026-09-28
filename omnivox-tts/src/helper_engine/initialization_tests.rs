@@ -133,12 +133,17 @@ fn initialization_watchdog_bounds_hello_and_descriptor_writes_and_reads() {
             .unwrap();
             let engine = Arc::new(engine);
             let started = Instant::now();
-            assert!(matches!(
-                initialize_for_test(&engine, started + Duration::from_millis(100)),
-                Err(HelperEngineError::Timeout("external startup budget"))
-            ));
-            assert!(started.elapsed() < Duration::from_secs(2));
+            let result = initialize_for_test(&engine, started + Duration::from_millis(100));
+            let elapsed = started.elapsed();
             join_initialization_for_test(&engine);
+            assert!(
+                matches!(
+                    result,
+                    Err(HelperEngineError::Timeout("external startup budget"))
+                ),
+                "describe={describe} block_write={block_write}: {result:?} after {elapsed:?}"
+            );
+            assert!(elapsed < Duration::from_secs(2));
             assert!(peer.inner.terminated.load(Ordering::Acquire));
             assert!(engine.current_connection().is_err());
             assert!(engine.retiring_connection.lock().unwrap().is_none());

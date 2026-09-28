@@ -2811,14 +2811,14 @@ mod tests {
                 if now >= deadline {
                     return Err(HelperEngineError::Timeout("mock response"));
                 }
-                let (waiting, result) = self
+                // Windows may report a timed-out wait just before the Instant
+                // deadline. Recheck the clock, as the real connection does,
+                // rather than ending the exchange early with a mock timeout.
+                responses = self
                     .response_ready
                     .wait_timeout(responses, deadline.saturating_duration_since(now))
-                    .unwrap();
-                responses = waiting;
-                if result.timed_out() && responses.is_empty() {
-                    return Err(HelperEngineError::Timeout("mock response"));
-                }
+                    .unwrap()
+                    .0;
             }
         }
 
