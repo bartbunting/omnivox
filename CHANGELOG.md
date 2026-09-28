@@ -17,6 +17,8 @@ Versioning for published releases.
 
 ### Fixed
 
+- Reject special files used as audio resources so a named pipe cannot stall
+  audio loading and later speech.
 - Reject non-finite numeric settings before they can produce invalid audio.
 - Limit requested silences to 15 seconds, preventing oversized silence commands
   from exhausting the speech process's memory.

@@ -13,6 +13,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import wave
 
 from verify_release import read_wav
 
@@ -43,11 +44,11 @@ class InputValidationTests(unittest.TestCase):
             if not key.startswith(("OMNIVOX_", "EMACSVOX_LOCAL_"))
         }
 
-    def run_omnivox(self, *arguments, input=None, **options):
+    def run_omnivox(self, *arguments, input=None, timeout=15, **options):
         return subprocess.run(
             [PROGRAM, "--config-dir", native_path(self.root), "--engine", "espeak",
              "--audio-output", "null", *arguments],
-            input=input, text=True, capture_output=True, timeout=15,
+            input=input, text=True, capture_output=True, timeout=timeout,
             env=self.environment, **options)
 
     def test_oversized_silence_is_rejected_and_later_speech_completes(self):
@@ -75,6 +76,38 @@ class InputValidationTests(unittest.TestCase):
             "--voice-volume", "0.5", "--dump-wav", "en", native_path(output), "Valid audio.")
         self.assertEqual(result.returncode, 0, result.stderr)
         read_wav(output, canonical=True)
+
+    def test_directory_is_rejected_as_audio(self):
+        result = self.run_omnivox("--play-wav", native_path(self.root), timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not a regular audio file", result.stderr)
+
+    def test_ordinary_audio_file_still_loads(self):
+        audio = self.root / "ordinary.wav"
+        with wave.open(str(audio), "wb") as output:
+            output.setparams((1, 2, 44100, 0, "NONE", "not compressed"))
+            output.writeframes(b"\x00\x10" * 4410)
+        result = self.run_omnivox("--play-wav", native_path(audio))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        if os.name == "posix" and not WINDOWS:
+            link = self.root / "linked.wav"
+            link.symlink_to(audio)
+            result = self.run_omnivox("--play-wav", str(link))
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipUnless(os.name == "posix" and not WINDOWS, "POSIX named pipes")
+    def test_named_pipe_cannot_block_diagnostics_or_later_speech(self):
+        pipe = self.root / "unwritten.wav"
+        os.mkfifo(pipe)
+        result = self.run_omnivox("--play-wav", str(pipe), timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not a regular audio file", result.stderr)
+        result = self.run_omnivox(input=(
+            f'a {json.dumps(str(pipe))}\nemacsvox_tracked_dispatch 43\n'
+            "q Speech after the invalid icon.\nemacsvox_tracked_dispatch 44\n"), timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("__EMACSVOX_TRACKED__ 43 failed", result.stdout)
+        self.assertIn("__EMACSVOX_TRACKED__ 44 completed", result.stdout)
 
     @unittest.skipUnless(os.name == "posix" and not WINDOWS, "POSIX memory limit")
     def test_huge_silence_cannot_exhaust_process_memory(self):

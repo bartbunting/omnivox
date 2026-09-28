@@ -64,6 +64,8 @@ is expanded. A double-quoted Tcl word may encode spaces and the supported
 escapes `\\`, `\"`, `\$`, `\[`, `\n`, `\r`, `\t`, and `\uNNNN`. A brace-delimited
 argument has already had its outer braces removed and is otherwise literal.
 Audio resources are limited to 16 MiB encoded and 30 seconds decoded.
+They must be regular files; directories, named pipes and devices are rejected.
+Local symbolic links to regular files remain supported.
 
 ### Inline codes
 
