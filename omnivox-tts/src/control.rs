@@ -514,6 +514,7 @@ pub fn process_control_request_with_parameters(
                         "presentation_timeline_v3".to_owned(),
                         "presentation_timeline_v4".to_owned(),
                         "presentation_timeline_v5".to_owned(),
+                        "palette_letter_v1".to_owned(),
                         "voice_choice_tuning_v1".to_owned(),
                         "presentation_tone_v1".to_owned(),
                         "post_synthesis_effects_v1".to_owned(),

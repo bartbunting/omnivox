@@ -158,6 +158,7 @@ contracts:
 | `emacsvox_tracked_dispatch` | [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md) |
 | `emacsvox_marker_dispatch` | [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md) |
 | `emacsvox_tone` | [CONTROL-PROTOCOL.md](CONTROL-PROTOCOL.md) |
+| `emacsvox_letter` | [PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md#palette-aware-isolated-characters) |
 | `emacsvox_timeline` | [PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md) |
 | `emacsvox_timeline_part` | [PRESENTATION-TIMELINE-PROTOCOL.md](PRESENTATION-TIMELINE-PROTOCOL.md) |
 

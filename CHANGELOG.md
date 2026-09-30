@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Negotiated palette-aware isolated character speech, preserving character
+  speed, uppercase pitch and interruption while applying registered voice
+  choices, fallback tuning, native parameters and playback receipts.
+
 - Managed RHVoice voice and language data through the existing local catalogue,
   native validation, Enable/Apply and resumable uninstall services. Downloads
   start disabled and preserve externally installed voices and runtimes. Resource

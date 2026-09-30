@@ -112,6 +112,15 @@ fn run_mixed(
     engines: &EngineRegistry,
     routing: LogicalVoiceRoutingSnapshot,
 ) -> (BatchStatus, Vec<MarkerEventEnvelope>) {
+    run_mixed_mode(timeline, engines, routing, false)
+}
+
+fn run_mixed_mode(
+    timeline: PresentationTimelineV4,
+    engines: &EngineRegistry,
+    routing: LogicalVoiceRoutingSnapshot,
+    letter: bool,
+) -> (BatchStatus, Vec<MarkerEventEnvelope>) {
     let streams = AudioStreams::new_with_backend(8, 8, 8, AudioBackend::Null).unwrap();
     let control = streams.control();
     let engine = engines.engine(&engines.inventory()[0].id).unwrap();
@@ -128,7 +137,7 @@ fn run_mixed(
         crate::marker_events::spawn_marker_event_reporter_with_writer(capture.clone());
     let dispatch = MarkerDispatchContext::with_voice_choice_events(timeline.dispatch_id, output);
     let ctx = SynthCtx {
-        letter_navigation: false,
+        letter_navigation: letter,
         gen: 1,
         gen_counter: &generation,
         cancellation: None,
@@ -149,6 +158,7 @@ fn run_mixed(
         timeline,
         TtsState {
             speech_rate: 0.65,
+            character_scale: 0.5,
             current_voice: "one".to_owned(),
             ..Default::default()
         },
@@ -168,6 +178,50 @@ fn run_mixed(
         .map(|line| decode_marker_event(line.split_whitespace().last().unwrap()).unwrap())
         .collect();
     (status, events)
+}
+
+#[test]
+fn palette_letter_preserves_actual_fallback_tuning_rate_pitch_and_receipts() {
+    for behavior in [Behavior::Buffered, Behavior::Stream] {
+        let first = PreviewEngine::new("first", "one", Behavior::FailBeforeAudio);
+        let second = PreviewEngine::new("second", "two", behavior);
+        let mut engines = EngineRegistry::new();
+        engines.register(first.clone()).unwrap();
+        engines.register(second.clone()).unwrap();
+        let registry = registry(&engines, definition());
+        let mut lower_pitch = 0.0;
+        for (text, expected) in [("q", "q"), ("Q", "q"), ("İ", "i\u{307}"), ("7", "7")] {
+            let mut document = timeline();
+            document.spans = vec![layered(1, VoiceStylePatch::default())];
+            let MixedSpeechSpan::Layered(span) = &mut document.spans[0] else {
+                unreachable!()
+            };
+            span.text = text.into();
+            assert!(validate_palette_letter(&document.clone().into()).is_ok());
+            let (status, events) = run_mixed_mode(
+                document,
+                &engines,
+                LogicalVoiceRoutingSnapshot::capture(&registry, &engines),
+                true,
+            );
+            assert_eq!(status, BatchStatus::Completed);
+            let requests = second.requests.lock().unwrap();
+            let request = requests.last().unwrap();
+            assert_eq!(request.text, expected);
+            assert_eq!(request.settings.voice, "two");
+            assert_eq!(request.normalized_acss.richness, Some(0.3));
+            // 0.65 * 0.5 character base, then the fallback's -1 point offset.
+            assert!((request.settings.rate - 0.315).abs() < 0.0001);
+            if text == "q" {
+                lower_pitch = request.settings.pitch;
+            }
+            if text == "Q" {
+                assert!((request.settings.pitch - lower_pitch * 1.5).abs() < 0.0001);
+            }
+            assert!(events.iter().any(|event| matches!(&event.event,
+                MarkerEvent::VoiceChoiceApplied(receipt) if receipt.choice.choice_id.as_deref() == Some("fallback"))));
+        }
+    }
 }
 
 #[test]

@@ -37,6 +37,28 @@ mod native_timeline_playback {
         Vec<MarkerEventEnvelope>,
         Arc<NativePlanReferences>,
     ) {
+        run_mode(engines, routing, None)
+    }
+    fn run_mode(
+        engines: &EngineRegistry,
+        routing: LogicalVoiceRoutingSnapshot,
+        letter: Option<&str>,
+    ) -> (
+        BatchStatus,
+        Vec<MarkerEventEnvelope>,
+        Arc<NativePlanReferences>,
+    ) {
+        let mut document = timeline().into_execution();
+        if let Some(text) = letter {
+            document.spans.truncate(1);
+            let omnivox_tts::timeline_v4::MixedSpeechSpan::EngineLayered(span) =
+                &mut document.spans[0]
+            else {
+                unreachable!()
+            };
+            span.text = text.into();
+            document.actions.clear();
+        }
         let streams = AudioStreams::new_with_backend(8, 8, 8, AudioBackend::Null).unwrap();
         let control = streams.control();
         let engine = engines.engine(&engines.inventory()[0].id).unwrap();
@@ -54,7 +76,7 @@ mod native_timeline_playback {
         let plans = Arc::new(NativePlanReferences::default());
         let dispatch = MarkerDispatchContext::with_native_events(91, output, plans.clone());
         let ctx = SynthCtx {
-            letter_navigation: false,
+            letter_navigation: letter.is_some(),
             gen: 1,
             gen_counter: &generation,
             cancellation: Some(&cancellation),
@@ -72,7 +94,7 @@ mod native_timeline_playback {
             batch_failed: Some(&failed),
         };
         let mut status = crate::pipeline::process_presentation_timeline_v4(
-            timeline().into_execution(),
+            document,
             TtsState {
                 speech_rate: 0.65,
                 current_voice: "Paul".into(),
@@ -98,6 +120,60 @@ mod native_timeline_playback {
             .map(|line| decode_marker_event(line.split_whitespace().last().unwrap()).unwrap())
             .collect();
         (status, events, plans)
+    }
+    #[test]
+    fn palette_letter_native_fallback_keeps_parameters_and_capital_cue() {
+        for stream in [false, true] {
+            let first = NativeEngine::new(
+                "dectalk",
+                "Paul",
+                false,
+                Some(MockFailure::Synthesis),
+                ReceiptBehavior::Good,
+            );
+            let second =
+                NativeEngine::new("eloquence", "Reed", stream, None, ReceiptBehavior::Good);
+            let mut engines = EngineRegistry::new();
+            engines.register(first).unwrap();
+            engines.register(second.clone()).unwrap();
+            for text in ["q", "Q"] {
+                let routing =
+                    snapshot(&engines, native_definition()).with_parameter_catalogues(vec![
+                        Arc::new(metadata("dectalk", "Paul")),
+                        Arc::new(metadata("eloquence", "Reed")),
+                    ]);
+                let (status, events, plans) = run_mode(&engines, routing, Some(text));
+                assert_eq!(status, BatchStatus::Completed);
+                let receipt = events
+                    .iter()
+                    .find_map(|e| match &e.event {
+                        MarkerEvent::VoiceChoiceApplied(c) => Some(c),
+                        _ => None,
+                    })
+                    .unwrap();
+                assert_eq!(
+                    receipt.choice.realized,
+                    PhysicalVoiceId::new("eloquence", "Reed")
+                );
+                let application = receipt
+                    .native_application
+                    .as_ref()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap();
+                assert_eq!(application.status, ApplicationStatus::Applied);
+                assert!(plans
+                    .lookup(application.plan_id.as_ref().unwrap(), &engines)
+                    .is_some());
+            }
+            let calls = second.native_calls.lock().unwrap();
+            assert_eq!(calls.len(), 2);
+            assert_eq!(calls[0].0.text, "q");
+            assert_eq!(calls[1].0.text, "q");
+            assert!((calls[1].0.settings.pitch - calls[0].0.settings.pitch * 1.5).abs() < 0.0001);
+            assert_eq!(calls[0].1.native.parameters, calls[1].1.native.parameters);
+            assert!(!calls[0].1.native.parameters.is_empty());
+        }
     }
     #[test]
     fn native_timeline_fallback_reports_consumed_choice_for_every_playback_mode() {

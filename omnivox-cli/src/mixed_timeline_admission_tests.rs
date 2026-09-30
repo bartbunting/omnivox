@@ -9,6 +9,67 @@ fn command(timeline: &PresentationTimelineV4) -> Command {
     )
 }
 
+#[test]
+fn palette_letter_rejects_invalid_or_stale_input_before_interruption() {
+    let engines = EngineRegistry::new();
+    let voices = registry(&engines, definition());
+    let mut generations = PresentationGenerations::default();
+    let mut document = timeline();
+    document.spans = vec![layered(1, VoiceStylePatch::default())];
+    let MixedSpeechSpan::Layered(span) = &mut document.spans[0] else {
+        unreachable!()
+    };
+    span.text = "Q".into();
+    let read = |document: &PresentationTimelineV4, generations: &PresentationGenerations| {
+        let mut input = command(document);
+        input.id = CommandId::EmacsvoxLetter;
+        validate_structured_admission(
+            prepare_structured_presentation(generations, &input),
+            &TtsState::default(),
+            &voices,
+        )
+    };
+    assert!(matches!(
+        read(&document, &generations),
+        StructuredSubmissionRead::Prepared(PreparedStructuredPresentation { letter: true, .. })
+    ));
+    for bad in 0..6 {
+        let mut invalid = document.clone();
+        match bad {
+            0 => invalid.spans.push(layered(2, VoiceStylePatch::default())),
+            1 => invalid.registry_generation += 1,
+            2 => invalid.delivery_policy = PresentationDeliveryPolicy::Urgent,
+            3 => invalid.spans[0] = legacy(1, PresentationEffectDirective::Retain),
+            4 | 5 => {
+                let MixedSpeechSpan::Layered(span) = &mut invalid.spans[0] else {
+                    unreachable!()
+                };
+                span.text = if bad == 4 { "two letters" } else { " " }.into();
+            }
+            _ => unreachable!(),
+        }
+        assert!(
+            matches!(
+                read(&invalid, &generations),
+                StructuredSubmissionRead::Rejected(_)
+            ),
+            "case {bad}"
+        );
+        assert!(matches!(
+            read(&document, &generations),
+            StructuredSubmissionRead::Prepared(_)
+        ));
+    }
+    generations.commit(document.generation);
+    assert!(matches!(
+        read(&document, &generations),
+        StructuredSubmissionRead::Rejected(RejectedStructuredSubmission {
+            status: BatchStatus::Cancelled,
+            ..
+        })
+    ));
+}
+
 fn parts(timeline: &PresentationTimelineV4) -> Vec<String> {
     let encoded = encode_timeline_v4(timeline, true).unwrap();
     let padding = encoded.bytes().rev().take_while(|b| *b == b'=').count();
@@ -187,6 +248,7 @@ fn mixed_queue_and_active_replacement_domains_keep_v3_separate() {
     assert!(!old_lease.token().is_cancelled());
     let (sender, receiver) = synthesis_channel();
     let make_request = |timeline| SynthRequest::Timeline {
+        letter: false,
         timeline,
         state: TtsState::default(),
         logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(&voices, &engines),

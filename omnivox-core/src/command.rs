@@ -74,6 +74,7 @@ pub enum CommandId {
     OmnivoxControl,                   // omnivox_control - versioned Base64-JSON control request
     EmacsvoxTx,                       // emacsvox_tx - replaceable Base64 presentation transaction
     EmacsvoxTimeline,                 // emacsvox_timeline - structured Base64-JSON presentation
+    EmacsvoxLetter,                   // emacsvox_letter - palette-aware isolated character
     EmacsvoxTimelinePart, // emacsvox_timeline_part - one bounded V3/V4 transport fragment
     EmacsvoxTone,         // emacsvox_tone - versioned presentation-clock tone
     EmacsvoxTrackedDispatch, // emacsvox_tracked_dispatch - dispatch with terminal playback status
@@ -121,6 +122,7 @@ impl CommandId {
             "omnivox_control" => Some(Self::OmnivoxControl),
             "emacsvox_tx" => Some(Self::EmacsvoxTx),
             "emacsvox_timeline" => Some(Self::EmacsvoxTimeline),
+            "emacsvox_letter" => Some(Self::EmacsvoxLetter),
             "emacsvox_timeline_part" => Some(Self::EmacsvoxTimelinePart),
             "emacsvox_tone" => Some(Self::EmacsvoxTone),
             "emacsvox_tracked_dispatch" => Some(Self::EmacsvoxTrackedDispatch),

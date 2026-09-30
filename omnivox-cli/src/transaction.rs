@@ -25,6 +25,7 @@ pub struct PreparedPresentation {
 pub struct PreparedStructuredPresentation {
     pub generation: u64,
     pub timeline: TimelineDocument,
+    pub letter: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -200,6 +201,7 @@ impl PresentationGenerations {
             });
         }
         Ok(PreparedStructuredPresentation {
+            letter: false,
             generation: timeline.generation(),
             timeline,
         })
@@ -213,6 +215,7 @@ impl PresentationGenerations {
             return Ok(None);
         }
         Ok(Some(PreparedStructuredPresentation {
+            letter: false,
             generation: timeline.generation(),
             timeline,
         }))
@@ -346,6 +349,7 @@ fn validate_command(command: &Command) -> Result<(), String> {
         | CommandId::OmnivoxControl
         | CommandId::EmacsvoxTx
         | CommandId::EmacsvoxTimeline
+        | CommandId::EmacsvoxLetter
         | CommandId::EmacsvoxTimelinePart
         | CommandId::EmacsvoxTrackedDispatch
         | CommandId::EmacsvoxMarkerDispatch

@@ -737,9 +737,11 @@ no-longer-registered route degrades to the preferred legacy engine and voice
 instead of dropping speech. Hard stop and reset requests cancel playback and
 request cancellation from every registered engine.
 
-Logical voice IDs still apply to queued `q`/`c` speech only. Immediate
-`tts_say` and `l` commands use the runtime global engine order but do not select
-a logical voice. For a queued logical route, a runtime `VoiceNotFound` excludes
+Logical voice IDs apply to queued `q`/`c` speech, structured timelines, and
+the capability-gated `emacsvox_letter` command described in the
+[presentation protocol](PRESENTATION-TIMELINE-PROTOCOL.md#palette-aware-isolated-characters).
+Legacy immediate `tts_say` and `l` commands use the runtime global engine order
+but do not select a logical voice. For a queued logical route, a runtime `VoiceNotFound` excludes
 that physical voice and an unavailable
 or failed synthesis call excludes that engine from the dispatched batch's
 inventory snapshot. Omnivox then re-runs the registered definition and fallback

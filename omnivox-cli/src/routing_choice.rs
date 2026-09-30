@@ -9,6 +9,12 @@ use omnivox_tts::voice_choices::VoiceStylePatch;
 
 /// A span's immutable input. Layered context never lives on mutable routing state.
 pub(crate) enum AttemptStyle<'a> {
+    /// Preserve isolated-character pitch after composing the actual palette
+    /// choice. This wrapper is rebuilt on fallback and never changes a registry.
+    Character {
+        base: &'a AttemptStyle<'a>,
+        pitch: f32,
+    },
     Legacy {
         settings: &'a TtsSettings,
         acss: Option<&'a NormalizedAcss>,
@@ -70,7 +76,10 @@ impl PreparedVoiceAttempt {
 
 impl AttemptStyle<'_> {
     pub(crate) fn is_native(&self) -> bool {
-        matches!(self, Self::EngineLayered { .. })
+        match self {
+            Self::Character { base, .. } => base.is_native(),
+            _ => matches!(self, Self::EngineLayered { .. }),
+        }
     }
 
     pub(crate) fn validate_definition(
@@ -91,9 +100,15 @@ impl AttemptStyle<'_> {
         route: &LogicalRoute,
         descriptor: &EngineDescriptor,
     ) -> Result<PreparedVoiceAttempt, String> {
+        if let Self::Character { base, pitch } = self {
+            let mut attempt = base.prepare(routing, route, descriptor)?;
+            attempt.settings.pitch *= pitch;
+            return Ok(attempt);
+        }
         self.validate_definition(routing, &route.logical_voice_id)?;
         let mut native = NativeChoiceExecution::NotRequested;
         let (mut settings, acss, effects, choice_index, choice_id) = match self {
+            Self::Character { .. } => unreachable!(),
             Self::Legacy {
                 settings,
                 acss,
@@ -195,6 +210,7 @@ impl AttemptStyle<'_> {
         apply_normalized_acss(&mut settings, &acss.style);
         let prepared = PreparedVoiceAttempt {
             kind: match self {
+                Self::Character { .. } => unreachable!(),
                 Self::EngineLayered { .. } => VoiceAttemptKind::EngineLayered,
                 Self::Layered { .. } => VoiceAttemptKind::Layered,
                 Self::Legacy { .. } => VoiceAttemptKind::Legacy,

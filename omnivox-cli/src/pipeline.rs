@@ -3143,6 +3143,15 @@ pub(crate) fn process_presentation_timeline_v4(
         return BatchStatus::Failed;
     }
     state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
+    let letter = if ctx.letter_navigation {
+        state.speech_rate = state.character_rate();
+        Some(prepare_isolated_letter(
+            timeline.spans[0].text(),
+            &mut state,
+        ))
+    } else {
+        None
+    };
     let cancelled = || ctx.is_stale();
     let prepare = || -> Result<Vec<PreparedTimelineSpan>, TimelinePreparationError> {
         let resources = prepare_timeline_resources(&timeline.actions, &state, loader, &cancelled)?;
@@ -3151,7 +3160,7 @@ pub(crate) fn process_presentation_timeline_v4(
         for span in &timeline.spans {
             check_timeline_preparation_cancelled(&cancelled)?;
             let span_actions = actions.get(&span.id()).map_or(&[][..], Vec::as_slice);
-            let prepared = match span {
+            let mut prepared = match span {
                 MixedSpeechSpan::Legacy(span) => {
                     prepare_timeline_span(span, span_actions, &state, &resources, &cancelled)?
                 }
@@ -3182,6 +3191,17 @@ pub(crate) fn process_presentation_timeline_v4(
                     &cancelled,
                 )?,
             };
+            if let Some(text) = &letter {
+                // Isolated characters bypass punctuation, word splitting and
+                // prose capitalization; the character cue and rate are above.
+                prepared.chunks = vec![PreparedSpeechChunk {
+                    text: text.clone(),
+                    capitalization_tones: Vec::new(),
+                    source_start: 0,
+                    source_end: text.len() as u32,
+                }];
+                prepared.actions = vec![Vec::new()];
+            }
             for chunk in &prepared.chunks {
                 omnivox_tts::marker_protocol::preflight_v3_utterance_text(
                     timeline.dispatch_id,
@@ -3352,11 +3372,19 @@ fn process_prepared_timeline(
                         }
                     }
                 };
+                let character_style = crate::routing::choice::AttemptStyle::Character {
+                    base: &style,
+                    pitch: state.pitch_multiplier,
+                };
                 let status = synthesize_prepared_chunk(
                     &chunk.text,
                     &chunk.capitalization_tones,
                     &actions,
-                    &style,
+                    if ctx.letter_navigation {
+                        &character_style
+                    } else {
+                        &style
+                    },
                     state,
                     final_window,
                     final_window,

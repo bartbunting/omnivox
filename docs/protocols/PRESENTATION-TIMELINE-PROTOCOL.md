@@ -53,6 +53,38 @@ reports `failed`; a stop between parts reports `cancelled`. A complete
 aggregate whose generation is already stale also reports `cancelled`. Each
 case retires the declared generation.
 
+## Palette-aware isolated characters
+
+A server advertising `palette_letter_v1` accepts:
+
+```text
+emacsvox_letter {BASE64_UTF8_JSON}
+```
+
+The payload is a single direct-frame version 4 or 5 envelope using the same
+registered voice, generation, dispatch and marker contracts as ordinary
+layered timelines. It requires exactly one `layered` or `engine_layered` span
+(the latter requires version 5), containing one Unicode scalar other than
+whitespace or a control character. Delivery must be `ordered`, with no
+replacement key and no actions. Multipart transport and legacy spans are not
+accepted. Clients also negotiate the complete layered/native capability
+bundle required by their chosen envelope.
+
+The server validates the envelope and registry before interrupting older
+speech. It leaves tones and sounds running, then snapshots routing for the
+character. Each actual choice, including a fallback, composes its shared,
+choice and context tuning over the character-rate base. Native parameters and
+playback-bound voice receipts use the ordinary layered contracts. It does not
+change the global voice or registry.
+
+Like legacy `l`, this path lowercases the input (including Unicode lowercase
+expansions), uses the isolated-character uppercase pitch multiplier, bypasses
+prose punctuation and capitalization transforms, and retains the short
+streaming startup reserve. Source case is retained in the submitted envelope.
+Invalid input is rejected before interruption; stale generations are cancelled.
+Older servers continue to receive legacy `l` and cannot apply a palette voice
+to that command.
+
 ## Envelope
 
 Version 3 has the same semantic fields introduced by version 2 and this shape:

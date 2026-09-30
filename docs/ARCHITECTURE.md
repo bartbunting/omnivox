@@ -223,8 +223,12 @@ repertoire, and bounded runtime failures can re-resolve the identical chunk.
 Retries are capped. Persistent failure opens an engine circuit; cooldown and a
 single recovery probe keep repeated requests on healthy fallbacks.
 
-Immediate speech and letter commands have no logical-voice ID. They still use
-the current global engine policy and runtime health snapshot.
+Legacy immediate speech (`tts_say`) and letter (`l`) commands have no
+logical-voice ID and use the global engine policy and runtime health snapshot.
+Negotiated `emacsvox_letter` instead snapshots a registered palette voice and
+uses layered routing, native parameters and playback receipts while preserving
+isolated-character interruption, pronunciation and streaming reserve. See the
+[presentation protocol](protocols/PRESENTATION-TIMELINE-PROTOCOL.md#palette-aware-isolated-characters).
 
 Normalized speech rate is translated by a monotonic engine-specific curve
 before native synthesis. The measured curves target the established Eloquence

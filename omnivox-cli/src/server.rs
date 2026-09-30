@@ -224,6 +224,7 @@ pub enum SynthRequest {
     /// Render one atomic structured presentation with versioned marker tracking.
     Timeline {
         timeline: TimelineDocument,
+        letter: bool,
         state: TtsState,
         logical_voice_routing: LogicalVoiceRoutingSnapshot,
         cancellation: Option<KeyedCancellationLease>,
@@ -1315,6 +1316,7 @@ pub(crate) fn synthesis_worker(
 
             SynthRequest::Timeline {
                 timeline,
+                letter,
                 state,
                 mut logical_voice_routing,
                 cancellation,
@@ -1350,7 +1352,7 @@ pub(crate) fn synthesis_worker(
                 }
                 .with_lifecycle(request_lifecycle.clone());
                 let ctx = SynthCtx {
-                    letter_navigation: false,
+                    letter_navigation: letter,
                     gen,
                     gen_counter: &gen_counter,
                     cancellation: cancellation.as_ref().map(KeyedCancellationLease::token),
@@ -1901,6 +1903,40 @@ pub(crate) fn run_server(
                 &routing_policy.policy().disabled_engine_ids,
             )
         {
+            continue;
+        }
+
+        if command.id == CommandId::EmacsvoxLetter {
+            let read = prepare_structured_presentation(&presentation_generations, &command);
+            match validate_structured_admission(read, &state, &logical_voices) {
+                StructuredSubmissionRead::Prepared(presentation) => {
+                    interrupt(
+                        &mut current_gen,
+                        &gen_counter,
+                        &control,
+                        &engine_registry,
+                        true,
+                        false,
+                    );
+                    cancel_queued_synthesis_before(&tx, current_gen);
+                    execute_structured_presentation(
+                        presentation,
+                        &mut presentation_generations,
+                        &state,
+                        current_gen,
+                        None,
+                        &engine_registry,
+                        &routing_policy,
+                        &logical_voices,
+                        &parameter_queries,
+                        &tx,
+                    );
+                }
+                StructuredSubmissionRead::Rejected(rejection) => {
+                    report_rejected_structured_submission(&rejection)
+                }
+                _ => (),
+            }
             continue;
         }
 
@@ -2505,6 +2541,41 @@ fn read_structured_submission_with_timeout(
     }
 }
 
+/// The new command reuses strict V4/V5 voice and tracking fields, but never
+/// accepts a prose transaction, multipart payload, or an implicit legacy voice.
+fn validate_palette_letter(timeline: &TimelineDocument) -> Result<(), String> {
+    let valid = match timeline {
+        TimelineDocument::Layered(t) => {
+            t.spans.len() == 1
+                && t.actions.is_empty()
+                && matches!(t.spans[0], MixedSpeechSpan::Layered(_))
+        }
+        TimelineDocument::Native(t) => {
+            t.spans.len() == 1
+                && t.actions.is_empty()
+                && matches!(
+                    t.spans[0],
+                    omnivox_tts::timeline_v5::NativeSpeechSpan::Layered(_)
+                        | omnivox_tts::timeline_v5::NativeSpeechSpan::EngineLayered(_)
+                )
+        }
+        _ => false,
+    };
+    let mut chars = timeline.span_text(0).unwrap_or("").chars();
+    if valid
+        && timeline.effective_delivery_policy() == PresentationDeliveryPolicy::Ordered
+        && timeline.replacement_key().is_none()
+        && chars
+            .next()
+            .is_some_and(|c| !c.is_control() && !c.is_whitespace())
+        && chars.next().is_none()
+    {
+        Ok(())
+    } else {
+        Err("palette letter requires one visible Unicode scalar in one layered span, ordered delivery and no actions".into())
+    }
+}
+
 fn validate_structured_admission(
     read: StructuredSubmissionRead,
     state: &TtsState,
@@ -2513,7 +2584,12 @@ fn validate_structured_admission(
     let StructuredSubmissionRead::Prepared(presentation) = read else {
         return read;
     };
-    let validation = match &presentation.timeline {
+    let validation = if presentation.letter {
+        validate_palette_letter(&presentation.timeline)
+    } else {
+        Ok(())
+    }
+    .and_then(|_| match &presentation.timeline {
         TimelineDocument::Legacy(timeline) => {
             if timeline.spans.iter().any(|span| {
                 span.logical_voice_id
@@ -2540,7 +2616,7 @@ fn validate_structured_admission(
             .and_then(|_| {
                 crate::pipeline::validate_presentation_timeline_v4_action_windows(timeline, state)
             }),
-    };
+    });
     match validation {
         Ok(()) => StructuredSubmissionRead::Prepared(presentation),
         Err(error) => {
@@ -2590,7 +2666,10 @@ fn prepare_structured_presentation(
     command: &Command,
 ) -> StructuredSubmissionRead {
     match generations.prepare_timeline(command.args.as_deref().unwrap_or("")) {
-        Ok(presentation) => StructuredSubmissionRead::Prepared(presentation),
+        Ok(mut presentation) => {
+            presentation.letter = command.id == CommandId::EmacsvoxLetter;
+            StructuredSubmissionRead::Prepared(presentation)
+        }
         Err(rejection) => {
             match rejection.kind {
                 StructuredTimelineRejectionKind::Stale => {
@@ -2651,6 +2730,7 @@ fn execute_structured_presentation(
         tx,
         SynthRequest::Timeline {
             timeline: presentation.timeline,
+            letter: presentation.letter,
             state: state.clone(),
             logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
                 logical_voices,
@@ -3569,7 +3649,9 @@ fn handle_command(
             warn!("Nested Emacsvox presentation transaction was ignored");
         }
 
-        CommandId::EmacsvoxTimeline | CommandId::EmacsvoxTimelinePart => {
+        CommandId::EmacsvoxTimeline
+        | CommandId::EmacsvoxTimelinePart
+        | CommandId::EmacsvoxLetter => {
             warn!("Structured Emacsvox timeline is not available in legacy command batches");
         }
 
@@ -3762,6 +3844,7 @@ mod tests {
         for version in [1, 2, 3] {
             legacy.protocol_version = version;
             let read = StructuredSubmissionRead::Prepared(PreparedStructuredPresentation {
+                letter: false,
                 generation: 7,
                 timeline: legacy.clone().into(),
             });
@@ -4014,6 +4097,7 @@ mod tests {
     fn timeline_diagnostics_separate_protocol_generation_from_stop_epoch() {
         let engines = EngineRegistry::new();
         let request = SynthRequest::Timeline {
+            letter: false,
             timeline: timeline_envelope(
                 27,
                 91,
@@ -4124,6 +4208,7 @@ mod tests {
         let engines = EngineRegistry::new();
         SynthRequest::Timeline {
             timeline: timeline_envelope(generation, dispatch_id, policy, replacement_key).into(),
+            letter: false,
             state: TtsState::default(),
             logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
                 &LogicalVoiceRegistry::default(),
@@ -4308,6 +4393,7 @@ mod tests {
             &sender,
             SynthRequest::Timeline {
                 timeline: active_timeline,
+                letter: false,
                 state: TtsState::default(),
                 logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
                     &LogicalVoiceRegistry::default(),
@@ -4353,6 +4439,7 @@ mod tests {
         let rejected = sender.try_send_with_commit(
             SynthRequest::Timeline {
                 timeline: replacement_timeline,
+                letter: false,
                 state: TtsState::default(),
                 logical_voice_routing: LogicalVoiceRoutingSnapshot::capture(
                     &LogicalVoiceRegistry::default(),
