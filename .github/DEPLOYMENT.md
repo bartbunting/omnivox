@@ -97,6 +97,29 @@ The release version and archive prefix come from the tag name with its leading
 `v` removed for filenames. For example, tag `v1.5.0` produces archives prefixed
 `omnivox-1.5.0-`.
 
+## Release completion checklist
+
+A stable release is complete only after its Homebrew formula is also updated.
+After the publication job succeeds:
+
+- [ ] Confirm the GitHub release is public and all native release gates passed.
+- [ ] Follow [Updating the tap after a release](#updating-the-tap-after-a-release)
+  for the exact published version, verifying both Mac archives before opening
+  the formula pull request.
+- [ ] Wait for successful Apple Silicon and Intel Homebrew checks on the final
+  pull-request commit, then merge the formula update.
+- [ ] Fetch the tap's merged `main` in a clean checkout and run
+  `python3 tools/update_formula.py VERSION --check` with that same version.
+  This verifies the published formula and both downloads without editing files.
+- [ ] Record the tap pull request, merged commit, and native check links in the
+  release verification report. Include the Homebrew result in the release handoff.
+
+If the tap update is blocked, report the GitHub release as published and the
+Homebrew update as pending. Do not report the whole release as complete. The
+publication job writes this outstanding step to its Actions summary; it does
+not update another repository automatically. Audible Emacs use and a real
+upgrade from the previous upstream version remain separate acceptance checks.
+
 ## What CI validates
 
 Windows ARM64 jobs explicitly use the `windows-11-vs2026-arm` runner image
@@ -247,7 +270,8 @@ and replacement archives under an unchanged version. Review and commit the
 change, open a pull request, and merge after both native Mac checks pass.
 Users then receive the new formula through `brew update`.
 
-This is an explicit post-release maintenance step. Publishing an Omnivox release
+This is a required step in the [release completion checklist](#release-completion-checklist).
+Publishing an Omnivox release
 does not automatically update the tap; the updater does not tag or publish a
 release. The [tap maintenance guide](https://github.com/bartbunting/homebrew-omnivox#maintaining-a-release)
 contains the complete procedure.
