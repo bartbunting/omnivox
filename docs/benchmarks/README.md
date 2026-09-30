@@ -53,6 +53,10 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-10-01 Homebrew Omnivox 1.16.0 update](2026-10-01-homebrew-1.16.md)
+  records the merged formula, both native Mac jobs and verification of the
+  published archives against the merged formula.
+
 - [2026-09-30 Omnivox 1.16.0 publication](2026-09-30-1.16-publication.md)
   records the main-branch release, all 64 passing jobs, two ARM64 helper-startup
   retries and verification of the 28 public assets.
