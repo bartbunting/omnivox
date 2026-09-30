@@ -109,6 +109,12 @@
 
 ## Release history
 
+- A stable release includes its Homebrew follow-up. Follow the
+  [release completion checklist](.github/DEPLOYMENT.md#release-completion-checklist):
+  update the tap to the exact published version, verify both archives, wait for
+  both native Mac checks, merge, and verify the merged formula with the explicit
+  version. Record the tap PR, commit and checks in the release report. If blocked,
+  report Homebrew as pending rather than declaring the release complete.
 - Treat every `CHANGELOG.md` section named by an existing release tag as frozen
   release history. Before editing the changelog, inspect the tags and compare
   the relevant tag's commit ancestry with `HEAD`; work committed after that tag

@@ -1920,3 +1920,24 @@ jobs:
         run: gh release edit "$RELEASE_TAG" --repo "${{ github.repository }}" --draft=false --prerelease=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report required Homebrew follow-up
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ["RELEASE_VERSION"]
+          repository = os.environ["GITHUB_REPOSITORY"]
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as summary:
+              summary.write(f"""## Homebrew update pending for {version}
+
+          The GitHub release is published. Release completion also requires:
+
+          - [ ] In [the tap](https://github.com/bartbunting/homebrew-omnivox), run `python3 tools/update_formula.py {version}` and open the formula update PR.
+          - [ ] Wait for successful Apple Silicon and Intel checks on the final PR commit, then merge.
+          - [ ] Verify merged `main` with `python3 tools/update_formula.py {version} --check` and record the PR, commit and check links in the release report.
+
+          Follow the [release completion checklist](https://github.com/{repository}/blob/main/.github/DEPLOYMENT.md#release-completion-checklist).
+          """)
+          PY

@@ -376,6 +376,12 @@ workflow does not cache a separate Cargo Git directory.
 
 ## Maintenance rules
 
+- After publishing, `publish_release` writes the required Homebrew update and
+  exact-version verification commands to its Actions summary. Follow the
+  [release completion checklist](../DEPLOYMENT.md#release-completion-checklist)
+  through successful native Mac checks, merge and verification of the merged
+  formula before reporting the stable release complete. The workflow does not
+  automatically change the tap.
 - Keep the Rust action version synchronized with `rust-toolchain.toml`.
 - Keep this summary and `.github/DEPLOYMENT.md` synchronized with the literal
   matrices and release archive loop in `build.yml`.
