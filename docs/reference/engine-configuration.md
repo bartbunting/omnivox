@@ -94,6 +94,58 @@ Live reload is a later lifecycle extension requiring atomic replacement,
 in-flight request retirement, removal semantics and coordination between
 workers. Saving a manifest must not itself restart speech.
 
+## Configuration version 4: named punctuation profiles
+
+The development version accepts schema 4 with optional
+`speech.punctuation_profiles`. Existing schemas and the three built-in levels
+retain their meanings. Each profile inherits the **resolved saved** `none`,
+`some` or `all` table and applies its own sparse `overrides`:
+
+```json
+{"schema":4,"speech":{"punctuation_profiles":{
+  "prose":{"base":"some","overrides":{"’":"apostrophe","$":null}},
+  "proofreading":{"base":"all","overrides":{"※":"reference mark"}}
+}}}
+```
+
+There may be at most 32 profiles. IDs contain 1–32 ASCII lowercase letters,
+digits, underscores or hyphens, start with a letter, and cannot be `none`,
+`some` or `all`. Inheritance from another profile is rejected. The existing
+512-entry resolved-table and 64-byte spoken-name bounds apply to every profile.
+Null preserves a character; omission inherits the base. Unknown fields,
+duplicate decoded keys and null outside character overrides remain invalid.
+This does not introduce a fourth built-in `most` level.
+
+Startup schema 7 freezes all resolved profiles with the built-in fallback and
+complete character table. Reload/recovery does not reread profile definitions.
+Workers advertise `punctuation_profiles_v1` and answer
+`get_punctuation_profiles_v1` with `type: "punctuation_profiles_v1"` and a
+`profiles` array of `{id, fallback, sha256}`. The digest is SHA-256 of the compact
+JSON serialization of the resolved `{fallback, table}` (sorted character keys).
+Clients compare the whole descriptor from each worker, not IDs alone.
+
+`set_punctuation_profile_v1` accepts a `profile` string and returns
+`punctuation_profile_selected_v1` with that ID. Unknown IDs return
+`invalid_configuration` without changing selection. The negotiated legacy
+command `tts_set_punctuation_profile ID` selects the same state and is allowed
+inside a validated `emacsvox_tx`; unknown profiles reject the whole frame before
+generation commitment. Ordinary level/sync commands and reset clear the named
+selection. Each admitted request retains its selection and immutable tables.
+Isolated letter preparation remains independent of prose profiles.
+
+The local service advertises `punctuation_profiles_configuration_version: 1`.
+Punctuation review adds saved sparse `profiles`; `effective.profiles` contains
+resolved tables. Save optionally accepts `profiles_json` alongside
+`punctuation_json`, validating and publishing both in one schema-4 document.
+Omitting `profiles_json` preserves saved profiles, including when an older
+editor saves built-in tables. Save never activates either worker.
+
+Emacsvox offers named selections only from agreeing current worker catalogues.
+Saved mode/buffer values retain `(profile ID FALLBACK)`. Missing, unsupported,
+dead or disagreeing workers use the saved built-in fallback and describe that
+state; no custom ID is sent through the old three-value punctuation grammar.
+After an explicit restart or Apply, catalogues are rediscovered per connection.
+
 ## Configuration version 3
 
 Version 3 adds configurable punctuation tables under the existing host-preference
@@ -178,8 +230,8 @@ the character is preserved. These minimums describe shipped defaults only.
 | `′` `″` (U+2032, U+2033) | prime; double prime | `all` |
 | `−` (U+2212) | minus | `some` |
 
-Custom named levels are deferred to
-[stage two](../plans/punctuation-configuration.md#stage-two-custom-named-profiles-deferred),
+Development builds also support named profiles through
+[configuration version 4](#configuration-version-4-named-punctuation-profiles),
 including capability negotiation and client selection.
 
 ### Local punctuation editor
@@ -212,7 +264,9 @@ Both succeed with `type: "punctuation_configuration"` and a `review` object:
 Review validates configuration but does not create its root, configuration file
 or editor lock. Save accepts one complete replacement overrides object, with the
 same strict bounds as public configuration. It validates before writing, upgrades
-the file to schema 3 and preserves every unrelated setting. JSON whitespace and
+the file to at least schema 3 and preserves every unrelated setting, including
+existing named profiles. Supplying the version-4 `profiles_json` field replaces
+profiles in the same atomic save and uses schema 4. JSON whitespace and
 ordering may change. A changed file, changed target, malformed configuration or
 busy editor returns the existing local `error` reply. No engine is constructed.
 Neither operation changes speech state or starts/stops a worker.

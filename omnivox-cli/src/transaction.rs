@@ -311,6 +311,9 @@ fn validate_command(command: &Command) -> Result<(), String> {
         }
         CommandId::Silence => arguments.is_some_and(|value| parse_silence_duration(value).is_ok()),
         CommandId::AudioIcon => arguments.is_some_and(|value| parse_resource_path(value).is_ok()),
+        CommandId::TtsSetPunctuationProfile => {
+            arguments.is_some_and(omnivox_core::punctuation::valid_profile_id)
+        }
         CommandId::TtsSetPunctuations => {
             arguments.is_some_and(|value| PunctuationLevel::parse(value).is_some())
         }

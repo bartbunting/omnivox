@@ -144,6 +144,8 @@ pub struct TtsState {
 
     // Punctuation
     pub punctuation_level: PunctuationLevel,
+    /// Negotiated named selection; ordinary level commands and reset clear it.
+    pub punctuation_profile: Option<String>,
     pub split_caps: bool,
     pub capitalization_presentation: CapitalizationPresentation,
 
@@ -184,6 +186,7 @@ impl TtsState {
             pitch_multiplier: defaults.pitch,
             speech_rate: defaults.rate,
             punctuation_level: defaults.punctuation,
+            punctuation_profile: None,
             split_caps: defaults.split_caps,
             capitalization_presentation: CapitalizationPresentation::None,
             voice_volume: defaults.voice_volume,
@@ -218,6 +221,14 @@ impl TtsState {
             ..Self::from_speech_defaults(Arc::clone(&self.speech_defaults))
         };
         self.set_process_channel_mode(self.startup_channel_mode);
+    }
+
+    /// The immutable table selected for this admitted speech request.
+    pub fn punctuation_table(&self) -> &crate::punctuation::PunctuationTable {
+        match &self.punctuation_profile {
+            Some(id) => &self.punctuation_tables.profiles[id].table,
+            None => self.punctuation_tables.table(self.punctuation_level),
+        }
     }
 
     /// Get the character speaking rate (speech_rate * character_scale)

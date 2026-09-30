@@ -2191,7 +2191,8 @@ pub(crate) fn run_server(
             continue;
         }
 
-        let Some(mut selected) = prepare_presentation(&presentation_generations, &command) else {
+        let Some(mut selected) = prepare_presentation(&presentation_generations, &command, &state)
+        else {
             continue;
         };
         let burst_started = Instant::now();
@@ -2201,7 +2202,8 @@ pub(crate) fn run_server(
                 replaceable_coalescing_deadline(burst_started, Instant::now()),
             )? {
                 TimedCommand::Command(next) if next.id == CommandId::EmacsvoxTx => {
-                    if let Some(candidate) = prepare_presentation(&presentation_generations, &next)
+                    if let Some(candidate) =
+                        prepare_presentation(&presentation_generations, &next, &state)
                     {
                         selected = prefer_newer(selected, candidate);
                     }
@@ -2653,9 +2655,23 @@ fn report_rejected_structured_submission(rejection: &RejectedStructuredSubmissio
 fn prepare_presentation(
     generations: &PresentationGenerations,
     command: &Command,
+    state: &TtsState,
 ) -> Option<PreparedPresentation> {
     match generations.prepare(command.args.as_deref().unwrap_or("")) {
-        Ok(Some(presentation)) => Some(presentation),
+        Ok(Some(presentation)) => {
+            if presentation.commands.iter().any(|command| {
+                command.id == CommandId::TtsSetPunctuationProfile
+                    && !state
+                        .punctuation_tables
+                        .profiles
+                        .contains_key(command.args.as_deref().unwrap_or(""))
+            }) {
+                warn!("Rejected framed presentation with unknown punctuation profile");
+                None
+            } else {
+                Some(presentation)
+            }
+        }
         Ok(None) => {
             debug!("Ignored stale Emacsvox presentation transaction");
             None
@@ -2732,12 +2748,16 @@ fn execute_structured_presentation(
     } else {
         Vec::new()
     };
+    let mut admitted_state = state.clone();
+    if presentation.letter {
+        admitted_state.punctuation_profile = None;
+    }
     enqueue_synthesis(
         tx,
         SynthRequest::Timeline {
             timeline: presentation.timeline,
             letter: presentation.letter,
-            state: state.clone(),
+            state: admitted_state,
             logical_voice_routing: LogicalVoiceRoutingSnapshot::capture_with_policy(
                 logical_voices,
                 engine_registry,
@@ -3425,6 +3445,48 @@ fn handle_command(
                 Some(request)
             });
             match live_request.map(|request| (request.request_id, request.request)) {
+                Some((request_id, ControlRequest::GetPunctuationProfilesV1)) => {
+                    use sha2::{Digest, Sha256};
+                    let profiles = state
+                        .punctuation_tables
+                        .profiles
+                        .iter()
+                        .map(
+                            |(id, profile)| omnivox_tts::control::PunctuationProfileDescriptor {
+                                id: id.clone(),
+                                fallback: profile.fallback,
+                                sha256: Sha256::digest(
+                                    serde_json::to_vec(profile).expect("profile serialization"),
+                                )
+                                .iter()
+                                .map(|byte| format!("{byte:02x}"))
+                                .collect(),
+                            },
+                        )
+                        .collect();
+                    write_control_response(&ControlResponseEnvelope {
+                        protocol_version: CONTROL_PROTOCOL_VERSION,
+                        request_id: Some(request_id),
+                        response: ControlResponse::PunctuationProfilesV1 { profiles },
+                    });
+                }
+                Some((request_id, ControlRequest::SetPunctuationProfileV1 { profile })) => {
+                    let response = if state.punctuation_tables.profiles.contains_key(&profile) {
+                        state.punctuation_profile = Some(profile.clone());
+                        ControlResponse::PunctuationProfileSelectedV1 { profile }
+                    } else {
+                        ControlResponse::Error {
+                            code: ControlErrorCode::InvalidConfiguration,
+                            message: "unknown punctuation profile; current selection unchanged"
+                                .into(),
+                        }
+                    };
+                    write_control_response(&ControlResponseEnvelope {
+                        protocol_version: CONTROL_PROTOCOL_VERSION,
+                        request_id: Some(request_id),
+                        response,
+                    });
+                }
                 Some((request_id, ControlRequest::ExplainVoiceParametersV1(request))) => {
                     parameter_queries.explain(
                         request_id,
@@ -3747,10 +3809,28 @@ fn handle_command(
             }
         }
 
+        CommandId::TtsSetPunctuationProfile => {
+            if let Some(profile) = command.args {
+                if state.punctuation_tables.profiles.contains_key(&profile) {
+                    state.punctuation_profile = Some(profile);
+                } else {
+                    write_control_response(&ControlResponseEnvelope {
+                        protocol_version: CONTROL_PROTOCOL_VERSION,
+                        request_id: None,
+                        response: ControlResponse::Error {
+                            code: ControlErrorCode::InvalidConfiguration,
+                            message: "unknown punctuation profile; current selection unchanged"
+                                .into(),
+                        },
+                    });
+                }
+            }
+        }
         CommandId::TtsSetPunctuations => {
             if let Some(level) = command.args {
                 if let Some(punct) = PunctuationLevel::parse(&level) {
                     state.punctuation_level = punct;
+                    state.punctuation_profile = None;
                 }
             }
         }
@@ -3761,6 +3841,7 @@ fn handle_command(
                 if parts.len() >= 4 {
                     if let Some(punct) = PunctuationLevel::parse(parts[0]) {
                         state.punctuation_level = punct;
+                        state.punctuation_profile = None;
                     }
                     state.split_caps = parts[1] == "1";
                     if let Ok(r) = parse_finite_float(parts[3]) {
@@ -3823,6 +3904,34 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn unknown_profile_frame_is_rejected_before_generation_commit() {
+        use omnivox_core::punctuation::PunctuationProfile;
+        use omnivox_tts::presentation::encode_presentation_script;
+        let mut state = TtsState::default();
+        let command = Command {
+            id: CommandId::EmacsvoxTx,
+            args: Some(format!(
+                "1 {{{}}}",
+                encode_presentation_script("tts_set_punctuation_profile prose\nq {hello}\nd\n")
+                    .unwrap()
+            )),
+        };
+        let generations = PresentationGenerations::default();
+        assert!(prepare_presentation(&generations, &command, &state).is_none());
+        let table = state.punctuation_tables.some.clone();
+        Arc::make_mut(&mut state.punctuation_tables)
+            .profiles
+            .insert(
+                "prose".into(),
+                PunctuationProfile {
+                    fallback: PunctuationLevel::Some,
+                    table,
+                },
+            );
+        assert!(prepare_presentation(&generations, &command, &state).is_some());
+    }
 
     #[test]
     fn native_definitions_cannot_be_silently_projected_through_older_speech_paths() {

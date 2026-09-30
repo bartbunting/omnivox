@@ -38,8 +38,8 @@ in Omnivox. The host supplies defaults, validates and atomically saves only the
 punctuation overrides, and checks the reviewed file revision. Emacsvox provides
 spoken character rows, independent drafts, preservation/default actions, and
 separate Save and Restart commands. Saving alone never activates settings.
-This remains an interface to the three existing levels; custom-profile
-negotiation remains stage two.
+The development follow-up extends this editor with named profile drafts under
+stage two; built-in-only saves preserve existing profiles.
 
 Acceptance:
 
@@ -55,7 +55,9 @@ Acceptance:
   the captured tables even after files change. Character inspection remains
   independent of prose punctuation selection.
 
-## Stage two: custom named profiles (deferred)
+<a id="stage-two-custom-named-profiles-deferred"></a>
+
+## Stage two: custom named profiles (development implementation)
 
 A fourth built-in level, `most`, is also deferred beyond 1.15.0. Its exact
 table and client/server negotiation need a separate implementation scope;
@@ -79,7 +81,12 @@ This stage needs a separately specified capability and protocol extension:
   publishing a partially activated configuration.
 - Keep isolated character inspection independent of the chosen prose profile.
 
-The exact schema, message shapes, naming limits and UI are future design work.
+The development implementation is specified in the
+[version-4 configuration contract](../reference/engine-configuration.md#configuration-version-4-named-punctuation-profiles).
+Emacsvox creates and edits named drafts, discovers worker catalogues, and retains
+built-in fallbacks in mode/buffer selections. `verify_engine_configuration.py`
+checks actual helper text, shared startup/recovery and unknown-profile rejection.
+Audible acceptance remains separate from automated preparation checks.
 Acceptance must cover negotiation, old clients and servers, missing profiles,
 both workers, saved preferences, reset, recovery, and source-offset parity.
 Do not send custom names through the current three-value punctuation enum.

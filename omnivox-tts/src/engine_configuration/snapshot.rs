@@ -61,7 +61,7 @@ impl LaunchSnapshot {
             }
         }
         let snapshot = Self {
-            schema: 6,
+            schema: 7,
             activation_id: crate::voice_library::local::new_uuid()
                 .map_err(|_| invalid("could not create activation identity"))?,
             resolved,
@@ -341,7 +341,7 @@ impl SnapshotWire {
                 max_chunk_words: speech.max_chunk_words,
                 ..SpeechConfiguration::default()
             },
-            (3..=6, Some(speech), Some(defaults)) => SpeechConfiguration {
+            (3..=7, Some(speech), Some(defaults)) => SpeechConfiguration {
                 max_chunk_words: speech.max_chunk_words,
                 defaults,
                 ..SpeechConfiguration::default()
@@ -350,17 +350,18 @@ impl SnapshotWire {
         };
         speech.capital_pitch = match (self.schema, self.capital_pitch) {
             (1..=3, None) => CapitalPitchSettings::default(),
-            (4..=6, Some(settings)) => settings,
+            (4..=7, Some(settings)) => settings,
             _ => return Err(invalid("unsupported or incomplete capital pitch settings")),
         };
         speech.punctuation = match (self.schema, self.punctuation) {
             (1..=5, None) => PunctuationTables::legacy(),
-            (6, Some(tables)) => tables,
+            (6, Some(tables)) if tables.profiles.is_empty() => tables,
+            (7, Some(tables)) => tables,
             _ => return Err(invalid("unsupported or incomplete punctuation tables")),
         };
         let audio = match (self.schema, self.audio) {
             (1..=4, None) => AudioOutputSettings::default(),
-            (5 | 6, Some(settings)) => settings,
+            (5..=7, Some(settings)) => settings,
             _ => return Err(invalid("unsupported or incomplete audio settings")),
         };
         require(

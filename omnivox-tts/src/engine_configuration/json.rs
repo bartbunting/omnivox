@@ -13,7 +13,12 @@ pub(super) fn parse(bytes: &[u8], limit: usize) -> Result<Value> {
 /// original no-null contract, including nullable internal Rust representations.
 pub(super) fn parse_configuration(bytes: &[u8], limit: usize) -> Result<Value> {
     fn has_null(value: &Value, path: &mut Vec<String>) -> bool {
-        if path == &["speech", "punctuation"] {
+        if path == &["speech", "punctuation"]
+            || (path.len() == 4
+                && path[0] == "speech"
+                && path[1] == "punctuation_profiles"
+                && path[3] == "overrides")
+        {
             return false;
         }
         match value {

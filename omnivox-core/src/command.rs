@@ -66,6 +66,7 @@ pub enum CommandId {
 
     // State management
     TtsSay,                           // tts_say - speak immediately
+    TtsSetPunctuationProfile,         // tts_set_punctuation_profile
     TtsSetPunctuations,               // tts_set_punctuations
     TtsSetSpeechRate,                 // tts_set_speech_rate
     TtsSetCharacterScale,             // tts_set_character_scale
@@ -114,6 +115,7 @@ impl CommandId {
             "p" => Some(Self::PlaySound),
             "sh" => Some(Self::Silence),
             "tts_say" => Some(Self::TtsSay),
+            "tts_set_punctuation_profile" => Some(Self::TtsSetPunctuationProfile),
             "tts_set_punctuations" => Some(Self::TtsSetPunctuations),
             "tts_set_speech_rate" => Some(Self::TtsSetSpeechRate),
             "tts_set_character_scale" => Some(Self::TtsSetCharacterScale),

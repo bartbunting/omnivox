@@ -1,7 +1,11 @@
 //! Text processing: punctuation expansion, CamelCase splitting, chunking, rate mapping.
 
+use omnivox_core::punctuation::PunctuationTable;
+#[cfg(test)]
 use omnivox_core::punctuation::PunctuationTables;
-use omnivox_core::{state::PunctuationLevel, TtsState};
+#[cfg(test)]
+use omnivox_core::state::PunctuationLevel;
+use omnivox_core::TtsState;
 use once_cell::sync::Lazy;
 use std::path::PathBuf;
 
@@ -184,7 +188,12 @@ const LEGACY_SPEECH_SEPARATOR: &str = "[*]";
 /// The reserved Emacspeak `[*]` separator is collapsed to a space before its
 /// component punctuation can be expanded.  Legacy character names such as
 /// `question[*]mark` therefore remain engine-neutral speech text.
+#[cfg(test)]
 fn apply_punctuation(text: &str, level: PunctuationLevel, tables: &PunctuationTables) -> String {
+    apply_punctuation_table(text, tables.table(level))
+}
+
+fn apply_punctuation_table(text: &str, table: &PunctuationTable) -> String {
     let mut result = String::with_capacity(text.len());
     let mut position = 0;
 
@@ -199,7 +208,7 @@ fn apply_punctuation(text: &str, level: PunctuationLevel, tables: &PunctuationTa
             .chars()
             .next()
             .expect("position must remain within speech text");
-        let replacement = tables.spoken_name(character, level);
+        let replacement = table.get(&character).and_then(Option::as_deref);
 
         match replacement {
             Some(spoken) => {
@@ -246,7 +255,7 @@ pub fn insert_space_before_uppercase(input: &str) -> String {
 /// Semantic presentations carry capitalization actions explicitly.  The
 /// legacy text path therefore preserves case and leaves the tone list empty.
 pub fn prepare_speech_text(text: &str, state: &TtsState) -> PreparedSpeechText {
-    let mut processed = apply_punctuation(text, state.punctuation_level, &state.punctuation_tables);
+    let mut processed = apply_punctuation_table(text, state.punctuation_table());
     if state.split_caps {
         processed = insert_space_before_uppercase(&processed);
     }
@@ -269,12 +278,8 @@ pub fn prepare_speech_text_with_offsets(
         let offset = *offset as usize;
         offset <= text.len() && text.is_char_boundary(offset)
     }));
-    let (punctuated, offsets) = apply_punctuation_with_offsets(
-        text,
-        state.punctuation_level,
-        &state.punctuation_tables,
-        offsets,
-    );
+    let (punctuated, offsets) =
+        apply_punctuation_with_offsets(text, state.punctuation_table(), offsets);
     let (split, offsets) = if state.split_caps {
         insert_space_before_uppercase_with_offsets(&punctuated, &offsets)
     } else {
@@ -336,8 +341,7 @@ impl OffsetMapper {
 
 fn apply_punctuation_with_offsets(
     text: &str,
-    level: PunctuationLevel,
-    tables: &PunctuationTables,
+    table: &PunctuationTable,
     offsets: &[u32],
 ) -> (String, Vec<u32>) {
     let mut output = String::with_capacity(text.len());
@@ -358,7 +362,7 @@ fn apply_punctuation_with_offsets(
             .chars()
             .next()
             .expect("position must remain within speech text");
-        if let Some(replacement) = tables.spoken_name(character, level) {
+        if let Some(replacement) = table.get(&character).and_then(Option::as_deref) {
             output.push(' ');
             output.push_str(replacement);
             output.push(' ');
@@ -560,6 +564,38 @@ mod tests {
         ('}', "right brace", PunctuationLevel::All),
         ('~', "tilde", PunctuationLevel::Some),
     ];
+
+    #[test]
+    fn named_profile_preserves_source_offsets_and_reset_builtins() {
+        use omnivox_core::punctuation::PunctuationProfile;
+        use std::sync::Arc;
+        let mut state = TtsState::default();
+        let mut table = state.punctuation_tables.some.clone();
+        table.insert('’', Some("quote".into()));
+        Arc::make_mut(&mut state.punctuation_tables)
+            .profiles
+            .insert(
+                "prose".into(),
+                PunctuationProfile {
+                    fallback: PunctuationLevel::Some,
+                    table,
+                },
+            );
+        state.punctuation_profile = Some("prose".into());
+        state.split_caps = false;
+        let source = "café’s 日本";
+        let offsets = [0, 5, 8, 10, source.len() as u32];
+        let plain = prepare_speech_text(source, &state);
+        let (prepared, mapped) = prepare_speech_text_with_offsets(source, &state, &offsets);
+        assert_eq!(plain.text, "café quote s 日本");
+        assert_eq!(plain, prepared);
+        assert_eq!(mapped, vec![0, 5, 12, 14, plain.text.len() as u32]);
+        let admitted = state.clone();
+        state.reset();
+        assert!(state.punctuation_profile.is_none());
+        assert!(state.punctuation_tables.profiles.contains_key("prose"));
+        assert_eq!(prepare_speech_text(source, &admitted).text, plain.text);
+    }
 
     fn punctuation_level_includes(level: PunctuationLevel, minimum: PunctuationLevel) -> bool {
         match level {

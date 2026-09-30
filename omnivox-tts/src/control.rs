@@ -66,6 +66,10 @@ pub enum ControlRequest {
     Inventory,
     VoiceLibraryStatusV1,
     EngineConfigurationStatusV1,
+    GetPunctuationProfilesV1,
+    SetPunctuationProfileV1 {
+        profile: String,
+    },
     GetEngineParametersV1(crate::engine_parameters::CatalogueQuery),
     ExplainVoiceParametersV1(crate::voice_explanation::ExplanationRequest),
     RegisterLogicalVoices {
@@ -195,10 +199,24 @@ pub struct ControlResponseEnvelope {
     pub response: ControlResponse,
 }
 
+/// Immutable profile identity advertised by each worker.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PunctuationProfileDescriptor {
+    pub id: String,
+    pub fallback: omnivox_core::PunctuationLevel,
+    pub sha256: String,
+}
+
 /// Response payloads emitted by the control channel.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ControlResponse {
+    PunctuationProfilesV1 {
+        profiles: Vec<PunctuationProfileDescriptor>,
+    },
+    PunctuationProfileSelectedV1 {
+        profile: String,
+    },
     VoiceLibraryStatusV1(crate::voice_library::VoiceLibraryStatus),
     EngineConfigurationStatusV1(crate::engine_configuration::EngineConfigurationStatus),
     VoiceParametersExplainedV1(crate::voice_explanation::ExplanationResponse),
@@ -356,6 +374,8 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
             | ControlRequest::PreviewVoiceV3(_)
             | ControlRequest::VoiceLibraryStatusV1
             | ControlRequest::EngineConfigurationStatusV1
+            | ControlRequest::GetPunctuationProfilesV1
+            | ControlRequest::SetPunctuationProfileV1 { .. }
             | ControlRequest::GetEngineParametersV1(_)
             | ControlRequest::ExplainVoiceParametersV1(_)
     ) {
@@ -364,12 +384,25 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
         serde_json::from_slice::<DuplicateFreeJson>(&bytes)
             .map_err(ControlCodecError::InvalidJson)?;
     }
-    if matches!(request.request, ControlRequest::EngineConfigurationStatusV1) {
+    if matches!(
+        request.request,
+        ControlRequest::EngineConfigurationStatusV1
+            | ControlRequest::GetPunctuationProfilesV1
+            | ControlRequest::SetPunctuationProfileV1 { .. }
+    ) {
         let value: serde_json::Value =
             serde_json::from_slice(&bytes).map_err(ControlCodecError::InvalidJson)?;
-        if value.as_object().is_none_or(|fields| fields.len() != 3) {
+        let count = if matches!(
+            request.request,
+            ControlRequest::SetPunctuationProfileV1 { .. }
+        ) {
+            4
+        } else {
+            3
+        };
+        if value.as_object().is_none_or(|fields| fields.len() != count) {
             return Err(ControlCodecError::InvalidJson(serde::de::Error::custom(
-                "engine configuration status takes no additional fields",
+                "unexpected fields in configuration request",
             )));
         }
     }
@@ -515,6 +548,12 @@ pub fn process_control_request_with_configuration(
             ),
         ),
         Ok(request) => match request.request {
+            ControlRequest::GetPunctuationProfilesV1
+            | ControlRequest::SetPunctuationProfileV1 { .. } => error_response(
+                Some(request.request_id),
+                ControlErrorCode::UnsupportedOperation,
+                "punctuation profile operations require a live speech worker".into(),
+            ),
             ControlRequest::EngineConfigurationStatusV1 => match configuration {
                 Some(status) => ControlResponseEnvelope {
                     protocol_version: CONTROL_PROTOCOL_VERSION,
@@ -547,6 +586,7 @@ pub fn process_control_request_with_configuration(
                     supported_protocol_versions: vec![CONTROL_PROTOCOL_VERSION],
                     features: vec![
                         "control_v1".to_owned(),
+                        "punctuation_profiles_v1".to_owned(),
                         "emacsvox_tx".to_owned(),
                         "engine_inventory".to_owned(),
                         "engine_parameter_catalogue_v1".to_owned(),

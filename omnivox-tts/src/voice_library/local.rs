@@ -32,6 +32,8 @@ pub struct Request {
     #[serde(default)]
     pub punctuation_json: String,
     #[serde(default)]
+    pub profiles_json: String,
+    #[serde(default)]
     pub settings_json: String,
     #[serde(default)]
     pub manifest_json: String,
@@ -86,6 +88,7 @@ pub enum Reply {
     Host {
         engine_configuration_version: u32,
         punctuation_configuration_version: u32,
+        punctuation_profiles_configuration_version: u32,
         engine_settings_version: u32,
         removal_version: u32,
         catalogue_providers: Vec<String>,
@@ -272,6 +275,7 @@ impl Host {
         Reply::Host {
             engine_configuration_version: 1,
             punctuation_configuration_version: 1,
+            punctuation_profiles_configuration_version: 1,
             engine_settings_version: 1,
             removal_version: 1,
             catalogue_providers: vec![

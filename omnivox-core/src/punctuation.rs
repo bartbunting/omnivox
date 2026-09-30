@@ -14,6 +14,26 @@ pub const MAX_PUNCTUATION_NAME_BYTES: usize = 64;
 
 pub type PunctuationTable = BTreeMap<char, Option<String>>;
 
+pub const MAX_PUNCTUATION_PROFILES: usize = 32;
+
+/// One fully resolved immutable profile; inheritance is restricted to built-ins.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PunctuationProfile {
+    pub fallback: PunctuationLevel,
+    pub table: PunctuationTable,
+}
+
+pub fn valid_profile_id(id: &str) -> bool {
+    !matches!(id, "none" | "some" | "all")
+        && !id.is_empty()
+        && id.len() <= 32
+        && id.as_bytes()[0].is_ascii_lowercase()
+        && id.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-')
+        })
+}
+
 /// Fully resolved tables. Deserialization requires all three levels; sparse
 /// public configuration is merged separately before capturing a startup record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,6 +42,8 @@ pub struct PunctuationTables {
     pub none: PunctuationTable,
     pub some: PunctuationTable,
     pub all: PunctuationTable,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub profiles: BTreeMap<String, PunctuationProfile>,
 }
 
 impl Default for PunctuationTables {
@@ -39,6 +61,7 @@ impl PunctuationTables {
             none: BTreeMap::new(),
             some: BTreeMap::new(),
             all: BTreeMap::new(),
+            profiles: BTreeMap::new(),
         };
         tables.add_defaults(ASCII_DEFAULTS);
         tables
@@ -70,19 +93,30 @@ impl PunctuationTables {
         }
     }
 
-    pub fn spoken_name(&self, character: char, level: PunctuationLevel) -> Option<&str> {
-        let table = match level {
+    pub fn table(&self, level: PunctuationLevel) -> &PunctuationTable {
+        match level {
             PunctuationLevel::None => &self.none,
             PunctuationLevel::Some => &self.some,
             PunctuationLevel::All => &self.all,
-        };
-        table.get(&character).and_then(Option::as_deref)
+        }
+    }
+
+    pub fn spoken_name(&self, character: char, level: PunctuationLevel) -> Option<&str> {
+        self.table(level).get(&character).and_then(Option::as_deref)
     }
 
     /// Validate public merges and complete private snapshots identically.
     /// Errors identify the rule, never user-provided text.
     pub fn validate(&self) -> Result<(), &'static str> {
-        for table in [&self.none, &self.some, &self.all] {
+        if self.profiles.len() > MAX_PUNCTUATION_PROFILES
+            || self.profiles.keys().any(|id| !valid_profile_id(id))
+        {
+            return Err("invalid or excessive punctuation profile IDs");
+        }
+        for table in [&self.none, &self.some, &self.all]
+            .into_iter()
+            .chain(self.profiles.values().map(|profile| &profile.table))
+        {
             if table.len() > MAX_PUNCTUATION_ENTRIES {
                 return Err("too many punctuation entries");
             }

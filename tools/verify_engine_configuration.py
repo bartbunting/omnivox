@@ -59,7 +59,7 @@ def main():
         manifests = configuration / "helpers.d"
         manifests.mkdir(parents=True)
         (configuration / "config.json").write_text(json.dumps(dict(
-            schema=3, speech=dict(punctuation={
+            schema=4, speech=dict(punctuation_profiles={"prose": {"base": "some", "overrides": {"’": "profile quote", "$": None}}}, punctuation={
                 "none": {"’": "curl"},
                 "some": {"'": "tick", "’": "curly quote", "$": None},
                 "all": {"’": "curly quote", "!": "exclamation"}}, max_chunk_words=3, capital_pitch=dict(default=1.4, engines={"org.fixture":1.8}), defaults=dict(
@@ -166,6 +166,7 @@ def main():
         capabilities = service.request("host")
         assert capabilities["engine_configuration_version"] == 1
         assert capabilities["punctuation_configuration_version"] == 1
+        assert capabilities["punctuation_profiles_configuration_version"] == 1
         assert capabilities["engine_settings_version"] == 1
         original_config = json.loads((configuration / "config.json").read_text())
         review = service.request("punctuation-review")["review"]
@@ -179,6 +180,16 @@ def main():
                                punctuation_json="{}")["type"] == "error"
         restored = service.request("punctuation-save", expected_sha256=saved["review"]["sha256"],
                                    punctuation_json=json.dumps(review["overrides"]))
+        assert restored["type"] == "punctuation_configuration", restored
+        assert json.loads((configuration / "config.json").read_text()) == original_config
+        profile_edit = copy.deepcopy(review["profiles"])
+        profile_edit["prose"]["overrides"]["’"] = "edited profile"
+        named = service.request("punctuation-save", expected_sha256=restored["review"]["sha256"],
+                                punctuation_json=json.dumps(review["overrides"]), profiles_json=json.dumps(profile_edit))
+        assert named["type"] == "punctuation_configuration", named
+        assert named["review"]["effective"]["profiles"]["prose"]["table"]["’"] == "edited profile"
+        restored = service.request("punctuation-save", expected_sha256=named["review"]["sha256"],
+                                   punctuation_json=json.dumps(review["overrides"]), profiles_json=json.dumps(review["profiles"]))
         assert restored["type"] == "punctuation_configuration", restored
         assert json.loads((configuration / "config.json").read_text()) == original_config
         engine_review = service.request("engine-settings-review")["review"]
@@ -200,7 +211,7 @@ def main():
         assert activation == prepared["activation_id"] == initial["activation_id"]
         assert retained["engines"]["audio"] == dict(backend="null", target="left", pulse_latency_ms=45)
         assert retained["engines"]["speech"] == dict(max_chunk_words=3)
-        assert retained["engines"]["schema"] == 6
+        assert retained["engines"]["schema"] == 7
         assert retained["engines"]["punctuation"]["some"]["’"] == "curly quote"
         assert retained["engines"]["punctuation"]["some"]["$"] is None
         assert retained["engines"]["speech_defaults"]["voice"] == "saved"
@@ -283,6 +294,15 @@ def main():
         assert synthesis_texts()[before:] == [" curl "]
         print("Saved speech defaults, capital pitch, client overrides, reset, text preparation and configured chunks passed", flush=True)
 
+        profiles = first.request("get_punctuation_profiles_v1", control=True)["profiles"]
+        assert profiles[0]["id"] == "prose" and profiles[0]["fallback"] == "some"
+        assert len(profiles[0]["sha256"]) == 64
+        assert speak(first, 9930, "’", commands="tts_set_punctuation_profile prose\n") == [" profile quote "]
+        assert first.request("set_punctuation_profile_v1", control=True, profile="missing")["type"] == "error"
+        assert speak(first, 9931, "’") == [" profile quote "]
+        assert speak(first, 9932, "’", commands="tts_set_punctuations some\n") == [" curly quote "]
+        assert speak(first, 9933, "’", commands="tts_set_punctuation_profile prose\ntts_reset\n") == [" curl "]
+
         # Mutate every discovery input before starting the other worker. The
         # retained executable/argv/environment must still reach the real helper.
         shutil.rmtree(manifests)
@@ -298,6 +318,9 @@ def main():
         second_ack = second.request("engine_configuration_status_v1", control=True)
         assert second_ack["activation_id"] == recovered["activation_id"] == activation
         assert copied["engines"] == retained["engines"]
+        assert second.request("get_punctuation_profiles_v1", control=True)["profiles"] == profiles
+        assert speak(second, 9934, "’", commands="tts_set_punctuation_profile prose\n") == [" profile quote "]
+        assert speak(second, 9935, "’", commands="tts_reset\n") == [" curl "]
         assert speak(second, 9915, "’") == [" curl "]
         assert speak(first, 9916, "’", commands="tts_set_punctuations all\ntts_reset\n") == [" curl "]
         assert speak(second, 9905, preview["text"], commands="l A\n", letter_pitch=1.8) == expected_chunks
@@ -326,6 +349,8 @@ def main():
                                         OMNIVOX_OWNED_STARTUP_SHA256=initial["startup_sha256"]))
         assert not restart["retired"] and restart["startup_error"] is None, restart
         assert restart["activation_id"] == activation
+        assert restarted.request("get_punctuation_profiles_v1", control=True)["profiles"] == profiles
+        assert speak(restarted, 9936, "’", commands="tts_set_punctuation_profile prose\n") == [" profile quote "]
         assert speak(restarted, 9917, "’", commands="tts_reset\n") == [" curl "]
         assert speak(restarted, 9918, "’", commands="tts_set_punctuations some\n") == [" curly quote "]
         assert speak(restarted, 9907, preview["text"], commands="tts_reset\nl A\n", letter_pitch=1.8) == expected_chunks
@@ -364,7 +389,7 @@ def main():
         (configuration / "config.json").write_text('{"schema":1}')
         fresh_prepared = service.request("engine-snapshot")
         assert fresh_prepared["type"] == "prepared_startup" and fresh_prepared["activation_id"] != activation
-        print("Shared preparation, independent worker acknowledgements/audio targets, frozen file/environment inputs, frozen punctuation tables, fresh activation, blocked startup write and retirement passed")
+        print("Shared preparation, independent worker acknowledgements/audio targets, frozen file/environment inputs, frozen punctuation tables/profiles, profile editor and fallback/reset, engine editor, fresh activation, blocked startup write and retirement passed")
     finally:
         errors = []
         for peer in reversed(peers):

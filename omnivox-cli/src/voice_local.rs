@@ -117,10 +117,12 @@ fn service(host: Host) -> Result<()> {
                     let root =
                         Platform::native().configuration_root(None, |key| std::env::var_os(key))?;
                     let review = if request.command == "punctuation-save" {
-                        punctuation_editor::save(
+                        punctuation_editor::save_profiles(
                             &root,
                             &request.expected_sha256,
                             request.punctuation_json.as_bytes(),
+                            (!request.profiles_json.is_empty())
+                                .then_some(request.profiles_json.as_bytes()),
                         )?
                     } else {
                         punctuation_editor::inspect(&root)?

@@ -13,6 +13,7 @@ pub struct Review {
     pub defaults: PunctuationTables,
     pub overrides: Value,
     pub effective: PunctuationTables,
+    pub profiles: Value,
 }
 
 fn failure(reason: &'static str) -> ConfigurationError {
@@ -91,6 +92,10 @@ fn review(path: &Path, bytes: Option<&[u8]>) -> Result<Review> {
             .cloned()
             .unwrap_or_else(|| serde_json::json!({})),
         effective: configuration.speech.punctuation,
+        profiles: document
+            .pointer("/speech/punctuation_profiles")
+            .cloned()
+            .unwrap_or_else(|| serde_json::json!({})),
     })
 }
 
@@ -125,6 +130,15 @@ impl Drop for Lease {
 }
 
 pub fn save(root: &ConfigurationRoot, expected: &str, overrides_json: &[u8]) -> Result<Review> {
+    save_profiles(root, expected, overrides_json, None)
+}
+
+pub fn save_profiles(
+    root: &ConfigurationRoot,
+    expected: &str,
+    overrides_json: &[u8],
+    profiles_json: Option<&[u8]>,
+) -> Result<Review> {
     // Validate draft syntax and limits before making any filesystem changes.
     let overrides = json::parse_snapshot(overrides_json, MAX_CONFIG_BYTES)?;
     let draft = serde_json::json!({"schema":3,"speech":{"punctuation":overrides}});
@@ -137,7 +151,11 @@ pub fn save(root: &ConfigurationRoot, expected: &str, overrides_json: &[u8]) -> 
         ));
     }
     let mut document = document(original.as_deref())?;
-    document["schema"] = Value::from(3);
+    let schema = document["schema"]
+        .as_u64()
+        .unwrap_or(3)
+        .max(if profiles_json.is_some() { 4 } else { 3 });
+    document["schema"] = Value::from(schema);
     let speech = document
         .as_object_mut()
         .unwrap()
@@ -147,6 +165,13 @@ pub fn save(root: &ConfigurationRoot, expected: &str, overrides_json: &[u8]) -> 
         .as_object_mut()
         .unwrap()
         .insert("punctuation".into(), overrides);
+    if let Some(bytes) = profiles_json {
+        let profiles = json::parse_snapshot(bytes, MAX_CONFIG_BYTES)?;
+        speech
+            .as_object_mut()
+            .unwrap()
+            .insert("punctuation_profiles".into(), profiles);
+    }
     let mut bytes =
         serde_json::to_vec_pretty(&document).map_err(|_| failure("cannot encode configuration"))?;
     bytes.push(b'\n');

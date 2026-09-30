@@ -189,6 +189,29 @@ impl SpeechConfiguration {
                     .map_err(|reason| ConfigurationError::new("speech.punctuation", reason))?;
             }
         }
+        if schema >= 4 {
+            if let Some(value) = object.take("punctuation_profiles") {
+                let profiles = Object::new(value, "speech.punctuation_profiles")?;
+                for (id, value) in profiles.fields {
+                    let mut profile = Object::new(value, "speech.punctuation_profiles.entry")?;
+                    let fallback = profile.required::<PunctuationLevel>("base")?;
+                    let mut table = punctuation.table(fallback).clone();
+                    table.extend(
+                        profile
+                            .optional::<PunctuationTable>("overrides")?
+                            .unwrap_or_default(),
+                    );
+                    profile.finish()?;
+                    punctuation.profiles.insert(
+                        id,
+                        omnivox_core::punctuation::PunctuationProfile { fallback, table },
+                    );
+                }
+                punctuation.validate().map_err(|reason| {
+                    ConfigurationError::new("speech.punctuation_profiles", reason)
+                })?;
+            }
+        }
         object.finish()?;
         Ok(Self {
             max_chunk_words,
@@ -268,7 +291,7 @@ impl Configuration {
             "config.json",
         )?;
         let schema = object.required::<u64>("schema")?;
-        if !matches!(schema, 1..=3) {
+        if !matches!(schema, 1..=4) {
             return Err(ConfigurationError::new(
                 "config.json.schema",
                 "unsupported schema",

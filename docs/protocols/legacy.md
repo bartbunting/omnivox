@@ -177,3 +177,14 @@ contracts:
 Clients must negotiate the relevant capability before sending an extension.
 The maximum line and UTF-8 rules in this document still apply to its outer
 record.
+
+## Named punctuation selection
+
+After negotiating `punctuation_profiles_v1`, clients may send
+`tts_set_punctuation_profile ID`, including inside a validated `emacsvox_tx`.
+An unknown profile rejects a frame before commitment; standalone selection
+returns a control error without changing the previous selection. Built-in
+punctuation commands, `tts_sync_state` and reset clear the named selection.
+The [profile contract](../reference/engine-configuration.md#configuration-version-4-named-punctuation-profiles)
+defines IDs, catalogue discovery and older-server fallback. Never send a profile
+ID as an argument to the existing three-value `tts_set_punctuations` command.

@@ -1007,3 +1007,12 @@ response deadline. A timed-out adapter retains admission until it exits; retries
 cannot accumulate background workers. Connection closure suppresses late replies.
 These reads neither load voices nor connect, recover, stop or restart helpers.
 This operation requires negotiation of the complete native feature bundle.
+
+## Named punctuation profiles
+
+The development `punctuation_profiles_v1` capability adds
+`get_punctuation_profiles_v1` and `set_punctuation_profile_v1`. See the
+[named profile contract](../reference/engine-configuration.md#configuration-version-4-named-punctuation-profiles)
+for exact fields, limits, immutable catalogue identity, errors and compatibility.
+The operations are speech preparation controls; they expose no local file paths
+or executable configuration. Local editing remains a separate management service.

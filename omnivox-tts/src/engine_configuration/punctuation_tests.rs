@@ -145,3 +145,47 @@ fn older_public_configurations_get_apostrophe_defaults_and_explicit_preservation
         );
     }
 }
+
+#[test]
+fn profiles_inherit_saved_builtins_without_changing_them() {
+    let config = Configuration::parse(br#"{"schema":4,"speech":{"punctuation":{"some":{"!":"exclamation"}},"punctuation_profiles":{"prose":{"base":"some","overrides":{"!":null,"@":"at sign"}}}}}"#, Platform::native()).unwrap();
+    let tables = config.speech.punctuation;
+    let profile = &tables.profiles["prose"];
+    assert_eq!(profile.fallback, PunctuationLevel::Some);
+    assert_eq!(profile.table[&'!'], None);
+    assert_eq!(profile.table[&'@'].as_deref(), Some("at sign"));
+    assert_eq!(profile.table[&'$'].as_deref(), Some("dollar"));
+    assert_eq!(
+        tables.spoken_name('!', PunctuationLevel::Some),
+        Some("exclamation")
+    );
+    for profiles in [
+        json!({"all":{"base":"some"}}),
+        json!({"Upper":{"base":"all"}}),
+        json!({"prose":{"base":"prose"}}),
+        json!({"prose":{"base":"all","overrides":{" ":"space"}}}),
+        json!({"prose":{"base":"all","extension":true}}),
+    ] {
+        assert!(Configuration::parse(
+            &serde_json::to_vec(&json!({"schema":4,"speech":{"punctuation_profiles":profiles}}))
+                .unwrap(),
+            Platform::native()
+        )
+        .is_err());
+    }
+    let profiles = (0..33)
+        .map(|index| (format!("p{index}"), json!({"base":"some"})))
+        .collect::<serde_json::Map<_, _>>();
+    assert!(Configuration::parse(
+        &serde_json::to_vec(&json!({"schema":4,"speech":{"punctuation_profiles":profiles}}))
+            .unwrap(),
+        Platform::native()
+    )
+    .is_err());
+    assert!(Configuration::parse(
+        br#"{"schema":3,"speech":{"punctuation_profiles":{}}}"#,
+        Platform::native()
+    )
+    .is_err());
+    assert!(Configuration::parse(br#"{"schema":4,"speech":{"punctuation_profiles":{"p":{"base":"some"},"p":{"base":"all"}}}}"#, Platform::native()).is_err());
+}

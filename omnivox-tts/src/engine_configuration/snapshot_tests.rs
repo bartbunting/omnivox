@@ -242,7 +242,7 @@ fn parsing_rejects_duplicate_keys_unknown_fields_and_outer_bounds() {
     trailing.extend_from_slice(b" {}");
     assert!(LaunchSnapshot::parse(&trailing).is_err());
     reject_mutation(&snapshot, |value| value["extra"] = json!(true));
-    reject_mutation(&snapshot, |value| value["schema"] = json!(7));
+    reject_mutation(&snapshot, |value| value["schema"] = json!(8));
     reject_mutation(&snapshot, |value| {
         value["platform"] = json!("another native platform")
     });
@@ -568,4 +568,18 @@ fn punctuation_is_complete_frozen_and_historical_schemas_keep_ascii_behavior() {
         PunctuationTables::legacy()
     );
     assert_eq!(serde_json::to_value(restored).unwrap(), old);
+}
+
+#[test]
+fn named_profiles_are_frozen_and_rejected_by_historical_snapshot_shapes() {
+    let mut settings = resolved(None);
+    settings.speech = Configuration::parse(br#"{"schema":4,"speech":{"punctuation_profiles":{"prose":{"base":"some","overrides":{"!":"notice"}}}}}"#, Platform::native()).unwrap().speech;
+    let snapshot = LaunchSnapshot::prepare(settings, None, "org.fixture".into(), false).unwrap();
+    let encoded = serde_json::to_vec(&snapshot).unwrap();
+    let restored = LaunchSnapshot::parse(&encoded).unwrap();
+    assert_eq!(
+        restored.resolved.speech.punctuation.profiles["prose"].table[&'!'].as_deref(),
+        Some("notice")
+    );
+    reject_mutation(&snapshot, |value| value["schema"] = json!(6));
 }
