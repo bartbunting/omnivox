@@ -2246,6 +2246,7 @@ fn synthesize_routed_chunk(
             &settings,
             requested_acss,
             requested_effects,
+            None,
             state,
             is_last_speech,
             final_timeline_window,
@@ -2346,6 +2347,7 @@ fn synthesize_routed_chunk_progressively(
     settings: &TtsSettings,
     requested_acss: Option<&NormalizedAcss>,
     requested_effects: Option<&PostSynthesisStyle>,
+    capital_pitch: Option<&omnivox_core::settings::CapitalPitchSettings>,
     state: &TtsState,
     is_last_speech: bool,
     final_timeline_window: bool,
@@ -2399,6 +2401,7 @@ fn synthesize_routed_chunk_progressively(
         anchors,
         settings,
         requested_acss,
+        capital_pitch,
         route,
         routing,
         engine_registry,
@@ -2510,15 +2513,11 @@ fn initial_legacy_route(
     }
 }
 
-const ISOLATED_CAPITAL_PITCH_MULTIPLIER: f32 = 1.5;
-
-fn prepare_isolated_letter(text: &str, state: &mut TtsState) -> String {
-    if text.chars().next().is_some_and(char::is_uppercase) {
-        // Preserve the established character-review cue independently of the
-        // Aural presentation selected for capitalization in words and lines.
-        state.pitch_multiplier = ISOLATED_CAPITAL_PITCH_MULTIPLIER;
-    }
-    text.chars().flat_map(char::to_lowercase).collect()
+fn prepare_isolated_letter(text: &str) -> (String, bool) {
+    (
+        text.chars().flat_map(char::to_lowercase).collect(),
+        text.chars().next().is_some_and(char::is_uppercase),
+    )
 }
 
 /// Speak one character through the same runtime fallback path as queued speech.
@@ -2539,19 +2538,29 @@ pub fn process_letter(
     }
     state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
     state.speech_rate = state.character_rate();
-    let letter = prepare_isolated_letter(text, &mut state);
+    let (letter, uppercase) = prepare_isolated_letter(text);
+    let capital_pitch = uppercase.then_some(state.capital_pitch.as_ref());
+    let settings = TtsSettings {
+        voice: state.current_voice.clone(),
+        rate: state.speech_rate,
+        pitch: state.pitch_multiplier,
+        volume: 1.0,
+    };
     let status = if let Some(mut content_route) =
         initial_legacy_route(&state, ctx, &mut routing, engine_registry)
     {
-        match synthesize_routed_chunk(
+        match synthesize_routed_chunk_progressively(
             &letter,
             &[],
-            &[],
+            &settings,
             None,
             None,
+            capital_pitch,
             &state,
             true,
             true,
+            &[],
+            &[],
             &mut content_route,
             &mut routing,
             engine_registry,
@@ -2564,12 +2573,10 @@ pub fn process_letter(
             RoutedChunkOutcome::Failed | RoutedChunkOutcome::Exhausted => BatchStatus::Failed,
         }
     } else {
-        let settings = TtsSettings {
-            voice: state.current_voice.clone(),
-            rate: state.speech_rate,
-            pitch: state.pitch_multiplier,
-            volume: 1.0,
-        };
+        let mut settings = settings;
+        if let Some(capitals) = capital_pitch {
+            settings.pitch = capitals.pitch_for(&ctx.engine.descriptor().id, settings.pitch);
+        }
         if synthesize_chunk_with_tones(&letter, &[], &settings, &state, true, true, ctx) {
             BatchStatus::Completed
         } else {
@@ -2674,7 +2681,10 @@ fn process_choice_preview(
             placement_pan: placement.pan,
         }
     };
-    let chunks = chunk_prepared_speech(prepare_speech_text(text, &state), 15);
+    let chunks = chunk_prepared_speech(
+        prepare_speech_text(text, &state),
+        state.max_chunk_words.get(),
+    );
     let count = chunks.len();
     for (index, chunk) in chunks.into_iter().enumerate() {
         let status = synthesize_prepared_chunk(
@@ -2913,7 +2923,10 @@ fn process_preview_inner(
             );
         }
     };
-    let chunks = chunk_prepared_speech(prepare_speech_text(text, &state), 15);
+    let chunks = chunk_prepared_speech(
+        prepare_speech_text(text, &state),
+        state.max_chunk_words.get(),
+    );
     let chunk_count = chunks.len();
     let mut realized = Some(route.realized.clone());
     let mut degraded_acss = route.acss.omitted.clone();
@@ -3094,6 +3107,7 @@ pub fn process_presentation_timeline(
         runtime_health,
         logical_voice_routing,
         false,
+        None,
     )
 }
 
@@ -3145,10 +3159,7 @@ pub(crate) fn process_presentation_timeline_v4(
     state.current_voice = legacy_voice_for_engine(ctx.engine, &state.current_voice);
     let letter = if ctx.letter_navigation {
         state.speech_rate = state.character_rate();
-        Some(prepare_isolated_letter(
-            timeline.spans[0].text(),
-            &mut state,
-        ))
+        Some(prepare_isolated_letter(timeline.spans[0].text()))
     } else {
         None
     };
@@ -3191,7 +3202,7 @@ pub(crate) fn process_presentation_timeline_v4(
                     &cancelled,
                 )?,
             };
-            if let Some(text) = &letter {
+            if let Some((text, _)) = &letter {
                 // Isolated characters bypass punctuation, word splitting and
                 // prose capitalization; the character cue and rate are above.
                 prepared.chunks = vec![PreparedSpeechChunk {
@@ -3214,7 +3225,19 @@ pub(crate) fn process_presentation_timeline_v4(
         Ok(spans)
     };
     match prepare() {
-        Ok(spans) => process_prepared_timeline(spans, &state, ctx, engines, health, routing, true),
+        Ok(spans) => process_prepared_timeline(
+            spans,
+            &state,
+            ctx,
+            engines,
+            health,
+            routing,
+            true,
+            letter
+                .as_ref()
+                .filter(|(_, uppercase)| *uppercase)
+                .map(|_| state.capital_pitch.as_ref()),
+        ),
         Err(TimelinePreparationError::Cancelled) => BatchStatus::Cancelled,
         Err(TimelinePreparationError::Invalid(error)) => {
             ctx.mark_failed();
@@ -3259,6 +3282,7 @@ fn process_prepared_timeline(
     runtime_health: &RuntimeEngineHealth,
     mut logical_voice_routing: LogicalVoiceRoutingSnapshot,
     mixed: bool,
+    capital_pitch: Option<&omnivox_core::settings::CapitalPitchSettings>,
 ) -> BatchStatus {
     let total_chunks = spans.iter().map(|span| span.chunks.len()).sum::<usize>();
     let mut chunk_index = 0_usize;
@@ -3353,6 +3377,7 @@ fn process_prepared_timeline(
                             settings: &settings,
                             acss: requested_acss,
                             effects: active_effects.as_ref(),
+                            capital_pitch: None,
                         }
                     }
                     PreparedTimelineStyle::EngineLayered { context, placement } => {
@@ -3374,7 +3399,7 @@ fn process_prepared_timeline(
                 };
                 let character_style = crate::routing::choice::AttemptStyle::Character {
                     base: &style,
-                    pitch: state.pitch_multiplier,
+                    capital_pitch,
                 };
                 let status = synthesize_prepared_chunk(
                     &chunk.text,
@@ -3778,7 +3803,7 @@ fn prepare_timeline_text_layout(
     for (index, tone) in prepared.capitalization_tones.iter_mut().enumerate() {
         tone.id = format!("omnivox.cap.{}.{}", id, index);
     }
-    let chunks = chunk_prepared_speech(prepared, 15);
+    let chunks = chunk_prepared_speech(prepared, state.max_chunk_words.get());
     let mut mapped_offset_index = 0_usize;
     let action_positions = actions
         .iter()
@@ -4004,9 +4029,11 @@ pub fn process_batch(
     let total_speech_chunks: usize = items
         .iter()
         .map(|item| match item {
-            QueueItem::Speech(text) => {
-                chunk_prepared_speech(prepare_speech_text(text, &state), 15).len()
-            }
+            QueueItem::Speech(text) => chunk_prepared_speech(
+                prepare_speech_text(text, &state),
+                state.max_chunk_words.get(),
+            )
+            .len(),
             _ => 0,
         })
         .sum();
@@ -4029,7 +4056,10 @@ pub fn process_batch(
 
         match item {
             QueueItem::Speech(text) => {
-                let chunks = chunk_prepared_speech(prepare_speech_text(&text, &state), 15);
+                let chunks = chunk_prepared_speech(
+                    prepare_speech_text(&text, &state),
+                    state.max_chunk_words.get(),
+                );
                 for chunk in chunks {
                     let is_last_speech = speech_chunk_index + 1 == total_speech_chunks;
                     let final_timeline_window = primary_window_index + 1 == total_primary_windows;
@@ -4209,7 +4239,6 @@ pub fn process_batch(
 mod tests {
     use super::*;
     use omnivox_audio::{AudioBackend, AudioStreams, PlaybackStatus};
-    use omnivox_core::state::CapitalizationPresentation;
 
     struct PipelineTestEngine;
 
@@ -4844,24 +4873,13 @@ mod tests {
     }
 
     #[test]
-    fn isolated_capital_uses_pitch_without_presentation_actions() {
-        let mut state = TtsState::default();
-        for presentation in [
-            CapitalizationPresentation::None,
-            CapitalizationPresentation::Spoken,
-            CapitalizationPresentation::Tone,
-            CapitalizationPresentation::SpokenTone,
-            CapitalizationPresentation::Custom,
-        ] {
-            state.capitalization_presentation = presentation;
-            state.pitch_multiplier = 0.8;
-            assert_eq!(prepare_isolated_letter("A", &mut state), "a");
-            assert_eq!(state.pitch_multiplier, ISOLATED_CAPITAL_PITCH_MULTIPLIER);
-        }
-
-        state.pitch_multiplier = 0.8;
-        assert_eq!(prepare_isolated_letter("a", &mut state), "a");
-        assert_eq!(state.pitch_multiplier, 0.8);
+    fn isolated_letter_preparation_retains_unicode_and_capital_detection() {
+        assert_eq!(prepare_isolated_letter("A"), ("a".into(), true));
+        assert_eq!(prepare_isolated_letter("a"), ("a".into(), false));
+        assert_eq!(prepare_isolated_letter("Č"), ("č".into(), true));
+        assert_eq!(prepare_isolated_letter("İ"), ("i\u{307}".into(), true));
+        assert_eq!(prepare_isolated_letter("7"), ("7".into(), false));
+        assert_eq!(prepare_isolated_letter(""), ("".into(), false));
     }
 
     #[test]
@@ -5261,22 +5279,85 @@ mod tests {
             };
         }
 
-        validate_presentation_timeline_action_windows(
-            &PresentationTimelineEnvelope {
-                protocol_version:
-                    omnivox_tts::timeline_protocol::PRESENTATION_TIMELINE_PROTOCOL_VERSION,
-                generation: 1,
-                dispatch_id: 1,
-                delivery_policy: Some(
-                    omnivox_tts::timeline_protocol::PresentationDeliveryPolicy::Ordered,
-                ),
-                replacement_key: None,
-                spans: vec![span],
-                actions,
-            },
-            &TtsState::default(),
-        )
-        .unwrap();
+        let timeline = PresentationTimelineEnvelope {
+            protocol_version:
+                omnivox_tts::timeline_protocol::PRESENTATION_TIMELINE_PROTOCOL_VERSION,
+            generation: 1,
+            dispatch_id: 1,
+            delivery_policy: Some(
+                omnivox_tts::timeline_protocol::PresentationDeliveryPolicy::Ordered,
+            ),
+            replacement_key: None,
+            spans: vec![span],
+            actions,
+        };
+        for limit in [2, 15, 30] {
+            let state = TtsState {
+                max_chunk_words: omnivox_core::settings::ChunkWordLimit::try_from(limit).unwrap(),
+                ..TtsState::default()
+            };
+            let admission = validate_presentation_timeline_action_windows(&timeline, &state);
+            let references = timeline.actions.iter().collect::<Vec<_>>();
+            let preparation = prepare_timeline_span(
+                &timeline.spans[0],
+                &references,
+                &state,
+                &HashMap::new(),
+                &never_cancelled,
+            );
+            // At 30 words both action groups share a window and exceed its
+            // unchanged 512-action limit. Admission and synthesis must agree.
+            assert_eq!(admission.is_ok(), limit < 30);
+            assert_eq!(preparation.is_ok(), limit < 30);
+        }
+    }
+
+    #[test]
+    fn configured_chunking_keeps_unicode_actions_at_the_original_boundary() {
+        let text = "Žltý kôň číta nový riadok";
+        let offset = text.find("číta").unwrap() as u32;
+        let mut actions = semantic_timeline_actions(2);
+        for (action, affinity) in actions
+            .iter_mut()
+            .zip([PresentationAffinity::Before, PresentationAffinity::After])
+        {
+            action.position = PresentationTimelinePosition::TextOffset {
+                span_id: 1,
+                utf8_offset: offset,
+                affinity,
+            };
+        }
+        let references = actions.iter().collect::<Vec<_>>();
+        for limit in [2, 15, 100] {
+            let state = TtsState {
+                max_chunk_words: omnivox_core::settings::ChunkWordLimit::try_from(limit).unwrap(),
+                ..TtsState::default()
+            };
+            let layout = prepare_timeline_text_layout(1, text, &references, &state);
+            if limit == 2 {
+                assert_eq!(
+                    layout
+                        .chunks
+                        .iter()
+                        .map(|chunk| chunk.text.as_str())
+                        .collect::<Vec<_>>(),
+                    ["Žltý kôň", "číta nový", "riadok"]
+                );
+                assert_eq!(layout.action_positions[0].chunk_index, 1);
+                assert_eq!(layout.action_positions[0].local_offset, 0);
+                assert_eq!(layout.action_positions[1].chunk_index, 0);
+                assert_eq!(
+                    layout.action_positions[1].local_offset,
+                    "Žltý kôň".len() as u32
+                );
+            } else {
+                assert_eq!(layout.chunks.len(), 1);
+                assert!(layout
+                    .action_positions
+                    .iter()
+                    .all(|position| position.chunk_index == 0 && position.local_offset == offset));
+            }
+        }
     }
 
     #[test]

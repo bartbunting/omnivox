@@ -8,7 +8,7 @@ use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
 use crate::AudioError;
 use rodio::Source;
 use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{File, Metadata, OpenOptions};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -210,16 +210,9 @@ impl AudioFileLoader {
         let metadata = std::fs::metadata(path).map_err(|error| {
             AudioError::FileNotFound(format!("{}: {error}", path.to_string_lossy()))
         })?;
-        if metadata.len() > MAX_AUDIO_FILE_BYTES {
-            return Err(AudioError::DecodeError(format!(
-                "{} is {} bytes; maximum resource size is {MAX_AUDIO_FILE_BYTES}",
-                path.to_string_lossy(),
-                metadata.len()
-            )));
-        }
+        validate_resource_metadata(path, &metadata)?;
 
-        let file = File::open(path)
-            .map_err(|e| AudioError::FileNotFound(format!("{}: {}", path.to_string_lossy(), e)))?;
+        let file = open_resource_file(path)?;
         let reader = BufReader::new(file);
 
         let decoder = rodio::Decoder::new(reader)
@@ -298,6 +291,44 @@ impl Default for AudioFileLoader {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn validate_resource_metadata(path: &Path, metadata: &Metadata) -> Result<(), AudioError> {
+    if !metadata.is_file() {
+        return Err(AudioError::DecodeError(format!(
+            "{} is not a regular audio file",
+            path.display()
+        )));
+    }
+    if metadata.len() > MAX_AUDIO_FILE_BYTES {
+        return Err(AudioError::DecodeError(format!(
+            "{} is {} bytes; maximum resource size is {MAX_AUDIO_FILE_BYTES}",
+            path.display(),
+            metadata.len()
+        )));
+    }
+    Ok(())
+}
+
+fn open_resource_file(path: &Path) -> Result<File, AudioError> {
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        // A regular file can be replaced by a FIFO after the initial check.
+        // Nonblocking open lets us inspect the actual handle without waiting
+        // for a pipe writer. Ordinary files and links to them remain supported.
+        options.custom_flags(libc::O_NONBLOCK);
+    }
+    let file = options
+        .open(path)
+        .map_err(|error| AudioError::FileNotFound(format!("{}: {error}", path.display())))?;
+    let metadata = file.metadata().map_err(|error| {
+        AudioError::DecodeError(format!("cannot inspect {}: {error}", path.display()))
+    })?;
+    validate_resource_metadata(path, &metadata)?;
+    Ok(file)
 }
 
 /// Convert mono samples to stereo by duplicating each sample.
@@ -504,6 +535,49 @@ mod tests {
 
         assert!(matches!(error, AudioError::DecodeError(_)));
         assert!(error.to_string().contains("maximum resource size"));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn replacing_a_checked_file_with_a_pipe_cannot_block_open() {
+        use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::fs::OpenOptionsExt;
+        use std::sync::mpsc;
+        use std::time::Duration;
+
+        let path = std::env::temp_dir().join(format!(
+            "omnivox-replaced-resource-{}.wav",
+            std::process::id()
+        ));
+        let file = File::create(&path).unwrap();
+        validate_resource_metadata(&path, &file.metadata().unwrap()).unwrap();
+        drop(file);
+        std::fs::remove_file(&path).unwrap();
+        let name = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+        // SAFETY: the NUL-terminated path belongs to this test; no pointers escape.
+        assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+
+        let replaced = path.clone();
+        let (sender, receiver) = mpsc::channel();
+        let opening = std::thread::spawn(move || {
+            let _ = sender.send(open_resource_file(&replaced));
+        });
+        let result = receiver.recv_timeout(Duration::from_secs(2));
+        // Release a blocking regression before failing so the test leaves no
+        // reader thread behind and does not hang the rest of the suite.
+        let unblock = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .custom_flags(libc::O_NONBLOCK)
+            .open(&path)
+            .unwrap();
+        opening.join().unwrap();
+        drop(unblock);
+        std::fs::remove_file(&path).unwrap();
+        let error = result
+            .expect("opening a replaced resource blocked")
+            .unwrap_err();
+        assert!(error.to_string().contains("not a regular audio file"));
     }
 
     #[test]

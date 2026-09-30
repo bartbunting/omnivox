@@ -1,0 +1,64 @@
+{
+  "revision": "v1.13.0",
+  "commit": "54aee84575d8a0072e5995b3705959f581e777c8",
+  "started_utc": "2026-09-28T09:26:44.222589+00:00",
+  "host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "source_directory": "/tmp/omnivox-idle-onset-release-tfthheo6",
+  "fixture_sha256": "f0d7bd2f84ce86c3ea958bcc1a607b4bb53bf2153d0cf6066718a6f3683f289d",
+  "runner_sha256": "922bfef67f1bbd75505e5af78111a5c6c33b9f1cbdce797f150a23051c8b313f",
+  "cargo_lock_sha256": "f77cbf29911163307e4dd3feee1d56fd7dfadd061e301a66fe5fedc28708532b",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+  "measurement": "44.1 kHz stereo Rodio dynamic mixer samples, no device or wall-clock onset measurement",
+  "runs": [
+    {
+      "label": "host",
+      "target": null,
+      "build_command": [
+        "cargo",
+        "+1.97.1",
+        "test",
+        "--locked",
+        "-p",
+        "omnivox-audio",
+        "--lib",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "test_command": [
+        "/tmp/omnivox-idle-onset-release-tfthheo6/target/debug/deps/omnivox_audio-802cbb8e14db066b",
+        "idle_onset_repro",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "test_executable_sha256": "fff2d343ee827ab7b3c36ad0e91bc08f978d7f7b1afca6d3fb81458b7e15f520",
+      "exit_code": 0
+    },
+    {
+      "label": "windows",
+      "target": "x86_64-pc-windows-gnu",
+      "build_command": [
+        "cargo",
+        "+1.97.1",
+        "test",
+        "--locked",
+        "-p",
+        "omnivox-audio",
+        "--lib",
+        "--no-run",
+        "--message-format=json",
+        "--target",
+        "x86_64-pc-windows-gnu"
+      ],
+      "test_command": [
+        "/tmp/omnivox-idle-onset-release-tfthheo6/target/x86_64-pc-windows-gnu/debug/deps/omnivox_audio-467e9c94b9e6edbe.exe",
+        "idle_onset_repro",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "test_executable_sha256": "34353f2a6ba76c9abf059edbd9468fa38beb81c87e2f32b1ecfb8ae284bc971b",
+      "exit_code": 0
+    }
+  ],
+  "windows_version": "Microsoft Windows NT 10.0.26200.0",
+  "finished_utc": "2026-09-28T09:27:29.036261+00:00"
+}

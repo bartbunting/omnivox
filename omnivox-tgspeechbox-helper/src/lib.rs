@@ -1002,7 +1002,7 @@ fn scale_frame(frame: u64, source_rate: u32, target_frame_count: u64) -> u64 {
 
 fn map_rate(rate: f32) -> f64 {
     // Measured Adam/en-us reference and saturation policy:
-    // docs/RATE-CALIBRATION.md.
+    // docs/reference/rate-calibration.md.
     const CALIBRATION: &[(f32, f32)] = &[
         (0.0, 0.312_017),
         (0.1, 0.383_451),

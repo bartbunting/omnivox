@@ -1,0 +1,16 @@
+Base commit: 4aabd38048613ad5408d8b31eca76e25aa306637
+Source diff SHA256: 733e45d862d760d741bc8d4cfd1dfe78a61b75033d97741a8a4252dc2319fdb4
+target/debug/omnivox SHA256: f2d37cb2825c31f9845fe2dbc32bc6a38ba5997150ce456959e94cc2af92141e
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+Linux 6.18.33.2-microsoft-standard-WSL2
+
+cargo test --locked --workspace: PASS
+cargo clippy --locked --workspace --all-targets -- -D warnings: PASS
+cargo clippy --locked --workspace --all-targets --features omnivox-cli/piper -- -D warnings: PASS
+make dev: PASS
+python3 tools/verify_engine_configuration.py target/debug/omnivox: PASS
+make -C ../emacsvox docs-release-check: PASS
+make fmt-check: PASS
+make docs-check: PASS
+make docs-check-paired: PASS
+git diff --check and git diff --cached --check: PASS

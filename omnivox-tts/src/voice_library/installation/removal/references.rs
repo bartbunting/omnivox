@@ -101,11 +101,11 @@ pub(super) fn check(
                 .and_then(|name| name.to_str())
                 .ok_or(LibraryError::Invalid("invalid session snapshot name"))?,
         )?;
-        let bytes = read_bounded(open_file(&path, false)?, MAX_RUNTIME_BYTES)?;
+        let bytes = read_bounded(open_file(&path, false)?, local::MAX_STARTUP_BYTES)?;
         if retention::released(&path, &bytes)? {
             continue;
         }
-        let startup: Startup = decode(&bytes, MAX_RUNTIME_BYTES)?;
+        let startup: Startup = decode(&bytes, local::MAX_STARTUP_BYTES)?;
         let mut referenced = false;
         if let Some(generation) = startup.environment.get("OMNIVOX_VOICE_LIBRARY") {
             let library = RuntimeLibrary::read(open_file(Path::new(generation), false)?, host())?;
@@ -121,7 +121,7 @@ pub(super) fn check(
             )?;
         }
         if let Some(model) = startup.environment.get("OMNIVOX_PIPER_MODEL") {
-            referenced |= uses(model, &removal.directory);
+            referenced |= uses(&model.to_string_lossy(), &removal.directory);
         }
         if let Some(voices) = startup.environment.get("OMNIVOX_FLITE_VOICES") {
             referenced |= std::env::split_paths(voices)

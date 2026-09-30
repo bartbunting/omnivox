@@ -1,0 +1,24 @@
+   Compiling omnivox-audio v1.14.0 (/home/bart/src/omnivox/omnivox-audio)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.25s
+     Running unittests src/lib.rs (target/debug/deps/omnivox_audio-ad3a661464747a13)
+
+running 2 tests
+
+thread 'progressive_pcm::tests::short_resampled_utterances_retain_audio_not_just_frame_counts' (900637) panicked at omnivox-audio/src/progressive_pcm.rs:521:17:
+1 native frames at 8000 Hz became silence
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test progressive_pcm::tests::short_resampled_utterances_retain_audio_not_just_frame_counts ... FAILED
+
+thread 'progressive_pcm::tests::resampled_onsets_and_tails_stay_at_native_marker_positions' (900636) panicked at omnivox-audio/src/progressive_pcm.rs:500:21:
+8000 Hz/1 channels, native frame 0: peak 4 (-0.000000000008713496) versus marker 0
+test progressive_pcm::tests::resampled_onsets_and_tails_stay_at_native_marker_positions ... FAILED
+
+failures:
+
+failures:
+    progressive_pcm::tests::resampled_onsets_and_tails_stay_at_native_marker_positions
+    progressive_pcm::tests::short_resampled_utterances_retain_audio_not_just_frame_counts
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 158 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p omnivox-audio --lib`

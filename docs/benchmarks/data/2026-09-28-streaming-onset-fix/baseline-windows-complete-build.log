@@ -1,0 +1,4 @@
+   Compiling espeak-rs-sys v0.1.9
+   Compiling omnivox-tts v1.14.0 (/tmp/omnivox-onset-fix-_2s0bzwk/release-source/omnivox-tts)
+   Compiling omnivox-cli v1.14.0 (/tmp/omnivox-onset-fix-_2s0bzwk/release-source/omnivox-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.47s

@@ -1436,7 +1436,7 @@ fn language_tag(language: &str, country: &str) -> String {
 }
 
 fn map_rate(rate: f32) -> f64 {
-    // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+    // Measured reference and saturation policy: docs/reference/rate-calibration.md.
     const CALIBRATION: &[(f32, f32)] = &[
         (0.0, -1.000_000),
         (0.1, -0.798_056),

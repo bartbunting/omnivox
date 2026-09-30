@@ -1,0 +1,65 @@
+Emacsvox byte-code is current.
+sh test/run-graphical-voice-tests.sh "/home/bart/opt/emacs-31/bin/emacs"
+emacsvox-aural-capture-context: /home/bart/src/emacsvox/lisp/emacsvox-aural-source.elc
+emacsvox-aural-feedback-details--insert-voice-links: /home/bart/src/emacsvox/lisp/emacsvox-aural-feedback-details.elc
+emacsvox-aural-feedback-details--insert-speech-action: /home/bart/src/emacsvox/lisp/emacsvox-aural-feedback-details.elc
+emacsvox-aural-voice-editor-refresh: /home/bart/src/emacsvox/lisp/emacsvox-aural-voice-editor.elc
+emacsvox-aural-voice-bulk--render: /home/bart/src/emacsvox/lisp/emacsvox-aural-voice-bulk.elc
+emacsvox-aural-voice-engine-controls--render: /home/bart/src/emacsvox/lisp/emacsvox-aural-voice-engine-controls.elc
+emacsvox-omnivox-components--render-details: /home/bart/src/emacsvox/lisp/emacsvox-omnivox-components.elc
+omnivox-punctuation--render: /home/bart/src/emacsvox/lisp/omnivox-punctuation.elc
+emacsvox-aural-voice-workbench--open-engine: /home/bart/src/emacsvox/lisp/emacsvox-aural-voice-workbench.elc
+Running 38 tests (2026-09-28 21:50:31+1000, selector ‘(member emacsvox-aural-voice-bulk-graphical-browser-review-cancel-and-save emacsvox-engine-controls-graphical-groups-search-and-focus emacsvox-engine-controls-help-is-spoken-and-returns-to-parameter emacsvox-engine-controls-table-columns-and-keyboard-adjustment emacsvox-engine-controls-graphical-edit-after-reading-prompt emacsvox-engine-controls-back-detaches-query-and-restores-common-navigation emacsvox-engine-controls-close-retains-draft-without-stale-view-state omnivox-explanation-details-link-opens-the-selected-choice omnivox-explanation-view-displays-result-and-rejects-changed-draft omnivox-explanation-view-preserves-applied-request-across-edits-and-detaches-on-kill omnivox-explanation-view-rejects-a-replaced-selected-worker omnivox-library-removal-graphical-review-preserves-origin-and-return omnivox-espeak-variants-graphical-refresh-keeps-focus-and-parent omnivox-espeak-variants-graphical-navigation-speaks-every-row omnivox-espeak-variants-default-is-a-saveable-palette-destination omnivox-catalogue-graphical-navigation-and-background-refresh omnivox-catalogue-graphical-group-navigation omnivox-punctuation-graphical-navigation-edit-and-return omnivox-engine-settings-graphical-customize-returns-to-details emacsvox-aural-voice-workbench-graphical-engine-browser-return emacsvox-aural-workbench-graphical-engine-management-round-trip emacsvox-aural-workbench-graphical-quit-unwinds-voice-browser emacsvox-aural-workbench-graphical-espeak-tree-navigation emacsvox-aural-workbench-graphical-filter-search-and-editor-return emacsvox-aural-workbench-graphical-language-navigation-and-refresh emacsvox-omnivox-components-graphical-details-refresh-preserves-window emacsvox-omnivox-components-graphical-explicit-release-round-trip emacsvox-omnivox-components-graphical-library-navigation-and-return emacsvox-aural-feedback-details-graphical-folding-and-draft-return emacsvox-emoji-graphical-explanation-is-visible emacsvox-aural-voice-editor-feedback-link-resumes-and-returns emacsvox-aural-voice-editor-spoken-label-link-retains-palette-and-return emacsvox-aural-voice-editor-save-actions-follow-settings-and-previews emacsvox-aural-voice-editor-field-navigation-stops-at-both-ends emacsvox-aural-voice-editor-horizontal-arrows-navigate-nonnumeric-fields emacsvox-aural-voice-editor-graphical-save-remains-visible emacsvox-aural-voice-editor-graphical-more-controls-below-button emacsvox-aural-guided-graphical-minibuffer-history-follows-origin)’)
+Voice preview stopped
+   passed   1/38  emacsvox-aural-voice-bulk-graphical-browser-review-cancel-and-save (0.459824 sec)
+   passed   2/38  emacsvox-engine-controls-graphical-groups-search-and-focus (0.090835 sec)
+Type q to restore previous buffer, <next> to scroll help.
+   passed   3/38  emacsvox-engine-controls-help-is-spoken-and-returns-to-parameter (0.036216 sec)
+   passed   4/38  emacsvox-engine-controls-table-columns-and-keyboard-adjustment (0.107368 sec)
+   passed   5/38  emacsvox-engine-controls-graphical-edit-after-reading-prompt (0.269874 sec)
+   passed   6/38  emacsvox-engine-controls-back-detaches-query-and-restores-common-navigation (0.022649 sec)
+   passed   7/38  emacsvox-engine-controls-close-retains-draft-without-stale-view-state (0.036936 sec)
+Type C-x 1 to delete the help window, C-M-v to scroll help.
+   passed   8/38  omnivox-explanation-details-link-opens-the-selected-choice (0.102490 sec)
+   passed   9/38  omnivox-explanation-view-displays-result-and-rejects-changed-draft (0.019945 sec)
+   passed  10/38  omnivox-explanation-view-preserves-applied-request-across-edits-and-detaches-on-kill (0.020211 sec)
+   passed  11/38  omnivox-explanation-view-rejects-a-replaced-selected-worker (0.013941 sec)
+   passed  12/38  omnivox-library-removal-graphical-review-preserves-origin-and-return (0.019374 sec)
+   passed  13/38  omnivox-espeak-variants-graphical-refresh-keeps-focus-and-parent (0.033769 sec)
+   passed  14/38  omnivox-espeak-variants-graphical-navigation-speaks-every-row (0.021158 sec)
+   passed  15/38  omnivox-espeak-variants-default-is-a-saveable-palette-destination (0.146207 sec)
+   passed  16/38  omnivox-catalogue-graphical-navigation-and-background-refresh (0.021959 sec)
+   passed  17/38  omnivox-catalogue-graphical-group-navigation (0.090346 sec)
+Type C-x 1 to delete the help window, C-M-v to scroll help.
+   passed  18/38  omnivox-punctuation-graphical-navigation-edit-and-return (0.057054 sec)
+Creating customization items...
+Creating customization items ...done
+Creating customization setup...
+Creating customization setup...done
+   passed  19/38  omnivox-engine-settings-graphical-customize-returns-to-details (0.244166 sec)
+   passed  20/38  emacsvox-aural-voice-workbench-graphical-engine-browser-return (0.599574 sec)
+   passed  21/38  emacsvox-aural-workbench-graphical-engine-management-round-trip (0.306037 sec)
+   passed  22/38  emacsvox-aural-workbench-graphical-quit-unwinds-voice-browser (0.329356 sec)
+   passed  23/38  emacsvox-aural-workbench-graphical-espeak-tree-navigation (0.285616 sec)
+   passed  24/38  emacsvox-aural-workbench-graphical-filter-search-and-editor-return (0.297123 sec)
+   passed  25/38  emacsvox-aural-workbench-graphical-language-navigation-and-refresh (0.223361 sec)
+   passed  26/38  emacsvox-omnivox-components-graphical-details-refresh-preserves-window (0.264745 sec)
+   passed  27/38  emacsvox-omnivox-components-graphical-explicit-release-round-trip (0.037711 sec)
+Desired voice selection saved; a reviews Apply
+   passed  28/38  emacsvox-omnivox-components-graphical-library-navigation-and-return (0.211871 sec)
+Unsaved: Content voice lighten. P previews before choosing a lifetime.
+   passed  29/38  emacsvox-aural-feedback-details-graphical-folding-and-draft-return (0.296516 sec)
+   passed  30/38  emacsvox-emoji-graphical-explanation-is-visible (0.008497 sec)
+   passed  31/38  emacsvox-aural-voice-editor-feedback-link-resumes-and-returns (0.153126 sec)
+mouse-2, RET: Push this button
+mouse-2, RET: Push this button
+   passed  32/38  emacsvox-aural-voice-editor-spoken-label-link-retains-palette-and-return (0.058759 sec)
+   passed  33/38  emacsvox-aural-voice-editor-save-actions-follow-settings-and-previews (0.026499 sec)
+   passed  34/38  emacsvox-aural-voice-editor-field-navigation-stops-at-both-ends (0.022506 sec)
+   passed  35/38  emacsvox-aural-voice-editor-horizontal-arrows-navigate-nonnumeric-fields (0.110145 sec)
+   passed  36/38  emacsvox-aural-voice-editor-graphical-save-remains-visible (0.041616 sec)
+   passed  37/38  emacsvox-aural-voice-editor-graphical-more-controls-below-button (0.037825 sec)
+Vertico 20260913.1525: /home/bart/.emacs.d/elpa/vertico-20260913.1525/vertico.elc
+   passed  38/38  emacsvox-aural-guided-graphical-minibuffer-history-follows-origin (0.389172 sec)
+
+Ran 38 tests, 38 results as expected, 0 unexpected (2026-09-28 21:50:37+1000, 5.629499 sec)

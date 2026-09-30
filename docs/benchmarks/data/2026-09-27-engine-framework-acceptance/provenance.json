@@ -1,0 +1,26 @@
+{
+  "test_commit": "ac380831f9c108d17bccfcc32df10b33b3d8a2b5",
+  "production_base": "3e754b4",
+  "emacsvox_commit": "1ff3f466b87ebe32c8022d3f98d37dc756e9d5a3",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "sha256": {
+    "tools/verify_engine_configuration.py": "41703ee58e6903259c5de0dc20557062ebb1f1066fa4d6acf4c5d6393de59cd8",
+    "test-fixtures/framework-helper.py": "12a2f3b3e7bbb01d0e39ab0dfc622269045be32d6d2a8577d400ce656f2d13fe",
+    "test-fixtures/framework-helper.cs": "23db3d19322eddcc24318fceed9d149572818de04d4ffee5b92e18372404afb5",
+    "omnivox-cli/src/engine/configuration_tests.rs": "1e0faf8d5948781e24abf33042d6790ba5f86ab0a7174ebbca7dcef4ec2ed2ea",
+    "target/debug/omnivox": "cb6f3a070c4d8cddc2d59f1b8e7d1889fba29c5e59367f678b495ff09dd037b6",
+    "/home/bart/src/emacsvox/servers/omnivox-bin/versions/308ff70ae39887f0/omnivox.exe": "a94a11596d01caf0049de46a7496e3839c94929db05dec84a8885f2fc015aa82"
+  },
+  "commands": [
+    "cargo +1.97.1 test --locked --workspace",
+    "cargo +1.97.1 clippy --locked --workspace --all-targets -- -D warnings",
+    "make fmt-check",
+    "python3 -m py_compile tools/verify_engine_configuration.py test-fixtures/framework-helper.py",
+    "python3 tools/verify_engine_configuration.py target/debug/omnivox",
+    "make check-emacs bytecode-check (Emacsvox)",
+    "make docs-release-check (Emacsvox)",
+    "make windows-omnivox-dev (Emacsvox; exit 2 at live verification)",
+    "python3 tools/verify_engine_configuration.py --windows /mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/308ff70ae39887f0/omnivox.exe (exit 1)"
+  ]
+}

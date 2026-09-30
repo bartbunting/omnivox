@@ -78,6 +78,12 @@ remote-test:
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_remote_service.py
 
+# Requires a staged payload; exercises rejected inputs in isolated processes.
+.PHONY: input-validation-test
+input-validation-test:
+	PYTHONDONTWRITEBYTECODE=1 \
+		$(PYTHON) -W error::ResourceWarning tools/test_input_validation.py
+
 # Local supervisor failure checks; no SSH host or speech runtime required.
 .PHONY: remote-ssh-harness-test
 remote-ssh-harness-test:
@@ -147,9 +153,19 @@ fmt:
 fmt-check:
 	cargo fmt --all -- --check
 
-# Verify repository-local links in tracked Markdown documentation
-docs-check:
-	$(PYTHON) tools/check_markdown_links.py
+.PHONY: docs-links-test docs-check-paired
+# Verify tracked Markdown/Org targets, anchors and current GitHub self-links.
+docs-links-test:
+	$(PYTHON) tools/test_documentation_links.py
+
+docs-check: docs-links-test
+	$(PYTHON) tools/check_documentation_links.py
+
+# Also validate incoming links from the selected sibling checkout, without I/O
+# to GitHub. The ordinary gate remains usable in a standalone Omnivox checkout.
+EMACSVOX_SOURCE_DIRECTORY ?= ../emacsvox
+docs-check-paired: docs-links-test
+	$(PYTHON) tools/check_documentation_links.py --emacsvox-source "$(EMACSVOX_SOURCE_DIRECTORY)"
 
 # Generate documentation
 doc:

@@ -1,0 +1,8 @@
+{
+  "command": [
+    "make",
+    "windows-omnivox-dev"
+  ],
+  "exit": 2,
+  "elapsed_seconds": 452.11989439401077
+}

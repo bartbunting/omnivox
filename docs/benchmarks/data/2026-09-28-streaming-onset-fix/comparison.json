@@ -1,0 +1,54 @@
+{
+  "baseline": {
+    "helper-16000-1-streaming-fast": {
+      "utterances": 10,
+      "missing_frames_min": 346,
+      "missing_frames_max": 347,
+      "minimum_interior_correlation": 0.9999797074400633
+    },
+    "helper-22050-1-streaming-fast": {
+      "utterances": 10,
+      "missing_frames_min": 250,
+      "missing_frames_max": 251,
+      "minimum_interior_correlation": 0.9999796919745307
+    },
+    "helper-22050-1-streaming-lead": {
+      "utterances": 10,
+      "missing_frames_min": 249,
+      "missing_frames_max": 250,
+      "minimum_interior_correlation": 0.9999795069581237
+    }
+  },
+  "fixed": {
+    "helper-16000-1-streaming-fast": {
+      "utterances": 10,
+      "missing_frames_min": 0,
+      "missing_frames_max": 0,
+      "minimum_interior_correlation": 0.9999797074018292
+    },
+    "helper-22050-1-buffered-fast": {
+      "utterances": 10,
+      "missing_frames_min": 0,
+      "missing_frames_max": 0,
+      "minimum_interior_correlation": 0.9999796919385507
+    },
+    "helper-22050-1-streaming-fast": {
+      "utterances": 10,
+      "missing_frames_min": 0,
+      "missing_frames_max": 0,
+      "minimum_interior_correlation": 0.9999796956760932
+    },
+    "helper-22050-1-streaming-lead": {
+      "utterances": 10,
+      "missing_frames_min": 0,
+      "missing_frames_max": 0,
+      "minimum_interior_correlation": 0.99997950787423
+    },
+    "helper-44100-2-streaming-fast": {
+      "utterances": 10,
+      "missing_frames_min": 0,
+      "missing_frames_max": 0,
+      "minimum_interior_correlation": 0.9999796076745774
+    }
+  }
+}

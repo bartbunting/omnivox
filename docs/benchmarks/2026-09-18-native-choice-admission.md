@@ -2,7 +2,7 @@
 
 This slice follows [shared native synthesis execution](2026-09-18-native-synthesis-execution.md).
 It implements the internal registry and preparation boundary from
-[the accepted contract](../engine-voice-parameters.md). Public registration,
+[the accepted contract](../protocols/engine-voice-parameters.md). Public registration,
 native timelines, routed execution/evidence, private previews and the Emacs
 parameter editor remain subsequent work. No public native capability is enabled.
 

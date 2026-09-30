@@ -91,6 +91,21 @@ fn service(host: Host) -> Result<()> {
         let result = (|| -> Result<Reply> {
             match request.command.as_str() {
                 "host" => Ok(host.reply()),
+                "punctuation-review" | "punctuation-save" if activation.is_none() => {
+                    use omnivox_tts::engine_configuration::{punctuation_editor, Platform};
+                    let root =
+                        Platform::native().configuration_root(None, |key| std::env::var_os(key))?;
+                    let review = if request.command == "punctuation-save" {
+                        punctuation_editor::save(
+                            &root,
+                            &request.expected_sha256,
+                            request.punctuation_json.as_bytes(),
+                        )?
+                    } else {
+                        punctuation_editor::inspect(&root)?
+                    };
+                    Ok(Reply::PunctuationConfiguration { review })
+                }
                 "catalogue" if activation.is_none() => Ok(Reply::Catalogue {
                     catalogue: omnivox_tts::voice_library::catalogue::Catalogue::parse(
                         request.plan_json.as_bytes(),
@@ -189,17 +204,39 @@ fn service(host: Host) -> Result<()> {
                     drop(profile);
                     // Capture this launcher's current native inputs. The old
                     // worker's separately retained snapshot is only for rollback.
-                    let mut startup = Startup::capture(&host)?;
-                    startup.candidate(&path)?;
+                    let mut startup = if request.startup.is_empty() {
+                        anyhow::ensure!(
+                            request.startup_sha256.is_empty(),
+                            "startup digest requires a startup reference"
+                        );
+                        let mut startup = Startup::capture(&host)?;
+                        startup.candidate(&path)?;
+                        startup
+                    } else {
+                        shared_startup(Path::new(&request.startup), &request.startup_sha256)?
+                    };
                     anyhow::ensure!(
                         startup.configuration.as_ref() == Some(&candidate.configuration),
                         "snapshot candidate changed"
                     );
+                    prepare_engines(&mut startup)?;
                     let (path, digest) = startup.save_prepared(&host, &local::new_uuid()?)?;
                     Ok(Reply::Snapshot {
                         startup: path.to_string_lossy().into(),
                         startup_sha256: digest,
                         configuration: candidate.configuration,
+                        activation_id: startup.engines.as_ref().unwrap().activation_id().into(),
+                    })
+                }
+                "engine-snapshot" if activation.is_none() => {
+                    let mut startup = Startup::capture(&host)?;
+                    prepare_engines(&mut startup)?;
+                    let (path, digest) = startup.save_prepared(&host, &local::new_uuid()?)?;
+                    Ok(Reply::PreparedStartup {
+                        startup: path.to_string_lossy().into(),
+                        startup_sha256: digest,
+                        configuration: startup.configuration.clone(),
+                        activation_id: startup.engines.as_ref().unwrap().activation_id().into(),
                     })
                 }
                 "begin" if activation.is_none() => {
@@ -277,9 +314,8 @@ impl Worker {
         let tree = platform::Tree::for_speech()?;
         let mut command = Command::new(&startup.executable.path);
         command.args(&startup.arguments);
+        startup.environment.apply(&mut command);
         command
-            .env_clear()
-            .envs(&startup.environment)
             // Local ownership needs the START barrier, not the remote
             // broker's restriction to bundled icon identifiers.
             .env_remove("OMNIVOX_REMOTE_WORKER")
@@ -323,12 +359,29 @@ impl Worker {
                     Ok(())
                 })?,
         );
-        worker
-            .child
-            .stdin
-            .as_mut()
-            .context("missing owned stdin")?
-            .write_all(b"START\n")?;
+        let snapshot = startup
+            .engines
+            .clone()
+            .context("owner lacks frozen engine startup")?;
+        let mut stdin = worker.child.stdin.take().context("missing owned stdin")?;
+        let (sender, receiver) = mpsc::sync_channel(1);
+        // A complete record may exceed pipe capacity. Retain its writer with
+        // the owned tree and bound transmission; cleanup also joins this pipe.
+        worker.readers.push(
+            thread::Builder::new()
+                .name("owned-speech-startup".into())
+                .spawn(move || {
+                    let result =
+                        crate::worker_startup::write(&mut stdin, &snapshot).map(|()| stdin);
+                    let _ = sender.send(result);
+                    Ok(())
+                })?,
+        );
+        worker.child.stdin = Some(
+            receiver
+                .recv_timeout(Duration::from_secs(10))
+                .context("owned worker startup transmission did not complete")??,
+        );
         Ok(())
     }
     fn cleanup(&mut self) -> Result<()> {
@@ -386,12 +439,30 @@ fn owner(host: Host) -> Result<()> {
     let mut path = std::path::PathBuf::new();
     let mut digest = String::new();
     let mut configuration = None;
+    let mut activation_id = None;
     let start = (|| -> Result<()> {
+        anyhow::ensure!(
+            std::env::var_os("OMNIVOX_OWNED_ENGINE_STARTUP").is_none()
+                || (std::env::var_os("OMNIVOX_OWNED_STARTUP").is_none()
+                    && std::env::var_os("OMNIVOX_OWNED_LIBRARY").is_none()),
+            "shared engine startup conflicts with another retained startup or generation"
+        );
         let mut startup = if let Some(path) = std::env::var_os("OMNIVOX_OWNED_STARTUP") {
-            Startup::read(
+            let retained = Startup::read(
                 Path::new(&path),
                 &std::env::var("OMNIVOX_OWNED_STARTUP_SHA256")
                     .context("missing native startup digest")?,
+            )?;
+            anyhow::ensure!(
+                retained.engines.is_some(),
+                "retained startup predates engine snapshots; prepare a fresh activation"
+            );
+            retained
+        } else if let Some(path) = std::env::var_os("OMNIVOX_OWNED_ENGINE_STARTUP") {
+            shared_startup(
+                Path::new(&path),
+                &std::env::var("OMNIVOX_OWNED_ENGINE_STARTUP_SHA256")
+                    .context("missing shared engine startup digest")?,
             )?
         } else {
             Startup::capture(&host)?
@@ -399,8 +470,13 @@ fn owner(host: Host) -> Result<()> {
         if let Some(path) = std::env::var_os("OMNIVOX_OWNED_LIBRARY") {
             startup.candidate(Path::new(&path))?;
         }
+        prepare_engines(&mut startup)?;
         (path, digest) = startup.save(&host, &worker_id)?;
         configuration = startup.configuration.clone();
+        activation_id = startup
+            .engines
+            .as_ref()
+            .map(|snapshot| snapshot.activation_id().to_owned());
         let result = Worker::spawn(&startup, &output, &mut worker);
         if let Some(worker) = &mut worker {
             worker.snapshot = Some((host.clone(), path.clone(), digest.clone()));
@@ -448,6 +524,7 @@ fn owner(host: Host) -> Result<()> {
                         configuration: configuration.clone(),
                         retired: worker.as_ref().is_none_or(|worker| worker.cleaned),
                         startup_error: startup_error.clone(),
+                        activation_id: activation_id.clone(),
                     }),
                     "retire" if request.worker == worker_id => match cleanup(&mut worker) {
                         Ok(()) => {
@@ -498,6 +575,37 @@ fn owner(host: Host) -> Result<()> {
             }
         }
     }
+}
+
+fn prepare_engines(startup: &mut Startup) -> Result<()> {
+    if startup.engines.is_none() {
+        startup.engines = Some(
+            crate::engine::EngineStartup::capture(
+                "",
+                None,
+                None,
+                None,
+                startup.environment.clone(),
+                Path::new(&startup.executable.path),
+            )?
+            .snapshot,
+        );
+    }
+    startup.verify()?;
+    Ok(())
+}
+
+fn shared_startup(path: &Path, digest: &str) -> Result<Startup> {
+    anyhow::ensure!(
+        path.is_absolute(),
+        "shared startup reference must be absolute"
+    );
+    let startup = Startup::read(path, digest)?;
+    anyhow::ensure!(
+        startup.engines.is_some(),
+        "shared startup lacks a complete engine snapshot"
+    );
+    Ok(startup.with_lane_audio(&omnivox_tts::engine_configuration::LaunchEnvironment::capture()))
 }
 
 fn cleanup(worker: &mut Option<Worker>) -> Result<()> {

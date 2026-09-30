@@ -4,6 +4,7 @@ use crate::contracts::{
     Availability, EngineDescriptor, EngineHealth, FallbackPolicy, LogicalVoiceDefinition,
     PhysicalVoiceId, TextRepertoire, VoiceDescriptor, VoiceSelector,
 };
+use crate::engine_configuration::EngineSelectionPermissions;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -96,7 +97,13 @@ pub fn resolve_voice(
     definition: &LogicalVoiceDefinition,
     policy: &FallbackPolicy,
 ) -> Result<VoiceResolution, VoiceResolutionError> {
-    resolve_voice_inner(engines, definition, policy, None)
+    resolve_voice_with_permissions(
+        engines,
+        definition,
+        policy,
+        None,
+        &EngineSelectionPermissions::default(),
+    )
 }
 
 /// Resolve a logical voice while excluding engines that cannot preserve TEXT.
@@ -106,21 +113,35 @@ pub fn resolve_voice_for_text(
     policy: &FallbackPolicy,
     text: &str,
 ) -> Result<VoiceResolution, VoiceResolutionError> {
-    resolve_voice_inner(engines, definition, policy, Some(text))
+    resolve_voice_with_permissions(
+        engines,
+        definition,
+        policy,
+        Some(text),
+        &EngineSelectionPermissions::default(),
+    )
 }
 
-fn resolve_voice_inner(
+/// Resolve with immutable local registration permissions at every stage.
+pub fn resolve_voice_with_permissions(
     engines: &[EngineDescriptor],
     definition: &LogicalVoiceDefinition,
     policy: &FallbackPolicy,
     text: Option<&str>,
+    permissions: &EngineSelectionPermissions,
 ) -> Result<VoiceResolution, VoiceResolutionError> {
     let requested = definition.preferences.first().cloned();
     let mut attempts = Vec::new();
 
     for (index, selector) in definition.preferences.iter().enumerate() {
         let stage = ResolutionStage::Preference { index };
-        match evaluate_selector(engines, selector, &policy.preferred_engines, text) {
+        match evaluate_selector(
+            engines,
+            selector,
+            &policy.preferred_engines,
+            text,
+            permissions,
+        ) {
             Ok(realized) => {
                 let reason = if index == 0 {
                     ResolutionReason::Preferred
@@ -149,7 +170,13 @@ fn resolve_voice_inner(
                 language: Some(language.clone()),
                 gender: None,
             };
-            match evaluate_selector(engines, &selector, &policy.preferred_engines, text) {
+            match evaluate_selector(
+                engines,
+                &selector,
+                &policy.preferred_engines,
+                text,
+                permissions,
+            ) {
                 Ok(realized) => {
                     return Ok(success(
                         definition,
@@ -172,7 +199,13 @@ fn resolve_voice_inner(
         let selector = VoiceSelector::EngineDefault {
             engine_id: engine_id.clone(),
         };
-        match evaluate_selector(engines, &selector, &policy.preferred_engines, text) {
+        match evaluate_selector(
+            engines,
+            &selector,
+            &policy.preferred_engines,
+            text,
+            permissions,
+        ) {
             Ok(realized) => {
                 return Ok(success(
                     definition,
@@ -193,7 +226,13 @@ fn resolve_voice_inner(
     }
 
     if let Some(selector) = &policy.global_default {
-        match evaluate_selector(engines, selector, &policy.preferred_engines, text) {
+        match evaluate_selector(
+            engines,
+            selector,
+            &policy.preferred_engines,
+            text,
+            permissions,
+        ) {
             Ok(realized) => {
                 return Ok(success(
                     definition,
@@ -215,7 +254,13 @@ fn resolve_voice_inner(
         let selector = VoiceSelector::EngineDefault {
             engine_id: engine_id.clone(),
         };
-        match evaluate_selector(engines, &selector, &policy.preferred_engines, text) {
+        match evaluate_selector(
+            engines,
+            &selector,
+            &policy.preferred_engines,
+            text,
+            permissions,
+        ) {
             Ok(realized) => {
                 return Ok(success(
                     definition,
@@ -262,11 +307,12 @@ fn evaluate_selector(
     selector: &VoiceSelector,
     preferred_engines: &[String],
     text: Option<&str>,
+    permissions: &EngineSelectionPermissions,
 ) -> Result<PhysicalVoiceId, ResolutionFailure> {
     match selector {
-        VoiceSelector::Exact(id) => evaluate_exact(engines, id, text),
+        VoiceSelector::Exact(id) => evaluate_exact(engines, id, text, permissions),
         VoiceSelector::EngineDefault { engine_id } => {
-            let engine = find_usable_engine(engines, engine_id)?;
+            let engine = find_usable_engine(engines, engine_id, permissions)?;
             let voice = choose_voice(engine, None, None)?;
             ensure_text_supported(engine, text)?;
             Ok(voice)
@@ -277,7 +323,7 @@ fn evaluate_selector(
             gender,
         } => {
             if let Some(engine_id) = engine_id {
-                let engine = find_usable_engine(engines, engine_id)?;
+                let engine = find_usable_engine(engines, engine_id, permissions)?;
                 let voice = choose_voice(engine, language.as_deref(), *gender)?;
                 ensure_text_supported(engine, text)?;
                 Ok(voice)
@@ -288,6 +334,7 @@ fn evaluate_selector(
                     *gender,
                     preferred_engines,
                     text,
+                    permissions,
                 )
             }
         }
@@ -298,8 +345,9 @@ fn evaluate_exact(
     engines: &[EngineDescriptor],
     id: &PhysicalVoiceId,
     text: Option<&str>,
+    permissions: &EngineSelectionPermissions,
 ) -> Result<PhysicalVoiceId, ResolutionFailure> {
-    let engine = find_usable_engine(engines, &id.engine_id)?;
+    let engine = find_usable_engine(engines, &id.engine_id, permissions)?;
     let voice = engine
         .voice(&id.voice_id)
         .ok_or_else(|| ResolutionFailure::VoiceNotFound { id: id.clone() })?;
@@ -319,7 +367,14 @@ fn evaluate_exact(
 fn find_usable_engine<'a>(
     engines: &'a [EngineDescriptor],
     engine_id: &str,
+    permissions: &EngineSelectionPermissions,
 ) -> Result<&'a EngineDescriptor, ResolutionFailure> {
+    if permissions.disabled(engine_id) {
+        return Err(ResolutionFailure::EngineUnavailable {
+            engine_id: engine_id.into(),
+            reason: "disabled by local engine configuration".into(),
+        });
+    }
     let engine = engines
         .iter()
         .find(|engine| engine.id == engine_id)
@@ -378,10 +433,11 @@ fn choose_across_engines(
     gender: Option<crate::contracts::VoiceGender>,
     preferred_engines: &[String],
     text: Option<&str>,
+    permissions: &EngineSelectionPermissions,
 ) -> Result<PhysicalVoiceId, ResolutionFailure> {
     let mut candidates: Vec<&EngineDescriptor> = engines
         .iter()
-        .filter(|engine| engine.can_synthesize())
+        .filter(|engine| engine.can_synthesize() && permissions.permits_automatic(&engine.id))
         .collect();
     candidates.sort_by(|left, right| {
         let left_priority = preferred_engines
@@ -503,6 +559,143 @@ mod tests {
 
     fn exact(engine_id: &str, voice_id: &str) -> VoiceSelector {
         VoiceSelector::Exact(PhysicalVoiceId::new(engine_id, voice_id))
+    }
+
+    #[test]
+    fn external_engines_require_explicit_scope_or_local_automatic_permission() {
+        use std::collections::BTreeSet;
+        let external = engine(
+            "aaa.external",
+            "voice",
+            vec![voice("aaa.external", "voice", "en-US")],
+        );
+        let shipped = engine("espeak", "en", vec![voice("espeak", "en", "en-US")]);
+        let engines = [external.clone(), shipped];
+        let external_ids = BTreeSet::from(["aaa.external".into()]);
+        let restricted = EngineSelectionPermissions::new(
+            BTreeSet::new(),
+            external_ids.clone(),
+            &BTreeSet::new(),
+        );
+        let automatic =
+            EngineSelectionPermissions::new(BTreeSet::new(), external_ids.clone(), &external_ids);
+        let properties = VoiceSelector::Properties {
+            engine_id: None,
+            language: Some("en-US".into()),
+            gender: None,
+        };
+        let policy = FallbackPolicy {
+            preferred_engines: vec!["aaa.external".into()],
+            ..FallbackPolicy::default()
+        };
+        let definition = logical(vec![properties.clone()]);
+        for text in [None, Some("ordinary text")] {
+            let resolved =
+                resolve_voice_with_permissions(&engines, &definition, &policy, text, &restricted)
+                    .unwrap();
+            assert_eq!(resolved.realized.engine_id, "espeak");
+            let resolved =
+                resolve_voice_with_permissions(&engines, &definition, &policy, text, &automatic)
+                    .unwrap();
+            assert_eq!(resolved.realized.engine_id, "aaa.external");
+        }
+        for selector in [
+            exact("aaa.external", "voice"),
+            VoiceSelector::EngineDefault {
+                engine_id: "aaa.external".into(),
+            },
+            VoiceSelector::Properties {
+                engine_id: Some("aaa.external".into()),
+                language: Some("en-US".into()),
+                gender: None,
+            },
+        ] {
+            assert_eq!(
+                resolve_voice_with_permissions(
+                    &engines,
+                    &logical(vec![selector]),
+                    &FallbackPolicy::default(),
+                    None,
+                    &restricted
+                )
+                .unwrap()
+                .realized
+                .engine_id,
+                "aaa.external"
+            );
+        }
+        assert!(resolve_voice_with_permissions(
+            std::slice::from_ref(&external),
+            &definition,
+            &FallbackPolicy::default(),
+            None,
+            &restricted
+        )
+        .is_err());
+        let resolved = resolve_voice_with_permissions(
+            std::slice::from_ref(&external),
+            &definition,
+            &policy,
+            None,
+            &restricted,
+        )
+        .unwrap();
+        assert!(matches!(
+            resolved.reason,
+            ResolutionReason::PreferredEngine { .. }
+        ));
+
+        let mut registry =
+            crate::logical_voices::LogicalVoiceRegistry::with_engine_permissions(restricted);
+        let bindings = registry
+            .register(1, vec![definition], policy, &engines)
+            .unwrap();
+        assert!(
+            matches!(&bindings.bindings[0], crate::logical_voices::LogicalVoiceBinding::Resolved { resolution } if resolution.realized.engine_id == "espeak")
+        );
+    }
+
+    #[test]
+    fn local_disablement_applies_to_every_resolution_stage_even_with_automatic_permission() {
+        use std::collections::BTreeSet;
+        let id = "aaa.external";
+        let ids = BTreeSet::from([id.into()]);
+        let permissions = EngineSelectionPermissions::new(ids.clone(), ids.clone(), &ids);
+        let engines = [engine(id, "voice", vec![voice(id, "voice", "en-US")])];
+        let policy = FallbackPolicy {
+            preferred_engines: vec![id.into()],
+            fallback_engines: vec![id.into()],
+            global_default: Some(exact(id, "voice")),
+            allow_same_language_on_requested_engine: true,
+        };
+        let definition = logical(vec![
+            exact(id, "voice"),
+            VoiceSelector::EngineDefault {
+                engine_id: id.into(),
+            },
+            VoiceSelector::Properties {
+                engine_id: None,
+                language: Some("en-US".into()),
+                gender: None,
+            },
+        ]);
+        let failed = resolve_voice_with_permissions(
+            &engines,
+            &definition,
+            &policy,
+            Some("speech"),
+            &permissions,
+        )
+        .unwrap_err();
+        assert_eq!(failed.attempts.len(), 7);
+        assert!(failed
+            .attempts
+            .iter()
+            .any(|a| matches!(a.stage, ResolutionStage::SameLanguageOnRequestedEngine)));
+        assert!(failed
+            .attempts
+            .iter()
+            .any(|a| matches!(a.stage, ResolutionStage::FallbackEngine { .. })));
     }
 
     #[test]

@@ -674,7 +674,7 @@ impl EspeakTtsEngine {
 
     /// Map the host rate to eSpeak NG's 80-through-450 words-per-minute control.
     fn map_rate(rate: f32) -> c_int {
-        // Measured reference and saturation policy: docs/RATE-CALIBRATION.md.
+        // Measured reference and saturation policy: docs/reference/rate-calibration.md.
         const CALIBRATION: &[(f32, f32)] = &[
             (0.0, 80.000_000),
             (0.1, 100.906_27),

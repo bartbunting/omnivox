@@ -37,12 +37,13 @@ mod native_timeline_playback {
         Vec<MarkerEventEnvelope>,
         Arc<NativePlanReferences>,
     ) {
-        run_mode(engines, routing, None)
+        run_mode(engines, routing, None, None)
     }
     fn run_mode(
         engines: &EngineRegistry,
         routing: LogicalVoiceRoutingSnapshot,
         letter: Option<&str>,
+        capital_pitch: Option<omnivox_core::settings::CapitalPitch>,
     ) -> (
         BatchStatus,
         Vec<MarkerEventEnvelope>,
@@ -97,6 +98,11 @@ mod native_timeline_playback {
             document,
             TtsState {
                 speech_rate: 0.65,
+                capital_pitch: Arc::new(omnivox_core::settings::CapitalPitchSettings {
+                    default: capital_pitch
+                        .unwrap_or(omnivox_core::settings::CapitalPitch::Value(1.5)),
+                    ..Default::default()
+                }),
                 current_voice: "Paul".into(),
                 ..Default::default()
             },
@@ -136,13 +142,17 @@ mod native_timeline_playback {
             let mut engines = EngineRegistry::new();
             engines.register(first).unwrap();
             engines.register(second.clone()).unwrap();
-            for text in ["q", "Q"] {
+            for (text, cue) in [
+                ("q", None),
+                ("Q", None),
+                ("Q", Some(omnivox_core::settings::CapitalPitch::Off)),
+            ] {
                 let routing =
                     snapshot(&engines, native_definition()).with_parameter_catalogues(vec![
                         Arc::new(metadata("dectalk", "Paul")),
                         Arc::new(metadata("eloquence", "Reed")),
                     ]);
-                let (status, events, plans) = run_mode(&engines, routing, Some(text));
+                let (status, events, plans) = run_mode(&engines, routing, Some(text), cue);
                 assert_eq!(status, BatchStatus::Completed);
                 let receipt = events
                     .iter()
@@ -167,12 +177,26 @@ mod native_timeline_playback {
                     .is_some());
             }
             let calls = second.native_calls.lock().unwrap();
-            assert_eq!(calls.len(), 2);
+            assert_eq!(calls.len(), 3);
             assert_eq!(calls[0].0.text, "q");
             assert_eq!(calls[1].0.text, "q");
-            assert!((calls[1].0.settings.pitch - calls[0].0.settings.pitch * 1.5).abs() < 0.0001);
+            assert!((calls[1].0.settings.pitch - 1.5).abs() < 0.0001);
             assert_eq!(calls[0].1.native.parameters, calls[1].1.native.parameters);
             assert!(!calls[0].1.native.parameters.is_empty());
+            assert!(!calls[0]
+                .1
+                .context_dimensions
+                .contains(&CommonInput::AveragePitch));
+            assert!(calls[1]
+                .1
+                .context_dimensions
+                .contains(&CommonInput::AveragePitch));
+            assert!(!calls[2]
+                .1
+                .context_dimensions
+                .contains(&CommonInput::AveragePitch));
+            assert_eq!(calls[2].0.settings.pitch, calls[0].0.settings.pitch);
+            assert_eq!(calls[2].1.native.parameters, calls[0].1.native.parameters);
         }
     }
     #[test]

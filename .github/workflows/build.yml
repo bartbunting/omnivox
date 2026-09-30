@@ -32,10 +32,10 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Check documentation links
-        run: python3 tools/check_markdown_links.py
+        run: make docs-check
 
-      - name: Check Debian release guards and asset contract
-        run: make deb-package-test release-asset-test
+      - name: Check release guards, archive layout, and asset contract
+        run: make deb-package-test release-archive-test release-asset-test
 
       - name: Check WSL audio trial tools without an audio device
         run: make wsl-audio-test
@@ -187,6 +187,21 @@ jobs:
           artifacts/omnivox --engine native --dump-wav "" native-smoke.wav "Omnivox release build verification."
           test "$(wc -c < native-smoke_raw.wav)" -gt 44
           test "$(wc -c < native-smoke.wav)" -gt 44
+
+      - name: Verify external engine registration (native Unix)
+        if: runner.os != 'Windows'
+        run: python tools/verify_engine_configuration.py artifacts/omnivox
+
+      - name: Verify input failures and recovery (native Unix)
+        if: runner.os != 'Windows'
+        run: OMNIVOX_INPUT_TEST_PROGRAM="$PWD/artifacts/omnivox" python tools/test_input_validation.py
+
+      - name: Verify input failures and recovery (native Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:OMNIVOX_INPUT_TEST_PROGRAM = (Resolve-Path artifacts\omnivox.exe).Path
+          python tools/test_input_validation.py
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -1710,10 +1725,12 @@ jobs:
       RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
 
     steps:
-      - name: Checkout verification code from release tag
+      # Use this run's verifier, like the other binary checks, so a manual
+      # draft retry can repair verification without changing the release tag.
+      - name: Checkout verification code
         uses: actions/checkout@v7
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ github.sha }}
 
       - name: Install Python
         uses: actions/setup-python@v7

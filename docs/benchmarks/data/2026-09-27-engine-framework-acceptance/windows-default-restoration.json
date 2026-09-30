@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/2faa4a181c27b40c/omnivox.exe",
+    "--engine",
+    "espeak",
+    "--list-voices-alist"
+  ],
+  "exit_code": 0,
+  "voice_count": 141,
+  "stderr": "",
+  "restored_current": "versions/2faa4a181c27b40c",
+  "failed_runtime_retained": "versions/308ff70ae39887f0",
+  "espeak_data": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718"
+}

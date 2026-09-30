@@ -1,0 +1,197 @@
+   Compiling omnivox-audio v1.13.0 (/tmp/omnivox-idle-onset-release-tfthheo6/omnivox-audio)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.19s
+     Running unittests src/lib.rs (target/debug/deps/omnivox_audio-802cbb8e14db066b)
+
+running 147 tests
+test buffer::tests::converts_native_i16_mono_to_canonical_stereo ... ok
+test buffer::tests::test_append ... ok
+test buffer::tests::rejects_invalid_native_formats ... ok
+test buffer::tests::test_clamp ... ok
+test buffer::tests::test_duration ... ok
+test buffer::tests::test_empty_buffer ... ok
+test buffer::tests::test_left_right_access ... ok
+test buffer::tests::test_new_buffer ... ok
+test buffer::tests::test_new_buffer_odd_samples_panics - should panic ... ok
+test buffer::tests::test_peak_amplitude ... ok
+test buffer::tests::test_peak_amplitude_empty ... ok
+test buffer::tests::test_set_left_right ... ok
+test buffer::tests::tiny_native_buffers_do_not_disappear_during_resampling ... ok
+test cancellation::tests::cancellation_is_shared_and_permanent ... ok
+test buffer::tests::test_silence ... ok
+test effects::tests::progressive_trimmer_discards_an_all_silent_stream ... ok
+test effects::tests::test_channel_router_both ... ok
+test effects::tests::progressive_trimmer_matches_buffered_samples_across_windows ... ok
+test effects::tests::test_channel_router_left ... ok
+test effects::tests::test_channel_router_right ... ok
+test effects::tests::test_channel_router_empty ... ok
+test effects::tests::test_pipeline_trimmer_then_volume ... ok
+test effects::tests::test_full_pipeline ... ok
+test effects::tests::test_pipeline_volume_then_router ... ok
+test effects::tests::test_silence_trimmer_leading_silence ... ok
+test effects::tests::test_silence_trimmer_both_ends ... ok
+test effects::tests::test_silence_trimmer_threshold ... ok
+test effects::tests::test_silence_trimmer_trailing_silence ... ok
+test effects::tests::test_silence_trimmer_with_padding ... ok
+test effects::tests::test_silence_trimmer_no_silence ... ok
+test effects::tests::test_silence_trimmer_empty_buffer ... ok
+test effects::tests::test_volume_adjust_double ... ok
+test effects::tests::test_silence_trimmer_all_silence ... ok
+test loader::tests::remote_loader_rejects_symlinks_outside_the_sound_root ... ok
+test effects::tests::test_volume_adjust_clamp ... ok
+test loader::tests::encoded_resource_size_is_bounded_before_decode ... ok
+test loader::tests::shared_cache_hits_reuse_the_decoded_pcm_allocation ... ok
+test loader::tests::test_cache_operations ... ok
+test loader::tests::test_downmix_to_stereo ... ok
+test effects::tests::test_volume_adjust_half ... ok
+test loader::tests::test_cache_hit ... ok
+test effects::tests::test_volume_adjust_zero ... ok
+test loader::tests::test_load_nonexistent_file ... ok
+test loader::tests::test_loader_default ... ok
+test loader::tests::test_mono_to_stereo ... ok
+test loader::tests::test_resample_downsample ... ok
+test effects::tests::test_volume_adjust_empty ... ok
+test loader::tests::test_resample_upsample ... ok
+test loader::tests::cache_evicts_the_least_recently_used_entry ... ok
+test effects::tests::test_volume_adjust_unity ... ok
+test loader::tests::test_resample_same_rate ... ok
+test loader::tests::replacing_a_checked_file_with_a_pipe_cannot_block_open ... ok
+test loader::tests::test_load_generated_wav ... ok
+test output::tests::cancellation_fade_uses_smooth_endpoints ... ok
+test output::tests::active_tracked_source_fades_to_zero_when_cancelled ... ok
+test output::tests::cloned_tickets_observe_the_same_terminal_state ... ok
+test output::tests::playback_cues_reject_offsets_beyond_the_buffer ... ok
+test output::tests::failed_attachment_can_follow_accepted_pcm_without_consumption ... ok
+test output::tests::progressive_control_attaches_only_after_three_audio_windows ... ok
+test output::tests::progressive_control_attaches_a_short_stream_at_completion ... ok
+test output::tests::progressive_control_does_not_attach_after_stop_during_priming ... ok
+test output::tests::progressive_source_cancellation_interrupts_an_empty_stream ... ok
+test output::tests::progressive_source_reports_an_unfinished_producer_as_cancelled ... ok
+test output::tests::progressive_cues_do_not_consume_bounded_audio_capacity ... ok
+test output::tests::rapid_replacement_burst_leaves_only_the_latest_source_playable ... ok
+test output::tests::progressive_source_consumes_ordered_windows_and_dynamic_cues ... ok
+test output::tests::null_backend_shutdown_interrupts_an_idle_progressive_source ... ok
+test output::tests::progressive_producer_rejects_empty_or_late_frames ... ok
+test output::tests::letter_cancellation_before_priming_releases_no_pcm_or_cues ... ok
+test output::tests::speech_stop_rotates_the_stream_cancellation_generation ... ok
+test output::tests::stream_stop_fades_active_untracked_audio_but_discards_queued_audio ... ok
+test output::tests::token_cancellation_is_scoped_across_active_and_queued_sources ... ok
+test output::tests::null_backend_consumes_tracked_audio_and_cues_without_a_device ... ok
+test output::tests::tone_stop_rotates_the_stream_cancellation_generation ... ok
+test output::tests::token_cancellation_suppresses_unreached_cues ... ok
+test output::tests::tracked_source_drops_unreached_cues_on_cancellation ... ok
+test output::tests::scheduled_playback_waits_for_every_guard ... ok
+test output::tests::tone_stop_fades_the_active_sink_source_to_zero ... ok
+test output::tests::tracked_source_emits_ordered_cues_at_frame_boundaries ... ok
+test output::tests::tracked_source_invokes_cue_callback_without_changing_completion ... ok
+test output::tests::tracked_source_reports_early_drop_as_cancellation ... ok
+test output::tests::tracked_source_reports_natural_completion ... ok
+test output::tests::tracked_source_reports_only_one_terminal_state ... ok
+test output::tests::unstarted_tracked_source_stops_immediately_when_cancelled ... ok
+test pipeline::tests::test_empty_pipeline ... ok
+test output::tests::null_backend_consumes_progressive_speech_without_a_device ... ok
+test pipeline::tests::test_pipeline_len ... ok
+test pipeline::tests::test_single_effect ... ok
+test pipeline::tests::test_chained_effects ... ok
+test output::tests::letter_reserve_releases_short_streams_and_tiny_windows_without_deadlock ... ok
+test post_synthesis::tests::chorus_delay_state_crosses_render_windows_without_a_tail ... ok
+test output::tests::ordinary_progressive_speech_keeps_its_window_reserve ... ok
+test pipeline::tests::test_clear_pipeline ... ok
+test pipeline::tests::test_effect_error_propagates ... ok
+test post_synthesis::tests::gain_and_pan_ramp_without_changing_duration ... ok
+test post_synthesis::tests::neutral_processing_is_duration_preserving ... ok
+test post_synthesis::tests::chorus_is_duration_preserving_and_adds_a_modulated_copy ... ok
+test post_synthesis::tests::enabling_chorus_does_not_replay_earlier_dry_audio ... ok
+test pipeline::tests::test_effect_order_matters ... ok
+test output::tests::pulse_disconnect_retires_stalled_progressive_source_and_teardown_closes_controls ... ok
+test output::idle_onset_repro::idle_onset_repro_cold_and_contiguous ... ok
+test progressive_pcm::tests::canonical_pcm_passes_through_and_expands_mono ... ok
+test output::tests::primed_letter_can_stop_a_stalled_producer_and_recover ... ok
+test pulse::tests::latency_request_is_bounded_and_independent_of_alsa_defaults ... ok
+test post_synthesis::tests::reverb_produces_an_explicit_tail_without_extending_primary_audio ... ok
+test pulse::tests::stop_flushes_old_generation_and_keeps_immediate_replacement ... ok
+test output::tests::pulse_progressive_prebuffer_and_stop_do_not_wait_for_stalled_producer ... ok
+test pulse::tests::blocked_lane_does_not_hold_up_another_lane ... ok
+test timeline::tests::incremental_window_rejects_actions_outside_its_absolute_range ... ok
+test pulse::tests::bounded_writes_drain_before_idle_cork_and_resume_without_silence ... ok
+test output::tests::letter_reserve_uses_frames_and_preserves_pcm_and_cues ... ok
+test timeline::tests::insertion_shifts_primary_and_frame_mapping ... ok
+test output::tests::pulse_selective_cancellation_preserves_unrelated_audio_and_cues ... ok
+test timeline::tests::missing_or_mismatched_resources_are_rejected ... ok
+test timeline::tests::incremental_windows_match_one_complete_timeline_at_shared_boundaries ... ok
+test timeline::tests::overlay_does_not_shift_primary_and_final_tail_is_retained ... ok
+test timeline::tests::overlay_tail_crosses_into_the_next_bounded_window ... ok
+test timeline::tests::semantic_event_uses_the_insertion_shifted_output_frame ... ok
+test timeline::tests::shared_resources_render_without_taking_pcm_ownership ... ok
+test tone::tests::test_fade_out_envelope ... ok
+test tone::tests::test_fade_in_envelope ... ok
+test tone::tests::test_generate_correct_duration ... ok
+test tone::tests::test_generate_zero_duration ... ok
+test tone::tests::test_generate_stereo_output ... ok
+test tone::tests::test_very_short_tone ... ok
+test tone::tests::test_common_emacspeak_tones ... ok
+test tone::tests::test_frequency_content ... ok
+test tone::tests::test_samples_in_range ... ok
+test pulse::tests::stop_interrupts_pending_drain_without_waiting_for_the_device_tail ... ok
+test tone::tests::test_spatial_delay ... ok
+test tone::tests::test_volume_scaling ... ok
+test post_synthesis::tests::enabling_a_delay_does_not_replay_earlier_dry_audio ... ok
+test post_synthesis::tests::echo_state_crosses_windows_and_returns_a_bounded_final_tail ... ok
+test loader::tests::remote_loader_requires_icons_and_preserves_cached_pcm ... ok
+test progressive_pcm::tests::rejects_misaligned_or_post_completion_input ... ok
+test buffer::tests::converts_and_resamples_native_mono ... ok
+test progressive_pcm::tests::idle_filters_require_exact_format_and_have_a_fixed_limit ... ok
+test pulse::tests::failed_reconnect_does_not_retry_without_fresh_audio ... ok
+test pulse::tests::stop_during_reconnect_keeps_only_the_replacement_and_shutdown_stays_final ... ok
+test output::idle_onset_repro::idle_onset_repro_tick_and_internal_silence ... ok
+test progressive_pcm::tests::conversion_is_independent_of_native_callback_boundaries ... ok
+test progressive_pcm::tests::sinc_conversion_preserves_more_high_frequency_energy_than_linear ... ok
+test output::idle_onset_repro::idle_onset_repro_canonical_metadata_control ... ok
+test output::idle_onset_repro::idle_onset_repro_after_idle ... ok
+test pulse::tests::device_failure_retires_backlog_and_reconnects_only_for_fresh_audio ... ok
+test progressive_pcm::tests::completion_has_the_exact_scaled_frame_count ... ok
+test progressive_pcm::tests::reused_filter_matches_fresh_pcm_after_completion_or_cancellation ... ok
+
+test result: ok. 147 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+
+     Running tests/integration_tests.rs (target/debug/deps/integration_tests-d3f970c903f76a54)
+
+running 31 tests
+test append_buffers_then_process ... ok
+test all_buffers_stereo_f32_44100 ... ok
+test channel_left_zeros_right ... ok
+test effect_order_matters_trim_then_volume_vs_volume_then_trim ... ok
+test cache_returns_same_content ... ok
+test channel_right_zeros_left ... ok
+test empty_buffer_through_pipeline ... ok
+test empty_buffer_through_effects ... ok
+test known_buffer_through_effects ... ok
+test load_invalid_file_returns_decode_error ... ok
+test load_nonexistent_file_returns_file_not_found ... ok
+test multiple_effects_applied_in_order ... ok
+test three_effects_in_chain ... ok
+test resampled_wav_is_stereo_44100 ... ok
+test trim_both_ends ... ok
+test tone_then_trim_preserves_content ... ok
+test trim_does_not_over_trim ... ok
+test trim_leading_silence ... ok
+test tone_stereo_output_and_spatial_delay ... ok
+test tone_through_full_pipeline ... ok
+test trim_preserves_minimum_padding ... ok
+test trim_trailing_silence ... ok
+test tone_1000hz_frequency_via_zero_crossings ... ok
+test pipeline_with_loaded_wav_file ... ok
+test trim_with_different_thresholds ... ok
+test volume_clamps_output ... ok
+test volume_halves_samples ... ok
+test tone_440hz_frequency_via_zero_crossings ... ok
+test zero_duration_tone_is_empty ... ok
+test wav_file_loads_as_stereo_44100 ... ok
+test tone_duration_matches_expected_sample_count ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_audio
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

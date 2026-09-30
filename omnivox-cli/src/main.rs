@@ -44,6 +44,7 @@ mod voice_observations;
 mod voice_operations;
 mod voice_validation;
 mod work_queue;
+mod worker_startup;
 
 use anyhow::Result;
 use omnivox_audio::AudioFileLoader;
@@ -56,8 +57,8 @@ use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 use tracing::{error, info, warn};
 
-use cli::{apply_cli_flags, parse_args, selected_audio_backend};
-use engine::{apply_audio_target_env, create_engine, create_engines};
+use cli::{apply_startup_flags, audio_backend_override, parse_args};
+use engine::{create_engine, create_engines};
 use health::RuntimeEngineHealth;
 use marker_events::spawn_marker_event_reporter;
 use server::{run_server, spawn_tracked_playback_reporter, synthesis_channel, synthesis_worker};
@@ -111,6 +112,16 @@ fn main() -> Result<()> {
             return Ok(());
         }
         "list-espeak-variants" => {
+            let startup = engine::EngineStartup::read(
+                "espeak",
+                cli.piper_model.as_deref(),
+                cli.voice_library.as_deref(),
+                cli.config_dir.as_deref(),
+            )?;
+            anyhow::ensure!(
+                startup.permits_construction("espeak"),
+                "espeak is disabled by local engine configuration"
+            );
             let engine = omnivox_tts::espeak::EspeakTtsEngine::with_variant_choices(&[])?;
             println!("{}", serde_json::to_string(&engine.variant_catalogue()?)?);
             return Ok(());
@@ -120,6 +131,7 @@ fn main() -> Result<()> {
                 &cli.engine,
                 cli.piper_model.as_deref(),
                 cli.voice_library.as_deref(),
+                cli.config_dir.as_deref(),
             )?;
             cli::cmd_list_voices(engine.as_ref());
             return Ok(());
@@ -129,6 +141,7 @@ fn main() -> Result<()> {
                 &cli.engine,
                 cli.piper_model.as_deref(),
                 cli.voice_library.as_deref(),
+                cli.config_dir.as_deref(),
             )?;
             cli::cmd_list_voices_alist(engine.as_ref());
             return Ok(());
@@ -199,7 +212,7 @@ fn main() -> Result<()> {
             "Full synthesis text logging is enabled; diagnostic logs contain spoken content"
         );
     }
-    let audio_backend = selected_audio_backend(&cli)?;
+    let audio_backend_override = audio_backend_override(&cli)?;
     let gen_counter = Arc::new(AtomicU64::new(0));
 
     let created_engines = {
@@ -211,9 +224,11 @@ fn main() -> Result<()> {
             &cli.engine,
             cli.piper_model.as_deref(),
             cli.voice_library.as_deref(),
+            cli.config_dir.as_deref(),
             Arc::clone(&gen_counter),
         )?
     };
+    let audio_backend = audio_backend_override.unwrap_or(created_engines.audio.backend);
     let engine = created_engines.preferred;
     let engine_registry = Arc::new(created_engines.registry);
     info!("TTS engines initialized");
@@ -225,18 +240,24 @@ fn main() -> Result<()> {
     info!("Found {} voices", voice_count);
 
     info!(?audio_backend, "Initializing audio output");
-    let streams = AudioStreams::new_with_backend(
+    let streams = AudioStreams::new_with_backend_and_latency(
         SPEECH_MAX_DEPTH,
         TONE_MAX_DEPTH,
         SOUND_MAX_DEPTH,
         audio_backend,
+        created_engines.audio.pulse_latency_ms,
     )
     .map_err(|e| anyhow::anyhow!("Audio streams init failed: {}", e))?;
     let control = streams.control();
+    control.bind_output_generation(gen_counter.clone());
 
-    let mut state = TtsState::default();
-    apply_audio_target_env(&mut state);
-    apply_cli_flags(&cli, &mut state);
+    let mut state = TtsState {
+        max_chunk_words: created_engines.speech.max_chunk_words,
+        capital_pitch: Arc::new(created_engines.speech.capital_pitch.clone()),
+        punctuation_tables: Arc::new(created_engines.speech.punctuation.clone()),
+        ..TtsState::from_speech_defaults(Arc::new(created_engines.speech.defaults))
+    };
+    apply_startup_flags(&cli, &created_engines.audio, &mut state);
 
     let (tx, rx) = synthesis_channel();
     let runtime_health = Arc::new(RuntimeEngineHealth::new());

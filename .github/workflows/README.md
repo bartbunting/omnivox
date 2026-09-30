@@ -19,7 +19,7 @@ default archived layout; downloads fail if the service digest does not match.
 regressions, adapter tests, Clippy and a silent system-voice streaming probe on
 Intel and Apple Silicon. Push a `ci/macos-streaming-*` branch or dispatch it
 manually. It publishes no release and does not establish audible acceptance.
-See the [streaming guide](../../docs/MACOS-STREAMING.md) for bounds and limitations.
+See the [streaming guide](../../docs/engines/macos.md) for bounds and limitations.
 
 [macOS Voice Validation](voice-validation-macos.yml) runs the development voice
 validator checks on native Intel and Apple Silicon runners. It checks process
@@ -29,7 +29,7 @@ deadline, supervisor-exit and unconfirmed-pipe probes. Voice inputs are generate
 Piper fixtures and a temporary export of bundled Flite SLT; no trained voice is
 downloaded. Run it manually or push a verification branch named
 `ci/macos-voice-validation-*`. It uploads its probe log and publishes no
-release. See the [validator guide](../../docs/VOICE-VALIDATION.md) for limits and
+release. See the [validator guide](../../docs/guides/native-voice-validation.md) for limits and
 the current acceptance status.
 
 ## Manual macOS timing comparison
@@ -72,7 +72,7 @@ per-process server logs, run order and status, and a Markdown comparison. The
 job summary shows pooled p50/p95 source-start timings and their changes. Failed
 runs preserve partial evidence and suppress the aggregate comparison. Native
 first/last buffer and completion timings remain in the candidate server logs;
-see [macOS buffer capture](../../docs/DIAGNOSTICS.md#macos-buffer-capture).
+see [macOS buffer capture](../../docs/guides/diagnostics.md#macos-buffer-capture).
 
 Timings are observations without a fixed latency gate. Hosted load, installed
 voices, and macOS service state differ from a user's Mac. Null output isolates
@@ -88,12 +88,14 @@ Runs on `ubuntu-latest`, installs Rust/rustfmt 1.97.1, and executes:
 
 ```sh
 cargo fmt --all -- --check
-python3 tools/check_markdown_links.py
+make docs-check
 make deb-package-test release-asset-test
 ```
 
-The documentation check resolves repository-local links in every tracked
-Markdown file. It does not make network requests for external URLs.
+The documentation check runs its focused regression tests and resolves targets
+and anchors in tracked Markdown and Org, including current-branch GitHub links
+to this repository. It does not make network requests. Cross-repository checks
+use the optional `make docs-check-paired` target with an Emacsvox checkout.
 
 ### `build`
 

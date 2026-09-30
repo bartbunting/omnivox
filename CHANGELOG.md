@@ -6,131 +6,199 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-09-30
+
 ### Added
 
 - Negotiated palette-aware isolated character speech, preserving character
-  speed, uppercase pitch and interruption while applying registered voice
-  choices, fallback tuning, native parameters and playback receipts.
+  speed, configured uppercase pitch and interruption while applying registered
+  voice choices, fallback tuning, native parameters and playback receipts.
 
-- Managed RHVoice voice and language data through the existing local catalogue,
-  native validation, Enable/Apply and resumable uninstall services. Downloads
-  start disabled and preserve externally installed voices and runtimes. Resource
-  files use pinned hashes and bounded paths; RHVoice requires schema 3 metadata.
+## [1.15.0] - 2026-09-28
 
-- Reviewed local uninstallation of managed Piper, Flite and MBROLA packages,
-  including shared-speaker impact, active/session reference protection,
-  resumable partial cleanup and confirmed file-byte reporting. Built-in voices,
-  imported files, engine runtimes and saved physical-voice choices are retained.
+### Added
 
-- Development macOS system-voice streaming begins delivering bounded PCM
-  windows before complete synthesis. Cancellation wakes a blocked native queue,
-  late callbacks cannot reach a retired request, and missing completion fails
-  rather than treating a short pause as the end of speech. Full-result and
-  unsupported-anchor requests retain buffered handling; no new native markers
-  or calibrated macOS rates are claimed.
+- Review and edit punctuation through a negotiated local service used by the
+  Emacsvox editor. Save preserves unrelated configuration and rejects stale
+  file revisions; restarting speech remains a separate user action.
 
-- Opt-in MBROLA en1 prototype with a private source-pinned eSpeak frontend and
-  MBROLA subprocess, bounded PCM capture, cancellation and exact voice preview.
-  Its runtime and database remain outside generic release bundles; rates are
-  provisional and no word markers or exact source anchors are advertised.
-
-- Development eSpeak variant discovery and explicit enabled combinations, with
-  stable base IDs and exact variant reporting in buffered and streamed speech.
-  Missing or disabled variants cannot silently pass an exact audition using the
-  base voice. Selection changes apply to newly started speech workers.
-
-- Development voice installation can register natively validated local Piper
-  models and external Flite voices, initially disabled, while retaining their
-  original files. Desired enablement is saved independently of active speech.
-  Immutable activation candidates contain only enabled voices and reject stale
-  index or active-pointer state. Downloads and the two-lane Apply controller
-  remain in development.
-- Development managed validation keeps a separate supervisor alive through
-  manager-process death so it can confirm native cleanup and persist cancellation.
-  Supervisor death with missing cleanup records still blocks subsequent admission.
-- Development validation recovery can abandon an interrupted attempt using its
-  complete worker cleanup records, allowing fresh validation through profile
-  admission. A torn final journal write is recoverable when its verified prefix
-  records validation and every worker has recorded cleanup; all original bytes
-  are preserved and rechecked. Unfinished workers and other damaged history
-  remain blocked. Recovery never promotes an old report to success.
-- Development managed voice validation now retains profile admission claims and
-  records worker ownership before native startup. Interrupted history blocks
-  fresh operation IDs; successful evidence is bound to the exact operation and
-  plan. Confirmed cancellation permits later work; crash reconciliation remains
-  pending. Inspection does not signal saved PIDs or restart speech.
-- Development validation operations can preserve a frozen request and a
-  checksummed journal with exclusive ownership. Inspection distinguishes busy,
-  interrupted, completed and damaged records; incomplete work cannot be silently
-  reused. Native-validator admission and installation/activation remain pending.
-- Development voice validation can save bounded evidence and compare it with
-  current voice assets, validator and staged companion files. Reports require
-  successful native checks and cleanup, detect changed inputs, and never replace
-  an existing file. Matching evidence does not authorize activation or skipping
-  native checks; crash-recovery transactions remain pending.
-- Development native voice validation checks one Piper model or Flite voice at
-  a time, silently, with process-tree ownership, memory limits, deadlines and
-  confirmed cleanup before the next load. Installation and activation remain
-  pending; no new voice-library capability is advertised.
-- Development main-server library startup accepts `--voice-library` or
-  `OMNIVOX_VOICE_LIBRARY`, applies eligibility, omits empty managed helpers and
-  rejects changed generations or incomplete required helper inventories.
-  A development status operation reports configuration and eligible voices;
-  its capability remains unadvertised pending native validation and cleanup.
-- Managed Piper and Flite assets are checked against their declared SHA-256
-  hashes before native loading, including detection of same-size file edits.
-  Shared verification also identifies exact generation bytes and file sets
-  for the planned voice manager.
-- Flite helper library startup loads only enabled external files and can leave
-  built-in SLT unregistered. Changed native voice IDs or incomplete load sets
-  fail startup; legacy environment-based configuration remains supported.
-- Piper helper library startup selects enabled models and speakers on demand.
-  Each helper retains at most one model, reuses it for speaker changes, and
-  isolates failed model loads so other voices remain selectable. This is
-  helper support for the planned voice manager; main-server activation and
-  voice downloads are not yet available.
+- Configure punctuation names independently for `none`, `some` and `all` in
+  version-3 `config.json`, with sparse overrides and explicit preservation of
+  the original character. Both workers, reset and recovery retain captured tables.
 
 ### Fixed
 
+- Preserve the beginning of streamed speech when converting its native sample
+  rate to 44.1 kHz. Resampler latency was incorrectly discarded as leading
+  silence, cutting about 6–8 ms from common 22.05 kHz and 16 kHz helpers.
+
+- Name curly and modifier apostrophes at `all`, alongside straight apostrophes,
+  without requiring a configuration file. Add common Unicode quotes, dashes
+  and other punctuation to the shipped tables; existing ASCII defaults and
+  natural apostrophes at `some` remain unchanged.
+
+## [1.14.0] - 2026-09-28
+
+### Added
+
+- Windows device output follows changes to the default playback device, including
+  headphone switching. Interrupted speech is cancelled; fresh speech uses the
+  recovered output without restarting speech engines.
+
+- Save the existing audio backend, process channel and PulseAudio latency request
+  in version-2 configuration. Launcher overrides retain priority, and speech
+  reset restores each worker's effective startup channel.
+
+- Configure the capital-letter pitch cue globally or per engine, including an
+  off option that preserves ordinary pitch. Fallback uses the actual engine's
+  setting; the existing absolute `1.5` cue remains the default.
+
+- Save voice, rate, pitch, volumes, punctuation, CamelCase splitting and character
+  speed in `speech.defaults`. Speech reset restores those saved values; client
+  commands can override them again. Both lanes and recovery retain the same
+  defaults, and exact speech diagnostics honor the applicable saved settings.
+
+- Configure the maximum words per synthesis chunk in version-2 `config.json`.
+  The default remains 15; accepted values are 1–100. Both speech lanes and
+  recovered workers retain the same setting. The 15-second silence cap remains
+  fixed.
+
+### Fixed
+
+- Preserve speech and sound onsets when device playback starts after idle.
+  Rodio's queue could interpret the first 256 stereo frames as mono, stretching
+  them to twice their duration. Keep the queue's stereo format stable through
+  idle periods and Windows output replacement.
+
+## [1.13.0] - 2026-09-28
+
+### Added
+
+- Register independently installed speech helpers through version-1 JSON
+  configuration without rebuilding Omnivox. Local settings control engine
+  preferences, exclusions, executable paths, arguments and timeouts.
+- Share prepared engine settings across foreground and notification speech.
+  Recovery keeps those settings; a deliberate restart reads configuration changes.
+  Exact voice checks and previews also support registered helpers.
+
+### Fixed
+
+- Reject special files used as audio resources so a named pipe cannot stall
+  audio loading and later speech.
+- Reject non-finite numeric settings before they can produce invalid audio.
+- Limit requested silences to 15 seconds, preventing oversized silence commands
+  from exhausting the speech process's memory.
+## [1.12.1] - 2026-09-23
+
+### Fixed
+
+- Speech continues after native voice segments that produce no audio, such as
+  silent Markdown markup between ordinary text and a link.
+
+## [1.12.0] - 2026-09-20
+
+### Added
+
+- Engine-described native voice controls for qualified Windows Eloquence and
+  DECtalk runtimes, including DECtalk's 28 design-voice controls. Typed,
+  bounded catalogues expose each runtime's supported values and defaults.
+  Per-choice settings compose with common controls and explicit context;
+  native readback verifies application before output, and independent requests
+  restore their voice baseline.
+- Negotiated `engine_voice_parameters_v1` support connects version-3 logical
+  voice registration and strict private previews, timeline v5, marker v4,
+  read-only planned/applied explanations, and helper protocol 6. Complete
+  catalogues are cached per connection; queries do not load all models or
+  restart speech. Existing protocol versions remain supported.
+- A local voice-library service for reviewed Piper, Flite, MBROLA and RHVoice
+  downloads, plus validated local Piper/Flite imports. Omnivox owns acquisition,
+  hash checking, native validation and storage; Emacsvox supplies reviewed
+  catalogues and the interface. Downloads and imports start disabled, outside
+  versioned executable installations, without restarting speech or editing palettes.
+- Separate installed, enabled and active voice state. Immutable activation
+  candidates bind exact assets and index revisions. Owned local speech workers
+  and retained Apply transactions support Emacsvox's explicit two-stream
+  activation, verification and rollback; active-pointer publication requires
+  matching evidence from both streams.
+- Bounded native validation with memory budgets, deadlines, process-tree
+  ownership and confirmed cleanup on Linux, Windows and macOS. Retained
+  validation evidence and operation journals detect changed inputs and prevent
+  conflicting work after unconfirmed cleanup. A separate supervisor can finish
+  cleanup after manager loss; recorded complete cleanup can recover an
+  interrupted operation without promoting it to successful validation.
+- Reviewed removal of managed voice packages, including shared Piper-speaker
+  impact, active/session/rollback reference protection and resumable partial
+  cleanup. Removal preserves imported files, built-in voices, engine runtimes
+  and saved physical-voice choices, and reports confirmed file bytes removed.
+- Opt-in MBROLA English voice-library support for en1, us1, us2 and us3 through
+  an isolated helper, private source-pinned eSpeak frontend and MBROLA child.
+  Each selected database is verified before bounded buffered synthesis. This
+  remains a development companion whose runtime and databases are excluded
+  from generic release bundles; streaming and markers are not advertised.
+
+### Changed
+
+- Bundled eSpeak variants are available on demand for exact preview and ordinary
+  speech, without enabling combinations or restarting workers. Base inventories
+  stay compact. Existing physical IDs and startup configuration remain readable;
+  missing variants cannot silently pass an exact preview as the base voice.
+- Each managed Piper helper retains at most one model, loads it on demand and
+  reuses it for that model's speakers. Failed model loads affect that model;
+  Flite loads only enabled external files and can leave built-in SLT unregistered.
+- macOS system voices deliver bounded PCM while synthesis is active. Cancellation
+  wakes blocked producers and late callbacks cannot reach retired requests.
+  Missing native completion fails explicitly; requests needing unsupported anchors
+  retain buffered handling. Native markers and calibrated macOS rates are not claimed.
+- Isolated letter navigation can start device playback after 40 ms of rendered
+  audio, the existing three-window reserve, or earlier completion. Ordinary
+  speech retains its existing reserve. This is buffered audio duration, not an
+  added sleep; cancellation, marker ordering and queue bounds are retained.
+
+### Fixed
+
+- Restore macOS system-default speech when the voice selector is omitted,
+  including `--dump-wav ""`. Explicit missing voices still fail instead of
+  silently selecting the system default.
 - Reduce DECtalk completion and short-letter startup delays by requesting finer
   Windows timer scheduling only during active synthesis and native cleanup.
-  Synchronization, marker ordering, parameter restoration and PCM are retained;
-  idle helpers hold no timer request.
+  Idle helpers hold no timer request.
+- Batch DECtalk custom controls with plain text after qualifying each preset
+  once per helper, avoiding repeated pre-speech synchronization. Verify actual
+  settings before output; embedded native commands retain conservative checks
+  and invalidate cached presets.
+- Reset DECtalk after streaming each utterance to reduce the delay before the
+  next request. Failed reset or voice restoration prevents reuse until restart.
+- Reuse up to four idle progressive PCM resamplers after clearing filter history,
+  avoiding repeated sinc-filter construction without changing output quality.
+- Wake waiting speech when isolated native work releases capacity, and release
+  the admission lock before cancellation and timeout diagnostics.
+- Preserve ordinary fallback speech when a managed engine lacks compiled
+  support, a helper or valid runtime assets. Failed providers remain visibly
+  unavailable; exact previews, exclusions, validation and Apply retain their checks.
+- Contain Piper native construction/inference exceptions and clean up partial
+  model loads. Preserve cancellation requested during delayed native startup.
+- Confirm helper exit and reader completion before replacement; retain failed
+  cleanup for retry and kill blocked helpers without waiting for their input writer.
+- Order Windows helper cancellation with synthesis output. Reject ambiguous
+  duplicate or unsupported helper request fields instead of dropping settings.
+- Preserve final text bytes in MBROLA synthesis and reduce en1 startup overhead
+  by verifying only its selected database and the bounded shared English frontend.
+- Keep managed download cancellation responsive across slow connections,
+  serialize native Windows voice paths consistently, and retain local earcon
+  access in owned speech workers.
 
-- Waiting speech wakes when an isolated native call releases engine or process
-  capacity, avoiding an extra polling delay during replacement and recovery.
-  Cancellation deadlines and native concurrency limits are unchanged.
+### Limits
 
-- DECtalk batches custom voice controls with plain text after checking each
-  preset once per helper. Actual native settings are verified before output,
-  avoiding repeated pre-speech synchronization. Embedded native commands retain
-  conservative verification and invalidate cached presets.
-
-- DECtalk resets its native instance after streaming each utterance, reducing
-  the delay before subsequent speech. Failed reset or voice restoration blocks
-  reuse until the helper restarts; marker ordering and cancellation are retained.
-
-- Reuse up to four idle progressive PCM resamplers to avoid rebuilding sinc
-  filters for each utterance. Filters match the exact sample rate and channel
-  count and clear their history before reuse, including after cancellation.
-
-- Ordinary speech starts with available fallback engines when a managed engine
-  lacks compiled support, a helper or valid runtime resources. Failed providers
-  remain visibly unavailable; exact auditions, asset checks, voice exclusions
-  and coordinated Apply retain their checks.
-
-- macOS can run the development native voice validator with private process-group
-  cleanup and a sampled aggregate memory-footprint budget. Cleanup waits for
-  exited descendants to be reaped instead of failing on Darwin's temporary
-  permission response. Native Intel and Apple Silicon validation checks pass.
-- Helper replacement waits for confirmed direct-child exit and reader completion.
-  Failed cleanup remains owned for retry, and termination no longer waits for a
-  blocked input writer before killing the child.
-- Piper contains native model-loading and inference exceptions instead of
-  aborting the helper. Partial model construction is cleaned up, and overlapping
-  model construction is rejected without disrupting the resident model.
-- Isolated helper adapters receive the host's persistent request cancellation
-  token, so cancellation remains visible during delayed native startup.
+- Engine runtimes, downloaded voices and their individual licences remain
+  separate from executable releases. RHVoice needs a compatible user-supplied
+  runtime; MBROLA remains explicitly configured development software.
+- Native control availability depends on qualified runtime bindings. Other
+  engines and older peers retain common controls with explicit degradation;
+  strict customized previews cannot silently drop unsupported native settings.
+- Further recovery after supervisor loss during native work and stronger
+  power-loss durability remain follow-up hardening. Unresolved cleanup stays
+  blocking. Native platform evidence and software timing do not establish
+  acoustic onset or support for every runtime and voice.
 
 ## [1.11.0] - 2026-09-14
 

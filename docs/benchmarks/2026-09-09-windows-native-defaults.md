@@ -60,4 +60,4 @@ methods. It does not yet test full layered admission, progressive playback
 observation, post-synthesis effects or Linux runtime versions. Native rate and
 volume are held independently of extended defaults; this does not redefine
 host-rate calibration. Full helper-protocol and playback acceptance remain in
-the [implementation sequence](../per-fallback-streaming-handoff.md).
+the [implementation sequence](../reference/prepared-synthesis.md).

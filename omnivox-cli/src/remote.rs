@@ -1,5 +1,6 @@
 //! Loopback broker. Authentication and bounded framing precede stdio workers.
 use anyhow::{bail, Context, Result};
+use omnivox_tts::engine_configuration::{LaunchEnvironment, LaunchSnapshot};
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream};
 use std::path::PathBuf;
@@ -46,7 +47,7 @@ impl Config {
                 "--audio-output" if matches!(value.as_str(), "device" | "pulse" | "null") => {
                     audio_output = Some(value.clone());
                 }
-                _ => bail!("unsupported service option (see docs/protocols/REMOTE-PROTOCOL.md)"),
+                _ => bail!("unsupported service option (see docs/protocols/remote.md)"),
             }
         }
         if !address.ip().is_loopback() {
@@ -122,6 +123,51 @@ fn authenticate<'a>(line: &'a [u8], token: &str) -> Option<(&'a str, usize)> {
 struct Session {
     id: String,
     lanes: [bool; 2],
+    startup: Option<Arc<RemoteStartup>>,
+}
+
+/// Prepared exclusively from the workstation's local files and environment.
+/// A session retains it even while both lanes are disconnected. A different
+/// authenticated session may replace it only after the previous lanes retire.
+struct RemoteStartup {
+    executable: PathBuf,
+    directory: PathBuf,
+    environment: LaunchEnvironment,
+    engines: LaunchSnapshot,
+}
+
+impl RemoteStartup {
+    fn capture() -> Result<Self> {
+        let executable = std::env::current_exe()?;
+        let directory = std::env::current_dir()?;
+        let mut environment = LaunchEnvironment::capture();
+        for name in [
+            "OMNIVOX_REMOTE_WORKER",
+            "OMNIVOX_OWNED_WORKER",
+            "OMNIVOX_OWNED_STARTUP",
+            "OMNIVOX_OWNED_STARTUP_SHA256",
+            "OMNIVOX_OWNED_ENGINE_STARTUP",
+            "OMNIVOX_OWNED_ENGINE_STARTUP_SHA256",
+            "OMNIVOX_OWNED_LIBRARY",
+        ] {
+            environment = environment.with_variable(name, None);
+        }
+        let engines = crate::engine::EngineStartup::capture(
+            "",
+            None,
+            None,
+            None,
+            environment.clone(),
+            &executable,
+        )?
+        .snapshot;
+        Ok(Self {
+            executable,
+            directory,
+            environment,
+            engines,
+        })
+    }
 }
 
 struct Lane {
@@ -135,12 +181,29 @@ impl Lane {
         if state.lanes.iter().any(|active| *active) && state.id != id || state.lanes[index] {
             return None;
         }
-        state.id = id.to_string();
+        if state.id != id {
+            state.id = id.to_string();
+            state.startup = None;
+        }
         state.lanes[index] = true;
         Some(Self {
             session: session.clone(),
             index,
         })
+    }
+
+    fn startup(
+        &self,
+        capture: impl FnOnce() -> Result<RemoteStartup>,
+    ) -> Result<Arc<RemoteStartup>> {
+        let mut state = self
+            .session
+            .lock()
+            .map_err(|_| anyhow::anyhow!("session startup lock failed"))?;
+        if state.startup.is_none() {
+            state.startup = Some(Arc::new(capture()?));
+        }
+        Ok(state.startup.as_ref().unwrap().clone())
     }
 }
 
@@ -203,14 +266,17 @@ impl<R: BufRead> Records<R> {
 
 struct Worker {
     child: Child,
+    startup_writer: Option<thread::JoinHandle<()>>,
     #[cfg(windows)]
     job: crate::remote_windows::Job,
 }
 
 impl Worker {
-    fn start(config: &Config, lane: usize) -> Result<Self> {
-        let mut command = Command::new(std::env::current_exe()?);
+    fn start(config: &Config, lane: usize, startup: &RemoteStartup) -> Result<Self> {
+        let mut command = Command::new(&startup.executable);
+        startup.environment.apply(&mut command);
         command
+            .current_dir(&startup.directory)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -224,7 +290,10 @@ impl Worker {
         }
         // Device selection belongs to the workstation, never to the remote peer.
         if lane == 1 {
-            if let Some(target) = std::env::var_os("OMNIVOX_REMOTE_NOTIFICATION_TARGET") {
+            if let Some(target) = startup
+                .environment
+                .get("OMNIVOX_REMOTE_NOTIFICATION_TARGET")
+            {
                 command.env("OMNIVOX_AUDIO_TARGET", target);
             }
         }
@@ -244,18 +313,31 @@ impl Worker {
             child: command
                 .spawn()
                 .context("could not start remote speech worker")?,
+            startup_writer: None,
             #[cfg(windows)]
             job,
         };
         #[cfg(windows)]
         worker.job.assign(&worker.child)?;
         // No engine/helper can start before Windows job ownership is established.
+        // Retain the writer until tree retirement unblocks it on every failure.
+        let mut stdin = worker.child.stdin.take().context("missing worker stdin")?;
+        let snapshot = startup.engines.clone();
+        let (tx, rx) = mpsc::sync_channel(1);
+        worker.startup_writer = Some(thread::spawn(move || {
+            let result = crate::worker_startup::write(&mut stdin, &snapshot).map(|()| stdin);
+            let _ = tx.send(result);
+        }));
+        worker.child.stdin = Some(
+            rx.recv_timeout(Duration::from_secs(10))
+                .context("remote worker startup transmission did not complete")??,
+        );
         worker
-            .child
-            .stdin
-            .as_mut()
-            .context("missing worker stdin")?
-            .write_all(b"START\n")?;
+            .startup_writer
+            .take()
+            .unwrap()
+            .join()
+            .map_err(|_| anyhow::anyhow!("remote startup writer failed"))?;
         Ok(worker)
     }
 }
@@ -269,13 +351,7 @@ pub(crate) fn managed_worker() -> bool {
 
 pub fn await_worker_start() -> Result<()> {
     if managed_worker() {
-        let mut start = [0u8; 6];
-        io::stdin()
-            .read_exact(&mut start)
-            .context("speech owner closed before worker startup")?;
-        if &start != b"START\n" {
-            bail!("invalid owned worker startup");
-        }
+        return crate::worker_startup::receive_owned();
     }
     Ok(())
 }
@@ -295,6 +371,9 @@ impl Drop for Worker {
         self.job.terminate();
         let _ = self.child.kill();
         let _ = self.child.wait();
+        if let Some(writer) = self.startup_writer.take() {
+            let _ = writer.join();
+        }
     }
 }
 
@@ -326,11 +405,18 @@ fn connection(mut stream: TcpStream, config: &Config, session: &Arc<Mutex<Sessio
         reject(&mut stream, "authentication");
         return Ok(());
     };
-    let Some(_lane) = Lane::reserve(session, id, index) else {
+    let Some(lane) = Lane::reserve(session, id, index) else {
         reject(&mut stream, "busy");
         return Ok(());
     };
-    let mut worker = match Worker::start(config, index) {
+    let startup = match lane.startup(RemoteStartup::capture) {
+        Ok(startup) => startup,
+        Err(_) => {
+            reject(&mut stream, "worker");
+            return Ok(());
+        }
+    };
+    let mut worker = match Worker::start(config, index, &startup) {
         Ok(worker) => worker,
         Err(_) => {
             reject(&mut stream, "worker");
@@ -529,6 +615,77 @@ pub fn run(args: &[String]) -> Result<()> {
 mod tests {
     use super::*;
 
+    fn prepared() -> RemoteStartup {
+        use omnivox_tts::engine_configuration::{
+            LoadedConfiguration, Platform, ResolvedConfiguration,
+        };
+        let environment = LaunchEnvironment::from_variables([]);
+        let executable = PathBuf::from("/fixture/omnivox");
+        let resolved = ResolvedConfiguration::resolve(
+            LoadedConfiguration::default(),
+            &executable,
+            Platform::native(),
+            environment.clone(),
+            &Default::default(),
+        )
+        .unwrap();
+        RemoteStartup {
+            executable,
+            directory: PathBuf::from("/fixture"),
+            environment,
+            engines: LaunchSnapshot::prepare(resolved, None, "".into(), false).unwrap(),
+        }
+    }
+
+    #[test]
+    fn startup_is_shared_across_lanes_and_total_disconnect_until_new_session() {
+        let state = Arc::new(Mutex::new(Session::default()));
+        let speaker = Lane::reserve(&state, "one", 0).unwrap();
+        let notification = Lane::reserve(&state, "one", 1).unwrap();
+        let captures = AtomicUsize::new(0);
+        let records = thread::scope(|scope| {
+            let captures = &captures;
+            let speaker = &speaker;
+            let notification = &notification;
+            let capture = move || {
+                captures.fetch_add(1, Ordering::SeqCst);
+                Ok(prepared())
+            };
+            let first = scope.spawn(move || speaker.startup(capture).unwrap());
+            let second = scope.spawn(move || notification.startup(capture).unwrap());
+            (first.join().unwrap(), second.join().unwrap())
+        });
+        assert_eq!(captures.load(Ordering::SeqCst), 1);
+        assert!(Arc::ptr_eq(&records.0, &records.1));
+        drop(speaker);
+        drop(notification);
+        let recovered = Lane::reserve(&state, "one", 0).unwrap();
+        let retained = recovered
+            .startup(|| panic!("recovery recaptured mutable files"))
+            .unwrap();
+        assert!(Arc::ptr_eq(&records.0, &retained));
+        drop(recovered);
+        let fresh = Lane::reserve(&state, "two", 1)
+            .unwrap()
+            .startup(|| Ok(prepared()))
+            .unwrap();
+        assert_ne!(
+            fresh.engines.activation_id(),
+            retained.engines.activation_id()
+        );
+    }
+
+    #[test]
+    fn failed_preparation_does_not_publish_a_partial_snapshot() {
+        let state = Arc::new(Mutex::new(Session::default()));
+        let lane = Lane::reserve(&state, "one", 0).unwrap();
+        assert!(lane
+            .startup(|| bail!("malformed main configuration"))
+            .is_err());
+        assert!(state.lock().unwrap().startup.is_none());
+        assert!(lane.startup(|| Ok(prepared())).is_ok());
+    }
+
     #[test]
     fn authentication_checks_version_token_session_and_lane() {
         let token = "a".repeat(64);
@@ -539,6 +696,7 @@ mod tests {
             hello.replace(" 1 ", " 2 "),
             hello.replace(&token, &"c".repeat(64)),
             hello.replace(&"b".repeat(32), "oops"),
+            hello.replace("speaker", "speaker --config-dir /untrusted"),
         ] {
             assert!(authenticate(bad.as_bytes(), &token).is_none());
         }

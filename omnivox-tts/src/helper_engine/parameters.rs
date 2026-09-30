@@ -9,59 +9,17 @@ use parameters::{
 
 const QUERY_TIMEOUT: Duration = Duration::from_millis(200);
 
-// Cover both a blocked stdin write and the response wait. Join each watchdog
-// before releasing lifecycle ownership, so fast queries cannot accumulate timers.
 fn query_with_deadline<T>(
     connection: &Arc<dyn HelperConnection>,
     timeout: Duration,
     query: impl FnOnce(Instant) -> Result<T, HelperEngineError>,
 ) -> Result<T, HelperEngineError> {
-    const ACTIVE: u8 = 0;
-    const COMPLETED: u8 = 1;
-    const EXPIRED: u8 = 2;
-    let deadline = Instant::now() + timeout;
-    let state = Arc::new(AtomicU8::new(ACTIVE));
-    let (finished, waiting) = mpsc::sync_channel(1);
-    let watched = Arc::clone(connection);
-    let watched_state = Arc::clone(&state);
-    let watchdog = thread::Builder::new()
-        .name("omnivox-helper-query-deadline".into())
-        .spawn(move || {
-            if matches!(
-                waiting.recv_timeout(deadline.saturating_duration_since(Instant::now())),
-                Err(mpsc::RecvTimeoutError::Timeout)
-            ) && watched_state
-                .compare_exchange(ACTIVE, EXPIRED, Ordering::AcqRel, Ordering::Acquire)
-                .is_ok()
-            {
-                // terminate kills before taking the writer lock; a full pipe wakes.
-                if let Err(error) = watched.terminate() {
-                    warn!(%error, "Parameter query deadline could not confirm helper cleanup");
-                }
-            }
-        })
-        .map_err(|e| {
-            HelperEngineError::Transport(format!("could not start query deadline: {e}"))
-        })?;
-    let result = query(deadline);
-    if Instant::now() >= deadline {
-        if state
-            .compare_exchange(ACTIVE, EXPIRED, Ordering::AcqRel, Ordering::Acquire)
-            .is_ok()
-        {
-            let _ = connection.terminate();
-        }
-    } else {
-        let _ = state.compare_exchange(ACTIVE, COMPLETED, Ordering::AcqRel, Ordering::Acquire);
-    }
-    let _ = finished.send(());
-    watchdog
-        .join()
-        .map_err(|_| HelperEngineError::Transport("query deadline worker panicked".into()))?;
-    if state.load(Ordering::Acquire) == EXPIRED {
-        return Err(HelperEngineError::Timeout("parameter query"));
-    }
-    result
+    with_connection_deadline(
+        connection,
+        Instant::now() + timeout,
+        "parameter query",
+        query,
+    )
 }
 
 pub(super) struct AppliedPlan {

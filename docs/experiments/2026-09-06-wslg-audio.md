@@ -5,7 +5,7 @@
 **Status:** Local configuration experiment; not a released audio preset or an
 accepted backend migration.
 
-**Follow-up:** The [repository trial tool](../WSL-AUDIO.md), added on
+**Follow-up:** The [repository trial tool](../guides/wsl-audio-comparison.md), added on
 2026-09-07, makes launcher preparation and buffer/shutdown probing repeatable.
 Interactive testing subsequently exposed an
 [eSpeak interruption deadlock](2026-09-07-espeak-interruption.md), fixed in the
@@ -236,5 +236,5 @@ retained extract and configuration from its data directory with
 CPAL's newer [native PulseAudio/PipeWire support](https://github.com/RustAudio/cpal/releases/tag/v0.18.0)
 makes a direct-backend experiment possible. Migrating the pinned stack remains
 separate design/dependency work under the accepted ADRs. The
-[roadmap](../plans/NEXT_STEPS.md) places this evidence and WSL responsiveness
+[roadmap](../ROADMAP.md) places this evidence and WSL responsiveness
 first in the updated feature priorities.

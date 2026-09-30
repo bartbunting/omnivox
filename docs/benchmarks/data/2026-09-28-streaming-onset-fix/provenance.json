@@ -1,0 +1,60 @@
+{
+  "base_revision": "v1.14.0",
+  "base_commit": "c3f7fac2a0c7b171cab5f1757b9dc4856f02d255",
+  "worktree_head": "4aabd38048613ad5408d8b31eca76e25aa306637",
+  "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+  "fix_source_sha256": "1b4afc105dc08cea0a6c5c4dd390042fb14e2e06966b909a5bf9cb6cb635d042",
+  "patch_sha256": "3ade66bf384e9e18bcaea6e8949eef3cfc604f8f2ff4104beb94b4a7790754ca",
+  "capture_harness_sha256": "8e0454948a5871da0f6a4695c4d772dbfc88d96ceca42fa2feb1d496027edccd",
+  "cargo_lock_sha256": "06e0d104d828a617e6bc36bd9164839d5e19f7888d5b2a6c87ee39c011cd3923",
+  "rust_toolchain_sha256": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+  "windows_builds": [
+    {
+      "label": "baseline",
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-onset-fix-_2s0bzwk-baseline",
+      "sha256": "7ac8192048c29c1add33e96112be5d3067e101aa829c52d85f254f548589ee63",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "build",
+        "--locked",
+        "--package",
+        "omnivox-cli",
+        "--target",
+        "x86_64-pc-windows-gnu"
+      ],
+      "toolchain": "1.97.1",
+      "runtime_assets": "published Windows x64 1.14.0 archive; main replaced for isolated test only",
+      "source": "v1.14.0",
+      "runtime_dll_sha256": {
+        "libgcc_s_seh-1.dll": "db6299e6e110540fc4622b6a1cbe6b83078d6ce6e05a140fa0cddbeb7afa1f04",
+        "libstdc++-6.dll": "716df4898fdbfb0c58c6e83918f803dd9d2bf6b2e26734f73d4c96f5423f435b"
+      }
+    },
+    {
+      "label": "fixed",
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-onset-fix-_2s0bzwk-fixed",
+      "sha256": "69112b14c8556af8f375d7ca35daadbae584820db26c9e688d65ccc5d6101896",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "build",
+        "--locked",
+        "--package",
+        "omnivox-cli",
+        "--target",
+        "x86_64-pc-windows-gnu"
+      ],
+      "toolchain": "1.97.1",
+      "runtime_assets": "published Windows x64 1.14.0 archive; main replaced for isolated test only",
+      "source": "v1.14.0 plus retained fix.patch",
+      "runtime_dll_sha256": {
+        "libgcc_s_seh-1.dll": "db6299e6e110540fc4622b6a1cbe6b83078d6ce6e05a140fa0cddbeb7afa1f04",
+        "libstdc++-6.dll": "716df4898fdbfb0c58c6e83918f803dd9d2bf6b2e26734f73d4c96f5423f435b"
+      }
+    }
+  ],
+  "runtime_assets_archive_sha256": "eb396cf39c05a37d485e5b26870ee346ba0149ed2cf30e5c242f3c33c3ade331",
+  "scope": "Only progressive_pcm.rs differs between matched Windows builds. Workspace checks include the pre-existing punctuation/configuration work. No user runtime or launcher is replaced.",
+  "mingw_compiler": "x86_64-w64-mingw32-g++ (GCC) 13-win32"
+}

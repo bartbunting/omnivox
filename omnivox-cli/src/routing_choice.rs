@@ -13,12 +13,13 @@ pub(crate) enum AttemptStyle<'a> {
     /// choice. This wrapper is rebuilt on fallback and never changes a registry.
     Character {
         base: &'a AttemptStyle<'a>,
-        pitch: f32,
+        capital_pitch: Option<&'a omnivox_core::settings::CapitalPitchSettings>,
     },
     Legacy {
         settings: &'a TtsSettings,
         acss: Option<&'a NormalizedAcss>,
         effects: Option<&'a PostSynthesisStyle>,
+        capital_pitch: Option<&'a omnivox_core::settings::CapitalPitchSettings>,
     },
     Layered {
         context: &'a VoiceStylePatch,
@@ -100,9 +101,32 @@ impl AttemptStyle<'_> {
         route: &LogicalRoute,
         descriptor: &EngineDescriptor,
     ) -> Result<PreparedVoiceAttempt, String> {
-        if let Self::Character { base, pitch } = self {
+        if let Self::Character {
+            base,
+            capital_pitch,
+        } = self
+        {
             let mut attempt = base.prepare(routing, route, descriptor)?;
-            attempt.settings.pitch *= pitch;
+            if let Some(capitals) = capital_pitch {
+                attempt.settings.pitch =
+                    capitals.pitch_for(&route.realized.engine_id, attempt.settings.pitch);
+                // The capital cue is an explicit pitch context. Native pitch
+                // edits must not replace it; an off cue keeps ordinary tuning.
+                if matches!(
+                    capitals
+                        .engines
+                        .get(&route.realized.engine_id)
+                        .unwrap_or(&capitals.default),
+                    omnivox_core::settings::CapitalPitch::Value(_)
+                ) {
+                    if let NativeChoiceExecution::Parameters(parameters) = &mut attempt.native {
+                        let input = omnivox_tts::native_parameters::CommonInput::AveragePitch;
+                        if !parameters.context_dimensions.contains(&input) {
+                            parameters.context_dimensions.push(input);
+                        }
+                    }
+                }
+            }
             return Ok(attempt);
         }
         self.validate_definition(routing, &route.logical_voice_id)?;
@@ -113,6 +137,7 @@ impl AttemptStyle<'_> {
                 settings,
                 acss,
                 effects,
+                ..
             } => (
                 (*settings).clone(),
                 acss.map_or_else(
@@ -208,6 +233,13 @@ impl AttemptStyle<'_> {
         };
         settings.voice = route.realized.voice_id.clone();
         apply_normalized_acss(&mut settings, &acss.style);
+        if let Self::Legacy {
+            capital_pitch: Some(capitals),
+            ..
+        } = self
+        {
+            settings.pitch = capitals.pitch_for(&route.realized.engine_id, settings.pitch);
+        }
         let prepared = PreparedVoiceAttempt {
             kind: match self {
                 Self::Character { .. } => unreachable!(),

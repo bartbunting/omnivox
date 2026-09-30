@@ -1,9 +1,9 @@
 # Omnivox Windows capture helpers
 
-This component owns the 32-bit Eloquence and DECtalk capture executables used
+This component provides the 32-bit Eloquence and DECtalk capture executables used
 by Omnivox on Windows. The helpers load native speech runtimes out of process,
 capture mono PCM and markers, and speak the versioned
-[engine helper protocol](../docs/protocols/HELPER-PROTOCOL.md) over standard
+[engine helper protocol](../docs/protocols/helper.md) over standard
 input and output. Under protocol v5 they progressively canonicalize and emit
 callback PCM; versions 1 through 4 retain whole-result delivery. They do not
 play audio themselves.
@@ -98,7 +98,7 @@ not contain either native runtime. For an older release or a source build,
 build the helpers as above, then place `OmnivoxEloquenceHelper32.exe` and/or
 `OmnivoxDectalkHelper32.exe` beside the Windows `omnivox.exe`. An explicit
 helper path in the corresponding
-[environment variable](../docs/ENV-VARS.md#optional-windows-helpers) may be
+[environment variable](../docs/guides/configuration.md#optional-windows-helpers) may be
 used instead.
 
 The helpers target .NET Framework 4 and must run as 32-bit x86 processes. A
@@ -258,10 +258,10 @@ reported as `not_available` through the helper protocol.
 
 ## Source and licensing
 
-`common/OmnivoxHelperHost.cs` owns the bounded versions 1 through 6 protocol
+`common/OmnivoxHelperHost.cs` implements the bounded versions 1 through 6 protocol
 loop; engines opt into 6 through `common/OmnivoxHelperParameters.cs`. Eloquence
 and DECtalk implement that interface; missing-runtime hosts retain 1–5. Each
-engine owns its native parameter metadata, mapping, capture and readback.
+engine implements its native parameter metadata, mapping, capture and readback.
 The Rust parent continues to request version 5 until its integration is complete.
 
 For silent direct helper-6 acceptance against a locally installed qualified ECI

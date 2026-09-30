@@ -44,11 +44,42 @@
 ## Architecture and worktree
 
 - Before changing architecture, engine process boundaries, helper protocols,
-  release contents, or packaging policy, read every architecture decision
-  record under `docs/adr/` and follow all accepted decisions. Do not rely on a
-  single record in isolation; later records may refine earlier decisions.
+  release contents, or packaging policy, read `docs/ARCHITECTURE.md` and
+  `docs/adr/README.md`, then the applicable accepted decisions and their linked
+  dependencies. Read all accepted records for cross-cutting changes or uncertain
+  scope. Follow every applicable accepted constraint; proposals do not override
+  them. Use `docs/DOCUMENTATION-GUIDE.md` to decide whether the change needs an
+  ADR, plan, protocol/reference update or evidence report.
 - Preserve all existing tracked and untracked work. Never clean, reset, stash,
   or discard a dirty worktree to satisfy a build precondition.
+
+## Documentation and evidence
+
+- Keep decisions, current architecture, delivery plans, exact contracts and
+  observations in their designated documents. Keep the roadmap as the entry to
+  future work and the ADR index as the entry to decisions. Do not append
+  implementation diaries or obsolete next steps to ADRs or protocol references.
+- Obtain explicit user approval before creating any new ADR, including a
+  proposed record. First explain the durable decision, why existing records or
+  references do not cover it, and the proposed scope. Authorization to implement
+  a feature does not authorize creating an ADR. Prefer updating the appropriate
+  reference for routine settings, schema details and implementation increments.
+- ADR IDs are stable after the authorized 2026-09-28 consolidation. Material
+  changes to accepted decisions require review and, with the approval above, a
+  new linked ADR. A proposed record remains proposed until its defined decision
+  or implementation scope is explicitly accepted. Acceptance alone does not
+  establish implementation, platform qualification or release publication.
+- Preserve benchmark raw data, test reports, fixtures, reproduction inputs and
+  provenance. Extract unique observations before retiring a plan or diary.
+  Record missing evidence honestly. Reruns create new reports; link repairs must
+  not alter historical measurements. Use `docs/benchmarks/README.md` for matched
+  baseline comparisons and distinguish source timing from acoustic output.
+- Before documentation commits, stage new files and run `make docs-check` plus
+  `git diff --check`. The gate checks Markdown/Org targets and anchors. For paired
+  Emacsvox changes also run `make docs-check-paired` with its checkout selected;
+  network availability of other URLs is a separate check. Documentation-only
+  edits require no Rust build or native benchmark;
+  executable contract/fixture changes retain the appropriate implementation gates.
 
 ## Rust, formatting, and verification
 
@@ -91,9 +122,9 @@
 
 ## Windows helpers and deployment
 
-- Windows helper source and build targets are owned under `windows-helpers`;
+- Windows helper source and build targets are maintained under `windows-helpers`;
   preserve their GPL-2.0-or-later notices and separate executable boundary.
-- Final Windows deployment is owned by the sibling Emacsvox repository. Use
+- Final Windows deployment is managed in the sibling Emacsvox repository. Use
   `make windows-omnivox-main-dev` there when its guard accepts a main-server or
   main-only audio-output change and a verified development runtime is already
   staged. Use `make windows-omnivox-dev` when that guard rejects helper,
@@ -101,5 +132,5 @@
   `make windows-omnivox` for a clean reproducible release that rebuilds every
   payload.
 - Passing the main-only path guard does not waive an ADR's deployment
-  requirements: ADR 0010 requires full development staging for its public
+  requirements: ADR 0006 requires full development staging for its public
   protocol changes.

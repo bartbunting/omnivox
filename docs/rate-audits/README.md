@@ -1,6 +1,6 @@
 # Retained TGSpeechBox Rate Audit
 
-These reports support the TGSpeechBox calibration accepted in ADR 0007. All
+These reports support the TGSpeechBox calibration accepted in ADR 0002. All
 three use the standard 22-word English corpus from `tools/audit_speech_rates.py`
 and canonical post-pipeline WAV duration.
 

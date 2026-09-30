@@ -146,5 +146,35 @@ mod native {
                 .is_err());
             println!("PASS native streaming, buffered compatibility, cancellation, sink failure and recovery");
         }
+        let default_request = SynthesisRequest::new(
+            "The omitted voice uses the system default.",
+            TtsSettings {
+                voice: String::new(),
+                ..TtsSettings::default()
+            },
+        );
+        let default_result = engine.synthesize(&default_request).unwrap();
+        default_result.validate(&default_request).unwrap();
+        assert!(!default_result.audio.is_empty());
+        assert!(default_result.actual_voice.is_none());
+        for voice in ["omnivox-missing-language", "en-US:Omnivox Missing Voice"] {
+            let request = SynthesisRequest::new(
+                "A missing explicit voice must fail.",
+                TtsSettings {
+                    voice: voice.into(),
+                    ..TtsSettings::default()
+                },
+            );
+            assert!(engine.synthesize(&request).is_err());
+        }
+        let missing_exact = default_request.with_route(
+            "probe",
+            PhysicalVoiceId::new("macos", "com.omnivox.missing.voice"),
+        );
+        assert!(matches!(
+            engine.synthesize(&missing_exact),
+            Err(TtsError::VoiceNotFound(_))
+        ));
+        println!("PASS system-default voice and rejection of missing explicit voices");
     }
 }

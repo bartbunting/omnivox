@@ -1,0 +1,34 @@
+python3 tools/build_rhvoice.py
++ cargo build --locked --message-format=json-render-diagnostics --package omnivox-rhvoice-helper
+   Compiling omnivox-tts v1.14.0 (/home/bart/src/omnivox/omnivox-tts)
+   Compiling omnivox-helper-host v1.14.0 (/home/bart/src/omnivox/omnivox-helper-host)
+   Compiling omnivox-rhvoice-helper v1.14.0 (/home/bart/src/omnivox/omnivox-rhvoice-helper)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 9.96s
+Staged RHVoice helper in /home/bart/src/omnivox/target/debug/rhvoice
+python3 tools/build_flite.py
++ /usr/bin/python3 /home/bart/src/omnivox/tools/prepare_flite_inputs.py
+Prepared and verified Flite inputs in /home/bart/src/omnivox/target/flite-inputs/2.2
++ cargo build --locked --message-format=json-render-diagnostics --package omnivox-flite-helper
+   Compiling omnivox-flite-sys v1.14.0 (/home/bart/src/omnivox/omnivox-flite-sys)
+   Compiling omnivox-flite-helper v1.14.0 (/home/bart/src/omnivox/omnivox-flite-helper)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.44s
+Staged Flite companion in /home/bart/src/omnivox/target/debug/flite
+python3 tools/build_rutts.py
++ /usr/bin/python3 /home/bart/src/omnivox/tools/prepare_rutts_inputs.py
+Prepared and verified RuTTS inputs in /home/bart/src/omnivox/target/rutts-inputs/6.3.3
++ cargo build --locked --message-format=json-render-diagnostics --package omnivox-rutts-helper
+   Compiling omnivox-rutts-sys v1.14.0 (/home/bart/src/omnivox/omnivox-rutts-sys)
+   Compiling omnivox-rutts-helper v1.14.0 (/home/bart/src/omnivox/omnivox-rutts-helper)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.52s
+Staged RuTTS companion in /home/bart/src/omnivox/target/debug/rutts
+python3 tools/build_linux_helpers.py
++ cargo build --locked --package omnivox-linux-helpers --bins --message-format=json-render-diagnostics
+   Compiling omnivox-linux-helpers v1.14.0 (/home/bart/src/omnivox/linux-helpers)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.87s
+Staged omnivox-dectalk-helper in /home/bart/src/omnivox/target/debug/dectalk
+Staged omnivox-eloquence-helper in /home/bart/src/omnivox/target/debug/eloquence
+python3 tools/build.py --package omnivox-cli --features piper
++ cargo build --locked --message-format=json-render-diagnostics --package omnivox-cli --features piper
+   Compiling omnivox-cli v1.14.0 (/home/bart/src/omnivox/omnivox-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.31s
+Staged 364 eSpeak NG data files (7.6 MiB) in /home/bart/src/omnivox/target/debug

@@ -5,7 +5,7 @@
 The updated release workflow also produces `omnivox_VERSION-1_amd64.deb` for
 Ubuntu 24.04 and 26.04. This core package is built on Ubuntu 24.04, covered by
 the unified checksum manifest, and tested again after download from the draft
-release. See the [Debian guide](../docs/DEBIAN.md) for installation and its
+release. See the [Debian guide](../docs/guides/debian-packages.md) for installation and its
 matching corresponding-source archive. Earlier releases do not gain this asset.
 
 The checked-in GitHub Actions workflow publishes these release archives:
@@ -114,6 +114,11 @@ Compiled caches are separated by runner image for those builds.
   missing-runtime diagnostics, responsiveness, and shutdown for the packaged
   Windows Eloquence and DECtalk bridge helpers on x64 and ARM64 runners.
 - Native AVSpeechSynthesizer WAV synthesis during both macOS build jobs.
+- External-helper registration, exact selection, shared settings and worker
+  retirement through real processes on Linux x64 and both macOS architectures.
+- Rejection of invalid numeric settings, oversized silences and invalid audio
+  resources using each native server build; Unix also checks named pipes, and
+  Linux checks a constrained-memory silence request.
 - Tag-to-binary version agreement, release checksums, safe extraction, root
   payload layout, executable modes and architectures, and adjacent eSpeak data
   discovery from a relocated directory without path overrides.
@@ -154,7 +159,102 @@ for non-publishing engineering validation. Any failed generic, Flite, RuTTS,
 Piper, TGSpeechBox, source, or draft-asset verification gate leaves the GitHub
 release unpublished.
 
+## macOS with Homebrew
+
+For macOS on Apple Silicon or Intel, install [Homebrew](https://brew.sh) and
+follow its shell setup instructions. Then install Omnivox:
+
+```sh
+brew install bartbunting/omnivox/omnivox
+omnivox_program="$(brew --prefix omnivox)/bin/omnivox"
+"$omnivox_program" --version
+"$omnivox_program" --check
+"$omnivox_program" --list-voices
+```
+
+Confirm that the check produces both a tone and spoken confirmation. The
+[official tap](https://github.com/bartbunting/homebrew-omnivox) selects the
+architecture-specific published archive and verifies its checksum. It keeps the
+executable, matching eSpeak NG data, adapter, RHVoice bridge, and licence notices
+together. Apple system speech and eSpeak need no optional companions or Rust
+toolchain. This formula does not install Emacs, Emacsvox, or Emacspeak.
+
+Use the stable path printed by `echo "$omnivox_program"` when configuring your
+speech client. It follows Homebrew's current-version link through upgrades;
+do not use a versioned `Cellar/omnivox/...` path. Emacs launched from Finder may
+not inherit the shell's Homebrew PATH. If you previously installed Omnivox by
+hand, check `command -v omnivox` and the client's configured executable to make
+sure you select the Homebrew installation.
+
+Emacsvox uses its bundled adapter and launcher. Follow its
+[speech-server installation instructions](https://github.com/bartbunting/emacsvox/blob/master/docs/manual/chapters/speech-backends.org)
+to record the stable path and run the isolated launch checks. Do not load the
+upstream Emacspeak adapter into Emacsvox. For upstream Emacspeak, obtain the
+adapter directory with `echo "$(brew --prefix omnivox)/libexec"` and use it as
+the adapter's `load-path` in the [Emacspeak setup](../README.md#standalone-emacspeak-integration).
+Also make the Homebrew executable available to that Emacs session.
+
+Piper, Flite, RuTTS, and voice models remain separate downloads. The included
+RHVoice bridge still needs a compatible user-installed runtime and voice data;
+its presence does not establish macOS runtime support. Keep optional companions,
+voices, and configuration outside Homebrew's Cellar, which may be cleaned during
+upgrades. Use the explicit paths documented in the [engine guides](../docs/README.md).
+Match companions to the core release and architecture.
+
+To upgrade the Homebrew installation:
+
+```sh
+brew update
+brew upgrade omnivox
+```
+
+After an upgrade, restart your speech server and repeat `--version` and `--check`
+using the stable executable path. Existing speech processes keep the old
+executable until restarted. Emacsvox users should restart their Emacsvox session
+so both speech lanes use the new version.
+
+To remove the Homebrew installation:
+
+```sh
+brew uninstall omnivox
+```
+
+Removing Omnivox leaves the client's saved executable selection in place;
+select another server before using it again.
+
+Homebrew installs the existing release binaries; it does not add Apple Developer
+ID signing or notarization. The unsigned-binary guidance below still applies.
+Native tap CI verifies installation, audit, eSpeak and Apple WAV synthesis,
+reinstallation, a packaging-revision upgrade, and removal on both architectures.
+Audible Emacs integration and upgrades between different upstream versions remain
+separate acceptance checks.
+
+### Updating the tap after a release
+
+Once the stable Omnivox release has passed its gates and is publicly available,
+update a checkout of `bartbunting/homebrew-omnivox`:
+
+```sh
+python3 tools/update_formula.py VERSION
+git diff -- Formula/omnivox.rb
+```
+
+Run this from the tap repository, replacing `VERSION` with the published version.
+The command requires Python 3.9 or newer and an authenticated GitHub CLI. It
+verifies both Mac archives against the published checksum manifest before
+updating their URLs and hashes, and rejects drafts, prereleases, downgrades,
+and replacement archives under an unchanged version. Review and commit the
+change, open a pull request, and merge after both native Mac checks pass.
+Users then receive the new formula through `brew update`.
+
+This is an explicit post-release maintenance step. Publishing an Omnivox release
+does not automatically update the tap; the updater does not tag or publish a
+release. The [tap maintenance guide](https://github.com/bartbunting/homebrew-omnivox#maintaining-a-release)
+contains the complete procedure.
+
 ## Installing an archive
+
+Use this manual route on Linux and Windows, or on macOS when not using Homebrew.
 
 Download one archive and `sha256sums.txt` from the same GitHub release. Verify
 the archive before extracting it. Replace `VERSION` in these examples with the
@@ -238,21 +338,21 @@ Copy-Item -Recurse -Force windows-helpers-source "$destination\windows-helpers-s
 For a release that lists Piper, verify and extract the matching companion into
 the generic executable's directory; its one top-level `piper/` directory keeps
 the runtime isolated. Supply a separately reviewed voice model and follow the
-[Piper companion guide](../docs/PIPER.md). Other optional helper engines still
+[Piper companion guide](../docs/engines/piper.md). Other optional helper engines still
 require adjacent executables and user-supplied runtimes. For Flite, extract the
 matching companion's `flite/` directory beside the generic executable; its
 built-in SLT voice requires no additional runtime. See the
-[Flite companion guide](../docs/FLITE.md). For RuTTS, extract the matching
+[Flite companion guide](../docs/engines/flite.md). For RuTTS, extract the matching
 companion's `rutts/` directory beside the generic executable; its built-in
 male and female voices require no additional runtime. See the
-[RuTTS companion guide](../docs/RUTTS.md). For TGSpeechBox on Windows x64,
+[RuTTS companion guide](../docs/engines/rutts.md). For TGSpeechBox on Windows x64,
 extract the companion's `tgspeechbox/` directory beside the generic executable. Its
 packs and eSpeak NG phonemizer data are included. Its rate is calibrated against
 Eloquence and it exposes exact requested anchors, but not general word or
 sentence markers. See the
-[TGSpeechBox companion guide](../docs/TGSPEECHBOX.md). The generic `rhvoice/`
+[TGSpeechBox companion guide](../docs/engines/tgspeechbox.md). The generic `rhvoice/`
 helper still requires a separately installed compatible runtime and voice; see the
-[RHVoice guide](../docs/RHVOICE.md). The
+[RHVoice guide](../docs/engines/rhvoice.md). The
 [Windows helper guide](../windows-helpers/README.md#runtime-requirements-and-installation)
 documents the complete Eloquence and DECtalk requirements, the durable DECtalk
 binary, and the separately labelled newer-build path.
@@ -264,13 +364,13 @@ OS-provided per-file exception that you understand. Build from reviewed source
 when local policy requires signed software.
 
 The repository adapter is for upstream Emacspeak. Follow [README.md](../README.md)
-and [ENV-VARS.md](../docs/ENV-VARS.md) rather than mixing those `dtk-*` names with
+and [configuration.md](../docs/guides/configuration.md) rather than mixing those `dtk-*` names with
 Emacsvox's bundled adapter.
 
 ## Emacsvox Windows deployment
 
 Emacsvox does not consume this generic CI archive for its reproducible WSL to
-Windows integration. The sibling Emacsvox repository owns a pinned Windows-GNU
+Windows integration. The sibling Emacsvox repository provides a pinned Windows-GNU
 build, 32-bit helper builds, runtime inputs, provenance, content-addressed
 staging, and Windows-local runtime copy:
 

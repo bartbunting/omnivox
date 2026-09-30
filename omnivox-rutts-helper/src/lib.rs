@@ -477,7 +477,7 @@ fn descriptor() -> EngineDescriptor {
 }
 
 fn map_rate(rate: f32) -> i32 {
-    // Russian reference and saturation policy: docs/RATE-CALIBRATION.md.
+    // Russian reference and saturation policy: docs/reference/rate-calibration.md.
     const CALIBRATION: &[(f32, f32)] = &[
         (0.0, 67.697_849),
         (0.1, 78.578_08),

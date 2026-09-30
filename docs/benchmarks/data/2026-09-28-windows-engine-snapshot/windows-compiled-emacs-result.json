@@ -1,0 +1,19 @@
+{
+  "command": [
+    "/home/bart/opt/emacs-31/bin/emacs",
+    "-Q",
+    "--batch",
+    "-L",
+    "lisp",
+    "-l",
+    "lisp/emacsvox-preamble.el",
+    "-l",
+    "test/omnivox-library-tests.el",
+    "--eval",
+    "(progn (dolist (fn (quote (tts-initialize omnivox-library--acknowledge-engines))) (unless (string-suffix-p \".elc\" (symbol-file fn (quote defun))) (error \"Expected compiled acceptance: %S\" fn))) (ert-run-tests-batch-and-exit \"omnivox-library-engine-\"))"
+  ],
+  "server": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/454e40235fb929ce/omnivox.exe",
+  "espeak_data": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+  "exit_code": 0,
+  "elapsed_seconds": 3.474980447033886
+}

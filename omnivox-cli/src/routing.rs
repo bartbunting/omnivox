@@ -9,9 +9,10 @@ use omnivox_tts::contracts::{
     LogicalVoiceDefinition, NormalizedAcss, PhysicalVoiceId, PostSynthesisApplication,
     PostSynthesisDimension, PostSynthesisStyle, VoiceSelector,
 };
+use omnivox_tts::engine_configuration::EngineSelectionPermissions;
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::logical_voices::LogicalVoiceRegistry;
-use omnivox_tts::resolver::{resolve_voice, resolve_voice_for_text, VoiceResolution};
+use omnivox_tts::resolver::{resolve_voice_with_permissions, VoiceResolution};
 use omnivox_tts::routing_policy::RoutingPolicyRegistry;
 use omnivox_tts::voice_choices::{LayeredVoiceDefinition, RegisteredVoiceDefinition};
 use omnivox_tts::{
@@ -46,6 +47,7 @@ pub struct LogicalVoiceRoutingSnapshot {
     fallback_policy: FallbackPolicy,
     inventory: Vec<EngineDescriptor>,
     disabled_engine_ids: Vec<String>,
+    engine_permissions: EngineSelectionPermissions,
 }
 
 impl LogicalVoiceRoutingSnapshot {
@@ -74,6 +76,7 @@ impl LogicalVoiceRoutingSnapshot {
         engine_registry: &EngineRegistry,
     ) -> Self {
         Self {
+            engine_permissions: engine_registry.selection_permissions().clone(),
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
@@ -92,6 +95,7 @@ impl LogicalVoiceRoutingSnapshot {
         routing_policy: &RoutingPolicyRegistry,
     ) -> Self {
         Self {
+            engine_permissions: engine_registry.selection_permissions().clone(),
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
@@ -113,6 +117,7 @@ impl LogicalVoiceRoutingSnapshot {
         routing_policy: &RoutingPolicyRegistry,
     ) -> Self {
         Self {
+            engine_permissions: engine_registry.selection_permissions().clone(),
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
@@ -132,6 +137,7 @@ impl LogicalVoiceRoutingSnapshot {
         disabled_engine_ids: Vec<String>,
     ) -> Self {
         let mut snapshot = Self {
+            engine_permissions: engine_registry.selection_permissions().clone(),
             definitions: logical_voices.definitions().to_vec(),
             registry_generation: logical_voices.generation(),
             layered_definitions: layered_definitions(logical_voices),
@@ -239,6 +245,7 @@ impl LogicalVoiceRoutingSnapshot {
             .saturating_add(fallback_policy_payload_bytes(&self.fallback_policy))
             .saturating_add(inventory)
             .saturating_add(string_vec_payload_bytes(&self.disabled_engine_ids))
+            .saturating_add(self.engine_permissions.retained_bytes())
     }
 
     /// Return the first currently usable engine in global preferred/fallback
@@ -406,12 +413,13 @@ impl LogicalVoiceRoutingSnapshot {
             .ok_or_else(|| {
                 format!("logical voice {logical_voice_id} no longer has a definition")
             })?;
-        let mut resolution = match text {
-            Some(text) => {
-                resolve_voice_for_text(&self.inventory, definition, &self.fallback_policy, text)
-            }
-            None => resolve_voice(&self.inventory, definition, &self.fallback_policy),
-        }
+        let mut resolution = resolve_voice_with_permissions(
+            &self.inventory,
+            definition,
+            &self.fallback_policy,
+            text,
+            &self.engine_permissions,
+        )
         .map_err(|error| error.to_string())?;
         if let Some(index) = self.preview_choice_index {
             if resolution.reason != omnivox_tts::resolver::ResolutionReason::Preferred {
@@ -895,6 +903,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
     anchors: &[RequestedAnchor],
     settings: &TtsSettings,
     requested_acss: Option<&NormalizedAcss>,
+    capital_pitch: Option<&omnivox_core::settings::CapitalPitchSettings>,
     route: &mut LogicalRoute,
     routing: &mut LogicalVoiceRoutingSnapshot,
     engine_registry: &EngineRegistry,
@@ -911,6 +920,7 @@ pub fn synthesize_progressively_with_runtime_fallback_anchored(
             settings,
             acss: requested_acss,
             effects: None,
+            capital_pitch,
         },
         route,
         routing,
@@ -1160,6 +1170,7 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
             audio_accepted: false,
             output_failed: false,
         };
+        let mut empty_result = None;
         let synthesis = match &native_plan {
             omnivox_tts::engine_voice_choices::NativeChoiceExecution::Parameters(parameters) => {
                 route.engine.synthesize_stream_with_parameters(
@@ -1187,6 +1198,25 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
             }
             if !style.is_native() || completion.frame_count > 0 {
                 attempt_sink.commit_preamble()?;
+            } else {
+                // No PCM committed this attempt to the playback sink. Complete
+                // it through the buffered path so the caller can finalize its
+                // effects and timeline without inventing playback evidence.
+                let start = attempt_sink.pending_start.take().ok_or_else(|| {
+                    TtsError::SynthesisFailed("empty native stream omitted metadata".into())
+                })?;
+                let mut result = SynthesisResult::audio(
+                    start.engine_id,
+                    start.actual_voice,
+                    AudioBuffer::empty(),
+                );
+                result.degraded_acss = start.degraded_acss;
+                for (markers, anchors) in attempt_sink.pending_markers.drain(..) {
+                    result.markers.extend(markers);
+                    result.anchors.extend(anchors);
+                }
+                result.validate(&request)?;
+                empty_result = Some(result);
             }
             Ok(completion)
         });
@@ -1207,6 +1237,11 @@ pub(crate) fn synthesize_prepared_with_runtime_fallback_anchored(
                 );
                 return if stale(generation, generation_counter, cancellation) {
                     choice::PreparedSynthesisOutcome::Cancelled
+                } else if let Some(result) = empty_result {
+                    choice::PreparedSynthesisOutcome::Buffered {
+                        result: Box::new(result),
+                        attempt: Box::new(attempt_sink.prepared),
+                    }
                 } else {
                     choice::PreparedSynthesisOutcome::Streamed(completion)
                 };
@@ -1705,6 +1740,9 @@ fn record_runtime_failure(
 
 #[cfg(test)]
 mod tests {
+    mod capital_pitch_tests {
+        include!("capital_pitch_tests.rs");
+    }
     mod choice_tests {
         include!("routing_choice_tests.rs");
         mod native_tests {
@@ -2061,6 +2099,52 @@ mod tests {
     }
 
     #[test]
+    fn external_selection_permission_survives_dispatch_inventory_refresh() {
+        use omnivox_tts::engine_configuration::LocalRoutingPolicy;
+        use std::collections::BTreeSet;
+        let mut engines = EngineRegistry::new();
+        engines
+            .configure_local_selection(
+                LocalRoutingPolicy::default(),
+                EngineSelectionPermissions::new(
+                    BTreeSet::new(),
+                    BTreeSet::from(["aaa.external".into()]),
+                    &BTreeSet::new(),
+                ),
+            )
+            .unwrap();
+        register_engine(&mut engines, "aaa.external", &["external"]);
+        register_engine(&mut engines, "espeak", &["en"]);
+        let property = VoiceSelector::Properties {
+            engine_id: None,
+            language: Some("en-US".into()),
+            gender: None,
+        };
+        let mut automatic = snapshot(
+            &engines,
+            definition(vec![property]),
+            FallbackPolicy::default(),
+        );
+        automatic.replace_inventory(engines.inventory());
+        let route = automatic.resolve_current("source-code", &engines).unwrap();
+        assert_eq!(route.resolution.realized.engine_id, "espeak");
+        let explicit = snapshot(
+            &engines,
+            definition(vec![exact("aaa.external", "external")]),
+            FallbackPolicy::default(),
+        );
+        assert_eq!(
+            explicit
+                .resolve_current("source-code", &engines)
+                .unwrap()
+                .resolution
+                .realized
+                .engine_id,
+            "aaa.external"
+        );
+    }
+
+    #[test]
     fn global_policy_selects_legacy_engine_and_skips_disabled_positions() {
         let winrt = synthesis_engine("winrt", "david", None);
         let eloquence = synthesis_engine("eloquence", "reed", None);
@@ -2405,6 +2489,7 @@ mod tests {
             &[],
             &TtsSettings::default(),
             None,
+            None,
             &mut route,
             &mut routes,
             &engines,
@@ -2464,6 +2549,7 @@ mod tests {
             &anchors,
             &TtsSettings::default(),
             None,
+            None,
             &mut route,
             &mut routes,
             &engines,
@@ -2509,6 +2595,7 @@ mod tests {
             "hello",
             &anchors,
             &TtsSettings::default(),
+            None,
             None,
             &mut route,
             &mut routes,
@@ -2586,6 +2673,7 @@ mod tests {
                 &[],
                 &TtsSettings::default(),
                 None,
+                None,
                 &mut route,
                 &mut routes,
                 &engines,
@@ -2613,6 +2701,7 @@ mod tests {
                 "fresh speech",
                 &[],
                 &TtsSettings::default(),
+                None,
                 None,
                 &mut route,
                 &mut routes,
@@ -2665,6 +2754,7 @@ mod tests {
             "hello",
             &[],
             &TtsSettings::default(),
+            None,
             None,
             &mut route,
             &mut routes,

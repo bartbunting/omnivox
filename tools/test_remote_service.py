@@ -88,12 +88,15 @@ class RemoteServiceTests(unittest.TestCase):
         self.lines: queue.Queue[str] = queue.Queue()
         self.peers: list[Peer] = []
         self.log = []
+        self.configuration = Path(self.temp.name) / "configuration"
+        self.configuration.mkdir()
+        environment = dict(os.environ, OMNIVOX_CONFIG_DIR=native_path(self.configuration))
         self.process = subprocess.Popen(
             [PROGRAM, "--serve", "--listen", "127.0.0.1:0", "--token-file", native_path(token_path),
              "--sound-root", native_path(ROOT / "test-sounds"), "--audio-output",
              os.environ.get("OMNIVOX_REMOTE_TEST_AUDIO_OUTPUT", "null")],
             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-            text=True, encoding="utf-8", errors="replace")
+            env=environment, text=True, encoding="utf-8", errors="replace")
         self.addCleanup(self.stop)
 
         def read_log():
@@ -193,6 +196,40 @@ class RemoteServiceTests(unittest.TestCase):
         cancelled = "__EMACSVOX_TRACKED__ 32 cancelled"
         if cancelled not in peer.received:
             self.assertEqual(peer.until("__EMACSVOX_TRACKED__ 32 "), cancelled)
+
+    def test_engine_snapshot_is_shared_and_survives_total_disconnect(self):
+        speaker = self.connect()
+        first = speaker.control("engine_configuration_status_v1")
+        self.assertEqual(first["type"], "engine_configuration_status_v1")
+        self.assertIn("engine_configuration_v1", speaker.control("capabilities", 2)["features"])
+        config = self.configuration / "config.json"
+        config.write_text('{"schema":1,"unknown":true}')
+        notify = self.connect("notification")
+        second = notify.control("engine_configuration_status_v1")
+        self.assertEqual(first["activation_id"], second["activation_id"])
+        speaker.close()
+        notify.close()
+        recovered = self.reconnect()
+        self.assertEqual(first["activation_id"], recovered.control("engine_configuration_status_v1")["activation_id"])
+        recovered.close()
+        # A distinct session is a deliberate workstation activation. It reads
+        # current local inputs; invalid main policy cannot silently disappear.
+        deadline = time.monotonic() + 6
+        fresh_session = secrets.token_hex(16)
+        while True:
+            fresh = Peer(self.port)
+            self.peers.append(fresh)
+            fresh.send(f"OMNIVOX-REMOTE 1 {self.token} {fresh_session} speaker\n")
+            line = fresh.line()
+            fresh.close()
+            if line != "OMNIVOX-REMOTE 1 error busy":
+                self.assertEqual(line, "OMNIVOX-REMOTE 1 error worker")
+                break
+            self.assertLess(time.monotonic(), deadline)
+            time.sleep(0.05)
+        config.write_text('{"schema":1}')
+        fresh = self.reconnect(session=fresh_session)
+        self.assertNotEqual(first["activation_id"], fresh.control("engine_configuration_status_v1")["activation_id"])
 
     @unittest.skipUnless(os.environ.get("OMNIVOX_REMOTE_TEST_EXPECT_ENGINE"), "optional real engine acceptance")
     def test_requested_workstation_engine_produces_speech(self):

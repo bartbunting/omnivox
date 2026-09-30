@@ -40,7 +40,7 @@ even though the first PCM is already available.
 `omnivox-audio/src/output.rs` attaches a device source after three nonempty
 audio windows, or when a shorter stream completes. Null sources attach
 immediately. This distinction is intentional and recorded in
-[ADR 0006](../adr/0006-bounded-progressive-synthesis.md). A queued-audio timestamp
+[ADR 0003](../adr/0003-progressive-audio-and-markers.md). A queued-audio timestamp
 therefore does not establish that device playback has started.
 
 The older standalone Windows DECtalk bridge documents a dropped-character
@@ -124,7 +124,7 @@ isolation. Choose the duration from matched device tests; 40 milliseconds of
 saved startup here is an opportunity, not a promised result.
 
 That is a change to the accepted playback policy, so its design must reconcile
-ADR 0006 and the PulseAudio decision before implementation. Validate short and
+ADR 0003 and the PulseAudio decision before implementation. Validate short and
 long letters, uppercase cues, fast replacement, deliberately stalled producers,
 device underruns and stop/recovery on the supported output backends. Retain a
 muted device benchmark alongside null-audio timing: null alone misses this

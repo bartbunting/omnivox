@@ -1,0 +1,1 @@
+{"schema": 1, "engine_overrides": {"winrt": {"enabled": false}, "macos": {"enabled": false}, "piper": {"enabled": false}, "rhvoice": {"enabled": false}, "flite": {"enabled": false}, "rutts": {"enabled": false}, "tgspeechbox": {"enabled": false}, "eloquence": {"enabled": false}, "dectalk": {"enabled": false}, "mbrola": {"enabled": false}}}

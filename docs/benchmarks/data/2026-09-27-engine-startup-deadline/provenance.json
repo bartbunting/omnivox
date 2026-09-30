@@ -1,0 +1,147 @@
+{
+  "recorded_utc": "2026-09-27T09:34:01.848567+00:00",
+  "omnivox_commit": "7cdf056164e8e18b1a62b991cb287425ff01afc5",
+  "base_commit": "7836317a399b88810a88c8e726e77dee8b5c5a46",
+  "verification_source_note": "Rust checks ran on the exact source bytes subsequently committed as omnivox_commit. Build and process checks ran after that commit; only documentation edits were pending.",
+  "source_sha256": {
+    "omnivox-cli/src/engine.rs": "471465abd8f901fcf0418c265a36ddb4c60f3b4f4e6a21468646f638e6892d41",
+    "omnivox-tts/src/engine_configuration/status_tests.rs": "2c0bac254026bf39a45a4f6c0be995665fa67183dbfbef2424b6fb55d0ac6d87",
+    "omnivox-tts/src/helper_engine.rs": "00df8922bac3e58910e2c258bca9281536fce6a22875ac04332d904366256636",
+    "omnivox-tts/src/helper_engine/initialization.rs": "0955645f25d8a8a8d1a356f489bb2c65573ab03a4a530270f665936e24d99523",
+    "omnivox-tts/src/helper_engine/initialization_tests.rs": "d4393c9495520e498a522b28e38b82c4c0537467d8c7710e3a0538aa4f381b84",
+    "test-fixtures/framework-helper.py": "fb81649380c7ec7204361b1d26dc80896e921cc1cd107a80af6145723733d94a",
+    "tools/verify_engine_configuration.py": "579dd14845ae94e3c054a42708f9e5aafe2ec8c9dc7278e9455f6653b9efb637",
+    "tools/verify_local_voice_owner.py": "760cd0c2d2d60958c729a6d175bb7e135b56bf7b60f16d177e5498ab31a0c588"
+  },
+  "emacsvox_commit": "1ff3f466b87ebe32c8022d3f98d37dc756e9d5a3",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "staged_binary_sha256": "cb6f3a070c4d8cddc2d59f1b8e7d1889fba29c5e59367f678b495ff09dd037b6",
+  "checks": [
+    {
+      "log": "helper-tests.log",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "test",
+        "--locked",
+        "-p",
+        "omnivox-tts",
+        "helper_engine::",
+        "--",
+        "--nocapture"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 7.043366569036152,
+      "artifact": "helper-tests.log.gz"
+    },
+    {
+      "log": "workspace-tests.log",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 36.078155477007385,
+      "artifact": "workspace-tests.log.gz"
+    },
+    {
+      "log": "workspace-clippy.log",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "clippy",
+        "--locked",
+        "--workspace",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 15.455930396041367,
+      "artifact": "workspace-clippy.log"
+    },
+    {
+      "log": "piper-clippy.log",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "clippy",
+        "--locked",
+        "-p",
+        "omnivox-cli",
+        "--all-targets",
+        "--features",
+        "piper",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 3.0126879119779915,
+      "artifact": "piper-clippy.log"
+    },
+    {
+      "log": "windows-cross-clippy.log",
+      "command": [
+        "cargo",
+        "+1.97.1",
+        "clippy",
+        "--locked",
+        "-p",
+        "omnivox-cli",
+        "--all-targets",
+        "--features",
+        "piper",
+        "--target",
+        "x86_64-pc-windows-gnu",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 11.443697624024935,
+      "artifact": "windows-cross-clippy.log"
+    },
+    {
+      "log": "development-build.log",
+      "command": [
+        "make",
+        "dev"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 27.555201290990226,
+      "artifact": "development-build.log.gz"
+    },
+    {
+      "log": "local-owner-process.log",
+      "command": [
+        "python3",
+        "tools/verify_engine_configuration.py",
+        "target/debug/omnivox"
+      ],
+      "exit": 0,
+      "elapsed_seconds": 56.955888771044556,
+      "artifact": "local-owner-process.log"
+    }
+  ],
+  "fixture_environment": "Local-owner process check inherited only PATH, HOME, LANG, USER and TMPDIR when present. The harness supplied isolated configuration/voice roots and null audio.",
+  "timing": {
+    "clock": "Rust std::time::Instant",
+    "boundary": "admission caller around initialization; excludes subsequent fixture release and join",
+    "admission_budget_ms": 100,
+    "fixture_release_ms": 500,
+    "recorded_observations_per_fault": 1,
+    "reported_precision": "milliseconds truncated to integer"
+  },
+  "limitations": [
+    "No actual kernel spawn stall or failed OS termination induced.",
+    "No Windows native staging or qualification; Windows result is cross-target Clippy only.",
+    "No acoustic measurement or performance distribution.",
+    "Emacsvox was not changed or retested by this slice; earlier coverage and its unrelated full-suite failure remain in the preceding report."
+  ]
+}

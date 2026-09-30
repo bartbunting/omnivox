@@ -1,0 +1,5 @@
+{
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "mkfifo: cannot create fifo '/mnt/c/Users/bart/AppData/Local/Temp/omnivox client diagnostic 3dwkcuez/logs/.omnivox-20260927T181232Z-2072600.pipe': File exists\n"
+}

@@ -110,7 +110,8 @@ exhaustive manifest, the recorded Git tree and input locks, model exclusion,
 and offline Cargo resolution. The tag workflow includes this artifact and all
 four companions in its draft and verification gates. Piper companion archives
 are published beginning with v1.6.4. Release code remains unsigned. See the
-[Piper release plan](plans/PIPER-RELEASE.md) for the completed release work.
+[Piper release requirements](engines/piper.md#release-maintenance) and
+[retained qualification](benchmarks/2026-09-27-retained-piper-release-results.md).
 
 ## Optional RHVoice integration
 
@@ -122,7 +123,7 @@ or voice data.
 Upstream describes the main RHVoice library as LGPL-2.1-or-later, with combined
 build terms affected by optional components, and documents additional or
 restrictive terms for some voices. The user's selected runtime and voice terms
-continue to apply. See the [RHVoice companion guide](RHVOICE.md) and the licence
+continue to apply. See the [RHVoice companion guide](engines/rhvoice.md) and the licence
 files supplied by RHVoice and each installed voice.
 
 ## Optional Flite integration
@@ -138,7 +139,7 @@ with exact source provenance and payload checksums.
 The Omnivox-authored C and Rust boundary remains under MIT; it does not
 relicense Flite or a user-supplied `.flitevox` file. Release companions contain
 no additional voice files. Review the source and voice terms before adding or
-redistributing one. See the [Flite companion guide](FLITE.md).
+redistributing one. See the [Flite companion guide](engines/flite.md).
 
 ## Optional RuTTS integration
 
@@ -153,7 +154,7 @@ The Omnivox-authored C and Rust boundary remains under MIT. The companion does
 not include or load the separately licensed RuLex library or its dictionary
 database. A corresponding-source artifact contains the pinned upstream archive
 and exact Omnivox integration used to build the helper. See the
-[RuTTS companion guide](RUTTS.md).
+[RuTTS companion guide](engines/rutts.md).
 
 ## Experimental TGSpeechBox integration
 
@@ -171,8 +172,8 @@ not relicense the combined helper. Beginning with Omnivox v1.7.0, the Windows
 x64 GNU companion is a separate experimental release asset. Its deterministic
 corresponding-source artifact contains the exact Omnivox tree, vendored Cargo
 and eSpeak NG sources, and the locked TGSpeechBox archive. See the
-[TGSpeechBox companion guide](TGSPEECHBOX.md) and
-[ADR 0005](adr/0005-experimental-tgspeechbox-companion.md).
+[TGSpeechBox companion guide](engines/tgspeechbox.md) and
+[ADR 0001](adr/0001-engine-isolation-and-distribution.md).
 
 ## Proprietary engines and other dependencies
 

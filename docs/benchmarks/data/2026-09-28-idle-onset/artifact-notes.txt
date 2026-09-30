@@ -1,0 +1,7 @@
+For the repository whitespace gate, these text views have excess final blank lines removed. Their original byte-for-byte tool output is retained beside them as .log.gz; test results and measurements are unchanged.
+
+v1.13.0/host-tests.log
+v1.13.0/audio-suite.log
+v1.13.0/windows-tests.log
+v1.12.0/host-tests.log
+v1.12.0/windows-tests.log

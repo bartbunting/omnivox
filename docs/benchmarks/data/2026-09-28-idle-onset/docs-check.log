@@ -1,0 +1,8 @@
+python3 tools/test_documentation_links.py
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.008s
+
+OK
+python3 tools/check_documentation_links.py
+Checked targets and anchors in 130 Markdown/Org documents

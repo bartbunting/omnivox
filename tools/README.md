@@ -3,7 +3,7 @@
 ## Debian packaging
 
 `make package-deb` builds a native amd64 development package and checksum under
-`target/debian/`. See the [Debian package guide](../docs/DEBIAN.md) for installation,
+`target/debian/`. See the [Debian package guide](../docs/guides/debian-packages.md) for installation,
 payload boundaries, prerequisites, and compatibility limits.
 `make package-deb-release` requires a clean matching release tag and produces
 `omnivox_VERSION-1_amd64.deb`. `make deb-package-test` exercises release guards.
@@ -13,13 +13,19 @@ identity before the normal container installation tests can pass.
 
 ## Documentation links
 
-`check_markdown_links.py` resolves repository-local links in every tracked
-Markdown file and rejects missing targets, unsupported URI schemes, and links
-that leave the repository. It does not make network requests for external
-URLs. Run it directly or through:
+`check_documentation_links.py` checks tracked Markdown and Org file targets,
+heading/custom anchors and current-branch GitHub links to this repository.
+It rejects missing targets, unsupported URI schemes and repository escapes,
+while ignoring literal code examples and preserving commit/tag-pinned historical
+URLs. The supported syntax includes inline/reference Markdown links, Org file
+and heading links, duplicate headings and explicit IDs. It is a repository link
+check, not a complete Markdown/Org renderer or an external availability audit.
+No network requests are made. Run the focused regressions and ordinary gate, or
+also check incoming Emacsvox links against this checkout:
 
 ```sh
 make docs-check
+make docs-check-paired EMACSVOX_SOURCE_DIRECTORY=/path/to/emacsvox
 ```
 
 ## Build and runtime staging
@@ -31,7 +37,7 @@ the launcher's separately cached eSpeak tree.
 `build_mbrola_prototype.py` builds private pinned native inputs and an isolated
 helper; `verify_mbrola_prototype.py HELPER --server SERVER` checks its controls,
 native process retirement, data integrity, recovery and concurrent speech lanes.
-See the [MBROLA prototype guide](../docs/MBROLA-PROTOTYPE.md) for Windows paths,
+See the [MBROLA prototype guide](../docs/engines/mbrola.md) for Windows paths,
 bounded-output limits, recorded acceptance and production boundaries.
 
 `verify_voice_library_startup.py` exercises staged main-server library startup,
@@ -51,7 +57,7 @@ these probes does not enable the capability or establish two-lane activation,
 audible acceptance, native validation isolation or measured memory recovery.
 
 `verify_voice_validation.py` checks the separate development
-[native validator](../docs/VOICE-VALIDATION.md) on Linux and macOS, including descendants,
+[native validator](../docs/guides/native-voice-validation.md) on Linux and macOS, including descendants,
 deadlines, cancellation, parent death, unconfirmed pipe cleanup, memory-limit
 inheritance on Linux and recovery. macOS component tests separately exercise
 the sampled footprint cutoff. The probe requires staged Piper and Flite helpers:
@@ -89,7 +95,7 @@ The wrapper fails rather than choose between non-identical eSpeak data outputs.
 `build_rhvoice.py` builds the portable RHVoice helper with locked Cargo
 dependencies and atomically stages it as `rhvoice/` beside the selected Cargo
 profile output. It deliberately stages no RHVoice library or voice data; see
-the [RHVoice companion guide](../docs/RHVOICE.md) for the user-installed
+the [RHVoice companion guide](../docs/engines/rhvoice.md) for the user-installed
 runtime contract:
 
 ```sh
@@ -110,7 +116,7 @@ python3 tools/build_flite.py --release
 ```
 
 Set `OMNIVOX_FLITE_INPUTS_DIR` to use a different verified cache. See the
-[Flite companion guide](../docs/FLITE.md) for installation and optional local
+[Flite companion guide](../docs/engines/flite.md) for installation and optional local
 voice configuration.
 
 `package_flite.py` and `verify_flite_release.py` create and verify a
@@ -136,7 +142,7 @@ python3 tools/build_rutts.py --release
 ```
 
 Set `OMNIVOX_RUTTS_INPUTS_DIR` to use a different verified cache. The
-[RuTTS companion guide](../docs/RUTTS.md) documents the KOI8-R text boundary,
+[RuTTS companion guide](../docs/engines/rutts.md) documents the KOI8-R text boundary,
 built-in voices, RuLex exclusion, and installation.
 
 `package_rutts.py` and `verify_rutts_release.py` create and verify the
@@ -171,7 +177,7 @@ development smoke test. `package_tgspeechbox.py` and
 archive. The matching source tools include the exact Omnivox tree, vendored
 Cargo/eSpeak NG source, locked TGSpeechBox archive, and exhaustive manifest.
 See the
-[TGSpeechBox companion guide](../docs/TGSPEECHBOX.md).
+[TGSpeechBox companion guide](../docs/engines/tgspeechbox.md).
 
 `build_piper.py` builds the optional helper in relocatable mode, selects the
 native Linux x64, Windows x64, or macOS ARM64/x64 library layout, and
@@ -347,7 +353,7 @@ of the current exact diagnostic interface, provides no benefit to the duration
 calculation, and makes a sweep slower. Startup and synthesis wall-clock time
 are not measurements: only the completed WAV frame count contributes to
 duration and WPM. See the
-[speech-rate calibration guide](../docs/RATE-CALIBRATION.md) for the current
+[speech-rate calibration guide](../docs/reference/rate-calibration.md) for the current
 reference procedure.
 
 ## Linux legacy-engine interfaces
@@ -374,7 +380,7 @@ is discarded.
 reports actual executable identities and configured audio paths, and repeats
 Linux PulseAudio buffer/shutdown probes. It uses a new private trial directory
 and the existing Emacsvox launcher. See the
-[WSLg comparison guide](../docs/WSL-AUDIO.md) for prerequisites, launch commands,
+[WSLg comparison guide](../docs/guides/wsl-audio-comparison.md) for prerequisites, launch commands,
 and measurement limits. Prefix the Linux trial with
 `OMNIVOX_WSL_AUDIO_OUTPUT=pulse` for the optional native backend; it skips ALSA
 plugin validation and clears the inherited ALSA latency request. The WSL
@@ -575,7 +581,7 @@ events. It strips synthesis-text log records, redacts checkout and common
 user-home paths, omits process command lines, and stores runtime hashes by
 basename. It does not include Windows memory dumps; inspect the result before
 sharing because native error text can still carry unexpected private data. See
-[`docs/DIAGNOSTICS.md`](../docs/DIAGNOSTICS.md) for the failure workflow and the
+[`docs/guides/diagnostics.md`](../docs/guides/diagnostics.md) for the failure workflow and the
 opt-in `configure_windows_crash_dumps.ps1` helper.
 
 ## Windows helper session stress

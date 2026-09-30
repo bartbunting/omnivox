@@ -4,6 +4,7 @@ use anyhow::Result;
 use omnivox_core::state::ChannelMode;
 use omnivox_core::TtsState;
 use omnivox_tts::contracts::EngineDescriptor;
+use omnivox_tts::engine_configuration::{LaunchEnvironment, Platform};
 use omnivox_tts::engine_registry::EngineRegistry;
 use omnivox_tts::espeak::EspeakTtsEngine;
 use omnivox_tts::helper_engine::{
@@ -17,7 +18,7 @@ use omnivox_tts::windows::WindowsTtsEngine;
 use omnivox_tts::TtsEngine;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use tracing::{info, warn};
@@ -25,24 +26,19 @@ use tracing::{info, warn};
 use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
 use crate::voice_library::StartupLibrary;
 
-const ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_millis(500);
-const NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+mod startup;
+pub(crate) use startup::EngineStartup;
+
 const TGSPEECHBOX_SAMPLE_RATE_ENVIRONMENT_VARIABLE: &str = "OMNIVOX_TGSPEECHBOX_SAMPLE_RATE";
 const TGSPEECHBOX_22050_CACHE_FILE_NAME: &str = "VOICE-INVENTORY-22050.json";
 const TGSPEECHBOX_44100_CACHE_FILE_NAME: &str = "VOICE-INVENTORY-44100.json";
-
-fn helper_synthesis_idle_timeout(engine_id: &str) -> Duration {
-    if engine_id == "eloquence" {
-        ELOQUENCE_SYNTHESIS_IDLE_TIMEOUT
-    } else {
-        NATIVE_HELPER_SYNTHESIS_IDLE_TIMEOUT
-    }
-}
 
 /// Engines initialized for one server session.
 pub struct CreatedEngines {
     pub preferred: Arc<dyn TtsEngine>,
     pub registry: EngineRegistry,
+    pub speech: omnivox_tts::engine_configuration::SpeechConfiguration,
+    pub audio: omnivox_core::settings::AudioOutputSettings,
 }
 
 /// Create all engines that should be available to the server process.
@@ -57,244 +53,124 @@ pub fn create_engines(
     engine_name: &str,
     piper_model: Option<&str>,
     voice_library: Option<&str>,
+    config_dir: Option<&str>,
     generation: Arc<AtomicU64>,
 ) -> Result<CreatedEngines> {
-    let library = StartupLibrary::from_environment(voice_library, piper_model)?;
+    let startup = EngineStartup::read(engine_name, piper_model, voice_library, config_dir)?;
+    let library = startup.library.as_ref();
     let isolation_budget = Arc::new(IsolationBudget::new());
-    #[cfg(target_os = "windows")]
+    let mut registry = startup.registry()?;
+    let pending = start_helper_initializations(startup.helper_configs(false), library);
+    for id in [native_registry_engine_id(), Some("espeak")]
+        .into_iter()
+        .flatten()
     {
-        let created = create_windows_engines(
-            engine_name,
-            piper_model,
-            library.as_ref(),
-            generation,
-            isolation_budget,
-        )?;
-        if library.is_some() {
-            crate::voice_library::preflight_responses(
-                &created.registry,
-                &created.preferred.descriptor().id,
-            )?;
+        if !startup.permits_construction(id) {
+            continue;
         }
-        Ok(created)
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        let created = create_non_windows_engines(
-            engine_name,
-            piper_model,
-            library.as_ref(),
-            generation,
-            isolation_budget,
-        )?;
-        if library.is_some() {
-            crate::voice_library::preflight_responses(
-                &created.registry,
-                &created.preferred.descriptor().id,
-            )?;
+        match construct_in_process(id) {
+            Ok(engine) => {
+                #[cfg(windows)]
+                let engine = if id == "winrt" {
+                    Arc::new(IsolatedTtsEngine::new(
+                        engine,
+                        generation.clone(),
+                        isolation_budget.clone(),
+                    )) as Arc<dyn TtsEngine>
+                } else {
+                    engine
+                };
+                registry.register(engine)?;
+                info!(engine_id = id, "Registered native engine");
+            }
+            Err(error) => warn!(engine_id = id, %error, "Native engine unavailable"),
         }
-        Ok(created)
     }
-}
-
-#[cfg(not(target_os = "windows"))]
-fn create_non_windows_engines(
-    engine_name: &str,
-    piper_model: Option<&str>,
-    library: Option<&StartupLibrary>,
-    generation: Arc<AtomicU64>,
-    isolation_budget: Arc<IsolationBudget>,
-) -> Result<CreatedEngines> {
-    let requested = requested_engine(engine_name);
-    let helper_configs = configured_helper_configs(&requested, piper_model, library);
-    let mut registry = match library {
-        Some(library) => library.registry()?,
-        None => EngineRegistry::new(),
-    };
-    register_missing_managed_helpers(&mut registry, &helper_configs, library)?;
-    let helper_initializations = start_helper_initializations(helper_configs, library);
-
-    #[cfg(target_os = "macos")]
-    match MacOsTtsEngine::new() {
-        Ok(engine) => {
-            let engine: Arc<dyn TtsEngine> = Arc::new(engine);
-            registry.register(isolate_server_engine(
-                engine,
-                Arc::clone(&generation),
-                Arc::clone(&isolation_budget),
-            ))?;
-            info!("Registered macOS AVSpeechSynthesizer engine");
-        }
-        Err(error) => warn!("macOS AVSpeechSynthesizer not available: {error}"),
-    }
-
-    match EspeakTtsEngine::new() {
-        Ok(engine) => {
-            let engine: Arc<dyn TtsEngine> = Arc::new(engine);
-            registry.register(isolate_server_engine(
-                engine,
-                Arc::clone(&generation),
-                Arc::clone(&isolation_budget),
-            ))?;
-            info!("Registered espeak-ng fallback engine");
-        }
-        Err(error) => warn!("espeak-ng fallback not available: {error}"),
-    }
-
+    let external = omnivox_tts::helper_engine::initialize_external_helpers(
+        startup.helper_configs(true),
+        startup.external_priority(),
+    );
     register_initialized_helpers(
         &mut registry,
-        helper_initializations,
-        generation,
-        isolation_budget,
+        pending,
+        generation.clone(),
+        isolation_budget.clone(),
         library,
     )?;
-
-    let preferred = engine_preference_order(&requested, native_registry_engine_id())
+    for initialized in external {
+        match (initialized.engine, initialized.result) {
+            (Some(engine), Ok(_)) => {
+                registry.register(Arc::new(IsolatedTtsEngine::new(
+                    engine,
+                    generation.clone(),
+                    isolation_budget.clone(),
+                )))?;
+            }
+            (engine, Err(reason)) => {
+                let generation = generation.clone();
+                let isolation_budget = isolation_budget.clone();
+                let retry_reason = reason.clone();
+                registry.register_unavailable(
+                    EngineDescriptor::unavailable(initialized.engine_id, reason),
+                    move || {
+                        let engine = engine.as_ref().ok_or_else(|| retry_reason.clone())?;
+                        engine
+                            .initialize_before(
+                                Instant::now()
+                                    + omnivox_tts::helper_engine::EXTERNAL_STARTUP_BUDGET,
+                            )
+                            .map_err(|e| e.to_string())?;
+                        Ok(Arc::new(IsolatedTtsEngine::new(
+                            engine.clone(),
+                            generation.clone(),
+                            isolation_budget.clone(),
+                        )) as Arc<dyn TtsEngine>)
+                    },
+                )?;
+            }
+            (None, Ok(_)) => unreachable!("successful initialization owns its engine"),
+        }
+    }
+    let preferred = startup
+        .order()
         .iter()
-        .filter_map(|engine_id| registry.engine(engine_id))
-        .find(|engine| library.is_none() || engine.descriptor().can_synthesize())
-        .ok_or_else(|| anyhow::anyhow!("No TTS engine available"))?;
+        .filter_map(|id| registry.engine(id))
+        .find(|engine| engine.descriptor().can_synthesize())
+        .ok_or_else(|| anyhow::anyhow!("No eligible TTS engine available"))?;
+    if library.is_some() {
+        crate::voice_library::preflight_responses(&registry, &preferred.descriptor().id)?;
+    }
     info!(
-        "Using {} as the preferred TTS engine",
-        preferred.descriptor().id
+        engine_id = preferred.descriptor().id,
+        "Selected startup engine"
     );
-
     Ok(CreatedEngines {
         preferred,
         registry,
+        speech: startup.snapshot.resolved().speech.clone(),
+        audio: startup.snapshot.resolved().audio,
     })
 }
 
-#[cfg(target_os = "windows")]
-fn create_windows_engines(
-    engine_name: &str,
-    piper_model: Option<&str>,
-    library: Option<&StartupLibrary>,
-    generation: Arc<AtomicU64>,
-    isolation_budget: Arc<IsolationBudget>,
-) -> Result<CreatedEngines> {
-    let forced = requested_engine(engine_name);
-    let mut helper_configs = [
-        helper_config(
-            "eloquence",
-            "OMNIVOX_ELOQUENCE_HELPER",
-            "OmnivoxEloquenceHelper32.exe",
-        ),
-        helper_config(
-            "dectalk",
-            "OMNIVOX_DECTALK_HELPER",
-            "OmnivoxDectalkHelper32.exe",
-        ),
-    ]
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>();
-    helper_configs.extend(configured_helper_configs(&forced, piper_model, library));
-    let mut registry = match library {
-        Some(library) => library.registry()?,
-        None => EngineRegistry::new(),
-    };
-    register_missing_managed_helpers(&mut registry, &helper_configs, library)?;
-    let helper_initializations = start_helper_initializations(helper_configs, library);
-
-    match WindowsTtsEngine::new() {
-        Ok(engine) => {
-            let engine: Arc<dyn TtsEngine> = Arc::new(engine);
-            registry.register(Arc::new(IsolatedTtsEngine::new(
-                engine,
-                Arc::clone(&generation),
-                Arc::clone(&isolation_budget),
-            )))?;
-            info!("Registered Windows WinRT engine");
-        }
-        Err(error) => warn!("Windows WinRT not available: {}", error),
+fn construct_in_process(id: &str) -> Result<Arc<dyn TtsEngine>> {
+    match id {
+        "espeak" => Ok(Arc::new(EspeakTtsEngine::new()?)),
+        #[cfg(windows)]
+        "winrt" => Ok(Arc::new(WindowsTtsEngine::new()?)),
+        #[cfg(target_os = "macos")]
+        "macos" => Ok(Arc::new(MacOsTtsEngine::new()?)),
+        _ => anyhow::bail!("engine is unavailable on this platform"),
     }
-
-    match EspeakTtsEngine::new() {
-        Ok(engine) => {
-            registry.register(Arc::new(engine))?;
-            info!("Registered espeak-ng fallback engine");
-        }
-        Err(error) => warn!("espeak-ng fallback not available: {}", error),
-    }
-
-    register_initialized_helpers(
-        &mut registry,
-        helper_initializations,
-        generation,
-        isolation_budget,
-        library,
-    )?;
-
-    let preferred = engine_preference_order(&forced, Some("winrt"))
-        .iter()
-        .filter_map(|engine_id| registry.engine(engine_id))
-        .find(|engine| library.is_none() || engine.descriptor().can_synthesize())
-        .ok_or_else(|| anyhow::anyhow!("No TTS engine available"))?;
-    info!(
-        "Using {} as the preferred TTS engine",
-        preferred.descriptor().id
-    );
-
-    Ok(CreatedEngines {
-        preferred,
-        registry,
-    })
-}
-
-#[cfg(target_os = "windows")]
-fn helper_config(
-    engine_id: &str,
-    environment_variable: &str,
-    adjacent_filename: &str,
-) -> Option<HelperEngineConfig> {
-    helper_config_with_candidates(
-        engine_id,
-        environment_variable,
-        &[PathBuf::from(adjacent_filename)],
-    )
-}
-
-fn helper_config_with_candidates(
-    engine_id: &str,
-    environment_variable: &str,
-    adjacent_candidates: &[PathBuf],
-) -> Option<HelperEngineConfig> {
-    let explicitly_configured = std::env::var_os(environment_variable)
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from);
-    let program = match explicitly_configured {
-        Some(program) => program,
-        None => resolve_adjacent_helper(&std::env::current_exe().ok()?, adjacent_candidates)?,
-    };
-
-    let mut config = HelperEngineConfig::new(engine_id, program);
-    // Version-1 native helpers capture one complete utterance before emitting
-    // PCM. Eloquence normally returns in milliseconds, so fail over promptly
-    // when its native eciSynchronize call wedges. Other helpers retain the
-    // longer allowance needed by ordinary long passages.
-    config.synthesis_idle_timeout = helper_synthesis_idle_timeout(engine_id);
-    Some(config)
-}
-
-fn resolve_adjacent_helper(executable: &Path, candidates: &[PathBuf]) -> Option<PathBuf> {
-    let executable_dir = executable.parent()?;
-    candidates
-        .iter()
-        .map(|candidate| executable_dir.join(candidate))
-        .find(|candidate| candidate.is_file())
 }
 
 struct PendingHelperInitialization<T> {
     engine_id: String,
     helper_path: PathBuf,
     config: HelperEngineConfig,
+    owner: Arc<Mutex<Option<Arc<HelperTtsEngine>>>>,
     handle: std::io::Result<JoinHandle<(T, Duration)>>,
 }
 
-type HelperConstructionResult =
-    Result<HelperTtsEngine, omnivox_tts::helper_engine::HelperEngineError>;
 type HelperInitializationResult =
     Result<Arc<HelperTtsEngine>, omnivox_tts::helper_engine::HelperEngineError>;
 type PendingHelper = PendingHelperInitialization<HelperInitializationResult>;
@@ -304,7 +180,7 @@ fn start_helper_initializations(
     library: Option<&StartupLibrary>,
 ) -> Vec<PendingHelper> {
     let library = library.cloned();
-    start_helper_initializations_with(configs, move |config| {
+    start_helper_initializations_with(configs, move |config, owner| {
         let engine_id = config.engine_id.clone();
         let helper_path = config.program.clone();
         if let Some(library) = &library {
@@ -312,7 +188,7 @@ fn start_helper_initializations(
                 omnivox_tts::helper_engine::HelperEngineError::Transport(error.to_string())
             })?;
         }
-        let result = initialize_server_helper(config).map(Arc::new);
+        let result = initialize_server_helper(config, owner);
         if engine_id == "tgspeechbox" {
             if let Ok(engine) = &result {
                 spawn_tgspeechbox_prewarm(Arc::clone(engine), helper_path);
@@ -322,14 +198,31 @@ fn start_helper_initializations(
     })
 }
 
-fn initialize_server_helper(config: HelperEngineConfig) -> HelperConstructionResult {
+fn initialize_server_helper(
+    config: HelperEngineConfig,
+    owner: &Mutex<Option<Arc<HelperTtsEngine>>>,
+) -> HelperInitializationResult {
+    let (engine, deferred) = prepare_server_helper(config)?;
+    let engine = Arc::new(engine);
+    *owner.lock().unwrap() = Some(engine.clone());
+    if !deferred {
+        engine.prewarm_connection()?;
+    }
+    Ok(engine)
+}
+
+fn prepare_server_helper(
+    config: HelperEngineConfig,
+) -> Result<(HelperTtsEngine, bool), omnivox_tts::helper_engine::HelperEngineError> {
     if config.engine_id != "tgspeechbox" {
-        return HelperTtsEngine::new(config);
+        return HelperTtsEngine::prepare(config).map(|engine| (engine, false));
     }
 
     let helper_directory = config.program.parent().unwrap_or_else(|| Path::new(""));
     let cache_file_name = tgspeechbox_descriptor_cache_file_name(
-        std::env::var_os(TGSPEECHBOX_SAMPLE_RATE_ENVIRONMENT_VARIABLE).as_deref(),
+        config
+            .environment
+            .get(TGSPEECHBOX_SAMPLE_RATE_ENVIRONMENT_VARIABLE),
     );
     let mut cache_path = helper_directory.join(cache_file_name);
     if cache_file_name == TGSPEECHBOX_44100_CACHE_FILE_NAME && !cache_path.is_file() {
@@ -343,7 +236,7 @@ fn initialize_server_helper(config: HelperEngineConfig) -> HelperConstructionRes
                 cache = %cache_path.display(),
                 "Prepared deferred helper from cached voice inventory"
             );
-            HelperTtsEngine::new_deferred(config, descriptor)
+            HelperTtsEngine::new_deferred(config, descriptor).map(|engine| (engine, true))
         }
         Err(error) => {
             warn!(
@@ -353,7 +246,7 @@ fn initialize_server_helper(config: HelperEngineConfig) -> HelperConstructionRes
                 %error,
                 "Cached voice inventory is unavailable; initializing helper eagerly"
             );
-            HelperTtsEngine::new(config)
+            HelperTtsEngine::prepare(config).map(|engine| (engine, false))
         }
     }
 }
@@ -372,7 +265,7 @@ fn start_helper_initializations_with<T, F>(
 ) -> Vec<PendingHelperInitialization<T>>
 where
     T: Send + 'static,
-    F: Fn(HelperEngineConfig) -> T + Send + Sync + 'static,
+    F: Fn(HelperEngineConfig, &Mutex<Option<Arc<HelperTtsEngine>>>) -> T + Send + Sync + 'static,
 {
     let initialize = Arc::new(initialize);
     configs
@@ -383,15 +276,18 @@ where
             let thread_name = format!("omnivox-{engine_id}-init");
             let initialize = Arc::clone(&initialize);
             let thread_config = config.clone();
+            let owner = Arc::new(Mutex::new(None));
+            let thread_owner = owner.clone();
             let handle = thread::Builder::new().name(thread_name).spawn(move || {
                 let started_at = Instant::now();
-                let result = initialize(thread_config);
+                let result = initialize(thread_config, &thread_owner);
                 (result, started_at.elapsed())
             });
             PendingHelperInitialization {
                 engine_id,
                 helper_path,
                 config,
+                owner,
                 handle,
             }
         })
@@ -410,6 +306,7 @@ fn register_initialized_helpers(
             engine_id,
             helper_path,
             config,
+            owner,
             handle,
         } = initialization;
         let result = handle
@@ -458,7 +355,19 @@ fn register_initialized_helpers(
                                 .verify_assets(&config.engine_id)
                                 .map_err(|error| error.to_string())?;
                         }
-                        let engine = HelperTtsEngine::new(config.clone())
+                        let engine = {
+                            let mut retained =
+                                owner.lock().map_err(|_| "helper owner lock poisoned")?;
+                            if retained.is_none() {
+                                *retained = Some(Arc::new(
+                                    HelperTtsEngine::prepare(config.clone())
+                                        .map_err(|e| e.to_string())?,
+                                ));
+                            }
+                            retained.as_ref().unwrap().clone()
+                        };
+                        engine
+                            .refresh_connection()
                             .map_err(|error| error.to_string())?;
                         if let Some(library) = &library {
                             library
@@ -466,7 +375,7 @@ fn register_initialized_helpers(
                                 .map_err(|error| error.to_string())?;
                         }
                         Ok(Arc::new(IsolatedTtsEngine::new(
-                            Arc::new(engine),
+                            engine,
                             Arc::clone(&generation),
                             Arc::clone(&isolation_budget),
                         )) as Arc<dyn TtsEngine>)
@@ -509,55 +418,6 @@ fn spawn_tgspeechbox_prewarm(engine: Arc<HelperTtsEngine>, helper_path: PathBuf)
             %error,
             "Could not start helper pre-warm thread"
         );
-    }
-}
-
-fn companion_helper_config(
-    engine_id: &str,
-    environment_variable: &str,
-) -> Option<HelperEngineConfig> {
-    let candidates = companion_helper_candidates(engine_id);
-    helper_config_with_candidates(engine_id, environment_variable, &candidates)
-}
-
-fn companion_helper_candidates(engine_id: &str) -> [PathBuf; 2] {
-    let helper_filename = format!("omnivox-{engine_id}-helper{}", std::env::consts::EXE_SUFFIX);
-    [
-        PathBuf::from(engine_id).join(&helper_filename),
-        PathBuf::from(&helper_filename),
-    ]
-}
-
-fn companion_helper_configs() -> Vec<HelperEngineConfig> {
-    [
-        ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
-        ("flite", "OMNIVOX_FLITE_HELPER"),
-        ("rutts", "OMNIVOX_RUTTS_HELPER"),
-        ("tgspeechbox", "OMNIVOX_TGSPEECHBOX_HELPER"),
-    ]
-    .into_iter()
-    .filter_map(|(engine_id, environment_variable)| {
-        companion_helper_config(engine_id, environment_variable)
-    })
-    .collect()
-}
-
-// A research runtime must be explicitly selected. Never discover or distribute
-// this prototype alongside the supported companion payloads.
-fn mbrola_prototype_config() -> Option<HelperEngineConfig> {
-    let config = helper_config_with_candidates("mbrola", "OMNIVOX_MBROLA_HELPER", &[])?;
-    if !config.program.is_absolute() {
-        warn!("OMNIVOX_MBROLA_HELPER must be an absolute prototype helper path");
-        return None;
-    }
-    Some(config)
-}
-
-fn requested_engine(engine_name: &str) -> String {
-    if engine_name.is_empty() {
-        std::env::var("OMNIVOX_ENGINE").unwrap_or_default()
-    } else {
-        engine_name.to_owned()
     }
 }
 
@@ -616,6 +476,11 @@ fn engine_preference_order(
     order
 }
 
+#[cfg(target_os = "windows")]
+fn native_registry_engine_id() -> Option<&'static str> {
+    Some("winrt")
+}
+
 #[cfg(target_os = "macos")]
 fn native_registry_engine_id() -> Option<&'static str> {
     Some("macos")
@@ -626,345 +491,101 @@ fn native_registry_engine_id() -> Option<&'static str> {
     None
 }
 
-fn piper_is_configured(model: Option<&str>) -> bool {
-    model.is_some_and(|model| !model.is_empty())
-        || std::env::var_os("OMNIVOX_PIPER_MODEL").is_some_and(|model| !model.is_empty())
-}
-
-#[cfg(feature = "piper")]
-fn configured_piper_helper(requested: &str, model: Option<&str>) -> Option<HelperEngineConfig> {
-    if requested != "piper" && !piper_is_configured(model) {
-        return None;
-    }
-    match piper_helper_config(model) {
-        Ok(config) => Some(config),
-        Err(error) => {
-            warn!("Piper TTS helper not available: {error}");
-            None
-        }
-    }
-}
-
-#[cfg(not(feature = "piper"))]
-fn configured_piper_helper(requested: &str, model: Option<&str>) -> Option<HelperEngineConfig> {
-    if requested == "piper" || piper_is_configured(model) {
-        warn!(
-            "Piper was requested or configured but omnivox was built without Piper support. \
-             Rebuild with --features piper."
-        );
-    }
-    None
-}
-
-fn configured_helper_configs(
-    requested: &str,
-    model: Option<&str>,
-    library: Option<&StartupLibrary>,
-) -> Vec<HelperEngineConfig> {
-    let mut configs = Vec::with_capacity(5);
-    if library.is_some_and(|library| library.manages("piper")) {
-        #[cfg(feature = "piper")]
-        if library.is_some_and(|library| library.requires("piper")) {
-            if let Some(mut config) = companion_helper_config("piper", "OMNIVOX_PIPER_HELPER") {
-                config.startup_timeout = Duration::from_secs(60);
-                config.synthesis_idle_timeout = Duration::from_secs(60);
-                configs.push(config);
-            }
-        }
-    } else if let Some(piper) = configured_piper_helper(requested, model) {
-        configs.push(piper);
-    }
-    configs.extend(companion_helper_configs());
-    configs.extend(mbrola_prototype_config());
-    #[cfg(target_os = "linux")]
-    for (id, variable) in [
-        ("eloquence", "OMNIVOX_ELOQUENCE_HELPER"),
-        ("dectalk", "OMNIVOX_DECTALK_HELPER"),
-    ] {
-        if let Some(config) = companion_helper_config(id, variable) {
-            configs.push(config);
-        }
-    }
-    if let Some(library) = library {
-        configs.retain(|config| !library.eligibility.excludes_provider(&config.engine_id));
-        for config in &mut configs {
-            library.configure(config);
-        }
-    }
-    configs
-}
-
-fn register_missing_managed_helpers(
-    registry: &mut EngineRegistry,
-    configs: &[HelperEngineConfig],
-    library: Option<&StartupLibrary>,
-) -> Result<()> {
-    let Some(library) = library else {
-        return Ok(());
-    };
-    for engine in ["piper", "flite", "mbrola", "rhvoice"] {
-        if library.requires(engine) && !configs.iter().any(|config| config.engine_id == engine) {
-            let reason = if engine == "piper" && !cfg!(feature = "piper") {
-                "Piper support is not built in; rebuild Omnivox with --features piper".to_owned()
-            } else {
-                format!("The {engine} helper was not found; configure it and restart speech")
-            };
-            warn!(engine_id = engine, %reason, "Managed engine is not available; retaining fallback speech");
-            registry.register_unavailable(
-                EngineDescriptor::unavailable(engine, &reason),
-                move || Err(reason.clone()),
-            )?;
-        }
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod library_tests;
 
+#[cfg(test)]
+mod configuration_tests;
+
 /// Create one exact TTS engine for a diagnostic action.
 ///
-/// `engine_name` may be empty (use `OMNIVOX_ENGINE` env var or platform default),
-/// `"native"`, `"espeak"`, `"piper"`, `"rhvoice"`, `"flite"`, `"rutts"`, or
-/// `"tgspeechbox"`.
-/// Linux and Windows also accept `"eloquence"` and `"dectalk"`; Windows accepts
-/// `"winrt"` and macOS accepts `"macos"`. An explicitly requested unavailable
-/// engine is an error,
-/// so diagnostic results cannot silently describe a fallback engine.
+/// Names resolve through the same shipped/external registrations as server
+/// startup. Empty selection uses the captured environment and startup policy;
+/// `native` remains a compatibility alias. An explicitly requested unavailable
+/// engine is an error, so diagnostics cannot describe a fallback engine.
 /// `piper_model` is the path to a `.onnx` model file; if `None`,
 /// `OMNIVOX_PIPER_MODEL` is consulted.
 pub fn create_engine(
     engine_name: &str,
     piper_model: Option<&str>,
     voice_library: Option<&str>,
+    config_dir: Option<&str>,
 ) -> Result<Arc<dyn TtsEngine>> {
-    let Some(library) = StartupLibrary::from_environment(voice_library, piper_model)? else {
-        return create_legacy_engine(engine_name, piper_model);
-    };
-    let forced = requested_engine(engine_name);
-
-    anyhow::ensure!(
-        !library.eligibility.excludes_provider(&forced),
-        "{forced} is excluded by voice-library configuration"
-    );
-    library.verify_assets(&forced)?;
-    let engine: Arc<dyn TtsEngine> = if library.manages(&forced) {
-        let config = configured_helper_configs(&forced, piper_model, Some(&library))
-            .into_iter()
-            .find(|config| config.engine_id == forced)
-            .ok_or_else(|| anyhow::anyhow!("voice library requires the {forced} helper"))?;
-        Arc::new(HelperTtsEngine::new(config)?)
-    } else {
-        create_legacy_engine(engine_name, piper_model)?
-    };
-    library.validate_descriptor(&engine.descriptor())?;
-    Ok(library.eligibility.guard_engine(engine))
+    create_diagnostic_engine(engine_name, piper_model, voice_library, config_dir)
+        .map(|(engine, _, _)| engine)
 }
 
-fn create_legacy_engine(
+/// Return speech and audio defaults from the same capture that selected the engine.
+pub fn create_diagnostic_engine(
     engine_name: &str,
-    _piper_model: Option<&str>,
-) -> Result<Arc<dyn TtsEngine>> {
-    let forced = requested_engine(engine_name);
-
-    if forced == "mbrola" {
-        let config = mbrola_prototype_config().ok_or_else(|| {
-            anyhow::anyhow!("MBROLA prototype requires an absolute OMNIVOX_MBROLA_HELPER path")
-        })?;
-        return Ok(Arc::new(HelperTtsEngine::new(config)?));
-    }
-
-    if forced == "piper" {
-        #[cfg(feature = "piper")]
-        {
-            match piper_helper_config(_piper_model)
-                .and_then(|config| HelperTtsEngine::new(config).map_err(anyhow::Error::from))
-            {
-                Ok(engine) => {
-                    info!("Using Piper neural TTS helper");
-                    return Ok(Arc::new(engine));
+    piper_model: Option<&str>,
+    voice_library: Option<&str>,
+    config_dir: Option<&str>,
+) -> Result<(
+    Arc<dyn TtsEngine>,
+    omnivox_tts::engine_configuration::SpeechConfiguration,
+    omnivox_core::settings::AudioOutputSettings,
+)> {
+    let startup = EngineStartup::read(engine_name, piper_model, voice_library, config_dir)?;
+    let ids = if startup.snapshot.requested().is_empty() {
+        startup.order()
+    } else {
+        vec![if startup.snapshot.requested() == "native" {
+            native_registry_engine_id().unwrap_or("espeak").to_owned()
+        } else {
+            startup.snapshot.requested().to_owned()
+        }]
+    };
+    let mut last_error = None;
+    for id in ids {
+        let attempt = (|| -> Result<Arc<dyn TtsEngine>> {
+            let registration = startup
+                .snapshot
+                .resolved()
+                .registration(&id)
+                .ok_or_else(|| anyhow::anyhow!("unknown TTS engine: {id}"))?;
+            anyhow::ensure!(
+                registration.unavailable.is_none(),
+                "{id}: {}",
+                registration.unavailable.as_deref().unwrap_or_default()
+            );
+            if let Some(library) = &startup.library {
+                library.verify_assets(&id)?;
+            }
+            let engine = if let Some(config) = &registration.helper {
+                let engine = Arc::new(HelperTtsEngine::prepare(config.clone())?);
+                if registration.origin
+                    == omnivox_tts::engine_configuration::EngineOrigin::ExternalHelper
+                {
+                    engine.initialize_before(
+                        Instant::now() + omnivox_tts::helper_engine::EXTERNAL_STARTUP_BUDGET,
+                    )?;
+                } else {
+                    engine.prewarm_connection()?;
                 }
-                Err(error) => anyhow::bail!("Piper TTS helper is not available: {error}"),
-            }
-        }
-        #[cfg(not(feature = "piper"))]
-        anyhow::bail!(
-            "Piper was requested but omnivox was built without Piper support; \
-             rebuild with --features piper"
-        );
-    }
-
-    if matches!(
-        forced.as_str(),
-        "rhvoice" | "flite" | "rutts" | "tgspeechbox"
-    ) {
-        let (engine_id, environment_variable) = match forced.as_str() {
-            "rhvoice" => ("rhvoice", "OMNIVOX_RHVOICE_HELPER"),
-            "flite" => ("flite", "OMNIVOX_FLITE_HELPER"),
-            "rutts" => ("rutts", "OMNIVOX_RUTTS_HELPER"),
-            "tgspeechbox" => ("tgspeechbox", "OMNIVOX_TGSPEECHBOX_HELPER"),
-            _ => unreachable!(),
-        };
-        match companion_helper_config(engine_id, environment_variable)
-            .ok_or_else(|| anyhow::anyhow!("the {engine_id} helper was not found"))
-            .and_then(|config| HelperTtsEngine::new(config).map_err(anyhow::Error::from))
-        {
-            Ok(engine) => {
-                info!("Using {engine_id} TTS helper");
-                return Ok(Arc::new(engine));
-            }
-            Err(error) => anyhow::bail!("{engine_id} TTS helper is not available: {error}"),
-        }
-    }
-
-    if matches!(forced.as_str(), "eloquence" | "dectalk") {
-        #[cfg(target_os = "windows")]
-        {
-            let (environment_variable, adjacent_filename) = match forced.as_str() {
-                "eloquence" => ("OMNIVOX_ELOQUENCE_HELPER", "OmnivoxEloquenceHelper32.exe"),
-                "dectalk" => ("OMNIVOX_DECTALK_HELPER", "OmnivoxDectalkHelper32.exe"),
-                _ => unreachable!(),
-            };
-            let config = helper_config(&forced, environment_variable, adjacent_filename)
-                .ok_or_else(|| anyhow::anyhow!("the {forced} helper was not found"))?;
-            let engine = HelperTtsEngine::new(config).map_err(|error| {
-                anyhow::anyhow!("{forced} TTS helper is not available: {error}")
-            })?;
-            info!("Using {forced} TTS helper");
-            return Ok(Arc::new(engine));
-        }
-        #[cfg(target_os = "linux")]
-        {
-            let variable = if forced == "eloquence" {
-                "OMNIVOX_ELOQUENCE_HELPER"
+                engine as Arc<dyn TtsEngine>
             } else {
-                "OMNIVOX_DECTALK_HELPER"
+                construct_in_process(&id)?
             };
-            let config = companion_helper_config(&forced, variable).ok_or_else(|| {
-                anyhow::anyhow!("the Linux {forced} helper was not found; run make linux-helpers")
-            })?;
-            let engine = HelperTtsEngine::new(config).map_err(|error| {
-                anyhow::anyhow!("{forced} TTS helper is not available: {error}")
-            })?;
-            return Ok(Arc::new(engine));
-        }
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-        anyhow::bail!("{forced} is available only on Windows and Linux");
-    }
-
-    #[cfg(target_os = "macos")]
-    if forced.is_empty() {
-        match MacOsTtsEngine::new() {
-            Ok(engine) => {
-                info!("Using macOS AVSpeechSynthesizer engine");
-                return Ok(Arc::new(engine));
+            if let Some(library) = &startup.library {
+                library.validate_descriptor(&engine.descriptor())?;
+                Ok(library.eligibility.guard_engine(engine))
+            } else {
+                Ok(engine)
             }
-            Err(error) => warn!("macOS TTS is not available: {error}; trying eSpeak NG"),
+        })();
+        match attempt {
+            Ok(engine) => {
+                return Ok((
+                    engine,
+                    startup.snapshot.resolved().speech.clone(),
+                    startup.snapshot.resolved().audio,
+                ))
+            }
+            Err(error) => last_error = Some(error),
         }
     }
-
-    #[cfg(target_os = "macos")]
-    if matches!(forced.as_str(), "native" | "macos") {
-        return match MacOsTtsEngine::new() {
-            Ok(engine) => {
-                info!("Using macOS AVSpeechSynthesizer engine");
-                Ok(Arc::new(engine))
-            }
-            Err(error) => anyhow::bail!("macOS TTS is not available: {error}"),
-        };
-    }
-
-    #[cfg(target_os = "windows")]
-    if forced.is_empty() {
-        match WindowsTtsEngine::new() {
-            Ok(engine) => {
-                info!("Using Windows WinRT engine");
-                return Ok(Arc::new(engine));
-            }
-            Err(error) => warn!("Windows WinRT is not available: {error}; trying eSpeak NG"),
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    if matches!(forced.as_str(), "native" | "winrt") {
-        return match WindowsTtsEngine::new() {
-            Ok(engine) => {
-                info!("Using Windows WinRT engine");
-                Ok(Arc::new(engine))
-            }
-            Err(error) => anyhow::bail!("Windows WinRT is not available: {error}"),
-        };
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    let use_espeak = matches!(forced.as_str(), "" | "native" | "espeak");
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
-    let use_espeak = matches!(forced.as_str(), "" | "espeak");
-
-    if !use_espeak {
-        anyhow::bail!("unknown TTS engine: {forced}");
-    }
-
-    match EspeakTtsEngine::new() {
-        Ok(engine) => {
-            info!("Using espeak-ng engine");
-            Ok(Arc::new(engine))
-        }
-        Err(error) => anyhow::bail!("eSpeak NG is not available: {error}"),
-    }
-}
-
-#[cfg(not(target_os = "windows"))]
-fn isolate_server_engine(
-    engine: Arc<dyn TtsEngine>,
-    generation: Arc<AtomicU64>,
-    isolation_budget: Arc<IsolationBudget>,
-) -> Arc<dyn TtsEngine> {
-    if !matches!(
-        engine.descriptor().id.as_str(),
-        "piper"
-            | "rhvoice"
-            | "flite"
-            | "rutts"
-            | "tgspeechbox"
-            | "eloquence"
-            | "dectalk"
-            | "mbrola"
-    ) {
-        return engine;
-    }
-    Arc::new(IsolatedTtsEngine::new(engine, generation, isolation_budget))
-}
-
-#[cfg(feature = "piper")]
-fn piper_helper_config(model: Option<&str>) -> Result<HelperEngineConfig> {
-    let model = model
-        .map(str::to_owned)
-        .or_else(|| std::env::var("OMNIVOX_PIPER_MODEL").ok())
-        .filter(|model| !model.is_empty())
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "no model path was provided; set OMNIVOX_PIPER_MODEL or use --piper-model"
-            )
-        })?;
-    let helper_filename = format!("omnivox-piper-helper{}", std::env::consts::EXE_SUFFIX);
-    let candidates = [
-        PathBuf::from("piper").join(&helper_filename),
-        PathBuf::from(&helper_filename),
-    ];
-    let mut config = helper_config_with_candidates("piper", "OMNIVOX_PIPER_HELPER", &candidates)
-        .ok_or_else(|| {
-            anyhow::anyhow!(
-                "{} was not found in the Piper companion directory or beside Omnivox; set \
-                 OMNIVOX_PIPER_HELPER",
-                helper_filename
-            )
-        })?;
-    config.arguments.push("--model".into());
-    config.arguments.push(model.into());
-    config.startup_timeout = Duration::from_secs(60);
-    config.synthesis_idle_timeout = Duration::from_secs(60);
-    Ok(config)
+    Err(last_error.unwrap_or_else(|| anyhow::anyhow!("No eligible TTS engine available")))
 }
 
 /// Human-readable name of the platform-native TTS backend.
@@ -1000,10 +621,10 @@ mod tests {
     #[cfg(target_os = "macos")]
     use super::create_engines;
     use super::{
-        companion_helper_candidates, engine_preference_order, helper_synthesis_idle_timeout,
-        resolve_adjacent_helper, start_helper_initializations_with,
+        engine_preference_order, start_helper_initializations_with,
         tgspeechbox_descriptor_cache_file_name, HelperEngineConfig,
     };
+    use omnivox_tts::engine_configuration::{shipped, Platform};
     use std::path::PathBuf;
     #[cfg(target_os = "macos")]
     use std::sync::atomic::AtomicU64;
@@ -1014,7 +635,7 @@ mod tests {
     fn failed_helper_startup_retains_an_unavailable_inventory_entry() {
         let pending = start_helper_initializations_with(
             vec![HelperEngineConfig::new("dectalk", "unused-helper")],
-            |_| -> super::HelperInitializationResult {
+            |_, _| -> super::HelperInitializationResult {
                 Err(omnivox_tts::helper_engine::HelperEngineError::Transport(
                     "test runtime is missing".to_owned(),
                 ))
@@ -1048,7 +669,7 @@ mod tests {
         let (started_tx, started_rx) = mpsc::channel();
         let release = Arc::new((Mutex::new(false), Condvar::new()));
         let worker_release = Arc::clone(&release);
-        let pending = start_helper_initializations_with(configs, move |config| {
+        let pending = start_helper_initializations_with(configs, move |config, _| {
             started_tx.send(config.engine_id.clone()).unwrap();
             let (lock, changed) = &*worker_release;
             let released = lock.lock().unwrap();
@@ -1085,27 +706,39 @@ mod tests {
     #[test]
     fn eloquence_helper_fails_over_after_a_short_idle_timeout() {
         assert_eq!(
-            helper_synthesis_idle_timeout("eloquence"),
+            shipped::definition("eloquence")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_millis(500)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("dectalk"),
+            shipped::definition("dectalk")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("piper"),
+            shipped::definition("piper")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("rhvoice"),
+            shipped::definition("rhvoice")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("flite"),
+            shipped::definition("flite")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
         assert_eq!(
-            helper_synthesis_idle_timeout("rutts"),
+            shipped::definition("rutts")
+                .unwrap()
+                .synthesis_idle_timeout(),
             Duration::from_secs(60)
         );
     }
@@ -1143,13 +776,13 @@ mod tests {
             PathBuf::from("omnivox-piper-helper"),
         ];
         assert_eq!(
-            resolve_adjacent_helper(&root.join("omnivox"), &candidates),
+            shipped::resolve_adjacent(&root.join("omnivox"), &candidates),
             Some(companion.clone())
         );
 
         std::fs::remove_file(companion).unwrap();
         assert_eq!(
-            resolve_adjacent_helper(&root.join("omnivox"), &candidates),
+            shipped::resolve_adjacent(&root.join("omnivox"), &candidates),
             Some(legacy)
         );
         std::fs::remove_dir_all(root).unwrap();
@@ -1346,7 +979,7 @@ mod tests {
     #[cfg(target_os = "macos")]
     #[test]
     fn macos_server_registers_native_when_espeak_is_preferred() {
-        let created = create_engines("espeak", None, None, Arc::new(AtomicU64::new(0)))
+        let created = create_engines("espeak", None, None, None, Arc::new(AtomicU64::new(0)))
             .expect("macOS and eSpeak engines should initialize");
         assert_eq!(created.preferred.descriptor().id, "espeak");
         assert!(created.registry.engine("macos").is_some());
@@ -1397,9 +1030,11 @@ mod tests {
         std::fs::write(&companion, b"companion").unwrap();
         std::fs::write(&legacy, b"legacy").unwrap();
 
-        let candidates = companion_helper_candidates("rhvoice");
+        let candidates = shipped::definition("rhvoice")
+            .unwrap()
+            .helper_candidates(Platform::native());
         assert_eq!(
-            resolve_adjacent_helper(&root.join("omnivox"), &candidates),
+            shipped::resolve_adjacent(&root.join("omnivox"), &candidates),
             Some(companion)
         );
 

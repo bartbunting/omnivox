@@ -112,7 +112,7 @@ fn run_mixed(
     engines: &EngineRegistry,
     routing: LogicalVoiceRoutingSnapshot,
 ) -> (BatchStatus, Vec<MarkerEventEnvelope>) {
-    run_mixed_mode(timeline, engines, routing, false)
+    run_mixed_mode(timeline, engines, routing, false, None)
 }
 
 fn run_mixed_mode(
@@ -120,6 +120,7 @@ fn run_mixed_mode(
     engines: &EngineRegistry,
     routing: LogicalVoiceRoutingSnapshot,
     letter: bool,
+    capital_pitch: Option<omnivox_core::settings::CapitalPitchSettings>,
 ) -> (BatchStatus, Vec<MarkerEventEnvelope>) {
     let streams = AudioStreams::new_with_backend(8, 8, 8, AudioBackend::Null).unwrap();
     let control = streams.control();
@@ -159,6 +160,7 @@ fn run_mixed_mode(
         TtsState {
             speech_rate: 0.65,
             character_scale: 0.5,
+            capital_pitch: Arc::new(capital_pitch.unwrap_or_default()),
             current_voice: "one".to_owned(),
             ..Default::default()
         },
@@ -203,6 +205,7 @@ fn palette_letter_preserves_actual_fallback_tuning_rate_pitch_and_receipts() {
                 &engines,
                 LogicalVoiceRoutingSnapshot::capture(&registry, &engines),
                 true,
+                None,
             );
             assert_eq!(status, BatchStatus::Completed);
             let requests = second.requests.lock().unwrap();
@@ -216,10 +219,37 @@ fn palette_letter_preserves_actual_fallback_tuning_rate_pitch_and_receipts() {
                 lower_pitch = request.settings.pitch;
             }
             if text == "Q" {
-                assert!((request.settings.pitch - lower_pitch * 1.5).abs() < 0.0001);
+                assert!((request.settings.pitch - 1.5).abs() < 0.0001);
             }
             assert!(events.iter().any(|event| matches!(&event.event,
                 MarkerEvent::VoiceChoiceApplied(receipt) if receipt.choice.choice_id.as_deref() == Some("fallback"))));
+        }
+        for cue in [
+            omnivox_core::settings::CapitalPitch::Off,
+            omnivox_core::settings::CapitalPitch::Value(1.2),
+        ] {
+            let mut capitals = omnivox_core::settings::CapitalPitchSettings::default();
+            capitals.engines.insert("second".into(), cue);
+            let mut document = timeline();
+            document.spans = vec![layered(1, VoiceStylePatch::default())];
+            let MixedSpeechSpan::Layered(span) = &mut document.spans[0] else {
+                unreachable!()
+            };
+            span.text = "Q".into();
+            let (status, _) = run_mixed_mode(
+                document,
+                &engines,
+                LogicalVoiceRoutingSnapshot::capture(&registry, &engines),
+                true,
+                Some(capitals),
+            );
+            assert_eq!(status, BatchStatus::Completed);
+            let requests = second.requests.lock().unwrap();
+            let expected = match cue {
+                omnivox_core::settings::CapitalPitch::Off => lower_pitch,
+                omnivox_core::settings::CapitalPitch::Value(value) => value,
+            };
+            assert!((requests.last().unwrap().settings.pitch - expected).abs() < 0.0001);
         }
     }
 }

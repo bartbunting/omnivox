@@ -12,7 +12,7 @@ the system `libpulse.so.0`. Speech, tones and sound icons have independent
 persistent streams, source workers and native event threads. PulseAudio mixes
 them; Emacsvox foreground and notification remain separate Omnivox processes.
 Engine helpers, voice policy, effects, progressive prebuffering and marker
-semantics remain shared. See [ADR 0009](../adr/0009-native-pulseaudio-output.md).
+semantics remain shared. See [ADR 0005](../adr/0005-native-pulseaudio-output.md).
 
 The native backend requests 20 ms total latency, writes at most 220 frames
 (4.99 ms), drains and corks idle streams, and flushes its own stream on a
@@ -48,7 +48,7 @@ The local full-profile launchers are now:
 Both Linux full-profile launchers use Emacs 31 and `~/.emacsvox.d`, including
 the saved engine preferences. Native logs have their own directory,
 `~/.local/state/emacsvox/omnivox-linux-pulse`. `--diagnose` works from both WSL
-and the Windows batch launcher. See [WSL-AUDIO.md](../WSL-AUDIO.md) for commands
+and the Windows batch launcher. See [WSL-AUDIO.md](../guides/wsl-audio-comparison.md) for commands
 and the isolated comparison workflow. Existing user sessions were left running.
 
 ## Runtime and measurement scope

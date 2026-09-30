@@ -6,6 +6,7 @@ use omnivox_audio::{
     AudioBuffer, AudioControl, AudioFileLoader, PlaybackStatus, PlaybackTicket, StreamType,
     TimelineAudioRenderer, ToneGenerator,
 };
+use omnivox_core::command::{parse_finite_float, parse_silence_duration};
 use omnivox_core::{
     parse_command, parse_presentation_tone_arguments, parse_tone_arguments,
     state::{CapitalizationPresentation, ChannelMode, PunctuationLevel},
@@ -17,7 +18,7 @@ use omnivox_tts::contracts::{
     MAX_RATE_OFFSET_POINTS, MIN_RATE_OFFSET_POINTS,
 };
 use omnivox_tts::control::{
-    decode_request, format_control_event, process_control_request_with_parameters,
+    decode_request, format_control_event, process_control_request_with_configuration,
     ControlErrorCode, ControlRequest, ControlResponse, ControlResponseEnvelope, PreviewStatus,
     VoicePreviewRequest, CONTROL_PROTOCOL_VERSION, MAX_PREVIEW_TEXT_BYTES,
 };
@@ -1844,11 +1845,16 @@ pub(crate) fn run_server(
         crate::parameter_queries::ParameterQueries::new().with_native_plans(native_plans);
     let mut pending = PendingBatch::default();
     let mut current_gen: u64 = 0;
-    let mut logical_voices = LogicalVoiceRegistry::default();
+    let mut logical_voices = LogicalVoiceRegistry::with_engine_permissions(
+        engine_registry.selection_permissions().clone(),
+    );
     let mut presentation_generations = PresentationGenerations::default();
     let keyed_cancellations = KeyedCancellationRegistry::default();
     let preferred_engine_id = engine.descriptor().id;
-    let mut routing_policy = RoutingPolicyRegistry::new(preferred_engine_id.clone());
+    let mut routing_policy = RoutingPolicyRegistry::with_local_policy(
+        preferred_engine_id.clone(),
+        engine_registry.local_routing_policy(),
+    );
 
     let (input_tx, input_rx) = mpsc::sync_channel::<io::Result<String>>(INPUT_QUEUE_CAPACITY);
     let input_handle = std::thread::Builder::new()
@@ -2831,7 +2837,8 @@ pub(crate) fn prepare_voice_preview_v3(
         .iter()
         .map(|c| ParameterKnowledge::Ready(c.as_ref()))
         .collect::<Vec<_>>();
-    let mut private = LogicalVoiceRegistry::default();
+    let mut private =
+        LogicalVoiceRegistry::with_engine_permissions(engines.selection_permissions().clone());
     private
         .register_v3(
             VoiceRegistrationV3 {
@@ -2875,7 +2882,8 @@ fn prepare_voice_preview_v2(
         }
     }
     VoicePreviewResponseV2::validate_metadata_budget(base_rate, &disabled)?;
-    let mut private = LogicalVoiceRegistry::default();
+    let mut private =
+        LogicalVoiceRegistry::with_engine_permissions(engines.selection_permissions().clone());
     private
         .register_v2(
             1,
@@ -2938,7 +2946,9 @@ fn prepare_voice_preview(
             disabled_engine_ids.push(engine.clone());
         }
     }
-    let mut private = LogicalVoiceRegistry::default();
+    let mut private = LogicalVoiceRegistry::with_engine_permissions(
+        engine_registry.selection_permissions().clone(),
+    );
     private
         .register(
             1,
@@ -3008,7 +3018,9 @@ fn dispatch_preview(
         return;
     }
 
-    let mut preview_registry = LogicalVoiceRegistry::default();
+    let mut preview_registry = LogicalVoiceRegistry::with_engine_permissions(
+        engine_registry.selection_permissions().clone(),
+    );
     let registration = preview_registry.register(
         1,
         vec![LogicalVoiceDefinition {
@@ -3159,9 +3171,12 @@ fn handle_command(
 
         CommandId::Silence => {
             if let Some(dur_str) = command.args {
-                if let Ok(dur) = dur_str.parse::<u32>() {
-                    debug!("Queue silence: {}ms", dur);
-                    queue_pending_item(pending, QueueItem::Silence { duration: dur });
+                match parse_silence_duration(&dur_str) {
+                    Ok(duration) => {
+                        debug!("Queue silence: {}ms", duration);
+                        queue_pending_item(pending, QueueItem::Silence { duration });
+                    }
+                    Err(error) => warn!("Invalid silence: {error}"),
                 }
             }
         }
@@ -3609,6 +3624,10 @@ fn handle_command(
                         &inventory.engines,
                         &routing_policy.policy().disabled_engine_ids,
                     );
+                    let configuration_status = engine_registry.engine_configuration_status(
+                        routing_policy.inventory_generation(inventory.generation),
+                        &inventory.engines,
+                    );
                     // Only native registration needs a cache snapshot. Reading it
                     // never waits for speech or requests missing engine metadata.
                     let cached = if matches!(
@@ -3628,7 +3647,7 @@ fn handle_command(
                             omnivox_tts::engine_voice_choices::ParameterKnowledge::Ready(catalogue)
                         })
                         .collect::<Vec<_>>();
-                    let response = process_control_request_with_parameters(
+                    let response = process_control_request_with_configuration(
                         payload,
                         crate::VERSION,
                         inventory.generation,
@@ -3639,6 +3658,7 @@ fn handle_command(
                         routing_policy,
                         Some(&library_status),
                         &knowledge,
+                        configuration_status.as_ref(),
                     );
                     write_control_response(&response);
                 }
@@ -3658,7 +3678,7 @@ fn handle_command(
         // --- State management ---
         CommandId::TtsSetSpeechRate => {
             if let Some(rate) = command.args {
-                if let Ok(r) = rate.parse::<f32>() {
+                if let Ok(r) = parse_finite_float(&rate) {
                     state.speech_rate = normalize_rate(r);
                     debug!("Speech rate: {}", state.speech_rate);
                 }
@@ -3674,7 +3694,7 @@ fn handle_command(
 
         CommandId::TtsSetPitchMultiplier => {
             if let Some(pitch) = command.args {
-                if let Ok(p) = pitch.parse::<f32>() {
+                if let Ok(p) = parse_finite_float(&pitch) {
                     state.pitch_multiplier = p;
                     debug!("Pitch: {}", p);
                 }
@@ -3683,7 +3703,7 @@ fn handle_command(
 
         CommandId::TtsSetVoiceVolume => {
             if let Some(vol) = command.args {
-                if let Ok(v) = vol.parse::<f32>() {
+                if let Ok(v) = parse_finite_float(&vol) {
                     state.voice_volume = v;
                 }
             }
@@ -3691,7 +3711,7 @@ fn handle_command(
 
         CommandId::TtsSetToneVolume => {
             if let Some(vol) = command.args {
-                if let Ok(v) = vol.parse::<f32>() {
+                if let Ok(v) = parse_finite_float(&vol) {
                     state.tone_volume = v;
                 }
             }
@@ -3699,7 +3719,7 @@ fn handle_command(
 
         CommandId::TtsSetSoundVolume => {
             if let Some(vol) = command.args {
-                if let Ok(v) = vol.parse::<f32>() {
+                if let Ok(v) = parse_finite_float(&vol) {
                     state.sound_volume = v;
                 }
             }
@@ -3707,7 +3727,7 @@ fn handle_command(
 
         CommandId::TtsSetCharacterScale => {
             if let Some(scale) = command.args {
-                if let Ok(s) = scale.parse::<f32>() {
+                if let Ok(s) = parse_finite_float(&scale) {
                     state.character_scale = s;
                 }
             }
@@ -3743,7 +3763,7 @@ fn handle_command(
                         state.punctuation_level = punct;
                     }
                     state.split_caps = parts[1] == "1";
-                    if let Ok(r) = parts[3].parse::<f32>() {
+                    if let Ok(r) = parse_finite_float(parts[3]) {
                         state.speech_rate = normalize_rate(r);
                     }
                 }
@@ -3816,7 +3836,7 @@ mod tests {
         .unwrap();
         let request = serde_json::from_value(fixtures["messages"]["registration"].clone()).unwrap();
         let mut registry = LogicalVoiceRegistry::default();
-        let response = process_control_request_with_parameters(
+        let response = omnivox_tts::control::process_control_request_with_parameters(
             &omnivox_tts::control::encode_request(&request).unwrap(),
             "test",
             12,
@@ -4042,6 +4062,91 @@ mod tests {
             Err(PendingOverflow::ItemCount { .. })
         ));
         assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn invalid_numeric_commands_preserve_previous_settings() {
+        let streams = omnivox_audio::AudioStreams::new_with_backend(
+            4,
+            4,
+            4,
+            omnivox_audio::AudioBackend::Null,
+        )
+        .unwrap();
+        let control = streams.control();
+        let (tx, _receiver) = synthesis_channel();
+        let engines = EngineRegistry::new();
+        let health = RuntimeEngineHealth::new();
+        let queries = crate::parameter_queries::ParameterQueries::new();
+        let mut routing = RoutingPolicyRegistry::new("");
+        let mut voices = LogicalVoiceRegistry::default();
+        let mut pending = PendingBatch::default();
+        let mut generation = 0;
+        let counter = Arc::new(AtomicU64::new(0));
+        let mut state = TtsState {
+            speech_rate: 0.73,
+            pitch_multiplier: 1.11,
+            voice_volume: 0.7,
+            tone_volume: 0.4,
+            sound_volume: 0.3,
+            character_scale: 1.2,
+            ..TtsState::default()
+        };
+        let values = |state: &TtsState| {
+            [
+                state.speech_rate,
+                state.pitch_multiplier,
+                state.voice_volume,
+                state.tone_volume,
+                state.sound_volume,
+                state.character_scale,
+            ]
+        };
+        let previous = values(&state);
+        for command in [
+            "tts_set_speech_rate",
+            "tts_set_pitch_multiplier",
+            "tts_set_voice_volume",
+            "tts_set_tone_volume",
+            "tts_set_sound_volume",
+            "tts_set_character_scale",
+            "tts_sync_state all 1 0",
+        ] {
+            for value in ["NaN", "inf", "-inf", "1e999", "-1e999", "invalid"] {
+                handle_command(
+                    parse_command(&format!("{command} {value}")).unwrap(),
+                    &mut state,
+                    &mut pending,
+                    &mut generation,
+                    &counter,
+                    &engines,
+                    &health,
+                    "",
+                    &mut routing,
+                    &mut voices,
+                    &queries,
+                    &control,
+                    &tx,
+                );
+                assert_eq!(values(&state), previous, "{command} {value}");
+            }
+        }
+        handle_command(
+            parse_command("tts_set_voice_volume 0.25").unwrap(),
+            &mut state,
+            &mut pending,
+            &mut generation,
+            &counter,
+            &engines,
+            &health,
+            "",
+            &mut routing,
+            &mut voices,
+            &queries,
+            &control,
+            &tx,
+        );
+        assert_eq!(state.voice_volume, 0.25);
     }
 
     #[test]

@@ -6,6 +6,7 @@ use thiserror::Error;
 
 pub mod contracts;
 pub mod control;
+pub mod engine_configuration;
 pub mod engine_parameters;
 pub mod engine_registry;
 pub mod engine_voice_choices;

@@ -1,6 +1,15 @@
 use super::*;
 use crate::voice_library::local::{Host, Startup};
-use std::collections::BTreeMap;
+
+fn write_catalogue_file(directory: &Path, file: &catalogue::DownloadFile) -> AssetFile {
+    let relative: PathBuf = file.filename().unwrap().split('/').collect();
+    let path = directory.join(relative);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(path, b"abc").unwrap();
+    // Like acquisition, create the file before metadata_path verifies that
+    // its ordinary and verbatim Windows paths resolve to the same object.
+    file.asset(directory).unwrap()
+}
 
 struct Fixture {
     host: Host,
@@ -34,9 +43,7 @@ impl Fixture {
         let entry = &catalogue.document().entries[0];
         let mut files = Vec::new();
         for file in &entry.files {
-            let asset = file.asset(&directory).unwrap();
-            fs::create_dir_all(Path::new(&asset.path).parent().unwrap()).unwrap();
-            fs::write(&asset.path, b"abc").unwrap();
+            let asset = write_catalogue_file(&directory, file);
             if file.role == "voice" || file.role.starts_with("rhvoice/") {
                 files.push(imports::file(
                     if entry.provider == Provider::Rhvoice {
@@ -181,7 +188,7 @@ fn piper_package_review_includes_every_speaker_and_keeps_shared_model_until_all_
     )
     .unwrap();
     for file in &entry.files {
-        fs::write(file.asset(&fixture.directory).unwrap().path, b"abc").unwrap();
+        write_catalogue_file(&fixture.directory, file);
     }
     let mut profile = fixture.host.profile().unwrap();
     let mut doc = profile.index.document().clone();
@@ -501,32 +508,51 @@ fn unexpected_or_changed_files_retain_the_complete_installed_package() {
 
 #[test]
 fn live_and_legacy_snapshots_pin_files_until_confirmed_native_retirement() {
-    let fixture = Fixture::new();
-    let review = fixture.review();
-    let startup = Startup {
-        executable: AssetFile {
-            path: "/unused".into(),
-            bytes: 1,
-            sha256: "0".repeat(64),
-        },
-        arguments: Vec::new(),
-        working_directory: fixture.host.root.clone(),
-        configuration: None,
-        environment: BTreeMap::from([(
-            "OMNIVOX_FLITE_VOICES".into(),
-            fixture
-                .directory
-                .join("voice.flitevox")
-                .to_string_lossy()
-                .into(),
-        )]),
-    };
-    let (path, hash) = startup
-        .save(&fixture.host, &local::new_uuid().unwrap())
-        .unwrap();
-    assert_eq!(fixture.execute(&review).status, "blocked");
-    retention::retired(&fixture.host, &path, &hash).unwrap();
-    assert_eq!(fixture.execute(&review).status, "complete");
+    for legacy in [false, true] {
+        let fixture = Fixture::new();
+        let review = fixture.review();
+        let startup = Startup {
+            executable: AssetFile {
+                path: "/unused".into(),
+                bytes: 1,
+                sha256: "0".repeat(64),
+            },
+            arguments: Vec::new(),
+            working_directory: fixture.host.root.clone(),
+            configuration: None,
+            engines: None,
+            environment: crate::engine_configuration::LaunchEnvironment::from_variables([(
+                "OMNIVOX_FLITE_VOICES".into(),
+                fixture.directory.join("voice.flitevox").into_os_string(),
+            )]),
+        };
+        let (path, mut hash) = startup
+            .save(&fixture.host, &local::new_uuid().unwrap())
+            .unwrap();
+        if legacy {
+            let mut record = serde_json::to_value(&startup).unwrap();
+            record.as_object_mut().unwrap().remove("engines");
+            record["environment"] = serde_json::json!({
+                "OMNIVOX_FLITE_VOICES": fixture.directory.join("voice.flitevox"),
+            });
+            if cfg!(windows) {
+                record["environment"]["=C:"] = serde_json::json!(r"C:\previous directory");
+            }
+            let bytes = serde_json::to_vec(&record).unwrap();
+            fs::write(&path, &bytes).unwrap();
+            hash = verification::digest(&bytes);
+        }
+        let blockers = fixture.review().blockers;
+        assert!(
+            blockers
+                .iter()
+                .any(|reason| reason.contains("no confirmed retirement")),
+            "legacy={legacy}, blockers={blockers:?}"
+        );
+        assert_eq!(fixture.execute(&review).status, "blocked");
+        retention::retired(&fixture.host, &path, &hash).unwrap();
+        assert_eq!(fixture.execute(&review).status, "complete");
+    }
 }
 
 #[test]
@@ -542,13 +568,10 @@ fn prepared_snapshots_and_storage_gate_do_not_invent_live_owners() {
         arguments: Vec::new(),
         working_directory: fixture.host.root.clone(),
         configuration: None,
-        environment: BTreeMap::from([(
+        engines: None,
+        environment: crate::engine_configuration::LaunchEnvironment::from_variables([(
             "OMNIVOX_PIPER_MODEL".into(),
-            fixture
-                .directory
-                .join("voice.flitevox")
-                .to_string_lossy()
-                .into(),
+            fixture.directory.join("voice.flitevox").into_os_string(),
         )]),
     };
     startup

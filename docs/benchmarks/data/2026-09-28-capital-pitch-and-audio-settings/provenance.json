@@ -1,0 +1,68 @@
+{
+  "source_commit": "96498be0de055c8d32ba532c3be30f933fe30e85",
+  "capital_pitch_commit": "b450961a8928b8315b8d0397c94a9fc91820add6",
+  "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "linux_host": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "programs": {
+    "linux_debug": {
+      "path": "/home/bart/ov113.v3MoTB/debug/omnivox",
+      "sha256": "768b887f97bd8adc957bbe6c7d24446038e2f6e591fca262c435817ffdf6769f",
+      "bytes": 154079240
+    },
+    "windows_release": {
+      "path": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/ec8c5bf9c84451c8/omnivox.exe",
+      "sha256": "dbf10d79bb365a3b407966156d0a0401ab42c982f99d3dca6676c43d619be242",
+      "bytes": 15003136
+    }
+  },
+  "linux_environment": {
+    "CARGO_TARGET_DIR": "/home/bart/ov113.v3MoTB",
+    "CARGO_INCREMENTAL": "0",
+    "OMNIVOX_PIPER_INPUTS_DIR": "/home/bart/src/omnivox/target/piper-inputs/1.7.0/x86_64-unknown-linux-gnu"
+  },
+  "fixture_sources": [
+    {
+      "path": "tools/verify_engine_configuration.py",
+      "sha256": "2b5440247f14b7738a2d327e8bb69d101d2887c535358106a1f2cc1c8aabe618",
+      "bytes": 20277
+    },
+    {
+      "path": "tools/verify_local_voice_owner.py",
+      "sha256": "760cd0c2d2d60958c729a6d175bb7e135b56bf7b60f16d177e5498ab31a0c588",
+      "bytes": 8575
+    },
+    {
+      "path": "tools/verify_release.py",
+      "sha256": "c201c7a3883ee7829cb75ef69b9e64eb1b44d1e8957fc90b2018c28fa8062d1d",
+      "bytes": 22026
+    },
+    {
+      "path": "tools/test_remote_service.py",
+      "sha256": "c0905048cd28c44403bdc0e0186f223303e3b992880113a50acc77efacfe8a53",
+      "bytes": 13351
+    },
+    {
+      "path": "test-fixtures/framework-helper.py",
+      "sha256": "809db9f03e14fc2b5b36ff4a292e2be22714dbe66084c958cd47c553b1060d81",
+      "bytes": 2674
+    },
+    {
+      "path": "test-fixtures/framework-helper.cs",
+      "sha256": "f3aa106820427ae7252bfb8f9a55337eff61fc2b1b451c6dba96cca2b1a91f4d",
+      "bytes": 4231
+    }
+  ],
+  "measurement": "Functional assertions only: helper request capture, WAV channel samples, startup/reset/recovery and cleanup. PulseAudio empty-input startup opens three streams; no acoustic or latency samples.",
+  "deadlines": "Python monotonic clocks; test wall durations are not speech latency measurements.",
+  "limitations": "No macOS or listening checks. Fixture tone does not qualify native capital cue strength. Temporary request traces are removed after successful process verification. Existing qualified-native-routing and long-session stress tests remain ignored by default.",
+  "windows_os": "Microsoft Windows NT 10.0.26200.0",
+  "linux_source_note": "Linux checks ran before committing each slice; final post-check edits were documentation/comments. Full Windows build uses committed source.",
+  "windows_staging": {
+    "command": "make windows-omnivox-dev OMNIVOX_RUNTIME_DIR=/home/bart/src/omnivox/target/presentation-settings-windows",
+    "cwd": "/home/bart/src/emacsvox",
+    "native_runtime": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\Omnivox\\runtime\\ec8c5bf9c84451c8",
+    "provenance_file": "windows-PROVENANCE",
+    "installed_launcher_changed": false
+  }
+}

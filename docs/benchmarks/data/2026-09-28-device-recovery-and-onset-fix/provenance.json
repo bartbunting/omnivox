@@ -1,0 +1,59 @@
+{
+  "recorded_utc": "2026-09-28T09:44:34.509774+00:00",
+  "head": "3ff0dc09360d29f86d928ed71bdb85172fadd26b",
+  "worktree": "includes previously unfinished Windows recovery and new canonical-queue onset fix; uncommitted development source",
+  "source_sha256": {
+    "Cargo.lock": "b81bb26eb2da06ac4ba22a4a98f756646d47e6ff829a8165653fc2c4f3a947e9",
+    "rust-toolchain.toml": "8e390d6a0838315f972690f46ef8bae8b7ecc9ee6c1ed70140ef852869c2482e",
+    "omnivox-audio/Cargo.toml": "7b36724946e7968f0ae60c16db8b86407d6be5de03d88c23e36694b639239673",
+    "omnivox-cli/src/main.rs": "4e0c1b6dd063184b8e66661bb289f4be5feebe6c606e8fb0aa87d9c8bac4b248",
+    "omnivox-audio/src/buffer.rs": "672ef0804bcadf0008d4f2ec2863e714922e4aaa3e5348235fc00e45253d50c0",
+    "omnivox-audio/src/cancellation.rs": "08627c23b6f7f9f0ec8d887ed166e018f0d3cd34c48f0f33fcbf87a8e3affbf7",
+    "omnivox-audio/src/device.rs": "b719de88a2c09ac7e811c2ccc58a81d9d59ca94d710027e9b1464bd82ef66247",
+    "omnivox-audio/src/device/tests.rs": "de8ca1eeab8a0b176ff09eccdfdde1a969e50c0fd17692b165c0c74eb1de7da9",
+    "omnivox-audio/src/device/windows.rs": "7653ff332309b9d797a28bc9040014d71cc49fe65c1a901335a06008410a94ce",
+    "omnivox-audio/src/effects.rs": "3daf7814186f7a60e6d471af0bdac584515901dfea4be669d40603ead359e093",
+    "omnivox-audio/src/lib.rs": "d70856b702f02a258dc8baba09c08c33b2d1d89be7a1b7590e5e0c7b47d64450",
+    "omnivox-audio/src/loader.rs": "96b56524c3ad481db328b335331a01fdc047343b3c174c00417b5d149f67a647",
+    "omnivox-audio/src/output.rs": "7bf573971bdf06ba4d08d8d34219e00fcf622004ed7020ede2f319288cca5b41",
+    "omnivox-audio/src/output/idle_tests.rs": "33f912c128e795c68a838da2011f0da20382da67edea721bb082784bd54e0d92",
+    "omnivox-audio/src/pipeline.rs": "9af9a7e3b9c7a8fe1b9dc840ff490391707826b885bd88a147547b3cef1d97e8",
+    "omnivox-audio/src/post_synthesis.rs": "b092caaf6ad56a3517f27bdd27c5d62fef338d794db575cd43f00932783f0653",
+    "omnivox-audio/src/progressive_pcm.rs": "c013bc77c5eb34abe05a082c1f9e501d984caf5ac1c3d48ec5f7e12a14db0a94",
+    "omnivox-audio/src/pulse.rs": "fbb054c9b0597c159ca367e0296b017713e9a4203d99e2a1ddd14af519f59836",
+    "omnivox-audio/src/pulse/native.rs": "e6e0bf2cc053f179ae767d2205900d4c8172941e65d4360ef70682cbb8bc2875",
+    "omnivox-audio/src/rodio_output.rs": "16d22bac629dea44ab973ba7c6e809355709c0d942754b4a8da9bf973d68d904",
+    "omnivox-audio/src/timeline.rs": "8d50d5eab8da09e988a24c97e0df047405e634302a3a30c985dda43cb8fb9933",
+    "omnivox-audio/src/tone.rs": "f5da54d19ad6462e123f255aefe56beb36a174f50c50e1b2e6202ed7799fef69"
+  },
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)\nbinary: rustc\ncommit-hash: 8bab26f4f68e0e26f0bb7960be334d5b520ea452\ncommit-date: 2026-07-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.97.1\nLLVM version: 22.1.6\n",
+  "linux": "Linux URSYS-8M3WMB4 6.18.33.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun 18 21:54:43 UTC 2026 x86_64 GNU/Linux",
+  "windows": "Microsoft Windows NT 10.0.26200.0",
+  "commands": [
+    "cargo +1.97.1 test --locked --workspace",
+    "make dev",
+    "cargo +1.97.1 test --locked --workspace",
+    "cargo +1.97.1 clippy --locked --workspace --all-targets -- -D warnings",
+    "cargo +1.97.1 clippy --locked -p omnivox-audio -p omnivox-cli --target x86_64-pc-windows-gnu --all-targets -- -D warnings",
+    "cargo +1.97.1 test --locked -p omnivox-audio --target x86_64-pc-windows-gnu --lib --no-run",
+    "target/x86_64-pc-windows-gnu/debug/deps/omnivox_audio-81a77ec6b8144c9a.exe --test-threads=1",
+    "target/x86_64-pc-windows-gnu/debug/deps/omnivox_audio-81a77ec6b8144c9a.exe native_output_reopens_and_retires_old_audio --ignored --nocapture --test-threads=1"
+  ],
+  "unfixed_control": "An isolated copy forwards CanonicalQueue metadata to the raw Rodio queue; the three onset regressions fail. Production files were never reverted.",
+  "limits": [
+    "No physical headphone plug/unplug or default change.",
+    "No acoustic onset or WASAPI process-loopback capture.",
+    "Additional reported frame loss and lead-in collapse remain unconfirmed."
+  ],
+  "development_staging": {
+    "recorded_utc": "2026-09-28T09:52:53.847134+00:00",
+    "command": "make windows-omnivox-dev",
+    "cwd": "/home/bart/src/emacsvox",
+    "exit_code": 0,
+    "build_id": "ad5be9cca3f9e40b",
+    "runtime_provenance": "runtime-PROVENANCE",
+    "runtime_checksums": "runtime-SHA256SUMS",
+    "packaged_output_results": "packaged-output/results.json",
+    "existing_speech_processes_restarted": false
+  }
+}

@@ -2,13 +2,15 @@
 use super::installation::ActivationCandidate;
 use super::operations::storage::{new_file, open_file, ordinary};
 use super::*;
-use std::collections::BTreeMap;
+use crate::engine_configuration::{LaunchEnvironment, LaunchSnapshot, MAX_SNAPSHOT_BYTES};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 pub const PREFIX: &str = "OMNIVOX-LOCAL ";
 pub const MAX_LINE: usize = 2 * MAX_RUNTIME_BYTES;
+// Includes the owner and helper environments plus existing owner metadata.
+pub const MAX_STARTUP_BYTES: usize = 2 * MAX_SNAPSHOT_BYTES + MAX_RUNTIME_BYTES;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -22,7 +24,13 @@ pub struct Request {
     #[serde(default)]
     pub generation: String,
     #[serde(default)]
+    pub startup: String,
+    #[serde(default)]
+    pub startup_sha256: String,
+    #[serde(default)]
     pub expected_sha256: String,
+    #[serde(default)]
+    pub punctuation_json: String,
     #[serde(default)]
     pub plan_json: String,
     #[serde(default)]
@@ -72,6 +80,8 @@ pub enum Reply {
         events: Vec<super::acquisition::Progress>,
     },
     Host {
+        engine_configuration_version: u32,
+        punctuation_configuration_version: u32,
         removal_version: u32,
         catalogue_providers: Vec<String>,
         root: String,
@@ -85,6 +95,7 @@ pub enum Reply {
         configuration: Option<VoiceLibraryConfiguration>,
         retired: bool,
         startup_error: Option<String>,
+        activation_id: Option<String>,
     },
     Retired {
         worker: String,
@@ -93,11 +104,21 @@ pub enum Reply {
         startup: String,
         startup_sha256: String,
         configuration: VoiceLibraryConfiguration,
+        activation_id: String,
+    },
+    PreparedStartup {
+        startup: String,
+        startup_sha256: String,
+        configuration: Option<VoiceLibraryConfiguration>,
+        activation_id: String,
     },
     Library {
         index: IndexDocument,
         sha256: String,
         active: Option<ActivePointer>,
+    },
+    PunctuationConfiguration {
+        review: crate::engine_configuration::punctuation_editor::Review,
     },
     RemovalReview {
         review: installation::removal::RemovalReview,
@@ -241,6 +262,8 @@ impl Host {
     }
     pub fn reply(&self) -> Reply {
         Reply::Host {
+            engine_configuration_version: 1,
+            punctuation_configuration_version: 1,
             removal_version: 1,
             catalogue_providers: vec![
                 "piper".into(),
@@ -257,42 +280,43 @@ impl Host {
 
 /// Resolved native inputs, saved once by the owner before opening START.
 /// Full environment stays in this private local record, never in speech logs.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Startup {
     pub executable: AssetFile,
     pub arguments: Vec<String>,
     pub working_directory: PathBuf,
-    pub environment: BTreeMap<String, String>,
+    pub environment: LaunchEnvironment,
     pub configuration: Option<VoiceLibraryConfiguration>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub engines: Option<LaunchSnapshot>,
 }
 impl Startup {
     pub fn capture(host: &Host) -> Result<Self, LibraryError> {
         let executable = std::env::current_exe()?.canonicalize()?;
-        let mut environment: BTreeMap<String, String> = std::env::vars_os()
-            .map(|(key, value)| {
-                Ok((
-                    key.into_string()
-                        .map_err(|_| LibraryError::Invalid("non-UTF-8 startup environment"))?,
-                    value
-                        .into_string()
-                        .map_err(|_| LibraryError::Invalid("non-UTF-8 startup environment"))?,
-                ))
-            })
-            .collect::<Result<_, LibraryError>>()?;
-        environment.remove("OMNIVOX_REMOTE_WORKER");
-        environment.remove("OMNIVOX_OWNED_STARTUP");
-        environment.remove("OMNIVOX_OWNED_LIBRARY");
-        if !environment.contains_key("OMNIVOX_VOICE_LIBRARY") {
+        let mut environment = LaunchEnvironment::capture();
+        for name in [
+            "OMNIVOX_REMOTE_WORKER",
+            "OMNIVOX_OWNED_WORKER",
+            "OMNIVOX_OWNED_STARTUP",
+            "OMNIVOX_OWNED_STARTUP_SHA256",
+            "OMNIVOX_OWNED_LIBRARY",
+            "OMNIVOX_OWNED_ENGINE_STARTUP",
+            "OMNIVOX_OWNED_ENGINE_STARTUP_SHA256",
+        ] {
+            environment = environment.with_variable(name, None);
+        }
+        if environment.get("OMNIVOX_VOICE_LIBRARY").is_none() {
             let profile = host.profile()?;
             if let Some(active) = profile.active_json()? {
                 let active = ActivePointer::parse(active.as_bytes())?;
-                environment.insert(
-                    "OMNIVOX_VOICE_LIBRARY".into(),
-                    profile
-                        .generation_path(&active.generation_id)
-                        .to_string_lossy()
-                        .into(),
+                environment = environment.with_variable(
+                    "OMNIVOX_VOICE_LIBRARY",
+                    Some(
+                        profile
+                            .generation_path(&active.generation_id)
+                            .into_os_string(),
+                    ),
                 );
             }
         }
@@ -302,6 +326,7 @@ impl Startup {
             working_directory: std::env::current_dir()?,
             environment,
             configuration: None,
+            engines: None,
         };
         startup.configuration = startup.library()?.map(|library| library.configuration());
         Ok(startup)
@@ -334,32 +359,61 @@ impl Startup {
             },
         )?;
         if library.document().piper.is_some()
-            && self.environment.contains_key("OMNIVOX_PIPER_MODEL")
+            && self.environment.get("OMNIVOX_PIPER_MODEL").is_some()
             && self.environment.get("OMNIVOX_PIPER_MODEL")
                 == self.environment.get("OMNIVOX_LAUNCHER_PIPER_DEFAULT")
         {
-            self.environment.remove("OMNIVOX_PIPER_MODEL");
+            self.environment = self.environment.with_variable("OMNIVOX_PIPER_MODEL", None);
         }
-        self.environment.insert(
-            "OMNIVOX_VOICE_LIBRARY".into(),
-            path.to_string_lossy().into(),
-        );
+        self.environment = self
+            .environment
+            .with_variable("OMNIVOX_VOICE_LIBRARY", Some(path.as_os_str().to_owned()));
         self.configuration = self.library()?.map(|library| library.configuration());
+        self.engines = None;
         Ok(())
+    }
+
+    /// Preserve the shared engine record while projecting the existing
+    /// notification audio settings onto this independently owned worker.
+    pub fn with_lane_audio(mut self, environment: &LaunchEnvironment) -> Self {
+        for name in [
+            "ALSA_DEFAULT",
+            "SWIFTMAC_AUDIO_TARGET",
+            "SHARPWIN_AUDIO_TARGET",
+            "PULSE_SINK",
+            "OMNIVOX_AUDIO_TARGET",
+        ] {
+            self.environment = self
+                .environment
+                .with_variable(name, environment.get(name).map(std::ffi::OsStr::to_owned));
+        }
+        self
     }
     pub fn read(path: &Path, expected: &str) -> Result<Self, LibraryError> {
         sha256(expected)?;
-        let bytes = read_bounded(open_file(path, false)?, MAX_RUNTIME_BYTES)?;
+        let bytes = read_bounded(open_file(path, false)?, MAX_STARTUP_BYTES)?;
         require(
             verification::digest(&bytes) == expected,
             "native startup snapshot changed",
         )?;
-        let startup: Self = decode(&bytes, MAX_RUNTIME_BYTES)?;
+        let startup: Self = decode(&bytes, MAX_STARTUP_BYTES)?;
         startup.verify()?;
         Ok(startup)
     }
     pub fn verify(&self) -> Result<(), LibraryError> {
         self.executable.open_verified()?;
+        if let Some(engines) = &self.engines {
+            engines
+                .to_bytes()
+                .map_err(|_| LibraryError::Invalid("invalid engine snapshot bound"))?;
+            require(
+                engines
+                    .managed()
+                    .map(|managed| managed.library.configuration())
+                    == self.configuration,
+                "engine snapshot generation differs from owner configuration",
+            )?;
+        }
         require(
             self.library()?.map(|library| library.configuration()) == self.configuration,
             "startup generation changed",
@@ -384,7 +438,7 @@ impl Startup {
         let path = host.root.join("sessions").join(format!("{worker}.json"));
         let bytes = serde_json::to_vec(self)?;
         require(
-            bytes.len() <= MAX_RUNTIME_BYTES,
+            bytes.len() <= MAX_STARTUP_BYTES,
             "startup snapshot exceeds bound",
         )?;
         save(&path, &bytes)?;
@@ -525,7 +579,7 @@ mod tests {
             executable: identify(&std::env::current_exe().unwrap()).unwrap(),
             arguments: Vec::new(),
             working_directory: fixture.0.clone(),
-            environment: BTreeMap::from([
+            environment: LaunchEnvironment::from_variables([
                 ("OMNIVOX_PIPER_MODEL".into(), "launcher-default.onnx".into()),
                 (
                     "OMNIVOX_LAUNCHER_PIPER_DEFAULT".into(),
@@ -533,28 +587,29 @@ mod tests {
                 ),
             ]),
             configuration: None,
+            engines: None,
         };
         let (path, hash) = startup.save(&host, &new_uuid().unwrap()).unwrap();
         startup
             .candidate(&profile.generation_path(&generation))
             .unwrap();
-        assert!(!startup.environment.contains_key("OMNIVOX_PIPER_MODEL"));
+        assert!(startup.environment.get("OMNIVOX_PIPER_MODEL").is_none());
         let mut restored = Startup::read(&path, &hash).unwrap();
         assert!(restored.configuration.is_none());
         assert_eq!(
-            restored.environment["OMNIVOX_PIPER_MODEL"],
-            "launcher-default.onnx"
+            restored.environment.get("OMNIVOX_PIPER_MODEL"),
+            Some(std::ffi::OsStr::new("launcher-default.onnx"))
         );
-        restored.environment.insert(
-            "OMNIVOX_PIPER_MODEL".into(),
-            "explicit-user-file.onnx".into(),
+        restored.environment = restored.environment.with_variable(
+            "OMNIVOX_PIPER_MODEL",
+            Some("explicit-user-file.onnx".into()),
         );
         restored
             .candidate(&profile.generation_path(&generation))
             .unwrap();
         assert_eq!(
-            restored.environment["OMNIVOX_PIPER_MODEL"],
-            "explicit-user-file.onnx"
+            restored.environment.get("OMNIVOX_PIPER_MODEL"),
+            Some(std::ffi::OsStr::new("explicit-user-file.onnx"))
         );
         let mut bytes = fs::read(&path).unwrap();
         bytes.push(b' ');

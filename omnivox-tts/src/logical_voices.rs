@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::contracts::{EngineDescriptor, FallbackPolicy, LogicalVoiceDefinition, VoiceSelector};
-use crate::resolver::{resolve_voice, VoiceResolution, VoiceResolutionError};
+use crate::engine_configuration::EngineSelectionPermissions;
+use crate::resolver::{resolve_voice_with_permissions, VoiceResolution, VoiceResolutionError};
 use crate::voice_choices::{ChoiceTuningError, RegisteredVoiceDefinition};
 
 pub const MAX_LOGICAL_VOICES: usize = 256;
@@ -82,6 +83,7 @@ pub enum LogicalVoiceRegistryError {
 /// current generation so resolution can use live engine availability.
 #[derive(Debug, Clone, Default)]
 pub struct LogicalVoiceRegistry {
+    engine_permissions: EngineSelectionPermissions,
     generation: u64,
     definitions: Vec<LogicalVoiceDefinition>,
     registered_definitions: Vec<RegisteredVoiceDefinition>,
@@ -90,6 +92,13 @@ pub struct LogicalVoiceRegistry {
 }
 
 impl LogicalVoiceRegistry {
+    pub fn with_engine_permissions(engine_permissions: EngineSelectionPermissions) -> Self {
+        Self {
+            engine_permissions,
+            ..Self::default()
+        }
+    }
+
     pub fn generation(&self) -> u64 {
         self.generation
     }
@@ -267,12 +276,18 @@ impl LogicalVoiceRegistry {
         let bindings = self
             .definitions
             .iter()
-            .map(
-                |definition| match resolve_voice(inventory, definition, fallback_policy) {
+            .map(|definition| {
+                match resolve_voice_with_permissions(
+                    inventory,
+                    definition,
+                    fallback_policy,
+                    None,
+                    &self.engine_permissions,
+                ) {
                     Ok(resolution) => LogicalVoiceBinding::Resolved { resolution },
                     Err(error) => LogicalVoiceBinding::Unresolved { error },
-                },
-            )
+                }
+            })
             .collect();
 
         LogicalVoiceRegistration {

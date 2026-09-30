@@ -1,0 +1,11 @@
+   Compiling omnivox-tts v1.12.0 (/home/bart/src/omnivox/omnivox-tts)
+   Compiling omnivox-piper-sys v1.12.0 (/home/bart/src/omnivox/omnivox-piper-sys)
+    Checking omnivox-helper-host v1.12.0 (/home/bart/src/omnivox/omnivox-helper-host)
+    Checking omnivox-cli v1.12.0 (/home/bart/src/omnivox/omnivox-cli)
+    Checking omnivox-linux-helpers v1.12.0 (/home/bart/src/omnivox/linux-helpers)
+    Checking omnivox-rutts-helper v1.12.0 (/home/bart/src/omnivox/omnivox-rutts-helper)
+    Checking omnivox-tgspeechbox-helper v1.12.0 (/home/bart/src/omnivox/omnivox-tgspeechbox-helper)
+    Checking omnivox-rhvoice-helper v1.12.0 (/home/bart/src/omnivox/omnivox-rhvoice-helper)
+    Checking omnivox-flite-helper v1.12.0 (/home/bart/src/omnivox/omnivox-flite-helper)
+    Checking omnivox-mbrola-helper v1.12.0 (/home/bart/src/omnivox/omnivox-mbrola-helper)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 12.86s

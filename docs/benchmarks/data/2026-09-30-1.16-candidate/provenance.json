@@ -1,0 +1,22 @@
+{
+  "version": "1.16.0",
+  "published_tag": "v1.15.0",
+  "published_commit": "508dbbccb27ca7d8e998283e11b47923a6826f3f",
+  "release_line": "e7e7ab62338be6bc31f28852abab75e6c5e65cb2",
+  "main_character_fix": "3ccea525b275f6bb17d5f59d7bf161722f2f4af8",
+  "emacsvox_commit": "7b915d88f0324338d73b3c4c5e21e4c140f50152",
+  "rust": "1.97.1",
+  "linux_program_sha256": "f9f1f40712c1579b4cdbf8c3ae2381184c8b303ef479923b100d737ffec5275c",
+  "source_patch_base": "release/1.15.0",
+  "source_patch_scope": [
+    "Cargo.toml",
+    "Cargo.lock",
+    "omnivox-cli",
+    "omnivox-core",
+    "omnivox-tts",
+    "docs/protocols"
+  ],
+  "source_patch_sha256": "d6c2d337ca71ad8c54030484b348c91f83bae4a1b649cb65ef09049ed5e1dd6d",
+  "windows_build_id": "3f8ce8ff46d85767",
+  "windows_program_sha256": "7a98b40574aaf9dff7ffbd26e3cff982b0e29aeeed305b2a4d0ac78f701675aa"
+}

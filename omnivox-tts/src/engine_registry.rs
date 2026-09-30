@@ -6,11 +6,15 @@ use std::sync::{Arc, RwLock};
 use thiserror::Error;
 
 use crate::contracts::{Availability, EngineDescriptor, EngineHealth};
+use crate::engine_configuration::{EngineSelectionPermissions, LocalRoutingPolicy};
 use crate::TtsEngine;
 
 /// Registry mutations that leave the previous inventory untouched.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum EngineRegistryError {
+    #[error("local engine policy must be installed before engine registration")]
+    PolicyAlreadyPublished,
+
     #[error("engine descriptor has an empty ID")]
     EmptyEngineId,
 
@@ -70,11 +74,65 @@ pub struct EngineRegistry {
     inner: Arc<RwLock<RegistryState>>,
     eligibility: Option<Arc<crate::voice_library::VoiceEligibility>>,
     library_configuration: Option<crate::voice_library::VoiceLibraryConfiguration>,
+    selection_permissions: EngineSelectionPermissions,
+    local_routing_policy: LocalRoutingPolicy,
+    engine_configuration: Option<crate::engine_configuration::EngineConfigurationStatus>,
 }
 
 impl EngineRegistry {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Bind acknowledgement to the complete launch record consumed by this
+    /// worker, before any engine (including unavailable entries) is published.
+    pub fn configure_startup_snapshot(
+        &mut self,
+        snapshot: &crate::engine_configuration::LaunchSnapshot,
+    ) -> Result<(), EngineRegistryError> {
+        if !self.is_empty() || self.engine_configuration.is_some() {
+            return Err(EngineRegistryError::PolicyAlreadyPublished);
+        }
+        self.configure_local_selection(
+            snapshot.resolved().routing.clone(),
+            snapshot.resolved().selection_permissions(),
+        )?;
+        self.engine_configuration =
+            Some(crate::engine_configuration::EngineConfigurationStatus::from_snapshot(snapshot));
+        Ok(())
+    }
+
+    pub fn engine_configuration_status(
+        &self,
+        generation: u64,
+        engines: &[EngineDescriptor],
+    ) -> Option<crate::engine_configuration::EngineConfigurationStatus> {
+        self.engine_configuration
+            .as_ref()
+            .map(|status| status.with_inventory(generation, engines))
+    }
+
+    /// Freeze local permissions before native construction/registration. Session
+    /// policies may add exclusions but never replace these startup inputs.
+    pub fn configure_local_selection(
+        &mut self,
+        policy: LocalRoutingPolicy,
+        mut permissions: EngineSelectionPermissions,
+    ) -> Result<(), EngineRegistryError> {
+        if !self.is_empty() || self.engine_configuration.is_some() {
+            return Err(EngineRegistryError::PolicyAlreadyPublished);
+        }
+        permissions.include_disabled(&policy.disabled_engine_ids);
+        self.local_routing_policy = policy;
+        self.selection_permissions = permissions;
+        Ok(())
+    }
+
+    pub fn selection_permissions(&self) -> &EngineSelectionPermissions {
+        &self.selection_permissions
+    }
+    pub fn local_routing_policy(&self) -> &LocalRoutingPolicy {
+        &self.local_routing_policy
     }
 
     /// Pin administrative voice eligibility for this registry's entire lifetime.
@@ -186,8 +244,15 @@ impl EngineRegistry {
         })
     }
 
-    fn insert(&mut self, entry: RegisteredEngine) -> Result<(), EngineRegistryError> {
+    fn insert(&mut self, mut entry: RegisteredEngine) -> Result<(), EngineRegistryError> {
         validate_descriptor(&entry.descriptor)?;
+        if self.selection_permissions.disabled(&entry.descriptor.id) {
+            entry.engine = None;
+            entry.retry = None;
+            entry.descriptor.availability = Availability::Unavailable {
+                reason: "disabled by local engine configuration".into(),
+            };
+        }
         let mut inner = self.inner.write().unwrap();
         if inner.entries.contains_key(&entry.descriptor.id) {
             return Err(EngineRegistryError::DuplicateEngine {
@@ -238,6 +303,9 @@ impl EngineRegistry {
     /// Retry one startup failure asynchronously, with at most one retry per
     /// engine in flight. Success enables it for subsequent routing snapshots.
     pub fn request_rescan(&self, engine_id: &str) -> Result<(), String> {
+        if self.selection_permissions.disabled(engine_id) {
+            return Err("disabled by local engine configuration".into());
+        }
         let retry = {
             let mut inner = self.inner.write().unwrap();
             let entry = inner
@@ -418,6 +486,41 @@ mod tests {
     use crate::{
         AudioBuffer, SynthesisRequest, SynthesisResult, TtsError, VoiceInfo, VoiceQuality,
     };
+
+    #[test]
+    fn local_disablement_cannot_be_bypassed_by_registration_or_rescan() {
+        use std::collections::BTreeSet;
+        let mut registry = EngineRegistry::new();
+        let permissions = EngineSelectionPermissions::new(
+            BTreeSet::from(["disabled".into(), "failed".into()]),
+            BTreeSet::new(),
+            &BTreeSet::new(),
+        );
+        registry
+            .configure_local_selection(LocalRoutingPolicy::default(), permissions)
+            .unwrap();
+        registry
+            .register(Arc::new(MockEngine::new("disabled")))
+            .unwrap();
+        registry
+            .register_unavailable(EngineDescriptor::unavailable("failed", "missing"), || {
+                panic!("disabled recovery must not run")
+            })
+            .unwrap();
+        assert!(registry.engine("disabled").is_none());
+        assert!(registry
+            .inventory()
+            .iter()
+            .all(|engine| !engine.availability.is_available()));
+        assert!(registry.request_rescan("failed").is_err());
+        assert!(matches!(
+            registry.configure_local_selection(
+                LocalRoutingPolicy::default(),
+                EngineSelectionPermissions::default()
+            ),
+            Err(EngineRegistryError::PolicyAlreadyPublished)
+        ));
+    }
 
     struct MockEngine {
         descriptor: Mutex<EngineDescriptor>,

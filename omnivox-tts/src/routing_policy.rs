@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::contracts::{Availability, EngineDescriptor, FallbackPolicy};
+use crate::engine_configuration::LocalRoutingPolicy;
 use crate::logical_voices::MAX_ENGINE_ID_BYTES;
 
 /// Global engine order and administrative disablement for one server session.
@@ -51,18 +52,37 @@ pub struct RoutingPolicyRegistry {
     generation: u64,
     configured: bool,
     policy: RoutingPolicy,
+    local_disabled: Vec<String>,
+    local_fallback: Option<Vec<String>>,
+    session_policy: Option<RoutingPolicy>,
 }
 
 impl RoutingPolicyRegistry {
     /// Start with the process-selected engine as the global preference.
     pub fn new(startup_preferred_engine_id: impl Into<String>) -> Self {
+        Self::with_local_policy(startup_preferred_engine_id, &LocalRoutingPolicy::default())
+    }
+
+    /// Seed ordinary startup without making local preferences an irreversible
+    /// session policy. Only local disablement remains a floor after replacement.
+    pub fn with_local_policy(
+        startup_preferred_engine_id: impl Into<String>,
+        local: &LocalRoutingPolicy,
+    ) -> Self {
         Self {
             generation: 0,
             configured: false,
             policy: RoutingPolicy {
-                preferred_engine_ids: vec![startup_preferred_engine_id.into()],
-                ..RoutingPolicy::default()
+                preferred_engine_ids: local
+                    .preferred_engine_ids
+                    .clone()
+                    .unwrap_or_else(|| vec![startup_preferred_engine_id.into()]),
+                fallback_engine_ids: local.fallback_engine_ids.clone().unwrap_or_default(),
+                disabled_engine_ids: local.disabled_engine_ids.clone(),
             },
+            local_disabled: local.disabled_engine_ids.clone(),
+            local_fallback: local.fallback_engine_ids.clone(),
+            session_policy: None,
         }
     }
 
@@ -88,13 +108,19 @@ impl RoutingPolicyRegistry {
         }
         validate_policy(&policy)?;
         if generation == self.generation && self.configured {
-            if policy != self.policy {
+            if self.session_policy.as_ref() != Some(&policy) {
                 return Err(RoutingPolicyError::GenerationConflict { generation });
             }
         } else {
             self.generation = generation;
             self.configured = true;
+            self.session_policy = Some(policy.clone());
             self.policy = policy;
+            for engine in &self.local_disabled {
+                if !self.policy.disabled_engine_ids.contains(engine) {
+                    self.policy.disabled_engine_ids.push(engine.clone());
+                }
+            }
         }
         Ok(self.registration())
     }
@@ -113,7 +139,9 @@ impl RoutingPolicyRegistry {
             fallback_engines: if self.configured {
                 self.policy.fallback_engine_ids.clone()
             } else {
-                base.fallback_engines.clone()
+                self.local_fallback
+                    .clone()
+                    .unwrap_or_else(|| base.fallback_engines.clone())
             },
             ..base.clone()
         }
@@ -210,5 +238,69 @@ mod tests {
             ["eloquence", "dectalk", "winrt"]
         );
         assert_eq!(registry.policy().disabled_engine_ids, ["dectalk"]);
+    }
+
+    #[test]
+    fn local_policy_preserves_omission_and_empty_until_session_replacement() {
+        let base = FallbackPolicy {
+            fallback_engines: vec!["espeak".into()],
+            ..FallbackPolicy::default()
+        };
+        let local = LocalRoutingPolicy {
+            preferred_engine_ids: Some(vec![]),
+            fallback_engine_ids: Some(vec![]),
+            ..LocalRoutingPolicy::default()
+        };
+        let mut registry = RoutingPolicyRegistry::with_local_policy("espeak", &local);
+        assert!(registry.policy().preferred_engine_ids.is_empty());
+        assert!(registry
+            .effective_fallback_policy(&base)
+            .fallback_engines
+            .is_empty());
+        let defaults =
+            RoutingPolicyRegistry::with_local_policy("espeak", &LocalRoutingPolicy::default());
+        assert_eq!(defaults.policy().preferred_engine_ids, ["espeak"]);
+        assert_eq!(
+            defaults.effective_fallback_policy(&base).fallback_engines,
+            ["espeak"]
+        );
+        registry
+            .register(1, policy(&["flite"], &["espeak"], &[]))
+            .unwrap();
+        assert_eq!(
+            registry.effective_fallback_policy(&base).preferred_engines,
+            ["flite"]
+        );
+        assert_eq!(
+            registry.effective_fallback_policy(&base).fallback_engines,
+            ["espeak"]
+        );
+    }
+
+    #[test]
+    fn session_policy_cannot_clear_the_local_floor_and_retries_compare_original_input() {
+        let local = LocalRoutingPolicy {
+            disabled_engine_ids: vec!["local-disabled".into()],
+            ..LocalRoutingPolicy::default()
+        };
+        let mut registry = RoutingPolicyRegistry::with_local_policy("espeak", &local);
+        let first = policy(&[], &[], &["session-disabled"]);
+        let accepted = registry.register(2, first.clone()).unwrap();
+        assert_eq!(
+            accepted.policy.disabled_engine_ids,
+            ["session-disabled", "local-disabled"]
+        );
+        assert_eq!(registry.register(2, first).unwrap(), accepted);
+        assert!(matches!(
+            registry.register(2, policy(&[], &[], &["session-disabled", "local-disabled"])),
+            Err(RoutingPolicyError::GenerationConflict { .. })
+        ));
+        registry.register(3, policy(&[], &[], &[])).unwrap();
+        assert_eq!(registry.policy().disabled_engine_ids, ["local-disabled"]);
+        assert!(registry.register(2, policy(&[], &[], &[])).is_err());
+        let invalid = policy(&[], &[], &["a", "a"]);
+        assert!(registry.register(4, invalid).is_err());
+        assert_eq!(registry.generation(), 3);
+        assert_eq!(registry.policy().disabled_engine_ids, ["local-disabled"]);
     }
 }

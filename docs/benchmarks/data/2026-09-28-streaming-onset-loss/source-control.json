@@ -1,0 +1,7 @@
+{
+  "change": "Only the isolated diagnostic archive: initialize output_delay_remaining to 0",
+  "buffered_frames": 5032,
+  "progressive_frames": 5292,
+  "whole_buffered_prefix_equal": true,
+  "max_absolute_difference": 0.0
+}

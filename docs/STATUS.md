@@ -1,411 +1,130 @@
 # Omnivox Project Status
 
-**Last reviewed:** 2026-09-14
-**Workspace version:** 1.11.0
+**Documentation reviewed:** 2026-09-30. **Workspace version:** 1.16.0.
+Published changes belong to the
+[changelog](../CHANGELOG.md); current implementation may include unreleased work.
+[Architecture](ARCHITECTURE.md) explains behavior, [the roadmap](ROADMAP.md)
+tracks outstanding work, and [retained evidence](benchmarks/README.md) records
+actual runs and their limits.
 
-This file records present behavior and limitations. Protocol guarantees belong
-in the linked protocol specifications; future work belongs in
-[NEXT_STEPS.md](plans/NEXT_STEPS.md).
-Changes prepared for 1.11.0 are recorded in the
-[changelog](../CHANGELOG.md#1110---2026-09-14). Later development changes belong
-under [Unreleased](../CHANGELOG.md#unreleased); publication is established by
-the matching verified GitHub release.
+Omnivox 1.16.0 is in release preparation with palette-aware character feedback;
+its [candidate checks](benchmarks/2026-09-30-1.16-candidate.md) pass on Linux
+and the full native Windows development runtime.
+[Omnivox 1.15.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.15.0).
+The [publication checks](benchmarks/2026-09-28-1.15-publication.md) retain the
+release identity, all 64 passing jobs and verification of the 28 public assets.
+The [candidate report](benchmarks/2026-09-28-1.15-candidate.md) records Linux
+and native Windows checks for punctuation configuration/editor support and the
+streaming onset fix. The `most` punctuation level, custom profiles and live
+configuration reload remain deferred. The earlier
+[1.14.0 candidate](benchmarks/2026-09-28-1.14-candidate.md) retains the successful
+physical Windows headphone-switching follow-up.
 
 ## Implemented
 
-### Protocol and admission
-
-- Legacy Emacspeak command parsing and queue/state handling.
-- A 512 KiB line limit, a bounded 32-line stdin handoff, atomic legacy
-  transaction limits, and a bounded nonblocking synthesis queue.
-- Versioned Base64-JSON control negotiation, inventory, logical-voice
-  registration, runtime routing policy, recovery probes, and non-mutating
-  preview.
-- Tracked terminal status and marker protocols v1 through v3; v3 reports the
-  selected voice choice and physical voice at first-frame consumption.
-- Negotiated `voice_choice_tuning_v1` support includes version-2 logical-voice
-  registration and private previews, timeline v4, and marker v3. Preview
-  evidence distinguishes accepted audio from audio whose playback started.
-- Structured presentation timelines v1 through v4, including v3/v4 multipart
-  framing, bounded schema/cross-reference/action-window validation before
-  admission, resource preparation before new-span synthesis, and terminal
-  status for decodable invalid or stale submissions.
-
-### Routing and synthesis
-
-- macOS AVSpeechSynthesizer, Windows WinRT, and eSpeak NG.
-- macOS reuses its voice inventory, engine descriptor, and native voice
-  selections for the process lifetime. Restart Omnivox after installing voices.
-  Development synthesis streams native PCM through a bounded queue and one
-  continuous converter. Buffer timing logs identify first/last PCM, explicit
-  completion and capture retirement. Full-result callers collect the same
-  stream; requests requiring unavailable anchors remain buffered. Native
-  markers are not advertised. See the [streaming acceptance guide](MACOS-STREAMING.md).
-- Optional out-of-process Piper, RHVoice, Flite, RuTTS, Eloquence, DECtalk,
-  and experimental TGSpeechBox engines.
-- Structured engine/voice inventory and deterministic per-span logical routing.
-- Layered logical voices compose shared settings, the actual selected choice's
-  adjustments, and contextual overrides for each synthesis attempt. Explicit
-  adapter defaults and duplicate-selector choice identities are preserved;
-  mixed legacy/layered runs isolate their effect state.
-- Server registration retains WinRT and eSpeak on Windows,
-  AVSpeechSynthesizer and eSpeak on macOS, and eSpeak on Linux. Configured
-  Piper helpers join that registry in Piper-enabled builds. Staged or
-  explicitly configured RHVoice, Flite, RuTTS, and TGSpeechBox helpers are
-  discovered on every desktop platform. Independent helpers initialize
-  concurrently with built-in discovery, then join the complete initial
-  inventory in deterministic order before the command loop opens.
-- Verified content-addressed eSpeak data can reuse a bounded cached voice
-  inventory; unverified, custom, stale, or malformed cache state falls back to
-  live discovery without changing the complete first-inventory contract.
-- eSpeak NG emits native callback PCM progressively. Anchored requests use
-  native SSML marks for exact resolution while generated-markup source maps
-  preserve word and sentence ranges in the caller's original UTF-8 text.
-- Ordered fallback for missing voices, unsupported text repertoires, engine
-  failure, and transient engine pressure.
-- Persistent health circuits, bounded cooldowns, one recovery probe, and
-  generation-stamped inventory updates.
-- Failed configured helpers remain visible with their startup error and can
-  be rescanned asynchronously through the recovery command after installation.
-- Immediate speech and letter commands follow the current global engine policy;
-  they do not select a named logical voice.
-- Requested synthesis anchors and engine markers, with truthful exact,
-  word-boundary, span-boundary, or omitted resolution.
-- Caller-supplied capitalization cues in timelines and pitch-rise presentation
-  for isolated capital letters.
-
-### Replacement and cancellation
-
-- Ordered and urgent timelines bypass the reader's coalescing delay and are
-  never coalesced or evicted.
-- Replaceable timelines coalesce only within the same protocol-version and
-  replacement-key domain.
-- Successful worker-queue admission of a newer keyed timeline atomically
-  cancels synthesis and tagged playback in that same domain. Failed admission
-  leaves the older queued or active work intact.
-- Domain cancellation does not clear ordered, urgent, legacy, or unrelated
-  keyed playback. Active speech fades for three milliseconds to avoid a click.
-- Hard stop remains stream-wide, invalidates older generations, requests stop
-  from every registered engine, and cancels queued and buffered work.
-- Uncancellable native calls are quarantined; helper processes can be killed
-  after the cancellation grace period where the helper contract permits it.
-
-### Presentation and audio
-
-- Development-only native PulseAudio output on Linux (`--audio-output pulse`):
-  persistent independent lanes, bounded writes, an adjustable 20 ms default
-  request, idle corking, stream-wide flushing, and failure retirement. Fresh
-  audio can reopen a failed native lane without replaying interrupted speech;
-  output errors retain healthy synthesis engines. The
-  existing `device` backend remains the default. See the
-  [WSLg comparison guide](WSL-AUDIO.md) and
-  [native output experiment](experiments/2026-09-07-native-pulseaudio.md).
-- Canonical stereo 44.1 kHz PCM conversion with bounded sample-rate conversion.
-- Silence trimming with marker/anchor remapping, volume adjustment, and channel
-  routing.
-- Independent speech, tone, and sound streams with bounded queues, plus
-  frame-aligned de-click fades when active speech or tones are interrupted.
-- Bounded OGG/WAV resource loading, a 128-entry/64-MiB decoded LRU cache,
-  immutable shared timeline PCM, and a 64-MiB retained-PCM preparation budget
-  per presentation.
-- Inserted and overlaid timeline audio/tone actions, inserted silence,
-  semantic events, stable cue order, and tracked overlay tails.
-- Incremental anchored timeline rendering for protocol-v5 engines: exact and
-  word-boundary resolutions drive bounded insert/overlay windows, later marker
-  offsets include inserted audio, and semantic/resolution events share the
-  progressive playback clock.
-- Persistent post-synthesis gain, filtering, pan, chorus, reverb, and echo
-  state. Chorus preserves primary duration and marker positions.
-- Privacy-conscious persistent logs and optional sensitive full-text
-  diagnostics.
-- A preview, opt-in authenticated loopback workstation service forwards the existing
-  protocol over SSH reverse tunnels to separate speaker and notification
-  workers. It bounds framing and connection queues, expires heartbeat leases,
-  and retires disconnected worker trees. Remote resources are restricted to
-  bundled icon identifiers. Real SSH-host checks now pass against Windows
-  DECtalk device/null output and Linux eSpeak null output, including automatic
-  recovery of both lanes after a tunnel interruption. See
-  [remote setup](REMOTE.md) and the
-  [development acceptance report](experiments/2026-09-07-remote-ssh.md).
-
-## Current limitations
-
-- Linux has no Speech Dispatcher backend; eSpeak NG is the current built-in
-  Linux engine. [SPEECHD-PLAN.md](plans/SPEECHD-PLAN.md) is a proposal only.
-- Remote speech currently admits one Emacs session. SSH provides encryption;
-  native TLS, shared multi-user audio, custom sound uploads, and automatic
-  tunnel management are not implemented. This feature remains preview in
-  Omnivox 1.8.0.
-- Audio routing selects left, right, or both channels within one output device;
-  arbitrary multi-device routing is not implemented.
-- Device output uses Rodio 0.19.0 and CPAL 0.15.3: shared-mode WASAPI on
-  Windows and ALSA on Linux. Native PulseAudio/PipeWire output and public
-  device/buffer selection are not implemented. The
-  [2026-09-06 WSLg experiment](experiments/2026-09-06-wslg-audio.md) verified a
-  local ALSA-to-PulseAudio setup and smaller application-buffer snapshots with
-  a 50 ms request. WSLg sink delay remained substantial; acoustic responsiveness
-  and Windows parity remain unmeasured. The unreleased
-  [WSLg trial tool](WSL-AUDIO.md) now prepares reproducible session launchers,
-  reports runtime/configuration identities, and repeats buffer/shutdown probes.
-  This remains an opt-in development workflow.
-- An explicit null output backend consumes normal queued sources without
-  opening an audio device for silent diagnostics and faster lifecycle tests.
-- Protocol-v5 engines can feed ordinary speech, ordered native markers, and
-  supported presentation anchors through bounded progressive isolation,
-  exact cross-window silence trimming, effects, timeline rendering, and a
-  single tracked playback source. Marker and timeline events are reserved
-  before the corresponding PCM can reach playback. Real-device playback primes
-  three non-empty windows without allowing cue-only traffic to consume that
-  reserve; the null backend attaches immediately. A request remains buffered
-  when its selected engine advertises no requested-anchor support or an
-  operation still requires future knowledge of the complete waveform.
-- Immediate `tts_say` and letter commands use the global engine order rather
-  than a named logical voice.
-- Native cancellation strength differs by engine. WinRT work may continue in a
-  quarantined task after its stale output has been suppressed.
-- Marker precision differs by engine. Markerless engines retain speech and
-  boundary-level presentation but cannot claim exact in-span action timing.
-- Piper uses the maintained vendored libpiper v1.7 C API. Linux x64, Windows
-  x64, macOS ARM64, and macOS x64 native runners verify checksum-locked inputs,
-  relocated deterministic companion archives, and real synthesis with a
-  locked CI-only model. Missing and corrupt model fallback is also verified.
-  The exact model revision is approved only for CI acceptance, based on its
-  model card's public-domain LibriVox and trained-from-scratch declarations,
-  and remains excluded from release artifacts. A deterministic,
-  platform-neutral corresponding-source and build-input candidate is
-  implemented and passes exhaustive manifest, Git-tree, input, model-exclusion,
-  and offline Cargo verification. Piper companion and corresponding-source
-  archives are published beginning with v1.6.4 after the gated tag workflow
-  verifies the draft assets on their native platforms. Protocol v5 forwards
-  native synthesis chunks progressively. Piper exposes no synchronization
-  markers, so marker-dependent presentation remains buffered.
-- RHVoice uses a user-installed 1.14-or-later compatible 1.x C API runtime.
-  Linux x64 and Windows x64 have passed real synthesis, marker, ACSS,
-  cancellation, and shutdown acceptance with 1.14.0; Windows uses an explicit
-  C API DLL path. Linux ARM64 has helper compile coverage, Windows ARM64 has no
-  accepted compatible runtime, and macOS remains compile-only because upstream
-  does not claim macOS support. Protocol v5 forwards RHVoice PCM callbacks
-  progressively. Anchored requests use native SSML `process_mark` callbacks
-  for exact resolution while preserving original UTF-8 word/sentence ranges.
-- Flite uses checksum-locked v2.2 source, has only `cmu_us_slt` compiled in,
-  and accepts optional local English Clustergen `.flitevox` files. Native
-  release runners on Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows
-  x64/ARM64 each verify relocation, ACSS, 25 real SLT syntheses, cancellation,
-  and clean shutdown. Flite has an ASCII input guarantee, native word-start
-  markers, and word-boundary requested-anchor resolution, but no sentence,
-  phoneme, or exact user-defined markers. Protocol v5 publishes the complete
-  word-marker table before progressively converted native PCM, so its supported
-  anchored timelines remain progressive and cancellation can stop native
-  synthesis. eSpeak remains the Unicode fallback.
-- RuTTS uses checksum-locked v6.3.3 source and exposes its built-in male and
-  female Russian voices without RuLex. Linux x64 local acceptance covers both
-  voices, ACSS, bounded PCM, cancellation, relocation, and clean shutdown. The
-  complete Windows x64 GNU payload also builds and installs from WSL. Both
-  voices pass persistent 25-synthesis helper sessions, repeated cancellation,
-  exact full-server routing, mixed queue and hard-stop stress, Windows resource
-  sampling, and dispatch-time helper death with eSpeak fallback and explicit
-  recovery. Under protocol v5, successive native 10 kHz callback blocks now
-  cross one bounded stateful sinc converter and reach the server as progressive
-  canonical windows; older peers retain buffered results. Native Linux x64 and
-  Windows x64 GNU helper soaks cover progressive delivery, repeated
-  cancellation, health checks, and clean shutdown. The release matrix targets
-  Linux x64/ARM64, macOS Intel/Apple Silicon, and Windows x64/ARM64 with MSVC.
-  All six native build and relocated-release verification jobs passed for
-  [v1.7.1](https://github.com/bartbunting/omnivox/actions/runs/33750119999),
-  whose published assets include each companion and corresponding source. The
-  [Windows evidence pack](benchmarks/2026-09-01-windows-x64-rutts-23baa0a64c9cf117.md)
-  records the bounded GNU-target results. The helper converts its KOI8-R
-  repertoire losslessly and routes unsupported Unicode text to fallback; it
-  provides no synchronization markers.
-- TGSpeechBox uses the checksum-locked `v-310@f5ec247` upstream branch snapshot
-  in a separate helper with pinned eSpeak NG Unicode-to-IPA conversion. The
-  Windows x64 GNU payload
-  builds from WSL and passes exact Omnivox discovery, 154-voice inventory,
-  synthesis, portable rate/pitch/pitch-range/volume capability checks,
-  cancellation, Windows audio playback, and clean shutdown. Linux x64 helper
-  synthesis also passes as a development smoke check. The frontend currently
-  exposes 22 languages across five built-in and two data-defined profiles,
-  uses a measured Adam `en-us` rate curve, and resolves exact requested anchors
-  through the upstream index-aware DSP pull. At the default 44.1 kHz rate its
-  v5 native pulls and requested anchors reach the main server's bounded
-  progressive playback path; it still advertises no word, sentence, phoneme,
-  or unrequested native-index markers. The optional 22.05 kHz sinc path remains
-  whole-utterance buffered. Beginning with v1.7.0, the Windows x64 GNU payload
-  is a separate experimental release asset with native and exact-routing gates
-  plus deterministic corresponding source. It remains excluded from generic
-  and Emacsvox archives.
-- On Windows, Eloquence and DECtalk use the shared 32-bit C# host. Protocol v5
-  forwards their callback PCM as canonical 44.1 kHz stereo windows while
-  preserving Eloquence word/sentence and exact requested-anchor markers, and
-  DECtalk word/sentence/phoneme/native-index markers. DECtalk retains one
-  512-sample native block so late callback markers remain ahead of their audio.
-  Protocol v4 and older clients still receive whole-result buffered output.
-  Proprietary runtimes remain user-supplied under their own terms.
-- Linux development builds stage separate Eloquence/Outloud and DECtalk
-  helpers for installed native libraries. They expose progressive PCM,
-  cancellation, the six portable ACSS dimensions, and Latin-1 English text.
-  ECI now provides word/sentence markers and exact requested anchors; DECtalk
-  provides word/sentence/phoneme markers and word-boundary requested anchors.
-  Native marker ordering, repeated cancellation, all 17 voices, and ACSS
-  synthesis passed local runtime checks; see the
-  [platform parity audit](experiments/2026-09-07-linux-helper-parity.md).
-  DECtalk passed real WSLg playback, repeated
-  cancellation, rapid Dired movement, and letter feedback with the installed
-  x64 v4.99 runtime. Eloquence passed the same local playback/navigation
-  checks using the user's licensed Voxin 3.4 English installation, with its
-  64-bit libvoxin 1.6.3 wrapper and bundled 32-bit engine. The standard user
-  installation is discovered automatically. ABI/protocol stub tests also
-  cover its version-specific clear-input status workaround. Other Linux
-  runtime versions and architectures remain unverified. See the
-  [helper guide](../linux-helpers/README.md) and
-  [local experiment](experiments/2026-09-07-linux-legacy-engines.md).
-- Logical-language routing is implemented, but live multilingual coverage is
-  not comprehensive across all backends.
-- WinRT, eSpeak NG, Piper, RHVoice, Flite, RuTTS, and DECtalk have measured
-  monotonic rate curves anchored to the established Eloquence behavior.
-  Individual voices still vary and several engines saturate before Eloquence's
-  extended high-rate range. The new Linux ECI/DECtalk mappings remain
-  provisional pending a Linux rate audit. AVSpeechSynthesizer retains its
-  system-native rate mapping until the repeatable audit is run on macOS.
+| Area | Current capability | Maintained reference |
+| --- | --- | --- |
+| Admission | Bounded legacy/control input, atomic multipart timelines, generation-safe queue admission and cancellation. | [Legacy](protocols/legacy.md), [control](protocols/control.md), [timeline](protocols/presentation-timeline.md) |
+| Routing | Stable physical identities, ordered logical choices, runtime fallback, exclusions, health circuits and asynchronous helper recovery. | [Architecture](ARCHITECTURE.md#voice-identity-routing-and-tuning) |
+| Voice customization | Shared → actual choice → context composition; private exact/full previews; typed qualified native controls. Control envelope 1, timeline versions 1–5, markers 1–4 and helper versions 1–6 retain compatibility. | [Layered tuning](protocols/voice-choice-tuning.org), [native parameters](protocols/engine-voice-parameters.md) |
+| Character feedback (1.16.0) | Negotiated palette-aware isolated characters retain actual-choice tuning, character rate, cancellation and configured capital pitch. Linux and native Windows client checks pass. | [Protocol](protocols/presentation-timeline.md#palette-aware-isolated-characters), [candidate checks](benchmarks/2026-09-30-1.16-candidate.md) |
+| Discovery | Concurrent helper initialization before initial inventory, verified bounded caches and on-demand exact eSpeak variants. | [Architecture](ARCHITECTURE.md#configuration-and-engine-discovery), [variants](engines/espeak-variants.md) |
+| Engine configuration v1 | Strict local `config.json`/helper manifests, immutable launch snapshots, local permissions, paired startup/Apply acknowledgements and remote session retention. Blocked startup retains ownership without delaying admission; the first implementation slice passes its development acceptance checks. | [Configuration](guides/configuration.md), [acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) |
+| Speech configuration v2 (1.14.0) | Configurable 1–100-word synthesis windows, default 15, shared across lanes and retained on reset/recovery. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#configuration-version-2), [acceptance](benchmarks/2026-09-28-host-chunk-configuration.md) |
+| Punctuation configuration v3 (1.15.0) | Sparse names/preservation for none/some/all, unchanged ASCII defaults and common Unicode coverage. Local review/edit service and Emacs interface implemented. Linux/Windows configuration and recovery, graphical checks and the WSL-to-Windows editor pass; native macOS editor and listening acceptance remain open. | [Contract](reference/engine-configuration.md#punctuation-tables), [candidate checks](benchmarks/2026-09-28-1.15-candidate.md), [editor acceptance](benchmarks/2026-09-28-punctuation-editor.md), [two-stage plan](plans/punctuation-configuration.md) |
+| Saved speech defaults (1.14.0) | Voice, rate, pitch, volumes, punctuation, CamelCase splitting and character speed; reset restores the captured file baseline. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#saved-speech-defaults), [decision](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct), [acceptance](benchmarks/2026-09-28-saved-speech-defaults.md) |
+| Capital pitch and saved output (1.14.0) | Global capital pitch with engine overrides or off; saved backend, channel and PulseAudio latency request. Linux and native Windows process checks pass. | [Capital pitch](reference/engine-configuration.md#capital-letter-pitch), [audio settings](reference/engine-configuration.md#audio-output-settings), [acceptance](benchmarks/2026-09-28-capital-pitch-and-audio-settings.md) |
+| Managed voices | Reviewed Piper, Flite, MBROLA and RHVoice acquisition; disabled installation, immutable generations, explicit two-worker Apply/rollback and reviewed removal. | [Voice management](guides/voice-management.md), [formats](reference/voice-library.org) |
+| Native validation | Disposable bounded native probes, before/after evidence, ownership journals and recorded-cleanup recovery. | [Validation](guides/native-voice-validation.md) |
+| Synthesis | Buffered and bounded progressive PCM, source-mapped anchors, actual-attempt settings and no replay after audio commitment. | [Helper protocol](protocols/helper.md), [prepared synthesis](reference/prepared-synthesis.md) |
+| Presentation | Canonical stereo 44.1 kHz PCM, trimming, effects, inserted/overlaid resources, independent speech/tone/sound streams and tracked source completion. | [Architecture](ARCHITECTURE.md#audio-and-presentation-ownership) |
+| Output | Default device output, explicit null diagnostics, and opt-in native PulseAudio on Linux. Windows device output follows default endpoints and cancels interrupted speech; canonical queue metadata preserves onsets after idle. | [Configuration](guides/configuration.md), [ADR 0010](adr/0010-windows-default-output-recovery.md), [ADR 0005](adr/0005-native-pulseaudio-output.md) |
+| Remote speech | Preview authenticated loopback service over SSH forwarding; independent foreground/notification workers and reconnect without replay. | [Remote setup](guides/remote-speech.md) |
+| Diagnostics | Correlated admission/synthesis/playback records, sensitive text opt-in and optional Windows crash dumps. | [Diagnostics](guides/diagnostics.md) |
 
 ## Platform and CI coverage
 
-| Platform | Runtime status | GitHub release artifact |
-|---|---|---|
-| macOS ARM64 | AVSpeechSynthesizer and eSpeak NG; optional Piper and Flite companions verified | Yes |
-| macOS x64 | AVSpeechSynthesizer and eSpeak NG; optional Piper and Flite companions verified | Yes |
-| Windows x64 | WinRT and eSpeak NG; RHVoice and Flite accepted; optional Piper and proprietary helpers; experimental TGSpeechBox GNU companion | Yes |
-| Windows ARM64 | WinRT and eSpeak NG; Flite companion verified | Yes |
-| Linux x64 | eSpeak NG; RHVoice accepted; optional Piper and Flite companions verified | Yes (Ubuntu 24.04 ABI baseline) |
-| Linux ARM64 | Flite companion verified; generic server artifact pending | No current generic workflow artifact |
+| Platform | Qualified core / optional-runtime boundary | Generic release artifact |
+| --- | --- | --- |
+| macOS ARM64 and x64 | AVSpeechSynthesizer and eSpeak; native Piper, Flite and RuTTS companion gates. Streaming native/null-output checks passed on both architectures; audible Emacs streaming acceptance remains open. | Yes; core Homebrew installation also available |
+| Windows x64 | WinRT and eSpeak; RHVoice runtime acceptance; Piper, Flite, RuTTS, user-runtime Eloquence/DECtalk and experimental TGSpeechBox have their respective native checks. | Yes |
+| Windows ARM64 | WinRT and eSpeak; Flite/RuTTS companion gates. Do not infer qualification of other runtimes from x64 results. | Yes |
+| Linux x64 | eSpeak; RHVoice runtime acceptance; Piper, Flite and RuTTS companions. ECI/DECtalk and MBROLA retain development qualification below. | Yes; Ubuntu 24.04 ABI baseline |
+| Linux ARM64 | Flite/RuTTS companion gates; RHVoice helper compile coverage. No generic-server runtime/release job. | No |
 
-The checked-in workflow builds, tests, and runs Clippy on all five release
-targets using native runners. Linux x64 is built on Ubuntu 24.04; compatibility
-with older glibc distributions is not claimed. Linux ARM64 has no workflow
-build, release artifact, or runtime test job, so source-build compatibility is
-not currently claimed. All five release archives stage the matching
-`espeak-ng-data` beside the executable. CI validates the packaged data and
-eSpeak voice discovery on every build runner, with native macOS WAV synthesis
-also exercised during the build. Tag builds upload a draft release and then
-verify each exact downloaded archive after relocation on its native platform.
-The release verifier exercises eSpeak on all five targets and the native speech
-engine on both macOS and both Windows targets. The draft is published only when
-all checks pass.
+Generic native release jobs verify relocated draft assets and eSpeak synthesis;
+Windows and macOS also verify their system engine. Debian amd64 packages are
+checked on Ubuntu 24.04 and 26.04. Release binaries remain unsigned. Exact gates,
+source requirements and installation instructions belong to the
+[deployment guide](../.github/DEPLOYMENT.md), [Debian guide](guides/debian-packages.md) and
+[licensing map](LICENSING.md).
 
-The separate manual Piper workflow still builds model-free engineering
-candidates on Linux x64, Windows x64, and both macOS architectures. Tag builds
-instead require the corresponding-source artifact and exact draft-asset
-verification before publication. Release binaries remain unsigned.
+Core Homebrew installation, reinstall, packaging-revision upgrade and removal
+passed on Intel and Apple Silicon. A real upgrade between upstream versions and
+audible Emacs use remain outstanding. [Retained platform results](benchmarks/2026-09-27-retained-platform-results.md)
+include the source and CI identities; formula updates remain explicit.
 
-The Flite workflow has native build and release gates for Linux x64/ARM64,
-macOS Intel/Apple Silicon, and Windows x64/ARM64. Each gate compiles and lints
-the same pinned C/Rust boundary, verifies the relocated archive, performs 25
-SLT syntheses, exercises cancellation and shutdown, and uploads no external
-voice file. Publication also requires the exact Flite source artifact to pass
-its manifest, Git-tree, source-lock, and offline-preparation checks.
+## Engine qualification and limits
 
-RuTTS has deterministic binary and corresponding-source packaging. Its native
-gates use the same six companion targets as Flite and require real synthesis
-with both built-in voices, cancellation, relocation, provenance, and offline
-source preparation before publication. The
-[v1.7.1 workflow](https://github.com/bartbunting/omnivox/actions/runs/33750119999)
-passed all six build and release-verification jobs plus source verification;
-the [published release](https://github.com/bartbunting/omnivox/releases/tag/v1.7.1)
-contains all six companions. These bounded native-runner checks do not replace
-long-session or intelligibility measurements on users' machines.
+| Engine | Evidence and limits |
+| --- | --- |
+| eSpeak NG | Packaged discovery and synthesis on generic release targets; progressive PCM and source-accurate anchors. Variant checks use actual native identities; null output does not prove listening quality. |
+| WinRT | Native Windows release checks. Uncancellable calls may continue quarantined after their stale PCM is suppressed. |
+| macOS | Bounded callback streaming on Intel/Apple Silicon; no native markers. Rate remains system-native pending calibration. See [macOS guide](engines/macos.md). |
+| Piper | Relocated companions and real CI-model synthesis on Linux x64, Windows x64 and both Macs. Models remain separate; one resident model per helper. No native markers. See [Piper](engines/piper.md). |
+| RHVoice | Real 1.14.0 C API synthesis, markers, ACSS, cancellation and shutdown on Linux/Windows x64. Compatible 1.14+ 1.x runtime remains user-installed; macOS is compile-only and Windows ARM64 has no accepted runtime. See [RHVoice](engines/rhvoice.md). |
+| Flite | Native six-target companion gates, 25 SLT syntheses, relocation, ACSS, cancellation and shutdown. ASCII guarantee and word-boundary anchors; compatible external English voices only. See [Flite](engines/flite.md). |
+| RuTTS | All six companion release gates passed for v1.7.1; additional Windows GNU/Linux development evidence. KOI8-R repertoire, two built-in voices, no RuLex or markers. Multi-hour memory and high-rate intelligibility need broader measurement. See [RuTTS](engines/rutts.md). |
+| TGSpeechBox | Windows x64 GNU experimental companion; Linux x64 smoke checks. Exact requested anchors at the default progressive 44.1 kHz rate; 22.05 kHz remains buffered. Not included in generic/Emacsvox archives. See [TGSpeechBox](engines/tgspeechbox.md). |
+| Windows Eloquence/DECtalk | User-supplied x86 runtimes; qualified helper-6 native controls and progressive markers. Qualification is runtime-specific. See [Windows helpers](../windows-helpers/README.md) and [native evidence](benchmarks/README.md#functional-acceptance-and-additional-reports). |
+| Linux ECI/DECtalk | Development checks for installed Voxin 3.4 and x64 DECtalk 4.99, including all 17 voices, ACSS, markers and local navigation. Other runtime/architecture combinations and rate calibration remain unverified. See [Linux helpers](../linux-helpers/README.md) and [parity evidence](experiments/2026-09-07-linux-helper-parity.md). |
+| MBROLA | Explicit private development helper with Linux/native-Windows acquisition, synthesis and paired Apply/rollback evidence. No macOS or release qualification; no streaming or markers. See [MBROLA](engines/mbrola.md). |
 
-TGSpeechBox has a Windows x64 GNU release gate beginning with v1.7.0. It builds
-from the checksum-locked `v-310@f5ec247` snapshot, regenerates both inventories,
-lints the native crates, and verifies repeated streaming synthesis,
-cancellation, ACSS, relocation, and exact full-server routing. Publication also
-requires its deterministic source artifact to pass exact Git-tree, upstream
-input, exhaustive-manifest, offline-preparation, and offline-Cargo checks.
+## Current limitations
+
+- Engine configuration v1 passes expanded Linux and native Windows process
+  acceptance. Windows capture now omits hidden drive-directory bookkeeping, and
+  historical owner records retain package references through retirement; see
+  the [Windows evidence](benchmarks/2026-09-28-windows-engine-snapshot.md).
+  The [first-slice audit](benchmarks/2026-09-28-engine-framework-audit.md) is complete.
+  The [1.13 candidate checks](benchmarks/2026-09-28-1.13-candidate.md) add native
+  external-helper process coverage on both Mac architectures. Qualification of
+  individual third-party runtimes remains separate.
+  The earlier startup-deadline ownership gap has been
+  [fixed and regression-tested](benchmarks/2026-09-27-engine-startup-deadline.md).
+- Speech Dispatcher is unimplemented.
+- Language selectors match exact case-insensitive tags. General language-range
+  matching, automatic detection and language-preserving global fallback are not
+  implemented; multilingual native coverage remains incomplete.
+- Marker precision and cancellation strength vary by engine. Operations needing
+  the whole waveform or unsupported anchors can remain buffered. Immediate legacy
+  speech and letter commands use global policy rather than a named logical voice.
+- Device output uses the pinned Rodio/CPAL stack. Public device selection,
+  multi-device routing and native PipeWire output are not implemented. Channel
+  routing selects left/right/both within one device. Native PulseAudio remains
+  opt-in; it cannot repair a stalled shared WSLg/RDP server.
+- Remote speech remains single-session preview. Native TLS, automatic tunnels,
+  shared multi-user output and arbitrary remote resource uploads are absent.
+- Managed runtime availability and platform acceptance vary by provider. A
+  generation acknowledgement does not prove residency, audible identity or
+  memory savings. Incomplete cleanup blocks conflicting work. Stronger
+  power-loss recovery and interrupted-Apply reconciliation remain outstanding.
+- Native macOS removal and broader live-client/audible managed-voice acceptance
+  remain open. Historical Windows GNU component success is distinct from full
+  server/companion and MSVC acceptance; later combined Windows runs qualify only
+  the exact scenarios in their reports.
+- Normalized rates are approximate across voices. Several engines saturate before
+  Eloquence; Linux ECI/DECtalk and macOS still need native rate audits.
 
 ## Validation
 
-The supported local gates are:
+Use `make fmt-check`, `cargo test --locked --workspace` and applicable Clippy
+checks for runtime changes. Real helper/device behavior also needs its native
+runtime and relevant platform checks. The [tools guide](../tools/README.md)
+documents benchmark, stress and soak harnesses; the [evidence index](benchmarks/README.md)
+selects matched baselines and retains raw data and provenance.
 
-```sh
-make fmt-check
-cargo test --locked --workspace
-make lint
-```
-
-Real helper, cancellation, and audio-device behavior also require the relevant
-platform runtimes. A passing unit suite is not evidence of acceptable audible
-onset latency. Normal diagnostics now correlate protocol admission, queue
-wait, engine synthesis attempts, audio queueing, first mixer-source
-consumption, and terminal playback by dispatch ID using monotonic elapsed
-microseconds. Physical device onset remains unmeasured; methodology and the
-remaining performance work are tracked in
-[NEXT_STEPS.md](plans/NEXT_STEPS.md).
-
-`tools/benchmark_server.py` runs the tracked protocol against a selected native
-server or launcher and reports raw cold/warm character, word, line,
-dense-action, multipart, and rapid-replacement samples with nearest-rank
-p50/p95/p99 summaries. New reports preserve and can strictly enforce the exact
-physical voice, and a KOI8-R-compatible Russian profile covers RuTTS. The
-source boundary is the first mixer-consumption marker; it does not turn those
-results into an acoustic-onset claim.
-
-The [2026-09-01 Windows x64 development baseline](benchmarks/2026-09-01-windows-x64-c9458361eb57b94a.md)
-preserves 1,440 raw samples across WinRT, eSpeak NG, RHVoice, Flite, DECtalk,
-and Eloquence with build provenance and checksums. It was collected from a
-post-v1.5.1 development build and is not evidence about the published v1.5.1
-artifact or physical acoustic onset.
-
-The [2026-09-03 Windows x64 null-output baseline](benchmarks/2026-09-03-windows-x64-null-f7204ac69b6010f1.md)
-is the frozen pre-optimization comparison for all eight configured engines,
-adding RuTTS and experimental TGSpeechBox. It preserves 1,920 exact-voice
-samples plus the seeded suite plan and order. Null output measures synthesis
-and protocol lifecycle without playing audio; its terminal timing excludes
-waveform duration and is not comparable with device-output terminal timing.
-
-The subsequent
-[TGSpeechBox state-reuse comparison](benchmarks/2026-09-03-windows-x64-null-tgspeechbox-47d9d79fec39751d.md)
-holds its exact voice and 44.1 kHz native rate constant. Reusing successful
-language/profile state reduced warm dispatch-to-source p50 by 35.2% to 95.8%
-across the six workloads without changing a fixed WAV result. The comparison
-still uses fully buffered helper synthesis and establishes the input baseline
-for streaming work. The matching
-[streaming comparison](benchmarks/2026-09-03-windows-x64-null-tgspeechbox-streaming-75f1bf105ec2a65e.md)
-then reduced warm dispatch-to-source p50 by 94.1% for ordinary line speech and
-97.1% for multipart speech. Its anchored dense-action control remained
-buffered as designed.
-
-The matching
-[Eloquence and DECtalk streaming comparison](benchmarks/2026-09-03-windows-x64-null-eloquence-dectalk-streaming-09b89b3ff537d12b.md)
-records 480 exact-voice winner samples. Warm ordinary character, word, line,
-and multipart source medians improved by 82.3% to 87.0% for Eloquence and by
-55.7% to 62.3% for DECtalk. Their dense-action controls retained buffered
-whole-window rendering.
-
-The subsequent
-[anchored-streaming follow-up](benchmarks/2026-09-03-windows-x64-null-anchored-streaming-1c6e5690e30b758b.md)
-records 240 warm exact-voice winner samples after native PCM moved to the
-continuous sinc converter and anchored timelines became incremental. Dense
-source p50 fell a further 44.9% for Eloquence and 42.1% for DECtalk, eliminating
-the previous whole-result anchor penalty. The high-quality converter has more
-startup work than the temporary linear path; its latency and the remaining
-audible Eloquence check are recorded explicitly in that report.
-
-`tools/stress_server.py` verifies interleaved replacement domains, ordered and
-urgent survival, repeated hard-stop recovery, contiguous marker and semantic
-event history, and exactly-once terminal status. Its optional fault mode kills
-only one uniquely resolved child of its dedicated server, then verifies the
-configured fallback and explicit helper recovery probe. Schema-v2 reports
-retain physical voices, and strict exact-voice plus Russian-profile controls
-cover both RuTTS voices without weakening fallback validation.
-Dispatch-time fault mode can repeat a bounded crash cycle: it submits work,
-terminates the pre-resolved current helper, cancels the outstanding dispatch,
-and independently verifies fallback and exact-voice recovery. Idle fault mode
-remains available for compatibility.
-
-`tools/stress_helper.py` can now place repeated synthesis, health checks, and
-in-flight cancellations in one persistent helper session while recording
-machine-readable process-resource samples. It observes native Windows helper
-counters from WSL only after resolving one unique new process; ambiguity is
-reported as unavailable rather than attributed to the wrong helper.
-Server stress can also sample the complete server/helper process tree, with
-aggregate and per-executable steady-state summaries. This is opt-in so process
-inspection overhead does not contaminate ordinary latency measurements.
+Mixer-source consumption, null-output completion, callback success and process
+liveness are not acoustic onset or stop-to-silence measurements. Test pass counts
+are historical observations, not performance thresholds. Remaining physical
+output and long-session work is tracked in [the roadmap](ROADMAP.md).

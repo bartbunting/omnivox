@@ -31,7 +31,7 @@ The feature remains preview.
 
 The fixture SHA-256 for the runs below is
 `2d265bbcd2625b0db156d6c7d85b3606315e2947c995fe5819c3890d57937ce2`.
-See [the repeatable commands](../REMOTE.md#repeatable-real-ssh-check).
+See [the repeatable commands](../guides/remote-speech.md#repeatable-real-ssh-check).
 
 ## Results
 
@@ -87,4 +87,4 @@ sleep/resume, repeated recovery during interactive editing, installed-client
 and matched-release payload checks, and listening confirmation. The current
 test models prompt SSH loss with a broken connection; it does not establish
 recovery timing for an undetected network blackhole. Automatic production
-tunnel management remains deferred under ADR 0008.
+tunnel management remains deferred under ADR 0004.

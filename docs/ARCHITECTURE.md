@@ -1,5 +1,12 @@
 # Omnivox Architecture
 
+This is the current implementation overview, reconciled on 2026-09-27.
+The [decision index](adr/README.md) explains architectural choices;
+[protocol references](README.md#protocol-specifications) define exact contracts;
+[status](STATUS.md) records platform/runtime qualification and
+[the roadmap](ROADMAP.md) tracks future work. Accepted design,
+implemented behavior, native qualification and published releases are distinct.
+
 ## Runtime boundary
 
 Omnivox is a host-rendered speech server. Engines return PCM to the host, where
@@ -14,7 +21,18 @@ share one bounded admission path. Configuration, inventory, and presentation
 frames are parsed on the protocol side; engine synthesis never blocks receipt
 of stop or newer commands.
 
-## Workspace structure
+## Process ownership and workspace
+
+A local Emacsvox session uses separate foreground and notification workers.
+Each owns its registry, queues, helper instances, cancellation and output lanes.
+Helpers isolate native synthesis; the main worker handles audio conversion, effects,
+scheduling and playback. Native libraries never move into the Emacs client.
+
+The local `--voice-library-owner` path gates a worker behind established native
+job/process-group ownership, captures exact startup configuration and acknowledges
+retirement only after its tree and output reader exit. The local management
+service coordinates installation and Apply; it is separate from speech admission.
+See [local activation](guides/voice-management.md#local-provider).
 
 An optional `--serve` broker authenticates loopback network connections before
 spawning stdio workers. Each foreground/notification lane owns a worker and
@@ -24,8 +42,8 @@ Unix workers have private process groups. Windows workers belong to private
 jobs with kill-on-close semantics and cannot initialize engines before job
 assignment completes. Remote workers use a restricted icon loader and cancel
 on EOF; ordinary stdio workers retain their drain-on-EOF behavior. See
-[ADR 0008](adr/0008-remote-workstation-service.md) and the
-[remote protocol](protocols/REMOTE-PROTOCOL.md).
+[ADR 0004](adr/0004-workstation-service-and-worker-ownership.md) and the
+[remote protocol](protocols/remote.md).
 
 ```text
 omnivox-core/          legacy commands, queue/state types, pure timeline model
@@ -49,7 +67,7 @@ elisp/                 standalone upstream-Emacspeak compatibility adapter
 ```
 
 The main server is `omnivox-cli`. Omnivox-specific data contracts live in
-`omnivox-tts`; the audio crate owns the single canonical `AudioBuffer`. The
+`omnivox-tts`; the audio crate defines the single canonical `AudioBuffer`. The
 core crate remains independent of any one engine. The Windows and Linux legacy
 engine helpers are separate executables with GPL-2.0-or-later source licenses.
 
@@ -126,9 +144,9 @@ timeline may use up to 64 ordered transport parts and a 16 MiB decoded
 aggregate. Assembly identity, order, timeout, decoded length, and the complete
 cross-referenced envelope are validated before admission. The aggregate holds
 at most 262,144 spans and 4,096 actions. Text preparation also rejects a
-15-word speech window with more than 512 combined client actions and internal
-capitalization anchors before it reaches the synthesis queue. A decodable
-invalid or stale direct timeline receives a terminal `failed` or `cancelled`
+configured speech window (15 words by default) with more than 512 combined client
+actions and internal capitalization anchors before it reaches the synthesis
+queue. A decodable invalid or stale direct timeline receives a terminal `failed` or `cancelled`
 status; an undecodable record with no trustworthy dispatch identity is
 diagnostic only.
 
@@ -168,76 +186,134 @@ engine markers, semantic events, and carried effect/overlay tails are discarded.
 The cancellation lease remains alive until every tagged playback ticket is
 terminal, preventing a late completion from removing a newer domain token.
 
-## Engine registry and routing
+## Configuration and engine discovery
 
-Server mode eagerly registers available built-in engines. Windows retains
-WinRT and eSpeak NG, then independently discovers optional adjacent Eloquence
-and DECtalk helpers. macOS retains AVSpeechSynthesizer and eSpeak NG; Linux
-retains eSpeak NG and discovers staged Linux Eloquence and DECtalk helpers.
-RHVoice, Flite, RuTTS, and TGSpeechBox companion helpers are
-discovered on every desktop build when staged or explicitly configured. A
-Piper-enabled build also registers Piper on every platform when a model is
-configured.
-Configured helpers initialize concurrently with built-in discovery, but the
-server joins them and registers their descriptors in deterministic order before
-opening its command loop. TGSpeechBox is the exception: its companion includes
-source-identified descriptors for both supported native sample rates, generated
-by the exact packaged helper. The server selects the configured rate's cache;
-after bounded schema and descriptor validation, it registers that inventory
-without blocking on the process. The live descriptor must exactly match the
-selected cache. Once validation completes, a background pre-warm opens and
-retains that helper connection while other initialization continues. A first
-synthesis that overlaps pre-warming joins the same serialized lifecycle;
-it never starts a duplicate process. A missing or invalid cache restores eager
-initialization. The first inventory therefore remains complete while independent
-helper process-start costs no longer accumulate serially. Startup selection
-chooses the initial preference without removing the other registered engines.
+Standalone startup and exact diagnostics resolve CLI options, captured environment,
+the selected configuration root, packaged helpers and immutable voice-library
+inputs before constructing engines. Strict `config.json` and `helpers.d/` readers
+feed the [common resolver](../omnivox-tts/src/engine_configuration/resolved.rs).
+Reserved IDs, path mappings and idle defaults come from
+[`shipped.rs`](../omnivox-tts/src/engine_configuration/shipped.rs); native factories,
+compiled availability and provider checks remain in the CLI. Local disablement
+prevents construction and recovery. A [private snapshot codec](reference/engine-startup-snapshot.md)
+retains complete launch records, native environment values and exact managed
+generation bytes. Local owners save and hand this record to their child through
+the owned startup gate; rollback/reuse retains it without rediscovery. Coordinated
+Emacsvox preparation shares that record across lanes and checks each actual
+worker's acknowledgement before publication. Remote brokers retain one complete
+snapshot per authenticated session, including recovery after both lanes disconnect.
+The local service prepares common candidate records for managed Apply; rollback
+retains each previous lane's own record. The
+[configuration reference](reference/engine-configuration.md) specifies the file
+formats and selection rules; the [guide](guides/configuration.md) explains setup.
 
-A configured helper that fails startup retains an unavailable registry entry
-with its error and no voices. The existing control recovery request can rescan
-that entry on a background thread after its runtime is installed. Each helper
-permits one rescan at a time and retains its bounded startup timeouts. Registry
-reads use a cached, atomic descriptor/generation snapshot; they never initialize
-an engine. Successful discovery publishes the validated descriptor and isolated
-engine handle together, making the engine eligible for subsequent routing.
-Failure leaves it unavailable with the latest reason. Healthy engines keep
-their existing synthesis and circuit-recovery paths.
+Version 2 also supplies saved speech defaults under
+[ADR 0009](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct). They are captured with registration
+and shared immutably by the worker's request states. Startup applies saved values
+before CLI speech overrides; subsequent client settings retain their priority.
+Reset restores the frozen file baseline and clears transient state without
+rereading files. Exact diagnostics obtain their defaults from the same capture
+that selected their engine. Private snapshot schema 6 also
+retains the [capital-pitch policy](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct): each
+isolated-capital attempt selects the actual engine's cue, including fallback.
+Historical schemas retain their original defaults and wire shapes.
+Saved [audio output choices](adr/0009-local-speech-preferences.md#preserve-per-lane-output-choices) share this capture;
+per-lane launcher overrides still win. Speech reset restores the effective
+startup channel across all process streams. PulseAudio resolves its latency
+request once for those streams and retains it during reconnect.
 
-When packaging supplies eSpeak data in a SHA-256-named directory with the
-matching `omnivox-espeak-data.sha256` identity file, Omnivox may reuse a
-bounded, schema- and eSpeak-version-checked voice inventory stored beside that
-data. Only normalized voice records are cached; engine capabilities, health,
-and the runtime default are reconstructed from the live engine. A missing,
-oversized, malformed, mismatched, or non-content-addressed cache falls back to
-native voice discovery and cannot make eSpeak unavailable.
+Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or
+AVSpeechSynthesizer on macOS. Known companions are discovered from staged paths
+or explicit overrides. Piper additionally requires compiled support and a
+legacy model or managed selection. MBROLA requires its explicit absolute helper
+path; adjacent placement alone does not enable it. `--engine` or the existing
+environment selection sets an ordinary startup preference, while other eligible
+engines remain registered for fallback. Exact diagnostics target one engine.
 
-The registry owns stable engine descriptors and physical voices. A separate
-logical registry owns portable definitions; routing policy owns preferred,
-fallback, and disabled engine lists. Registrations and policies are
-generation-safe atomic replacements. A dispatched request snapshots them, but
-the worker overlays current health immediately before synthesis.
+Helpers initialize concurrently with built-in discovery and join the registry
+in deterministic order before the command loop. External helpers use four separate
+initialization slots and a 120-second batch admission budget. Their inventory is
+available for explicit selection; unrestricted matching requires local automatic
+permission. Failed attempts retain their helper owner until cleanup is confirmed.
+An owned initialization task keeps its engine, lifecycle lock and process-wide
+slot while a launch, protocol I/O or cleanup call remains unfinished, even after the
+admission caller returns. Only that caller can publish a negotiated connection;
+an expired or discarded candidate is retired. Explicit retry joins the old task
+before attempting cleanup or another launch. Shipped initialization keeps its
+independent admission path. The [deadline regression report](benchmarks/2026-09-27-engine-startup-deadline.md)
+records controlled blocked-I/O and ownership checks.
+TGSpeechBox can register a
+bounded, source-identified packaged descriptor cache for its native sample rate
+and prewarm one connection in the background. First synthesis joins that same
+serialized connection; its live descriptor must match the cache. Invalid/missing
+cache restores eager discovery. Verified content-addressed eSpeak data can reuse
+bounded version-checked voice records; capabilities, health and default identity
+are reconstructed from the live engine. Invalid cache never disables live discovery.
 
-For each speech chunk the router tries the logical selector/fallback sequence
-and then the global policy. Missing voices, text outside an engine's lossless
-repertoire, and bounded runtime failures can re-resolve the identical chunk.
-Retries are capped. Persistent failure opens an engine circuit; cooldown and a
-single recovery probe keep repeated requests on healthy fallbacks.
+Failed configured helpers retain an unavailable entry with a reason and no
+invented voices. Asynchronous recovery can rescan them under one bounded attempt
+per helper; managed rescans repeat asset and exact-inventory checks. Registry
+reads use an atomic cached descriptor/generation snapshot and perform no engine
+initialization. Successful discovery publishes descriptor and handle together.
+Each helper launch definition captures its native environment. Deferred connection
+and recovery reuse that environment along with the retained program and arguments;
+they do not inherit later process-environment changes.
 
-Legacy immediate speech (`tts_say`) and letter (`l`) commands have no
-logical-voice ID and use the global engine policy and runtime health snapshot.
+## Voice identity, routing and tuning
+
+A physical voice is `(engine_id, voice_id)`. A logical voice holds ordered
+selectors or stable choice records with settings. Display names are not identity.
+Logical registrations and routing policy use generation-safe atomic replacement.
+Admission captures registry, policy, exclusions, host rate and span context;
+health is refreshed before actual synthesis without replacing those inputs.
+
+The resolver tries ordered logical selectors, optional same-language fallback
+on the first requested engine, preferred-engine defaults, the global default
+selector and fallback-engine defaults. Text-repertoire checks reject known
+encoding loss. Runtime retries prepare the identical chunk, are capped at four,
+and stop at output/PCM commitment. Health circuits, cooldowns and a single probe
+keep repeated failures away from normal speech. Legacy immediate speech
+(`tts_say`) and letters (`l`) use global policy without a named logical voice.
 Negotiated `emacsvox_letter` instead snapshots a registered palette voice and
 uses layered routing, native parameters and playback receipts while preserving
-isolated-character interruption, pronunciation and streaming reserve. See the
-[presentation protocol](protocols/PRESENTATION-TIMELINE-PROTOCOL.md#palette-aware-isolated-characters).
+isolated-character interruption, pronunciation, configured capital pitch and
+streaming reserve. See the
+[presentation protocol](protocols/presentation-timeline.md#palette-aware-isolated-characters).
 
-Normalized speech rate is translated by a monotonic engine-specific curve
-before native synthesis. The measured curves target the established Eloquence
-English rate; RuTTS uses same-language Russian evidence, and an engine
-saturates when its native rate control has no further headroom. Calibration is
-based on canonical WAV duration, never engine startup or wall-clock synthesis
-time. The policy and reproducible evidence procedure are in
-[ADR 0004](adr/0004-per-engine-speech-rate-calibration.md) and
-[RATE-CALIBRATION.md](RATE-CALIBRATION.md).
+Language properties match case-insensitive exact tags: `en` does not mean
+`en-AU`. The logical language only constrains the corresponding language fallback;
+preferred/fallback defaults do not automatically preserve it. Inventory grouping
+and an engine's language-switching flag are not language detection or general
+per-span language routing. Changed matching semantics remain future work.
+
+Layered requests compose shared settings, the actual selected choice's patch,
+then span context. Policy fallback has no choice patch. Each attempt starts from
+its selected adapter's qualified defaults, applies common controls once, and
+prepares its effects with the route identity. Failed attempts cannot leak settings
+or effects. Legacy/layered boundaries separate effect ownership. Measured common
+rate curves and native saturation follow [rate calibration](reference/rate-calibration.md).
+
+Qualified native controls use typed adapter catalogues and sparse edits. Catalogue
+queries are bounded/read-only and connection/runtime scoped; they do not load all
+models or restart speech. Runtime replacement invalidates metadata qualification.
+The actual helper validates native application; marker-4 receipts describe the
+choice/application at first consumed PCM, not merely a predicted route or successful
+parameter query. See the [native contract](protocols/engine-voice-parameters.md).
+
+Exact previews preserve the exact physical target. Complete previews use a private
+voice/policy/context snapshot and may perform its permitted fallback without
+mutating applied configuration. Terminal evidence distinguishes attempts,
+accepted PCM and source starts. Both speech workers negotiate capabilities and
+acknowledge independently. The
+[prepared-attempt reference](reference/prepared-synthesis.md) describes execution
+and ticket ownership; the [control protocol](protocols/control.md) specifies
+versioned operations, bounds and compatibility.
+
+Bundled eSpeak variants are derived on demand from a bounded live suffix
+catalogue. Explicit combinations validate exact native identity and exclusions;
+automatic/property matching keeps the compact base inventory. Selecting a variant
+neither mutates a managed load set nor restarts workers. See
+[eSpeak variants](engines/espeak-variants.md).
 
 ## Native-call isolation and helper engines
 
@@ -270,117 +346,91 @@ helper disables Omnivox's separate eSpeak backend so one process does not
 contain two interposing eSpeak runtimes. Proprietary DLLs remain outside the
 repository.
 
-RHVoice dynamically loads a user-installed 1.x C API runtime and keeps its
-language/voice data outside Omnivox. Its native PCM callbacks stream under
-protocol v5, and generated SSML marks give requested anchors exact timing while
-a source map retains original UTF-8 word and sentence ranges. Flite is
-source-built and statically linked only into its SLT-only companion. Its native
-audio callback crosses one continuous converter after the complete word-marker
-table has been published, so word-boundary anchors and native cancellation stay
-progressive. Flite serializes its process-global runtime across engine
-instances. RuTTS is likewise source-built only into its
-companion; the adapter converts supported Unicode input to KOI8-R, expands its
-signed 8-bit 10 kHz callback blocks through one bounded stateful sinc converter,
-and emits canonical windows while native synthesis remains active under helper
-protocol v5. Older peers still receive one buffered result. RuTTS ships without
-RuLex and exposes no markers, so marker-dependent timelines retain their
-whole-result path.
-Experimental TGSpeechBox keeps its pinned C++ frontend/DSP and eSpeak IPA
-conversion together in a GPLv3 helper, exposes only portable ACSS controls,
-and maps exact caller-requested source boundaries to the frontend's user-index
-frames. Its index-aware DSP pull publishes each resolved anchor between bounded
-PCM windows. It does not advertise word, sentence, phoneme, or arbitrary native
-indexes because the frontend supplies no truthful source ranges for them. These
-helpers reuse the engine-neutral helper host but never share a native process.
+Adapters retain platform-specific native ownership behind this common contract:
 
-The in-process eSpeak NG backend likewise streams its native synthesis
-callbacks through one continuous converter. Anchored requests use eSpeak's
-native SSML marks for exact timing, with generated-markup positions mapped back
-to the original UTF-8 source ranges. Plain speech remains on eSpeak's ordinary
-text path.
+| Adapter | Native responsibility / current boundary |
+| --- | --- |
+| RHVoice | User-installed C API library, source-mapped SSML marks and callback PCM. Runtime and external/managed data remain separate. |
+| Flite | Serialized process-global runtime, selected SLT/external voices, progressive callbacks after native word-marker metadata is available. |
+| RuTTS | Lossless KOI8-R conversion and continuous conversion of signed 8-bit 10 kHz callbacks. No RuLex or markers; anchor-dependent work stays buffered. |
+| TGSpeechBox | Pinned eSpeak IPA frontend and native DSP share its dedicated process. Caller indexes give exact requested anchors, not general linguistic source ranges. |
+| eSpeak NG | In-process callback PCM; native SSML marks with generated-text source maps for anchored requests, ordinary text path otherwise. |
+| macOS | Cocoa owns capture and native serialization; Rust drains a bounded callback queue through the common converter. Cancellation wakes backpressure waits; explicit native completion ends production. Unconfirmed retirement quarantines the owner. No native markers are advertised. |
+| Windows Eloquence/DECtalk | Separate x86 C# executables with restricted library loading and architecture/export checks. Qualified helper-6 controls extend the retained older protocol paths. Eloquence publishes indexes ahead of audio; DECtalk holds one native block to publish late indexes before its PCM. |
+| Linux ECI/DECtalk | Dedicated native owner threads, absolute architecture-checked ELF libraries and bounded cancellation-aware PCM/marker queues. ECI aborts via its callback; DECtalk coordinates reset outside callback locks. System dependencies remain linker-owned. |
+| MBROLA | Explicit private helper owns sequential frontend/runtime children, per-request verified inputs and bounded buffered output. It advertises no streaming or markers. |
 
-The in-process macOS adapter feeds AVSpeechSynthesizer callbacks through eight
-native windows of at most 512 mono/stereo frames. Cocoa owns the capture and
-serializes native requests; no callback borrows Rust memory. Rust drains the
-queue through the common continuous converter, allowing playback before native
-completion. Backpressure waits on a condition that cancellation can wake without
-waiting for the synthesis owner. Explicit native completion closes production;
-a gap between callbacks is never treated as success. Late callbacks see a closed
-capture or an expired weak reference. Unconfirmed native-owner retirement
-quarantines the adapter until process restart. Full-result synthesis collects
-the same stream within the common synthesis byte limit. Marker and native rate
-capabilities are unchanged. See [macOS streaming](MACOS-STREAMING.md) for checks
-and remaining acceptance.
+The [engine guides](README.md#engine-guides) own ABI details, runtime
+loading and platform acceptance. Component supply and licensing remain independent
+of helper protocol capability under [ADR 0001](adr/0001-engine-isolation-and-distribution.md).
 
-The shared 32-bit Windows C# host forwards native Eloquence and DECtalk callback
-PCM for protocol v5 without retaining the complete waveform. The Rust receiver
-uses one continuous high-quality conversion rather than changing the signal at
-native callback boundaries. Eloquence can publish each index before its
-following audio callback. DECtalk can report an index a few samples after the
-callback containing that position, so its adapter holds exactly one 512-sample
-native block and emits the next callback's markers before releasing it. Exact
-Eloquence anchors and DECtalk anchors aliased to its existing word indexes feed
-the incremental timeline renderer. That renderer carries overlays between
-bounded windows, accounts for inserted audio when remapping later markers, and
-publishes semantic events and actual anchor quality on the playback clock.
-Routes whose streaming engine cannot resolve requested anchors retain the
-whole-result path.
+See [helper.md](protocols/helper.md) and
+[native-call-isolation.md](reference/native-call-isolation.md).
 
-The Windows helpers require absolute native-library paths, validate x86 PE
-identity and required exports before engine calls, and load dependencies only
-from the selected library directory or System32. A missing or rejected runtime
-is reported through the live helper protocol and does not become a helper
-process crash.
+## Installed assets and activation
 
-The Linux ECI and DECtalk helpers use the existing Rust helper host and v5
-protocol. A dedicated owner thread creates, synthesizes with, and destroys
-each runtime. Callback PCM passes through a bounded, cancellation-aware queue
-and continuous canonical conversion. ECI cancellation aborts its callback;
-DECtalk discards cancelled PCM and resets outside the callback lock. ECI
-indexes provide exact requested anchors and word/sentence markers. DECtalk
-provides word/sentence/phoneme timing and word-boundary anchors, retaining one
-native audio block for late index records. Marker delivery uses the same
-bounded queue and canonical frame conversion as PCM. Both adapters expose
-the Windows voice-expression parameter mappings through existing ACSS fields.
-Their loaders require absolute library files, validate matching ELF architecture
-and required symbols, and report missing runtimes as engine unavailability.
-DECtalk loads its language library directly with an explicit dictionary path.
-The installed runtime's dependencies remain the system dynamic linker's
-responsibility. See the [Linux helper guide](../linux-helpers/README.md).
+The voice library separates installed files, desired enablement, immutable runtime
+generations and active workers. Omnivox's local service manages bounded acquisition,
+storage, validation, removal and native worker ownership. Emacsvox supplies the
+reviewed catalogue and coordinates explicit Apply for its two speech lanes.
+Downloads/imports start disabled; install/enable alone does not restart speech.
 
-See [HELPER-PROTOCOL.md](protocols/HELPER-PROTOCOL.md) and
-[ENGINE-ISOLATION.md](ENGINE-ISOLATION.md).
+Piper holds at most one model per helper and shares it across speakers. Flite
+loads its selected voices. MBROLA validates the selected database and common
+frontend before its short-lived native child. RHVoice separates the user's runtime
+from managed voice/language packages. Unsupported provider schemas fail before
+activation; explicit legacy overrides remain visible and cannot erase exclusions.
+
+Native validation uses private load projections, exact staged helpers, real PCM,
+asset checks and bounded supervised cleanup without playback. Saved observations
+bind inputs and cleanup; they do not permit skipping validation or attest every
+loaded system library. Persistent leases, operation journals and live supervisors
+retain ownership across manager loss. Incomplete cleanup blocks conflicting work;
+a saved PID alone grants no authority to kill a later process.
+
+Apply preflights a candidate, retains both exact startup/rollback configurations,
+establishes owned worker trees and verifies both workers before active-pointer
+publication. Partial failure retains cleanup ownership and uses the saved rollback
+configuration. Ordinary startup may retain an optional provider as unavailable
+and use eligible fallback, while exact validation and candidate Apply remain
+strict. Malformed generation metadata fails rather than dropping exclusions.
+
+Removal checks ownership and active/rollback/session references, preserving
+external files, runtimes and saved palette choices. Stronger crash/power-loss
+recovery and platform qualification remain explicit limits, not implied by a
+successful generation acknowledgement. The
+[voice-library contract](reference/voice-library.org),
+[installation guide](guides/voice-management.md),
+[validation guide](guides/native-voice-validation.md) and
+[removal guide](guides/voice-management.md#managed-voice-uninstallation) own their detailed formats and operations.
 
 ## Text preparation and source offsets
 
 Before synthesis Omnivox:
 
 1. consumes the established `[*]` speech separator as a boundary space;
-2. expands punctuation according to the active none/some/all level;
+2. expands punctuation through captured host tables for the active none/some/all level;
 3. optionally inserts spaces at lower-to-uppercase CamelCase boundaries; and
 4. chunks prepared text at a sentence, line, or clause boundary when possible,
-   with a hard limit of 15 whitespace-delimited words.
+   with a host-configured limit of 1–100 whitespace-delimited words, defaulting
+   to 15. The resolved limit is frozen with engine startup settings under
+   [ADR 0009](adr/0009-local-speech-preferences.md).
 
-Punctuation expansion is a route-independent compatibility contract. `none`
-names only `$` and `%`. `some` names this complete set:
-
-```text
-! " # $ % ( ) * + - / : ; < = > \ ^ ` ~
-```
-
-`all` names every ASCII punctuation character. Characters not named at the
-selected level, including non-ASCII punctuation, remain in the prepared text
-so the synthesizer can retain natural phrasing. Both ordinary speech and
-structured presentation timelines use this same preprocessing and produce the
-same prepared text.
-
-The `[*]` marker is compatibility text emitted by Emacspeak/Emacsvox character
-names (for example `question[*]mark`); it must never reach punctuation
-expansion as literal bracket/star characters.
-
-Structured actions retain source UTF-8 offsets through preprocessing and
-chunking. Offsets are mapped into the prepared chunk before the selected engine
-resolves requested anchors. See [TEXT-CHUNKING.md](TEXT-CHUNKING.md).
+Punctuation expansion is route-independent and shared by legacy and structured
+speech. Configuration version 3 adds sparse per-level names and explicit
+preservation; both workers and reset/recovery retain the complete resolved tables.
+Built-ins cover ASCII and common Unicode punctuation, including apostrophes.
+The [configuration reference](reference/engine-configuration.md#punctuation-tables)
+specifies the tables and [the delivery plan](plans/punctuation-configuration.md)
+defers custom named profiles and their client negotiation. The local management
+service supplies review and validated revision-checked saves; Emacsvox holds
+editor drafts and offers speech restart separately. The
+[editing contract](reference/engine-configuration.md#local-punctuation-editor)
+specifies file ownership and conflict behavior.
+The compatibility separator never reaches punctuation expansion as
+literal markup. Structured actions retain original UTF-8 offsets through text
+preparation and chunking; the selected engine resolves mapped anchors. Segmentation and offset rules live in
+[text-chunking.md](reference/text-chunking.md).
 
 ## Audio and presentation ownership
 
@@ -413,6 +463,12 @@ progressive source to a real device, the producer primes three non-empty PCM
 windows, or all available windows when a shorter source reaches its terminal.
 Cue-only updates are retained by the producer and travel with the next PCM
 window or terminal message, so they cannot displace this bounded audio reserve.
+Explicit letter navigation (`l` and negotiated `emacsvox_letter`) can also release the reserve once 40 ms of
+rendered PCM is ready, retaining the three-window and short-terminal conditions.
+This frame threshold is not a timer and does not apply to ordinary speech or
+previews. [ADR 0003](adr/0003-progressive-audio-and-markers.md) records the decision
+and the [matched letter report](benchmarks/2026-09-20-letter-playback-reserve.md)
+records device-source timing and observed stalls.
 Natural completion requires an explicit producer terminal, while cancellation
 closes the channel and preserves the speech de-click fade. A stream stop also
 fades an active tone to zero while discarding queued tones without starting
@@ -420,14 +476,31 @@ them. Deferred legacy icons wait for their preceding speech barriers but do not
 delay following speech; their tail still belongs to tracked completion.
 
 The default output backend connects those sinks to the operating-system audio
-device. An explicit null backend instead drains the same rodio source wrappers
+device. Rodio queues advertise a constant canonical stereo format through idle
+and source transitions, so the mixer's format conversion cannot interpret the
+first stereo samples as mono when playback resumes.
+
+On Windows, one owned output thread observes default-render/console endpoint
+notifications and opens, replaces and closes the device connection, following
+[ADR 0010](adr/0010-windows-default-output-recovery.md). Notifications hand off
+bounded events without performing device work. Replacement retires all three
+queues, pending overlays and the worker request generation before publishing
+fresh queues; sources waiting for progressive PCM also observe connection
+cancellation. Engine instances remain alive and interrupted speech is never
+replayed. Native open/close operations run outside admission and stop locks.
+Initial connection failure remains a startup error. Later failure leaves the
+worker alive but rejects fresh audio until a bounded retry, endpoint event or
+new request recovers output. Duplicate defaults and unrelated endpoint events
+retain a healthy connection.
+
+An explicit null backend instead drains the same rodio source wrappers
 as quickly as possible without opening a device. It therefore preserves queue,
 cue, cancellation, overlay-barrier, and tracked-completion behavior while
 attaching progressive sources immediately and deliberately removing real-time
 device and acoustic timing from the run.
 
 Linux also has an opt-in native `pulse` backend governed by
-[ADR 0009](adr/0009-native-pulseaudio-output.md). The same source wrappers feed
+[ADR 0005](adr/0005-native-pulseaudio-output.md). The same source wrappers feed
 three independent PulseAudio streams, which the server mixes on its default
 sink. Each has a source worker and native event thread. It requests 20 ms
 buffering, writes about 5 ms at a time, drains/corks when idle, and retires a
@@ -463,10 +536,17 @@ the sole synthesis worker is exceptional: the process logs a forced backtrace
 and exits with status 70 so Emacs can replace the whole server rather than keep
 a live control channel attached to a dead worker.
 
-See [DIAGNOSTICS.md](DIAGNOSTICS.md) for evidence collection.
+See [diagnostics.md](guides/diagnostics.md) for evidence collection.
 
-Bundled eSpeak variants follow [ADR 0014](adr/0014-on-demand-espeak-variants.md):
-the live descriptor contains a bounded suffix catalogue alongside its base voices.
-Exact resolution derives only the requested combination and shares validation
-between registration, preview, normal speech and guarded direct synthesis.
-Variant preview and selection do not mutate a load set or restart workers.
+## Proposed extensions
+
+[Language-aware voice selection](plans/language-routing.md) remains a proposal.
+The engine-registration framework and configuration v1 are implemented under
+[ADR 0008](adr/0008-extensible-engine-registration.md); the
+[acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) records the
+completed first slice and its platform limits. The [roadmap](ROADMAP.md) tracks
+remaining native qualification and future extensions.
+
+Performance claims belong to the [retained evidence](benchmarks/README.md).
+Source consumption, protocol success and process liveness do not prove acoustic
+output; platform/runtime qualification and listening remain separately recorded.

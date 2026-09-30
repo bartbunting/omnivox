@@ -20,6 +20,7 @@ use omnivox_audio::ProgressivePcmCanonicalizer;
 use crate::contracts::{
     AudioOutputMode, CancellationSupport, ConcurrencyModel, EngineDescriptor, PhysicalVoiceId,
 };
+use crate::engine_configuration::LaunchEnvironment;
 use crate::engine_registry::validate_descriptor as validate_registry_descriptor;
 use crate::helper_protocol::{
     read_frame, write_frame, HelperAudioFormat, HelperErrorCode, HelperMarker, HelperMarkerKind,
@@ -38,6 +39,16 @@ use crate::helper_protocol::{parameters, session};
 #[path = "helper_engine/parameters.rs"]
 mod native;
 use native::{AppliedPlan, ParameterExchange};
+
+#[path = "helper_engine/deadline.rs"]
+mod deadline;
+use deadline::{initialization_exchange, with_connection_deadline};
+
+#[path = "helper_engine/initialization.rs"]
+mod initialization;
+pub use initialization::{
+    initialize_external_helpers, ExternalHelperInitialization, EXTERNAL_STARTUP_BUDGET,
+};
 
 const HELPER_CANCEL_GRACE: Duration = Duration::from_millis(250);
 pub const HELPER_DESCRIPTOR_CACHE_FILE_NAME: &str = "VOICE-INVENTORY.json";
@@ -128,6 +139,8 @@ pub struct HelperEngineConfig {
     pub engine_id: String,
     pub program: PathBuf,
     pub arguments: Vec<OsString>,
+    /// Retained across deferred startup and every recovery connection.
+    pub environment: LaunchEnvironment,
     pub startup_timeout: Duration,
     pub request_timeout: Duration,
     pub synthesis_idle_timeout: Duration,
@@ -135,10 +148,19 @@ pub struct HelperEngineConfig {
 
 impl HelperEngineConfig {
     pub fn new(engine_id: impl Into<String>, program: impl Into<PathBuf>) -> Self {
+        Self::with_environment(engine_id, program, LaunchEnvironment::capture())
+    }
+
+    pub fn with_environment(
+        engine_id: impl Into<String>,
+        program: impl Into<PathBuf>,
+        environment: LaunchEnvironment,
+    ) -> Self {
         Self {
             engine_id: engine_id.into(),
             program: program.into(),
             arguments: Vec::new(),
+            environment,
             startup_timeout: Duration::from_secs(10),
             request_timeout: Duration::from_secs(10),
             synthesis_idle_timeout: Duration::from_secs(10),
@@ -290,6 +312,7 @@ struct ProcessHelperConnector {
     engine_id: String,
     program: PathBuf,
     arguments: Vec<OsString>,
+    environment: LaunchEnvironment,
 }
 
 impl ProcessHelperConnector {
@@ -298,6 +321,7 @@ impl ProcessHelperConnector {
             engine_id: config.engine_id.clone(),
             program: config.program.clone(),
             arguments: config.arguments.clone(),
+            environment: config.environment.clone(),
         }
     }
 }
@@ -308,6 +332,7 @@ impl HelperConnector for ProcessHelperConnector {
             &self.engine_id,
             &self.program,
             &self.arguments,
+            &self.environment,
         )?))
     }
 }
@@ -330,23 +355,19 @@ impl ProcessHelperConnection {
         engine_id: &str,
         program: &Path,
         arguments: &[OsString],
+        environment: &LaunchEnvironment,
     ) -> Result<Self, HelperEngineError> {
-        info!(
-            engine_id,
-            program = %program.display(),
-            "Starting TTS helper process"
-        );
-        let mut child = Command::new(program)
+        info!(engine_id, "Starting TTS helper process");
+        let mut command = Command::new(program);
+        environment.apply(&mut command);
+        let mut child = command
             .args(arguments)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
             .map_err(|error| {
-                HelperEngineError::Transport(format!(
-                    "could not start {}: {error}",
-                    program.display()
-                ))
+                HelperEngineError::Transport(format!("could not start {engine_id} helper: {error}"))
             })?;
         let child_id = child.id();
         info!(engine_id, child_id, "TTS helper process started");
@@ -1232,12 +1253,30 @@ pub struct HelperTtsEngine {
     stop_epoch: AtomicU64,
     active_request_id: Arc<AtomicU64>,
     cancellations_by_target: Mutex<HashMap<u64, Arc<TargetCancellation>>>,
+    // A timed-out initialization keeps its handle here and an Arc to this owner
+    // in the worker. Only finished workers are joined, before another admission.
+    initialization: Mutex<Option<JoinHandle<()>>>,
     lifecycle: Mutex<()>,
     dispatch: Mutex<()>,
     applied_plans: Mutex<VecDeque<AppliedPlan>>,
 }
 
 impl HelperTtsEngine {
+    /// Retain ownership before the first launch. Hosts that support explicit
+    /// rescans keep this object on failure, so unconfirmed cleanup prevents a
+    /// replacement process instead of being lost with a failed constructor.
+    pub fn prepare(config: HelperEngineConfig) -> Result<Self, HelperEngineError> {
+        let connector = Arc::new(ProcessHelperConnector::new(&config));
+        Self::without_connection(config, connector, None)
+    }
+
+    /// Explicit live discovery on the retained owner, including after a host
+    /// rejects a negotiated descriptor. Replacement waits for prior cleanup.
+    pub fn refresh_connection(&self) -> Result<(), HelperEngineError> {
+        let _lifecycle = self.lifecycle.lock().unwrap();
+        self.install_fresh_connection()
+    }
+
     pub fn new(config: HelperEngineConfig) -> Result<Self, HelperEngineError> {
         let connector = Arc::new(ProcessHelperConnector::new(&config));
         Self::with_connector(config, connector)
@@ -1303,6 +1342,7 @@ impl HelperTtsEngine {
             stop_epoch: AtomicU64::new(0),
             active_request_id: Arc::new(AtomicU64::new(0)),
             cancellations_by_target: Mutex::new(HashMap::new()),
+            initialization: Mutex::new(None),
             lifecycle: Mutex::new(()),
             dispatch: Mutex::new(()),
             applied_plans: Mutex::new(VecDeque::new()),
@@ -1337,6 +1377,20 @@ impl HelperTtsEngine {
     }
 
     fn install_fresh_connection(&self) -> Result<(), HelperEngineError> {
+        self.install_fresh_connection_with(None, |connection, descriptor, protocol_version| {
+            self.publish_connection(connection, descriptor, protocol_version, None)
+        })
+    }
+
+    fn install_fresh_connection_with(
+        &self,
+        deadline: Option<Instant>,
+        publish: impl FnOnce(
+            Arc<dyn HelperConnection>,
+            EngineDescriptor,
+            u16,
+        ) -> Result<(), HelperEngineError>,
+    ) -> Result<(), HelperEngineError> {
         let started_at = Instant::now();
         info!(
             engine_id = self.config.engine_id,
@@ -1354,10 +1408,13 @@ impl HelperTtsEngine {
         self.cancellations_by_target.lock().unwrap().clear();
         self.applied_plans.lock().unwrap().clear();
 
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            return Err(HelperEngineError::Timeout("external startup budget"));
+        }
         let connection = self.connector.connect()?;
         // A failed greeting also owns a process that must be reaped before retrying.
         *retiring = Some(Arc::clone(&connection));
-        let (descriptor, protocol_version) = match self.negotiate(&connection) {
+        let (descriptor, protocol_version) = match self.negotiate(&connection, deadline) {
             Ok(negotiated) => negotiated,
             Err(error) => {
                 connection.terminate()?;
@@ -1376,18 +1433,15 @@ impl HelperTtsEngine {
                 ));
             }
         }
-        *self.descriptor.write().unwrap() = Some(descriptor);
-        self.descriptor_is_deferred.store(false, Ordering::Release);
-        self.protocol_version
-            .store(u64::from(protocol_version), Ordering::Release);
-        {
-            let mut current = self.connection.write().unwrap();
-            let epoch = self
-                .parameter_cache_epoch
-                .load(Ordering::Relaxed)
-                .saturating_add(1);
-            self.parameter_cache_epoch.store(epoch, Ordering::Release);
-            *current = Some(connection);
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            connection.terminate()?;
+            *retiring = None;
+            return Err(HelperEngineError::Timeout("external startup budget"));
+        }
+        if let Err(error) = publish(Arc::clone(&connection), descriptor, protocol_version) {
+            connection.terminate()?;
+            *retiring = None;
+            return Err(error);
         }
         *retiring = None;
         info!(
@@ -1399,22 +1453,57 @@ impl HelperTtsEngine {
         Ok(())
     }
 
+    // The installer retains lifecycle and retirement ownership while publishing,
+    // including when the admission caller accepts an owned worker's result.
+    fn publish_connection(
+        &self,
+        connection: Arc<dyn HelperConnection>,
+        descriptor: EngineDescriptor,
+        protocol_version: u16,
+        deadline: Option<Instant>,
+    ) -> Result<(), HelperEngineError> {
+        let mut published_descriptor =
+            initialization::publication_lock(&self.descriptor, deadline)?;
+        let mut current = initialization::publication_lock(&self.connection, deadline)?;
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            return Err(HelperEngineError::Timeout("external startup budget"));
+        }
+        // All potentially waiting locks are acquired before deciding to publish.
+        // The admission caller alone commits this state, before returning success.
+        *published_descriptor = Some(descriptor);
+        self.descriptor_is_deferred.store(false, Ordering::Release);
+        self.protocol_version
+            .store(u64::from(protocol_version), Ordering::Release);
+        let epoch = self
+            .parameter_cache_epoch
+            .load(Ordering::Relaxed)
+            .saturating_add(1);
+        self.parameter_cache_epoch.store(epoch, Ordering::Release);
+        *current = Some(connection);
+        Ok(())
+    }
+
     fn negotiate(
         &self,
         connection: &Arc<dyn HelperConnection>,
+        deadline: Option<Instant>,
     ) -> Result<(EngineDescriptor, u16), HelperEngineError> {
         let mut negotiated_response = None;
         for (index, protocol_version) in session::VERSIONS.iter().enumerate() {
             let hello_id = self.allocate_request_id();
-            connection.send(&HelperRequest::with_version(
+            let request = HelperRequest::with_version(
                 *protocol_version,
                 hello_id,
                 HelperRequestBody::Hello {
                     supported_protocol_versions: session::VERSIONS[index..].to_vec(),
                 },
-            ))?;
-            let response =
-                receive_owned_response(connection, hello_id, self.config.startup_timeout)?;
+            );
+            let response = initialization_exchange(
+                connection,
+                &request,
+                self.config.startup_timeout,
+                deadline,
+            )?;
             let try_older = matches!(
                 response.body,
                 HelperResponseBody::Error {
@@ -1458,13 +1547,13 @@ impl HelperTtsEngine {
         };
 
         let describe_id = self.allocate_request_id();
-        connection.send(&HelperRequest::with_version(
+        let request = HelperRequest::with_version(
             selected_protocol_version,
             describe_id,
             HelperRequestBody::Describe,
-        ))?;
+        );
         let response =
-            receive_owned_response(connection, describe_id, self.config.request_timeout)?;
+            initialization_exchange(connection, &request, self.config.request_timeout, deadline)?;
         if response.protocol_version != selected_protocol_version {
             return Err(HelperEngineError::UnexpectedResponse(
                 "descriptor uses a different negotiated protocol version",
@@ -2278,6 +2367,10 @@ impl TtsEngine for HelperTtsEngine {
 
 impl Drop for HelperTtsEngine {
     fn drop(&mut self) {
+        // An initialization worker retains this engine until its I/O and
+        // lifecycle work end. If it releases the last Arc, Drop runs there:
+        // never join its own handle. Its engine resources remain owned through
+        // the existing final cleanup below.
         if let Ok(connection) = self.connection.get_mut() {
             if let Some(connection) = connection.take() {
                 if let Err(error) = connection.terminate() {
@@ -2300,6 +2393,7 @@ impl Drop for HelperTtsEngine {
 #[cfg(test)]
 mod tests {
     include!("helper_engine/native_tests.rs");
+    include!("helper_engine/initialization_tests.rs");
     use std::collections::VecDeque;
     use std::fs;
     use std::sync::atomic::{AtomicBool, AtomicUsize};
@@ -2717,14 +2811,14 @@ mod tests {
                 if now >= deadline {
                     return Err(HelperEngineError::Timeout("mock response"));
                 }
-                let (waiting, result) = self
+                // Windows may report a timed-out wait just before the Instant
+                // deadline. Recheck the clock, as the real connection does,
+                // rather than ending the exchange early with a mock timeout.
+                responses = self
                     .response_ready
                     .wait_timeout(responses, deadline.saturating_duration_since(now))
-                    .unwrap();
-                responses = waiting;
-                if result.timed_out() && responses.is_empty() {
-                    return Err(HelperEngineError::Timeout("mock response"));
-                }
+                    .unwrap()
+                    .0;
             }
         }
 
@@ -3625,6 +3719,36 @@ mod tests {
         assert!(failed.terminated.load(Ordering::Acquire));
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn process_connector_reuses_the_owned_environment_after_retirement() {
+        let mut config = HelperEngineConfig::new("environment-fixture", "/bin/sh");
+        config.environment = LaunchEnvironment::from_variables([(
+            "OMNIVOX_ENVIRONMENT_FIXTURE".into(),
+            "captured".into(),
+        )]);
+        config.arguments = vec!["-c".into(), r#"printf '{"protocol_version":1,"request_id":1,"type":"hello","selected_protocol_version":1,"helper_name":"%s","helper_version":"fixture"}\n' "$OMNIVOX_ENVIRONMENT_FIXTURE""#.into()];
+        let connector = ProcessHelperConnector::new(&config);
+        config.environment = LaunchEnvironment::from_variables([(
+            "OMNIVOX_ENVIRONMENT_FIXTURE".into(),
+            "changed".into(),
+        )]);
+        for _ in 0..2 {
+            let connection = connector.connect().unwrap();
+            let response = connection.receive(Duration::from_secs(2)).unwrap();
+            assert!(
+                matches!(response.body, HelperResponseBody::Hello { helper_name, .. } if helper_name == "captured")
+            );
+            connection.terminate().unwrap();
+        }
+        let connection = ProcessHelperConnector::new(&config).connect().unwrap();
+        let response = connection.receive(Duration::from_secs(2)).unwrap();
+        assert!(
+            matches!(response.body, HelperResponseBody::Hello { helper_name, .. } if helper_name == "changed")
+        );
+        connection.terminate().unwrap();
+    }
+
     #[cfg(any(unix, windows))]
     #[test]
     fn process_cleanup_kills_before_waiting_for_a_blocked_writer() {
@@ -3642,7 +3766,13 @@ mod tests {
             ],
         );
         let connection = Arc::new(
-            ProcessHelperConnection::spawn("cleanup-test", Path::new(program), &arguments).unwrap(),
+            ProcessHelperConnection::spawn(
+                "cleanup-test",
+                Path::new(program),
+                &arguments,
+                &LaunchEnvironment::capture(),
+            )
+            .unwrap(),
         );
         let writer_connection = Arc::clone(&connection);
         let (locked, ready) = mpsc::channel();
@@ -3675,6 +3805,7 @@ mod tests {
             "cleanup-test",
             Path::new("/bin/sh"),
             &["-c".into(), "sleep 0.5 & exit 0".into()],
+            &LaunchEnvironment::capture(),
         )
         .unwrap();
         let deadline = Instant::now() + Duration::from_secs(2);

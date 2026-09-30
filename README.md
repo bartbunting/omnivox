@@ -1,7 +1,7 @@
 # Omnivox
 
 Omnivox is a cross-platform speech server written in Rust. It implements the
-[legacy Emacspeak line protocol](docs/protocols/LEGACY-PROTOCOL.md) and the
+[legacy Emacspeak line protocol](docs/protocols/legacy.md) and the
 capability-gated
 structured protocols used by Emacsvox for logical voices, tracked playback,
 marker events, and Aural presentation timelines.
@@ -38,7 +38,7 @@ engine with `--engine eloquence` or `--engine dectalk`. The
 Emacsvox consumes those outputs when staging its WSL Windows bundle. Piper,
 Flite, and RuTTS are source-built companions; RHVoice loads a user-installed
 runtime. Their native code never enters the main server process. The
-[RHVoice guide](docs/RHVOICE.md) covers runtime installation and verification.
+[RHVoice guide](docs/engines/rhvoice.md) covers runtime installation and verification.
 Speech Dispatcher remains a design proposal, not an implemented backend.
 
 Linux development builds also stage separate
@@ -70,12 +70,12 @@ profiles, 22 languages, and portable rate, pitch, pitch-range, and volume
 controls. Its measured rate curve follows the Eloquence reference until the
 native ceiling, and exact requested anchors support progressive capitalization
 tones and timed actions. See the
-[TGSpeechBox guide](docs/TGSPEECHBOX.md) for the WSL build and current limits.
+[TGSpeechBox guide](docs/engines/tgspeechbox.md) for the WSL build and current limits.
 
 Speech rate is normalized with measured per-engine curves so an ordinary
 logical-voice change does not also cause a large avoidable speed change.
 Engines still saturate at their real native limits, and individual voices can
-vary. See the [speech-rate calibration guide](docs/RATE-CALIBRATION.md) for the
+vary. See the [speech-rate calibration guide](docs/reference/rate-calibration.md) for the
 reference voices, repeatable WAV-duration audit, and current macOS limitation.
 
 The eSpeak backend is compiled from source. Supported local builds stage the
@@ -117,6 +117,24 @@ for ownership and data flow.
 
 ## Binary releases
 
+On macOS (Apple Silicon or Intel), install [Homebrew](https://brew.sh), then run:
+
+```sh
+brew install bartbunting/omnivox/omnivox
+"$(brew --prefix omnivox)/bin/omnivox" --version
+"$(brew --prefix omnivox)/bin/omnivox" --check
+```
+
+The check should play a tone and speak a confirmation. The
+[official tap](https://github.com/bartbunting/homebrew-omnivox) selects and
+checksum-verifies the matching published Mac archive, including its eSpeak data
+and notices. It supplies Apple system speech and eSpeak without a Rust build.
+Emacs and Emacsvox or Emacspeak are installed separately.
+
+Upgrade with `brew update` followed by `brew upgrade omnivox`, then restart your
+speech server. See [macOS installation](.github/DEPLOYMENT.md#macos-with-homebrew)
+for stable executable paths, Emacs setup, optional engines, and removal.
+
 [GitHub Releases](https://github.com/bartbunting/omnivox/releases) provides
 native archives for Linux x64, macOS Apple Silicon and Intel, and Windows x64
 and ARM64. Archives produced by the current workflow contain the executable,
@@ -142,6 +160,9 @@ the executable after extraction. User-visible release changes are recorded in
 [CHANGELOG.md](CHANGELOG.md).
 
 ## Prerequisites
+
+These tools are needed for source builds, not for the Homebrew or release-archive
+installation above.
 
 - [rustup](https://rustup.rs/). The checked-in `rust-toolchain.toml` selects
   the exact supported Rust release.
@@ -195,7 +216,7 @@ make build-flite
 The first preparation downloads the exact checksum-locked upstream source;
 subsequent builds can use the verified cache offline. Optional local English
 Clustergen `.flitevox` files are accepted through `OMNIVOX_FLITE_VOICES` and
-are never downloaded or redistributed. The [Flite companion guide](docs/FLITE.md)
+are never downloaded or redistributed. The [Flite companion guide](docs/engines/flite.md)
 covers release installation, the six-target build matrix, capabilities,
 verification, licensing, and removal.
 
@@ -209,7 +230,7 @@ python3 tools/prepare_rutts_inputs.py --check
 make build-rutts
 ```
 
-The [RuTTS companion guide](docs/RUTTS.md) covers release installation,
+The [RuTTS companion guide](docs/engines/rutts.md) covers release installation,
 Unicode-to-KOI8-R routing, manual stress annotations, the six-target build
 matrix, verification, licensing, and removal.
 
@@ -226,7 +247,7 @@ make verify-tgspeechbox-source
 This stages the self-contained Windows payload below the target Cargo profile,
 then creates and verifies its release and corresponding-source archives. It is
 excluded from `make build` and generic archives but published separately from
-v1.7.0. The [TGSpeechBox companion guide](docs/TGSPEECHBOX.md) documents
+v1.7.0. The [TGSpeechBox companion guide](docs/engines/tgspeechbox.md) documents
 installation, profiles, calibrated controls, requested anchors, validation,
 licensing, and removal.
 
@@ -258,14 +279,14 @@ Running Piper requires a compatible `.onnx` model and its adjacent
 configuration, named either `<model>.onnx.json` or `<model>.json`. Model
 compatibility and licensing depend on the model source; Omnivox does not
 currently distribute or endorse a model catalogue. The
-[Piper companion guide](docs/PIPER.md) covers build, installation,
+[Piper companion guide](docs/engines/piper.md) covers build, installation,
 configuration, verification, upgrade, and removal.
 
 The test suite changes frequently, so documentation does not embed a test
 count. A passing suite establishes correctness coverage; it is not a latency
 measurement.
 
-`tools/build.py` owns the distributable build step because Cargo has no
+`tools/build.py` runs the distributable build step because Cargo has no
 reliable post-build hook: it runs a locked Cargo build, identifies the actual
 `espeak-rs-sys` output reported by Cargo, and stages its data and notices in the
 same profile directory as the executable, together with `LICENSE` and
@@ -276,7 +297,7 @@ but does not create that complete runtime payload.
 
 Beginning with 1.8.0, releases include an amd64 Debian package for Ubuntu 24.04
 and 26.04. Build a local development package with `make package-deb`. See the
-[Debian guide](docs/DEBIAN.md) for installation, Ubuntu compatibility, payload
+[Debian guide](docs/guides/debian-packages.md) for installation, Ubuntu compatibility, payload
 boundaries, and verification.
 
 ## Remote Emacs (preview)
@@ -284,12 +305,12 @@ boundaries, and verification.
 Omnivox 1.8.0 introduces the preview `omnivox --serve` service on the
 workstation, with remote Emacsvox connecting through an authenticated SSH
 reverse forward. Engines and audio stay local; foreground and notification
-speech have separate workers. See the [remote setup guide](docs/REMOTE.md).
+speech have separate workers. See the [remote setup guide](docs/guides/remote-speech.md).
 
 ## Emacsvox on Windows under WSL
 
-Omnivox owns the Eloquence and DECtalk helper source and build targets. The
-Emacsvox repository owns the reproducible Windows bundle, pinned helper build
+Omnivox contains the Eloquence and DECtalk helper source and build targets. The
+Emacsvox repository provides the reproducible Windows bundle, pinned helper build
 inputs, runtime provenance, and content-addressed launcher selection:
 
 ```sh
@@ -376,7 +397,7 @@ tracked-completion path without opening an audio device. It consumes PCM as
 quickly as possible, so it is useful for automation and benchmarks but does
 not validate real-time playback, underruns, or acoustic onset.
 
-See [ENV-VARS.md](docs/ENV-VARS.md) for the complete CLI and environment
+See [configuration.md](docs/guides/configuration.md) for the complete CLI and environment
 reference.
 
 ## Diagnostics
@@ -389,7 +410,7 @@ bounded bundle without memory-dump contents or process command lines:
 tools/collect_diagnostics.sh
 ```
 
-See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) before enabling full synthesis
+See [docs/guides/diagnostics.md](docs/guides/diagnostics.md) before enabling full synthesis
 text or Windows crash dumps; both can contain private spoken content. The
 collector strips synthesis-text records and common private paths, but its
 output still requires review before sharing.
@@ -411,7 +432,7 @@ Useful distinctions when investigating responsiveness:
 The [documentation index](docs/README.md) groups maintained references,
 protocol specifications, operational guides, active plans, and historical
 material. Start with [STATUS.md](docs/STATUS.md) for current support and
-limitations, or [ENV-VARS.md](docs/ENV-VARS.md) for configuration.
+limitations, or [configuration.md](docs/guides/configuration.md) for configuration.
 
 ## Licensing
 
