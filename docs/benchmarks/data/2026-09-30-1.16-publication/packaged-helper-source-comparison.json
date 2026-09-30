@@ -1,0 +1,42 @@
+[
+  {
+    "version": "1.15.0",
+    "entries": {
+      "omnivox.exe": "b7b403c697639f85ac5196f75da02de1f45ca8c18d49db50c1d2547f65a8e1fd",
+      "rhvoice/omnivox-rhvoice-helper.exe": "1ab9aa3d99f7c2859a74a8668ea85c3710955b29d8df9865ab4b9504cd22efc4",
+      "OmnivoxEloquenceHelper32.exe": "8ff340e0c50d69644116b84b0bc9814e3eaef67fe79196e8688a7545f682aa5f",
+      "OmnivoxDectalkHelper32.exe": "948607de0ca45eb6577ba5a24a4c2bcceb8a9a530507960a6a46ffdb8338d5b5",
+      "windows-helpers-source/dectalk/OmnivoxDectalkCapture.cs": "418e6c65606318afb4b2b6ff07bc4f01b9d7ba08d311d9c045a2b9a47551e33d",
+      "windows-helpers-source/dectalk/OmnivoxDectalkParameters.cs": "b13fa1b346e25b190e5c47f9d33240e9594422a0725d3870ab624c5463ad07cc",
+      "windows-helpers-source/dectalk/OmnivoxDectalkParameterService.cs": "1aa0272e6d1a7c2c70590e21989c3cc5c37958978968427de924868b97fd4ca7",
+      "windows-helpers-source/dectalk/OmnivoxDectalkHelper.cs": "ea108b357d2138eab1f776813da25d427e17b5c7606d23d7d867f476bbef4fe6",
+      "windows-helpers-source/eloquence/OmnivoxEloquenceParameterService.cs": "4e4e2c400ff1375d247bc3bd78a7d611c7f5a7b153cfe3b896333438da7f4416",
+      "windows-helpers-source/eloquence/OmnivoxEloquenceParameters.cs": "0c294d74195a819db2a04c2014ed5b30f618d4c3dd95e7fcb147624c9af70d5e",
+      "windows-helpers-source/eloquence/OmnivoxEloquenceHelper.cs": "d3b3b81e38f3796e988d75dc9708bde4e6c4e170aa58e9016ddb3f7c7375bba6",
+      "windows-helpers-source/eloquence/OmnivoxEloquenceCapture.cs": "db6f3ee79df6b3e56064c4fd1e793fc733810101ec3e0503a4a2a2238ca7256d",
+      "windows-helpers-source/common/OmnivoxHelperParameters.cs": "e84b751e203fcb71bbdaf7cc9ffe7f92a7464a18e4e74b87c1c7ab23a394d84d",
+      "windows-helpers-source/common/OmnivoxNativeLibrary.cs": "99a65f843272537ba5e00b2878950d5d3ba7bf40a2b03a982ebac681e4e79f2f",
+      "windows-helpers-source/common/OmnivoxHelperHost.cs": "64230a1ece023f1aee583d21eb31d4dd8ff45c721010d41d724325e1d997ef0b"
+    }
+  },
+  {
+    "version": "1.16.0",
+    "entries": {
+      "omnivox.exe": "bee1b7d1f20212ee9f10a252f17a86f25d8081f1e0b7db31355ef70fdc7aa3ed",
+      "rhvoice/omnivox-rhvoice-helper.exe": "832fc438384ea3da0f8d8757096d6fc19b811d428a9fa714285cde36a4485490",
+      "OmnivoxEloquenceHelper32.exe": "4afc9035bc90e4c83f6be28b948c2d4b8fc2efffb5ee3404159c38d72187b5d9",
+      "OmnivoxDectalkHelper32.exe": "aae64a469712f5693b5bb55003e30fc36dcb57a2ec12158f928b78bd9ad6c00e",
+      "windows-helpers-source/dectalk/OmnivoxDectalkCapture.cs": "418e6c65606318afb4b2b6ff07bc4f01b9d7ba08d311d9c045a2b9a47551e33d",
+      "windows-helpers-source/dectalk/OmnivoxDectalkParameters.cs": "b13fa1b346e25b190e5c47f9d33240e9594422a0725d3870ab624c5463ad07cc",
+      "windows-helpers-source/dectalk/OmnivoxDectalkParameterService.cs": "1aa0272e6d1a7c2c70590e21989c3cc5c37958978968427de924868b97fd4ca7",
+      "windows-helpers-source/dectalk/OmnivoxDectalkHelper.cs": "ea108b357d2138eab1f776813da25d427e17b5c7606d23d7d867f476bbef4fe6",
+      "windows-helpers-source/eloquence/OmnivoxEloquenceParameterService.cs": "4e4e2c400ff1375d247bc3bd78a7d611c7f5a7b153cfe3b896333438da7f4416",
+      "windows-helpers-source/eloquence/OmnivoxEloquenceParameters.cs": "0c294d74195a819db2a04c2014ed5b30f618d4c3dd95e7fcb147624c9af70d5e",
+      "windows-helpers-source/eloquence/OmnivoxEloquenceHelper.cs": "d3b3b81e38f3796e988d75dc9708bde4e6c4e170aa58e9016ddb3f7c7375bba6",
+      "windows-helpers-source/eloquence/OmnivoxEloquenceCapture.cs": "db6f3ee79df6b3e56064c4fd1e793fc733810101ec3e0503a4a2a2238ca7256d",
+      "windows-helpers-source/common/OmnivoxHelperParameters.cs": "e84b751e203fcb71bbdaf7cc9ffe7f92a7464a18e4e74b87c1c7ab23a394d84d",
+      "windows-helpers-source/common/OmnivoxNativeLibrary.cs": "99a65f843272537ba5e00b2878950d5d3ba7bf40a2b03a982ebac681e4e79f2f",
+      "windows-helpers-source/common/OmnivoxHelperHost.cs": "64230a1ece023f1aee583d21eb31d4dd8ff45c721010d41d724325e1d997ef0b"
+    }
+  }
+]

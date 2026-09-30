@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-09-30T01:05:03.394705+00:00",
+  "tag": "v1.16.0",
+  "source_commit": "fbed2c9368746a4e35a1e356fcf8bfbb627c66cd",
+  "workflow_run": 36651334492,
+  "successful_attempt": 3,
+  "archival_encoding": "gzip with mtime 0",
+  "downloaded_archive_sha256": {
+    "omnivox-1.15.0-windows-arm64.zip": "3962852bc167280c6c43be88a8f4242bc7c36e616c7c4c8072e45ab13a63988e",
+    "omnivox-1.16.0-windows-arm64.zip": "5e46c7de98f1e5643850488daaa47e60763ac0a4a3f858f2156d2d7d6d94294e"
+  }
+}

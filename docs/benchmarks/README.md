@@ -53,6 +53,10 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-09-30 Omnivox 1.16.0 publication](2026-09-30-1.16-publication.md)
+  records the main-branch release, all 64 passing jobs, two ARM64 helper-startup
+  retries and verification of the 28 public assets.
+
 - [2026-09-30 Omnivox 1.16.0 candidate](2026-09-30-1.16-candidate.md)
   records the published-history merge, palette character regression checks,
   Linux and full native Windows development acceptance.

@@ -7,9 +7,14 @@ Published changes belong to the
 tracks outstanding work, and [retained evidence](benchmarks/README.md) records
 actual runs and their limits.
 
-Omnivox 1.16.0 is in release preparation with palette-aware character feedback;
-its [candidate checks](benchmarks/2026-09-30-1.16-candidate.md) pass on Linux
-and the full native Windows development runtime.
+[Omnivox 1.16.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.16.0)
+with palette-aware character feedback. Its
+[publication checks](benchmarks/2026-09-30-1.16-publication.md) retain all 64
+passing jobs, two ARM64 helper-timeout retries and the verified 28 public assets.
+The [candidate checks](benchmarks/2026-09-30-1.16-candidate.md) passed on Linux
+and the full native Windows development runtime. Main now includes the
+previously separate published release history.
+
 [Omnivox 1.15.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.15.0).
 The [publication checks](benchmarks/2026-09-28-1.15-publication.md) retain the
 release identity, all 64 passing jobs and verification of the 28 public assets.
