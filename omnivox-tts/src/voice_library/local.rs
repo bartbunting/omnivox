@@ -32,6 +32,10 @@ pub struct Request {
     #[serde(default)]
     pub punctuation_json: String,
     #[serde(default)]
+    pub settings_json: String,
+    #[serde(default)]
+    pub manifest_json: String,
+    #[serde(default)]
     pub plan_json: String,
     #[serde(default)]
     pub proofs_json: String,
@@ -82,6 +86,7 @@ pub enum Reply {
     Host {
         engine_configuration_version: u32,
         punctuation_configuration_version: u32,
+        engine_settings_version: u32,
         removal_version: u32,
         catalogue_providers: Vec<String>,
         root: String,
@@ -119,6 +124,9 @@ pub enum Reply {
     },
     PunctuationConfiguration {
         review: crate::engine_configuration::punctuation_editor::Review,
+    },
+    EngineSettings {
+        review: crate::engine_configuration::settings_editor::Review,
     },
     RemovalReview {
         review: installation::removal::RemovalReview,
@@ -264,6 +272,7 @@ impl Host {
         Reply::Host {
             engine_configuration_version: 1,
             punctuation_configuration_version: 1,
+            engine_settings_version: 1,
             removal_version: 1,
             catalogue_providers: vec![
                 "piper".into(),

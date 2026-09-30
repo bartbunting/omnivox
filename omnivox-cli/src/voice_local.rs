@@ -91,6 +91,27 @@ fn service(host: Host) -> Result<()> {
         let result = (|| -> Result<Reply> {
             match request.command.as_str() {
                 "host" => Ok(host.reply()),
+                "engine-settings-review" | "engine-settings-save" | "engine-settings-add"
+                    if activation.is_none() =>
+                {
+                    use omnivox_tts::engine_configuration::{settings_editor, Platform};
+                    let root =
+                        Platform::native().configuration_root(None, |key| std::env::var_os(key))?;
+                    let review = match request.command.as_str() {
+                        "engine-settings-save" => settings_editor::save(
+                            &root,
+                            &request.expected_sha256,
+                            request.settings_json.as_bytes(),
+                        )?,
+                        "engine-settings-add" => settings_editor::add_helper(
+                            &root,
+                            &request.expected_sha256,
+                            request.manifest_json.as_bytes(),
+                        )?,
+                        _ => settings_editor::inspect(&root)?,
+                    };
+                    Ok(Reply::EngineSettings { review })
+                }
                 "punctuation-review" | "punctuation-save" if activation.is_none() => {
                     use omnivox_tts::engine_configuration::{punctuation_editor, Platform};
                     let root =

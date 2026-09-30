@@ -16,7 +16,7 @@ pub struct Review {
 }
 
 fn failure(reason: &'static str) -> ConfigurationError {
-    ConfigurationError::new("punctuation configuration", reason)
+    ConfigurationError::new("configuration editor", reason)
 }
 
 fn canonical_destination(path: &Path) -> Result<PathBuf> {
@@ -35,13 +35,13 @@ fn canonical_destination(path: &Path) -> Result<PathBuf> {
     }
 }
 
-fn path(root: &ConfigurationRoot) -> Result<PathBuf> {
+pub(super) fn path(root: &ConfigurationRoot) -> Result<PathBuf> {
     // Match ordinary startup validation, including explicitly missing roots.
     root.load()?;
     Ok(canonical_destination(&root.path)?.join("config.json"))
 }
 
-fn read(path: &Path) -> Result<Option<Vec<u8>>> {
+pub(super) fn read(path: &Path) -> Result<Option<Vec<u8>>> {
     match fs::symlink_metadata(path) {
         Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
         Err(_) => Err(failure("cannot inspect configuration file")),
@@ -52,7 +52,7 @@ fn read(path: &Path) -> Result<Option<Vec<u8>>> {
     }
 }
 
-fn revision(path: &Path, bytes: Option<&[u8]>) -> String {
+pub(super) fn revision(path: &Path, bytes: Option<&[u8]>) -> String {
     let mut hash = Sha256::new();
     hash.update(path.as_os_str().as_encoded_bytes());
     hash.update(if bytes.is_some() { [1] } else { [0] });
@@ -66,7 +66,7 @@ fn revision(path: &Path, bytes: Option<&[u8]>) -> String {
         .collect()
 }
 
-fn document(bytes: Option<&[u8]>) -> Result<Value> {
+pub(super) fn document(bytes: Option<&[u8]>) -> Result<Value> {
     match bytes {
         Some(bytes) => {
             Configuration::parse(bytes, Platform::native())?;
@@ -99,7 +99,7 @@ pub fn inspect(root: &ConfigurationRoot) -> Result<Review> {
     review(&path, read(&path)?.as_deref())
 }
 
-fn options() -> OpenOptions {
+pub(super) fn options() -> OpenOptions {
     let mut options = OpenOptions::new();
     options.read(true).write(true);
     #[cfg(unix)]
@@ -151,6 +151,21 @@ pub fn save(root: &ConfigurationRoot, expected: &str, overrides_json: &[u8]) -> 
         serde_json::to_vec_pretty(&document).map_err(|_| failure("cannot encode configuration"))?;
     bytes.push(b'\n');
     Configuration::parse(&bytes, Platform::native())?;
+    publish(&path, original, &bytes)?;
+    review(&path, Some(&bytes))
+}
+
+// Both editors use the same permanent lock and exact-byte conflict check.
+pub(super) fn publish(path: &Path, original: Option<Vec<u8>>, bytes: &[u8]) -> Result<()> {
+    publish_checked(path, original, bytes, || Ok(()))
+}
+
+pub(super) fn publish_checked(
+    path: &Path,
+    original: Option<Vec<u8>>,
+    bytes: &[u8],
+    validate: impl FnOnce() -> Result<()>,
+) -> Result<()> {
     let parent = path.parent().unwrap();
     let mut directory = fs::DirBuilder::new();
     directory.recursive(true);
@@ -176,9 +191,10 @@ pub fn save(root: &ConfigurationRoot, expected: &str, overrides_json: &[u8]) -> 
     }
     lease
         .try_lock()
-        .map_err(|_| failure("another punctuation editor is saving; retry"))?;
+        .map_err(|_| failure("another configuration editor is saving; retry"))?;
     let _lease = Lease(lease);
-    if read(&path)? != original {
+    validate()?;
+    if read(path)? != original {
         return Err(failure("file changed; refresh and review your edits"));
     }
     let id = crate::voice_library::local::new_uuid()
@@ -189,10 +205,10 @@ pub fn save(root: &ConfigurationRoot, expected: &str, overrides_json: &[u8]) -> 
         .open(&temporary)
         .map_err(|_| failure("cannot prepare configuration save"))?;
     let result = (|| {
-        file.write_all(&bytes)
+        file.write_all(bytes)
             .map_err(|_| failure("cannot write configuration"))?;
         if original.is_some() {
-            let permissions = fs::metadata(&path)
+            let permissions = fs::metadata(path)
                 .map_err(|_| failure("cannot inspect permissions"))?
                 .permissions();
             file.set_permissions(permissions)
@@ -201,15 +217,15 @@ pub fn save(root: &ConfigurationRoot, expected: &str, overrides_json: &[u8]) -> 
         file.sync_all()
             .map_err(|_| failure("cannot sync configuration"))?;
         drop(file);
-        if read(&path)? != original {
+        if read(path)? != original {
             return Err(failure("file changed; refresh and review your edits"));
         }
-        fs::rename(&temporary, &path).map_err(|_| failure("cannot publish configuration"))?;
+        fs::rename(&temporary, path).map_err(|_| failure("cannot publish configuration"))?;
         #[cfg(unix)]
         File::open(parent)
             .and_then(|file| file.sync_all())
             .map_err(|_| failure("save may have completed; refresh before retrying"))?;
-        review(&path, Some(&bytes))
+        Ok(())
     })();
     let _ = fs::remove_file(&temporary);
     result

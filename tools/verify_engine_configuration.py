@@ -166,6 +166,7 @@ def main():
         capabilities = service.request("host")
         assert capabilities["engine_configuration_version"] == 1
         assert capabilities["punctuation_configuration_version"] == 1
+        assert capabilities["engine_settings_version"] == 1
         original_config = json.loads((configuration / "config.json").read_text())
         review = service.request("punctuation-review")["review"]
         edits = copy.deepcopy(review["overrides"])
@@ -180,6 +181,11 @@ def main():
                                    punctuation_json=json.dumps(review["overrides"]))
         assert restored["type"] == "punctuation_configuration", restored
         assert json.loads((configuration / "config.json").read_text()) == original_config
+        engine_review = service.request("engine-settings-review")["review"]
+        settings_saved = service.request("engine-settings-save", expected_sha256=engine_review["sha256"],
+                                         settings_json=json.dumps(engine_review["settings"]))
+        assert settings_saved["type"] == "engine_settings", settings_saved
+        assert json.loads((configuration / "config.json").read_text())["speech"] == original_config["speech"]
         print("Punctuation editor review, Unicode save, stale-write rejection and unrelated settings preservation passed", flush=True)
         prepared = service.request("engine-snapshot")
         assert prepared["type"] == "prepared_startup"

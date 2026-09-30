@@ -235,6 +235,40 @@ sync error may mean Save completed: retain the draft and refresh/review before
 retrying. No blind retry, automatic restart or global activation follows Save.
 The UI offers the established explicit two-worker restart separately.
 
+### Local engine settings editor
+
+The development local service advertises `engine_settings_version: 1` in its
+`host` response. `engine-settings-review`, `engine-settings-save` and
+`engine-settings-add` are local management operations only; they are unavailable
+on speech/control or remote transports and during an activation transaction.
+
+Review returns `type: "engine_settings"` with `review.path`, the same opaque
+file revision `sha256` used by the punctuation editor, `settings` containing
+only `routing` and `engine_overrides`, registered `engines`, and registration
+`diagnostics`. Each engine reports its ID, in-process status, registration enabled
+state, external program if any, and the name (not value) of a nonempty helper
+program environment override. This describes saved configuration, not live state.
+
+Save takes `expected_sha256` and `settings_json`, a JSON string containing exactly
+those two settings objects. It validates configuration and registered override IDs,
+preserves unrelated speech/audio preferences, and shares the punctuation editor's
+atomic writer and conflict rules. Review and Save construct no speech engines.
+
+Add takes `expected_sha256` and `manifest_json`, a strict version-1 helper
+manifest. The program must be an existing native-host file, the ID must be
+non-reserved and unregistered, and `enabled` must be false. The service writes
+`helpers.d/ENGINE_ID.json` without replacing an existing file; normal manifest
+count and size bounds apply. Registration does not execute or qualify the helper.
+Runtime validation requires explicit Apply and a sample. The revision covers
+`config.json`, not a transaction across independently edited helper manifests.
+
+Emacsvox retains independent drafts and negotiates this capability before any
+editor request. Save never activates settings. Explicit Apply uses the existing
+managed voice review/preflight/rollback operation for both workers; any pending
+managed voice selections are included in that review. Live inventory and exact
+samples remain separate from syntax validation. Older hosts retain their current
+speech and require an update to use the editor.
+
 ## Configuration version 2
 
 Version 2 accepts all version-1 engine settings with the same meaning and adds

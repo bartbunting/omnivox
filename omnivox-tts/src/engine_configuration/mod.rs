@@ -10,6 +10,7 @@ mod paths;
 pub mod punctuation_editor;
 mod resolved;
 mod selection;
+pub mod settings_editor;
 pub mod shipped;
 mod snapshot;
 mod status;
