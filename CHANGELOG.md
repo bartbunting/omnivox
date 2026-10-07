@@ -6,6 +6,12 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Prevent eSpeak speech from stopping partway through a line at faster speech
+  rates. Word markers from successive native callbacks are now ordered before
+  their audio is delivered, preserving complete speech and marker timestamps.
+
 ## [1.16.0] - 2026-09-30
 
 ### Added
