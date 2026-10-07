@@ -6,6 +6,8 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.16.1] - 2026-10-08
+
 ### Fixed
 
 - Prevent eSpeak speech from stopping partway through a line at faster speech
