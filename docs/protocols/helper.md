@@ -230,8 +230,16 @@ The Rust codec enforces these bounds before accepting content:
 - sample rates from 1 through 384,000 Hz and 1 through 8 channels.
 
 The host applies configurable startup, ordinary-request, and synthesis-idle
-timeouts plus a bounded cancellation watchdog. EOF, malformed or oversized
-output, request-ID/order violations, and timeouts make the helper unhealthy.
+timeouts plus a bounded cancellation watchdog. The synthesis-idle deadline also
+covers writing the synthesis request, including helper-6 native parameters.
+The host publishes the active request before writing and arms cancellation
+before waiting for dispatch or sending `cancel`. The 250 ms cancellation grace
+covers those waits as well as the target's terminal response. A separate write
+deadline remains armed if the target finishes while the cancel write is blocked.
+Replacement still requires confirmed child and reader cleanup.
+
+EOF, malformed or oversized output, request-ID/order violations, and timeouts
+make the helper unhealthy.
 Omnivox then terminates the child, opens the existing engine circuit, routes
 speech through configured fallbacks, and uses `prepare_recovery_probe` to start
 and negotiate a fresh helper after cooldown. Proprietary DLLs remain
