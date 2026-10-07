@@ -53,6 +53,10 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-10-08 Omnivox 1.16.1 candidate](2026-10-08-1.16.1-candidate.md)
+  records the eSpeak marker-order regression, patch-release scope and local
+  candidate checks.
+
 - [2026-09-30 Omnivox 1.16.0 candidate](2026-09-30-1.16-candidate.md)
   records the published-history merge, palette character regression checks,
   Linux and full native Windows development acceptance.

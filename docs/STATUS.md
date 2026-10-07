@@ -8,7 +8,8 @@ tracks outstanding work, and [retained evidence](benchmarks/README.md) records
 actual runs and their limits.
 
 Omnivox 1.16.1 is in release preparation with a fix for eSpeak stopping partway
-through speech at faster rates. This patch candidate is based on
+through speech at faster rates. Its [candidate report](benchmarks/2026-10-08-1.16.1-candidate.md)
+records the checks and remaining platform limits. This patch candidate is based on
 [published Omnivox 1.16.0](https://github.com/bartbunting/omnivox/releases/tag/v1.16.0)
 and does not include the later engine-configuration editor or named punctuation
 profiles. The earlier [1.16.0 candidate checks](benchmarks/2026-09-30-1.16-candidate.md)
