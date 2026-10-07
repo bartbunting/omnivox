@@ -53,6 +53,10 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-10-08 Omnivox 1.16.1 publication](2026-10-08-1.16.1-publication.md)
+  records all 64 passing release jobs, public asset verification and the
+  completed Homebrew update with both native Mac checks.
+
 - [2026-10-08 Omnivox 1.16.1 candidate](2026-10-08-1.16.1-candidate.md)
   records the eSpeak marker-order regression, patch-release scope and local
   candidate checks.
