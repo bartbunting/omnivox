@@ -372,6 +372,19 @@ the generic `tts-*` namespace and its own Omnivox adapter. The compatibility
 module tracks current Emacspeak APIs; the project does not yet claim a minimum
 Emacs or Emacspeak version, so test it with the checkout you intend to deploy.
 
+### eSpeak NG face voices
+
+The Omnivox Espeak adapter can use Emacspeak's ACSS voice styles. To make it work, set the voice ID before loading emacspeak-setup, e.g. for English.
+
+```elisp
+(setenv "OMNIVOX_ENGINE" "espeak")
+(setq omnivox-voice-id "espeak:gmw/en-US")
+```
+
+Manual definitions made with `omnivox-define-voice` take
+precedence over default styles.
+
+
 ## Command-line use
 
 Run `omnivox --help` for the authoritative list. Common commands include:

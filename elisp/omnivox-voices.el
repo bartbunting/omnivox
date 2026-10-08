@@ -218,6 +218,7 @@ higher is faster and lower is slower."
   "Default voice for Omnivox.
 Use an exact ID reported by `omnivox-list-voices'.
 An empty string means use the server default.
+An explicit eSpeak ID enables Emacspeak's ACSS voice styles.
 Use `omnivox-select-voice' to interactively choose from available voices."
   :group 'omnivox
   :type 'string
@@ -287,6 +288,121 @@ Float from 0.0 (silent) to 1.0 (full)."
     (process-send-string
      dtk-speaker-process
      (concat command "\n"))))
+
+;;; Control protocol
+
+(defconst omnivox--control-max-payload-bytes (* 256 1024)
+  "Maximum decoded JSON size accepted by the Omnivox control protocol.")
+
+(defun omnivox--encode-control-request (request)
+  "Encode REQUEST as UTF-8 JSON and Base64 without line wrapping."
+  (let ((payload (encode-coding-string (json-serialize request) 'utf-8 t)))
+    (when (> (string-bytes payload) omnivox--control-max-payload-bytes)
+      (error "Omnivox control request exceeds its size limit"))
+    (base64-encode-string payload t)))
+
+(defun omnivox--decode-control-response (payload)
+  "Decode Base64 JSON PAYLOAD into a plist."
+  (when (> (string-bytes payload)
+           (* 4 (ceiling omnivox--control-max-payload-bytes 3)))
+    (error "Encoded Omnivox control response exceeds its size limit"))
+  (let ((decoded (base64-decode-string payload)))
+    (when (> (string-bytes decoded) omnivox--control-max-payload-bytes)
+      (error "Decoded Omnivox control response exceeds its size limit"))
+    (json-parse-string (decode-coding-string decoded 'utf-8 t)
+                       :object-type 'plist :array-type 'list
+                       :null-object :null :false-object :false)))
+
+(defun omnivox--control-request (process request &optional timeout)
+  "Send REQUEST to PROCESS and wait up to TIMEOUT seconds (default 2)."
+  (unless (process-live-p process)
+    (error "Omnivox process is not running"))
+  (when (process-get process 'omnivox--control-busy)
+    (error "Omnivox control request already pending"))
+  (let* ((id (1+ (or (process-get process 'omnivox--control-request-id) 0)))
+         (payload (omnivox--encode-control-request
+                   (append (list :protocol_version 1 :request_id id) request)))
+         (filter (or (process-filter process)
+                     #'internal-default-process-filter))
+         (deadline (+ (float-time) (or timeout 2)))
+         (output "") (offset 0) overflow response)
+    (process-put process 'omnivox--control-request-id id)
+    (process-put process 'omnivox--control-busy t)
+    (unwind-protect
+        (progn
+          (set-process-filter
+           process
+           (lambda (_process chunk)
+             (if (> (+ (string-bytes output) (string-bytes chunk))
+                    (* 2 omnivox--control-max-payload-bytes))
+                 (setq overflow t)
+               (setq output (concat output chunk)))))
+          (process-send-string
+           process (concat "omnivox_control {" payload "}\n"))
+          (while (and (not response) (not overflow)
+                      (< (float-time) deadline))
+            (while (and (not response)
+                        (string-match
+                         "^__OMNIVOX_CONTROL__ \\([^\r\n]*\\)\r?\n"
+                         output offset))
+              (let* ((start (match-beginning 0))
+                     (end (match-end 0))
+                     (reply (omnivox--decode-control-response
+                             (match-string 1 output))))
+                (setq offset end)
+                (when (eql (plist-get reply :request_id) id)
+                  (setq response reply
+                        output (concat (substring output 0 start)
+                                       (substring output end)))
+                  (unless (eql (plist-get reply :protocol_version) 1)
+                    (error "Unsupported Omnivox control protocol")))))
+            (unless response
+              (unless (process-live-p process)
+                (error "Omnivox exited before replying"))
+              (accept-process-output process 0.05)))
+          (when overflow
+            (error "Omnivox control output exceeds its size limit"))
+          (unless response (error "Omnivox control request timed out"))
+          (when (equal (plist-get response :type) "error")
+            (error "Omnivox: %s" (plist-get response :message)))
+          response)
+      (set-process-filter process filter)
+      (process-put process 'omnivox--control-busy nil)
+      (unless (string-empty-p output)
+        (funcall filter process output)))))
+
+(defun omnivox--control-capabilities (process)
+  "Query and cache PROCESS's control capabilities."
+  (or (process-get process 'omnivox--control-capabilities)
+      (let ((reply (omnivox--control-request process '(:type "capabilities"))))
+        (unless (and (equal (plist-get reply :type) "capabilities")
+                     (member 1 (plist-get reply :supported_protocol_versions)))
+          (error "Invalid Omnivox capabilities response"))
+        (process-put process 'omnivox--control-capabilities reply)
+        reply)))
+
+(defun omnivox--register-logical-voices (process definitions)
+  "Replace PROCESS's logical voices with DEFINITIONS and return registration."
+  (let ((supported
+         (plist-get (omnivox--control-capabilities process) :features)))
+    (unless (and (member "logical_voice_registration" supported)
+                 (member "logical_voice_routing" supported))
+      (error "Omnivox does not support logical voices")))
+  (let ((generation
+         (1+ (or (process-get process 'omnivox--registry-generation) 0))))
+    ;; A lost reply can still mean the server accepted this generation.
+    (process-put process 'omnivox--registry-generation generation)
+    (let* ((reply (omnivox--control-request
+                   process
+                   (list :type "register_logical_voices"
+                         :registry_generation generation
+                         :definitions (vconcat definitions))))
+           (registration (plist-get reply :registration)))
+      (unless (and (equal (plist-get reply :type) "logical_voices_registered")
+                   (eql (plist-get registration :registry_generation)
+                        generation))
+        (error "Invalid Omnivox logical voice registration response"))
+      registration)))
 
 ;;;###autoload
 (defun omnivox-select-voice ()
@@ -399,12 +515,42 @@ Resets pitch to normal.  The actual voice is set via `omnivox-voice-id'.")
   "Association between symbols and strings to set Omnivox voices.
 The string can set any voice parameter.")
 
+(defvar omnivox--acss-styles (make-hash-table)
+  "ACSS styles available for logical voice registration.")
+
 (defun omnivox-define-voice (name command-string)
   "Define an Omnivox voice named NAME.
 This voice will be set by sending the string
 COMMAND-STRING to the TTS engine."
   (cl-declare (special omnivox-voice-table))
+  (remhash name omnivox--acss-styles)
   (puthash name command-string omnivox-voice-table))
+
+(defun omnivox--sync-espeak-styles (process)
+  "Register current styles with PROCESS when its copy is out of date."
+  (condition-case err
+      (let (definitions)
+        (maphash
+         (lambda (name style)
+           (push (omnivox--espeak-voice-definition
+                  name style omnivox-voice-id) definitions))
+         omnivox--acss-styles)
+        (setq definitions
+              (vconcat
+               (cl-sort definitions #'string<
+                        :key (lambda (voice) (plist-get voice :id)))))
+        (unless (equal definitions
+                       (process-get process 'omnivox--style-definitions))
+          (process-put process 'omnivox--style-definitions definitions)
+          (process-put process 'omnivox--styles-ready nil)
+          (omnivox--register-logical-voices process definitions)
+          (process-put process 'omnivox--styles-ready t)))
+    (error
+     (process-put process 'omnivox--styles-ready nil)
+     (display-warning 'omnivox
+                      (format "Using legacy voices: %s"
+                              (error-message-string err)))))
+  (process-get process 'omnivox--styles-ready))
 
 (defun omnivox-get-voice-command-internal (name)
   "Retrieve command string for voice NAME."
@@ -417,7 +563,24 @@ COMMAND-STRING to the TTS engine."
 
 (defun omnivox-get-voice-command (name)
   "Retrieve command string for voice NAME."
-  (omnivox-get-voice-command-internal name))
+  (cl-declare (special dtk-speaker-process))
+  (if (listp name)
+      (mapconcat #'omnivox-get-voice-command name " ")
+    (let ((legacy (omnivox-get-voice-command-internal name))
+          (process (and (boundp 'dtk-speaker-process) dtk-speaker-process)))
+      (cond
+       ((and (process-live-p process)
+             (string-prefix-p "espeak:" omnivox-voice-id)
+             (gethash name omnivox--acss-styles)
+             (omnivox--sync-espeak-styles process))
+        (format "[[logical_voice %s]] [[pitch 1]]" name))
+       ((and (process-live-p process)
+             (process-get process 'omnivox--style-definitions)
+             (not (string-empty-p omnivox-voice-id)))
+        ;; Physical selection clears the preceding logical style.
+        ;; Append it so an explicit physical voice in LEGACY takes priority.
+        (concat legacy (format " [{voice %s}]" omnivox-voice-id)))
+       (t legacy)))))
 
 (defun omnivox-voice-defined-p (name)
   "Check if there is a voice named NAME defined."
@@ -496,8 +659,7 @@ and TABLE gives the values along that dimension."
 
 ;;;   pitch range
 
-;; Omnivox does not currently support pitch-range control.
-;; These are no-ops that produce empty strings.
+;; Legacy inline codes have no pitch-range control.
 
 (let ((table (make-vector 10 "")))
   (omnivox-css-set-code-table 'paul 'pitch-range table))
@@ -528,8 +690,7 @@ and TABLE gives the values along that dimension."
 
 ;;;   richness
 
-;; Omnivox does not currently support richness control.
-;; These are no-ops that produce empty strings.
+;; Legacy inline codes have no richness control.
 
 (let ((table (make-vector 10 "")))
   (omnivox-css-set-code-table 'paul 'richness table))
@@ -544,6 +705,29 @@ and TABLE gives the values along that dimension."
 
 ;;;   omnivox-define-voice-from-acss
 
+(defun omnivox--espeak-voice-definition (name style voice-id)
+  "Build logical voice NAME from STYLE for the eSpeak VOICE-ID."
+  (unless (string-prefix-p "espeak:" voice-id)
+    (error "Expected an eSpeak voice ID: %s" voice-id))
+  (let ((pitch (acss-average-pitch style))
+        (range (acss-pitch-range style))
+        (richness (acss-richness style)))
+    (dolist (value (list pitch range richness))
+      (unless (or (null value) (and (integerp value) (<= 0 value 9)))
+        (error "ACSS level must be an integer from 0 to 9: %s" value)))
+    (list :id (symbol-name name)
+          :preferences (vector (list :kind "exact" :engine_id "espeak"
+                                     :voice_id voice-id))
+          :acss
+          (append
+           ;; Keep Omnivox's existing pitch scale.
+           (when pitch (list :average_pitch (/ pitch 9.0)))
+           (when range
+             (list :pitch_range
+                   (/ (aref [0 10 17 25 37 50 60 70 80 90] range) 100.0)))
+           ;; eSpeak implements richness as volume; Omnivox maps 1.0 to 200.
+           (when richness (list :volume (/ (1+ richness) 20.0)))))))
+
 (defun omnivox-define-voice-from-acss (name style)
   "Define NAME to be an Omnivox voice as specified by settings in STYLE."
   (let* ((family (acss-family style))
@@ -554,7 +738,8 @@ and TABLE gives the values along that dimension."
            (omnivox-get-pitch-range-code (acss-pitch-range style) family)
            (omnivox-get-stress-code (acss-stress style) family)
            (omnivox-get-richness-code (acss-richness style) family))))
-    (omnivox-define-voice name command)))
+    (omnivox-define-voice name command)
+    (puthash name (copy-sequence style) omnivox--acss-styles)))
 
 ;;;  Configure TTS:
 ;;;###autoload
@@ -573,6 +758,7 @@ via protocol commands."
   (fset 'tts-voice-defined-p 'omnivox-voice-defined-p)
   (fset 'tts-get-voice-command 'omnivox-get-voice-command)
   (fset 'tts-define-voice-from-acss 'omnivox-define-voice-from-acss)
+  (ems--fastload "voice-defs")
   ;; Apply rate — dtk-speech-rate is a buffer-local integer used by
   ;; dtk-interp-sync via tts_sync_state on every utterance.  Must set
   ;; BOTH the current-buffer value and the global default, otherwise

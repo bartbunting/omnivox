@@ -480,6 +480,7 @@ impl EspeakTtsEngine {
             acss: AcssCapabilities {
                 rate: true,
                 average_pitch: true,
+                pitch_range: true,
                 volume: true,
                 ..AcssCapabilities::default()
             },
@@ -701,6 +702,22 @@ impl EspeakTtsEngine {
     fn map_volume(volume: f32) -> c_int {
         let volume = volume.clamp(0.0, 1.0);
         (volume * 200.0) as c_int
+    }
+
+    /// Set the utterance's pitch range:
+    /// 0.0 = monotone, 0.5 = normal, 1.0 = maximum.
+    /// The caller must hold ESPEAK_LOCK.
+    unsafe fn set_pitch_range(range: Option<f32>) {
+        let parameter = espeak_rs_sys::espeak_PARAMETER_espeakRANGE;
+        unsafe {
+            // If no range is specified, restore the default so the previous
+            // utterance's range does not carry over.
+            let value = range.map_or_else(
+                || espeak_rs_sys::espeak_GetParameter(parameter, 0),
+                |range| (range.clamp(0.0, 1.0) * 100.0).round() as c_int,
+            );
+            espeak_rs_sys::espeak_SetParameter(parameter, value, 0);
+        }
     }
 
     fn backend_voice_name(voice_id: &str) -> &str {
@@ -1109,6 +1126,7 @@ impl EspeakTtsEngine {
 
         unsafe {
             let actual_voice = self.select_native_voice(&voice_id)?;
+            Self::set_pitch_range(request.normalized_acss.pitch_range);
             espeak_rs_sys::espeak_SetParameter(
                 espeak_rs_sys::espeak_PARAMETER_espeakRATE,
                 Self::map_rate(request.settings.rate),
@@ -1244,6 +1262,7 @@ impl TtsEngine for EspeakTtsEngine {
         let actual_voice;
         unsafe {
             actual_voice = self.select_native_voice(&voice_id)?;
+            Self::set_pitch_range(request.normalized_acss.pitch_range);
 
             // Set parameters
             espeak_rs_sys::espeak_SetParameter(
@@ -1876,6 +1895,7 @@ mod tests {
         assert!(descriptor.can_synthesize());
         assert!(descriptor.capabilities.acss.rate);
         assert!(descriptor.capabilities.acss.average_pitch);
+        assert!(descriptor.capabilities.acss.pitch_range);
         assert_eq!(
             descriptor.capabilities.audio_output,
             AudioOutputMode::StreamingPcm
@@ -1904,6 +1924,35 @@ mod tests {
         assert_eq!(EspeakTtsEngine::map_volume(0.0), 0);
         assert_eq!(EspeakTtsEngine::map_volume(0.5), 100);
         assert_eq!(EspeakTtsEngine::map_volume(1.0), 200);
+    }
+
+    #[test]
+    fn pitch_range_sets_native_parameter_and_resets_between_styles() {
+        let _engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        let _guard = ESPEAK_LOCK.get().unwrap().lock().unwrap();
+        for (range, expected) in [
+            (Some(0.0), 0),
+            (None, 50),
+            (Some(0.5), 50),
+            (Some(1.0), 100),
+            (None, 50),
+            (Some(-1.0), 0),
+            (Some(2.0), 100),
+            (None, 50),
+        ] {
+            unsafe {
+                EspeakTtsEngine::set_pitch_range(range);
+                espeak_rs_sys::espeak_Synchronize();
+                assert_eq!(
+                    espeak_rs_sys::espeak_GetParameter(
+                        espeak_rs_sys::espeak_PARAMETER_espeakRANGE,
+                        1,
+                    ),
+                    expected,
+                    "range {range:?}"
+                );
+            }
+        }
     }
 
     #[test]
