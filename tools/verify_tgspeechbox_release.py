@@ -300,7 +300,11 @@ def verify(arguments: argparse.Namespace, repository: Path) -> None:
     )
     common.verify_checksum(archive, checksums)
     with tempfile.TemporaryDirectory(prefix="Omnivox TGSpeechBox verification ") as temporary:
-        root = Path(temporary)
+        # Exceed eSpeak's 160-byte Unix path buffer on every runner. The helper
+        # must still discover its bundled data and synthesize after relocation.
+        root = Path(temporary) / "Long installation path"
+        root = root.with_name(root.name + "x" * max(0, 120 - len(str(root))))
+        root.mkdir()
         extracted = root / "Extracted companion with spaces"
         working = root / "Unrelated working directory"
         extracted.mkdir()

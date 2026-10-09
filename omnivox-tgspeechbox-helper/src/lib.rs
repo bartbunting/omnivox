@@ -95,10 +95,21 @@ pub struct TgSpeechBoxTtsEngine {
 }
 
 impl TgSpeechBoxTtsEngine {
+    /// Initialize the dedicated helper before starting its protocol threads.
+    /// The helper retains the validated eSpeak data parent as its working directory.
     pub fn from_environment() -> Result<Self, TtsError> {
         let sample_rate = configured_sample_rate()?;
         let pack_root = find_pack_root()?;
         let espeak_parent = find_espeak_data_parent()?;
+        // eSpeak's native data-path buffer is only 160 bytes on Unix. Keep its
+        // stored path relative inside this dedicated process, including during
+        // later voice loading. Resolve and validate both data roots first.
+        validate_pack_root(&pack_root)?;
+        std::env::set_current_dir(&espeak_parent).map_err(|error| {
+            TtsError::SynthesisFailed(format!(
+                "could not enter TGSpeechBox phonemizer data parent: {error}"
+            ))
+        })?;
         Self::new_with_sample_rate(&pack_root, &espeak_parent, sample_rate)
     }
 
@@ -114,7 +125,15 @@ impl TgSpeechBoxTtsEngine {
         validate_pack_root(pack_root)?;
         validate_espeak_data_parent(espeak_data_parent)?;
         let pack_path = path_to_c_string(pack_root, "TGSpeechBox pack root")?;
-        let data_path = path_to_c_string(espeak_data_parent, "eSpeak-ng data parent")?;
+        let is_working_directory = std::env::current_dir()
+            .ok()
+            .zip(espeak_data_parent.canonicalize().ok())
+            .is_some_and(|(working, data)| working == data);
+        let data_path = if is_working_directory {
+            CString::new(".").expect("literal has no null byte")
+        } else {
+            path_to_c_string(espeak_data_parent, "eSpeak-ng data parent")?
+        };
 
         let handle = NonNull::new(unsafe {
             omnivox_tgspeechbox_sys::omnivox_tgspeechbox_create(
