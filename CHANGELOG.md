@@ -12,8 +12,9 @@ Versioning for published releases.
 
 - TGSpeechBox native breathiness, creakiness, brightness, jitter and shimmer
   controls, preserving the selected voice profile at their default values.
-- Emacspeak ACSS voice styles for eSpeak NG, including pitch range and
-  automatic face voices. Explicit voice definitions retain priority.
+- Emacspeak ACSS voice styles for eSpeak NG, including native pitch-range
+  support and automatic face voices, contributed by Arkadiusz Świętnicki.
+  Explicit voice definitions retain priority.
 - Named punctuation profiles, such as prose and proofreading, with saved
   overrides and selection through the negotiated client protocol. Existing
   `none`, `some` and `all` levels keep their meanings.
