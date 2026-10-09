@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 sys.dont_write_bytecode = True
-from build_tgspeechbox import COMMIT, RELEASE
+from build_tgspeechbox import COMMIT, RELEASE, SUPPORTED_TARGETS
 from package_piper_source import (
     SourcePackagingError,
     extract_git_source,
@@ -26,7 +26,6 @@ from package_piper_source import (
     write_checksum,
     write_tar_archive,
 )
-from package_tgspeechbox import RELEASE_TARGET
 from prepare_piper_inputs import PreparationError
 
 
@@ -84,7 +83,7 @@ CARGO_NET_OFFLINE=true python3 tools/prepare_tgspeechbox_inputs.py \\
   --output ../build-inputs
 OMNIVOX_TGSPEECHBOX_INPUTS_DIR="$PWD/../build-inputs" \\
   CARGO_NET_OFFLINE=true python3 tools/build_tgspeechbox.py --release \\
-  --target {RELEASE_TARGET}
+  --target x86_64-pc-windows-gnu
 ```
 
 The build requires the pinned Rust toolchain, Python, CMake, and a matching
@@ -156,7 +155,7 @@ def package(repository: Path, arguments: argparse.Namespace) -> Path:
                 "source_tree_sha256": lock["source_tree_sha256"],
                 "url": lock["url"],
             },
-            "native_targets": [RELEASE_TARGET],
+            "native_targets": sorted(SUPPORTED_TARGETS),
             "schema_version": 1,
             "source_commit": arguments.commit,
             "source_input_lock_sha256": sha256_file(lock_path),

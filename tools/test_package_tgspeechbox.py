@@ -1,17 +1,52 @@
 #!/usr/bin/env python3
 """Check TGSpeechBox archive portability, integrity and release guards."""
 
+import json
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 
 import package_tgspeechbox as package
+import package_tgspeechbox_source as source_package
 import verify_release as common
 import verify_tgspeechbox_release as verify
+import verify_tgspeechbox_source as source_verify
 
 
 class ArchiveTests(unittest.TestCase):
+    def test_source_manifest_covers_native_platforms_and_windows_gnu(self):
+        targets = [
+            "x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+            "x86_64-apple-darwin", "aarch64-apple-darwin",
+            "x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc",
+            "x86_64-pc-windows-gnu",
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "README.md").write_text(
+                source_package.source_readme("1.17.0", "a" * 40, "input.tar.gz")
+            )
+            manifest = {
+                "schema_version": 1,
+                "artifact": "omnivox-tgspeechbox-source-and-build-inputs",
+                "version": "1.17.0",
+                "source_commit": "a" * 40,
+                "tgspeechbox_revision": source_package.RELEASE,
+                "tgspeechbox_commit": source_package.COMMIT,
+                "cargo_dependencies_vendored": True,
+                "native_targets": targets,
+                "contents": source_package.file_manifest(root),
+            }
+            path = root / "SOURCE-MANIFEST.json"
+            path.write_text(json.dumps(manifest))
+            source_verify.verify_manifest(root, "1.17.0", "a" * 40)
+            for changed_targets in (targets[:-1], targets + ["unsupported"]):
+                manifest["native_targets"] = changed_targets
+                path.write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(common.VerificationError, "native target set"):
+                    source_verify.verify_manifest(root, "1.17.0", "a" * 40)
+
     def test_archives_preserve_helper_permissions_and_detect_changed_data(self):
         for extension, writer, platform in (
             ("tar.gz", package.write_tar, "linux"),

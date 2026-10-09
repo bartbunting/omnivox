@@ -14,7 +14,7 @@ import tarfile
 import tempfile
 
 sys.dont_write_bytecode = True
-from build_tgspeechbox import COMMIT, RELEASE
+from build_tgspeechbox import COMMIT, RELEASE, SUPPORTED_TARGETS
 import verify_release as common
 from verify_piper_source import (
     repository_version,
@@ -23,7 +23,6 @@ from verify_piper_source import (
     verify_offline_cargo,
 )
 from package_piper_source import git_output
-from package_tgspeechbox import RELEASE_TARGET
 
 
 class SourceVerificationError(common.VerificationError):
@@ -77,7 +76,7 @@ def verify_manifest(root: Path, version: str, commit: str) -> dict[str, object]:
         "Cargo dependency source boundary is missing",
     )
     require(
-        set(manifest.get("native_targets", [])) == {RELEASE_TARGET},
+        set(manifest.get("native_targets", [])) == set(SUPPORTED_TARGETS),
         "source manifest native target set changed",
     )
     declared = manifest.get("contents")
