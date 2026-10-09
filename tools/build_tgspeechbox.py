@@ -31,6 +31,10 @@ SUPPORTED_TARGETS = {
     "x86_64-pc-windows-gnu": ("windows-x64-gnu", "omnivox-tgspeechbox-helper.exe"),
     "x86_64-pc-windows-msvc": ("windows-x64", "omnivox-tgspeechbox-helper.exe"),
     "x86_64-unknown-linux-gnu": ("linux-x64", "omnivox-tgspeechbox-helper"),
+    "aarch64-unknown-linux-gnu": ("linux-arm64", "omnivox-tgspeechbox-helper"),
+    "x86_64-apple-darwin": ("macos-x64", "omnivox-tgspeechbox-helper"),
+    "aarch64-apple-darwin": ("macos-arm64", "omnivox-tgspeechbox-helper"),
+    "aarch64-pc-windows-msvc": ("windows-arm64", "omnivox-tgspeechbox-helper.exe"),
 }
 
 
@@ -370,7 +374,7 @@ def generate_voice_inventory(
 def companion_readme(target: str) -> str:
     return f"""# Omnivox TGSpeechBox companion
 
-This experimental `{target}` companion contains the Omnivox helper,
+This `{target}` payload contains the Omnivox helper,
 TGSpeechBox `{RELEASE}` from commit `{COMMIT}`, its YAML language packs, and
 the pinned Omnivox eSpeak-ng phonemizer/data.
 

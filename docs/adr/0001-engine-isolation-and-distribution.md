@@ -1,6 +1,10 @@
 # ADR 0001: Engine isolation and distribution
 
 - Status: Accepted
+- Partially superseded: [ADR 0012](0012-tgspeechbox-default-distribution.md),
+  accepted on 2026-10-09, replaces the TGSpeechBox separate experimental,
+  Windows-only distribution restriction. Process isolation and licensing
+  requirements remain in force.
 - Consolidated: 2026-09-27 from the existing accepted process and companion policies.
 - Related: [Progressive synthesis](0003-progressive-audio-and-markers.md),
   [managed voices](0007-managed-voice-lifecycle.md).
@@ -54,6 +58,9 @@ cleanup and recovery remain in the shared host. An unavailable optional engine
 leaves eligible ordinary fallback speech available.
 
 ### Preserve component-specific supply policies
+
+The TGSpeechBox row records the original policy; its current distribution policy
+is defined by [ADR 0012](0012-tgspeechbox-default-distribution.md).
 
 | Component | Accepted runtime/distribution boundary |
 | --- | --- |

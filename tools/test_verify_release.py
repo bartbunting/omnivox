@@ -78,6 +78,28 @@ class ReleaseLayoutTests(unittest.TestCase):
         for directory in ("common", "dectalk", "eloquence"):
             shutil.copytree(helpers / directory, source / directory)
 
+    def test_required_tgspeechbox_rejects_old_core_only_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_payload(root, "1.16.1", windows_helpers=True)
+            with self.assertRaisesRegex(verify_release.VerificationError,
+                                        "unexpected archive root entries"):
+                verify_release.verify_layout(root, "windows", "1.16.1",
+                                             require_tgspeechbox=True)
+
+    def test_empty_or_file_tgspeechbox_payload_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_payload(root, "1.16.1", windows_helpers=True)
+            payload = root / "tgspeechbox"
+            payload.write_text("not an engine")
+            with self.assertRaisesRegex(verify_release.VerificationError, "not a directory"):
+                verify_release.verify_layout(root, "windows", "1.16.1", require_tgspeechbox=True)
+            payload.unlink()
+            payload.mkdir()
+            with self.assertRaisesRegex(verify_release.VerificationError, "missing TGSpeechBox"):
+                verify_release.verify_layout(root, "windows", "1.16.1", require_tgspeechbox=True)
+
     def test_windows_current_requires_runtime_helpers_and_packaged_source(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -19,6 +19,7 @@ Proposed records do not override accepted decisions.
 | [0009: Local speech and output preferences](0009-local-speech-preferences.md) | Accepted | Frozen local settings, speech/reset precedence, capital cues and per-lane output choices. |
 | [0010: Windows default output recovery](0010-windows-default-output-recovery.md) | Accepted | Follow default endpoint changes, retire interrupted speech and recover output without restarting engines. |
 | [0011: Omnivox session configuration and reload](0011-session-configuration-and-reload.md) | Proposed | Omnivox coordinates configuration across independent workers; staged preference reload and later lifecycle Apply. |
+| [0012: TGSpeechBox default distribution](0012-tgspeechbox-default-distribution.md) | Accepted | Default bundled helper, retained isolation and native platform qualification; partially supersedes 0001. |
 
 The approved 2026-09-27 consolidation replaced the earlier collection, available
 in Git at `cdd6176`. The approved 2026-09-28 consolidation combined the local

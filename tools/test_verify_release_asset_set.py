@@ -11,9 +11,9 @@ import verify_release_asset_set as assets
 
 
 class ReleaseAssetSetTests(unittest.TestCase):
-    def test_expected_set_has_26_archives_one_deb_and_one_manifest(self) -> None:
+    def test_expected_set_has_31_archives_one_deb_and_one_manifest(self) -> None:
         names = assets.expected_asset_names("1.7.0")
-        self.assertEqual(len(names), 28)
+        self.assertEqual(len(names), 33)
         self.assertIn("omnivox_1.7.0-1_amd64.deb", names)
         self.assertIn("sha256sums.txt", names)
         self.assertIn("omnivox-1.7.0-windows-arm64.zip", names)

@@ -294,6 +294,10 @@ or effects. Legacy/layered boundaries separate effect ownership. Measured common
 rate curves and native saturation follow [rate calibration](reference/rate-calibration.md).
 
 Qualified native controls use typed adapter catalogues and sparse edits.
+TGSpeechBox ships in generic archives and Debian packages as a separate helper
+with its profiles and language data. Bundling does not change engine preference.
+The [distribution decision](adr/0012-tgspeechbox-default-distribution.md)
+requires native qualification for each release target.
 The TGSpeechBox helper exposes additive voice texture and profile-relative
 brightness through helper 6; the other Rust helpers retain their existing
 negotiation until explicitly enabled. Catalogue

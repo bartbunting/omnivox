@@ -13,8 +13,12 @@ Versioning for published releases.
 
 ### Changed
 
-- Pin TGSpeechBox upstream `v-310` source to
-  `25b0e1ae65fb87705f0870c724dc8c91f3abbeba`.
+- Include TGSpeechBox, its profiles and language data in the standard build,
+  every generic archive and the Debian package. Retain separate helper processes
+  and standalone downloads. Native build and release gates cover Linux, macOS
+  and Windows on x64 and ARM64; new platform qualification awaits those checks.
+- Remove the TGSpeechBox experimental label and pin its upstream `v-310` source
+  to `25b0e1ae65fb87705f0870c724dc8c91f3abbeba`.
 
 ## [1.16.0] - 2026-09-30
 

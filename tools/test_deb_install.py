@@ -47,7 +47,12 @@ def check_archive(archive: Path) -> None:
                 require(not member.linkname.startswith("/"), f"absolute link: {name}")
         require("usr/lib/omnivox/omnivox" in names, "missing executable")
         require("usr/share/omnivox/espeak-ng-data/phontab" in names, "missing eSpeak data")
-        for engine in ("flite", "rutts", "piper", "tgspeechbox"):
+        for relative in ("omnivox-tgspeechbox-helper", "packs/phonemes.yaml",
+                         "espeak-ng-data/phontab", "SHA256SUMS",
+                         "third-party-licenses/TGSpeechBox-LICENSE.txt"):
+            require(f"usr/lib/omnivox/tgspeechbox/{relative}" in names,
+                    f"missing bundled TGSpeechBox file: {relative}")
+        for engine in ("flite", "rutts", "piper"):
             require(not any(f"/{engine}/" in name for name in names),
                     f"optional companion bundled: {engine}")
 
@@ -55,7 +60,7 @@ def check_archive(archive: Path) -> None:
 def speech_check(version: str) -> None:
     require(run("omnivox", "--version") == f"omnivox {version}", "command link failed")
     with tempfile.TemporaryDirectory(prefix="omnivox speech test ") as temporary:
-        verify_execution(Path("/usr/bin/omnivox"), version, ["espeak"],
+        verify_execution(Path("/usr/bin/omnivox"), version, ["espeak", "tgspeechbox"],
                          Path(temporary), "linux")
     print("Unprivileged voice discovery and non-silent WAV synthesis passed")
 
@@ -85,6 +90,8 @@ def installed_check(archive: Path, version: str | None, commit: str | None) -> N
     for link in Path("/usr/lib/omnivox").rglob("*"):
         if link.is_symlink():
             require(link.exists(), f"broken installed link: {link}")
+    from verify_tgspeechbox_release import verify_layout as verify_tgs_layout
+    verify_tgs_layout(Path("/usr/lib/omnivox"), "x86_64-unknown-linux-gnu", bundled=True)
     require(not Path("/usr/share/espeak-ng-data").exists(), "unexpected system eSpeak data")
     subprocess.run(["runuser", "-u", "nobody", "--", "python3", __file__,
                     "--speech-only", binary_version], check=True)

@@ -60,11 +60,14 @@ female Russian voices:
 | Windows ARM64 | `omnivox-VERSION-rutts-windows-arm64.zip` |
 | All six | `omnivox-VERSION-rutts-source.tar.gz` |
 
-Beginning with v1.7.0, it publishes the experimental TGSpeechBox companion:
+TGSpeechBox is bundled in every generic archive and Debian package. Matching
+standalone companions remain available:
 
 | Platform | Companion archive |
 |---|---|
-| Windows x64 GNU | `omnivox-VERSION-tgspeechbox-windows-x64.zip` |
+| Linux x64 / ARM64 | `omnivox-VERSION-tgspeechbox-linux-ARCH.tar.gz` |
+| macOS x64 / ARM64 | `omnivox-VERSION-tgspeechbox-macos-ARCH.tar.gz` |
+| Windows x64 / ARM64 | `omnivox-VERSION-tgspeechbox-windows-ARCH.zip` |
 | Source and build inputs | `omnivox-VERSION-tgspeechbox-source.tar.gz` |
 
 Releases also publish one `sha256sums.txt` covering every generic, companion,
@@ -166,7 +169,7 @@ Compiled caches are separated by runner image for those builds.
 - The exact deterministic Piper source/build-input artifact, including its Git
   tree, exhaustive manifest, locked native inputs, CI-model exclusion, and
   offline Cargo graph.
-- Native Windows x64 GNU TGSpeechBox staging, inventory regeneration,
+- Native six-target TGSpeechBox staging, inventory regeneration, voice controls,
   relocation, repeated synthesis, streaming, cancellation, and ACSS checks,
   plus exact routing and WAV synthesis through the matching generic archive.
 - The deterministic TGSpeechBox source artifact, including its exact Omnivox
@@ -369,8 +372,8 @@ built-in SLT voice requires no additional runtime. See the
 [Flite companion guide](../docs/engines/flite.md). For RuTTS, extract the matching
 companion's `rutts/` directory beside the generic executable; its built-in
 male and female voices require no additional runtime. See the
-[RuTTS companion guide](../docs/engines/rutts.md). For TGSpeechBox on Windows x64,
-extract the companion's `tgspeechbox/` directory beside the generic executable. Its
+[RuTTS companion guide](../docs/engines/rutts.md). Keep the bundled
+`tgspeechbox/` directory beside the generic executable. Its
 packs and eSpeak NG phonemizer data are included. Its rate is calibrated against
 Eloquence and it exposes exact requested anchors, but not general word or
 sentence markers. See the

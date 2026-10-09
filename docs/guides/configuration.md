@@ -19,7 +19,7 @@ the selected backend.
 | `--check` | Run the diagnostic self-test; inspect each printed status and, with device output, confirm that its tone and speech are audible. |
 | `--list-voices` | Print voices for the selected startup engine. |
 | `--list-voices-alist` | Print the same list as Emacs-readable data. |
-| `--engine NAME` | Prefer a registered external ID or `native`, `espeak`, `piper`, `rhvoice`, `flite`, `rutts`, or experimental `tgspeechbox`/`mbrola`; Windows also accepts `winrt`, Windows/Linux accept configured `eloquence` and `dectalk` helpers, and macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
+| `--engine NAME` | Prefer a registered external ID or `native`, `espeak`, `piper`, `rhvoice`, `flite`, `rutts`, `tgspeechbox`, or experimental `mbrola`; Windows also accepts `winrt`, Windows/Linux accept configured `eloquence` and `dectalk` helpers, and macOS accepts `macos`. Diagnostic actions select an explicit name exactly. |
 | `--list-espeak-variants` | Silently list base voices and bundled variants from the selected speech host as JSON; see [eSpeak variants](../engines/espeak-variants.md). |
 | `--voice ID` | Set the startup physical voice; copy an exact ID from `--list-voices`. |
 | `--rate FLOAT` | Set normalized startup rate from 0.0 through 2.0; 0.5 targets the calibrated normal reference speed. |
@@ -359,8 +359,7 @@ manifest and restart the speech session.
   voice.
 - `rutts` selects the source-built RuTTS companion and its built-in Russian
   voices.
-- `tgspeechbox` selects the experimental source-built TGSpeechBox formant
-  companion.
+- `tgspeechbox` selects the bundled TGSpeechBox formant engine.
 - On Windows, `eloquence` and `dectalk` select their adjacent or explicitly
   configured helper and user-installed runtime; `winrt` explicitly selects the
   native engine.
@@ -459,7 +458,7 @@ pronunciation, verification, and licensing details.
 
 `OMNIVOX_TGSPEECHBOX_SAMPLE_RATE`
 
-- Selects TGSpeechBox's native DSP rate: `44100` (the default) or experimental
+- Selects TGSpeechBox's native DSP rate: `44100` (the streaming default) or buffered
   `22050` for controlled latency and audio-quality comparisons.
 - The companion contains a validated inventory for each rate. Changing the
   value takes effect after restarting the speech server; no rebuild is needed.
@@ -468,7 +467,7 @@ The source preparer accepts `OMNIVOX_TGSPEECHBOX_INPUTS_DIR` as a verified
 cache override. Advanced direct Cargo builds use
 `OMNIVOX_TGSPEECHBOX_SOURCE_DIR` to name the verified pinned source tree;
 these are build inputs rather than server settings. See
-[tgspeechbox.md](../engines/tgspeechbox.md) for the experimental Windows x64 build,
+[tgspeechbox.md](../engines/tgspeechbox.md) for native and Windows GNU builds,
 profiles, controls, and limitations.
 
 `OMNIVOX_PIPER_MODEL`

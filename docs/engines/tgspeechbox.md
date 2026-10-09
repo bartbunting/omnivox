@@ -1,6 +1,6 @@
-# TGSpeechBox Experimental Companion
+# TGSpeechBox
 
-TGSpeechBox is an optional formant-synthesis engine with a compact,
+TGSpeechBox is a bundled formant-synthesis engine with a compact,
 DECtalk-like sound and direct rate, pitch, inflection, volume, and profile
 controls. Omnivox pins the exact upstream `v-310` branch snapshot
 `v-310@25b0e1a` at commit `25b0e1ae65fb87705f0870c724dc8c91f3abbeba`
@@ -8,12 +8,20 @@ and keeps its C++ frontend and DSP inside a separate helper process. This
 snapshot is the `v-310` head captured on 2026-10-09; it is not presented as
 an upstream release tag.
 
-Beginning with Omnivox v1.7.0, Windows x64 GNU is published as a separate
-experimental companion. It is not embedded in generic archives or the
-Emacsvox bundle. Linux x64 remains a development smoke target. The helper has
-a measured rate curve and exact caller-requested synchronization anchors; its
-upstream beta status and limited runtime-accepted platform coverage still make
-the companion experimental.
+The standard build, generic release archives and Debian package include the
+helper, profiles and language data. Separate companion archives remain
+available for Linux, macOS and Windows on x64 and ARM64. Keep the complete
+`tgspeechbox/` directory beside the Omnivox executable when installing an
+archive. Bundling does not change the preferred speech engine.
+The [distribution decision](../adr/0012-tgspeechbox-default-distribution.md)
+records the package scope and verification requirements.
+
+The release workflow requires native synthesis, voice-control, cancellation
+and relocation checks on each platform. Linux x64 and Windows x64 have local
+runtime evidence. macOS, ARM64 and Windows MSVC qualification remain pending
+until the new native CI jobs pass; adding a matrix entry is not acceptance.
+Published releases through v1.16.1 contain only the separate Windows x64
+companion. These packaging changes apply to the next release.
 
 ## What is exposed
 
@@ -98,7 +106,15 @@ an artificial sentence ending. Omnivox does not claim general word, sentence,
 phoneme, or native-index markers: the TGSpeechBox frontend does not map those
 generated frames back to truthful source-text ranges.
 
-## Build Windows x64 from WSL
+## Build and verify
+
+`make build` and `make dev` include the native helper. On a clean source tree,
+`make verify-tgspeechbox` builds, packages and checks the native companion.
+Unix packages use `.tar.gz`; Windows packages use `.zip`. Native CI covers
+Linux, macOS and Windows on x64 and ARM64. Release checks also exercise the
+helper already inside each generic archive without replacing its files.
+
+### Windows x64 from WSL
 
 The first build downloads and verifies the locked TGSpeechBox archive. Later
 builds reuse the verified cache and can check it without downloading again.
@@ -107,7 +123,8 @@ builds reuse the verified cache and can check it without downloading again.
 make prepare-tgspeechbox
 python3 tools/prepare_tgspeechbox_inputs.py --check
 make build-tgspeechbox-windows
-make verify-tgspeechbox
+python3 tools/package_tgspeechbox.py --target x86_64-pc-windows-gnu
+python3 tools/verify_tgspeechbox_release.py --target x86_64-pc-windows-gnu
 make verify-tgspeechbox-source
 ```
 
@@ -123,10 +140,10 @@ default-compatible `VOICE-INVENTORY.json`, licence notices, exact source
 provenance, and `SHA256SUMS`. The MinGW C++ runtime is linked statically, so the
 helper does not require a separately staged `libstdc++-6.dll`.
 
-`make verify-tgspeechbox` creates and exercises
-`omnivox-VERSION-tgspeechbox-windows-x64.zip`. The tag workflow repeats that
-check on Windows and combines the relocated companion with the exact generic
-Windows archive for full-server voice discovery and WAV synthesis.
+The explicit GNU-target commands create and exercise
+`omnivox-VERSION-tgspeechbox-windows-x64.zip`. Native Windows CI builds with
+MSVC for x64 and ARM64, with `ESPEAK_STATIC_CRT=1` and
+`RUSTFLAGS="-C target-feature=+crt-static"` to include its C/C++ runtime.
 `make verify-tgspeechbox-source` creates and verifies the platform-neutral
 `omnivox-VERSION-tgspeechbox-source.tar.gz`, including the exact Omnivox tree,
 vendored Cargo/eSpeak NG source, locked TGSpeechBox archive, and exhaustive
@@ -207,9 +224,7 @@ TGSpeechBox normally runs its native DSP at 44.1 kHz. For controlled A/B tests,
 canonical Omnivox output remains stereo 44.1 kHz. The setting changes the live
 engine descriptor. The staged companion carries matching 44.1 and 22.05 kHz
 inventories, so switching needs only the environment change and a server
-restart; rebuilding is unnecessary. The 22.05 kHz mode remains experimental
-until timing and listening results justify changing the default. It deliberately
-remains buffered so the existing whole-utterance sinc conversion is not replaced
+restart; rebuilding is unnecessary. The 22.05 kHz mode remains buffered so the existing whole-utterance sinc conversion is not replaced
 by lower-quality independent resampling at every native pull boundary.
 
 ## Licensing and removal

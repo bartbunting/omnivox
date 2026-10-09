@@ -49,7 +49,7 @@ supply, configuration, verification and platform limits.
 | RHVoice | [User runtime and external/managed data](engines/rhvoice.md) |
 | Flite | [SLT companion and external voices](engines/flite.md) |
 | RuTTS | [Russian companion and text repertoire](engines/rutts.md) |
-| TGSpeechBox | [Experimental formant companion](engines/tgspeechbox.md) |
+| TGSpeechBox | [Bundled formant engine](engines/tgspeechbox.md) |
 | MBROLA | [Explicit development companion](engines/mbrola.md) |
 | eSpeak NG variants | [On-demand combinations and exact identity](engines/espeak-variants.md) |
 | macOS voices | [Native streaming and verification](engines/macos.md) |

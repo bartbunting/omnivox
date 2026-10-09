@@ -66,8 +66,8 @@ def parse_arguments(repository: Path) -> argparse.Namespace:
 def source_readme(version: str, commit: str, archive_name: str) -> str:
     return f"""# Omnivox {version} TGSpeechBox source and build inputs
 
-This archive accompanies the optional experimental TGSpeechBox Windows x64
-companion. It contains:
+This archive supplies matching source for bundled TGSpeechBox payloads and
+standalone companions on every supported platform. It contains:
 
 - `omnivox/`: the exact Omnivox Git tree at commit `{commit}`;
 - `omnivox/vendor/`: every Cargo registry package selected by `Cargo.lock`,

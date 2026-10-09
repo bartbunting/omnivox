@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import math
 import os
 from pathlib import Path, PurePosixPath
@@ -55,6 +56,7 @@ def parse_arguments() -> argparse.Namespace:
         default="",
         help="Comma-separated engines to execute, or empty for structural checks only",
     )
+    parser.add_argument("--require-tgspeechbox", action="store_true")
     return parser.parse_args()
 
 
@@ -161,7 +163,8 @@ def extract_archive(archive: Path, destination: Path, platform: str) -> None:
         extract_tar(archive, destination)
 
 
-def verify_layout(root: Path, platform: str, version: str) -> Path:
+def verify_layout(root: Path, platform: str, version: str, *,
+                  require_tgspeechbox: bool = False) -> Path:
     binary_name = "omnivox.exe" if platform == "windows" else "omnivox"
     project_license_entries = {"LICENSE", "LICENSING.md"}
     expected_root = {
@@ -187,6 +190,8 @@ def verify_layout(root: Path, platform: str, version: str) -> Path:
                 "windows-helpers-source",
             }
         )
+    if require_tgspeechbox or (root / "tgspeechbox").exists():
+        expected_root.add("tgspeechbox")
     actual_root = {path.name for path in root.iterdir()}
     allowed_roots = {frozenset(expected_root)}
     if version in LEGACY_RELEASES_WITHOUT_PROJECT_LICENSES:
@@ -285,6 +290,13 @@ def verify_layout(root: Path, platform: str, version: str) -> Path:
             "Windows helper GPL notice is missing or incomplete",
         )
         verify_windows_helper_source(root / "windows-helpers-source")
+    if "tgspeechbox" in actual_root:
+        payload = root / "tgspeechbox"
+        require(payload.is_dir(), "TGSpeechBox payload is not a directory")
+        helper_name = "omnivox-tgspeechbox-helper" + (".exe" if platform == "windows" else "")
+        for relative in (helper_name, "SOURCE-PROVENANCE.json", "SHA256SUMS",
+                         "espeak-ng-data/phontab", "packs/phonemes.yaml"):
+            require((payload / relative).is_file(), f"missing TGSpeechBox file: {relative}")
     return binary
 
 
@@ -526,7 +538,17 @@ def verify(arguments: argparse.Namespace) -> None:
         extracted.mkdir()
         working.mkdir()
         extract_archive(archive, extracted, arguments.platform)
-        binary = verify_layout(extracted, arguments.platform, arguments.version)
+        binary = verify_layout(extracted, arguments.platform, arguments.version,
+                               require_tgspeechbox=arguments.require_tgspeechbox)
+        if (extracted / "tgspeechbox").is_dir():
+            from verify_tgspeechbox_release import verify_layout as verify_tgs_layout, verify_helper
+            provenance = json.loads((extracted / "tgspeechbox/SOURCE-PROVENANCE.json").read_text())
+            helper = verify_tgs_layout(extracted, provenance["target"], bundled=True)
+            verify_architecture(helper, arguments.platform, arguments.arch)
+            if engines:
+                verify_helper(helper, Path(__file__).resolve().parent.parent, working, 25)
+                if "tgspeechbox" not in engines:
+                    engines.append("tgspeechbox")
         verify_architecture(binary, arguments.platform, arguments.arch)
         rhvoice_helpers = list((extracted / "rhvoice").glob("omnivox-rhvoice-helper*"))
         if rhvoice_helpers:

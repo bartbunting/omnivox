@@ -116,6 +116,14 @@ def stage(profile: Path, root: Path) -> list[Path]:
         copy_file(source, destination, executable=True)
         subprocess.run(["strip", "--strip-unneeded", str(destination)], check=True)
         binaries.append(destination)
+    from verify_tgspeechbox_release import verify_layout as verify_tgs_layout
+    helper = verify_tgs_layout(profile, NATIVE_TARGET, bundled=True)
+    check_elf(helper)
+    copy_tree(profile / "tgspeechbox", runtime / "tgspeechbox")
+    # Preserve the staged helper bytes and its complete inner checksum manifest.
+    bundled_helper = runtime / "tgspeechbox" / helper.name
+    bundled_helper.chmod(0o755)
+    binaries.append(bundled_helper)
     copy_tree(profile / "espeak-ng-data", shared / "espeak-ng-data")
     if not (shared / "espeak-ng-data/phontab").is_file():
         raise RuntimeError("packaged eSpeak data has no phontab")
@@ -204,6 +212,7 @@ def package(arguments: argparse.Namespace) -> Path:
         }
         if arguments.release:
             provenance["corresponding_source"] = f"omnivox-{version}-piper-source.tar.gz"
+            provenance["tgspeechbox_corresponding_source"] = f"omnivox-{version}-tgspeechbox-source.tar.gz"
         (root / "usr/share/doc/omnivox/BUILD-INFO.json").write_text(
             json.dumps(provenance, indent=2, sort_keys=True) + "\n"
         )
@@ -214,7 +223,7 @@ def package(arguments: argparse.Namespace) -> Path:
             f"Maintainer: {MAINTAINER}\nSection: sound\nPriority: optional\n"
             f"Installed-Size: {size}\nDepends: {dependencies[len(prefix):]}\n"
             "Homepage: https://github.com/bartbunting/omnivox\n"
-            "Description: speech server for Emacs with bundled eSpeak NG\n"
+            "Description: speech server for Emacs with eSpeak NG and TGSpeechBox\n"
             " Provides speech synthesis, audio mixing, and optional engine helpers.\n"
             " Includes matching eSpeak NG data and the RHVoice integration helper.\n"
             " RHVoice libraries and voices are supplied separately by the user.\n"

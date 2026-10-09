@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Create the deterministic Windows x64 TGSpeechBox companion archive."""
+"""Create a deterministic TGSpeechBox companion archive."""
 
 from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import gzip
 import hashlib
 import json
 import os
@@ -12,11 +13,13 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tarfile
 import tomllib
 import zipfile
 
 sys.dont_write_bytecode = True
 from build_tgspeechbox import (
+    host_target,
     COMMIT,
     DEFAULT_SAMPLE_RATE,
     EXPECTED_VOICE_COUNT,
@@ -28,8 +31,11 @@ from build_tgspeechbox import (
 )
 
 
-RELEASE_TARGET = "x86_64-pc-windows-gnu"
-RELEASE_SUFFIX = "windows-x64"
+def archive_identity(target: str) -> tuple[str, str]:
+    require(target in SUPPORTED_TARGETS, f"unsupported release target: {target}")
+    suffix = SUPPORTED_TARGETS[target][0].removesuffix("-gnu")
+    return suffix, "zip" if suffix.startswith("windows-") else "tar.gz"
+
 EXPECTED_ROOT = {
     "LICENSE",
     "LICENSING.md",
@@ -87,25 +93,24 @@ def git_output(repository: Path, *arguments: str) -> str:
 
 def parse_arguments(repository: Path) -> argparse.Namespace:
     version = repository_version(repository)
-    release = repository / "target/x86_64-pc-windows-gnu/release"
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", default=version)
-    parser.add_argument("--target", default=RELEASE_TARGET)
-    parser.add_argument("--staged", type=Path, default=release / "tgspeechbox")
-    parser.add_argument(
-        "--output",
-        type=Path,
-        default=release / f"omnivox-{version}-tgspeechbox-{RELEASE_SUFFIX}.zip",
-    )
-    parser.add_argument(
-        "--checksums", type=Path, default=release / "tgspeechbox-sha256sums.txt"
-    )
-    parser.add_argument(
-        "--source-date-epoch",
-        type=int,
-        default=int(os.environ.get("SOURCE_DATE_EPOCH", "0")),
-    )
-    return parser.parse_args()
+    parser.add_argument("--target")
+    parser.add_argument("--staged", type=Path)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--checksums", type=Path)
+    parser.add_argument("--source-date-epoch", type=int,
+                        default=int(os.environ.get("SOURCE_DATE_EPOCH", "0")))
+    arguments = parser.parse_args()
+    arguments.target = arguments.target or host_target()
+    suffix, extension = archive_identity(arguments.target)
+    release = repository / "target/release"
+    if "--target" in sys.argv or any(a.startswith("--target=") for a in sys.argv):
+        release = repository / "target" / arguments.target / "release"
+    arguments.staged = arguments.staged or release / "tgspeechbox"
+    arguments.output = arguments.output or release / f"omnivox-{arguments.version}-tgspeechbox-{suffix}.{extension}"
+    arguments.checksums = arguments.checksums or release / "tgspeechbox-sha256sums.txt"
+    return arguments
 
 
 def inner_checksums(directory: Path) -> dict[str, str]:
@@ -142,7 +147,7 @@ def validate_inventory(path: Path, source_identity: str, sample_rate: int) -> No
 
 
 def validate_stage(directory: Path, repository: Path, target: str) -> None:
-    require(target == RELEASE_TARGET, f"unsupported release target: {target}")
+    require(target in SUPPORTED_TARGETS, f"unsupported release target: {target}")
     stage_suffix, helper_name = SUPPORTED_TARGETS[target]
     require(directory.is_dir(), f"staged TGSpeechBox directory is missing: {directory}")
     require(
@@ -219,6 +224,44 @@ def validate_stage(directory: Path, repository: Path, target: str) -> None:
     )
 
 
+def tar_info(name: str, mode: int, timestamp: int, directory: bool) -> tarfile.TarInfo:
+    info = tarfile.TarInfo(name)
+    info.mode = mode
+    info.mtime = timestamp
+    info.uid = 0
+    info.gid = 0
+    info.uname = "root"
+    info.gname = "root"
+    if directory:
+        info.type = tarfile.DIRTYPE
+    return info
+
+
+def write_tar(source: Path, destination: Path, timestamp: int) -> None:
+    require(timestamp >= 0, "source date epoch cannot be negative")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(f".{destination.name}.tmp-{os.getpid()}")
+    try:
+        with temporary.open("wb") as raw:
+            with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=timestamp) as compressed:
+                with tarfile.open(fileobj=compressed, mode="w", format=tarfile.PAX_FORMAT) as archive:
+                    archive.addfile(tar_info("tgspeechbox", 0o755, timestamp, True))
+                    for path in sorted(source.rglob("*")):
+                        name = f"tgspeechbox/{path.relative_to(source).as_posix()}"
+                        if path.is_dir():
+                            archive.addfile(tar_info(name, 0o755, timestamp, True))
+                        else:
+                            mode = 0o755 if path.stat().st_mode & 0o111 else 0o644
+                            info = tar_info(name, mode, timestamp, False)
+                            info.size = path.stat().st_size
+                            with path.open("rb") as content:
+                                archive.addfile(info, content)
+        temporary.replace(destination)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
 def zip_info(name: str, mode: int, timestamp: int, directory: bool) -> zipfile.ZipInfo:
     normalized = datetime.fromtimestamp(max(timestamp, 315_532_800), tz=timezone.utc)
     info = zipfile.ZipInfo(
@@ -286,7 +329,9 @@ def main() -> int:
         )
         validate_stage(arguments.staged.resolve(), repository, arguments.target)
         output = arguments.output.resolve()
-        write_zip(arguments.staged.resolve(), output, arguments.source_date_epoch)
+        _, extension = archive_identity(arguments.target)
+        writer = write_zip if extension == "zip" else write_tar
+        writer(arguments.staged.resolve(), output, arguments.source_date_epoch)
         write_checksum(output, arguments.checksums.resolve())
         print(f"Packaged {output} ({output.stat().st_size / (1024 * 1024):.1f} MiB)")
     except (

@@ -157,8 +157,7 @@ make verify-rutts-source
 ```
 
 `prepare_tgspeechbox_inputs.py` downloads and verifies the exact TGSpeechBox
-`v-310@25b0e1a` snapshot archive and complete extracted-tree digest. The
-experimental
+`v-310@25b0e1a` snapshot archive and complete extracted-tree digest.
 `build_tgspeechbox.py` compiles the isolated C++/eSpeak helper and atomically
 stages its packs, generated eSpeak data, licences, provenance, and exhaustive
 checksums:
@@ -166,15 +165,14 @@ checksums:
 ```sh
 make prepare-tgspeechbox
 python3 tools/prepare_tgspeechbox_inputs.py --check
-make build-tgspeechbox-windows
+make build-tgspeechbox
 make verify-tgspeechbox
 make verify-tgspeechbox-source
 ```
 
-The accepted target is Windows x64 GNU from WSL; Linux x64 is available for a
-development smoke test. `package_tgspeechbox.py` and
-`verify_tgspeechbox_release.py` create and exercise the deterministic Windows
-archive. The matching source tools include the exact Omnivox tree, vendored
+Native packaging targets Linux, macOS and Windows on x64 and ARM64.
+Windows x64 GNU builds from WSL remain available. `package_tgspeechbox.py` and
+`verify_tgspeechbox_release.py` create and exercise deterministic native archives. The matching source tools include the exact Omnivox tree, vendored
 Cargo/eSpeak NG source, locked TGSpeechBox archive, and exhaustive manifest.
 See the
 [TGSpeechBox companion guide](../docs/engines/tgspeechbox.md).

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the Windows x64 TGSpeechBox companion and real synthesis."""
+"""Verify a TGSpeechBox payload and real synthesis."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,6 +17,7 @@ import tomllib
 sys.dont_write_bytecode = True
 import verify_release as common
 from build_tgspeechbox import (
+    host_target,
     COMMIT,
     DEFAULT_SAMPLE_RATE,
     EXPECTED_VOICE_COUNT,
@@ -28,10 +28,10 @@ from build_tgspeechbox import (
     VOICE_INVENTORY_FILENAMES,
 )
 from package_tgspeechbox import (
+    PackagingError,
     EXPECTED_NOTICES,
     EXPECTED_ROOT,
-    RELEASE_SUFFIX,
-    RELEASE_TARGET,
+    archive_identity,
 )
 
 
@@ -59,21 +59,22 @@ def repository_version(repository: Path) -> str:
 
 def parse_arguments(repository: Path) -> argparse.Namespace:
     version = repository_version(repository)
-    release = repository / "target/x86_64-pc-windows-gnu/release"
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--archive",
-        type=Path,
-        default=release / f"omnivox-{version}-tgspeechbox-{RELEASE_SUFFIX}.zip",
-    )
-    parser.add_argument(
-        "--checksums", type=Path, default=release / "tgspeechbox-sha256sums.txt"
-    )
+    parser.add_argument("--archive", type=Path)
+    parser.add_argument("--checksums", type=Path)
     parser.add_argument("--version", default=version)
-    parser.add_argument("--target", default=RELEASE_TARGET)
+    parser.add_argument("--target")
     parser.add_argument("--iterations", type=int, default=5)
     parser.add_argument("--omnivox-archive", type=Path)
-    return parser.parse_args()
+    arguments = parser.parse_args()
+    arguments.target = arguments.target or host_target()
+    suffix, extension = archive_identity(arguments.target)
+    release = repository / "target/release"
+    if "--target" in sys.argv or any(a.startswith("--target=") for a in sys.argv):
+        release = repository / "target" / arguments.target / "release"
+    arguments.archive = arguments.archive or release / f"omnivox-{arguments.version}-tgspeechbox-{suffix}.{extension}"
+    arguments.checksums = arguments.checksums or release / "tgspeechbox-sha256sums.txt"
+    return arguments
 
 
 def safe_checksum_path(value: str) -> str:
@@ -126,11 +127,11 @@ def verify_inventory(
     return inventory
 
 
-def verify_layout(extracted: Path, target: str) -> Path:
-    require(target == RELEASE_TARGET, f"unsupported release target: {target}")
+def verify_layout(extracted: Path, target: str, *, bundled: bool = False) -> Path:
+    require(target in SUPPORTED_TARGETS, f"unsupported release target: {target}")
     stage_suffix, helper_name = SUPPORTED_TARGETS[target]
     require(
-        {path.name for path in extracted.iterdir()} == {"tgspeechbox"},
+        bundled or {path.name for path in extracted.iterdir()} == {"tgspeechbox"},
         "archive must contain exactly one top-level tgspeechbox directory",
     )
     directory = extracted / "tgspeechbox"
@@ -230,21 +231,31 @@ def verify_omnivox_synthesis(
     checksums: Path,
     version: str,
     working: Path,
+    target: str,
 ) -> None:
+    suffix, extension = archive_identity(target)
+    platform, architecture = suffix.split("-", 1)
+    arch = "x86_64" if architecture == "x64" else "aarch64"
     require(archive.is_file(), f"matching Omnivox archive is missing: {archive}")
     require(
-        archive.name == f"omnivox-{version}-windows-x64.zip",
+        archive.name == f"omnivox-{version}-{suffix}.{extension}",
         f"unexpected Omnivox archive name: {archive.name}",
     )
     common.verify_checksum(archive, checksums)
     installed = working.parent / "Installed Omnivox with TGSpeechBox"
     installed.mkdir()
-    common.extract_zip(archive, installed)
-    omnivox = common.verify_layout(installed, "windows", version)
-    common.verify_architecture(omnivox, "windows", "x86_64")
+    common.extract_archive(archive, installed, platform)
+    omnivox = common.verify_layout(installed, platform, version, require_tgspeechbox=True)
+    common.verify_architecture(omnivox, platform, arch)
     if os.name != "nt":
         omnivox.chmod(omnivox.stat().st_mode | 0o755)
-    shutil.copytree(companion, installed / "tgspeechbox")
+    # Verify the bundled payload without copying the companion over it.
+    verify_layout(installed, target, bundled=True)
+    require(
+        (companion / "SHA256SUMS").read_bytes()
+        == (installed / "tgspeechbox/SHA256SUMS").read_bytes(),
+        "bundled TGSpeechBox differs from the matching companion",
+    )
 
     environment = common.clean_environment()
     command = str(omnivox.resolve())
@@ -274,7 +285,9 @@ def verify_omnivox_synthesis(
 
 
 def verify(arguments: argparse.Namespace, repository: Path) -> None:
-    require(arguments.target == RELEASE_TARGET, f"unsupported release target: {arguments.target}")
+    suffix, extension = archive_identity(arguments.target)
+    platform, architecture = suffix.split("-", 1)
+    arch = "x86_64" if architecture == "x64" else "aarch64"
     require(arguments.iterations > 0, "iterations must be positive")
     archive = arguments.archive.resolve()
     checksums = arguments.checksums.resolve()
@@ -282,7 +295,7 @@ def verify(arguments: argparse.Namespace, repository: Path) -> None:
     require(checksums.is_file(), f"checksum file does not exist: {checksums}")
     require(
         archive.name
-        == f"omnivox-{arguments.version}-tgspeechbox-{RELEASE_SUFFIX}.zip",
+        == f"omnivox-{arguments.version}-tgspeechbox-{suffix}.{extension}",
         f"unexpected TGSpeechBox archive name: {archive.name}",
     )
     common.verify_checksum(archive, checksums)
@@ -292,9 +305,9 @@ def verify(arguments: argparse.Namespace, repository: Path) -> None:
         working = root / "Unrelated working directory"
         extracted.mkdir()
         working.mkdir()
-        common.extract_zip(archive, extracted)
+        common.extract_archive(archive, extracted, platform)
         helper = verify_layout(extracted, arguments.target)
-        common.verify_architecture(helper, "windows", "x86_64")
+        common.verify_architecture(helper, platform, arch)
         verify_helper(helper, repository, working, arguments.iterations)
         if arguments.omnivox_archive is not None:
             verify_omnivox_synthesis(
@@ -303,6 +316,7 @@ def verify(arguments: argparse.Namespace, repository: Path) -> None:
                 checksums,
                 arguments.version,
                 working,
+                arguments.target,
             )
     mode = "structure, relocation, inventory, and helper synthesis"
     if arguments.omnivox_archive is not None:
@@ -317,6 +331,7 @@ def main() -> int:
     except (
         OSError,
         common.VerificationError,
+        PackagingError,
         subprocess.TimeoutExpired,
         json.JSONDecodeError,
     ) as error:

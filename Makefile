@@ -19,11 +19,11 @@ deb-package-test:
 	$(PYTHON) tools/test_package_deb.py
 
 # Build release binary
-build: stage-rhvoice stage-flite stage-rutts
+build: stage-rhvoice stage-flite stage-rutts stage-tgspeechbox
 	$(PYTHON) tools/build.py --release --package omnivox-cli --features piper
 
 # Build debug binary
-dev: stage-rhvoice-dev stage-flite-dev stage-rutts-dev
+dev: stage-rhvoice-dev stage-flite-dev stage-rutts-dev stage-tgspeechbox-dev
 	$(PYTHON) tools/build.py --package omnivox-cli --features piper
 
 # Optional user-installed Linux runtimes stay behind their own helpers.
@@ -40,7 +40,7 @@ dev: linux-helpers-dev
 endif
 
 # Run tests
-test: windows-helpers-test rate-audit-test latency-benchmark-test latency-benchmark-suite-test wsl-audio-test server-stress-test helper-soak-test diagnostics-redaction-test remote-ssh-harness-test archive-safety-test release-archive-test piper-release-test release-asset-test
+test: windows-helpers-test rate-audit-test latency-benchmark-test latency-benchmark-suite-test wsl-audio-test server-stress-test helper-soak-test diagnostics-redaction-test remote-ssh-harness-test archive-safety-test release-archive-test piper-release-test release-asset-test tgspeechbox-package-test
 	cargo test --locked
 
 rate-audit-test:
@@ -93,6 +93,10 @@ remote-ssh-harness-test:
 archive-safety-test:
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_archive_safety.py
+
+.PHONY: tgspeechbox-package-test
+tgspeechbox-package-test:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) tools/test_package_tgspeechbox.py
 
 release-archive-test:
 	PYTHONDONTWRITEBYTECODE=1 \
@@ -258,9 +262,7 @@ verify-rutts-source: package-rutts-source
 
 install-rutts: install
 
-# Build and stage the experimental TGSpeechBox source companion. It remains
-# opt-in while upstream integration matures; rate calibration and exact
-# requested anchors are supported by the isolated helper.
+# Build the bundled TGSpeechBox helper and its self-contained data payload.
 prepare-tgspeechbox:
 	$(PYTHON) tools/prepare_tgspeechbox_inputs.py
 
@@ -275,7 +277,7 @@ build-tgspeechbox: stage-tgspeechbox build
 build-tgspeechbox-windows:
 	$(PYTHON) tools/build_tgspeechbox.py --release --target x86_64-pc-windows-gnu
 
-package-tgspeechbox: build-tgspeechbox-windows
+package-tgspeechbox: stage-tgspeechbox
 	$(PYTHON) tools/package_tgspeechbox.py
 
 verify-tgspeechbox: package-tgspeechbox

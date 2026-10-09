@@ -68,18 +68,19 @@ with the same `apt install ./...deb` command. No service is enabled, no token
 is generated, and no user configuration is modified during installation.
 Run speech as your ordinary desktop user so it can access the audio session.
 
-The executable and RHVoice helper live under `/usr/lib/omnivox`, with
+The executable, RHVoice helper and self-contained `tgspeechbox/` payload live under `/usr/lib/omnivox`, with
 `/usr/bin/omnivox` as the command. Matching eSpeak data lives under
 `/usr/share/omnivox`; relative links preserve the existing adjacent-data
 discovery contract. Notices and build identity are under
 `/usr/share/doc/omnivox`, and the optional Emacspeak adapter source is under
 `/usr/share/emacs/site-lisp/omnivox` (it is not loaded automatically).
 
+TGSpeechBox includes its helper, profiles, language packs and phonemizer data.
 The package includes no RHVoice runtime or voices, Flite, RuTTS, Piper,
-TGSpeechBox, proprietary runtime, or downloaded voice model. Optional engines
+proprietary runtime, or downloaded voice model. Other optional engines
 retain their existing separately installed companion boundaries.
 
-Library dependencies are computed from both executables with `dpkg-shlibdeps`.
+Library dependencies are computed from all three executables with `dpkg-shlibdeps`.
 Build on the oldest Ubuntu release you intend to support and test installation
 and synthesis on every claimed release. A package built on Ubuntu 26.04 must
 not be assumed compatible with 24.04. This initial target supports amd64 only;

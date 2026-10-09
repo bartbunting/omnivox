@@ -274,7 +274,7 @@ pub fn print_help() {
     println!("    rhvoice   RHVoice (requires helper plus a user-installed native runtime)");
     println!("    flite     Flite compact English companion (compiled-in SLT voice)");
     println!("    rutts     RuTTS compact Russian companion (built-in male and female voices)");
-    println!("    tgspeechbox TGSpeechBox experimental formant-synthesis companion");
+    println!("    tgspeechbox TGSpeechBox bundled formant-synthesis engine");
     println!("    mbrola    Opt-in en1 prototype (requires OMNIVOX_MBROLA_HELPER)");
     if cfg!(target_os = "windows") {
         println!("    eloquence Windows Eloquence helper (user-installed ECI runtime)");

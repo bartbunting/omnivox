@@ -35,7 +35,7 @@ jobs:
         run: make docs-check
 
       - name: Check release guards, archive layout, and asset contract
-        run: make deb-package-test release-archive-test release-asset-test
+        run: make deb-package-test release-archive-test release-asset-test tgspeechbox-package-test
 
       - name: Check WSL audio trial tools without an audio device
         run: make wsl-audio-test
@@ -565,10 +565,36 @@ jobs:
           if-no-files-found: error
 
   build_tgspeechbox_release:
-    name: Build TGSpeechBox Release Windows x64
-    runs-on: windows-latest
+    name: Build TGSpeechBox ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    env:
+      # Include the MSVC C/C++ runtime in Windows helpers.
+      ESPEAK_STATIC_CRT: '1'
+      RUSTFLAGS: ${{ startsWith(matrix.name, 'windows-') && '-C target-feature=+crt-static' || '' }}
     timeout-minutes: 45
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name != 'workflow_dispatch' || inputs.draft_version == ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - name: macos-arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+          - name: macos-x64
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - name: windows-arm64
+            os: windows-11-vs2026-arm
+            target: aarch64-pc-windows-msvc
 
     steps:
       - name: Checkout code
@@ -577,38 +603,54 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
         with:
-          targets: x86_64-pc-windows-gnu
+          targets: ${{ matrix.target }}
 
       - name: Install Python
         uses: actions/setup-python@v7
         with:
           python-version: '3.x'
 
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libasound2-dev pkg-config cmake clang libclang-dev
+
       - name: Cache Cargo registry
         uses: actions/cache@v6
         with:
           path: ~/.cargo/registry
-          key: tgspeechbox-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: tgspeechbox-${{ runner.os }}-
+          key: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-
 
       - name: Cache Cargo build
         uses: actions/cache@v6
         with:
           path: target
-          key: tgspeechbox-${{ runner.os }}-build-${{ hashFiles('Cargo.lock') }}
-          restore-keys: tgspeechbox-${{ runner.os }}-build-
+          key: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
+          restore-keys: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-build-
 
       - name: Build and stage companion
-        run: python tools/build_tgspeechbox.py --release --target x86_64-pc-windows-gnu
+        run: python tools/build_tgspeechbox.py --release
 
       - name: Recheck prepared source without network
         run: python tools/prepare_tgspeechbox_inputs.py --check
 
       - name: Lint native TGSpeechBox crates
         run: >-
-          cargo clippy --locked --target x86_64-pc-windows-gnu
+          cargo clippy --locked
           --package omnivox-tgspeechbox-helper --package omnivox-tgspeechbox-sys
           --all-targets -- -D warnings
+
+      - name: Test native TGSpeechBox crates
+        run: cargo test --locked --package omnivox-tgspeechbox-helper --package omnivox-tgspeechbox-sys
+
+      - name: Verify native voice controls
+        shell: bash
+        run: |
+          helper="target/release/tgspeechbox/omnivox-tgspeechbox-helper"
+          if [[ "${{ runner.os }}" == Windows ]]; then helper="$helper.exe"; fi
+          python tools/test_tgspeechbox_parameters.py "$helper"
 
       - name: Package and verify companion
         run: |
@@ -626,10 +668,10 @@ jobs:
       - name: Upload verified companion
         uses: actions/upload-artifact@v7
         with:
-          name: omnivox-tgspeechbox-windows-x64
+          name: omnivox-tgspeechbox-${{ matrix.name }}
           path: |
-            target/x86_64-pc-windows-gnu/release/omnivox-${{ steps.workspace_version.outputs.version }}-tgspeechbox-windows-x64.zip
-            target/x86_64-pc-windows-gnu/release/tgspeechbox-sha256sums.txt
+            target/release/omnivox-${{ steps.workspace_version.outputs.version }}-tgspeechbox-${{ matrix.name }}.*
+            target/release/tgspeechbox-sha256sums.txt
           compression-level: 0
           if-no-files-found: error
 
@@ -854,6 +896,9 @@ jobs:
           restore-keys: deb-registry-${{ runner.os }}-
 
       - name: Build Debian package
+        env:
+          # The upstream phoneme compiler has a bounded pathname buffer.
+          CARGO_TARGET_DIR: /tmp/ov-deb
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             make package-deb-release
@@ -904,6 +949,20 @@ jobs:
         with:
           path: artifacts
 
+      - name: Include TGSpeechBox in every generic payload
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          for suffix in linux-x64 macos-arm64 macos-x64 windows-x64 windows-arm64; do
+            source="artifacts/omnivox-tgspeechbox-${suffix}/omnivox-${VERSION}-tgspeechbox-${suffix}"
+            destination="artifacts/omnivox-${suffix}"
+            if [[ "$suffix" == windows-* ]]; then
+              unzip -q "${source}.zip" -d "$destination"
+            else
+              tar xzf "${source}.tar.gz" -C "$destination"
+            fi
+          done
+
       - name: Restore Unix executable permissions
         run: >-
           chmod +x
@@ -932,11 +991,11 @@ jobs:
             archive="omnivox-${VERSION}-${suffix}"
             if [[ "$suffix" == *"windows"* ]]; then
               cd "$dir"
-              zip -r "../${archive}.zip" omnivox.exe LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses rhvoice OmnivoxEloquenceHelper32.exe OmnivoxDectalkHelper32.exe WINDOWS-HELPERS-COPYING windows-helpers-source
+              zip -r "../${archive}.zip" omnivox.exe LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses rhvoice tgspeechbox OmnivoxEloquenceHelper32.exe OmnivoxDectalkHelper32.exe WINDOWS-HELPERS-COPYING windows-helpers-source
               cd ..
             else
               cd "$dir"
-              tar czf "../${archive}.tar.gz" omnivox LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses rhvoice
+              tar czf "../${archive}.tar.gz" omnivox LICENSE LICENSING.md omnivox-voices.el espeak-ng-data third-party-licenses rhvoice tgspeechbox
               cd ..
             fi
           done
@@ -945,7 +1004,9 @@ jobs:
           cp "omnivox-piper-macos-x64/omnivox-${VERSION}-piper-macos-x64.tar.gz" .
           cp "omnivox-piper-windows-x64/omnivox-${VERSION}-piper-windows-x64.zip" .
           cp "omnivox-piper-source/omnivox-${VERSION}-piper-source.tar.gz" .
-          cp "omnivox-tgspeechbox-windows-x64/omnivox-${VERSION}-tgspeechbox-windows-x64.zip" .
+          for suffix in linux-x64 linux-arm64 macos-arm64 macos-x64 windows-x64 windows-arm64; do
+            cp omnivox-tgspeechbox-${suffix}/omnivox-${VERSION}-tgspeechbox-${suffix}.* .
+          done
           cp "omnivox-tgspeechbox-source/omnivox-${VERSION}-tgspeechbox-source.tar.gz" .
           cp "omnivox-flite-linux-x64/omnivox-${VERSION}-flite-linux-x64.tar.gz" .
           cp "omnivox-flite-linux-arm64/omnivox-${VERSION}-flite-linux-arm64.tar.gz" .
@@ -1033,7 +1094,7 @@ jobs:
             ```
 
             The package contains the core server, matching eSpeak data, and the
-            RHVoice integration helper. Optional engines and user-supplied voices
+            RHVoice integration helper, and TGSpeechBox. Other optional engines and user-supplied voices
             remain separate. The matching `omnivox-${{ needs.package_release.outputs.version }}-piper-source.tar.gz`
             includes the complete Omnivox tree, vendored Cargo dependencies, and
             eSpeak NG/Sonic sources used by the core package as well as Piper.
@@ -1055,6 +1116,7 @@ jobs:
             cp -R espeak-ng-data/. "$binary_directory/espeak-ng-data/"
             cp -R third-party-licenses/. "$binary_directory/third-party-licenses/"
             cp -R rhvoice/. "$binary_directory/rhvoice/"
+            cp -R tgspeechbox "$binary_directory/tgspeechbox"
             ```
 
             After extracting on Windows:
@@ -1072,6 +1134,7 @@ jobs:
             Copy-Item -Recurse -Force espeak-ng-data\* "$destination\espeak-ng-data"
             Copy-Item -Recurse -Force third-party-licenses\* "$destination\third-party-licenses"
             Copy-Item -Recurse -Force rhvoice\* "$destination\rhvoice"
+            Copy-Item -Recurse -Force tgspeechbox $destination
             ```
 
             `omnivox-voices.el` is the upstream Emacspeak adapter. Emacsvox uses
@@ -1169,21 +1232,17 @@ jobs:
             source and Omnivox build integration are in
             `omnivox-${{ needs.package_release.outputs.version }}-rutts-source.tar.gz`.
 
-            ### Experimental TGSpeechBox companion
+            ### Included TGSpeechBox engine
 
-            TGSpeechBox is an opt-in formant engine published for Windows x64.
-            Extract the archive's top-level `tgspeechbox/` directory beside
-            the Windows x64 generic executable:
+            Every generic archive and the Debian package includes TGSpeechBox,
+            its seven voice profiles and 22 languages. Keep the `tgspeechbox/`
+            directory beside the Omnivox executable when copying an archive.
+            No additional engine or voice download is needed. The engine runs
+            in its own helper process and retains its GPL and component notices.
 
-            `omnivox-${{ needs.package_release.outputs.version }}-tgspeechbox-windows-x64.zip`
-
-            Its seven profiles and 22 languages are built from the exact
-            checksum-locked `v-310@f5ec247` upstream snapshot. Its measured
-            Adam `en-us` rate curve follows Eloquence until the native ceiling,
-            and exact requested anchors support progressive presentation
-            actions. The upstream beta and limited runtime-accepted platform
-            coverage keep the companion experimental. Its complete Omnivox,
-            TGSpeechBox, eSpeak NG, and Cargo source is in
+            Separate companion downloads remain available for Linux, macOS and
+            Windows on x64 and ARM64. Each platform must pass native verification
+            before publication. Complete matching source is in
             `omnivox-${{ needs.package_release.outputs.version }}-tgspeechbox-source.tar.gz`.
 
             These binaries are not code-signed or notarized, so Gatekeeper or
@@ -1286,7 +1345,7 @@ jobs:
 
       - name: Verify downloaded release archive
         shell: bash
-        run: python tools/verify_release.py --archive "downloaded/omnivox-$RELEASE_VERSION-${{ matrix.suffix }}.${{ matrix.extension }}" --checksums downloaded/sha256sums.txt --version "$RELEASE_VERSION" --platform "${{ matrix.platform }}" --arch "${{ matrix.arch }}" --engines "${{ matrix.engines }}"
+        run: python tools/verify_release.py --archive "downloaded/omnivox-$RELEASE_VERSION-${{ matrix.suffix }}.${{ matrix.extension }}" --checksums downloaded/sha256sums.txt --version "$RELEASE_VERSION" --platform "${{ matrix.platform }}" --arch "${{ matrix.arch }}" --engines "${{ matrix.engines }}" --require-tgspeechbox
 
   verify_piper_release:
     name: Verify Piper Release ${{ matrix.name }}
@@ -1702,9 +1761,9 @@ jobs:
           --version "$RELEASE_VERSION"
 
   verify_tgspeechbox_release:
-    name: Verify TGSpeechBox Release Windows x64
+    name: Verify TGSpeechBox Release ${{ matrix.name }}
     needs: [package_release, create_draft_release]
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     if: >-
       always() &&
       (
@@ -1724,6 +1783,35 @@ jobs:
       RELEASE_VERSION: ${{ inputs.draft_version != '' && inputs.draft_version || needs.package_release.outputs.version }}
       RELEASE_TAG: ${{ inputs.draft_version != '' && format('v{0}', inputs.draft_version) || github.ref_name }}
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            extension: tar.gz
+            os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - name: linux-arm64
+            extension: tar.gz
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - name: macos-arm64
+            extension: tar.gz
+            os: macos-15
+            target: aarch64-apple-darwin
+          - name: macos-x64
+            extension: tar.gz
+            os: macos-15-intel
+            target: x86_64-apple-darwin
+          - name: windows-x64
+            extension: zip
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - name: windows-arm64
+            extension: zip
+            os: windows-11-vs2026-arm
+            target: aarch64-pc-windows-msvc
+
     steps:
       # Use this run's verifier, like the other binary checks, so a manual
       # draft retry can repair verification without changing the release tag.
@@ -1737,27 +1825,39 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Download TGSpeechBox and generic Windows assets
+      - name: Download TGSpeechBox asset
         shell: bash
         run: >-
           gh release download "$RELEASE_TAG"
           --repo "${{ github.repository }}"
-          --pattern "omnivox-$RELEASE_VERSION-tgspeechbox-windows-x64.zip"
-          --pattern "omnivox-$RELEASE_VERSION-windows-x64.zip"
+          --pattern "omnivox-$RELEASE_VERSION-tgspeechbox-${{ matrix.name }}.${{ matrix.extension }}"
           --pattern sha256sums.txt
+          --dir downloaded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download matching generic archive
+        if: matrix.name != 'linux-arm64'
+        shell: bash
+        run: >-
+          gh release download "$RELEASE_TAG" --repo "${{ github.repository }}"
+          --pattern "omnivox-$RELEASE_VERSION-${{ matrix.name }}.${{ matrix.extension }}"
           --dir downloaded
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify exact downloaded TGSpeechBox archive
         shell: bash
-        run: >-
-          python tools/verify_tgspeechbox_release.py
-          --archive "downloaded/omnivox-$RELEASE_VERSION-tgspeechbox-windows-x64.zip"
-          --omnivox-archive "downloaded/omnivox-$RELEASE_VERSION-windows-x64.zip"
-          --checksums downloaded/sha256sums.txt
-          --version "$RELEASE_VERSION"
-          --iterations 25
+        run: |
+          extra=()
+          if [[ "${{ matrix.name }}" != linux-arm64 ]]; then
+            extra=(--omnivox-archive "downloaded/omnivox-$RELEASE_VERSION-${{ matrix.name }}.${{ matrix.extension }}")
+          fi
+          python tools/verify_tgspeechbox_release.py \
+            --target "${{ matrix.target }}" \
+            --archive "downloaded/omnivox-$RELEASE_VERSION-tgspeechbox-${{ matrix.name }}.${{ matrix.extension }}" \
+            --checksums downloaded/sha256sums.txt --version "$RELEASE_VERSION" \
+            --iterations 25 "${extra[@]}"
 
   verify_tgspeechbox_source_release:
     name: Verify TGSpeechBox Source Release
