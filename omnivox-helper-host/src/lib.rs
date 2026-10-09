@@ -1,5 +1,9 @@
 //! Engine-neutral helper-protocol host for isolated Omnivox TTS adapters.
 
+use omnivox_tts::helper_protocol::parameters as native;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::panic::{self, AssertUnwindSafe};
 use std::sync::{Arc, Mutex};
@@ -52,9 +56,25 @@ pub fn run_stdio(
     )
 }
 
+/// Serve helper 6 for an adapter implementing native catalogues and synthesis.
+pub fn run_stdio_with_parameters(
+    engine: Arc<dyn TtsEngine>,
+    helper_name: impl Into<String>,
+    helper_version: impl Into<String>,
+) -> Result<(), HelperServerError> {
+    run_session(
+        BufReader::new(io::stdin()),
+        BufWriter::new(io::stdout()),
+        engine,
+        helper_name.into(),
+        helper_version.into(),
+        true,
+    )
+}
+
 /// Serve one helper session over caller-owned streams.
 pub fn run_helper<R, W>(
-    mut reader: R,
+    reader: R,
     writer: W,
     engine: Arc<dyn TtsEngine>,
     helper_name: impl Into<String>,
@@ -64,14 +84,29 @@ where
     R: BufRead,
     W: Write + Send + 'static,
 {
-    let runtime = Arc::new(HelperRuntime::new(
-        engine,
+    run_session(
+        reader,
         writer,
+        engine,
         helper_name.into(),
         helper_version.into(),
-    )?);
+        false,
+    )
+}
+
+fn run_session<R: BufRead, W: Write + Send + 'static>(
+    mut reader: R,
+    writer: W,
+    engine: Arc<dyn TtsEngine>,
+    helper_name: String,
+    helper_version: String,
+    native_enabled: bool,
+) -> Result<(), HelperServerError> {
+    let mut host = HelperRuntime::new(engine, writer, helper_name, helper_version)?;
+    host.native_enabled = native_enabled;
+    let runtime = Arc::new(host);
     loop {
-        let request = match read_frame(&mut reader) {
+        let request = match read_frame::<_, native::HostRequest>(&mut reader) {
             Ok(Some(request)) => request,
             Ok(None) => break,
             Err(error) => {
@@ -85,7 +120,11 @@ where
                 return Err(error.into());
             }
         };
-        if runtime.handle(request)? == HandleOutcome::Shutdown {
+        let outcome = match request {
+            native::HostRequest::Common(request) => runtime.handle(request)?,
+            native::HostRequest::Parameters(request) => runtime.handle_parameters(request)?,
+        };
+        if outcome == HandleOutcome::Shutdown {
             break;
         }
     }
@@ -116,6 +155,7 @@ struct HelperRuntime<W> {
     descriptor: EngineDescriptor,
     helper_name: String,
     helper_version: String,
+    native_enabled: bool,
     writer: Arc<Mutex<W>>,
     state: Mutex<RuntimeState>,
 }
@@ -166,6 +206,7 @@ where
             descriptor,
             helper_name,
             helper_version,
+            native_enabled: false,
             writer: Arc::new(Mutex::new(writer)),
             state: Mutex::new(RuntimeState::default()),
         })
@@ -177,7 +218,12 @@ where
     ) -> Result<HandleOutcome, HelperServerError> {
         let request_id = request.request_id;
         let request_version = request.protocol_version;
-        if let Err(error) = request.validate() {
+        let validation = if request_version == native::PROTOCOL_VERSION && self.native_enabled {
+            Ok(()) // HostRequest has validated the complete shared frame.
+        } else {
+            request.validate()
+        };
+        if let Err(error) = validation {
             self.send_protocol_error(request_id, request_version, error)?;
             return Ok(HandleOutcome::Continue);
         }
@@ -268,6 +314,7 @@ where
                 text,
                 settings,
                 anchors.unwrap_or_default(),
+                None,
             ),
             HelperRequestBody::Hello { .. } => unreachable!("hello was handled above"),
         };
@@ -287,6 +334,121 @@ where
         }
     }
 
+    fn send_native(
+        &self,
+        request_id: u64,
+        body: native::ResponseBody,
+    ) -> Result<(), HelperServerError> {
+        let response = native::Response {
+            protocol_version: native::PROTOCOL_VERSION,
+            request_id,
+            body,
+        };
+        response.validate()?;
+        write_frame(&mut *self.writer.lock().unwrap(), &response)?;
+        Ok(())
+    }
+
+    fn send_native_started(
+        &self,
+        request_id: u64,
+        actual_voice_id: String,
+        native_application: Option<native::NativeApplication>,
+    ) -> Result<(), HelperServerError> {
+        self.send_native(
+            request_id,
+            native::ResponseBody::SynthesisStarted {
+                format: HelperAudioFormat {
+                    sample_rate: STANDARD_SAMPLE_RATE,
+                    channels: STANDARD_CHANNELS,
+                    sample_format: HelperSampleFormat::PcmS16Le,
+                },
+                actual_voice_id,
+                native_application,
+            },
+        )
+    }
+
+    fn handle_parameters(
+        self: &Arc<Self>,
+        request: native::Request,
+    ) -> Result<HandleOutcome, HelperServerError> {
+        let id = request.request_id;
+        if !self.native_enabled
+            || self.state.lock().unwrap().protocol_version != Some(native::PROTOCOL_VERSION)
+        {
+            self.send_error(
+                Some(id),
+                HELPER_PROTOCOL_VERSION,
+                HelperErrorCode::UnsupportedVersion,
+                "helper 6 must be negotiated first",
+                false,
+            )?;
+            return Ok(HandleOutcome::Continue);
+        }
+        let result = match request.body {
+            native::RequestBody::Synthesize {
+                text,
+                settings,
+                anchors,
+                voice_parameters,
+            } => self.handle_synthesis(
+                id,
+                native::PROTOCOL_VERSION,
+                text,
+                settings,
+                anchors,
+                voice_parameters,
+            ),
+            native::RequestBody::GetEngineParametersV1(query) => {
+                let engine_id = query.engine_id.clone();
+                match self.engine.engine_parameters(query) {
+                    Ok(result) => {
+                        self.send_native(
+                            id,
+                            native::ResponseBody::EngineParametersV1 { engine_id, result },
+                        )?;
+                        Ok(HandleOutcome::Continue)
+                    }
+                    Err(e) => Err(RemoteFault::new(
+                        HelperErrorCode::InvalidRequest,
+                        e.to_string(),
+                        false,
+                    )),
+                }
+            }
+            native::RequestBody::ExplainVoiceParametersV1 { source } => {
+                match self.engine.explain_voice_parameters(source) {
+                    Ok(result) => {
+                        self.send_native(
+                            id,
+                            native::ResponseBody::VoiceParametersExplainedV1 { result },
+                        )?;
+                        Ok(HandleOutcome::Continue)
+                    }
+                    Err(e) => Err(RemoteFault::new(
+                        HelperErrorCode::InvalidRequest,
+                        e.to_string(),
+                        false,
+                    )),
+                }
+            }
+        };
+        match result {
+            Ok(outcome) => Ok(outcome),
+            Err(e) => {
+                self.send_error(
+                    Some(id),
+                    native::PROTOCOL_VERSION,
+                    e.code,
+                    &e.message,
+                    e.retryable,
+                )?;
+                Ok(HandleOutcome::Continue)
+            }
+        }
+    }
+
     fn handle_hello(
         &self,
         request_id: u64,
@@ -296,7 +458,10 @@ where
         let selected = offered
             .iter()
             .copied()
-            .filter(|version| SUPPORTED_HELPER_PROTOCOL_VERSIONS.contains(version))
+            .filter(|version| {
+                SUPPORTED_HELPER_PROTOCOL_VERSIONS.contains(version)
+                    || (self.native_enabled && *version == native::PROTOCOL_VERSION)
+            })
             .max();
         let mut state = self.state.lock().unwrap();
         if state.protocol_version.is_some() {
@@ -375,6 +540,7 @@ where
         text: String,
         settings: HelperSynthesisSettings,
         anchors: Vec<omnivox_tts::RequestedAnchor>,
+        parameters: Option<native::VoiceParameters>,
     ) -> Result<HandleOutcome, RemoteFault> {
         if !self.descriptor.can_synthesize() {
             return Err(RemoteFault::new(
@@ -449,7 +615,7 @@ where
 
         let progressive = protocol_version >= HELPER_PROTOCOL_V5
             && self.descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm;
-        if !progressive {
+        if !progressive && protocol_version != native::PROTOCOL_VERSION {
             if let Err(error) =
                 self.send_synthesis_started(request_id, protocol_version, voice_id.clone())
             {
@@ -462,7 +628,7 @@ where
         let spawn = thread::Builder::new()
             .name("omnivox-helper-native".to_owned())
             .spawn(move || {
-                runtime.synthesis_worker(protocol_version, active, request, progressive)
+                runtime.synthesis_worker(protocol_version, active, request, progressive, parameters)
             });
         if let Err(error) = spawn {
             self.clear_active(request_id);
@@ -477,12 +643,34 @@ where
         active: ActiveSynthesis,
         request: SynthesisRequest,
         progressive: bool,
+        parameters: Option<native::VoiceParameters>,
     ) {
         if progressive {
-            self.progressive_synthesis_worker(protocol_version, active, request);
+            self.progressive_synthesis_worker(protocol_version, active, request, parameters);
             return;
         }
-        let synthesis = panic::catch_unwind(AssertUnwindSafe(|| self.engine.synthesize(&request)));
+        let synthesis = panic::catch_unwind(AssertUnwindSafe(|| {
+            let (result, receipt) = if let Some(p) = &parameters {
+                let (result, receipt) = self.engine.synthesize_with_parameters(&request, p)?;
+                omnivox_tts::native_synthesis::validate_application(
+                    &self.descriptor.id,
+                    p,
+                    &receipt,
+                )?;
+                (result, Some(receipt))
+            } else {
+                (self.engine.synthesize(&request)?, None)
+            };
+            if protocol_version == native::PROTOCOL_VERSION {
+                self.send_native_started(
+                    active.request_id,
+                    request.settings.voice.clone(),
+                    receipt,
+                )
+                .map_err(|e| TtsError::SynthesisFailed(e.to_string()))?;
+            }
+            Ok(result)
+        }));
         let terminal = if active.cancelled.is_cancelled() {
             HelperResponseBody::SynthesisCancelled
         } else {
@@ -512,6 +700,7 @@ where
         protocol_version: u16,
         active: ActiveSynthesis,
         request: SynthesisRequest,
+        parameters: Option<native::VoiceParameters>,
     ) {
         let expected_voice_id = request
             .voice_id_for_engine(&self.descriptor.id)
@@ -519,8 +708,30 @@ where
             .to_owned();
         let mut sink =
             ProgressiveWireSink::new(&self, protocol_version, &active, expected_voice_id.clone());
+        let receipt = Rc::clone(&sink.native_application);
         let synthesis = panic::catch_unwind(AssertUnwindSafe(|| {
-            self.engine.synthesize_stream(&request, &mut sink)
+            if let Some(p) = &parameters {
+                sink.native_parameters = Some(p.clone());
+                let mut callback = |app: &native::NativeApplication| {
+                    *receipt.borrow_mut() = Some(app.clone());
+                };
+                let result = self.engine.synthesize_stream_with_parameters(
+                    &request,
+                    p,
+                    &mut sink,
+                    &mut callback,
+                );
+                if let Some(app) = receipt.borrow().as_ref() {
+                    omnivox_tts::native_synthesis::validate_application(
+                        &self.descriptor.id,
+                        p,
+                        app,
+                    )?;
+                }
+                result
+            } else {
+                self.engine.synthesize_stream(&request, &mut sink)
+            }
         }));
         let terminal = if active.cancelled.is_cancelled() {
             HelperResponseBody::SynthesisCancelled
@@ -533,11 +744,15 @@ where
                     Err(error) => error_response_body(map_tts_error(error)),
                 },
                 Ok(Err(error)) => {
-                    let _ = sink.ensure_started(expected_voice_id);
+                    if protocol_version != native::PROTOCOL_VERSION {
+                        let _ = sink.ensure_started(expected_voice_id);
+                    }
                     error_response_body(map_tts_error(error))
                 }
                 Err(_) => {
-                    let _ = sink.ensure_started(expected_voice_id);
+                    if protocol_version != native::PROTOCOL_VERSION {
+                        let _ = sink.ensure_started(expected_voice_id);
+                    }
                     error_response_body(RemoteFault::new(
                         HelperErrorCode::Internal,
                         "helper synthesis panicked",
@@ -715,7 +930,11 @@ where
             request_id,
             body,
         };
-        response.validate()?;
+        if protocol_version == native::PROTOCOL_VERSION {
+            native::validate_shared_response(&response)?;
+        } else {
+            response.validate()?;
+        }
         write_frame(&mut *self.writer.lock().unwrap(), &response)?;
         Ok(())
     }
@@ -726,6 +945,8 @@ struct ProgressiveWireSink<'a, W> {
     protocol_version: u16,
     active: &'a ActiveSynthesis,
     expected_voice_id: String,
+    native_application: Rc<RefCell<Option<native::NativeApplication>>>,
+    native_parameters: Option<native::VoiceParameters>,
     started: bool,
     next_sequence: u32,
     frame_count: u64,
@@ -749,6 +970,8 @@ where
             protocol_version,
             active,
             expected_voice_id,
+            native_application: Rc::new(RefCell::new(None)),
+            native_parameters: None,
             started: false,
             next_sequence: 0,
             frame_count: 0,
@@ -771,13 +994,30 @@ where
         if self.started {
             return Ok(());
         }
-        self.runtime
-            .send_synthesis_started(
-                self.active.request_id,
-                self.protocol_version,
-                actual_voice_id,
-            )
-            .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+        if self.protocol_version == native::PROTOCOL_VERSION {
+            let receipt = self.native_application.borrow().clone();
+            if let Some(parameters) = &self.native_parameters {
+                let app = receipt.as_ref().ok_or_else(|| {
+                    TtsError::SynthesisFailed("Native receipt must precede audio".into())
+                })?;
+                omnivox_tts::native_synthesis::validate_application(
+                    &self.runtime.descriptor.id,
+                    parameters,
+                    app,
+                )?;
+            }
+            self.runtime
+                .send_native_started(self.active.request_id, actual_voice_id, receipt)
+                .map_err(|e| TtsError::SynthesisFailed(e.to_string()))?;
+        } else {
+            self.runtime
+                .send_synthesis_started(
+                    self.active.request_id,
+                    self.protocol_version,
+                    actual_voice_id,
+                )
+                .map_err(|e| TtsError::SynthesisFailed(e.to_string()))?;
+        }
         self.started = true;
         Ok(())
     }
@@ -1773,5 +2013,75 @@ mod tests {
         assert!(responses
             .iter()
             .any(|response| matches!(response.body, HelperResponseBody::ShuttingDown)));
+    }
+    #[test]
+    fn native_strict_failure_precedes_start_and_preserves_followup_queries() {
+        use omnivox_tts::native_parameters::{CatalogueIdentity, NativePatch};
+        let writer = SharedWriter::default();
+        let mut host = HelperRuntime::new(
+            Arc::new(ImmediateEngine),
+            writer.clone(),
+            "test".into(),
+            "1".into(),
+        )
+        .unwrap();
+        host.native_enabled = true;
+        let runtime = Arc::new(host);
+        runtime
+            .handle(HelperRequest::with_version(
+                6,
+                1,
+                HelperRequestBody::Hello {
+                    supported_protocol_versions: vec![6, 5],
+                },
+            ))
+            .unwrap();
+        let HelperRequestBody::Synthesize {
+            text,
+            settings,
+            anchors,
+        } = synthesis(2).body
+        else {
+            unreachable!()
+        };
+        runtime
+            .handle_parameters(native::Request {
+                protocol_version: 6,
+                request_id: 2,
+                body: native::RequestBody::Synthesize {
+                    text,
+                    settings,
+                    anchors: anchors.unwrap(),
+                    voice_parameters: Some(native::VoiceParameters {
+                        native: NativePatch {
+                            engine_id: "mock".into(),
+                            schema_id: "test.v1".into(),
+                            parameters: Default::default(),
+                        },
+                        expected_identity: CatalogueIdentity {
+                            schema_id: "test.v1".into(),
+                            profile_id: "test.v1".into(),
+                            catalogue_revision: "a".repeat(64),
+                            runtime_generation: 1,
+                        },
+                        context_dimensions: vec![],
+                        unavailable_policy: native::UnavailablePolicy::Require,
+                    }),
+                },
+            })
+            .unwrap();
+        writer.wait_for(|body| matches!(body, HelperResponseBody::Error { .. }));
+        let responses = writer.responses();
+        assert!(!responses.iter().any(|r| matches!(
+            r.body,
+            HelperResponseBody::SynthesisStarted { .. } | HelperResponseBody::AudioChunk { .. }
+        )));
+        runtime
+            .handle(HelperRequest::with_version(6, 3, HelperRequestBody::Ping))
+            .unwrap();
+        assert!(writer
+            .responses()
+            .iter()
+            .any(|r| r.request_id == Some(3) && matches!(r.body, HelperResponseBody::Pong)));
     }
 }

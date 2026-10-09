@@ -34,6 +34,9 @@ struct engine {
   speechPlayer_handle_t player = nullptr;
   int sample_rate = 0;
   double volume = 1.0;
+  double breathiness = 0.0, creakiness = 0.0, jitter = 0.0, shimmer = 0.0;
+  double brightness = 0.0;
+  speechPlayer_voicingTone_t profile_tone = speechPlayer_getDefaultVoicingTone();
   builtin_voice builtin = builtin_voice::adam;
   std::string configured_language;
   std::string configured_profile;
@@ -155,17 +158,21 @@ void frame_callback(void *user_data, const nvspFrontend_Frame *frame_or_null,
   apply_builtin(frame, state->builtin);
   frame.outputGain *= state->volume;
 
-  if (frame_ex_or_null) {
-    static_assert(sizeof(nvspFrontend_FrameEx) == sizeof(speechPlayer_frameEx_t),
-                  "TGSpeechBox FrameEx layouts differ");
-    speechPlayer_queueFrameEx(
-        state->player, &frame,
-        reinterpret_cast<const speechPlayer_frameEx_t *>(frame_ex_or_null),
-        static_cast<unsigned int>(sizeof(speechPlayer_frameEx_t)), duration, fade,
-        user_index, false);
-  } else {
-    speechPlayer_queueFrame(state->player, &frame, duration, fade, user_index, false);
-  }
+  static_assert(sizeof(nvspFrontend_FrameEx) == sizeof(speechPlayer_frameEx_t),
+                "TGSpeechBox FrameEx layouts differ");
+  speechPlayer_frameEx_t extended = speechPlayer_frameEx_defaults;
+  if (frame_ex_or_null) std::memcpy(&extended, frame_ex_or_null, sizeof(extended));
+  // Add texture within each frame's remaining range, preserving linguistic
+  // variation and the selected profile when the adjustment is zero.
+  auto add_texture = [](double base, double amount) {
+    return amount == 0.0 ? base : base + (1.0 - base) * amount;
+  };
+  extended.breathiness = add_texture(extended.breathiness, state->breathiness);
+  extended.creakiness = add_texture(extended.creakiness, state->creakiness);
+  extended.jitter = add_texture(extended.jitter, state->jitter);
+  extended.shimmer = add_texture(extended.shimmer, state->shimmer);
+  speechPlayer_queueFrameEx(state->player, &frame, &extended, sizeof(extended),
+                            duration, fade, user_index, false);
 }
 
 void set_profile_tone(engine &state, bool yaml_profile) {
@@ -195,6 +202,7 @@ void set_profile_tone(engine &state, bool yaml_profile) {
     }
   }
   if (state.builtin == builtin_voice::robert) tone.voicedTiltDbPerOct = -6.0;
+  state.profile_tone = tone;
   speechPlayer_setVoicingTone(state.player, &tone);
 }
 
@@ -333,6 +341,26 @@ char *omnivox_tgspeechbox_prepare_text(void *handle, const char *text) {
   return state && text ? nvspFrontend_prepareText(state->frontend, text) : nullptr;
 }
 
+int omnivox_tgspeechbox_set_quality(void *handle, double breathiness,
+                                    double creakiness, double brightness,
+                                    double jitter, double shimmer) {
+  auto *state = static_cast<engine *>(handle);
+  if (!state || !state->player) return 0;
+  for (double value : {breathiness, creakiness, jitter, shimmer}) {
+    if (!std::isfinite(value) || value < 0.0 || value > 1.0) return 0;
+  }
+  if (!std::isfinite(brightness) || brightness < -12.0 || brightness > 12.0) return 0;
+  state->breathiness = breathiness;
+  state->creakiness = creakiness;
+  state->jitter = jitter;
+  state->shimmer = shimmer;
+  state->brightness = brightness;
+  auto tone = state->profile_tone;
+  tone.highShelfGainDb += brightness;
+  speechPlayer_setVoicingTone(state->player, &tone);
+  return 1;
+}
+
 int omnivox_tgspeechbox_begin(void *handle, const char *text, const char *ipa,
                               double speed, double base_pitch_hz,
                               double inflection, double volume, int user_index,
@@ -402,6 +430,8 @@ int omnivox_tgspeechbox_reset(void *handle) {
     if (!initialize_player(*state)) return 0;
     if (!state->configured_language.empty()) {
       set_profile_tone(*state, state->builtin == builtin_voice::none);
+      if (!omnivox_tgspeechbox_set_quality(handle, state->breathiness,
+          state->creakiness, state->brightness, state->jitter, state->shimmer)) return 0;
     }
     return 1;
   } catch (...) {

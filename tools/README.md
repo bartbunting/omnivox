@@ -157,7 +157,7 @@ make verify-rutts-source
 ```
 
 `prepare_tgspeechbox_inputs.py` downloads and verifies the exact TGSpeechBox
-`v-310@f5ec247` snapshot archive and complete extracted-tree digest. The
+`v-310@25b0e1a` snapshot archive and complete extracted-tree digest. The
 experimental
 `build_tgspeechbox.py` compiles the isolated C++/eSpeak helper and atomically
 stages its packs, generated eSpeak data, licences, provenance, and exhaustive

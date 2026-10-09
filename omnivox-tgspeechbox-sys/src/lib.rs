@@ -2,9 +2,9 @@
 
 use std::ffi::{c_char, c_double, c_int, c_short, c_void};
 
-pub const TGSPEECHBOX_RELEASE: &str = "v-310@f5ec247";
-pub const TGSPEECHBOX_COMMIT: &str = "f5ec247bca50507ab1e2ed661136395538dc3e97";
-pub const TGSPEECHBOX_DSP_VERSION: u32 = 8;
+pub const TGSPEECHBOX_RELEASE: &str = "v-310@25b0e1a";
+pub const TGSPEECHBOX_COMMIT: &str = "25b0e1ae65fb87705f0870c724dc8c91f3abbeba";
+pub const TGSPEECHBOX_DSP_VERSION: u32 = 9;
 pub const TGSPEECHBOX_FRONTEND_ABI_VERSION: i32 = 5;
 
 unsafe extern "C" {
@@ -36,6 +36,14 @@ unsafe extern "C" {
         volume: c_double,
         user_index: c_int,
         final_segment: c_int,
+    ) -> c_int;
+    pub fn omnivox_tgspeechbox_set_quality(
+        handle: *mut c_void,
+        breathiness: c_double,
+        creakiness: c_double,
+        brightness: c_double,
+        jitter: c_double,
+        shimmer: c_double,
     ) -> c_int;
     pub fn omnivox_tgspeechbox_next(
         handle: *mut c_void,

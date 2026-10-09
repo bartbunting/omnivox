@@ -3,10 +3,10 @@
 TGSpeechBox is an optional formant-synthesis engine with a compact,
 DECtalk-like sound and direct rate, pitch, inflection, volume, and profile
 controls. Omnivox pins the exact upstream `v-310` branch snapshot
-`v-310@f5ec247` at commit `f5ec247bca50507ab1e2ed661136395538dc3e97`
+`v-310@25b0e1a` at commit `25b0e1ae65fb87705f0870c724dc8c91f3abbeba`
 and keeps its C++ frontend and DSP inside a separate helper process. This
-snapshot is six commits after `v-310b802`; it is not presented as an upstream
-release tag.
+snapshot is the `v-310` head captured on 2026-10-09; it is not presented as
+an upstream release tag.
 
 Beginning with Omnivox v1.7.0, Windows x64 GNU is published as a separate
 experimental companion. It is not embedded in generic archives or the
@@ -46,8 +46,47 @@ ceiling:
 | `1.2`–`2.0` | `4x` (native ceiling) |
 
 Average pitch maps to a 110 Hz native baseline, pitch range maps to native
-inflection, and volume maps to output gain. TGSpeechBox-specific frame fields
-are not added to the public protocol.
+inflection, and volume maps to output gain.
+
+### Native voice controls
+
+Helper 6 exposes five additional controls through the existing typed native
+parameter catalogue. In Emacsvox, select a TGSpeechBox physical choice in the
+voice editor and open its engine-specific settings.
+
+| Control ID | Meaning | Range and default |
+| --- | --- | --- |
+| `breathiness` | Additional breath noise | 0–1; default 0 |
+| `creakiness` | Additional creaky texture | 0–1; default 0 |
+| `brightness` | Offset to the profile's high-shelf gain | −12 to +12 dB; default 0 |
+| `jitter` | Additional irregular pitch-period variation | 0–1; default 0 |
+| `shimmer` | Additional irregular amplitude variation | 0–1; default 0 |
+
+The schema is `tgspeechbox.voice-quality.v1`. The four texture amounts compose
+with each frontend frame as `base + (1 - base) * amount`; zero leaves the frame
+unchanged. This retains phoneme-specific variation and the selected profile.
+Brightness adds to the freshly selected profile's high-shelf gain. Defaults,
+omitted settings, and ordinary speech restore zero adjustments for every
+utterance, including after cancellation or a voice change. These controls have
+no mappings from common stress or richness; rate, pitch, inflection and volume
+continue through their existing paths.
+
+Catalogues require no synthesis or profile loading. Draft explanations are
+planned values. Applied explanations report adjustments accepted by the adapter,
+not DSP readback or measured acoustic values, and retain the last 32 native plans.
+Older helper 1–5 clients retain common controls and their original wire shapes.
+
+Run the native control check against a complete staged companion:
+
+```sh
+python3 tools/test_tgspeechbox_parameters.py \
+  target/debug/tgspeechbox/omnivox-tgspeechbox-helper \
+  --output /tmp/tgspeechbox-parameters.json
+```
+
+It covers 44.1 and 22.05 kHz synthesis, control changes, reset, rejected settings,
+stale identities, exact requested anchors and legacy helper-5 speech. Generated
+PCM and adapter receipts do not establish listening acceptance.
 
 The selected upstream revision exposes an index-aware DSP pull. For an
 anchored request, Omnivox divides the original UTF-8 text only at the explicitly

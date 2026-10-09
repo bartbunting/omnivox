@@ -8,7 +8,9 @@ qualification belong to [STATUS.md](../STATUS.md).
 The implemented capability bundle includes typed catalogues, v3 registration,
 timeline-5 speech, marker-4 receipts, strict native previews and read-only
 planned/applied explanations. Qualified Windows Eloquence and DECtalk adapters
-use helper 6; older protocol shapes and common controls retain compatibility.
+use helper 6, as does the TGSpeechBox voice-quality adapter described in its
+[engine guide](../engines/tgspeechbox.md#native-voice-controls). Older protocol
+shapes and common controls retain compatibility.
 Capability advertisement does not imply every runtime supplies native controls.
 Emacsvox provides catalogue-driven editing and sparse per-choice persistence.
 

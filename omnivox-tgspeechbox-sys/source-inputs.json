@@ -1,10 +1,10 @@
 {
-  "archive": "tgspeechbox-f5ec247.tar.gz",
-  "archive_root": "TGSpeechBox-f5ec247bca50507ab1e2ed661136395538dc3e97",
-  "commit": "f5ec247bca50507ab1e2ed661136395538dc3e97",
-  "release": "v-310@f5ec247",
+  "archive": "tgspeechbox-25b0e1a.tar.gz",
+  "archive_root": "TGSpeechBox-25b0e1ae65fb87705f0870c724dc8c91f3abbeba",
+  "commit": "25b0e1ae65fb87705f0870c724dc8c91f3abbeba",
+  "release": "v-310@25b0e1a",
   "schema_version": 1,
-  "sha256": "d82d7b993dc086ad9d0ab7a12d331d33e320c4abaa388c7066290ada55bed025",
-  "source_tree_sha256": "5effb36cc2f396ad2ff494445adb7c9b10e1e6673a58426cc9953f9fbd959a38",
-  "url": "https://codeload.github.com/tgeczy/TGSpeechBox/tar.gz/f5ec247bca50507ab1e2ed661136395538dc3e97"
+  "sha256": "1b02b2f9125e0a1f0733d9cdc0b8f15bc5b1c5a62b70fbf5bbdcc79ebe12a8da",
+  "source_tree_sha256": "37baf7e2772e03016dc862e5f7a2c1670dd713f73fd5c94acacf9bc087ca5b3b",
+  "url": "https://codeload.github.com/tgeczy/TGSpeechBox/tar.gz/25b0e1ae65fb87705f0870c724dc8c91f3abbeba"
 }

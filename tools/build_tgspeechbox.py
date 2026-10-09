@@ -13,8 +13,8 @@ import sys
 import tempfile
 
 
-RELEASE = "v-310@f5ec247"
-COMMIT = "f5ec247bca50507ab1e2ed661136395538dc3e97"
+RELEASE = "v-310@25b0e1a"
+COMMIT = "25b0e1ae65fb87705f0870c724dc8c91f3abbeba"
 ESPEAK_PACKAGE = "#espeak-rs-sys@0.1.9"
 PROTOCOL_VERSION = 5
 VOICE_INVENTORY_SCHEMA_VERSION = 1

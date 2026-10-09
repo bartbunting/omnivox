@@ -293,7 +293,10 @@ prepares its effects with the route identity. Failed attempts cannot leak settin
 or effects. Legacy/layered boundaries separate effect ownership. Measured common
 rate curves and native saturation follow [rate calibration](reference/rate-calibration.md).
 
-Qualified native controls use typed adapter catalogues and sparse edits. Catalogue
+Qualified native controls use typed adapter catalogues and sparse edits.
+The TGSpeechBox helper exposes additive voice texture and profile-relative
+brightness through helper 6; the other Rust helpers retain their existing
+negotiation until explicitly enabled. Catalogue
 queries are bounded/read-only and connection/runtime scoped; they do not load all
 models or restart speech. Runtime replacement invalidates metadata qualification.
 The actual helper validates native application; marker-4 receipts describe the

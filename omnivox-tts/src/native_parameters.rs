@@ -45,3 +45,16 @@ pub(crate) fn decode<T: DeserializeOwned>(json: &[u8]) -> Result<T, ParameterErr
 
 #[cfg(test)]
 mod tests;
+
+/// Hash descriptor content without voice or connection identity.
+pub fn catalogue_revision(
+    parameters: &[ParameterDescriptor],
+    mappings: &[CommonMapping],
+) -> String {
+    use sha2::{Digest, Sha256};
+    let bytes = serde_json::to_vec(&(parameters, mappings)).expect("finite catalogue descriptors");
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}

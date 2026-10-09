@@ -6,6 +6,16 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- TGSpeechBox native breathiness, creakiness, brightness, jitter and shimmer
+  controls, preserving the selected voice profile at their default values.
+
+### Changed
+
+- Pin TGSpeechBox upstream `v-310` source to
+  `25b0e1ae65fb87705f0870c724dc8c91f3abbeba`.
+
 ## [1.16.0] - 2026-09-30
 
 ### Added

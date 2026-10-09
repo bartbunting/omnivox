@@ -558,3 +558,28 @@ fn dectalk_runtime_exchanges_match_rust_codec_and_catalogue() {
         }
     }
 }
+
+#[test]
+fn host_dispatch_rejects_duplicate_members_and_legacy_native_payloads() {
+    for text in [
+        r#"{"protocol_version":6,"request_id":1,"type":"hello","supported_protocol_versions":[6,5]}"#,
+        r#"{"protocol_version":6,"request_id":2,"type":"get_engine_parameters_v1","engine_id":"tgspeechbox","voice_id":null,"cursor":null,"expected_catalogue_revision":null}"#,
+    ] {
+        assert!(serde_json::from_str::<HostRequest>(text).is_ok());
+        let duplicate = text.replacen("\"request_id\":", "\"request_id\":9,\"request_id\":", 1);
+        assert!(serde_json::from_str::<HostRequest>(&duplicate).is_err());
+    }
+    for version in 1..=6 {
+        let text = format!(
+            r#"{{"protocol_version":{version},"request_id":1,"type":"synthesize","text":"hello","settings":{{"voice_id":null,"rate":0.5,"pitch":1,"volume":1}},"anchors":[],"voice_parameters":null}}"#
+        );
+        assert_eq!(
+            serde_json::from_str::<HostRequest>(&text).is_ok(),
+            version == 6
+        );
+    }
+    assert!(serde_json::from_str::<HostRequest>(
+        r#"{"protocol_version":6,"request_id":1,"type":"ping","extra":true}"#
+    )
+    .is_err());
+}

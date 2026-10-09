@@ -21,6 +21,8 @@ use omnivox_tts::{
     SynthesisStreamStart, TtsEngine, TtsError, VoiceInfo, VoiceQuality, STANDARD_SAMPLE_RATE,
 };
 
+mod parameters;
+
 const ENGINE_ID: &str = "tgspeechbox";
 const SAMPLE_RATE_ENVIRONMENT_VARIABLE: &str = "OMNIVOX_TGSPEECHBOX_SAMPLE_RATE";
 const DEFAULT_SAMPLE_RATE: u32 = 44_100;
@@ -86,6 +88,7 @@ pub struct TgSpeechBoxTtsEngine {
     descriptor: EngineDescriptor,
     selections: Vec<VoiceSelection>,
     sample_rate: u32,
+    parameter_state: parameters::ParameterState,
     runtime: Mutex<NativeRuntime>,
     cancellation: AtomicBool,
     speaking: AtomicBool,
@@ -213,6 +216,7 @@ impl TgSpeechBoxTtsEngine {
             descriptor,
             selections,
             sample_rate,
+            parameter_state: parameters::ParameterState::new(sample_rate),
             runtime: Mutex::new(NativeRuntime {
                 handle,
                 espeak_initialized: true,
@@ -244,9 +248,111 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
     }
 
     fn synthesize(&self, request: &SynthesisRequest) -> Result<SynthesisResult, TtsError> {
+        self.synthesize_quality(request, [0.0; 5])
+    }
+
+    fn synthesize_stream(
+        &self,
+        request: &SynthesisRequest,
+        sink: &mut dyn SynthesisStreamSink,
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        self.stream_quality(request, sink, [0.0; 5], &mut || {})
+    }
+
+    fn engine_parameters(
+        &self,
+        query: omnivox_tts::engine_parameters::CatalogueQuery,
+    ) -> Result<
+        omnivox_tts::engine_parameters::CatalogueResult,
+        omnivox_tts::engine_parameters::CatalogueError,
+    > {
+        self.parameter_state.query(self, query)
+    }
+
+    fn explain_voice_parameters(
+        &self,
+        source: omnivox_tts::helper_protocol::parameters::ExplanationSource,
+    ) -> Result<
+        omnivox_tts::helper_protocol::parameters::ExplanationResult,
+        omnivox_tts::engine_parameters::CatalogueError,
+    > {
+        self.parameter_state.explain(self, source)
+    }
+
+    fn synthesize_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &omnivox_tts::native_synthesis::VoiceParameters,
+    ) -> Result<
+        (
+            SynthesisResult,
+            omnivox_tts::native_synthesis::NativeApplication,
+        ),
+        TtsError,
+    > {
+        let plan = self.parameter_state.prepare(self, request, parameters)?;
+        let result = self.synthesize_quality(request, plan.quality)?;
+        Ok((result, self.parameter_state.applied(plan)))
+    }
+
+    fn synthesize_stream_with_parameters(
+        &self,
+        request: &SynthesisRequest,
+        parameters: &omnivox_tts::native_synthesis::VoiceParameters,
+        sink: &mut dyn SynthesisStreamSink,
+        application: &mut dyn FnMut(&omnivox_tts::native_synthesis::NativeApplication),
+    ) -> Result<SynthesisStreamCompletion, TtsError> {
+        let plan = self.parameter_state.prepare(self, request, parameters)?;
+        self.stream_quality(request, sink, plan.quality, &mut || {
+            application(&self.parameter_state.applied(plan.clone()))
+        })
+    }
+
+    fn stop(&self) {
+        self.cancellation.store(true, Ordering::Release);
+    }
+
+    fn is_speaking(&self) -> bool {
+        self.speaking.load(Ordering::Acquire)
+    }
+
+    fn available_voices(&self) -> Vec<VoiceInfo> {
+        self.descriptor
+            .voices
+            .iter()
+            .map(|voice| VoiceInfo {
+                identifier: voice.id.voice_id.clone(),
+                name: voice.display_name.clone(),
+                language: voice.language.clone().unwrap_or_default(),
+                quality: voice.quality,
+            })
+            .collect()
+    }
+
+    fn voice_info(&self, identifier: &str) -> Option<VoiceInfo> {
+        self.available_voices()
+            .into_iter()
+            .find(|voice| voice.identifier == identifier || voice.name == identifier)
+    }
+}
+
+impl TgSpeechBoxTtsEngine {
+    fn synthesize_quality(
+        &self,
+        request: &SynthesisRequest,
+        quality: [f64; 5],
+    ) -> Result<SynthesisResult, TtsError> {
         let voice_id = request.voice_id_for_engine(ENGINE_ID)?;
         let selection = self.selection(voice_id)?.clone();
         let actual_voice = Some(PhysicalVoiceId::new(ENGINE_ID, selection.id.clone()));
+        let mut runtime = self.runtime()?;
+        self.cancellation.store(false, Ordering::Release);
+        self.speaking.store(true, Ordering::Release);
+        let _speaking = SpeakingGuard(&self.speaking);
+        ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
+
+        configure(&mut runtime, &selection)?;
+        apply_quality(&mut runtime, quality)?;
         if request.text.is_empty() {
             let mut result = SynthesisResult::audio(ENGINE_ID, actual_voice, AudioBuffer::empty());
             result.anchors = exact_anchors(
@@ -257,13 +363,6 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
             return Ok(result);
         }
 
-        let mut runtime = self.runtime()?;
-        self.cancellation.store(false, Ordering::Release);
-        self.speaking.store(true, Ordering::Release);
-        let _speaking = SpeakingGuard(&self.speaking);
-        ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
-
-        configure(&mut runtime, &selection)?;
         let queued = queue_synthesis(&mut runtime, request)?;
         let mut anchor_frames = vec![None; request.anchors.len()];
         set_anchor_frames(&mut anchor_frames, &queued.initial_anchor_indices, 0);
@@ -345,15 +444,18 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
         Ok(result)
     }
 
-    fn synthesize_stream(
+    fn stream_quality(
         &self,
         request: &SynthesisRequest,
         sink: &mut dyn SynthesisStreamSink,
+        quality: [f64; 5],
+        applied: &mut dyn FnMut(),
     ) -> Result<SynthesisStreamCompletion, TtsError> {
         // Preserve whole-utterance sinc resampling in the optional comparison
         // mode until a stateful converter can span arbitrary native pulls.
         if self.sample_rate != DEFAULT_SAMPLE_RATE {
-            let result = self.synthesize(request)?;
+            let result = self.synthesize_quality(request, quality)?;
+            applied();
             let frame_count = result.audio.frame_count() as u64;
             sink.start(SynthesisStreamStart {
                 engine_id: result.engine_id,
@@ -377,6 +479,15 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
             .clone()
             .degrade_for(&capabilities(self.sample_rate).acss)
             .omitted;
+        let mut runtime = self.runtime()?;
+        self.cancellation.store(false, Ordering::Release);
+        self.speaking.store(true, Ordering::Release);
+        let _speaking = SpeakingGuard(&self.speaking);
+        ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
+
+        configure(&mut runtime, &selection)?;
+        apply_quality(&mut runtime, quality)?;
+        applied();
         sink.start(SynthesisStreamStart {
             engine_id: ENGINE_ID.to_owned(),
             actual_voice,
@@ -394,13 +505,6 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
             return Ok(SynthesisStreamCompletion { frame_count: 0 });
         }
 
-        let mut runtime = self.runtime()?;
-        self.cancellation.store(false, Ordering::Release);
-        self.speaking.store(true, Ordering::Release);
-        let _speaking = SpeakingGuard(&self.speaking);
-        ensure_not_cancelled(&self.cancellation, request.cancellation.as_ref())?;
-
-        configure(&mut runtime, &selection)?;
         let queued = queue_synthesis(&mut runtime, request)?;
         let initial_anchors = exact_anchors(&request.anchors, &queued.initial_anchor_indices, 0);
         if !initial_anchors.is_empty() {
@@ -464,33 +568,6 @@ impl TtsEngine for TgSpeechBoxTtsEngine {
         Ok(SynthesisStreamCompletion {
             frame_count: emitted_samples as u64,
         })
-    }
-
-    fn stop(&self) {
-        self.cancellation.store(true, Ordering::Release);
-    }
-
-    fn is_speaking(&self) -> bool {
-        self.speaking.load(Ordering::Acquire)
-    }
-
-    fn available_voices(&self) -> Vec<VoiceInfo> {
-        self.descriptor
-            .voices
-            .iter()
-            .map(|voice| VoiceInfo {
-                identifier: voice.id.voice_id.clone(),
-                name: voice.display_name.clone(),
-                language: voice.language.clone().unwrap_or_default(),
-                quality: voice.quality,
-            })
-            .collect()
-    }
-
-    fn voice_info(&self, identifier: &str) -> Option<VoiceInfo> {
-        self.available_voices()
-            .into_iter()
-            .find(|voice| voice.identifier == identifier || voice.name == identifier)
     }
 }
 
@@ -702,6 +779,25 @@ fn filter_espeak_languages(languages: Vec<String>) -> Vec<String> {
                 == espeak_rs_sys::espeak_ERROR_EE_OK
         })
         .collect()
+}
+
+fn apply_quality(runtime: &mut NativeRuntime, values: [f64; 5]) -> Result<(), TtsError> {
+    let ok = unsafe {
+        omnivox_tgspeechbox_sys::omnivox_tgspeechbox_set_quality(
+            runtime.handle.as_ptr(),
+            values[0],
+            values[1],
+            values[2],
+            values[3],
+            values[4],
+        )
+    };
+    if ok == 0 {
+        return Err(TtsError::InvalidParameter(
+            "TGSpeechBox rejected voice quality settings".into(),
+        ));
+    }
+    Ok(())
 }
 
 fn configure(runtime: &mut NativeRuntime, selection: &VoiceSelection) -> Result<(), TtsError> {

@@ -160,7 +160,7 @@ and exact Omnivox integration used to build the helper. See the
 
 The generic binary releases do not contain TGSpeechBox. The experimental
 companion statically incorporates the checksum-locked upstream TGSpeechBox
-`v-310@f5ec247` C++ source snapshot and the pinned eSpeak NG dependency used for
+`v-310@25b0e1a` C++ source snapshot and the pinned eSpeak NG dependency used for
 Unicode-to-IPA conversion. TGSpeechBox's upstream source is MIT-licensed, but
 eSpeak NG is GPL-3.0-or-later; the combined `omnivox-tgspeechbox-helper` package
 therefore declares `GPL-3.0-or-later`.
