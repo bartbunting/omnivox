@@ -6,10 +6,20 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-10-09
+
 ### Added
 
 - TGSpeechBox native breathiness, creakiness, brightness, jitter and shimmer
   controls, preserving the selected voice profile at their default values.
+- Emacspeak ACSS voice styles for eSpeak NG, including pitch range and
+  automatic face voices. Explicit voice definitions retain priority.
+- Named punctuation profiles, such as prose and proofreading, with saved
+  overrides and selection through the negotiated client protocol. Existing
+  `none`, `some` and `all` levels keep their meanings.
+- Local configuration review and atomic saving for engine routing and overrides.
+  Saving preserves unrelated fields, rejects stale revisions and takes effect
+  after an explicit speech restart.
 
 ### Changed
 

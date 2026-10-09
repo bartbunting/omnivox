@@ -96,7 +96,7 @@ workers. Saving a manifest must not itself restart speech.
 
 ## Configuration version 4: named punctuation profiles
 
-The development version accepts schema 4 with optional
+Omnivox 1.17.0 accepts schema 4 with optional
 `speech.punctuation_profiles`. Existing schemas and the three built-in levels
 retain their meanings. Each profile inherits the **resolved saved** `none`,
 `some` or `all` table and applies its own sparse `overrides`:
@@ -291,7 +291,7 @@ The UI offers the established explicit two-worker restart separately.
 
 ### Local engine settings editor
 
-The development local service advertises `engine_settings_version: 1` in its
+The Omnivox 1.17.0 local service advertises `engine_settings_version: 1` in its
 `host` response. `engine-settings-review`, `engine-settings-save` and
 `engine-settings-add` are local management operations only; they are unavailable
 on speech/control or remote transports and during an activation transaction.

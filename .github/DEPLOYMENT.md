@@ -18,7 +18,7 @@ The checked-in GitHub Actions workflow publishes these release archives:
 | Windows x64 | `x86_64-pc-windows-msvc` | `omnivox-VERSION-windows-x64.zip` |
 | Windows ARM64 | `aarch64-pc-windows-msvc` | `omnivox-VERSION-windows-arm64.zip` |
 
-Each archive contains the main binary, portable RHVoice helper,
+Each archive contains the main binary, portable RHVoice helper, TGSpeechBox,
 `omnivox-voices.el`, the matching generated `espeak-ng-data`, `LICENSE`,
 `LICENSING.md`, and `third-party-licenses`. It does not contain the RHVoice
 runtime or voice data. Beginning with v1.7.1, both Windows archives additionally
@@ -149,7 +149,7 @@ Compiled caches are separated by runner image for those builds.
   payload layout, executable modes and architectures, and adjacent eSpeak data
   discovery from a relocated directory without path overrides.
 - Exact release asset membership before draft upload, after draft creation,
-  and immediately before publication: 26 documented archives, one amd64 `.deb`, plus one
+  and immediately before publication: 31 documented archives, one amd64 `.deb`, plus one
   exhaustive checksum manifest, with stale cached versions rejected.
 - Non-empty canonical WAV synthesis through eSpeak on Linux x64; through eSpeak
   and WinRT on Windows x64 and ARM64; and through eSpeak and
@@ -473,7 +473,8 @@ or cancellation at the speaker.
 - Linux ARM64 artifacts and broad Linux distribution compatibility tests are
   absent for the generic server. Linux ARM64 Flite and RuTTS have native
   companion jobs.
-- Optional helper/model packaging is separate from generic release archives.
+- Piper, Flite and RuTTS companions and optional voice models remain separate
+  from generic release archives; TGSpeechBox is bundled.
 - Performance/onset and real proprietary-engine smoke tests are not CI gates.
 - Physical audible checks use commit-equivalent pre-tag builds; the workflow
   has no human approval gate for the exact tagged archives.

@@ -1093,9 +1093,10 @@ jobs:
             sudo apt install ./omnivox_${{ needs.package_release.outputs.version }}-1_amd64.deb
             ```
 
-            The package contains the core server, matching eSpeak data, and the
-            RHVoice integration helper, and TGSpeechBox. Other optional engines and user-supplied voices
-            remain separate. The matching `omnivox-${{ needs.package_release.outputs.version }}-piper-source.tar.gz`
+            The package contains the core server, matching eSpeak data, the
+            RHVoice integration helper, and TGSpeechBox. Other optional engines
+            and user-supplied voices remain separate. The matching
+            `omnivox-${{ needs.package_release.outputs.version }}-piper-source.tar.gz`
             includes the complete Omnivox tree, vendored Cargo dependencies, and
             eSpeak NG/Sonic sources used by the core package as well as Piper.
 
@@ -1110,13 +1111,14 @@ jobs:
             adapter_directory="$HOME/.emacs.d/lisp/omnivox"
             mkdir -p "$binary_directory/espeak-ng-data" \
               "$binary_directory/third-party-licenses" \
-              "$binary_directory/rhvoice" "$adapter_directory"
+              "$binary_directory/rhvoice" "$binary_directory/tgspeechbox" \
+              "$adapter_directory"
             install -m 755 omnivox "$binary_directory/omnivox"
             install -m 644 omnivox-voices.el "$adapter_directory/omnivox-voices.el"
             cp -R espeak-ng-data/. "$binary_directory/espeak-ng-data/"
             cp -R third-party-licenses/. "$binary_directory/third-party-licenses/"
             cp -R rhvoice/. "$binary_directory/rhvoice/"
-            cp -R tgspeechbox "$binary_directory/tgspeechbox"
+            cp -R tgspeechbox/. "$binary_directory/tgspeechbox/"
             ```
 
             After extracting on Windows:
