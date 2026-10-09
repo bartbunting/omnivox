@@ -1,0 +1,16 @@
+{
+  "version": "1.16.1",
+  "source_commit": "69ae85a080dc026454a31cbd4f8b6a9af4954afd",
+  "windows_runtime_id": "dcbffc46f3c41d9d",
+  "windows_executable_sha256": "3772c4688917dd6c57d390a66e316a18568a51fe00624661e838caa32b4c5fed",
+  "linux_executable_sha256": "aa9e9eafac16d090ff2861fc9eb4b9dae9d903a04b018228486c4089949d2367",
+  "rust": "1.97.1",
+  "linux_environment": "WSL2 x86_64",
+  "sentence_readings": {
+    "linux": 20,
+    "windows": 20
+  },
+  "audio_output": "null",
+  "speech_rate": 85,
+  "punctuation": "some"
+}

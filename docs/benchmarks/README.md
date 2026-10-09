@@ -53,6 +53,10 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-10-08 Omnivox 1.16.1 candidate](2026-10-08-1.16.1-candidate.md)
+  records the eSpeak marker-order regression, patch-release scope and local
+  candidate checks.
+
 - [2026-10-01 Homebrew Omnivox 1.16.0 update](2026-10-01-homebrew-1.16.md)
   records the merged formula, both native Mac jobs and verification of the
   published archives against the merged formula.

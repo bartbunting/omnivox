@@ -1,11 +1,17 @@
 # Omnivox Project Status
 
-**Documentation reviewed:** 2026-09-30. **Workspace version:** 1.16.0.
+**Documentation reviewed:** 2026-10-08. **Workspace version:** 1.16.1.
 Published changes belong to the
 [changelog](../CHANGELOG.md); current implementation may include unreleased work.
 [Architecture](ARCHITECTURE.md) explains behavior, [the roadmap](ROADMAP.md)
 tracks outstanding work, and [retained evidence](benchmarks/README.md) records
 actual runs and their limits.
+
+[Omnivox 1.16.1 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.16.1)
+with a fix for eSpeak stopping partway through speech at faster rates. Its
+[candidate report](benchmarks/2026-10-08-1.16.1-candidate.md) records the local
+checks and platform limits. Main retains this fix alongside the later
+configuration editor, named punctuation profiles and TGSpeechBox changes.
 
 [Omnivox 1.16.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.16.0)
 with palette-aware character feedback. Its

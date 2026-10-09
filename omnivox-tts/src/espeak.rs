@@ -1440,6 +1440,8 @@ impl TtsEngine for EspeakTtsEngine {
             let mut canonicalizer = None;
             let mut stream_error = None;
             let mut started = false;
+            let mut pending_timing = EspeakPendingTiming::default();
+            let mut emitted_frames = 0;
 
             while let Ok(event) = receiver.recv() {
                 let result = match event {
@@ -1478,11 +1480,8 @@ impl TtsEngine for EspeakTtsEngine {
                         }
                         let (markers, anchors) =
                             progressive_timing_from_native(&request.text, &input, request, &native);
-                        if markers.is_empty() && anchors.is_empty() {
-                            Ok(())
-                        } else {
-                            sink.markers(markers, anchors)
-                        }
+                        pending_timing.extend(markers, anchors);
+                        Ok(())
                     }
                     EspeakStreamEvent::Audio(samples) => {
                         let Some(converter) = canonicalizer.as_mut() else {
@@ -1498,7 +1497,14 @@ impl TtsEngine for EspeakTtsEngine {
                                     "could not canonicalize progressive eSpeak PCM: {error}"
                                 ))
                             })
-                            .and_then(|windows| emit_espeak_audio_windows(sink, windows))
+                            .and_then(|windows| {
+                                emit_espeak_audio_windows(
+                                    sink,
+                                    windows,
+                                    &mut pending_timing,
+                                    &mut emitted_frames,
+                                )
+                            })
                     }
                 };
                 if let Err(error) = result {
@@ -1531,7 +1537,8 @@ impl TtsEngine for EspeakTtsEngine {
                     "could not finish progressive eSpeak PCM conversion: {error}"
                 ))
             })?;
-            emit_espeak_audio_windows(sink, windows)?;
+            emit_espeak_audio_windows(sink, windows, &mut pending_timing, &mut emitted_frames)?;
+            pending_timing.emit_before(sink, u64::MAX)?;
             Ok(SynthesisStreamCompletion {
                 frame_count: converter.output_frames(),
             })
@@ -1663,13 +1670,57 @@ fn progressive_timing_from_native(
     (markers, anchors)
 }
 
+#[derive(Default)]
+struct EspeakPendingTiming {
+    markers: Vec<SynthesisMarker>,
+    anchors: Vec<ResolvedAnchor>,
+}
+
+impl EspeakPendingTiming {
+    fn extend(&mut self, markers: Vec<SynthesisMarker>, anchors: Vec<ResolvedAnchor>) {
+        // At high rates, eSpeak can report future word markers in adjacent
+        // callbacks with overlapping timestamps. Keep them until their PCM
+        // window is ready so they can be ordered across callback boundaries.
+        // The native capture bounds the total marker count for this request.
+        self.markers.extend(markers);
+        self.markers.sort_by_key(|marker| marker.frame_offset);
+        self.anchors.extend(anchors);
+        self.anchors.sort_by_key(|anchor| anchor.frame_offset);
+    }
+
+    fn emit_before(
+        &mut self,
+        sink: &mut dyn SynthesisStreamSink,
+        end_frame: u64,
+    ) -> Result<(), TtsError> {
+        let marker_count = self
+            .markers
+            .partition_point(|marker| marker.frame_offset < end_frame);
+        let anchor_count = self
+            .anchors
+            .partition_point(|anchor| anchor.frame_offset.is_some_and(|frame| frame < end_frame));
+        if marker_count == 0 && anchor_count == 0 {
+            return Ok(());
+        }
+        sink.markers(
+            self.markers.drain(..marker_count).collect(),
+            self.anchors.drain(..anchor_count).collect(),
+        )
+    }
+}
+
 fn emit_espeak_audio_windows(
     sink: &mut dyn SynthesisStreamSink,
     windows: Vec<AudioBuffer>,
+    pending_timing: &mut EspeakPendingTiming,
+    emitted_frames: &mut u64,
 ) -> Result<(), TtsError> {
     for window in windows {
         if !window.is_empty() {
+            let end_frame = *emitted_frames + window.frame_count() as u64;
+            pending_timing.emit_before(sink, end_frame)?;
             sink.audio(window)?;
+            *emitted_frames = end_frame;
         }
     }
     Ok(())
@@ -1737,6 +1788,11 @@ mod tests {
         ) -> Result<(), TtsError> {
             assert!(self.started);
             assert!(!markers.is_empty() || !anchors.is_empty());
+            let mut previous = self.markers.last().map(|marker| marker.frame_offset);
+            for marker in &markers {
+                assert!(previous.is_none_or(|frame| marker.frame_offset >= frame));
+                previous = Some(marker.frame_offset);
+            }
             assert!(markers
                 .iter()
                 .all(|marker| marker.frame_offset >= self.frames));
@@ -2027,6 +2083,36 @@ mod tests {
             .markers
             .iter()
             .any(|marker| marker.kind == SynthesisMarkerKind::Sentence));
+    }
+
+    #[test]
+    fn espeak_streams_complete_markdown_list_sentence() {
+        let engine = EspeakTtsEngine::new().expect("Failed to init espeak-ng");
+        let text = " When both a personal copy and a shared copy have the same or similar name,";
+        for rate in [0.5, 0.85] {
+            let request = SynthesisRequest::new(
+                text,
+                TtsSettings {
+                    rate,
+                    ..TtsSettings::default()
+                },
+            );
+            let mut sink = RecordingStreamSink::default();
+            let completion = engine
+                .synthesize_stream(&request, &mut sink)
+                .expect("Streaming synthesis failed");
+            assert_eq!(completion.frame_count, sink.frames);
+            for pair in sink.markers.windows(2) {
+                assert!(
+                    pair[0].frame_offset <= pair[1].frame_offset,
+                    "rate {rate}: markers moved backwards: {pair:?}"
+                );
+            }
+            assert!(sink.markers.iter().any(|marker| {
+                marker.kind == SynthesisMarkerKind::Word
+                    && marker.text_start == Some(text.find("name").unwrap() as u32)
+            }));
+        }
     }
 
     #[test]

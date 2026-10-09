@@ -20,6 +20,14 @@ Versioning for published releases.
 - Remove the TGSpeechBox experimental label and pin its upstream `v-310` source
   to `25b0e1ae65fb87705f0870c724dc8c91f3abbeba`.
 
+## [1.16.1] - 2026-10-08
+
+### Fixed
+
+- Prevent eSpeak speech from stopping partway through a line at faster speech
+  rates. Word markers from successive native callbacks are now ordered before
+  their audio is delivered, preserving complete speech and marker timestamps.
+
 ## [1.16.0] - 2026-09-30
 
 ### Added
