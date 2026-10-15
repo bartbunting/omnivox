@@ -284,19 +284,34 @@ negotiation and standalone, direct-timeline and multipart-timeline admission
 and completion. This verifies transport and execution, not audible output;
 platform timing and listening qualification remain open.
 
-Next implement worker-local client negotiation, explicit old-worker degradation
-and individual spelling gain with matching editing feedback and previews.
-Individual gain in Emacsvox follows this dependency: action-only editing cues
-and previews currently use standalone version 1, which cannot represent gain.
+Emacsvox now negotiates the richer-tone bundle independently for each worker,
+including reconnects. Standalone version 2 and timeline version 6 carry frozen
+per-tone gain, and original replay retains that value. Rules validate literal
+and fact-derived gain. Older workers omit unsupported tones while preserving
+speech and recording the reason; exact previews report missing support. These
+first two client slices are committed as `47df2aa1a` and `82d13b353`.
 
-In Emacsvox, carry gain and shape in frozen concrete actions so live playback
-and replay use the captured values. Rules validate literal and fact-derived
-values before transport. Keep spelling's current Customize options and explicit
-Save; named richer rule overrides belong to existing personal-rule storage.
-Introduce user-data version 11 only when saving those new rule fields; preserve
-older files and versions when no richer rule is written. Old readers must fail
-explicitly on the new format, not reinterpret the shape. Check the current schema
-number again before implementing because other work may advance it.
+Spelling now has individual volume at `C-e H s f l`, with 100 percent preserving
+the existing level. The shared main-tone volume still scales it. Reading,
+editing feedback and previews use the same gain; explicit Save persists it
+through Customize. Personal rules containing tone volume use user-data schema
+11; existing schemas remain readable. Saving native voices preserves schema
+11 when tone rules are present.
+
+Client regression checks cover worker isolation, old-worker degradation,
+frozen gain, saving and replay. Fresh graphical Emacs checks cover adjustments,
+Enter activation and search. The compiled client completes muted native Windows
+checks on both workers and after reconnect, including standalone and timeline
+gain and retained replay. The staged runtime is reused without a server rebuild.
+The Emacsvox UI plan records exact test counts and an outstanding test-order
+issue in an unrelated indentation fixture. Audible output remains unaccepted.
+
+Next add waveform and envelope fields to frozen client actions, validation,
+saving and replay, then expose named spelling presets. Keep the existing
+Customize options and explicit Save; richer rule overrides use personal-rule
+storage. Extend the same controls to capitalization and indentation, then
+complete platform and listening qualification. Old workers must keep reporting
+unsupported shapes without changing saved intent or silently playing Classic.
 
 Preset values remain provisional listening choices, with no automatic loudness
 compensation or default changes. Initial trials can use Soft (10/0/1/15 ms),
