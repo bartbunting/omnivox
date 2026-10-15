@@ -275,8 +275,13 @@ version-five work or another key. The
 [protocol reference](../protocols/presentation-timeline.md#richer-tones-version-6)
 now defines the implemented wire contract and negotiated bundle.
 
-Linux workspace verification passes with the two existing qualification/stress
-tests ignored. Full Windows development staging is the next build gate;
+Linux workspace verification passes: 1,187 tests passed, with the two existing
+qualification/stress tests ignored. Formatting, Clippy and paired documentation
+checks pass. Full Windows development staging passes for build
+`a4b085773844514f`, from Omnivox commit `a04e91e`. A fresh native Windows process
+through the normal launcher, using null audio output, confirms capability
+negotiation and standalone, direct-timeline and multipart-timeline admission
+and completion. This verifies transport and execution, not audible output;
 platform timing and listening qualification remain open.
 
 Next implement worker-local client negotiation, explicit old-worker degradation
