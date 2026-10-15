@@ -13,6 +13,11 @@ not need Tcl escaping and remain separate structured fields.
 - `presentation_tone_v1` gates `emacsvox_tone 1 MODE FREQUENCY DURATION`;
   `insert` advances the speech clock and `overlay` starts at its current
   boundary. The ordinary `t` command remains an independent beep.
+- `rich_tones_v1` is the complete richer-tone bundle: `presentation_tone_v2`
+  and `presentation_timeline_v6` use the same waveform, envelope and gain
+  renderer. Negotiate it independently for each worker and again on reconnect.
+  [Richer tones](presentation-timeline.md#richer-tones-version-6) defines both
+  formats. Older tone and timeline versions retain their meanings.
 - A client must successfully request capabilities before using later control
   extensions.
 - The server advertises only features it currently implements. Control
@@ -379,6 +384,9 @@ A successful capability response decodes to this shape:
     "presentation_timeline_v2",
     "presentation_timeline_v3",
     "presentation_tone_v1",
+    "presentation_tone_v2",
+    "presentation_timeline_v6",
+    "rich_tones_v1",
     "post_synthesis_effects_v1",
     "preferred_engine",
     "process_audio_routing",

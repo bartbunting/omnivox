@@ -1,5 +1,5 @@
 {
-  "status": "Decoder fixture; richer-tone playback is not yet advertised",
+  "capability": "rich_tones_v1",
   "standalone": "2 overlay 880 40 0.35 triangle adsr 1 25 0.25 10",
   "timeline": {
     "protocol_version": 6,

@@ -6,6 +6,12 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Negotiated richer tones with individual gain, sine, triangle and square
+  waveforms, and fixed-duration ADSR envelopes. Standalone and timeline cues
+  share rendering and interruptible generation; Classic sounds remain unchanged.
+
 ## [1.17.0] - 2026-10-09
 
 ### Added

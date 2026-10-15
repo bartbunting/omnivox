@@ -377,3 +377,72 @@ The server advertises native timelines with the complete native-parameter
 bundle, including strict previews and explanation operations. Clients must
 negotiate capabilities on each connection; a supported timeline version does
 not imply that every available engine supplies qualified native controls.
+
+## Richer tones, version 6
+
+The `rich_tones_v1` bundle advertises standalone tone version 2 and timeline
+version 6 together. Both render the same sound definition and apply per-cue
+gain and the worker's master tone gain once each. Clients negotiate per worker,
+including remote workers. Use version 6 consistently on a negotiated connection,
+even for Classic cues or timelines without tones: replacement domains include
+the protocol version. Version 6 cannot replace version 5 work with the same key.
+
+Version 6 retains version 5's speech spans, registry checks, action positions,
+effect buses, markers and native-choice evidence. Single-record and multipart
+commands keep the existing byte, action, resource and generation bounds; the
+multipart header uses version 6. A tone action may additionally contain:
+
+```json
+"shape": {
+  "waveform": "triangle",
+  "envelope": {
+    "attack_ms": 1,
+    "decay_ms": 25,
+    "sustain_level": 0.25,
+    "release_ms": 10
+  }
+}
+```
+
+`waveform` is required inside `shape` and is `sine`, `triangle` or `square`.
+Omitting `shape` retains Classic sine samples and fades. Omitting `envelope`
+retains Classic fades for the selected waveform. Explicit nulls, unknown fields,
+duplicate JSON members, shapes on non-tone actions and invalid values reject
+the whole document before admission. Versions 1–5 do not support shape fields.
+
+Standalone commands use the existing presentation clock and queued dispatch:
+
+```text
+emacsvox_tone 2 MODE FREQUENCY DURATION GAIN WAVEFORM classic
+emacsvox_tone 2 MODE FREQUENCY DURATION GAIN WAVEFORM adsr ATTACK DECAY SUSTAIN RELEASE
+d
+```
+
+`MODE` is `insert` or `overlay`. Commands work directly or inside `emacsvox_tx`;
+exact field counts are required. Version 1 and the ordinary independent `t`
+beep are unchanged. The [shared fixture](../protocol-fixtures/richer-tones.json)
+contains matching standalone and timeline definitions.
+
+Duration is an integer from 1 through 60000 milliseconds. Each envelope stage
+time is an integer from 0 through 60000 milliseconds. Gain and sustain level
+are finite numbers from 0 through 1; sustain is a level, not a time. Frequency
+is finite and greater than zero, at most 20000 Hz for a non-Classic shape.
+Classic sine with no envelope, including gain-only changes, retains the older
+24000 Hz limit. Stereo delay, channel routing and timeline pan retain their
+existing behavior. Timeline action gain remains outside speech-bus effects.
+
+Duration includes all envelope stages. When attack, decay and release exceed
+it, their times shrink proportionally and sustain has no hold. Frame rounding
+never extends duration. Zero-length stages jump to the following stage.
+ADSR output also has a smooth endpoint cap of at most one millisecond or half
+the tone, whichever is shorter; the level is the minimum of the cap and ADSR.
+Both endpoints reach silence. Classic samples bypass this envelope path.
+Triangle and square use at most 32 odd harmonics strictly below Nyquist, with
+fixed amplitude bounds and no automatic perceived-loudness matching.
+
+Tone generation checks hard-stop and keyed cancellation before allocation,
+every 256 frames and before publishing PCM. Cancellation discards partial PCM
+without dry-speech fallback or a failed-request status. Active-source stop
+fades remain unchanged; envelope release never delays Stop. These implementation
+checks do not establish acoustic or platform qualification; see the
+[delivery plan](../plans/richer-tones.md).

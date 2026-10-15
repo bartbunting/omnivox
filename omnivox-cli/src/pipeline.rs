@@ -12,6 +12,7 @@ use omnivox_core::timeline::{
     ActionAffinity, AudioActionMode, EffectBus, PresentationPosition, ResolvedTimelineAction,
     ScheduledTimeline, TimelineAction, TimelineActionId, TimelineActionKind,
 };
+use omnivox_core::tone::{ToneParameters, ToneShape};
 use omnivox_core::{ChannelMode, QueueItem, TonePlacement, TtsState};
 use omnivox_tts::contracts::{
     apply_rate_offset, AcssDimension, AnchorSupport, AudioOutputMode, NormalizedAcss,
@@ -147,6 +148,17 @@ fn check_audio_preparation_cancelled(
     } else {
         Ok(())
     }
+}
+
+fn prepare_shaped_tone_audio(
+    tone: &ToneParameters,
+    state: &TtsState,
+    cancelled: &dyn Fn() -> bool,
+) -> Result<AudioBuffer, omnivox_audio::AudioError> {
+    let mut audio = ToneGenerator::generate_shaped(tone, cancelled)?;
+    build_tone_pipeline(state).process(&mut audio)?;
+    check_audio_preparation_cancelled(cancelled)?;
+    Ok(audio)
 }
 
 #[derive(Debug)]
@@ -429,6 +441,7 @@ enum TimelineAudioResource {
         frequency_hz: f32,
         duration_ms: u32,
         pan: f32,
+        shape: ToneShape,
     },
     Silence {
         duration_ms: u32,
@@ -536,8 +549,20 @@ impl TimelineAudioResource {
                 frequency_hz,
                 duration_ms,
                 pan,
+                shape,
             } => {
-                let mut audio = prepare_tone_audio(*frequency_hz, *duration_ms, state, cancelled)?;
+                // Timeline scheduling applies action gain after effects. Keep
+                // generation at unity so the cue gain is applied exactly once.
+                let mut audio = prepare_shaped_tone_audio(
+                    &ToneParameters {
+                        frequency_hz: *frequency_hz,
+                        duration_ms: *duration_ms,
+                        volume: 1.0,
+                        shape: *shape,
+                    },
+                    state,
+                    cancelled,
+                )?;
                 apply_action_pan(&mut audio, *pan);
                 Ok(Arc::new(audio))
             }
@@ -3185,6 +3210,60 @@ pub fn process_presentation_timeline(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn process_presentation_timeline_v4(
     timeline: omnivox_tts::timeline_v4::PresentationTimelineV4,
+    state: TtsState,
+    ctx: &SynthCtx,
+    loader: &AudioFileLoader,
+    engines: &EngineRegistry,
+    health: &RuntimeEngineHealth,
+    routing: LogicalVoiceRoutingSnapshot,
+) -> BatchStatus {
+    process_mixed_timeline(
+        timeline,
+        &HashMap::new(),
+        state,
+        ctx,
+        loader,
+        engines,
+        health,
+        routing,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn process_rich_timeline(
+    timeline: omnivox_tts::timeline_v6::PresentationTimelineV6,
+    state: TtsState,
+    ctx: &SynthCtx,
+    loader: &AudioFileLoader,
+    engines: &EngineRegistry,
+    health: &RuntimeEngineHealth,
+    routing: LogicalVoiceRoutingSnapshot,
+) -> BatchStatus {
+    if ctx.is_stale() {
+        return BatchStatus::Cancelled;
+    }
+    if let Err(error) = timeline.validate(true) {
+        ctx.mark_failed();
+        warn!("Invalid rich timeline: {error}");
+        return BatchStatus::Failed;
+    }
+    let (native, shapes) = timeline.into_execution_parts();
+    process_mixed_timeline(
+        native.into_execution(),
+        &shapes,
+        state,
+        ctx,
+        loader,
+        engines,
+        health,
+        routing,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn process_mixed_timeline(
+    timeline: omnivox_tts::timeline_v4::PresentationTimelineV4,
+    shapes: &HashMap<String, ToneShape>,
     mut state: TtsState,
     ctx: &SynthCtx,
     loader: &AudioFileLoader,
@@ -3234,7 +3313,9 @@ pub(crate) fn process_presentation_timeline_v4(
     };
     let cancelled = || ctx.is_stale();
     let prepare = || -> Result<Vec<PreparedTimelineSpan>, TimelinePreparationError> {
-        let resources = prepare_timeline_resources(&timeline.actions, &state, loader, &cancelled)?;
+        let mut resources =
+            prepare_timeline_resources(&timeline.actions, &state, loader, &cancelled)?;
+        apply_tone_shapes(&mut resources, shapes)?;
         let actions = index_timeline_actions(&timeline.actions);
         let mut spans = Vec::with_capacity(timeline.spans.len());
         for span in &timeline.spans {
@@ -3691,6 +3772,23 @@ fn synthesize_direct_timeline_chunk(
     }
 }
 
+fn apply_tone_shapes(
+    resources: &mut HashMap<String, TimelineAudioResource>,
+    shapes: &HashMap<String, ToneShape>,
+) -> Result<(), TimelinePreparationError> {
+    for (id, shape) in shapes {
+        match resources.get_mut(id) {
+            Some(TimelineAudioResource::Tone { shape: target, .. }) => *target = *shape,
+            _ => {
+                return Err(TimelinePreparationError::Invalid(format!(
+                    "shape {id} has no tone resource"
+                )))
+            }
+        }
+    }
+    Ok(())
+}
+
 fn prepare_timeline_resources(
     actions: &[PresentationTimelineAction],
     state: &TtsState,
@@ -3768,6 +3866,7 @@ fn prepare_timeline_resources_with_sample_limit(
                     frequency_hz: *frequency_hz,
                     duration_ms: *duration_ms,
                     pan: *pan,
+                    shape: ToneShape::default(),
                 }
             }
             PresentationAction::Silence { duration_ms } => {
@@ -4243,6 +4342,22 @@ pub fn process_batch(
                     warn!("Tone pipeline error: {error}");
                 }
             },
+
+            QueueItem::ShapedTone { tone, placement } => {
+                match prepare_shaped_tone_audio(&tone, &state, &|| ctx.is_stale()) {
+                    Ok(audio) => match tone_queue_target(placement) {
+                        ToneQueueTarget::Stream(stream) => {
+                            ctx.queue(stream, &audio);
+                        }
+                        ToneQueueTarget::Overlay => ctx.queue_overlay(audio),
+                    },
+                    Err(omnivox_audio::AudioError::Cancelled) => break,
+                    Err(error) => {
+                        ctx.mark_failed();
+                        warn!("Shaped tone pipeline error: {error}");
+                    }
+                }
+            }
 
             QueueItem::Silence { duration } => {
                 let buf = AudioBuffer::silence(duration as f32 / 1000.0);

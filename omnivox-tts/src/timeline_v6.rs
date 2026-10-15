@@ -1,7 +1,7 @@
-//! Rich-tone timeline decoding. Not yet admitted by the server dispatcher.
+//! Rich-tone timeline decoding and lossless execution preparation.
 //!
 //! Keep sound shapes separate from older action types so an older executor
-//! cannot accidentally discard them. No lossy execution conversion is provided.
+//! cannot accidentally discard them. Execution returns both speech and shapes.
 
 use crate::logical_voices::LogicalVoiceRegistry;
 use crate::timeline_protocol::*;
@@ -62,6 +62,24 @@ fn present_key<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>,
 }
 
 impl PresentationTimelineV6 {
+    /// Split into the existing native speech model and mandatory per-action
+    /// shapes. The native model's version is internal; admission and replacement
+    /// retain the original version-six document and domain.
+    pub fn into_execution_parts(
+        self,
+    ) -> (
+        PresentationTimelineV5,
+        std::collections::HashMap<String, ToneShape>,
+    ) {
+        let native = self.validation_projection();
+        let shapes = self
+            .actions
+            .into_iter()
+            .filter_map(|action| action.shape.map(|shape| (action.action.id, shape)))
+            .collect();
+        (native, shapes)
+    }
+
     // Validation only: never publish this projection for execution or replay.
     fn validation_projection(&self) -> PresentationTimelineV5 {
         PresentationTimelineV5 {

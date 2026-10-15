@@ -49,12 +49,15 @@ fn standalone_and_timeline_preserve_the_same_sound_definition() {
 }
 
 #[test]
-fn old_decoders_and_active_dispatcher_do_not_accept_the_unimplemented_version() {
+fn old_decoders_reject_rich_shapes_and_dispatcher_selects_the_new_version() {
     let payload = encoded(&fixture()["timeline"]);
     assert!(decode_presentation_timeline(&payload).is_err());
     assert!(decode_timeline_v4(&payload, None).is_err());
     assert!(decode_timeline_v5(&payload, None).is_err());
-    assert!(decode_timeline_document(&payload, None).is_err());
+    assert!(matches!(
+        decode_timeline_document(&payload, None).unwrap(),
+        crate::timeline_v4::TimelineDocument::Rich(_)
+    ));
     let mut value = fixture()["timeline"].clone();
     value["protocol_version"] = json!(5);
     assert!(decode_timeline_v5(&encoded(&value), None).is_err());

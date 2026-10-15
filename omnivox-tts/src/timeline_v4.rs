@@ -18,6 +18,7 @@ pub enum TimelineDocument {
     Legacy(PresentationTimelineEnvelope),
     Layered(PresentationTimelineV4),
     Native(crate::timeline_v5::PresentationTimelineV5),
+    Rich(crate::timeline_v6::PresentationTimelineV6),
 }
 
 impl From<PresentationTimelineEnvelope> for TimelineDocument {
@@ -38,6 +39,7 @@ impl TimelineDocument {
             Self::Legacy(t) => t.protocol_version,
             Self::Layered(t) => t.protocol_version,
             Self::Native(t) => t.protocol_version,
+            Self::Rich(t) => t.protocol_version,
         }
     }
     pub fn generation(&self) -> u64 {
@@ -45,6 +47,7 @@ impl TimelineDocument {
             Self::Legacy(t) => t.generation,
             Self::Layered(t) => t.generation,
             Self::Native(t) => t.generation,
+            Self::Rich(t) => t.generation,
         }
     }
     pub fn dispatch_id(&self) -> u64 {
@@ -52,6 +55,7 @@ impl TimelineDocument {
             Self::Legacy(t) => t.dispatch_id,
             Self::Layered(t) => t.dispatch_id,
             Self::Native(t) => t.dispatch_id,
+            Self::Rich(t) => t.dispatch_id,
         }
     }
     pub fn effective_delivery_policy(&self) -> PresentationDeliveryPolicy {
@@ -59,6 +63,7 @@ impl TimelineDocument {
             Self::Legacy(t) => t.effective_delivery_policy(),
             Self::Layered(t) => t.delivery_policy,
             Self::Native(t) => t.delivery_policy,
+            Self::Rich(t) => t.delivery_policy,
         }
     }
     pub fn replacement_key(&self) -> Option<&str> {
@@ -66,6 +71,7 @@ impl TimelineDocument {
             Self::Legacy(t) => t.replacement_key.as_deref(),
             Self::Layered(t) => t.replacement_key.as_deref(),
             Self::Native(t) => t.replacement_key.as_deref(),
+            Self::Rich(t) => t.replacement_key.as_deref(),
         }
     }
     pub fn tracking_identity(&self) -> Option<PresentationTimelineIdentity> {
@@ -73,6 +79,7 @@ impl TimelineDocument {
             Self::Legacy(t) => t.tracking_identity(),
             Self::Layered(t) => t.tracking_identity(),
             Self::Native(t) => t.tracking_identity(),
+            Self::Rich(t) => t.tracking_identity(),
         }
     }
     pub fn span_text(&self, index: usize) -> Option<&str> {
@@ -83,6 +90,10 @@ impl TimelineDocument {
                 .spans
                 .get(index)
                 .map(crate::timeline_v5::NativeSpeechSpan::text),
+            Self::Rich(t) => t
+                .spans
+                .get(index)
+                .map(crate::timeline_v5::NativeSpeechSpan::text),
         }
     }
     pub fn shares_replacement_domain(&self, other: &Self) -> bool {
@@ -90,6 +101,7 @@ impl TimelineDocument {
             (Self::Legacy(a), Self::Legacy(b)) => a.shares_replacement_domain(b),
             (Self::Layered(a), Self::Layered(b)) => a.shares_replacement_domain(b),
             (Self::Native(a), Self::Native(b)) => a.shares_replacement_domain(b),
+            (Self::Rich(a), Self::Rich(b)) => a.shares_replacement_domain(b),
             _ => false,
         }
     }
@@ -132,7 +144,9 @@ pub fn decode_timeline_document(
             .map_err(PresentationTimelineError::InvalidJson)
     };
     let version = version().map_err(|error| PresentationTimelineDecodeError::new(None, error))?;
-    if version == crate::timeline_v5::PRESENTATION_TIMELINE_PROTOCOL_V5 {
+    if version == crate::timeline_v6::PRESENTATION_TIMELINE_PROTOCOL_V6 {
+        crate::timeline_v6::decode_timeline_v6(payload, aggregate_bytes).map(TimelineDocument::Rich)
+    } else if version == crate::timeline_v5::PRESENTATION_TIMELINE_PROTOCOL_V5 {
         crate::timeline_v5::decode_timeline_v5(payload, aggregate_bytes)
             .map(TimelineDocument::Native)
     } else if version == PRESENTATION_TIMELINE_PROTOCOL_V4 {

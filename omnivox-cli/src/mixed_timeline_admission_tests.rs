@@ -2,6 +2,27 @@
 use super::*;
 use omnivox_tts::timeline_v4::encode_timeline_v4;
 
+#[path = "rich_timeline_admission_tests.rs"]
+mod rich_timeline_admission_tests;
+
+fn rich_document() -> omnivox_tts::timeline_v6::PresentationTimelineV6 {
+    let mut value = serde_json::to_value(timeline()).unwrap();
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../docs/protocol-fixtures/richer-tones.json"
+    ))
+    .unwrap();
+    value["protocol_version"] = serde_json::json!(6);
+    value["actions"] = fixture["timeline"]["actions"].clone();
+    serde_json::from_value(value).unwrap()
+}
+
+fn rich_command(timeline: &omnivox_tts::timeline_v6::PresentationTimelineV6) -> Command {
+    Command::new(
+        CommandId::EmacsvoxTimeline,
+        Some(omnivox_tts::timeline_v6::encode_timeline_v6(timeline, false).unwrap()),
+    )
+}
+
 fn command(timeline: &PresentationTimelineV4) -> Command {
     Command::new(
         CommandId::EmacsvoxTimeline,
@@ -286,7 +307,12 @@ fn mixed_queue_and_active_replacement_domains_keep_v3_separate() {
 
 #[test]
 fn mixed_reader_to_worker_reports_consumed_choices_before_one_terminal_record() {
-    for behavior in [Behavior::Buffered, Behavior::Stream] {
+    for (version, behavior) in [
+        (4, Behavior::Buffered),
+        (4, Behavior::Stream),
+        (6, Behavior::Buffered),
+        (6, Behavior::Stream),
+    ] {
         let first = PreviewEngine::new("first", "one", Behavior::FailBeforeAudio);
         let second = PreviewEngine::new("second", "two", behavior);
         let mut engines = EngineRegistry::new();
@@ -297,7 +323,11 @@ fn mixed_reader_to_worker_reports_consumed_choices_before_one_terminal_record() 
         let (_input, input) = mpsc::channel();
         let StructuredSubmissionRead::Prepared(prepared) = read_structured_submission(
             &generations,
-            command(&timeline()),
+            if version == 6 {
+                rich_command(&rich_document())
+            } else {
+                command(&timeline())
+            },
             &input,
             &TtsState::default(),
             &voices,
@@ -370,7 +400,7 @@ fn mixed_reader_to_worker_reports_consumed_choices_before_one_terminal_record() 
         );
         let mut receipt_spans = vec![];
         for (index, event) in events.iter().enumerate() {
-            assert_eq!(event.protocol_version, 3);
+            assert_eq!(event.protocol_version, if version == 6 { 4 } else { 3 });
             if let MarkerEvent::VoiceChoiceApplied(receipt) = &event.event {
                 assert!(matches!(
                     events[index - 1].event,

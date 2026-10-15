@@ -8,7 +8,7 @@ use omnivox_audio::{
 };
 use omnivox_core::command::{parse_finite_float, parse_silence_duration};
 use omnivox_core::{
-    parse_command, parse_presentation_tone_arguments, parse_tone_arguments,
+    parse_command, parse_tone_arguments,
     state::{CapitalizationPresentation, ChannelMode, PunctuationLevel},
     Command, CommandId, QueueItem, TonePlacement, TtsState,
 };
@@ -430,7 +430,7 @@ fn queue_item_payload_bytes(item: &QueueItem) -> usize {
     match item {
         QueueItem::Speech(text) | QueueItem::Code(text) => text.len(),
         QueueItem::AudioIcon { path } => path.as_os_str().to_string_lossy().len(),
-        QueueItem::Tone { .. } | QueueItem::Silence { .. } => 0,
+        QueueItem::Tone { .. } | QueueItem::ShapedTone { .. } | QueueItem::Silence { .. } => 0,
     }
 }
 
@@ -444,13 +444,20 @@ fn timeline_payload_bytes(timeline: &TimelineDocument) -> usize {
                 _ => 0,
             })
     };
+    if let TimelineDocument::Rich(timeline) = timeline {
+        let (native, _) = timeline.clone().into_execution_parts();
+        let extra = std::mem::size_of::<omnivox_tts::timeline_v6::RichTimelineAction>()
+            - std::mem::size_of::<omnivox_tts::timeline_protocol::PresentationTimelineAction>();
+        return timeline_payload_bytes(&TimelineDocument::Native(native))
+            .saturating_add(timeline.actions.len().saturating_mul(extra));
+    }
     if let TimelineDocument::Native(timeline) = timeline {
         return timeline_payload_bytes(&TimelineDocument::Layered(
             timeline.clone().into_execution(),
         ));
     }
     let (spans, actions) = match timeline {
-        TimelineDocument::Native(_) => unreachable!(),
+        TimelineDocument::Native(_) | TimelineDocument::Rich(_) => unreachable!(),
         TimelineDocument::Legacy(timeline) => (
             timeline.spans.iter().map(legacy_span_bytes).fold(
                 std::mem::size_of_val(timeline.spans.as_slice()),
@@ -1339,11 +1346,13 @@ pub(crate) fn synthesis_worker(
                         timeline.dispatch_id(),
                         marker_output.clone(),
                     ),
-                    TimelineDocument::Native(_) => MarkerDispatchContext::with_native_events(
-                        timeline.dispatch_id(),
-                        marker_output.clone(),
-                        Arc::clone(&native_plans),
-                    ),
+                    TimelineDocument::Native(_) | TimelineDocument::Rich(_) => {
+                        MarkerDispatchContext::with_native_events(
+                            timeline.dispatch_id(),
+                            marker_output.clone(),
+                            Arc::clone(&native_plans),
+                        )
+                    }
                     TimelineDocument::Layered(_) => {
                         MarkerDispatchContext::with_voice_choice_events(
                             timeline.dispatch_id(),
@@ -1373,6 +1382,15 @@ pub(crate) fn synthesis_worker(
                 let dispatch_id = timeline.dispatch_id();
                 let status = match timeline {
                     TimelineDocument::Legacy(timeline) => process_presentation_timeline(
+                        timeline,
+                        state,
+                        &ctx,
+                        &loader,
+                        &engine_registry,
+                        &runtime_health,
+                        logical_voice_routing,
+                    ),
+                    TimelineDocument::Rich(timeline) => crate::pipeline::process_rich_timeline(
                         timeline,
                         state,
                         &ctx,
@@ -2558,6 +2576,15 @@ fn validate_palette_letter(timeline: &TimelineDocument) -> Result<(), String> {
                 && t.actions.is_empty()
                 && matches!(t.spans[0], MixedSpeechSpan::Layered(_))
         }
+        TimelineDocument::Rich(t) => {
+            t.spans.len() == 1
+                && t.actions.is_empty()
+                && matches!(
+                    t.spans[0],
+                    omnivox_tts::timeline_v5::NativeSpeechSpan::Layered(_)
+                        | omnivox_tts::timeline_v5::NativeSpeechSpan::EngineLayered(_)
+                )
+        }
         TimelineDocument::Native(t) => {
             t.spans.len() == 1
                 && t.actions.is_empty()
@@ -2609,6 +2636,16 @@ fn validate_structured_admission(
                 validate_presentation_timeline_action_windows(timeline, state)
             }
         }
+        TimelineDocument::Rich(timeline) => timeline
+            .validate_registry(logical_voices)
+            .map_err(|error| error.to_string())
+            .and_then(|_| {
+                let (native, _) = timeline.clone().into_execution_parts();
+                crate::pipeline::validate_presentation_timeline_v4_action_windows(
+                    &native.into_execution(),
+                    state,
+                )
+            }),
         TimelineDocument::Native(timeline) => timeline
             .validate_registry(logical_voices)
             .map_err(|error| error.to_string())
@@ -2740,7 +2777,10 @@ fn execute_structured_presentation(
         presentation.generation
     );
     generations.commit(presentation.generation);
-    let catalogues = if matches!(presentation.timeline, TimelineDocument::Native(_)) {
+    let catalogues = if matches!(
+        presentation.timeline,
+        TimelineDocument::Native(_) | TimelineDocument::Rich(_)
+    ) {
         parameter_queries.cached_catalogues(
             engine_registry,
             &routing_policy.policy().disabled_engine_ids,
@@ -3169,21 +3209,8 @@ fn handle_command(
 
         CommandId::EmacsvoxTone => {
             if let Some(args) = command.args {
-                match parse_presentation_tone_arguments(&args) {
-                    Ok(tone) => {
-                        debug!(
-                            "Queue {:?} presentation tone: {}Hz {}ms",
-                            tone.placement, tone.frequency_hz, tone.duration_ms
-                        );
-                        queue_pending_item(
-                            pending,
-                            QueueItem::Tone {
-                                frequency: tone.frequency_hz,
-                                duration: tone.duration_ms,
-                                placement: tone.placement,
-                            },
-                        );
-                    }
+                match omnivox_core::tone_command::parse_presentation_tone_item(&args) {
+                    Ok(item) => queue_pending_item(pending, item),
                     Err(error) => warn!("Invalid presentation tone: {error}"),
                 }
             }

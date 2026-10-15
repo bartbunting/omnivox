@@ -1,9 +1,27 @@
-//! Standalone version-two tone decoder, not yet connected to admission.
+//! Versioned standalone presentation tones.
 
 use crate::queue::TonePlacement;
 use crate::tone::{AdsrEnvelope, ToneParameters, ToneShape, Waveform};
 
 pub const RICH_PRESENTATION_TONE_PROTOCOL_VERSION: u8 = 2;
+
+/// Decode without changing the legacy version-one parser or its bounds.
+pub fn parse_presentation_tone_item(arguments: &str) -> Result<crate::queue::QueueItem, String> {
+    if arguments.split_whitespace().next() == Some("2") {
+        let command = parse_rich_presentation_tone_arguments(arguments)?;
+        Ok(crate::queue::QueueItem::ShapedTone {
+            tone: command.tone,
+            placement: command.placement,
+        })
+    } else {
+        let command = crate::command::parse_presentation_tone_arguments(arguments)?;
+        Ok(crate::queue::QueueItem::Tone {
+            frequency: command.frequency_hz,
+            duration: command.duration_ms,
+            placement: command.placement,
+        })
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RichPresentationToneCommand {
@@ -59,6 +77,28 @@ pub fn parse_rich_presentation_tone_arguments(
 mod tests {
     use super::*;
     use crate::command::parse_presentation_tone_arguments;
+
+    #[test]
+    fn queue_decoder_preserves_old_items_and_freezes_rich_parameters() {
+        let old = parse_presentation_tone_item("1 insert 440 50").unwrap();
+        assert_eq!(
+            old,
+            crate::queue::QueueItem::Tone {
+                frequency: 440.0,
+                duration: 50,
+                placement: TonePlacement::Insert
+            }
+        );
+        let request = "2 overlay 880 40 0.35 triangle adsr 1 25 0.25 10";
+        let expected = parse_rich_presentation_tone_arguments(request).unwrap();
+        assert_eq!(
+            parse_presentation_tone_item(request).unwrap(),
+            crate::queue::QueueItem::ShapedTone {
+                tone: expected.tone,
+                placement: expected.placement
+            }
+        );
+    }
 
     #[test]
     fn preserves_modes_gain_and_short_envelopes_without_normalizing() {

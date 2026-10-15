@@ -609,6 +609,9 @@ pub fn process_control_request_with_configuration(
                         "presentation_timeline_v3".to_owned(),
                         "presentation_timeline_v4".to_owned(),
                         "presentation_timeline_v5".to_owned(),
+                        "presentation_timeline_v6".to_owned(),
+                        "presentation_tone_v2".to_owned(),
+                        "rich_tones_v1".to_owned(),
                         "palette_letter_v1".to_owned(),
                         "voice_choice_tuning_v1".to_owned(),
                         "presentation_tone_v1".to_owned(),
@@ -1107,6 +1110,9 @@ mod tests {
         for feature in [
             "engine_voice_parameters_v1",
             "presentation_timeline_v5",
+            "presentation_timeline_v6",
+            "presentation_tone_v2",
+            "rich_tones_v1",
             "playback_marker_events_v4",
         ] {
             assert!(features.iter().any(|f| f == feature));

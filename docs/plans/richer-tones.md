@@ -2,10 +2,11 @@
 
 Status: accepted for implementation on 2026-10-16. Shared tone types, versioned
 decoders, waveform/envelope rendering and cancellation during tone generation
-are implemented. The active server still rejects standalone version 2 and
-timeline version 6 and does not advertise richer-tone support. Connecting those
-formats to playback, deployment and listening acceptance remain outstanding.
-Defaults are unchanged.
+are implemented. Standalone version 2 and timeline version 6 now reach playback
+through the same renderer, advertised together as `rich_tones_v1`.
+Client controls, old-worker degradation,
+platform qualification and listening acceptance remain outstanding. Defaults
+are unchanged.
 Scope: richer generated cues in Omnivox, with accessible editing in Emacsvox.
 Related: [roadmap](../ROADMAP.md), [architecture](../ARCHITECTURE.md),
 [timeline protocol](../protocols/presentation-timeline.md),
@@ -94,13 +95,14 @@ Emacsvox versions can read before shipping the new saved format.
    and actual feedback so they use the same gain. If a standalone path cannot
    express it, use an existing equivalent negotiated path or carry that gap
    into slice 2 explicitly. Keep the shared master volume clearly labelled.
-2. [ ] **Contract and fixtures.** Audit all callers; settle the duration rule,
+2. [x] **Contract and fixtures.** Audit all callers; settle the duration rule,
    short/zero-stage behavior, waveform limits, capability/version negotiation,
    old-peer fallback and storage compatibility. Define standalone/timeline
    parity and negative fixtures before exposing controls.
-3. [ ] **Omnivox generation and transport.** Implement Classic preservation,
+3. [x] **Omnivox generation and transport.** Implement Classic preservation,
    waveforms and envelopes in the shared renderer. Wire both delivery paths
    through it. Verify bounded synthesis and cancellation before client rollout.
+   Platform and listening qualification remain in slice 5.
 4. [ ] **Emacsvox editor and presets.** Use browsable waveform and envelope
    choices: arrows inspect, Enter applies to the draft. Explain every choice
    and numeric control. Use Shift-arrows for adjustments and Enter for exact
@@ -263,16 +265,22 @@ Regression coverage checks spectra, Classic sample equality, gain, envelope
 stages and compression, silent endpoints, cancellation during materialization,
 and cancellation handling for buffered and progressive preparation.
 
-Verification on 2026-10-16: the locked workspace suite passes 1,183 tests with
-two ignored (native-helper qualification and long-session synthesis stress).
-Formatting, Clippy for the affected audio and CLI crates, documentation and
-paired links pass. The Emacsvox documentation release gate also passes.
-No runtime was staged or live session changed; platform timing and listening
-qualification remain open.
+Both versioned formats now reach playback. Tests compare standalone PCM with
+inserted and overlaid timeline PCM across waveforms, envelopes and channel
+routing, using separate cue and master gains. Reader-to-worker tests cover
+buffered and progressive fallback with retained marker evidence. Multipart
+framing preserves shapes; malformed input cannot cancel accepted work;
+version-six Classic updates replace richer predecessors without cancelling
+version-five work or another key. The
+[protocol reference](../protocols/presentation-timeline.md#richer-tones-version-6)
+now defines the implemented wire contract and negotiated bundle.
 
-Next connect the versioned formats to both playback paths and verify gain,
-shape, routing, replacement domains and worker-local negotiation together.
-Keep the capability unadvertised until those checks and Stop are complete.
+Linux workspace verification passes with the two existing qualification/stress
+tests ignored. Full Windows development staging is the next build gate;
+platform timing and listening qualification remain open.
+
+Next implement worker-local client negotiation, explicit old-worker degradation
+and individual spelling gain with matching editing feedback and previews.
 Individual gain in Emacsvox follows this dependency: action-only editing cues
 and previews currently use standalone version 1, which cannot represent gain.
 

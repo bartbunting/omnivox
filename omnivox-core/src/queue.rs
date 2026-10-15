@@ -32,6 +32,12 @@ pub enum QueueItem {
         placement: TonePlacement,
     },
 
+    /// Version-two presentation tone with frozen gain and sound shape.
+    ShapedTone {
+        tone: crate::tone::ToneParameters,
+        placement: TonePlacement,
+    },
+
     /// Silence/pause for specified duration (ms)
     Silence { duration: u32 },
 

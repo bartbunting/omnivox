@@ -1,6 +1,112 @@
 use super::*;
 use std::cell::Cell;
 
+#[test]
+fn standalone_and_timeline_share_shape_gain_and_routing_for_insert_and_overlay() {
+    use omnivox_core::tone::{AdsrEnvelope, Waveform};
+    for waveform in [Waveform::Sine, Waveform::Triangle, Waveform::Square] {
+        for envelope in [
+            None,
+            Some(AdsrEnvelope {
+                attack_ms: 1,
+                decay_ms: 25,
+                sustain_level: 0.25,
+                release_ms: 10,
+            }),
+        ] {
+            for mode in [AudioActionMode::Insert, AudioActionMode::Overlay] {
+                for channel in [ChannelMode::Both, ChannelMode::Left, ChannelMode::Right] {
+                    let mut state = TtsState {
+                        tone_volume: 0.4,
+                        ..Default::default()
+                    };
+                    state.tone_routing.channel_mode = channel;
+                    let tone = ToneParameters {
+                        frequency_hz: 880.0,
+                        duration_ms: 40,
+                        volume: 0.35,
+                        shape: ToneShape { waveform, envelope },
+                    };
+                    let standalone =
+                        prepare_shaped_tone_audio(&tone, &state, &never_cancelled).unwrap();
+                    let base = boundary_action(
+                        "cue",
+                        PresentationAction::Tone {
+                            frequency_hz: tone.frequency_hz,
+                            duration_ms: tone.duration_ms,
+                            mode: if mode == AudioActionMode::Insert {
+                                PresentationAudioMode::Insert
+                            } else {
+                                PresentationAudioMode::Overlay
+                            },
+                            volume: tone.volume,
+                            pan: 0.5,
+                            effect_bus: PresentationEffectBus::Dry,
+                        },
+                    );
+                    let mut resources = prepare_timeline_resources(
+                        &[base],
+                        &state,
+                        &AudioFileLoader::new(),
+                        &never_cancelled,
+                    )
+                    .unwrap();
+                    apply_tone_shapes(&mut resources, &HashMap::from([("cue".into(), tone.shape)]))
+                        .unwrap();
+                    let action = TimelineChunkAction {
+                        id: "cue".into(),
+                        text_offset: 0,
+                        affinity: AnchorAffinity::Before,
+                        kind: TimelineChunkActionKind::Audio {
+                            resource: resources.remove("cue").unwrap(),
+                            mode,
+                            volume: tone.volume,
+                            effect_bus: EffectBus::Dry,
+                        },
+                    };
+                    let primary = if mode == AudioActionMode::Insert {
+                        AudioBuffer::empty()
+                    } else {
+                        AudioBuffer::new(vec![0.0; standalone.samples.len()])
+                    };
+                    let result = CanonicalSynthesisResult {
+                        audio: primary,
+                        engine_id: "mock".into(),
+                        actual_voice: None,
+                        markers: Vec::new(),
+                        anchors: vec![ResolvedAnchor {
+                            id: "cue".into(),
+                            frame_offset: Some(0),
+                            resolution: AnchorResolution::Exact,
+                        }],
+                        degraded_acss: Vec::new(),
+                    };
+                    let (timeline, resources) = prepare_speech_timeline(
+                        &result,
+                        &[],
+                        &[action],
+                        &PostSynthesisStyle::default(),
+                        &state,
+                        &never_cancelled,
+                    )
+                    .unwrap();
+                    let rendered = TimelineAudioRenderer::new()
+                        .render_shared_window(&result.audio, &timeline, &resources, true)
+                        .unwrap();
+                    assert_eq!(rendered.audio.frame_count(), standalone.frame_count());
+                    for (actual, expected) in rendered.audio.samples.iter().zip(&standalone.samples)
+                    {
+                        assert!(
+                            (actual - expected).abs() < 0.000001,
+                            "gain or shape changed: {actual} vs {expected}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn tone_action(duration_ms: u32) -> TimelineChunkAction {
     TimelineChunkAction {
         id: "cue".into(),
@@ -11,6 +117,15 @@ fn tone_action(duration_ms: u32) -> TimelineChunkAction {
                 frequency_hz: 440.0,
                 duration_ms,
                 pan: 0.5,
+                shape: ToneShape {
+                    waveform: omnivox_core::tone::Waveform::Triangle,
+                    envelope: Some(omnivox_core::tone::AdsrEnvelope {
+                        attack_ms: 10,
+                        decay_ms: 25,
+                        sustain_level: 0.25,
+                        release_ms: 10,
+                    }),
+                },
             },
             mode: AudioActionMode::Overlay,
             volume: 0.35,

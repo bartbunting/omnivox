@@ -2,9 +2,7 @@
 
 use omnivox_core::command::{parse_finite_float, parse_silence_duration};
 use omnivox_core::state::{CapitalizationPresentation, ChannelMode, PunctuationLevel};
-use omnivox_core::{
-    parse_command, parse_presentation_tone_arguments, parse_tone_arguments, Command, CommandId,
-};
+use omnivox_core::{parse_command, parse_tone_arguments, Command, CommandId};
 use omnivox_tts::presentation::decode_presentation_frame;
 use omnivox_tts::timeline_protocol::{
     decode_any_timeline_part, PresentationTimelineIdentity, PresentationTimelinePart,
@@ -306,9 +304,9 @@ fn validate_command(command: &Command) -> Result<(), String> {
         CommandId::Queue | CommandId::Code => arguments.is_some(),
         CommandId::Dispatch => arguments.is_none(),
         CommandId::Tone => arguments.is_some_and(|value| parse_tone_arguments(value).is_ok()),
-        CommandId::EmacsvoxTone => {
-            arguments.is_some_and(|value| parse_presentation_tone_arguments(value).is_ok())
-        }
+        CommandId::EmacsvoxTone => arguments.is_some_and(|value| {
+            omnivox_core::tone_command::parse_presentation_tone_item(value).is_ok()
+        }),
         CommandId::Silence => arguments.is_some_and(|value| parse_silence_duration(value).is_ok()),
         CommandId::AudioIcon => arguments.is_some_and(|value| parse_resource_path(value).is_ok()),
         CommandId::TtsSetPunctuationProfile => {
@@ -504,8 +502,24 @@ mod tests {
             .unwrap();
         assert_eq!(prepared.commands[1].id, CommandId::EmacsvoxTone);
 
+        for tone in [
+            "2 insert 880 40 0.35 triangle adsr 1 25 0.25 10",
+            "2 overlay 440 50 0.5 sine classic",
+        ] {
+            let prepared = generations
+                .prepare(&arguments(
+                    9,
+                    &format!("q {{before}}\nemacsvox_tone {tone}\nq {{after}}\nd\n"),
+                ))
+                .unwrap()
+                .unwrap();
+            assert_eq!(prepared.commands[1].id, CommandId::EmacsvoxTone);
+        }
+
         for command in [
             "emacsvox_tone 2 insert 440 50",
+            "emacsvox_tone 2 insert 440 50 1 triangle adsr 0 0 2 0",
+            "emacsvox_tone 2 overlay 440 50 1 sine classic trailing",
             "emacsvox_tone 1 independent 440 50",
             "emacsvox_tone 1 insert 440 60001",
             "t NaN 50",
