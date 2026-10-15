@@ -1,11 +1,22 @@
 //! Tone Generator
 //!
-//! Pure Rust sine wave tone generator with fade-in/fade-out to prevent clicks.
+//! Classic sine tones and bounded harmonic tones with optional ADSR envelopes.
 //! Produces stereo f32 at 44100Hz matching the common buffer format.
 
 use crate::buffer::{AudioBuffer, SAMPLE_RATE};
+use crate::AudioError;
 
-/// Generator for sine wave tones.
+mod rich;
+
+pub(crate) fn check_cancelled(cancelled: &dyn Fn() -> bool) -> Result<(), AudioError> {
+    if cancelled() {
+        Err(AudioError::Cancelled)
+    } else {
+        Ok(())
+    }
+}
+
+/// Generator for Classic and shaped tones.
 pub struct ToneGenerator;
 
 impl ToneGenerator {
@@ -21,9 +32,23 @@ impl ToneGenerator {
     /// sox `delay 0 0.01` behavior. Since the delay is sub-sample, we
     /// approximate by interpolating the right channel.
     pub fn generate(freq_hz: f32, duration_ms: u32, volume: f32) -> AudioBuffer {
+        Self::generate_interruptible(freq_hz, duration_ms, volume, &|| false)
+            .expect("uninterruptible Classic generation cannot fail")
+    }
+
+    /// Generate Classic samples, checking cancellation before allocation,
+    /// every 256 frames and before returning the complete buffer.
+    /// Legacy parameter handling and sample calculations are unchanged.
+    pub fn generate_interruptible(
+        freq_hz: f32,
+        duration_ms: u32,
+        volume: f32,
+        cancelled: &dyn Fn() -> bool,
+    ) -> Result<AudioBuffer, AudioError> {
+        check_cancelled(cancelled)?;
         let frame_count = (SAMPLE_RATE as f64 * duration_ms as f64 / 1000.0) as usize;
         if frame_count == 0 {
-            return AudioBuffer::empty();
+            return Ok(AudioBuffer::empty());
         }
 
         let fade_frames = (SAMPLE_RATE as f32 * 0.010) as usize; // 10ms fade
@@ -36,6 +61,9 @@ impl ToneGenerator {
         let mut samples = Vec::with_capacity(frame_count * 2);
 
         for i in 0..frame_count {
+            if i != 0 && i % 256 == 0 {
+                check_cancelled(cancelled)?;
+            }
             let t = i as f32 / SAMPLE_RATE as f32;
 
             // Sine wave
@@ -69,7 +97,8 @@ impl ToneGenerator {
             samples.push(right_sample * envelope);
         }
 
-        AudioBuffer::new(samples)
+        check_cancelled(cancelled)?;
+        Ok(AudioBuffer::new(samples))
     }
 }
 

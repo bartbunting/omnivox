@@ -51,6 +51,9 @@ use thiserror::Error;
 /// Audio processing errors
 #[derive(Debug, Error)]
 pub enum AudioError {
+    #[error("Audio preparation cancelled")]
+    Cancelled,
+
     #[error("Invalid buffer format: {0}")]
     InvalidFormat(String),
 

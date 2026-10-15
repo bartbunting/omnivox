@@ -1,10 +1,11 @@
 # Richer generated tones
 
-Status: accepted for implementation on 2026-10-16. Shared tone types and the
-standalone version 2 and timeline version 6 decoders are implemented. The active
-server still rejects these versions and does not advertise richer-tone support.
-Rendering, playback integration, deployment and listening acceptance remain
-outstanding. Defaults are unchanged.
+Status: accepted for implementation on 2026-10-16. Shared tone types, versioned
+decoders, waveform/envelope rendering and cancellation during tone generation
+are implemented. The active server still rejects standalone version 2 and
+timeline version 6 and does not advertise richer-tone support. Connecting those
+formats to playback, deployment and listening acceptance remain outstanding.
+Defaults are unchanged.
 Scope: richer generated cues in Omnivox, with accessible editing in Emacsvox.
 Related: [roadmap](../ROADMAP.md), [architecture](../ARCHITECTURE.md),
 [timeline protocol](../protocols/presentation-timeline.md),
@@ -18,7 +19,7 @@ Make spelling, capitalization, indentation and other brief cues easier to
 distinguish and comfortable to hear repeatedly. Offer understandable presets
 alongside optional detailed controls. Preserve existing cues by default.
 
-The current [generator](../../omnivox-audio/src/tone.rs) produces sine waves
+The active Classic [generator](../../omnivox-audio/src/tone.rs) produces sine waves
 with linear fades of up to 10 milliseconds at each end, shortened for brief
 tones. It produces stereo PCM with a small right-channel delay. Timeline tones
 already accept individual gain, multiplied by the worker's master tone volume.
@@ -246,15 +247,32 @@ unknown and duplicate fields, explicit nulls, numeric bounds, short envelopes,
 payload limits and replacement domains. These checks establish decoding only;
 they do not establish playback or listening acceptance.
 
-Decoder verification on 2026-10-16: the locked workspace suite passes 1,172
-tests with two ignored (native-helper qualification and long-session synthesis
-stress). Formatting, Clippy for the affected core and TTS crates, documentation
-links and paired Emacsvox links pass. The Emacsvox documentation release gate
-also passes. No runtime was staged or live session changed.
+The [shared renderer](../../omnivox-audio/src/tone/rich.rs) now implements sine,
+triangle and square waveforms, fixed-duration ADSR and endpoint smoothing.
+Classic calls retain their sample calculations. Harmonic generation uses at
+most 32 odd partials below Nyquist; square coefficients use one fixed absolute
+sum bound across frequencies. This keeps amplitude bounded without matching
+perceived loudness. Relative waveform loudness still needs listening.
 
-Next add the shared renderer and cancellation propagation, followed by
-pipeline/negotiation checks. Keep the capability unadvertised until both
-playback paths and Stop are complete.
+Cancellation probes now reach existing standalone, capitalization and timeline
+tone generation, including progressive preparation and actual-attempt effects.
+Generation checks before allocation, every 256 frames and before returning PCM.
+Cancelled preparation drops partial audio without marking the request failed
+or queuing dry speech. Existing playback cancellation fades are unchanged.
+Regression coverage checks spectra, Classic sample equality, gain, envelope
+stages and compression, silent endpoints, cancellation during materialization,
+and cancellation handling for buffered and progressive preparation.
+
+Verification on 2026-10-16: the locked workspace suite passes 1,183 tests with
+two ignored (native-helper qualification and long-session synthesis stress).
+Formatting, Clippy for the affected audio and CLI crates, documentation and
+paired links pass. The Emacsvox documentation release gate also passes.
+No runtime was staged or live session changed; platform timing and listening
+qualification remain open.
+
+Next connect the versioned formats to both playback paths and verify gain,
+shape, routing, replacement domains and worker-local negotiation together.
+Keep the capability unadvertised until those checks and Stop are complete.
 Individual gain in Emacsvox follows this dependency: action-only editing cues
 and previews currently use standalone version 1, which cannot represent gain.
 

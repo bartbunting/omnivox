@@ -130,10 +130,53 @@ fn prepare_tone_audio(
     frequency_hz: f32,
     duration_ms: u32,
     state: &TtsState,
+    cancelled: &dyn Fn() -> bool,
 ) -> Result<AudioBuffer, omnivox_audio::AudioError> {
-    let mut audio = ToneGenerator::generate(frequency_hz, duration_ms, 1.0);
+    let mut audio =
+        ToneGenerator::generate_interruptible(frequency_hz, duration_ms, 1.0, cancelled)?;
     build_tone_pipeline(state).process(&mut audio)?;
+    check_audio_preparation_cancelled(cancelled)?;
     Ok(audio)
+}
+
+fn check_audio_preparation_cancelled(
+    cancelled: &dyn Fn() -> bool,
+) -> Result<(), omnivox_audio::AudioError> {
+    if cancelled() {
+        Err(omnivox_audio::AudioError::Cancelled)
+    } else {
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+enum ProgressiveChunkError {
+    Cancelled,
+    Failed(String),
+}
+
+impl From<omnivox_audio::AudioError> for ProgressiveChunkError {
+    fn from(error: omnivox_audio::AudioError) -> Self {
+        match error {
+            omnivox_audio::AudioError::Cancelled => Self::Cancelled,
+            error => Self::Failed(error.to_string()),
+        }
+    }
+}
+
+impl From<TtsError> for ProgressiveChunkError {
+    fn from(error: TtsError) -> Self {
+        Self::Failed(error.to_string())
+    }
+}
+
+impl fmt::Display for ProgressiveChunkError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Cancelled => formatter.write_str("progressive audio preparation cancelled"),
+            Self::Failed(message) => formatter.write_str(message),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -470,8 +513,13 @@ fn check_timeline_preparation_cancelled(
 }
 
 impl TimelineAudioResource {
-    fn materialize(&self, state: &TtsState) -> Result<Arc<AudioBuffer>, omnivox_audio::AudioError> {
-        match self {
+    fn materialize(
+        &self,
+        state: &TtsState,
+        cancelled: &dyn Fn() -> bool,
+    ) -> Result<Arc<AudioBuffer>, omnivox_audio::AudioError> {
+        check_audio_preparation_cancelled(cancelled)?;
+        let prepared = match self {
             Self::File { audio, pan } => {
                 if state.sound_volume == 1.0
                     && state.sound_routing.channel_mode == ChannelMode::Both
@@ -489,14 +537,16 @@ impl TimelineAudioResource {
                 duration_ms,
                 pan,
             } => {
-                let mut audio = prepare_tone_audio(*frequency_hz, *duration_ms, state)?;
+                let mut audio = prepare_tone_audio(*frequency_hz, *duration_ms, state, cancelled)?;
                 apply_action_pan(&mut audio, *pan);
                 Ok(Arc::new(audio))
             }
             Self::Silence { duration_ms } => {
                 Ok(Arc::new(AudioBuffer::silence(*duration_ms as f32 / 1000.0)))
             }
-        }
+        }?;
+        check_audio_preparation_cancelled(cancelled)?;
+        Ok(prepared)
     }
 }
 
@@ -563,6 +613,8 @@ pub fn synthesize_chunk_with_tones(
         return match synthesis {
             Ok(_) if ctx.is_stale() => false,
             Ok(_) => true,
+            Err(ProgressiveChunkError::Cancelled) => false,
+            Err(_) if ctx.is_stale() => false,
             Err(error) => {
                 warn!(
                     lifecycle_stage = "synthesis_failed",
@@ -740,6 +792,10 @@ fn queue_synthesis_result_inner(
         ctx,
     ) {
         Ok(rendered) => rendered,
+        Err(omnivox_audio::AudioError::Cancelled) => {
+            discard_effects(ctx);
+            return false;
+        }
         Err(error) => {
             ctx.mark_failed();
             if attempt.is_some() {
@@ -995,7 +1051,9 @@ fn render_speech_timeline(
     final_window: bool,
     ctx: &SynthCtx,
 ) -> Result<(Option<AudioBuffer>, Vec<PlaybackSemanticEvent>), omnivox_audio::AudioError> {
-    let (timeline, resources) = prepare_speech_timeline(result, tones, actions, effects, state)?;
+    let cancelled = || ctx.is_stale();
+    let (timeline, resources) =
+        prepare_speech_timeline(result, tones, actions, effects, state, &cancelled)?;
     let renderer = ctx.timeline_renderer.ok_or_else(|| {
         omnivox_audio::AudioError::TimelineError(
             "synthesis context has no timeline renderer".into(),
@@ -1007,6 +1065,7 @@ fn render_speech_timeline(
         &resources,
         final_window,
     )?;
+    check_audio_preparation_cancelled(&cancelled)?;
     for marker in &mut result.markers {
         marker.frame_offset = rendered.map_primary_frame(marker.frame_offset)?;
     }
@@ -1035,9 +1094,10 @@ fn prepare_speech_timeline(
     timeline_actions: &[TimelineChunkAction],
     effects: &PostSynthesisStyle,
     state: &TtsState,
+    cancelled: &dyn Fn() -> bool,
 ) -> Result<(ScheduledTimeline, Vec<SharedPreparedAudioResource>), omnivox_audio::AudioError> {
     let (actions, resources) =
-        prepare_speech_timeline_actions(tones, timeline_actions, effects, state)?;
+        prepare_speech_timeline_actions(tones, timeline_actions, effects, state, cancelled)?;
     let actions = actions
         .into_iter()
         .map(|action| {
@@ -1086,13 +1146,15 @@ fn prepare_speech_timeline_actions(
     timeline_actions: &[TimelineChunkAction],
     effects: &PostSynthesisStyle,
     state: &TtsState,
+    cancelled: &dyn Fn() -> bool,
 ) -> Result<(Vec<TimelineAction>, Vec<SharedPreparedAudioResource>), omnivox_audio::AudioError> {
+    check_audio_preparation_cancelled(cancelled)?;
     let mut actions = Vec::with_capacity(tones.len() + timeline_actions.len());
     let mut resources = Vec::with_capacity(tones.len() + timeline_actions.len());
     for tone in tones {
         let id = TimelineActionId::new(tone.id.clone())
             .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
-        let audio = prepare_tone_audio(tone.frequency_hz, tone.duration_ms, state)?;
+        let audio = prepare_tone_audio(tone.frequency_hz, tone.duration_ms, state, cancelled)?;
         let action = TimelineAction {
             id: id.clone(),
             position: PresentationPosition::TextOffset {
@@ -1111,6 +1173,7 @@ fn prepare_speech_timeline_actions(
         resources.push(SharedPreparedAudioResource::new(id, Arc::new(audio)));
     }
     for action in timeline_actions {
+        check_audio_preparation_cancelled(cancelled)?;
         let id = TimelineActionId::new(action.id.clone())
             .map_err(|error| omnivox_audio::AudioError::TimelineError(error.to_string()))?;
         let kind = match &action.kind {
@@ -1120,7 +1183,7 @@ fn prepare_speech_timeline_actions(
                 volume,
                 effect_bus,
             } => {
-                let mut audio = resource.materialize(state)?;
+                let mut audio = resource.materialize(state, cancelled)?;
                 if audio.is_empty() {
                     return Err(omnivox_audio::AudioError::TimelineError(format!(
                         "action {} materialized to empty audio",
@@ -1161,6 +1224,7 @@ fn prepare_speech_timeline_actions(
             kind,
         });
     }
+    check_audio_preparation_cancelled(cancelled)?;
     Ok((actions, resources))
 }
 
@@ -1307,7 +1371,7 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
         capitalization_tones: &[CapitalizationTone],
         timeline_actions: &[TimelineChunkAction],
         ctx: &'a SynthCtx<'ctx>,
-    ) -> Result<Self, TtsError> {
+    ) -> Result<Self, omnivox_audio::AudioError> {
         let reported_timeline_action_ids = timeline_actions
             .iter()
             .map(|action| action.id.clone())
@@ -1318,8 +1382,8 @@ impl<'a, 'ctx> ProgressiveChunkSink<'a, 'ctx> {
             timeline_actions,
             &effects,
             state,
-        )
-        .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
+            &|| ctx.is_stale(),
+        )?;
         let timeline_action_indices = timeline_actions
             .iter()
             .enumerate()
@@ -2045,7 +2109,10 @@ impl crate::routing::choice::RoutedPlaybackSink for ProgressiveChunkSink<'_, '_>
             &self.source_actions,
             &attempt.effects.style,
             self.state,
+            &|| self.ctx.is_stale(),
         )
+        // The engine sink trait carries TtsError. Routing checks the same
+        // cancellation lease before classifying a sink error or retrying.
         .map_err(|error| TtsError::SynthesisFailed(error.to_string()))?;
         self.timeline_actions = actions;
         self.timeline_resources = resources;
@@ -2164,7 +2231,7 @@ fn synthesize_direct_chunk_progressively(
     is_last_speech: bool,
     final_timeline_window: bool,
     ctx: &SynthCtx,
-) -> Result<CompletedProgressiveChunk, TtsError> {
+) -> Result<CompletedProgressiveChunk, ProgressiveChunkError> {
     let mut sink = ProgressiveChunkSink::new(
         utterance_text,
         logical_voice_id,
@@ -2178,7 +2245,7 @@ fn synthesize_direct_chunk_progressively(
         ctx,
     )?;
     let completion = ctx.engine.synthesize_stream(request, &mut sink)?;
-    sink.finish(completion)
+    sink.finish(completion).map_err(Into::into)
 }
 
 fn route_supports_initial_progressive_playback(
@@ -2383,6 +2450,7 @@ fn synthesize_routed_chunk_progressively(
         ctx,
     ) {
         Ok(sink) => sink,
+        Err(omnivox_audio::AudioError::Cancelled) => return RoutedChunkOutcome::Cancelled,
         Err(error) => {
             ctx.mark_failed();
             warn!("Progressive timeline preparation failed: {error}");
@@ -2757,6 +2825,7 @@ fn synthesize_prepared_chunk(
         ctx,
     ) {
         Ok(sink) => sink,
+        Err(omnivox_audio::AudioError::Cancelled) => return BatchStatus::Cancelled,
         Err(error) => {
             warn!("Layered playback preparation failed: {error}");
             ctx.mark_failed();
@@ -3550,6 +3619,8 @@ fn synthesize_direct_timeline_chunk(
         return match synthesis {
             Ok(_) if ctx.is_stale() => false,
             Ok(_) => true,
+            Err(ProgressiveChunkError::Cancelled) => false,
+            Err(_) if ctx.is_stale() => false,
             Err(error) => {
                 warn!(
                     lifecycle_stage = "synthesis_failed",
@@ -4159,13 +4230,14 @@ pub fn process_batch(
                 frequency,
                 duration,
                 placement,
-            } => match prepare_tone_audio(frequency, duration, &state) {
+            } => match prepare_tone_audio(frequency, duration, &state, &|| ctx.is_stale()) {
                 Ok(buf) => match tone_queue_target(placement) {
                     ToneQueueTarget::Stream(stream) => {
                         ctx.queue(stream, &buf);
                     }
                     ToneQueueTarget::Overlay => ctx.queue_overlay(buf),
                 },
+                Err(omnivox_audio::AudioError::Cancelled) => break,
                 Err(error) => {
                     ctx.mark_failed();
                     warn!("Tone pipeline error: {error}");
@@ -4239,6 +4311,10 @@ pub fn process_batch(
 mod tests {
     use super::*;
     use omnivox_audio::{AudioBackend, AudioStreams, PlaybackStatus};
+
+    mod tone_tests {
+        include!("pipeline_tone_tests.rs");
+    }
 
     struct PipelineTestEngine;
 
@@ -5567,7 +5643,11 @@ mod tests {
             panic!("file resource was not prepared eagerly");
         };
         assert!(Arc::ptr_eq(&cached, prepared));
-        let materialized = resources.get("file").unwrap().materialize(&state).unwrap();
+        let materialized = resources
+            .get("file")
+            .unwrap()
+            .materialize(&state, &never_cancelled)
+            .unwrap();
         assert!(!Arc::ptr_eq(&cached, &materialized));
         assert_eq!(materialized.samples, expected.samples);
         assert_eq!(cached.samples, original);
@@ -5733,6 +5813,7 @@ mod tests {
             &[action],
             &PostSynthesisStyle::default(),
             &TtsState::default(),
+            &never_cancelled,
         )
         .unwrap();
 
@@ -5756,7 +5837,8 @@ mod tests {
                 tone_volume: volume,
                 ..TtsState::default()
             };
-            let legacy = prepare_tone_audio(frequency_hz, duration_ms, &state).unwrap();
+            let legacy =
+                prepare_tone_audio(frequency_hz, duration_ms, &state, &never_cancelled).unwrap();
 
             let capital_result = CanonicalSynthesisResult {
                 audio: AudioBuffer::silence(0.1),
@@ -5781,6 +5863,7 @@ mod tests {
                 &[],
                 &PostSynthesisStyle::default(),
                 &state,
+                &never_cancelled,
             )
             .unwrap();
 
@@ -5810,7 +5893,7 @@ mod tests {
             let structured_audio = structured
                 .get("structured")
                 .unwrap()
-                .materialize(&state)
+                .materialize(&state, &never_cancelled)
                 .unwrap();
 
             let expected_peak = unity_peak * volume;
@@ -5896,6 +5979,7 @@ mod tests {
             &[],
             &PostSynthesisStyle::default(),
             &TtsState::default(),
+            &never_cancelled,
         )
         .unwrap();
         let rendered = TimelineAudioRenderer::new()
@@ -5939,6 +6023,7 @@ mod tests {
             &[],
             &PostSynthesisStyle::default(),
             &TtsState::default(),
+            &never_cancelled,
         )
         .unwrap();
         let rendered = TimelineAudioRenderer::new()
