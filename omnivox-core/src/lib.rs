@@ -9,6 +9,8 @@ pub mod queue;
 pub mod settings;
 pub mod state;
 pub mod timeline;
+pub mod tone;
+pub mod tone_command;
 
 pub use command::{
     parse_command, parse_presentation_tone_arguments, parse_tone_arguments, Command, CommandId,

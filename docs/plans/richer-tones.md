@@ -1,9 +1,10 @@
 # Richer generated tones
 
-Status: accepted for implementation on 2026-10-16; contract preparation is
-complete and runtime implementation has not landed. Defaults, deployment and
-listening acceptance remain unchanged. Resume implementation at High after
-the requested effort handoff.
+Status: accepted for implementation on 2026-10-16. Shared tone types and the
+standalone version 2 and timeline version 6 decoders are implemented. The active
+server still rejects these versions and does not advertise richer-tone support.
+Rendering, playback integration, deployment and listening acceptance remain
+outstanding. Defaults are unchanged.
 Scope: richer generated cues in Omnivox, with accessible editing in Emacsvox.
 Related: [roadmap](../ROADMAP.md), [architecture](../ARCHITECTURE.md),
 [timeline protocol](../protocols/presentation-timeline.md),
@@ -236,9 +237,24 @@ not just an already-cancelled request or active playback.
 
 ### Client and next patches
 
-The first patch should add the shared typed values, versioned decoders and
-negative fixtures without advertising incomplete support. Then add the shared
-renderer and cancellation propagation, followed by pipeline/negotiation checks.
+The decoder slice adds [shared typed values](../../omnivox-core/src/tone.rs),
+the [standalone decoder](../../omnivox-core/src/tone_command.rs), the
+[timeline decoder](../../omnivox-tts/src/timeline_v6.rs), and a
+[shared wire fixture](../protocol-fixtures/richer-tones.json). Regression tests
+cover matching sound definitions, Classic omission, old-version rejection,
+unknown and duplicate fields, explicit nulls, numeric bounds, short envelopes,
+payload limits and replacement domains. These checks establish decoding only;
+they do not establish playback or listening acceptance.
+
+Decoder verification on 2026-10-16: the locked workspace suite passes 1,172
+tests with two ignored (native-helper qualification and long-session synthesis
+stress). Formatting, Clippy for the affected core and TTS crates, documentation
+links and paired Emacsvox links pass. The Emacsvox documentation release gate
+also passes. No runtime was staged or live session changed.
+
+Next add the shared renderer and cancellation propagation, followed by
+pipeline/negotiation checks. Keep the capability unadvertised until both
+playback paths and Stop are complete.
 Individual gain in Emacsvox follows this dependency: action-only editing cues
 and previews currently use standalone version 1, which cannot represent gain.
 

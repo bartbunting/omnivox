@@ -123,33 +123,36 @@ fn strict_actions<'de, D: serde::Deserializer<'de>>(
     d: D,
 ) -> Result<Vec<PresentationTimelineAction>, D::Error> {
     let values = Vec::<serde_json::Value>::deserialize(d)?;
-    for value in &values {
-        let mut fields = vec!["id", "position", "lifecycle_anchor", "type"];
-        match value["type"].as_str() {
-            Some("audio") => fields.extend(["path", "mode", "volume", "pan", "effect_bus"]),
-            Some("tone") => fields.extend([
-                "frequency_hz",
-                "duration_ms",
-                "mode",
-                "volume",
-                "pan",
-                "effect_bus",
-            ]),
-            Some("silence") => fields.push("duration_ms"),
-            _ => (),
-        }
-        known_fields(value, &fields).map_err(serde::de::Error::custom)?;
-        let position = &value["position"];
-        let mut fields = vec!["position", "span_id", "affinity"];
-        if position["position"] == "text_offset" {
-            fields.push("utf8_offset");
-        }
-        known_fields(position, &fields).map_err(serde::de::Error::custom)?;
-    }
     values
         .into_iter()
-        .map(|value| serde_json::from_value(value).map_err(serde::de::Error::custom))
+        .map(|value| strict_action(value).map_err(serde::de::Error::custom))
         .collect()
+}
+pub(crate) fn strict_action(
+    value: serde_json::Value,
+) -> Result<PresentationTimelineAction, String> {
+    let mut fields = vec!["id", "position", "lifecycle_anchor", "type"];
+    match value["type"].as_str() {
+        Some("audio") => fields.extend(["path", "mode", "volume", "pan", "effect_bus"]),
+        Some("tone") => fields.extend([
+            "frequency_hz",
+            "duration_ms",
+            "mode",
+            "volume",
+            "pan",
+            "effect_bus",
+        ]),
+        Some("silence") => fields.push("duration_ms"),
+        _ => (),
+    }
+    known_fields(&value, &fields)?;
+    let position = &value["position"];
+    let mut fields = vec!["position", "span_id", "affinity"];
+    if position["position"] == "text_offset" {
+        fields.push("utf8_offset");
+    }
+    known_fields(position, &fields)?;
+    serde_json::from_value(value).map_err(|error| error.to_string())
 }
 fn present_key<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
     String::deserialize(d).map(Some)

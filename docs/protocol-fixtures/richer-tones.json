@@ -1,0 +1,29 @@
+{
+  "status": "Decoder fixture; richer-tone playback is not yet advertised",
+  "standalone": "2 overlay 880 40 0.35 triangle adsr 1 25 0.25 10",
+  "timeline": {
+    "protocol_version": 6,
+    "generation": 8,
+    "dispatch_id": 91,
+    "registry_generation": 1,
+    "delivery_policy": "replaceable",
+    "replacement_key": "navigation",
+    "spans": [{"mode": "legacy", "span": {"id": 1, "text": "Word"}}],
+    "actions": [{
+      "id": "spelling-tone",
+      "position": {"position": "text_offset", "span_id": 1, "utf8_offset": 0, "affinity": "before"},
+      "lifecycle_anchor": "run",
+      "type": "tone",
+      "frequency_hz": 880,
+      "duration_ms": 40,
+      "volume": 0.35,
+      "mode": "overlay",
+      "pan": 0.5,
+      "effect_bus": "dry",
+      "shape": {
+        "waveform": "triangle",
+        "envelope": {"attack_ms": 1, "decay_ms": 25, "sustain_level": 0.25, "release_ms": 10}
+      }
+    }]
+  }
+}
