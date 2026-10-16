@@ -341,3 +341,12 @@ sweeps, exponential ADSR and Sawtooth. Checks cover insert and overlay on both
 workers, reconnection and historical speech replay. The normal Emacsvox launcher
 selects this runtime. These checks establish execution and protocol behaviour;
 audible quality, interruption during listening and other platforms remain open.
+
+## Listening acceptance, 2026-10-16
+
+Bart confirmed that listening tests work well with the Windows development
+runtime described above. This closes the listening acceptance item for that
+runtime. It does not establish acoustic timing measurements or acceptance on
+other platforms. Versioned native release artifacts still require their release
+gates; capitalization and indentation editor work remains a separate client
+follow-up.

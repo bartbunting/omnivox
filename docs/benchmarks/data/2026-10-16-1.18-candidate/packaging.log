@@ -1,0 +1,40 @@
+PYTHONDONTWRITEBYTECODE=1 \
+	python3 -W error::ResourceWarning tools/test_archive_safety.py
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.014s
+
+OK
+PYTHONDONTWRITEBYTECODE=1 \
+	python3 -W error::ResourceWarning tools/test_verify_release.py
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.123s
+
+OK
+PYTHONDONTWRITEBYTECODE=1 \
+	python3 -W error::ResourceWarning tools/test_verify_release_asset_set.py
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.007s
+
+OK
+python3 tools/test_package_deb.py
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 0.018s
+
+OK
+PYTHONDONTWRITEBYTECODE=1 \
+	python3 -W error::ResourceWarning tools/test_verify_piper_release.py
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.003s
+
+OK
+PYTHONDONTWRITEBYTECODE=1 python3 tools/test_package_tgspeechbox.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.071s
+
+OK

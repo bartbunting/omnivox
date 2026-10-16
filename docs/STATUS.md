@@ -1,22 +1,28 @@
 # Omnivox Project Status
 
-**Documentation reviewed:** 2026-10-09. **Workspace version:** 1.17.0.
+**Documentation reviewed:** 2026-10-16. **Workspace version:** 1.18.0.
 Published changes belong to the
 [changelog](../CHANGELOG.md); current implementation may include unreleased work.
 [Architecture](ARCHITECTURE.md) explains behavior, [the roadmap](ROADMAP.md)
 tracks outstanding work, and [retained evidence](benchmarks/README.md) records
 actual runs and their limits.
 
-Omnivox 1.17.0 is in release preparation. It adds bundled TGSpeechBox and
-native voice controls, Emacspeak eSpeak styles, named punctuation profiles and
-local configuration editing. Native release checks remain required before
-publication; adding a platform to the workflow does not establish acceptance.
+Omnivox 1.18.0 is in release preparation. It adds negotiated per-tone gain,
+waveforms, pulse width, pitch sweeps and shaped envelopes, while preserving
+Classic defaults and older tone formats. Listening acceptance is confirmed for
+the tested Windows x64 development runtime. Native release checks remain
+required before publication; development acceptance does not qualify every
+release artifact. The [candidate report](benchmarks/2026-10-16-1.18-candidate.md)
+records the preparation checks and remaining release work.
+
+[Omnivox 1.17.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.17.0).
+It includes bundled TGSpeechBox and native voice controls, Emacspeak eSpeak
+styles, named punctuation profiles and local configuration editing.
 
 [Omnivox 1.16.1 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.16.1)
 with a fix for eSpeak stopping partway through speech at faster rates. Its
 [candidate report](benchmarks/2026-10-08-1.16.1-candidate.md) records the local
-checks and platform limits. The 1.17.0 candidate retains this fix alongside the later
-configuration editor, named punctuation profiles and TGSpeechBox changes.
+checks and platform limits. Later releases retain this fix.
 
 [Omnivox 1.16.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.16.0)
 with palette-aware character feedback. Its
@@ -42,8 +48,8 @@ physical Windows headphone-switching follow-up.
 | --- | --- | --- |
 | Admission | Bounded legacy/control input, atomic multipart timelines, generation-safe queue admission and cancellation. | [Legacy](protocols/legacy.md), [control](protocols/control.md), [timeline](protocols/presentation-timeline.md) |
 | Routing | Stable physical identities, ordered logical choices, runtime fallback, exclusions, health circuits and asynchronous helper recovery. | [Architecture](ARCHITECTURE.md#voice-identity-routing-and-tuning) |
-| Voice customization | Shared → actual choice → context composition; private exact/full previews; typed qualified native controls. Control envelope 1, timeline versions 1–6, markers 1–4 and helper versions 1–6 retain compatibility. | [Layered tuning](protocols/voice-choice-tuning.org), [native parameters](protocols/engine-voice-parameters.md) |
-| Richer tones (unreleased) | Negotiated standalone and timeline tones share gain, waveforms and cancellable envelopes. The version-2 capability adds Pulse width, Sawtooth, linear pitch sweeps and exponential ADSR. Source checks and muted paired Emacsvox delivery on Windows x64 pass; other platforms and listening remain open. Classic defaults are preserved. | [Protocol](protocols/presentation-timeline.md#richer-tones-version-6), [plan](plans/richer-tones.md) |
+| Voice customization | Shared → actual choice → context composition; private exact/full previews; typed qualified native controls. Control envelope 1, timeline versions 1–7, markers 1–4 and helper versions 1–6 retain compatibility. | [Layered tuning](protocols/voice-choice-tuning.org), [native parameters](protocols/engine-voice-parameters.md) |
+| Richer tones (unreleased) | Negotiated standalone and timeline tones share gain, waveforms and cancellable envelopes. The version-2 capability adds Pulse width, Sawtooth, linear pitch sweeps and exponential ADSR. Source checks and paired Emacsvox delivery on Windows x64 pass, with listening acceptance confirmed for that development runtime; native release checks and other platforms remain open. Classic defaults are preserved. | [Protocol](protocols/presentation-timeline.md#richer-tones-version-6), [plan](plans/richer-tones.md) |
 | Character feedback (1.16.0) | Negotiated palette-aware isolated characters retain actual-choice tuning, character rate, cancellation and configured capital pitch. Linux and native Windows client checks pass. | [Protocol](protocols/presentation-timeline.md#palette-aware-isolated-characters), [candidate checks](benchmarks/2026-09-30-1.16-candidate.md) |
 | Discovery | Concurrent helper initialization before initial inventory, verified bounded caches and on-demand exact eSpeak variants. | [Architecture](ARCHITECTURE.md#configuration-and-engine-discovery), [variants](engines/espeak-variants.md) |
 | Engine configuration v1 | Strict local `config.json`/helper manifests, immutable launch snapshots, local permissions, paired startup/Apply acknowledgements and remote session retention. Blocked startup retains ownership without delaying admission; the first implementation slice passes its development acceptance checks. | [Configuration](guides/configuration.md), [acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) |

@@ -6,11 +6,16 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.18.0] - 2026-10-16
+
 ### Added
 
-- Negotiated richer tones with individual gain, sine, triangle and square
-  waveforms, and fixed-duration ADSR envelopes. Standalone and timeline cues
-  share rendering and interruptible generation; Classic sounds remain unchanged.
+- Negotiated richer tones with individual gain and sine, triangle, square,
+  pulse and sawtooth waveforms. Pulse width is adjustable from 5 to 95 percent.
+- Linear pitch sweeps and fixed-duration ADSR envelopes with linear or
+  exponential curves. Standalone and timeline cues share rendering and
+  interruptible generation. Existing tone formats and Classic sounds remain
+  unchanged.
 
 ## [1.17.0] - 2026-10-09
 
