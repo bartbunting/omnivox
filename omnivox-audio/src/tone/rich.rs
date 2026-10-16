@@ -2,7 +2,7 @@
 
 use super::{check_cancelled, ToneGenerator};
 use crate::{buffer::SAMPLE_RATE, AudioBuffer, AudioError};
-use omnivox_core::tone::{AdsrEnvelope, ToneParameters, ToneShape, Waveform};
+use omnivox_core::tone::{AdsrEnvelope, EnvelopeCurve, ToneParameters, ToneShape, Waveform};
 use std::f64::consts::{PI, TAU};
 
 const MAX_HARMONICS: usize = 32;
@@ -26,11 +26,17 @@ impl ToneGenerator {
             );
         }
         let frames = SAMPLE_RATE as usize * tone.duration_ms as usize / 1000;
-        let oscillator = Oscillator::new(tone.shape.waveform, tone.frequency_hz);
-        let envelope = tone
-            .shape
-            .envelope
-            .map(|adsr| Envelope::new(adsr, frames, tone.duration_ms));
+        let maximum_frequency = tone
+            .frequency_hz
+            .max(tone.shape.end_frequency_hz.unwrap_or(tone.frequency_hz));
+        let oscillator = Oscillator::new(tone.shape.waveform, maximum_frequency);
+        let extended = matches!(tone.shape.waveform, Waveform::Pulse | Waveform::Sawtooth)
+            .then(|| ExtendedOscillator::new(tone.shape, maximum_frequency));
+        let envelope = tone.shape.envelope.map(|adsr| {
+            let mut envelope = Envelope::new(adsr, frames, tone.duration_ms);
+            envelope.curve = tone.shape.envelope_curve.unwrap_or(EnvelopeCurve::Linear);
+            envelope
+        });
         let fade = (SAMPLE_RATE as f32 * 0.010) as usize;
         let fade = fade.min(frames / 2);
         let delay = SAMPLE_RATE as f32 * 0.00001;
@@ -41,7 +47,23 @@ impl ToneGenerator {
             if frame != 0 && frame % 256 == 0 {
                 check_cancelled(cancelled)?;
             }
-            let left = oscillator.sample(frame) * tone.volume;
+            let sample = if let Some(end) = tone.shape.end_frequency_hz {
+                // Integral of a linear frequency ramp, in radians. Limiting
+                // harmonics against both endpoints avoids aliases throughout.
+                let time = frame as f64 / SAMPLE_RATE as f64;
+                let duration = frames as f64 / SAMPLE_RATE as f64;
+                let phase = TAU
+                    * (tone.frequency_hz as f64 * time
+                        + 0.5 * (end - tone.frequency_hz) as f64 * time * time / duration);
+                extended
+                    .as_ref()
+                    .map_or_else(|| oscillator.sample_phase(phase), |o| o.sample(phase))
+            } else if let Some(o) = &extended {
+                o.sample(TAU * tone.frequency_hz as f64 * frame as f64 / SAMPLE_RATE as f64)
+            } else {
+                oscillator.sample(frame)
+            };
+            let left = sample * tone.volume;
             let right = previous * delay + left * (1.0 - delay);
             previous = left;
             let level = envelope.as_ref().map_or_else(
@@ -85,7 +107,7 @@ impl Oscillator {
             }
             *weight = match waveform {
                 Waveform::Sine if k == 0 => 1.0,
-                Waveform::Sine => break,
+                Waveform::Sine | Waveform::Pulse | Waveform::Sawtooth => break,
                 Waveform::Square => 1.0 / (square_bound * harmonic),
                 Waveform::Triangle => {
                     let sign = if k % 2 == 0 { 1.0 } else { -1.0 };
@@ -103,6 +125,10 @@ impl Oscillator {
 
     fn sample(&self, frame: usize) -> f32 {
         let phase = TAU * self.frequency * frame as f64 / SAMPLE_RATE as f64;
+        self.sample_phase(phase)
+    }
+
+    fn sample_phase(&self, phase: f64) -> f32 {
         let (mut sine, mut cosine) = phase.sin_cos();
         let (step_sine, step_cosine) = (2.0 * phase).sin_cos();
         let mut value = 0.0;
@@ -117,7 +143,64 @@ impl Oscillator {
     }
 }
 
+// Full harmonic series for pulse and sawtooth. The frequency-independent
+// absolute coefficient bound prevents clipping without automatic loudness gain.
+struct ExtendedOscillator {
+    sine: [f64; 64],
+    cosine: [f64; 64],
+    count: usize,
+}
+
+impl ExtendedOscillator {
+    fn new(shape: ToneShape, maximum_frequency: f32) -> Self {
+        let mut result = Self {
+            sine: [0.0; 64],
+            cosine: [0.0; 64],
+            count: 0,
+        };
+        let width = shape.pulse_width.unwrap_or(0.5) as f64;
+        let bound: f64 = (1..=64)
+            .map(|n| {
+                if shape.waveform == Waveform::Pulse {
+                    (PI * n as f64 * width).sin().abs() / n as f64
+                } else {
+                    1.0 / n as f64
+                }
+            })
+            .sum();
+        for n in 1..=64 {
+            if n as f32 * maximum_frequency >= SAMPLE_RATE as f32 / 2.0 {
+                break;
+            }
+            if shape.waveform == Waveform::Pulse {
+                let angle = TAU * n as f64 * width;
+                result.cosine[n - 1] = angle.sin() / (2.0 * n as f64 * bound);
+                result.sine[n - 1] = (1.0 - angle.cos()) / (2.0 * n as f64 * bound);
+            } else {
+                result.sine[n - 1] = -1.0 / (n as f64 * bound);
+            }
+            result.count += 1;
+        }
+        result
+    }
+
+    fn sample(&self, phase: f64) -> f32 {
+        let (step_sine, step_cosine) = phase.sin_cos();
+        let (mut sine, mut cosine) = (step_sine, step_cosine);
+        let mut value = 0.0;
+        for n in 0..self.count {
+            value += self.sine[n] * sine + self.cosine[n] * cosine;
+            (sine, cosine) = (
+                sine * step_cosine + cosine * step_sine,
+                cosine * step_cosine - sine * step_sine,
+            );
+        }
+        value as f32
+    }
+}
+
 struct Envelope {
+    curve: EnvelopeCurve,
     attack_end: usize,
     decay_end: usize,
     release_start: usize,
@@ -137,6 +220,7 @@ impl Envelope {
         let boundary = |time| (time * last as u64 / denominator) as usize;
         let decay_end = boundary(attack + decay);
         Self {
+            curve: EnvelopeCurve::Linear,
             attack_end: boundary(attack),
             decay_end,
             release_start: if total >= duration_ms as u64 {
@@ -150,17 +234,30 @@ impl Envelope {
         }
     }
 
+    fn rise(&self, fraction: f32) -> f32 {
+        match self.curve {
+            EnvelopeCurve::Linear => fraction,
+            EnvelopeCurve::Exponential => (4.0 * fraction).exp_m1() / 4.0_f32.exp_m1(),
+        }
+    }
+
     fn level(&self, frame: usize) -> f32 {
         let level = if frame < self.attack_end {
-            frame as f32 / self.attack_end as f32
+            self.rise(frame as f32 / self.attack_end as f32)
         } else if frame < self.decay_end {
             let fraction =
                 (frame - self.attack_end) as f32 / (self.decay_end - self.attack_end) as f32;
-            1.0 + (self.sustain - 1.0) * fraction
+            match self.curve {
+                EnvelopeCurve::Linear => 1.0 + (self.sustain - 1.0) * fraction,
+                EnvelopeCurve::Exponential => {
+                    self.sustain + (1.0 - self.sustain) * self.rise(1.0 - fraction)
+                }
+            }
         } else if frame < self.release_start || self.release_start == self.last {
             self.sustain
         } else {
-            self.sustain * (self.last - frame) as f32 / (self.last - self.release_start) as f32
+            self.sustain
+                * self.rise((self.last - frame) as f32 / (self.last - self.release_start) as f32)
         };
         let edge = frame.min(self.last - frame);
         let cap = if edge < self.cap {

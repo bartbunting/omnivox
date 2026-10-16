@@ -224,3 +224,44 @@ fn programmatic_invalid_shapes_cannot_bypass_shared_validation() {
     }
     assert!(encode_timeline_v6(&timeline, false).is_err());
 }
+
+#[test]
+fn extended_fixture_preserves_standalone_and_timeline_parameters_and_domains() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../docs/protocol-fixtures/extended-tones.json"
+    ))
+    .unwrap();
+    let standalone =
+        parse_rich_presentation_tone_arguments(fixture["standalone"].as_str().unwrap()).unwrap();
+    let mut value = fixture["timeline"].clone();
+    let timeline = decode_timeline_v6(&encoded(&value), None).unwrap();
+    assert_eq!(timeline.actions[0].shape, Some(standalone.tone.shape));
+    assert!(matches!(
+        decode_timeline_document(&encoded(&value), None).unwrap(),
+        crate::timeline_v4::TimelineDocument::Rich(_)
+    ));
+    let bytes = serde_json::to_vec(&value).unwrap();
+    assert_eq!(
+        decode_timeline_document(&encoded(&value), Some(bytes.len()))
+            .unwrap()
+            .protocol_version(),
+        7
+    );
+    let mut old = timeline.clone();
+    old.protocol_version = 6;
+    old.actions[0].shape = None;
+    assert!(!timeline.shares_replacement_domain(&old));
+    value["protocol_version"] = json!(6);
+    assert!(decode_timeline_document(&encoded(&value), None).is_err());
+    value["protocol_version"] = json!(7);
+    for (key, bad) in [
+        ("pulse_width", json!(0.99)),
+        ("end_frequency_hz", json!(0)),
+        ("envelope_curve", json!("unknown")),
+        ("pulse_width", Value::Null),
+    ] {
+        let mut invalid = value.clone();
+        invalid["actions"][0]["shape"][key] = bad;
+        assert!(decode_timeline_document(&encoded(&invalid), None).is_err());
+    }
+}

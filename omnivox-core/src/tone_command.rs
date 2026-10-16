@@ -1,13 +1,13 @@
 //! Versioned standalone presentation tones.
 
 use crate::queue::TonePlacement;
-use crate::tone::{AdsrEnvelope, ToneParameters, ToneShape, Waveform};
+use crate::tone::{AdsrEnvelope, EnvelopeCurve, ToneParameters, ToneShape, Waveform};
 
 pub const RICH_PRESENTATION_TONE_PROTOCOL_VERSION: u8 = 2;
 
 /// Decode without changing the legacy version-one parser or its bounds.
 pub fn parse_presentation_tone_item(arguments: &str) -> Result<crate::queue::QueueItem, String> {
-    if arguments.split_whitespace().next() == Some("2") {
+    if matches!(arguments.split_whitespace().next(), Some("2" | "3")) {
         let command = parse_rich_presentation_tone_arguments(arguments)?;
         Ok(crate::queue::QueueItem::ShapedTone {
             tone: command.tone,
@@ -35,11 +35,17 @@ pub fn parse_rich_presentation_tone_arguments(
     arguments: &str,
 ) -> Result<RichPresentationToneCommand, String> {
     // Bound allocation even when called outside the bounded protocol reader.
-    let fields = arguments.split_whitespace().take(12).collect::<Vec<_>>();
+    let all_fields = arguments.split_whitespace().take(15).collect::<Vec<_>>();
+    let extended = all_fields.first() == Some(&"3");
+    let fields = if extended && matches!(all_fields.len(), 10 | 14) {
+        &all_fields[..all_fields.len() - 3]
+    } else {
+        &all_fields[..]
+    };
     if fields.len() != 7 && fields.len() != 11 {
         return Err("rich tone requires 7 Classic or 11 ADSR fields".into());
     }
-    if fields[0] != "2" {
+    if fields[0] != "2" && !extended {
         return Err("rich tone requires version 2".into());
     }
     let placement = match fields[1] {
@@ -51,6 +57,8 @@ pub fn parse_rich_presentation_tone_arguments(
         "sine" => Waveform::Sine,
         "triangle" => Waveform::Triangle,
         "square" => Waveform::Square,
+        "pulse" if extended => Waveform::Pulse,
+        "sawtooth" if extended => Waveform::Sawtooth,
         _ => return Err("unknown tone waveform".into()),
     };
     let envelope = match fields[6] {
@@ -63,11 +71,40 @@ pub fn parse_rich_presentation_tone_arguments(
         }),
         _ => return Err("invalid tone envelope or field count".into()),
     };
+    let mut shape = ToneShape {
+        waveform,
+        envelope,
+        ..ToneShape::default()
+    };
+    if extended {
+        let tail = &all_fields[fields.len()..];
+        if tail.len() != 3 {
+            return Err("extended tone requires width, sweep end and curve fields".into());
+        }
+        let number = |value: &str| -> Result<Option<f32>, String> {
+            if value == "-" {
+                Ok(None)
+            } else {
+                value
+                    .parse()
+                    .map(Some)
+                    .map_err(|_| "invalid tone extension number".into())
+            }
+        };
+        shape.pulse_width = number(tail[0])?;
+        shape.end_frequency_hz = number(tail[1])?;
+        shape.envelope_curve = match tail[2] {
+            "-" => None,
+            "linear" => Some(EnvelopeCurve::Linear),
+            "exponential" => Some(EnvelopeCurve::Exponential),
+            _ => return Err("unknown envelope curve".into()),
+        };
+    }
     let tone = ToneParameters {
         frequency_hz: fields[2].parse().map_err(|_| "invalid tone frequency")?,
         duration_ms: fields[3].parse().map_err(|_| "invalid tone duration")?,
         volume: fields[4].parse().map_err(|_| "invalid tone volume")?,
-        shape: ToneShape { waveform, envelope },
+        shape,
     };
     tone.validate()?;
     Ok(RichPresentationToneCommand { placement, tone })
@@ -77,6 +114,33 @@ pub fn parse_rich_presentation_tone_arguments(
 mod tests {
     use super::*;
     use crate::command::parse_presentation_tone_arguments;
+
+    #[test]
+    fn extended_tones_validate_options_without_widening_old_versions() {
+        for (wave, width) in [("pulse", "0.25"), ("sawtooth", "-")] {
+            let request =
+                format!("3 overlay 440 100 0.35 {wave} adsr 2 30 0.4 10 {width} 880 exponential");
+            let parsed = parse_rich_presentation_tone_arguments(&request).unwrap();
+            assert_eq!(parsed.tone.shape.end_frequency_hz, Some(880.0));
+            assert!(parse_presentation_tone_item(&request).is_ok());
+            assert!(
+                parse_rich_presentation_tone_arguments(&request.replacen("3 ", "2 ", 1)).is_err()
+            );
+        }
+        for request in [
+            "3 insert 440 50 1 pulse classic - - -",
+            "3 insert 440 50 1 pulse classic 0.01 - -",
+            "3 insert 440 50 1 pulse classic NaN - -",
+            "3 insert 440 50 1 sine classic 0.5 - -",
+            "3 insert 440 50 1 sine classic - NaN -",
+            "3 insert 440 50 1 sine classic - 20001 -",
+            "3 insert 440 50 1 sine classic - - exponential",
+            "3 insert 440 50 1 sine adsr 2 5 0.5 5 - - unknown",
+            "3 insert 440 50 1 sawtooth classic - - - extra",
+        ] {
+            assert!(parse_presentation_tone_item(request).is_err(), "{request}");
+        }
+    }
 
     #[test]
     fn queue_decoder_preserves_old_items_and_freezes_rich_parameters() {

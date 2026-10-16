@@ -6,7 +6,11 @@ fn tone(waveform: Waveform, envelope: Option<AdsrEnvelope>) -> ToneParameters {
         frequency_hz: 441.0,
         duration_ms: 200,
         volume: 1.0,
-        shape: ToneShape { waveform, envelope },
+        shape: ToneShape {
+            waveform,
+            envelope,
+            ..ToneShape::default()
+        },
     }
 }
 
@@ -246,4 +250,86 @@ fn renderer_rejects_invalid_programmatic_values_before_generating() {
             Err(AudioError::InvalidFormat(_))
         ));
     }
+}
+
+#[test]
+fn extended_waveforms_width_and_sweeps_are_bounded_and_interruptible() {
+    for waveform in [Waveform::Pulse, Waveform::Sawtooth] {
+        for width in [0.05, 0.25, 0.5, 0.95] {
+            for end in [100.0, 16000.0] {
+                let mut value = tone(waveform, Some(adsr(2, 30, 0.3, 10)));
+                value.duration_ms = 100;
+                value.shape.pulse_width = (waveform == Waveform::Pulse).then_some(width);
+                value.shape.end_frequency_hz = Some(end);
+                value.shape.envelope_curve = Some(EnvelopeCurve::Exponential);
+                let audio = ToneGenerator::generate_shaped(&value, &|| false).unwrap();
+                assert_eq!(audio.samples.len(), SAMPLE_RATE as usize / 10 * 2);
+                assert!(audio
+                    .samples
+                    .iter()
+                    .all(|s| s.is_finite() && s.abs() <= value.volume));
+                assert_eq!(audio.samples[0], 0.0);
+                assert_eq!(*audio.samples.last().unwrap(), 0.0);
+                let calls = std::cell::Cell::new(0);
+                assert!(matches!(
+                    ToneGenerator::generate_shaped(&value, &|| {
+                        calls.set(calls.get() + 1);
+                        calls.get() > 3
+                    }),
+                    Err(AudioError::Cancelled)
+                ));
+            }
+        }
+    }
+}
+
+#[test]
+fn half_width_pulse_matches_square_and_width_changes_the_sound() {
+    let square = ToneGenerator::generate_shaped(&tone(Waveform::Square, None), &|| false).unwrap();
+    let mut pulse = tone(Waveform::Pulse, None);
+    pulse.shape.pulse_width = Some(0.5);
+    let half = ToneGenerator::generate_shaped(&pulse, &|| false).unwrap();
+    assert!(square
+        .samples
+        .iter()
+        .zip(&half.samples)
+        .all(|(a, b)| (a - b).abs() < 1e-6));
+    pulse.shape.pulse_width = Some(0.25);
+    let quarter = ToneGenerator::generate_shaped(&pulse, &|| false).unwrap();
+    assert!(half
+        .samples
+        .iter()
+        .zip(&quarter.samples)
+        .any(|(a, b)| (a - b).abs() > 0.01));
+}
+
+#[test]
+fn exponential_curve_changes_interior_levels_but_preserves_boundaries() {
+    let mut envelope = Envelope::new(adsr(200, 300, 0.4, 100), 1001, 1000);
+    envelope.curve = EnvelopeCurve::Exponential;
+    assert!(envelope.level(100) < 0.2);
+    assert!(envelope.level(350) < 0.6);
+    assert!(envelope.level(950) < 0.1);
+    for (frame, expected) in [(0, 0.0), (200, 1.0), (500, 0.4), (900, 0.4), (1000, 0.0)] {
+        assert!((envelope.level(frame) - expected).abs() < 1e-6);
+    }
+}
+
+#[test]
+fn sweep_changes_measured_frequency_in_the_expected_direction() {
+    let mut value = tone(Waveform::Sine, None);
+    value.frequency_hz = 400.0;
+    value.duration_ms = 1000;
+    value.shape.end_frequency_hz = Some(1600.0);
+    let audio = ToneGenerator::generate_shaped(&value, &|| false).unwrap();
+    let crossings = |start: usize, end: usize| {
+        (start + 1..end)
+            .filter(|&i| audio.left(i - 1) <= 0.0 && audio.left(i) > 0.0)
+            .count()
+    };
+    let rate = SAMPLE_RATE as usize;
+    let early = crossings(rate / 10, rate * 3 / 10);
+    let late = crossings(rate * 7 / 10, rate * 9 / 10);
+    assert!((120..=136).contains(&early), "{early}");
+    assert!((264..=280).contains(&late), "{late}");
 }

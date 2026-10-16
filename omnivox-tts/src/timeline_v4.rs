@@ -144,7 +144,10 @@ pub fn decode_timeline_document(
             .map_err(PresentationTimelineError::InvalidJson)
     };
     let version = version().map_err(|error| PresentationTimelineDecodeError::new(None, error))?;
-    if version == crate::timeline_v6::PRESENTATION_TIMELINE_PROTOCOL_V6 {
+    if matches!(
+        version,
+        crate::timeline_v6::PRESENTATION_TIMELINE_PROTOCOL_V6 | 7
+    ) {
         crate::timeline_v6::decode_timeline_v6(payload, aggregate_bytes).map(TimelineDocument::Rich)
     } else if version == crate::timeline_v5::PRESENTATION_TIMELINE_PROTOCOL_V5 {
         crate::timeline_v5::decode_timeline_v5(payload, aggregate_bytes)

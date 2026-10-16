@@ -14,6 +14,8 @@ pub enum Waveform {
     Sine,
     Triangle,
     Square,
+    Pulse,
+    Sawtooth,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -25,10 +27,35 @@ pub struct AdsrEnvelope {
     pub release_ms: u32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EnvelopeCurve {
+    Linear,
+    Exponential,
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ToneShape {
     pub waveform: Waveform,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_number"
+    )]
+    pub pulse_width: Option<f32>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_number"
+    )]
+    pub end_frequency_hz: Option<f32>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_curve"
+    )]
+    pub envelope_curve: Option<EnvelopeCurve>,
     /// Omission retains Classic fades. Explicit null is not an envelope.
     #[serde(
         default,
@@ -36,6 +63,26 @@ pub struct ToneShape {
         deserialize_with = "present_envelope"
     )]
     pub envelope: Option<AdsrEnvelope>,
+}
+
+impl ToneShape {
+    /// Version 2 standalone and version 6 timelines retain their exact shapes.
+    pub fn requires_extended_contract(&self) -> bool {
+        matches!(self.waveform, Waveform::Pulse | Waveform::Sawtooth)
+            || self.pulse_width.is_some()
+            || self.end_frequency_hz.is_some()
+            || self.envelope_curve.is_some()
+    }
+}
+
+fn present_number<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<f32>, D::Error> {
+    f32::deserialize(d).map(Some)
+}
+
+fn present_curve<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<Option<EnvelopeCurve>, D::Error> {
+    EnvelopeCurve::deserialize(d).map(Some)
 }
 
 fn present_envelope<'de, D: serde::Deserializer<'de>>(
@@ -72,6 +119,25 @@ impl ToneParameters {
         }
         if !self.volume.is_finite() || !(0.0..=1.0).contains(&self.volume) {
             return Err("tone volume must be finite and from 0 through 1".into());
+        }
+        match (self.shape.waveform, self.shape.pulse_width) {
+            (Waveform::Pulse, Some(width))
+                if width.is_finite() && (0.05..=0.95).contains(&width) => {}
+            (Waveform::Pulse, _) => {
+                return Err("pulse requires width from 0.05 through 0.95".into())
+            }
+            (_, Some(_)) => return Err("pulse width applies only to pulse".into()),
+            _ => (),
+        }
+        if self
+            .shape
+            .end_frequency_hz
+            .is_some_and(|end| !end.is_finite() || end <= 0.0 || end > MAX_SHAPED_TONE_FREQUENCY_HZ)
+        {
+            return Err("sweep end frequency must be positive and at most 20000 Hz".into());
+        }
+        if self.shape.envelope_curve.is_some() && self.shape.envelope.is_none() {
+            return Err("envelope curve requires ADSR".into());
         }
         if let Some(envelope) = self.shape.envelope {
             if [envelope.attack_ms, envelope.decay_ms, envelope.release_ms]

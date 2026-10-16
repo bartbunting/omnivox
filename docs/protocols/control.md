@@ -18,6 +18,10 @@ not need Tcl escaping and remain separate structured fields.
   renderer. Negotiate it independently for each worker and again on reconnect.
   [Richer tones](presentation-timeline.md#richer-tones-version-6) defines both
   formats. Older tone and timeline versions retain their meanings.
+- `rich_tones_v2`, `presentation_tone_v3` and `presentation_timeline_v7`
+  negotiate Pulse width, Sawtooth, pitch sweeps and envelope curves together.
+  The [extended tone contract](presentation-timeline.md#extended-tones-version-7)
+  preserves earlier formats and uses the same playback and cancellation path.
 - A client must successfully request capabilities before using later control
   extensions.
 - The server advertises only features it currently implements. Control
@@ -387,6 +391,9 @@ A successful capability response decodes to this shape:
     "presentation_tone_v2",
     "presentation_timeline_v6",
     "rich_tones_v1",
+    "rich_tones_v2",
+    "presentation_tone_v3",
+    "presentation_timeline_v7",
     "post_synthesis_effects_v1",
     "preferred_engine",
     "process_audio_routing",

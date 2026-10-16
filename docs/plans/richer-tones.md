@@ -4,9 +4,10 @@ Status: accepted for implementation on 2026-10-16. Shared tone types, versioned
 decoders, waveform/envelope rendering and cancellation during tone generation
 are implemented. Standalone version 2 and timeline version 6 now reach playback
 through the same renderer, advertised together as `rich_tones_v1`.
-Client controls, old-worker degradation,
-platform qualification and listening acceptance remain outstanding. Defaults
-are unchanged.
+The `rich_tones_v2` extension adds Pulse width, Sawtooth, linear pitch sweeps
+and exponential envelopes through standalone version 3 and timeline version 7.
+Source verification passes; paired client delivery, native platform qualification
+and listening acceptance remain outstanding for the extensions. Defaults are unchanged.
 Scope: richer generated cues in Omnivox, with accessible editing in Emacsvox.
 Related: [roadmap](../ROADMAP.md), [architecture](../ARCHITECTURE.md),
 [timeline protocol](../protocols/presentation-timeline.md),
@@ -115,10 +116,14 @@ Emacsvox versions can read before shipping the new saved format.
    delivery. Start listening with spelling, then capital-letter/all-caps and
    indentation cues. Record platform/runtime coverage separately from unit
    results. Update supported protocols, guides and status only as implemented.
-6. [ ] **Later patterns, if useful.** Evaluate bounded pitch sweeps and short
-   rhythmic sequences using existing timeline facilities where possible.
-   Chords, noise, modulation, arbitrary envelope curves and general synthesis
-   remain deferred until there is a demonstrated accessibility use case.
+6. [ ] **Tone extensions, accepted 2026-10-16.** The renderer and versioned
+   decoders implement bounded linear pitch
+   sweeps, linear/exponential envelope curves, Pulse with 5–95 percent width
+   and Sawtooth. Preserve older formats through standalone version 3 and
+   timeline version 7, negotiated as `rich_tones_v2`. The exact contract lives
+   in the [protocol reference](../protocols/presentation-timeline.md#extended-tones-version-7).
+   Named presets and comparison remain client features. Short sequences, chords,
+   noise, modulation and arbitrary curves remain deferred.
 
 Commit implementation in reviewable slices. Keep Omnivox and Emacsvox changes
 separately identifiable and qualify the paired versions before deployment.
@@ -321,3 +326,10 @@ attack/decay/sustain/release; sustain is unitless. Classic remains the default.
 No new ADR is created by this plan. If the contract work requires changing an
 accepted architectural boundary, identify that decision and obtain separate
 approval for its ADR before proceeding.
+
+Extension verification covers strict older formats, matching standalone and
+timeline definitions, fixed duration, width-dependent sound, 50-percent
+Pulse/Square parity, sweep frequency, exponential levels, cancellation during
+generation, mixed-version replacement and multipart admission. Workspace tests,
+Clippy, formatting and paired documentation checks pass. These checks do not
+establish native or listening acceptance of the extensions.

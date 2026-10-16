@@ -4,7 +4,7 @@ use std::cell::Cell;
 #[test]
 fn standalone_and_timeline_share_shape_gain_and_routing_for_insert_and_overlay() {
     use omnivox_core::tone::{AdsrEnvelope, Waveform};
-    for waveform in [Waveform::Sine, Waveform::Triangle, Waveform::Square] {
+    for waveform in [Waveform::Sine, Waveform::Triangle, Waveform::Square, Waveform::Pulse, Waveform::Sawtooth] {
         for envelope in [
             None,
             Some(AdsrEnvelope {
@@ -25,7 +25,11 @@ fn standalone_and_timeline_share_shape_gain_and_routing_for_insert_and_overlay()
                         frequency_hz: 880.0,
                         duration_ms: 40,
                         volume: 0.35,
-                        shape: ToneShape { waveform, envelope },
+                        shape: ToneShape { waveform, envelope,
+                            pulse_width: (waveform == Waveform::Pulse).then_some(0.25),
+                            end_frequency_hz: Some(1320.0),
+                            envelope_curve: envelope.map(|_| omnivox_core::tone::EnvelopeCurve::Exponential),
+                        },
                     };
                     let standalone =
                         prepare_shaped_tone_audio(&tone, &state, &never_cancelled).unwrap();
@@ -125,6 +129,7 @@ fn tone_action(duration_ms: u32) -> TimelineChunkAction {
                         sustain_level: 0.25,
                         release_ms: 10,
                     }),
+                    ..ToneShape::default()
                 },
             },
             mode: AudioActionMode::Overlay,

@@ -99,13 +99,22 @@ impl PresentationTimelineV6 {
     }
 
     pub fn validate(&self, aggregate: bool) -> Result<(), PresentationTimelineError> {
-        if self.protocol_version != PRESENTATION_TIMELINE_PROTOCOL_V6 {
+        if !matches!(self.protocol_version, 6 | 7) {
             return Err(PresentationTimelineError::InvalidTimeline(
-                "expected timeline version 6".into(),
+                "expected timeline version 6 or 7".into(),
             ));
         }
         self.validation_projection().validate(aggregate)?;
         for action in &self.actions {
+            if self.protocol_version == 6
+                && action
+                    .shape
+                    .is_some_and(|shape| shape.requires_extended_contract())
+            {
+                return Err(PresentationTimelineError::InvalidTimeline(
+                    "extended tone shape requires timeline version 7".into(),
+                ));
+            }
             match &action.action.action {
                 PresentationAction::Tone {
                     frequency_hz,

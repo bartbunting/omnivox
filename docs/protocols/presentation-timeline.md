@@ -446,3 +446,53 @@ without dry-speech fallback or a failed-request status. Active-source stop
 fades remain unchanged; envelope release never delays Stop. These implementation
 checks do not establish acoustic or platform qualification; see the
 [delivery plan](../plans/richer-tones.md).
+
+
+## Extended tones, version 7
+
+The `rich_tones_v2` bundle adds `presentation_tone_v3` and
+`presentation_timeline_v7` to the complete earlier rich-tone bundle. Negotiate
+all three per worker, including after reconnect. Use timeline 7 consistently
+on that connection, even when no extended tone is present. Version 7 retains
+the native speech, marker, registration, framing, bounds and cancellation
+contracts of version 6; replacement remains local to its version and key.
+Version 6 rejects extended shapes rather than silently dropping their fields.
+
+Version 7 shape objects additionally accept:
+
+- `waveform: "pulse"` with required finite `pulse_width` from 0.05 through 0.95.
+  Width is the high portion of one cycle. At 0.5 it matches Square within
+  floating-point precision. Width is rejected for other waveforms.
+- `waveform: "sawtooth"`, with no width field.
+- Optional finite `end_frequency_hz`, greater than zero through 20000 Hz.
+  Frequency moves linearly from the action's starting frequency to this end
+  over the fixed duration. Omission keeps constant pitch. The starting pitch
+  also uses the shaped-tone limit of 20000 Hz.
+- Optional `envelope_curve: "linear"` or `"exponential"`, only with an ADSR
+  envelope. Omission retains linear stages. For stage fraction x, the
+  exponential rise is `expm1(4*x)/expm1(4)`; decay and release use its reversed
+  fraction, scaled between their endpoint levels. Endpoint smoothing and
+  proportional stage shortening remain unchanged.
+
+Explicit nulls, duplicate or unknown fields and invalid combinations reject
+the entire request. Neither sweep nor envelope extends the total duration.
+Pulse and Sawtooth use at most 64 harmonics below Nyquist. Sweeps select a
+fixed harmonic set below Nyquist at the higher endpoint, avoiding harmonic
+switching during playback. Pulse removes the DC component and uses a
+width-dependent, frequency-independent coefficient bound; Sawtooth uses a
+fixed coefficient bound. No perceived-loudness matching is implied.
+
+Standalone version 3 appends exactly three fields to either version-2 form:
+
+```text
+emacsvox_tone 3 MODE FREQUENCY DURATION GAIN WAVEFORM classic WIDTH END CURVE
+emacsvox_tone 3 MODE FREQUENCY DURATION GAIN WAVEFORM adsr ATTACK DECAY SUSTAIN RELEASE WIDTH END CURVE
+```
+
+Use `-` for each omitted extension, a number for WIDTH or END, and `linear`
+or `exponential` for CURVE. A Classic envelope therefore requires CURVE `-`.
+Standalone versions 1 and 2 retain their exact forms and reject these additions.
+The [extended fixture](../protocol-fixtures/extended-tones.json) pairs the
+standalone and timeline definitions. Both use the shared renderer and existing
+stop behavior; a normal release never delays cancellation. Automated PCM and
+transport checks are separate from listening and native platform acceptance.
