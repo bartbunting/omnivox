@@ -53,6 +53,9 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+- [2026-10-16 Omnivox 1.18.0 publication](2026-10-16-1.18-publication.md)
+  records release gates, public assets, native Windows verification and Homebrew.
+
 - [2026-10-16 Omnivox 1.18.0 candidate](2026-10-16-1.18-candidate.md)
 
 - [2026-10-08 Omnivox 1.16.1 candidate](2026-10-08-1.16.1-candidate.md)

@@ -1,0 +1,22 @@
+[
+  {
+    "archive": "omnivox-1.18.0-piper-source.tar.gz",
+    "size": 475526236,
+    "sha256": "1f045e77cb68a18d82618d09ae92c6eb7523789019d068ed85f7d3f702adb0cb",
+    "manifest": {
+      "version": "1.18.0",
+      "source_commit": "246e3b72013b4a8a25c18355d567e4cc8ed3fded"
+    },
+    "cargo_lock_matches": true
+  },
+  {
+    "archive": "omnivox-1.18.0-tgspeechbox-source.tar.gz",
+    "size": 103293051,
+    "sha256": "3cbbb4c62ff5ff51656836ad1f9822137435f180ac90b186a09065295bf4f2e1",
+    "manifest": {
+      "version": "1.18.0",
+      "source_commit": "246e3b72013b4a8a25c18355d567e4cc8ed3fded"
+    },
+    "cargo_lock_matches": true
+  }
+]
