@@ -6,8 +6,9 @@ are implemented. Standalone version 2 and timeline version 6 now reach playback
 through the same renderer, advertised together as `rich_tones_v1`.
 The `rich_tones_v2` extension adds Pulse width, Sawtooth, linear pitch sweeps
 and exponential envelopes through standalone version 3 and timeline version 7.
-Source verification passes; paired client delivery, native platform qualification
-and listening acceptance remain outstanding for the extensions. Defaults are unchanged.
+Source verification and muted paired Emacsvox delivery on Windows x64 pass.
+Other native platforms and listening acceptance remain outstanding for the
+extensions. Defaults are unchanged.
 Scope: richer generated cues in Omnivox, with accessible editing in Emacsvox.
 Related: [roadmap](../ROADMAP.md), [architecture](../ARCHITECTURE.md),
 [timeline protocol](../protocols/presentation-timeline.md),
@@ -311,10 +312,11 @@ gain and retained replay. The staged runtime is reused without a server rebuild.
 The Emacsvox UI plan records exact test counts and an outstanding test-order
 issue in an unrelated indentation fixture. Audible output remains unaccepted.
 
-Next add waveform and envelope fields to frozen client actions, validation,
-saving and replay, then expose named spelling presets. Keep the existing
-Customize options and explicit Save; richer rule overrides use personal-rule
-storage. Extend the same controls to capitalization and indentation, then
+Emacsvox now preserves waveform and envelope fields in frozen actions,
+validation, saving and replay. Its spelling editor includes named presets,
+draft/current comparison and the extended controls. Customize owns saved cue
+defaults and presets; extended personal-rule shapes use schema 13.
+Extend the same controls to capitalization and indentation, then
 complete platform and listening qualification. Old workers must keep reporting
 unsupported shapes without changing saved intent or silently playing Classic.
 
@@ -331,5 +333,11 @@ Extension verification covers strict older formats, matching standalone and
 timeline definitions, fixed duration, width-dependent sound, 50-percent
 Pulse/Square parity, sweep frequency, exponential levels, cancellation during
 generation, mixed-version replacement and multipart admission. Workspace tests,
-Clippy, formatting and paired documentation checks pass. These checks do not
-establish native or listening acceptance of the extensions.
+Clippy, formatting and paired documentation checks pass. Full development
+staging produced Windows x64 runtime `c7a933a8824837b6` from commit `6e57e7d`.
+A fresh compiled Emacsvox client passes muted standalone version 3 and timeline
+version 7 checks for Pulse widths 5, 50 and 95 percent, rising and falling
+sweeps, exponential ADSR and Sawtooth. Checks cover insert and overlay on both
+workers, reconnection and historical speech replay. The normal Emacsvox launcher
+selects this runtime. These checks establish execution and protocol behaviour;
+audible quality, interruption during listening and other platforms remain open.
