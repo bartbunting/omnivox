@@ -80,8 +80,9 @@ The platform helper build READMEs remain with the code they maintain.
 - [Prepared synthesis](reference/prepared-synthesis.md): attempts, transactional
   audio commitment, effects, tickets and consumption evidence.
 - [Text chunking](reference/text-chunking.md): preprocessing and original offsets.
-- [Engine configuration](reference/engine-configuration.md): version-1 helper
-  manifests, local policy, overrides and startup rules.
+- [Engine configuration](reference/engine-configuration.md): helper manifests,
+  configuration versions 1–4, local editors, speech preferences, punctuation
+  profiles and startup rules.
 - [Rate calibration](reference/rate-calibration.md): mappings, measured reference
   curves, reproduction and interpretation.
 - [Voice-library formats](reference/voice-library.org): storage, identity,
@@ -99,14 +100,28 @@ reports and [rate audits](rate-audits/README.md) retain their existing paths,
 raw samples, reproduction inputs and provenance. Functional pass counts do not
 establish performance or audible acceptance. Reruns create new reports.
 
-## Active proposals
+<a id="active-proposals"></a>
 
-The [roadmap](ROADMAP.md) is the entry to future work. Current detailed proposals:
+## Active plans and proposals
+
+The [roadmap](ROADMAP.md) is the entry to future work. Active delivery and
+acceptance plans:
+
+- [Richer tones](plans/richer-tones.md): shipped server support, implemented
+  Emacsvox editors and remaining listening/platform acceptance.
+- [Orca backend](plans/orca-backend.md): feature-branch adapter, lifecycle
+  hardening and remaining desktop qualification.
+- [Punctuation configuration](plans/punctuation-configuration.md): implemented
+  built-in tables and named profiles, with remaining acceptance and deferred `most`.
+
+Proposals awaiting further design or implementation authorization:
 
 - [Language-aware voice selection](plans/language-routing.md): explicit language
   matching and fallback beyond the existing exact-match rules.
 - [Speech Dispatcher feasibility](plans/speech-dispatcher.md): external playback,
   capability reductions and completion questions before implementation.
+- [Session configuration and reload](adr/0011-session-configuration-and-reload.md):
+  proposed coordinated preference reload and later configuration Apply.
 
 Completed plans contribute lasting requirements to guides/references and results
 to evidence, then leave the working tree. Git retains the implementation history.

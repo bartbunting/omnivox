@@ -1,6 +1,6 @@
 # Omnivox Roadmap
 
-**Reviewed:** 2026-09-28.
+**Reviewed:** 2026-10-23.
 This is the outstanding backlog. [Status](STATUS.md) records current coverage,
 [architecture](ARCHITECTURE.md) describes implementation, and the
 [evidence index](benchmarks/README.md) links observations and comparisons.
@@ -32,6 +32,17 @@ Outstanding items are listed without a priority ranking:
   Broader device and listening coverage remains separate work.
 - **Speech and audio doctor:** explain the selected executable, backend, device,
   engine, voice, fallback reason, buffer settings, and recovery action.
+- **Richer generated tones:** runtime support shipped in 1.18.0. Emacsvox has
+  individual gain, presets and a shared editor for spelling, capitalization and
+  pitch-based indentation. Windows development-runtime and shared-editor
+  listening acceptance are recorded. The [delivery plan](plans/richer-tones.md)
+  retains destination-specific listening, broader platform/acoustic checks,
+  general personal-rule and line-cue editing, and duration-coded indentation.
+- **Orca speech backend:** the optional adapter and POSIX parent-death supervisor
+  are implemented on the Orca feature branch. The [delivery plan](plans/orca-backend.md)
+  tracks broader desktop/audio acceptance, abrupt native Windows cleanup across
+  WSL, finer Say All progress and daily-use qualification. Upstream inclusion
+  remains separate.
 - **Reliable remote workstation setup:** extend outage, interactive,
   matched-release, and macOS coverage before graduating the preview.
 - **Portable speech and output profiles:** switch voice/rate/routing preferences
@@ -39,12 +50,12 @@ Outstanding items are listed without a priority ranking:
   paths between platforms.
 - **Omnivox pronunciation dictionaries:** per-language and per-application
   corrections that preserve original-text offsets for markers and navigation.
-- **Custom punctuation profiles:** stage two of the
-  [punctuation plan](plans/punctuation-configuration.md) adds named profiles,
-  discovery and Emacsvox mode/buffer selection. Stage one implements configuration
-  of the existing three levels; listening and native platform acceptance remain
-  separate from automated text and lifecycle checks.
-- **A `most` punctuation level:** deferred beyond 1.15.0. Define its shipped
+- **Punctuation acceptance:** named profiles, discovery and Emacsvox mode/buffer
+  selection are implemented; server support shipped in 1.17.0. Complete the
+  listening and native-platform acceptance in the
+  [punctuation plan](plans/punctuation-configuration.md), keeping automated text
+  and lifecycle checks distinct from audible results.
+- **A `most` punctuation level:** still deferred. Define its shipped
   table, negotiate support across both workers, and specify old-server fallback
   before extending saved settings, commands and the Emacsvox editor. Preserve
   the existing three levels; apostrophes remain at `all` by default.
@@ -123,8 +134,10 @@ Broader native engine qualification remains separate. External-helper process
 checks now also pass on both Macs in the [1.13 candidate checks](benchmarks/2026-09-28-1.13-candidate.md).
 [Language-aware voice selection](plans/language-routing.md)
 is a proposed later increment requiring agreed matching, fallback and versioning
-rules. A configuration UI, live reload, per-helper environment settings and
-executable installation are also outside the completed scope.
+rules. Local configuration review and atomic saving, including an Emacsvox
+editor, are implemented; activation still requires explicit restart. Live reload,
+per-helper environment settings and executable installation remain outside the
+completed scope.
 
 ### Audio-output scope
 

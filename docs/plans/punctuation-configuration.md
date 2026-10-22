@@ -1,5 +1,12 @@
 # Punctuation configuration in two stages
 
+Status: both implementation stages are complete; remaining listening and native
+editor acceptance keep this plan active. Reviewed 2026-10-23. Built-in table
+configuration shipped in 1.15.0 and named profiles in 1.17.0. A fourth built-in
+`most` level remains a separate, unimplemented scope.
+Scope: host punctuation tables, named profiles and paired Emacsvox selection.
+Related: [roadmap](../ROADMAP.md), [configuration contract](../reference/engine-configuration.md).
+
 Omnivox defines character pronunciations and applies them before engine selection.
 Emacsvox selects the active level for the current mode or buffer. This follows
 the host configuration and immutable startup boundaries in
@@ -38,8 +45,8 @@ in Omnivox. The host supplies defaults, validates and atomically saves only the
 punctuation overrides, and checks the reviewed file revision. Emacsvox provides
 spoken character rows, independent drafts, preservation/default actions, and
 separate Save and Restart commands. Saving alone never activates settings.
-The development follow-up extends this editor with named profile drafts under
-stage two; built-in-only saves preserve existing profiles.
+Stage two extends this editor with named profile drafts;
+built-in-only saves preserve existing profiles.
 
 Acceptance:
 
@@ -57,31 +64,30 @@ Acceptance:
 
 <a id="stage-two-custom-named-profiles-deferred"></a>
 
-## Stage two: custom named profiles (development implementation)
+## Stage two: custom named profiles (implemented in 1.17.0)
 
-A fourth built-in level, `most`, is also deferred beyond 1.15.0. Its exact
+A fourth built-in level, `most`, remains deferred. Its exact
 table and client/server negotiation need a separate implementation scope;
 adding it must preserve existing levels and define older-server fallback.
 The 1.15.0 defaults name apostrophes only at `all`.
 
-Allow a user to define a profile such as `prose`, `code` or `proofreading` by
-inheriting one built-in level and supplying sparse character overrides. Initially
-restrict inheritance to built-ins so cycles and multi-level resolution are absent.
-Keep `none`, `some` and `all` available with stable meanings and reserve their IDs.
-Resolve profiles into the same immutable startup record as stage one.
+Users can define profiles such as `prose`, `code` or `proofreading` by inheriting
+one resolved built-in level and supplying sparse character overrides. Inheritance
+is restricted to built-ins; `none`, `some` and `all` retain stable meanings and
+reserved IDs. Profiles share the immutable startup record with built-in tables.
 
-This stage needs a separately specified capability and protocol extension:
+The implemented `punctuation_profiles_v1` capability provides these semantics:
 
 - Omnivox advertises available stable profile IDs and their built-in fallback.
 - Emacsvox discovers them from both workers, provides selection, and allows
   mode/buffer preferences without containing pronunciation tables itself.
 - An old server receives the chosen built-in fallback. A server supporting
   profiles rejects an unknown ID explicitly rather than silently substituting.
-- Define behavior when workers disagree or a saved profile disappears; avoid
-  publishing a partially activated configuration.
-- Keep isolated character inspection independent of the chosen prose profile.
+- Missing, unsupported or disagreeing worker catalogues select the saved built-in
+  fallback and expose that state; named selection requires agreeing descriptors.
+- Isolated character inspection remains independent of the chosen prose profile.
 
-The development implementation is specified in the
+The implementation is specified in the
 [version-4 configuration contract](../reference/engine-configuration.md#configuration-version-4-named-punctuation-profiles).
 Emacsvox creates and edits named drafts, discovers worker catalogues, and retains
 built-in fallbacks in mode/buffer selections. `verify_engine_configuration.py`
@@ -89,4 +95,16 @@ checks actual helper text, shared startup/recovery and unknown-profile rejection
 Audible acceptance remains separate from automated preparation checks.
 Acceptance must cover negotiation, old clients and servers, missing profiles,
 both workers, saved preferences, reset, recovery, and source-offset parity.
-Do not send custom names through the current three-value punctuation enum.
+Custom names are not sent through the three-value punctuation enum.
+
+## Remaining acceptance and follow-up
+
+- Complete native macOS editor and listening acceptance; Linux/Windows automated
+  configuration and recovery checks do not establish audible pronunciation.
+- Extend live-client checks for both workers, saved mode/buffer selections,
+  old-peer fallback, missing profiles, reset/recovery and source-offset parity.
+  Preserve the existing verification results rather than treating this checklist
+  as evidence that those scenarios have no automated coverage.
+- Specify the `most` table, negotiated support and old-server fallback separately.
+  It is not supplied by named profiles and is not needed to complete their
+  implementation.

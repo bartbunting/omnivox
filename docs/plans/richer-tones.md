@@ -1,14 +1,14 @@
 # Richer generated tones
 
-Status: accepted for implementation on 2026-10-16. Shared tone types, versioned
-decoders, waveform/envelope rendering and cancellation during tone generation
-are implemented. Standalone version 2 and timeline version 6 now reach playback
-through the same renderer, advertised together as `rich_tones_v1`.
-The `rich_tones_v2` extension adds Pulse width, Sawtooth, linear pitch sweeps
-and exponential envelopes through standalone version 3 and timeline version 7.
-Source verification and muted paired Emacsvox delivery on Windows x64 pass.
-Other native platforms and listening acceptance remain outstanding for the
-extensions. Defaults are unchanged.
+Status: server support published in 1.18.0; client delivery and qualification
+follow-up remain active. Reviewed 2026-10-23. Both `rich_tones_v1` and
+`rich_tones_v2` are implemented, with native release gates and Windows x64
+development-runtime listening acceptance recorded in the
+[release evidence](../benchmarks/README.md#omnivox-1180-release-evidence).
+Emacsvox's shared editor covers spelling, capital-letter/all-caps cues and
+pitch-based indentation. Shared-editor listening acceptance was recorded on
+2026-10-17; destination-specific listening and broader platform/acoustic
+acceptance remain open. Classic defaults are unchanged.
 Scope: richer generated cues in Omnivox, with accessible editing in Emacsvox.
 Related: [roadmap](../ROADMAP.md), [architecture](../ARCHITECTURE.md),
 [timeline protocol](../protocols/presentation-timeline.md),
@@ -24,25 +24,28 @@ alongside optional detailed controls. Preserve existing cues by default.
 
 The active Classic [generator](../../omnivox-audio/src/tone.rs) produces sine waves
 with linear fades of up to 10 milliseconds at each end, shortened for brief
-tones. It produces stereo PCM with a small right-channel delay. Timeline tones
-already accept individual gain, multiplied by the worker's master tone volume.
-Emacsvox currently supplies unity gain for each timeline tone and exposes the
-master control. Standalone presentation-tone commands do not offer all the
-fields available to timeline actions.
+tones. It produces stereo PCM with a small right-channel delay. Negotiated
+standalone and timeline tones share individual gain, waveform and envelope
+definitions. Per-cue gain is multiplied once by the worker's master tone volume.
+Emacsvox edits individual gain and shape while retaining separate master controls.
 
 Keep synthesis in the existing audio pipeline. Do not introduce a speech engine,
 helper process, external synthesizer or new dependency merely to generate cues.
 Preserve stream ownership, routing, action order, resource budgets and terminal
 playback reporting. Existing startup sounds and legacy callers keep their sound.
 
-## Proposed tone model
+<a id="proposed-tone-model"></a>
 
-- **Waveform:** initially sine, triangle and pulse/square. Select an algorithm
-  that controls aliasing for the harmonic waveforms; do not ship a naive hard
-  discontinuity as the default implementation. Pulse width is deferred.
-- **Frequency:** the fundamental pitch in hertz. The richer path needs limits
-  consistent with the renderer's sample rate and waveform generation. Existing
-  commands retain their accepted validation and behavior.
+## Implemented tone model
+
+The [protocol reference](../protocols/presentation-timeline.md#richer-tones-version-6)
+owns exact fields, bounds and rendering rules; this summary describes the
+delivered scope.
+
+- **Waveform:** sine, triangle, square, variable-width Pulse and Sawtooth, with
+  bounded harmonic generation for the non-sine waveforms.
+- **Frequency:** fundamental pitch in hertz, with optional linear pitch sweeps
+  in `rich_tones_v2`. Older commands retain their validation and behavior.
 - **Duration:** total audible allocation in milliseconds, including the envelope.
 - **Gain:** normalized per-cue amplitude, multiplied once by existing master
   tone gain. Preserve the current routing, pan and effect-bus contracts.
@@ -50,33 +53,31 @@ playback reporting. Existing startup sounds and legacy callers keep their sound.
   rises from silence to peak; decay falls to sustain level; sustain occupies
   remaining time; release falls to silence. Sustain is a level, not a duration.
 
-Duration rule for implementation: if attack, decay and release exceed the total
-duration, scale those three times proportionally and give sustain zero hold
-time. Allocate frames deterministically so rounding cannot extend the tone.
-Very short cues must remain valid. Specify zero-length stages and endpoint
-handling before implementation; define how click suppression affects a requested
-instantaneous edge. Do not silently add time beyond the requested duration.
+If attack, decay and release exceed the total duration, the renderer scales
+them proportionally and gives sustain zero hold time. Deterministic frame
+allocation, zero-stage handling and endpoint smoothing preserve fixed duration.
+The version-2 bundle adds exponential envelope curves alongside linear curves.
 
 Provide a **Classic** rendering path that preserves current samples, fades and
 stereo behavior when new fields are absent. Generalized ADSR rendering must not
-quietly redefine old tones. A proposed preset list is Classic, Soft, Plucked and
-Rounded. Presets describe envelopes; waveform remains a separate choice.
-Exact preset values and gain balancing require listening. Equal peak amplitude
-does not establish equal perceived loudness.
+quietly redefine old tones. Emacsvox provides named presets and current-tone
+comparison. Further preset/gain balancing needs listening evidence. Equal peak
+amplitude does not establish equal perceived loudness.
 
 ## Compatibility and persistence
 
-Negotiate richer-tone support before sending new parameters. Freeze exact
-capability names, wire fields, versions, bounds and error responses in the
-contract slice; they are not defined or advertised by this proposal.
-Cover both structured timeline actions and standalone previews/commands.
-Both paths must render the same selected definition and effective gain.
+Negotiate richer-tone support per worker before sending new parameters.
+`rich_tones_v1` pairs standalone version 2 and timeline version 6;
+`rich_tones_v2` pairs standalone version 3 and timeline version 7. The
+[protocol reference](../protocols/presentation-timeline.md#extended-tones-version-7)
+defines the advertised bundles. Both paths render the same selected definition
+and effective gain.
 
 Old clients keep existing commands and defaults. On an older server, continue
-to offer Classic controls. For a saved richer cue, expose the unavailable
-capability and an explicit Classic fallback policy rather than pretending the
-chosen sound was rendered. Settle that policy before enabling richer saved
-definitions. Check capabilities per connected worker, including remote workers.
+to offer Classic controls. For a saved richer cue, Emacsvox omits unsupported
+tones while preserving speech and reporting the reason; exact previews report
+missing support. It retains saved intent without silently substituting Classic.
+Check capabilities per connected worker, including remote workers.
 
 Validate finite values, ranges, combinations, encoded sizes and generation
 cost before admission. Reject malformed or unsupported explicit requests without
@@ -84,19 +85,20 @@ silently ignoring fields or disturbing existing work. Keep generated PCM and
 effect tails within existing presentation/window budgets. Harmonic generation
 must have bounded CPU cost as well as bounded memory.
 
-Emacsvox owns named cue definitions and personal overrides through its existing
-presentation-rule persistence. Master volume retains its existing owner.
-Version stored richer definitions deliberately, preserve older definitions on
-load and avoid rewriting personal files merely by browsing. Clarify what older
-Emacsvox versions can read before shipping the new saved format.
+Emacsvox stores ordinary cue defaults and presets in Customize; conditional
+personal rules remain in its presentation store. Extended personal-rule shapes
+use schema 13. Opening, browsing and previewing save nothing. Capitalization
+Save migrates only unchanged menu-generated rules, preserving edited rules.
+The paired [UI plan](https://github.com/bartbunting/emacsvox/blob/main/docs/ui-settings-plan.org) owns client
+editing, scope, persistence and compatibility details.
+This review used Emacsvox commit `e36fa1e35`.
 
 ## Delivery slices
 
-1. [ ] **Individual cue volume in Emacsvox.** Expose existing timeline gain for
-   spelling first, then other tone editors. Trace standalone previews, replay
-   and actual feedback so they use the same gain. If a standalone path cannot
-   express it, use an existing equivalent negotiated path or carry that gap
-   into slice 2 explicitly. Keep the shared master volume clearly labelled.
+1. [x] **Individual cue volume in the initial destinations.** Spelling,
+   capital-letter/all-caps and pitch-based indentation expose individual gain.
+   Standalone previews, timeline feedback and retained replay carry frozen gain;
+   master volume remains separate. Other destinations remain follow-up work.
 2. [x] **Contract and fixtures.** Audit all callers; settle the duration rule,
    short/zero-stage behavior, waveform limits, capability/version negotiation,
    old-peer fallback and storage compatibility. Define standalone/timeline
@@ -105,26 +107,30 @@ Emacsvox versions can read before shipping the new saved format.
    waveforms and envelopes in the shared renderer. Wire both delivery paths
    through it. Verify bounded synthesis and cancellation before client rollout.
    Platform and listening qualification remain in slice 5.
-4. [ ] **Emacsvox editor and presets.** Use browsable waveform and envelope
-   choices: arrows inspect, Enter applies to the draft. Explain every choice
-   and numeric control. Use Shift-arrows for adjustments and Enter for exact
-   values. Provide explicit Preview, Stop, reset/discard and Save with scope
-   stated. Reuse existing drafts and rules; do not change defaults on entry.
-   Ensure retained history/replay either preserves the richer definition or
-   explains any unavailable evidence instead of claiming an exact replay.
+4. [x] **Emacsvox editor and presets for the initial destinations.** The common
+   draft editor, presets, current-tone comparison, Preview/Stop, Apply, explicit
+   Save and discard are implemented for spelling, capitalization and pitch-based
+   indentation. Shared-editor listening was accepted on 2026-10-17;
+   destination-specific acceptance remains in slice 5.
 5. [ ] **Qualification and documentation.** Test standalone, inserted and
    overlaid tones, rapid preview replacement, both speech lanes and remote
    delivery. Start listening with spelling, then capital-letter/all-caps and
    indentation cues. Record platform/runtime coverage separately from unit
    results. Update supported protocols, guides and status only as implemented.
-6. [ ] **Tone extensions, accepted 2026-10-16.** The renderer and versioned
-   decoders implement bounded linear pitch
+6. [x] **Tone extension implementation, accepted 2026-10-16.** The renderer and
+   versioned decoders implement bounded linear pitch
    sweeps, linear/exponential envelope curves, Pulse with 5–95 percent width
    and Sawtooth. Preserve older formats through standalone version 3 and
    timeline version 7, negotiated as `rich_tones_v2`. The exact contract lives
    in the [protocol reference](../protocols/presentation-timeline.md#extended-tones-version-7).
    Named presets and comparison remain client features. Short sequences, chords,
    noise, modulation and arbitrary curves remain deferred.
+
+Next work is destination-specific listening for capitalization and pitch-based
+indentation, broader device/platform and remote qualification, and physical
+onset/stop measurements. General personal-rule and line-cue editors and
+duration-coded indentation remain separate client follow-ups. Passing native
+release gates does not close these listening and interaction checks.
 
 Commit implementation in reviewable slices. Keep Omnivox and Emacsvox changes
 separately identifiable and qualify the paired versions before deployment.
@@ -151,6 +157,11 @@ Automated checks must cover:
 
 Listening acceptance must separately check:
 
+Windows x64 runtime `c7a933a8824837b6` received overall listening acceptance on
+2026-10-16, and Emacsvox's shared editor on 2026-10-17. The detailed criteria
+below remain the checklist for broader coverage: those overall confirmations
+do not supply a per-waveform/device matrix or accept every new destination.
+
 - [ ] Classic sounds unchanged in familiar spelling, caps and indentation use.
 - [ ] Soft, Plucked and Rounded are distinguishable and their descriptions fit.
 - [ ] Brief cues do not click, become unexpectedly long or disappear audibly.
@@ -165,16 +176,20 @@ Listening acceptance must separately check:
 Use matched builds and record actual backend/device/platform paths. Null-output
 and captured PCM checks do not prove acoustic quality or physical latency.
 
-## Implementation contract and effort handoff
+<a id="implementation-contract-and-effort-handoff"></a>
 
-The following is the implementation target, not an advertised server capability.
-High is sufficient for the next bounded patches. Reassess only if a regression
-exposes a new ordering, cancellation or compatibility conflict.
+## Implemented contract and retained verification
+
+The following records the implemented first bundle and its compatibility
+constraints. Both bundles are now advertised; the
+[protocol reference](../protocols/presentation-timeline.md#extended-tones-version-7)
+also specifies the shipped extensions. Remaining work is client follow-up and
+qualification, not the original decoder/renderer patches.
 
 ### Wire and capability boundary
 
-Preserve standalone tone version 1 and timeline versions 1 through 5 unchanged.
-Add standalone tone version 2 and timeline version 6, gated by a complete
+Standalone tone version 1 and timeline versions 1 through 5 remain unchanged.
+Standalone tone version 2 and timeline version 6 are gated by the complete
 `rich_tones_v1` capability. Timeline 6 reuses version 5 speech, registration,
 marker and framing semantics and adds an optional `shape` to tone actions.
 Do not widen the shared older action reader to accept the new shape implicitly.
@@ -200,8 +215,8 @@ Classic fades. Reject explicit nulls, malformed combinations and trailing
 standalone arguments. Keep existing action gain, mode, pan and effect-bus fields.
 Use one typed validator for both new delivery paths.
 
-Once a worker negotiates version 6, use it consistently for its structured
-timelines, including those with Classic or no tones. Do not alternate versions
+Once a worker negotiates version 6 or 7, use the selected version consistently
+for its structured timelines, including those with Classic or no tones. Do not alternate versions
 according to cue settings: replacement domains include the protocol version.
 Carry the existing registration and delivery guards through the new version.
 Verify worker-local negotiation, remote framing and reconnect independently.
@@ -239,12 +254,18 @@ normal envelope release never delays Stop.
 
 Pass the cancellation probe through `prepare_speech_timeline_actions` and
 `TimelineAudioResource::materialize`, covering buffered, prepared and progressive
-paths as well as queued standalone tones. Audit the current timeline-render
-error handler: it can mark failure and queue dry speech. The cancelled outcome
-must bypass that fallback. Tests must cover cancellation during materialization,
-not just an already-cancelled request or active playback.
+paths as well as queued standalone tones. The timeline-render error handler
+keeps cancellation separate from failures that can queue dry speech.
+Tests cover cancellation during materialization, not just an already-cancelled
+request or active playback.
 
-### Client and next patches
+<a id="client-and-next-patches"></a>
+
+### Client delivery and retained checks
+
+The following retains implementation verification and provenance. Its muted
+checks preceded the Windows listening acceptance recorded above; test counts
+describe those runs and are not a claim that checks were rerun for this review.
 
 The decoder slice adds [shared typed values](../../omnivox-core/src/tone.rs),
 the [standalone decoder](../../omnivox-core/src/tone_command.rs), the
@@ -287,8 +308,8 @@ checks pass. Full Windows development staging passes for build
 `a4b085773844514f`, from Omnivox commit `a04e91e`. A fresh native Windows process
 through the normal launcher, using null audio output, confirms capability
 negotiation and standalone, direct-timeline and multipart-timeline admission
-and completion. This verifies transport and execution, not audible output;
-platform timing and listening qualification remain open.
+and completion. This run verifies transport and execution, not audible output;
+the later listening confirmation is recorded separately above.
 
 Emacsvox now negotiates the richer-tone bundle independently for each worker,
 including reconnects. Standalone version 2 and timeline version 6 carry frozen
@@ -310,15 +331,17 @@ Enter activation and search. The compiled client completes muted native Windows
 checks on both workers and after reconnect, including standalone and timeline
 gain and retained replay. The staged runtime is reused without a server rebuild.
 The Emacsvox UI plan records exact test counts and an outstanding test-order
-issue in an unrelated indentation fixture. Audible output remains unaccepted.
+issue in an unrelated indentation fixture. This checkpoint did not establish
+audible acceptance; later confirmations are recorded above.
 
 Emacsvox now preserves waveform and envelope fields in frozen actions,
 validation, saving and replay. Its spelling editor includes named presets,
 draft/current comparison and the extended controls. Customize owns saved cue
 defaults and presets; extended personal-rule shapes use schema 13.
-Extend the same controls to capitalization and indentation, then
-complete platform and listening qualification. Old workers must keep reporting
-unsupported shapes without changing saved intent or silently playing Classic.
+The common editor now also serves capital-letter/all-caps and pitch-based
+indentation cues. Their destination-specific listening remains open. Old workers
+must keep reporting unsupported shapes without changing saved intent or silently
+playing Classic.
 
 Preset values remain provisional listening choices, with no automatic loudness
 compensation or default changes. Initial trials can use Soft (10/0/1/15 ms),
@@ -339,5 +362,8 @@ A fresh compiled Emacsvox client passes muted standalone version 3 and timeline
 version 7 checks for Pulse widths 5, 50 and 95 percent, rising and falling
 sweeps, exponential ADSR and Sawtooth. Checks cover insert and overlay on both
 workers, reconnection and historical speech replay. The normal Emacsvox launcher
-selects this runtime. These checks establish execution and protocol behaviour;
-audible quality, interruption during listening and other platforms remain open.
+selected this runtime for that verification. These muted checks establish
+execution and protocol behaviour. The later Windows listening confirmation and
+native release gates are recorded in the
+[release evidence](../benchmarks/README.md#omnivox-1180-release-evidence);
+broader listening and acoustic timing remain open.

@@ -53,6 +53,19 @@ Earlier baselines remain available:
 
 ## Functional acceptance and additional reports
 
+### Omnivox 1.18.0 release evidence
+
+The [candidate report](https://github.com/bartbunting/omnivox/blob/0a838874cc586ab991365b21a6d06f8064351bfe/docs/benchmarks/2026-10-16-1.18-candidate.md)
+and [publication report](https://github.com/bartbunting/omnivox/blob/0a838874cc586ab991365b21a6d06f8064351bfe/docs/benchmarks/2026-10-16-1.18-publication.md)
+are retained with their raw evidence on the release branch at `0a838874`.
+They record Windows x64 development-runtime listening acceptance, all 74 passing
+release jobs, public asset verification, the completed Homebrew update and
+Emacsvox installer follow-up. Acoustic timing and broader listening coverage
+remain separate. These pinned links preserve access while this checkout has
+not incorporated the release branch's version and evidence files.
+
+### Earlier reports
+
 - [2026-10-08 Omnivox 1.16.1 candidate](2026-10-08-1.16.1-candidate.md)
   records the eSpeak marker-order regression, patch-release scope and local
   candidate checks.

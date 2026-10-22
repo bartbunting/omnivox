@@ -8,7 +8,8 @@ restart. A worker recovering from failure keeps its original settings.
 This reference specifies the version-1 contract accepted in
 [ADR 0008](../adr/0008-extensible-engine-registration.md) and the version-2
 speech extension in [ADR 0009](../adr/0009-local-speech-preferences.md).
-Version 3 adds punctuation tables within the same captured-preference policy.
+Version 3 adds punctuation tables and version 4 adds named profiles within the
+same captured-preference policy.
 Start with the
 [configuration guide](../guides/configuration.md#local-engine-configuration)
 for setup. The [acceptance audit](../benchmarks/2026-09-28-engine-framework-audit.md)
@@ -230,7 +231,7 @@ the character is preserved. These minimums describe shipped defaults only.
 | `′` `″` (U+2032, U+2033) | prime; double prime | `all` |
 | `−` (U+2212) | minus | `some` |
 
-Development builds also support named profiles through
+Omnivox 1.17.0 and later support named profiles through
 [configuration version 4](#configuration-version-4-named-punctuation-profiles),
 including capability negotiation and client selection.
 

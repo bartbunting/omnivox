@@ -1,22 +1,30 @@
 # Omnivox Project Status
 
-**Documentation reviewed:** 2026-10-09. **Workspace version:** 1.17.0.
-Published changes belong to the
-[changelog](../CHANGELOG.md); current implementation may include unreleased work.
+**Documentation reviewed:** 2026-10-23. **Workspace version:** 1.17.0.
+**Latest published release:** 1.18.0. This checkout has the tone implementation
+but has not incorporated the release branch's version, changelog and evidence
+updates. Its workspace version and `Unreleased` heading do not establish what
+has shipped; see the [release evidence](benchmarks/README.md#omnivox-1180-release-evidence).
 [Architecture](ARCHITECTURE.md) explains behavior, [the roadmap](ROADMAP.md)
 tracks outstanding work, and [retained evidence](benchmarks/README.md) records
 actual runs and their limits.
 
-Omnivox 1.17.0 is in release preparation. It adds bundled TGSpeechBox and
-native voice controls, Emacspeak eSpeak styles, named punctuation profiles and
-local configuration editing. Native release checks remain required before
-publication; adding a platform to the workflow does not establish acceptance.
+[Omnivox 1.18.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.18.0).
+It adds individual tone gain, waveforms, Pulse width, pitch sweeps and shaped
+envelopes. All 74 release jobs passed, and the Homebrew and Emacsvox installer
+follow-ups completed. Windows x64 development-runtime listening acceptance is
+recorded; physical timing and broader listening coverage remain open. The
+[release reports](benchmarks/README.md#omnivox-1180-release-evidence) retain the
+exact builds, checks and limits.
+
+[Omnivox 1.17.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.17.0).
+It includes bundled TGSpeechBox and native voice controls, Emacspeak eSpeak
+styles, named punctuation profiles and local configuration editing.
 
 [Omnivox 1.16.1 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.16.1)
 with a fix for eSpeak stopping partway through speech at faster rates. Its
 [candidate report](benchmarks/2026-10-08-1.16.1-candidate.md) records the local
-checks and platform limits. The 1.17.0 candidate retains this fix alongside the later
-configuration editor, named punctuation profiles and TGSpeechBox changes.
+checks and platform limits. Later releases retain this fix.
 
 [Omnivox 1.16.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.16.0)
 with palette-aware character feedback. Its
@@ -31,8 +39,8 @@ The [publication checks](benchmarks/2026-09-28-1.15-publication.md) retain the
 release identity, all 64 passing jobs and verification of the 28 public assets.
 The [candidate report](benchmarks/2026-09-28-1.15-candidate.md) records Linux
 and native Windows checks for punctuation configuration/editor support and the
-streaming onset fix. The `most` punctuation level, custom profiles and live
-configuration reload remain deferred. The earlier
+streaming onset fix. The `most` punctuation level and live configuration reload
+remain deferred; named profiles are implemented in 1.17.0. The earlier
 [1.14.0 candidate](benchmarks/2026-09-28-1.14-candidate.md) retains the successful
 physical Windows headphone-switching follow-up.
 
@@ -42,13 +50,15 @@ physical Windows headphone-switching follow-up.
 | --- | --- | --- |
 | Admission | Bounded legacy/control input, atomic multipart timelines, generation-safe queue admission and cancellation. | [Legacy](protocols/legacy.md), [control](protocols/control.md), [timeline](protocols/presentation-timeline.md) |
 | Routing | Stable physical identities, ordered logical choices, runtime fallback, exclusions, health circuits and asynchronous helper recovery. | [Architecture](ARCHITECTURE.md#voice-identity-routing-and-tuning) |
-| Voice customization | Shared → actual choice → context composition; private exact/full previews; typed qualified native controls. Control envelope 1, timeline versions 1–6, markers 1–4 and helper versions 1–6 retain compatibility. | [Layered tuning](protocols/voice-choice-tuning.org), [native parameters](protocols/engine-voice-parameters.md) |
-| Richer tones (unreleased) | Negotiated standalone and timeline tones share gain, waveforms and cancellable envelopes. The version-2 capability adds Pulse width, Sawtooth, linear pitch sweeps and exponential ADSR. Source checks and muted paired Emacsvox delivery on Windows x64 pass; other platforms and listening remain open. Classic defaults are preserved. | [Protocol](protocols/presentation-timeline.md#richer-tones-version-6), [plan](plans/richer-tones.md) |
+| Voice customization | Shared → actual choice → context composition; private exact/full previews; typed qualified native controls. Control envelope 1, timeline versions 1–7, markers 1–4 and helper versions 1–6 retain compatibility. | [Layered tuning](protocols/voice-choice-tuning.org), [native parameters](protocols/engine-voice-parameters.md) |
+| Richer tones (1.18.0) | Negotiated standalone and timeline tones share gain, waveforms and cancellable envelopes. The version-2 capability adds Pulse width, Sawtooth, linear pitch sweeps and exponential ADSR. Native release gates and Windows development-runtime listening acceptance are recorded. Emacsvox's shared editor covers spelling, capitalization and pitch-based indentation; destination-specific and broader listening checks remain open. Classic defaults are preserved. | [Protocol](protocols/presentation-timeline.md#richer-tones-version-6), [plan](plans/richer-tones.md), [release evidence](benchmarks/README.md#omnivox-1180-release-evidence) |
 | Character feedback (1.16.0) | Negotiated palette-aware isolated characters retain actual-choice tuning, character rate, cancellation and configured capital pitch. Linux and native Windows client checks pass. | [Protocol](protocols/presentation-timeline.md#palette-aware-isolated-characters), [candidate checks](benchmarks/2026-09-30-1.16-candidate.md) |
 | Discovery | Concurrent helper initialization before initial inventory, verified bounded caches and on-demand exact eSpeak variants. | [Architecture](ARCHITECTURE.md#configuration-and-engine-discovery), [variants](engines/espeak-variants.md) |
 | Engine configuration v1 | Strict local `config.json`/helper manifests, immutable launch snapshots, local permissions, paired startup/Apply acknowledgements and remote session retention. Blocked startup retains ownership without delaying admission; the first implementation slice passes its development acceptance checks. | [Configuration](guides/configuration.md), [acceptance audit](benchmarks/2026-09-28-engine-framework-audit.md) |
 | Speech configuration v2 (1.14.0) | Configurable 1–100-word synthesis windows, default 15, shared across lanes and retained on reset/recovery. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#configuration-version-2), [acceptance](benchmarks/2026-09-28-host-chunk-configuration.md) |
 | Punctuation configuration v3 (1.15.0) | Sparse names/preservation for none/some/all, unchanged ASCII defaults and common Unicode coverage. Local review/edit service and Emacs interface implemented. Linux/Windows configuration and recovery, graphical checks and the WSL-to-Windows editor pass; native macOS editor and listening acceptance remain open. | [Contract](reference/engine-configuration.md#punctuation-tables), [candidate checks](benchmarks/2026-09-28-1.15-candidate.md), [editor acceptance](benchmarks/2026-09-28-punctuation-editor.md), [two-stage plan](plans/punctuation-configuration.md) |
+| Named punctuation profiles v4 (1.17.0) | Built-in inheritance and sparse overrides, immutable startup tables, negotiated discovery/selection and atomic local editing. Emacsvox retains built-in fallbacks for missing or disagreeing worker catalogues. Audible acceptance remains separate. | [Contract](reference/engine-configuration.md#configuration-version-4-named-punctuation-profiles), [plan](plans/punctuation-configuration.md) |
+| Local engine configuration editor (1.17.0) | Review and revision-checked atomic saving of routing and overrides, preserving unrelated fields. Saving requires a separate speech restart for activation. | [Contract](reference/engine-configuration.md#local-engine-settings-editor) |
 | Saved speech defaults (1.14.0) | Voice, rate, pitch, volumes, punctuation, CamelCase splitting and character speed; reset restores the captured file baseline. Linux and native Windows process checks pass. | [Contract](reference/engine-configuration.md#saved-speech-defaults), [decision](adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct), [acceptance](benchmarks/2026-09-28-saved-speech-defaults.md) |
 | Capital pitch and saved output (1.14.0) | Global capital pitch with engine overrides or off; saved backend, channel and PulseAudio latency request. Linux and native Windows process checks pass. | [Capital pitch](reference/engine-configuration.md#capital-letter-pitch), [audio settings](reference/engine-configuration.md#audio-output-settings), [acceptance](benchmarks/2026-09-28-capital-pitch-and-audio-settings.md) |
 | Managed voices | Reviewed Piper, Flite, MBROLA and RHVoice acquisition; disabled installation, immutable generations, explicit two-worker Apply/rollback and reviewed removal. | [Voice management](guides/voice-management.md), [formats](reference/voice-library.org) |
@@ -92,7 +102,7 @@ include the source and CI identities; formula updates remain explicit.
 | RHVoice | Real 1.14.0 C API synthesis, markers, ACSS, cancellation and shutdown on Linux/Windows x64. Compatible 1.14+ 1.x runtime remains user-installed; macOS is compile-only and Windows ARM64 has no accepted runtime. See [RHVoice](engines/rhvoice.md). |
 | Flite | Native six-target companion gates, 25 SLT syntheses, relocation, ACSS, cancellation and shutdown. ASCII guarantee and word-boundary anchors; compatible external English voices only. See [Flite](engines/flite.md). |
 | RuTTS | All six companion release gates passed for v1.7.1; additional Windows GNU/Linux development evidence. KOI8-R repertoire, two built-in voices, no RuLex or markers. Multi-hour memory and high-rate intelligibility need broader measurement. See [RuTTS](engines/rutts.md). |
-| TGSpeechBox | Bundled by the current generic and Debian packaging recipes. Local Linux x64 and Windows x64 GNU checks; native macOS, ARM64 and Windows MSVC CI acceptance remains pending. Helper 6 exposes five native voice-quality controls with profile-preserving defaults; see [native voice controls](engines/tgspeechbox.md#native-voice-controls). Exact requested anchors at the default progressive 44.1 kHz rate; 22.05 kHz remains buffered. Published releases through v1.16.1 provide the Windows x64 companion separately. See [TGSpeechBox](engines/tgspeechbox.md). |
+| TGSpeechBox | Bundled in generic and Debian releases from 1.17.0. The 1.18.0 native release gates passed, including supported companion targets; this does not establish listening on every platform. Helper 6 exposes five native voice-quality controls with profile-preserving defaults. Exact requested anchors at the default progressive 44.1 kHz rate; 22.05 kHz remains buffered. See [TGSpeechBox](engines/tgspeechbox.md) and [release evidence](benchmarks/README.md#omnivox-1180-release-evidence). |
 | Windows Eloquence/DECtalk | User-supplied x86 runtimes; qualified helper-6 native controls and progressive markers. Qualification is runtime-specific. See [Windows helpers](../windows-helpers/README.md) and [native evidence](benchmarks/README.md#functional-acceptance-and-additional-reports). |
 | Linux ECI/DECtalk | Development checks for installed Voxin 3.4 and x64 DECtalk 4.99, including all 17 voices, ACSS, markers and local navigation. Other runtime/architecture combinations and rate calibration remain unverified. See [Linux helpers](../linux-helpers/README.md) and [parity evidence](experiments/2026-09-07-linux-helper-parity.md). |
 | MBROLA | Explicit private development helper with Linux/native-Windows acquisition, synthesis and paired Apply/rollback evidence. No macOS or release qualification; no streaming or markers. See [MBROLA](engines/mbrola.md). |
@@ -110,6 +120,10 @@ include the source and CI identities; formula updates remain explicit.
   The earlier startup-deadline ownership gap has been
   [fixed and regression-tested](benchmarks/2026-09-27-engine-startup-deadline.md).
 - Speech Dispatcher is unimplemented.
+- The optional Orca adapter is implemented on its feature branch, including
+  POSIX parent-death supervision and context-level Say All. Broader desktop/audio
+  acceptance, native Windows abrupt-death cleanup across WSL and upstream
+  inclusion remain open; see the [delivery plan](plans/orca-backend.md).
 - Language selectors match exact case-insensitive tags. General language-range
   matching, automatic detection and language-preserving global fallback are not
   implemented; multilingual native coverage remains incomplete.

@@ -67,9 +67,9 @@ For `--dump-wav`, a nonempty positional `VOICE` takes precedence over
 
 ## Local engine configuration
 
-Standalone startup and exact diagnostic actions read configuration versions 1–3.
+Standalone startup and exact diagnostic actions read configuration versions 1–4.
 Version 2 is available from Omnivox 1.14.0; version 3 adds punctuation tables
-in Omnivox 1.15.0.
+in Omnivox 1.15.0, and version 4 adds named punctuation profiles in 1.17.0.
 Choose one root using `--config-dir`, then nonempty `OMNIVOX_CONFIG_DIR`, then
 the platform default: `%APPDATA%\omnivox` on Windows,
 `$HOME/Library/Application Support/Omnivox` on macOS, or
@@ -205,8 +205,13 @@ uses the Windows configuration root. Restart both speech workers deliberately,
 or use the existing coordinated Apply operation, to capture edits. Reset and
 failure recovery keep the captured tables. Omnivox 1.14.0 and earlier do not
 support this format. See the [complete tables and rules](../reference/engine-configuration.md#punctuation-tables).
-Custom named profiles are the deferred second stage in the
-[delivery plan](../plans/punctuation-configuration.md).
+Omnivox 1.17.0 adds [named profiles](../reference/engine-configuration.md#configuration-version-4-named-punctuation-profiles)
+in schema 4. Each profile inherits a built-in level and supplies sparse overrides.
+Emacsvox can edit profiles and select them per mode or buffer after discovering
+matching catalogues from both workers. Saved selections retain a built-in
+fallback for older or disagreeing workers. Activation still requires a separate
+restart or Apply. The fourth built-in level `most` remains deferred;
+the [delivery plan](../plans/punctuation-configuration.md) tracks remaining acceptance.
 
 ### Adjust the capital-letter cue
 

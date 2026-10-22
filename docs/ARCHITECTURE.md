@@ -1,6 +1,7 @@
 # Omnivox Architecture
 
-This is the current implementation overview, reconciled on 2026-09-27.
+This is the current implementation overview; tone and configuration coverage
+was reconciled on 2026-10-23.
 The [decision index](adr/README.md) explains architectural choices;
 [protocol references](README.md#protocol-specifications) define exact contracts;
 [status](STATUS.md) records platform/runtime qualification and
@@ -416,7 +417,8 @@ successful generation acknowledgement. The
 Before synthesis Omnivox:
 
 1. consumes the established `[*]` speech separator as a boundary space;
-2. expands punctuation through captured host tables for the active none/some/all level;
+2. expands punctuation through captured host tables for the active built-in level
+   or negotiated named profile;
 3. optionally inserts spaces at lower-to-uppercase CamelCase boundaries; and
 4. chunks prepared text at a sentence, line, or clause boundary when possible,
    with a host-configured limit of 1–100 whitespace-delimited words, defaulting
@@ -428,8 +430,12 @@ speech. Configuration version 3 adds sparse per-level names and explicit
 preservation; both workers and reset/recovery retain the complete resolved tables.
 Built-ins cover ASCII and common Unicode punctuation, including apostrophes.
 The [configuration reference](reference/engine-configuration.md#punctuation-tables)
-specifies the tables and [the delivery plan](plans/punctuation-configuration.md)
-defers custom named profiles and their client negotiation. The local management
+specifies the tables. [Configuration version 4](reference/engine-configuration.md#configuration-version-4-named-punctuation-profiles)
+adds named profiles inheriting a resolved built-in table with sparse overrides.
+Discovery and selection are negotiated; clients compare both workers' catalogues
+and retain a built-in fallback. Each admitted request captures its selection.
+The [delivery plan](plans/punctuation-configuration.md) tracks remaining acceptance.
+The local management
 service supplies review and validated revision-checked saves; Emacsvox holds
 editor drafts and offers speech restart separately. The
 [editing contract](reference/engine-configuration.md#local-punctuation-editor)
@@ -462,6 +468,16 @@ silence remain bounded recipes and are materialized only for their render
 window. Post-synthesis gain, low/high-pass filtering, pan, chorus, reverb, and
 echo state persists across chunks and engine changes until explicitly replaced
 or ended.
+
+Negotiated standalone and timeline tones share a bounded renderer for individual
+gain, waveforms and fixed-duration envelopes. `rich_tones_v1` pairs standalone
+version 2 with timeline version 6; `rich_tones_v2` pairs standalone version 3
+with timeline version 7 and adds Pulse width, Sawtooth, linear pitch sweeps and
+exponential envelopes. Classic definitions preserve the existing samples and
+defaults. Generation observes cancellation before allocation and during rendering;
+playback retains the existing tone cancellation fade. The
+[tone contract](protocols/presentation-timeline.md#richer-tones-version-6)
+defines compatibility, bounds and rendering rules.
 
 Speech, tone, and sound sinks can play concurrently. Within each sink sources
 are ordered and bounded. Progressive speech remains one tracked source while a

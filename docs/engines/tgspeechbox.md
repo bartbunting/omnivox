@@ -17,11 +17,12 @@ The [distribution decision](../adr/0012-tgspeechbox-default-distribution.md)
 records the package scope and verification requirements.
 
 The release workflow requires native synthesis, voice-control, cancellation
-and relocation checks on each platform. Linux x64 and Windows x64 have local
-runtime evidence. macOS, ARM64 and Windows MSVC qualification remain pending
-until the new native CI jobs pass; adding a matrix entry is not acceptance.
-Published releases through v1.16.1 contain only the separate Windows x64
-companion. These packaging changes apply to the next release.
+and relocation checks on each platform. The
+[1.18.0 publication report](../benchmarks/README.md#omnivox-1180-release-evidence)
+records passing native release gates, including the supported companion targets,
+and additional published-archive checks on Windows x64. These checks do not
+establish audible acceptance on every platform. Bundling began in 1.17.0;
+published releases through v1.16.1 contain only the separate Windows x64 companion.
 
 ## What is exposed
 
