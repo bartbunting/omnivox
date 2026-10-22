@@ -1,0 +1,18 @@
+Run from /home/bart/src/omnivox-release-1.18.0:
+
+source docs/benchmarks/data/2026-10-16-1.18-candidate/build-env.sh
+make fmt-check
+cargo metadata --locked --no-deps --format-version 1
+cargo test --locked --workspace
+cargo clippy --locked --workspace --all-targets -- -D warnings
+make archive-safety-test release-archive-test release-asset-test deb-package-test piper-release-test tgspeechbox-package-test
+make build
+python3 docs/benchmarks/data/2026-10-16-1.18-candidate/package-candidate.py
+python3 tools/verify_release.py --archive target/release-candidate/omnivox-1.18.0-linux-x64.tar.gz --checksums target/release-candidate/sha256sums.txt --version 1.18.0 --platform linux --arch x86_64 --engines espeak --require-tgspeechbox
+make docs-check
+make docs-check-paired EMACSVOX_SOURCE_DIRECTORY=/home/bart/src/emacsvox
+git diff --check
+
+The initial workspace attempt set OMNIVOX_PIPER_INPUTS_DIR to its parent
+1.7.0 directory; tests-initial.log records that missing-input guard failure.
+The remaining commands use build-env.sh with the correct platform directory.

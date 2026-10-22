@@ -1,10 +1,10 @@
 # Omnivox Project Status
 
-**Documentation reviewed:** 2026-10-23. **Workspace version:** 1.17.0.
-**Latest published release:** 1.18.0. This checkout has the tone implementation
-but has not incorporated the release branch's version, changelog and evidence
-updates. Its workspace version and `Unreleased` heading do not establish what
-has shipped; see the [release evidence](benchmarks/README.md#omnivox-1180-release-evidence).
+**Documentation reviewed:** 2026-10-23. **Workspace version:** 1.18.0.
+**Latest published release:** 1.18.0. Published changes belong to the
+[changelog](../CHANGELOG.md); current implementation may include unreleased work.
+The [release evidence](benchmarks/README.md#omnivox-1180-release-evidence)
+records publication and platform acceptance separately.
 [Architecture](ARCHITECTURE.md) explains behavior, [the roadmap](ROADMAP.md)
 tracks outstanding work, and [retained evidence](benchmarks/README.md) records
 actual runs and their limits.

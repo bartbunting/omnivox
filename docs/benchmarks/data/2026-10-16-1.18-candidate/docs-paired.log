@@ -1,0 +1,9 @@
+python3 tools/test_documentation_links.py
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.007s
+
+OK
+python3 tools/check_documentation_links.py --emacsvox-source "/home/bart/src/emacsvox"
+Checked targets and anchors in 145 Markdown/Org documents
+Checked incoming Omnivox links in 224 Emacsvox documents

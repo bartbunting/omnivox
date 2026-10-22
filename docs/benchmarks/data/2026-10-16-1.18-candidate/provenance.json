@@ -1,0 +1,10 @@
+{
+  "base_commit": "47675510c3c52caaf730646879ba0e634c4211eb",
+  "version": "1.18.0",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "kernel": "Linux 6.18.54.1-microsoft-standard-WSL2",
+  "os_release": "PRETTY_NAME=\"Ubuntu 26.04.1 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"26.04\"\nVERSION=\"26.04.1 LTS (Resolute Raccoon)\"\nVERSION_CODENAME=resolute\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=resolute\nLOGO=ubuntu-logo\n",
+  "binary_sha256": "2509aff984200736ad758348cbda911dd8aa7dac8c1f335f92e2b9ce4bba0bd2",
+  "Cargo.toml_sha256": "d82aaecc24b10d402311e09ebbd3c9365a0c6b7b7a1caa78daa2ae64bb93079d",
+  "Cargo.lock_sha256": "00bf4a35f3c60eb66608f24ea87e0927eafaf1d12d0a5e6cac8968002db2f33a"
+}
