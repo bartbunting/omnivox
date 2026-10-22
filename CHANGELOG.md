@@ -6,6 +6,11 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- Bound synthesis and cancellation writes when a speech helper stops reading
+  input, so blocked pipes cannot indefinitely delay Stop or helper recovery.
+
 ## [1.18.0] - 2026-10-16
 
 ### Added

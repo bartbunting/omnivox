@@ -1734,6 +1734,44 @@ impl HelperTtsEngine {
 }
 
 impl HelperTtsEngine {
+    fn dispatch_synthesis_request(
+        &self,
+        connection: &Arc<dyn HelperConnection>,
+        request_id: u64,
+        stop_epoch: u64,
+        exchange: &ParameterExchange,
+    ) -> Result<ActiveRequestGuard<'_>, TtsError> {
+        // Construct the owner before the dispatch guard so an error releases
+        // dispatch before ActiveRequestGuard takes it again during Drop.
+        let active = ActiveRequestGuard {
+            request_id,
+            active_request_id: &self.active_request_id,
+            cancellations_by_target: &self.cancellations_by_target,
+            dispatch: &self.dispatch,
+        };
+        let dispatch = self.dispatch.lock().unwrap();
+        {
+            // Stop uses this short-held lock to select its target and arm a
+            // watchdog, even when the request write still holds dispatch.
+            let _cancellations = self.cancellations_by_target.lock().unwrap();
+            if self.stop_epoch.load(Ordering::Acquire) != stop_epoch {
+                return Err(TtsError::SynthesisFailed(
+                    "helper synthesis cancelled before dispatch".to_owned(),
+                ));
+            }
+            self.active_request_id.store(request_id, Ordering::Release);
+        }
+        let result = with_connection_deadline(
+            connection,
+            Instant::now() + self.config.synthesis_idle_timeout,
+            "helper synthesis write",
+            |_| exchange.send(connection),
+        );
+        drop(dispatch);
+        result.map_err(|error| self.synthesis_error(connection, request_id, error))?;
+        Ok(active)
+    }
+
     fn synthesize_inner(
         &self,
         request: &SynthesisRequest,
@@ -1803,24 +1841,8 @@ impl HelperTtsEngine {
             "Sending TTS helper synthesis request"
         );
 
-        {
-            let _dispatch = self.dispatch.lock().unwrap();
-            if self.stop_epoch.load(Ordering::Acquire) != stop_epoch {
-                return Err(TtsError::SynthesisFailed(
-                    "helper synthesis cancelled before dispatch".to_owned(),
-                ));
-            }
-            if let Err(error) = exchange.send(&connection) {
-                return Err(self.synthesis_error(&connection, request_id, error));
-            }
-            self.active_request_id.store(request_id, Ordering::Release);
-        }
-        let active = ActiveRequestGuard {
-            request_id,
-            active_request_id: &self.active_request_id,
-            cancellations_by_target: &self.cancellations_by_target,
-            dispatch: &self.dispatch,
-        };
+        let active =
+            self.dispatch_synthesis_request(&connection, request_id, stop_epoch, &exchange)?;
         let mut collector = if descriptor.capabilities.audio_output == AudioOutputMode::StreamingPcm
         {
             HelperSynthesisCollector::new_progressive(
@@ -1964,24 +1986,8 @@ impl HelperTtsEngine {
             "Sending progressive TTS helper synthesis request"
         );
 
-        {
-            let _dispatch = self.dispatch.lock().unwrap();
-            if self.stop_epoch.load(Ordering::Acquire) != stop_epoch {
-                return Err(TtsError::SynthesisFailed(
-                    "helper synthesis cancelled before dispatch".to_owned(),
-                ));
-            }
-            if let Err(error) = exchange.send(&connection) {
-                return Err(self.synthesis_error(&connection, request_id, error));
-            }
-            self.active_request_id.store(request_id, Ordering::Release);
-        }
-        let active = ActiveRequestGuard {
-            request_id,
-            active_request_id: &self.active_request_id,
-            cancellations_by_target: &self.cancellations_by_target,
-            dispatch: &self.dispatch,
-        };
+        let active =
+            self.dispatch_synthesis_request(&connection, request_id, stop_epoch, &exchange)?;
         let degraded_acss = request
             .normalized_acss
             .clone()
@@ -2100,6 +2106,14 @@ impl ActiveRequestGuard<'_> {
         if remove {
             cancellations.remove(&self.request_id);
         }
+        // Stop selects its target under this same short-held lock. Once the
+        // target is terminal, another Stop must not create a second watchdog.
+        let _ = self.active_request_id.compare_exchange(
+            self.request_id,
+            0,
+            Ordering::AcqRel,
+            Ordering::Acquire,
+        );
     }
 }
 
@@ -2107,12 +2121,6 @@ impl Drop for ActiveRequestGuard<'_> {
     fn drop(&mut self) {
         let _dispatch = self.dispatch.lock().unwrap();
         self.mark_target_terminal();
-        let _ = self.active_request_id.compare_exchange(
-            self.request_id,
-            0,
-            Ordering::AcqRel,
-            Ordering::Acquire,
-        );
     }
 }
 
@@ -2267,52 +2275,32 @@ impl TtsEngine for HelperTtsEngine {
     }
 
     fn stop(&self) {
+        let deadline = Instant::now() + HELPER_CANCEL_GRACE;
         self.stop_epoch.fetch_add(1, Ordering::AcqRel);
-        let _dispatch = self.dispatch.lock().unwrap();
-        let target_request_id = self.active_request_id.load(Ordering::Acquire);
-        if target_request_id == 0 {
-            return;
-        }
-        let Ok(connection) = self.current_connection() else {
-            return;
+        let (target_request_id, connection, cancellation) = {
+            let mut cancellations = self.cancellations_by_target.lock().unwrap();
+            let target_request_id = self.active_request_id.load(Ordering::Acquire);
+            if target_request_id == 0 || cancellations.contains_key(&target_request_id) {
+                return;
+            }
+            let Ok(connection) = self.current_connection() else {
+                return;
+            };
+            let cancellation = Arc::new(TargetCancellation::new(self.allocate_request_id()));
+            cancellations.insert(target_request_id, Arc::clone(&cancellation));
+            (target_request_id, connection, cancellation)
         };
-        if self
-            .cancellations_by_target
-            .lock()
-            .unwrap()
-            .contains_key(&target_request_id)
-        {
-            return;
-        }
-        let request_id = self.allocate_request_id();
-        let cancellation = Arc::new(TargetCancellation::new(request_id));
-        let request = HelperRequest::with_version(
-            self.protocol_version.load(Ordering::Acquire) as u16,
-            request_id,
-            HelperRequestBody::Cancel { target_request_id },
-        );
-        self.cancellations_by_target
-            .lock()
-            .unwrap()
-            .insert(target_request_id, Arc::clone(&cancellation));
-        if let Err(error) = connection.send(&request) {
-            self.cancellations_by_target
-                .lock()
-                .unwrap()
-                .remove(&target_request_id);
-            cancellation.mark_target_terminal();
-            warn!("Could not cancel helper synthesis {target_request_id}: {error}");
-            self.invalidate_connection(&connection);
-            return;
-        }
 
+        // Arm before waiting for dispatch: the synthesis writer may hold it
+        // while a helper no longer consumes stdin. The captured connection and
+        // target state keep this watchdog from retiring a replacement request.
         let watchdog_connection = Arc::clone(&connection);
         let watchdog_cancellation = Arc::clone(&cancellation);
         let engine_id = self.config.engine_id.clone();
         let watchdog = thread::Builder::new()
             .name(format!("omnivox-{engine_id}-cancel-watchdog"))
             .spawn(move || {
-                thread::sleep(HELPER_CANCEL_GRACE);
+                thread::sleep(deadline.saturating_duration_since(Instant::now()));
                 if watchdog_cancellation.begin_retirement() {
                     warn!(
                         engine_id,
@@ -2338,6 +2326,47 @@ impl TtsEngine for HelperTtsEngine {
                           "Could not confirm cancelled helper cleanup");
                 }
             }
+            return;
+        }
+
+        let Ok(_dispatch) = cleanup_lock(&self.dispatch, deadline) else {
+            // No cancel was sent, so no acknowledgement will arrive. Retain the
+            // target for the watchdog until synthesis is terminal, then remove it.
+            let mut cancellations = self.cancellations_by_target.lock().unwrap();
+            cancellation.mark_response_consumed();
+            if cancellation.target_is_terminal() {
+                cancellations.remove(&target_request_id);
+            }
+            return;
+        };
+        if self.active_request_id.load(Ordering::Acquire) != target_request_id
+            || cancellation.target_is_terminal()
+        {
+            self.cancellations_by_target
+                .lock()
+                .unwrap()
+                .remove(&target_request_id);
+            return;
+        }
+        let request = HelperRequest::with_version(
+            self.protocol_version.load(Ordering::Acquire) as u16,
+            cancellation.cancel_request_id,
+            HelperRequestBody::Cancel { target_request_id },
+        );
+        // A target terminal reply may disarm its watchdog while this write is
+        // still blocked. Bound the write independently through the same grace.
+        if let Err(error) =
+            with_connection_deadline(&connection, deadline, "helper cancellation write", |_| {
+                connection.send(&request)
+            })
+        {
+            self.cancellations_by_target
+                .lock()
+                .unwrap()
+                .remove(&target_request_id);
+            cancellation.mark_target_terminal();
+            warn!("Could not cancel helper synthesis {target_request_id}: {error}");
+            self.invalidate_connection(&connection);
         }
     }
 
@@ -2392,6 +2421,7 @@ impl Drop for HelperTtsEngine {
 
 #[cfg(test)]
 mod tests {
+    include!("helper_engine/cancellation_tests.rs");
     include!("helper_engine/native_tests.rs");
     include!("helper_engine/initialization_tests.rs");
     use std::collections::VecDeque;

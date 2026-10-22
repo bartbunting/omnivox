@@ -1,7 +1,9 @@
 # Orca speech backend for Omnivox
 
-Status: in progress; implementation requested on 2026-09-29. Development uses
-Orca branch `feat/omnivox-backend` and Omnivox branch `feat/orca-backend`.
+Status: in progress; implementation requested on 2026-09-29. The adapter remains
+on Orca branch `feat/omnivox-backend`. Omnivox's `feat/orca-backend` work is merged
+into main; helper write/cancellation hardening is unreleased, while its eSpeak
+marker-order fix already shipped in 1.16.1.
 Reviewed 2026-10-23 against Orca `93d2272bb` and its development guide.
 Upstream acceptance and release publication remain separate milestones.
 Scope: a direct Python speech backend for the current Orca checkout on Linux,
