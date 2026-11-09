@@ -1,0 +1,20 @@
+{
+  "final_matrices": 3,
+  "cases_per_matrix": 7,
+  "successful_replacements": 18,
+  "guard_loss_blocks": 3,
+  "native_flite_helper": "real",
+  "healthy_notification_characters": 21,
+  "descriptor_hygiene": "passed in all final cases",
+  "guard_output_wouldblock": "observed in all final status-flood cases",
+  "management_state": "bytes unchanged with malformed config/history and denied writes",
+  "archive_members_read": 286,
+  "rust_probe": "1.97.1, edition 2021, -D warnings passed",
+  "fixture_format": "pinned rustfmt --check passed",
+  "repository_format": "make fmt-check passed",
+  "documentation": "repository and paired gates passed",
+  "production_runtime_changed": false,
+  "windows_native_guard": "not tested",
+  "macos_native_guard": "not tested",
+  "acoustic": "not tested"
+}

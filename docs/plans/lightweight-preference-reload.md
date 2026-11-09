@@ -194,10 +194,16 @@ creation remains gated on actual old retirement, and immediate prelaunch
 verification remains. Linux improves too; these are source timings, not acoustic
 or owner-loss qualification.
 
-Next, extract an independent lifecycle channel and retained native guard under
-0018, preserving ordinary speech forwarding depth. Start with one worker and
-actual transient cleanup proof, then qualify helper survival, partial transfer,
-guard loss and failed writes before multiple-lane integration. Stop if the
+The [independent guard extraction](../benchmarks/2026-11-10-independent-guard.md)
+passes three Linux failure matrices with real Flite helpers, blocked speech and
+status output, owner loss, partial START and explicit guard-loss blocking. Its
+Rust guard observes tree and I/O retirement separately and adds no speech hop or
+management write. This is an isolated fixture, not paired-client integration.
+
+Next, integrate one negotiated guarded worker and a client-held lifecycle
+connection under 0018. Retain exact guard/member identity before native creation,
+then qualify real partial handle transfer, helper survival, guard loss and failed
+writes through the compiled client before multiple-lane integration. Stop if the
 candidate needs global preference commits, infers cleanup, adds an unmeasured
 speech hop or depends on writable management state for minimal recovery. Measure
 matched request latency and restart cost before broadening the scope. Native

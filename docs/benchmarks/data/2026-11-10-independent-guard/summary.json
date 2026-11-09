@@ -1,0 +1,437 @@
+[
+  {
+    "run": 5,
+    "case": "blocked-input",
+    "forwarder_waits": [
+      "anon_pipe_write",
+      "anon_pipe_read"
+    ],
+    "tree_ms": 11.963265,
+    "complete_ms": 16.991628,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 84989691321492,
+      "end_ns": 84989712812785,
+      "source_ms": 2.717542,
+      "terminal_ms": 21.491293
+    },
+    "notification": {
+      "id": 1,
+      "start_ns": 84989724572951,
+      "end_ns": 84989730337975,
+      "source_ms": 4.506081,
+      "terminal_ms": 5.765024
+    }
+  },
+  {
+    "run": 5,
+    "case": "blocked-output",
+    "forwarder_waits": [
+      "anon_pipe_write",
+      "anon_pipe_write"
+    ],
+    "tree_ms": 12.297155,
+    "io_held_until_forwarder_exit": true,
+    "complete_ms": 22.523187,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 84989845271050,
+      "end_ns": 84989866957856,
+      "source_ms": 2.874361,
+      "terminal_ms": 21.686806
+    },
+    "notification": {
+      "id": 2,
+      "start_ns": 84989878736358,
+      "end_ns": 84989883113167,
+      "source_ms": 2.95341,
+      "terminal_ms": 4.376809
+    }
+  },
+  {
+    "run": 5,
+    "case": "blocked-status",
+    "native_exit_while_status_held_ms": 10.381961,
+    "tree_ms": 690.001282,
+    "output_stalls": 19,
+    "complete_ms": 695.091124,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 84991418953380,
+      "end_ns": 84991441223203,
+      "source_ms": 3.556841,
+      "terminal_ms": 22.269823
+    },
+    "notification": {
+      "id": 3,
+      "start_ns": 84991453114654,
+      "end_ns": 84991457752413,
+      "source_ms": 2.917854,
+      "terminal_ms": 4.637759
+    }
+  },
+  {
+    "run": 5,
+    "case": "owner-loss-paused-worker",
+    "tree_ms": 14.96292,
+    "complete_ms": 20.08545,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 84992666857234,
+      "end_ns": 84992688380327,
+      "source_ms": 2.732661,
+      "terminal_ms": 21.523093
+    },
+    "notification": {
+      "id": 4,
+      "start_ns": 84992700238472,
+      "end_ns": 84992704694915,
+      "source_ms": 2.950991,
+      "terminal_ms": 4.456443
+    }
+  },
+  {
+    "run": 5,
+    "case": "worker-first-paused-helper",
+    "tree_ms": 11.696433,
+    "complete_ms": 16.892105,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 84992814299793,
+      "end_ns": 84992836081547,
+      "source_ms": 2.841104,
+      "terminal_ms": 21.781754
+    },
+    "notification": {
+      "id": 5,
+      "start_ns": 84992847842568,
+      "end_ns": 84992852501978,
+      "source_ms": 3.188343,
+      "terminal_ms": 4.65941
+    }
+  },
+  {
+    "run": 5,
+    "case": "partial-start",
+    "tree_ms": 4.694543,
+    "complete_ms": 9.80111,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 84992914233059,
+      "end_ns": 84992935833822,
+      "source_ms": 2.765551,
+      "terminal_ms": 21.600763
+    },
+    "notification": {
+      "id": 6,
+      "start_ns": 84992947670414,
+      "end_ns": 84992951914349,
+      "source_ms": 2.939272,
+      "terminal_ms": 4.243935
+    }
+  },
+  {
+    "run": 5,
+    "case": "guard-loss",
+    "replacement": "blocked: no live native authority",
+    "tree_proof": false,
+    "io_proof": false,
+    "notification": {
+      "id": 7,
+      "start_ns": 84993002267983,
+      "end_ns": 84993006366823,
+      "source_ms": 2.739792,
+      "terminal_ms": 4.09884
+    }
+  },
+  {
+    "run": 6,
+    "case": "blocked-input",
+    "forwarder_waits": [
+      "anon_pipe_write",
+      "anon_pipe_read"
+    ],
+    "tree_ms": 14.492575,
+    "complete_ms": 19.596352,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85024167715107,
+      "end_ns": 85024189152106,
+      "source_ms": 2.700485,
+      "terminal_ms": 21.436999
+    },
+    "notification": {
+      "id": 1,
+      "start_ns": 85024200883694,
+      "end_ns": 85024207018968,
+      "source_ms": 4.67461,
+      "terminal_ms": 6.135274
+    }
+  },
+  {
+    "run": 6,
+    "case": "blocked-output",
+    "forwarder_waits": [
+      "anon_pipe_write",
+      "anon_pipe_write"
+    ],
+    "tree_ms": 13.836675,
+    "io_held_until_forwarder_exit": true,
+    "complete_ms": 24.095,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85024318782355,
+      "end_ns": 85024340267688,
+      "source_ms": 2.654122,
+      "terminal_ms": 21.485333
+    },
+    "notification": {
+      "id": 2,
+      "start_ns": 85024352116331,
+      "end_ns": 85024356611306,
+      "source_ms": 3.069084,
+      "terminal_ms": 4.494975
+    }
+  },
+  {
+    "run": 6,
+    "case": "blocked-status",
+    "native_exit_while_status_held_ms": 5.215758,
+    "tree_ms": 682.02346,
+    "output_stalls": 17,
+    "complete_ms": 686.408269,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85025880193601,
+      "end_ns": 85025901650864,
+      "source_ms": 2.792327,
+      "terminal_ms": 21.457263
+    },
+    "notification": {
+      "id": 3,
+      "start_ns": 85025913506454,
+      "end_ns": 85025917690411,
+      "source_ms": 2.81103,
+      "terminal_ms": 4.183957
+    }
+  },
+  {
+    "run": 6,
+    "case": "owner-loss-paused-worker",
+    "tree_ms": 14.268913,
+    "complete_ms": 19.407679,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85027126554698,
+      "end_ns": 85027148201411,
+      "source_ms": 2.884892,
+      "terminal_ms": 21.646713
+    },
+    "notification": {
+      "id": 4,
+      "start_ns": 85027159932260,
+      "end_ns": 85027164338023,
+      "source_ms": 2.878805,
+      "terminal_ms": 4.405763
+    }
+  },
+  {
+    "run": 6,
+    "case": "worker-first-paused-helper",
+    "tree_ms": 13.988876,
+    "complete_ms": 19.095751,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85027273682322,
+      "end_ns": 85027295266775,
+      "source_ms": 2.634357,
+      "terminal_ms": 21.584453
+    },
+    "notification": {
+      "id": 5,
+      "start_ns": 85027307297564,
+      "end_ns": 85027311522521,
+      "source_ms": 3.037355,
+      "terminal_ms": 4.224957
+    }
+  },
+  {
+    "run": 6,
+    "case": "partial-start",
+    "tree_ms": 4.71393,
+    "complete_ms": 9.90986,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85027375463777,
+      "end_ns": 85027396973195,
+      "source_ms": 2.71799,
+      "terminal_ms": 21.509418
+    },
+    "notification": {
+      "id": 6,
+      "start_ns": 85027408669215,
+      "end_ns": 85027412802092,
+      "source_ms": 2.95855,
+      "terminal_ms": 4.132877
+    }
+  },
+  {
+    "run": 6,
+    "case": "guard-loss",
+    "replacement": "blocked: no live native authority",
+    "tree_proof": false,
+    "io_proof": false,
+    "notification": {
+      "id": 7,
+      "start_ns": 85027461591438,
+      "end_ns": 85027465825891,
+      "source_ms": 2.784743,
+      "terminal_ms": 4.234453
+    }
+  },
+  {
+    "run": 7,
+    "case": "blocked-input",
+    "forwarder_waits": [
+      "anon_pipe_write",
+      "anon_pipe_read"
+    ],
+    "tree_ms": 14.652383,
+    "complete_ms": 19.732745,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85027787585461,
+      "end_ns": 85027809143846,
+      "source_ms": 2.725431,
+      "terminal_ms": 21.558385
+    },
+    "notification": {
+      "id": 1,
+      "start_ns": 85027821065852,
+      "end_ns": 85027827019140,
+      "source_ms": 4.575388,
+      "terminal_ms": 5.953288
+    }
+  },
+  {
+    "run": 7,
+    "case": "blocked-output",
+    "forwarder_waits": [
+      "anon_pipe_write",
+      "anon_pipe_write"
+    ],
+    "tree_ms": 15.199208,
+    "io_held_until_forwarder_exit": true,
+    "complete_ms": 25.391264,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85027941248606,
+      "end_ns": 85027962715833,
+      "source_ms": 2.60696,
+      "terminal_ms": 21.467227
+    },
+    "notification": {
+      "id": 2,
+      "start_ns": 85027974488356,
+      "end_ns": 85027978674469,
+      "source_ms": 3.124354,
+      "terminal_ms": 4.186113
+    }
+  },
+  {
+    "run": 7,
+    "case": "blocked-status",
+    "native_exit_while_status_held_ms": 10.333984,
+    "tree_ms": 687.719013,
+    "output_stalls": 18,
+    "complete_ms": 689.84285,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85029507131040,
+      "end_ns": 85029528626974,
+      "source_ms": 2.650106,
+      "terminal_ms": 21.495934
+    },
+    "notification": {
+      "id": 3,
+      "start_ns": 85029540603554,
+      "end_ns": 85029544751487,
+      "source_ms": 2.737058,
+      "terminal_ms": 4.147933
+    }
+  },
+  {
+    "run": 7,
+    "case": "owner-loss-paused-worker",
+    "tree_ms": 13.993508,
+    "complete_ms": 19.110461,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85030756789016,
+      "end_ns": 85030778234819,
+      "source_ms": 2.634998,
+      "terminal_ms": 21.445803
+    },
+    "notification": {
+      "id": 4,
+      "start_ns": 85030790231389,
+      "end_ns": 85030794909619,
+      "source_ms": 3.045284,
+      "terminal_ms": 4.67823
+    }
+  },
+  {
+    "run": 7,
+    "case": "worker-first-paused-helper",
+    "tree_ms": 14.679367,
+    "complete_ms": 19.787687,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85030903317246,
+      "end_ns": 85030924899477,
+      "source_ms": 2.760708,
+      "terminal_ms": 21.582231
+    },
+    "notification": {
+      "id": 5,
+      "start_ns": 85030936720949,
+      "end_ns": 85030940850892,
+      "source_ms": 2.910383,
+      "terminal_ms": 4.129943
+    }
+  },
+  {
+    "run": 7,
+    "case": "partial-start",
+    "tree_ms": 4.368257,
+    "complete_ms": 9.456405,
+    "replacement_speech": {
+      "id": 1,
+      "start_ns": 85031003386992,
+      "end_ns": 85031024925191,
+      "source_ms": 2.749316,
+      "terminal_ms": 21.538199
+    },
+    "notification": {
+      "id": 6,
+      "start_ns": 85031036626387,
+      "end_ns": 85031040881730,
+      "source_ms": 2.907705,
+      "terminal_ms": 4.255343
+    }
+  },
+  {
+    "run": 7,
+    "case": "guard-loss",
+    "replacement": "blocked: no live native authority",
+    "tree_proof": false,
+    "io_proof": false,
+    "notification": {
+      "id": 7,
+      "start_ns": 85031090375171,
+      "end_ns": 85031094526528,
+      "source_ms": 2.749707,
+      "terminal_ms": 4.151357
+    }
+  }
+]
