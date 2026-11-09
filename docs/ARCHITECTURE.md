@@ -272,6 +272,13 @@ Each helper launch definition captures its native environment. Deferred connecti
 and recovery reuse that environment along with the retained program and arguments;
 they do not inherit later process-environment changes.
 
+The paired lightweight Emacsvox client recognises confirmed native worker
+retirement even when its local owner stays alive. Retained recovery keeps the
+notification owner, waits for the replacement's own voice registration, and
+refuses replacement after owner loss without cleanup evidence. It still depends
+on valid retained startup records and writable owner storage; see the
+[recovery evidence](benchmarks/2026-11-10-retained-recovery.md).
+
 ## Voice identity, routing and tuning
 
 A physical voice is `(engine_id, voice_id)`. A logical voice holds ordered

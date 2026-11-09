@@ -2,7 +2,7 @@
 
 - Status: Investigation completed on 2026-11-10. Resident punctuation reload is implemented and passed development screening.
   Complete host preference reload has also passed development screening.
-  Ordinary recovery is in progress; emergency startup is awaiting its separate decision. Deployment and platform qualification
+  Ordinary retained recovery is implemented in the paired client; emergency startup awaits its separate decision. Deployment and platform qualification
   remain separate; the staged investigation evidence is preserved unchanged.
 - Scope: Independent host preference reload on ordinary owned workers, followed
   by measured recovery improvements.
@@ -136,9 +136,15 @@ accepted session records retained in the evidence archive.
 Ordinary recovery already accepts a verified retained startup and can bypass a
 broken current configuration or active pointer. It still needs readable retained
 metadata and writable owner records. Explicit Emacs restart currently prepares
-fresh settings; automatic speaker recovery can use the retained reference.
-First measure both routes with real engines and expose the existing safe retained
-route without changing native or managed-asset authority.
+fresh settings. The paired client now exposes `tts-recover` and recognises
+confirmed native retirement during automatic speech and character delivery.
+[Native recovery evidence](../benchmarks/2026-11-10-retained-recovery.md) covers
+Linux Flite/Piper and WSL-to-Windows Flite with malformed saved settings. This
+ordinary route retains the native and managed-asset contracts. Lost retirement
+reply testing found that the owner exits after persisting its receipt: add a
+read-only native verification query for that existing proof under ADR 0007.
+Missing or damaged proof must still block. This does not repair lost authority
+or establish the separate emergency boundary.
 
 The remaining availability problem is startup when management records are damaged
 or cannot be written. A proposed emergency mode would use bundled eSpeak and a

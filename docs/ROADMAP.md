@@ -263,7 +263,9 @@ The remaining configuration work is:
   and native ownership. The [resident punctuation delivery](benchmarks/2026-11-10-resident-reload.md)
   adds local stdio reload/status and paired client integration; the
   [wider host preference delivery](benchmarks/2026-11-10-host-preferences.md)
-  adds capital pitch, chunking and saved Reset defaults. The
+  adds capital pitch, chunking and saved Reset defaults. Paired
+  [retained recovery](benchmarks/2026-11-10-retained-recovery.md) handles confirmed
+  worker retirement and broken saved settings while preserving the peer. The
   [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
   qualification and recovery hardening.
 - **Retained session work:** preserve the accepted session experiment at

@@ -17,7 +17,9 @@ and paired Emacsvox command/editor integration replace the private test socket.
 checks, client and performance qualification separately. The
 [complete host preference extension](benchmarks/2026-11-10-host-preferences.md)
 adds capital pitch, chunking and saved Reset defaults with the same independent
-boundary. Recovery hardening, acoustic timing and native macOS remain in the
+boundary. Paired [retained recovery](benchmarks/2026-11-10-retained-recovery.md)
+handles confirmed native worker failure without replacing the healthy peer.
+Emergency recovery, acoustic timing and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.
 
