@@ -23,8 +23,10 @@ handles confirmed native worker failure without replacing the healthy peer.
 speech after lost replies while preserving the damaged/missing-evidence boundary.
 [Minimal emergency speech](benchmarks/2026-11-10-emergency-speech.md) now bypasses
 damaged or unwritable management state after proven native cleanup under
-[ADR 0018](adr/0018-minimal-emergency-speech.md). Owner/guard loss, blocked
-forwarding, acoustic timing and native macOS remain in the
+[ADR 0018](adr/0018-minimal-emergency-speech.md). A bounded
+[owner-failure experiment](benchmarks/2026-11-10-owner-authority.md) confirms the
+need for independent cleanup authority. Owner/guard loss, blocked forwarding,
+acoustic timing and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.
 

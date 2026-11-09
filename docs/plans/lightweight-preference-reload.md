@@ -180,8 +180,17 @@ the minimal-startup results do not establish that boundary.
 [ADR 0018](../adr/0018-minimal-emergency-speech.md) accepts the separate emergency
 contract and its implementation scope. The [native/client evidence](../benchmarks/2026-11-10-emergency-speech.md)
 records minimal startup and transient native proof when a durable receipt cannot
-be written. It does not qualify owner/guard combined failure, blocked forwarding
-or automatic reboot reconciliation. Next, isolate the owner-input/output failure
-experiment and compare an independent lifecycle channel/retained native guard
-against the current owner. Keep that work off ordinary speech transport; do not
-import global preference commits or relax asset exclusion to improve recovery.
+be written. The subsequent [owner-failure experiment](../benchmarks/2026-11-10-owner-authority.md)
+confirms that input forwarding can block retirement and owner death can leave
+either missing proof or a surviving unresponsive worker. The output-held case
+can have valid durable proof despite its undelivered reply. None of these results
+establishes automatic reboot reconciliation.
+
+Next, extract an independent lifecycle channel and retained native guard under
+0018, preserving ordinary speech forwarding depth. Start with one worker and
+actual transient cleanup proof, then qualify helper survival, partial transfer,
+guard loss and failed writes before multiple-lane integration. Stop if the
+candidate needs global preference commits, infers cleanup, adds an unmeasured
+speech hop or depends on writable management state for minimal recovery. Measure
+matched request latency and restart cost before broadening the scope. Native
+Windows/WSL and macOS remain separate acceptance gates.
