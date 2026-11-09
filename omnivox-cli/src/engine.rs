@@ -154,7 +154,14 @@ pub fn create_engines(
 
 fn construct_in_process(id: &str) -> Result<Arc<dyn TtsEngine>> {
     match id {
-        "espeak" => Ok(Arc::new(EspeakTtsEngine::new()?)),
+        "espeak" => Ok(Arc::new(if crate::emergency::worker() {
+            match std::env::var_os("OMNIVOX_EMERGENCY_DATA") {
+                Some(path) => EspeakTtsEngine::with_fixed_data(Path::new(&path))?,
+                None => EspeakTtsEngine::bundled()?,
+            }
+        } else {
+            EspeakTtsEngine::new()?
+        })),
         #[cfg(windows)]
         "winrt" => Ok(Arc::new(WindowsTtsEngine::new()?)),
         #[cfg(target_os = "macos")]

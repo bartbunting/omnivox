@@ -128,7 +128,7 @@ pub struct Runtime {
 
 impl Runtime {
     pub fn start(sender: mpsc::SyncSender<Input>, state: &TtsState) -> Result<Option<Self>> {
-        if std::env::var_os("OMNIVOX_REMOTE_WORKER").is_some() {
+        if std::env::var_os("OMNIVOX_REMOTE_WORKER").is_some() || crate::emergency::worker() {
             return Ok(None);
         }
         let Some(snapshot) = crate::worker_startup::snapshot() else {

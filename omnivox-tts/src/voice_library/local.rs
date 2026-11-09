@@ -105,9 +105,15 @@ pub enum Reply {
         retired: bool,
         startup_error: Option<String>,
         activation_id: Option<String>,
+        native_retirement_version: u32,
+        emergency: bool,
     },
     Retired {
         worker: String,
+    },
+    NativeRetired {
+        worker: String,
+        retirement_recorded: bool,
     },
     RetirementStatus {
         worker: String,
@@ -312,6 +318,34 @@ pub struct Startup {
     pub engines: Option<LaunchSnapshot>,
 }
 impl Startup {
+    /// In-memory bundled speech startup; never opens a management host or files.
+    pub fn emergency(environment: LaunchEnvironment, output: &str) -> Result<Self, LibraryError> {
+        require(
+            matches!(output, "device" | "null") || (cfg!(target_os = "linux") && output == "pulse"),
+            "emergency output must be device, null, or pulse on Linux",
+        )?;
+        let executable = std::env::current_exe()?.canonicalize()?;
+        let working_directory = executable
+            .parent()
+            .ok_or(LibraryError::Invalid("executable lacks parent"))?
+            .to_owned();
+        let engines = LaunchSnapshot::prepare(
+            crate::engine_configuration::ResolvedConfiguration::emergency(environment.clone()),
+            None,
+            "espeak".into(),
+            false,
+        )
+        .map_err(|_| LibraryError::Invalid("invalid emergency startup"))?;
+        Ok(Self {
+            executable: identify(&executable)?,
+            arguments: vec!["--audio-output".into(), output.into()],
+            working_directory,
+            environment,
+            configuration: None,
+            engines: Some(engines),
+        })
+    }
+
     pub fn capture(host: &Host) -> Result<Self, LibraryError> {
         let executable = std::env::current_exe()?.canonicalize()?;
         let mut environment = LaunchEnvironment::capture();

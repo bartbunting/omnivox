@@ -267,7 +267,11 @@ The remaining configuration work is:
   [retained recovery](benchmarks/2026-11-10-retained-recovery.md) handles confirmed
   worker retirement and broken saved settings while preserving the peer.
   [Native receipt verification](benchmarks/2026-11-10-retirement-receipts.md)
-  closes lost-reply ambiguity without bypassing missing cleanup. The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
+  closes lost-reply ambiguity without bypassing missing cleanup.
+  [Minimal emergency speech](benchmarks/2026-11-10-emergency-speech.md), accepted
+  under [0018](adr/0018-minimal-emergency-speech.md), separates emergency admission
+  from damaged management state while retaining native proof and old claims.
+  The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
   qualification and recovery hardening.
 - **Retained session work:** preserve the accepted session experiment at
   `7879419`, including native cleanup guards and managed activation. Its global

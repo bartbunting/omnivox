@@ -21,6 +21,7 @@ Proposed records do not override accepted decisions.
 | [0011: Omnivox session configuration and reload](0011-session-configuration-and-reload.md) | Proposed | Omnivox coordinates configuration across independent workers; staged preference reload and later lifecycle Apply. |
 | [0012: TGSpeechBox default distribution](0012-tgspeechbox-default-distribution.md) | Accepted | Default bundled helper, retained isolation and native platform qualification; partially supersedes 0001. |
 | [0017: Independent host preference reload](0017-independent-host-preference-reload.md) | Accepted for implementation | Independent ordinary-worker preferences, coherent requests and separate native lifetime/asset safety. |
+| [0018: Minimal owned emergency speech](0018-minimal-emergency-speech.md) | Accepted for implementation | Explicit bundled speech independent of management storage, with verified native retirement and retained asset claims. |
 
 This maintenance-based branch retains the earlier 0011 text and does not contain
 the session implementation. Accepted session records 0011 and 0013–0016 at

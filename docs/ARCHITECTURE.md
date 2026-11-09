@@ -47,6 +47,12 @@ retirement only after its tree and output reader exit. Its durable receipt can
 be verified by the local service after a lost reply, using the exact worker,
 host path and startup hash; see
 [receipt reconciliation](reference/engine-startup-snapshot.md#reconcile-an-existing-retirement-receipt).
+An explicit `--emergency-owner` instead prepares only bundled eSpeak in memory,
+without opening management storage or reading preferences. Native tree and I/O
+retirement can be acknowledged by the surviving owner despite a failed durable
+write, while old claims remain retained. This is not recovery after losing all
+native authority; see the [minimal startup contract](reference/engine-startup-snapshot.md#explicit-minimal-emergency-startup)
+and [ADR 0018](adr/0018-minimal-emergency-speech.md).
 The local management
 service coordinates installation and Apply; it is separate from speech admission.
 See [local activation](guides/voice-management.md#local-provider).

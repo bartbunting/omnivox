@@ -198,6 +198,68 @@ configuration between the lane starts, checks both worker acknowledgements,
 recovers main without replacing notifications, and verifies that a deliberate
 fresh start rejects the changed invalid configuration.
 
+## Explicit minimal emergency startup
+
+`--emergency-version` reports `OMNIVOX-EMERGENCY 1` without opening a host or
+reading preferences. `--emergency-owner` starts one owned eSpeak worker with
+built-in host defaults. Its optional `--audio-output device|null|pulse` defaults
+to `device`; `pulse` requires Linux and `null` is for diagnostics. Optional
+`--espeak-data ABSOLUTE_NATIVE_PARENT` selects the matching installed data bundle
+when packaging stores it separately, as in Emacsvox's Windows runtime. Otherwise
+data must be beside the executable. Each option occurs at most once. Missing data
+fails; the engine does not fall through to environment, build or system data.
+
+The owner constructs a bounded in-memory snapshot with only eSpeak eligible and
+no helper definitions or managed assets. It strips Omnivox and legacy speech
+preference overrides from the child environment, retaining host I/O variables
+such as `SystemRoot`, `PULSE_SERVER` and `XDG_RUNTIME_DIR`. Native tree ownership
+precedes the existing START frame. It opens no management host, saves no startup
+journal and neither reads nor changes current configuration, active pointers,
+transaction history or old asset claims. Runtime payload/data must remain usable.
+
+The ordinary `owner` reply now includes `native_retirement_version: 1` and
+`emergency: false`. A minimal owner reports `emergency: true`, empty `startup`
+and `startup_sha256`, null managed `configuration`, and its actual in-memory
+`activation_id`. The worker independently acknowledges that identity. Empty
+startup fields are not retained-startup or managed-Apply references. Minimal
+workers advertise no host preference reload capability. Ordinary per-request
+coherence, queues, cancellation and output behavior remain unchanged.
+
+An explicitly negotiated local owner request `retire-native`, carrying its
+exact `worker` UUID and positive `request_id`, attempts native cleanup first and
+returns `native_retired` only after the tree and pipe tasks finish. Its fields
+are `worker` and Boolean `retirement_recorded`. The latter is true only if an
+ordinary owner's existing snapshot has a successfully written durable receipt.
+It is false for a minimal owner or failed management write. This response proves
+native retirement to the live client; false never releases persisted claims or
+substitutes for a retained receipt. The owner stays connected, so retry with a
+new request ID observes the same original authority. A spontaneously exited
+worker whose tree/pipe cleanup succeeds but receipt write fails similarly reports
+an unsolicited `native_retired` with request ID zero and keeps its owner alive.
+
+Before replacing known old speech, clients must obtain that live proof or existing
+valid durable cleanup evidence. A disappeared owner without evidence remains
+blocked. No saved PID, missing record, EOF or process exit grants new authority.
+Emergency startup creates a private instance; it cannot discover or retire unknown
+workers from other clients. The current ordinary owner still shares its management
+transport with speech forwarding. A blocked owner/pipe or combined owner failure
+is not qualified emergency recovery; independent native guard reuse and an OS
+recovery boundary remain separate work under
+[ADR 0018](../adr/0018-minimal-emergency-speech.md).
+
+The paired client exposes `tts-emergency-start` for the foreground lane, preserves
+its healthy peer and uses its original launcher context. The launcher resolves
+only executable and matching data references, bypassing optional preference
+conversion and disk logging. Managed Apply rejects an emergency participant.
+Repeated `tts-recover` retains minimal mode; `tts-restart` deliberately attempts
+ordinary saved settings again. A failed initialization retains the attempted
+owner until its native cleanup is proven, preventing another retry from treating
+an uncertain attempt as an empty first start. A currently active client-managed
+replacement must finish or cancel before emergency replacement; damaged persisted
+history alone does not impose this live-operation exclusion.
+The [evidence report](../benchmarks/2026-11-10-emergency-speech.md)
+separates native source timing, client response and unavailable acoustic checks.
+
 ## Remote workstation ownership
 
 The broker captures native environment, working directory and executable path

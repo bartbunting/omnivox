@@ -20,6 +20,7 @@
 
 mod cli;
 mod diagnostics;
+mod emergency;
 mod engine;
 mod engine_execution;
 mod health;

@@ -21,7 +21,10 @@ boundary. Paired [retained recovery](benchmarks/2026-11-10-retained-recovery.md)
 handles confirmed native worker failure without replacing the healthy peer.
 [Receipt reconciliation](benchmarks/2026-11-10-retirement-receipts.md) restores
 speech after lost replies while preserving the damaged/missing-evidence boundary.
-Emergency recovery, acoustic timing and native macOS remain in the
+[Minimal emergency speech](benchmarks/2026-11-10-emergency-speech.md) now bypasses
+damaged or unwritable management state after proven native cleanup under
+[ADR 0018](adr/0018-minimal-emergency-speech.md). Owner/guard loss, blocked
+forwarding, acoustic timing and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.
 

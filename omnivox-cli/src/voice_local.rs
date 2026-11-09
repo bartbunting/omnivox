@@ -21,10 +21,28 @@ pub fn requested(args: &[String]) -> bool {
                 | "--voice-library-service"
                 | "--voice-library-local-version"
                 | "--voice-library-acquire"
+                | "--emergency-owner"
+                | "--emergency-version"
         )
     })
 }
 pub fn run(args: &[String]) -> Result<()> {
+    if args == ["--emergency-version"] {
+        println!("OMNIVOX-EMERGENCY 1");
+        return Ok(());
+    }
+    if args[0] == "--emergency-owner" {
+        let mut output = None;
+        let mut data = None;
+        for pair in args[1..].chunks(2) {
+            match pair {
+                [flag, value] if flag == "--audio-output" && output.is_none() => output = Some(value.as_str()),
+                [flag, value] if flag == "--espeak-data" && data.is_none() => data = Some(Path::new(value)),
+                _ => anyhow::bail!("emergency startup accepts --audio-output device|null|pulse and --espeak-data PATH once each"),
+            }
+        }
+        return owner(None, Some((output.unwrap_or("device"), data)));
+    }
     anyhow::ensure!(
         args.len() == 1,
         "local provider takes no path arguments; use native environment settings"
@@ -40,7 +58,7 @@ pub fn run(args: &[String]) -> Result<()> {
     if args[0] == "--voice-library-service" {
         service(host)
     } else {
-        owner(host)
+        owner(Some(host), None)
     }
 }
 
@@ -467,7 +485,7 @@ impl Drop for Worker {
         }
     }
 }
-fn owner(host: Host) -> Result<()> {
+fn owner(host: Option<Host>, emergency_output: Option<(&str, Option<&Path>)>) -> Result<()> {
     platform::initialize()?; // Dedicated owner; never an ordinary speech worker.
     let worker_id = local::new_uuid()?;
     let output = Arc::new(Mutex::new(io::stdout()));
@@ -477,6 +495,17 @@ fn owner(host: Host) -> Result<()> {
     let mut configuration = None;
     let mut activation_id = None;
     let start = (|| -> Result<()> {
+        if let Some((output_backend, data)) = emergency_output {
+            let startup = crate::emergency::startup(output_backend, data)?;
+            activation_id = startup
+                .engines
+                .as_ref()
+                .map(|snapshot| snapshot.activation_id().to_owned());
+            return Worker::spawn(&startup, &output, &mut worker);
+        }
+        let host = host
+            .as_ref()
+            .context("ordinary owner lacks management host")?;
         anyhow::ensure!(
             std::env::var_os("OMNIVOX_OWNED_ENGINE_STARTUP").is_none()
                 || (std::env::var_os("OMNIVOX_OWNED_STARTUP").is_none()
@@ -501,13 +530,13 @@ fn owner(host: Host) -> Result<()> {
                     .context("missing shared engine startup digest")?,
             )?
         } else {
-            Startup::capture(&host)?
+            Startup::capture(host)?
         };
         if let Some(path) = std::env::var_os("OMNIVOX_OWNED_LIBRARY") {
             startup.candidate(Path::new(&path))?;
         }
         prepare_engines(&mut startup)?;
-        (path, digest) = startup.save(&host, &worker_id)?;
+        (path, digest) = startup.save(host, &worker_id)?;
         configuration = startup.configuration.clone();
         activation_id = startup
             .engines
@@ -518,7 +547,7 @@ fn owner(host: Host) -> Result<()> {
             worker.snapshot = Some((host.clone(), path.clone(), digest.clone()));
         } else {
             // No worker was created; this snapshot cannot own native assets.
-            omnivox_tts::voice_library::retention::retired(&host, &path, &digest)?;
+            omnivox_tts::voice_library::retention::retired(host, &path, &digest)?;
         }
         result
     })();
@@ -561,7 +590,26 @@ fn owner(host: Host) -> Result<()> {
                         retired: worker.as_ref().is_none_or(|worker| worker.cleaned),
                         startup_error: startup_error.clone(),
                         activation_id: activation_id.clone(),
+                        native_retirement_version: 1,
+                        emergency: emergency_output.is_some(),
                     }),
+                    "retire-native" if request.worker == worker_id => {
+                        let result = cleanup(&mut worker);
+                        if worker.as_ref().is_none_or(|worker| worker.cleaned) {
+                            // Native proof survives a failed management write. Keep this
+                            // live authority queryable until its client closes the pipe.
+                            Ok(Reply::NativeRetired {
+                                worker: worker_id.clone(),
+                                retirement_recorded: emergency_output.is_none()
+                                    && worker
+                                        .as_ref()
+                                        .is_some_and(|worker| worker.snapshot.is_none())
+                                    && !path.as_os_str().is_empty(),
+                            })
+                        } else {
+                            result.map(|()| unreachable!("cleanup succeeded without native proof"))
+                        }
+                    }
                     "retire" if request.worker == worker_id => match cleanup(&mut worker) {
                         Ok(()) => {
                             retired = true;
@@ -599,7 +647,25 @@ fn owner(host: Host) -> Result<()> {
                 if worker.as_ref().is_some_and(|worker| {
                     !worker.cleaned && worker.readers.iter().all(|reader| reader.is_finished())
                 }) {
-                    cleanup(&mut worker)?;
+                    if let Err(error) = cleanup(&mut worker) {
+                        if !worker.as_ref().is_none_or(|worker| worker.cleaned) {
+                            return Err(error);
+                        }
+                        // Keep the authoritative native observation available even
+                        // when disk failure prevents a durable retirement receipt.
+                        eprintln!(
+                            "Native speech retired; management receipt unavailable: {error:#}"
+                        );
+                        reply(
+                            &output,
+                            0,
+                            Ok(Reply::NativeRetired {
+                                worker: worker_id.clone(),
+                                retirement_recorded: false,
+                            }),
+                        )?;
+                        continue;
+                    }
                     reply(
                         &output,
                         0,

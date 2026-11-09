@@ -1,0 +1,118 @@
+[
+  {
+    "workload": "ordered",
+    "case": "release",
+    "source": {
+      "n": 1024,
+      "median_ms": 1.7087725,
+      "p95_ms": 2.435939,
+      "maximum_ms": 153.666446,
+      "over_100ms": 6
+    }
+  },
+  {
+    "workload": "ordered",
+    "case": "receipt",
+    "source": {
+      "n": 1024,
+      "median_ms": 1.6342884999999998,
+      "p95_ms": 2.428249,
+      "maximum_ms": 152.992974,
+      "over_100ms": 10
+    }
+  },
+  {
+    "workload": "ordered",
+    "case": "candidate-idle",
+    "source": {
+      "n": 1024,
+      "median_ms": 1.6872690000000001,
+      "p95_ms": 2.400783,
+      "maximum_ms": 152.376596,
+      "over_100ms": 7
+    }
+  },
+  {
+    "workload": "ordered",
+    "case": "candidate-reload",
+    "source": {
+      "n": 1024,
+      "median_ms": 1.8607505,
+      "p95_ms": 5.021896,
+      "maximum_ms": 155.741927,
+      "over_100ms": 3
+    },
+    "overlapping_source": {
+      "n": 512,
+      "median_ms": 3.1286645,
+      "p95_ms": 5.655265,
+      "maximum_ms": 155.741927,
+      "over_100ms": 2
+    },
+    "reload": {
+      "n": 1024,
+      "median_ms": 8.4340145,
+      "p95_ms": 12.110145,
+      "maximum_ms": 16.440324,
+      "over_100ms": 0
+    }
+  },
+  {
+    "workload": "letter",
+    "case": "release",
+    "source": {
+      "n": 1024,
+      "median_ms": 1.7288035,
+      "p95_ms": 2.425998,
+      "maximum_ms": 153.231634,
+      "over_100ms": 3
+    }
+  },
+  {
+    "workload": "letter",
+    "case": "receipt",
+    "source": {
+      "n": 1024,
+      "median_ms": 1.7820749999999999,
+      "p95_ms": 2.42539,
+      "maximum_ms": 152.492733,
+      "over_100ms": 1
+    }
+  },
+  {
+    "workload": "letter",
+    "case": "candidate-idle",
+    "source": {
+      "n": 1024,
+      "median_ms": 1.7884129999999998,
+      "p95_ms": 2.532752,
+      "maximum_ms": 153.163955,
+      "over_100ms": 2
+    }
+  },
+  {
+    "workload": "letter",
+    "case": "candidate-reload",
+    "source": {
+      "n": 1024,
+      "median_ms": 1.8785335,
+      "p95_ms": 5.256387,
+      "maximum_ms": 152.129363,
+      "over_100ms": 1
+    },
+    "overlapping_source": {
+      "n": 512,
+      "median_ms": 3.568012,
+      "p95_ms": 5.788755,
+      "maximum_ms": 7.784184,
+      "over_100ms": 0
+    },
+    "reload": {
+      "n": 1024,
+      "median_ms": 8.972919000000001,
+      "p95_ms": 12.833643,
+      "maximum_ms": 16.790934,
+      "over_100ms": 0
+    }
+  }
+]

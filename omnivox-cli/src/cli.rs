@@ -255,6 +255,9 @@ pub fn print_help() {
     println!("    --voice-library P  Verified runtime generation (or OMNIVOX_VOICE_LIBRARY)");
     println!("    --config-dir P  Absolute native engine configuration directory");
     println!("    --voice-library-owner  Local owned speech worker (private stdio control)");
+    println!(
+        "    --emergency-owner [--audio-output M]  Owned bundled eSpeak with built-in settings"
+    );
     println!("    --voice-library-acquire  Verified local voice download (private stdio control)");
     println!("    --voice-library-service  Local installed-voice and Apply service");
     println!("    --validate-voice-library P  Development native validation; keep stdin open");

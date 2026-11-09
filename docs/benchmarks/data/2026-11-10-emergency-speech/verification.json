@@ -1,0 +1,22 @@
+{
+  "archive_members_verified": 376,
+  "duplicate_or_missing_members": 0,
+  "archive_sha256": "a166eecbce93441c16e85967dea1e8b9db7e67b005e1f9af6bc2746eab8c4d08",
+  "checks": [
+    "Rust locked workspace: 1213 passed, 2 ignored",
+    "Pinned Rust formatting and relevant CLI/TTS Clippy with Piper passed",
+    "Emacs core: 1063 passed, 18 skipped, 0 unexpected",
+    "Focused recovery: 17 passed",
+    "Full and final incremental Emacs 31 byte-code checks passed",
+    "Fresh compiled Linux Flite/Piper and WSL-to-Windows Flite passed",
+    "Full isolated Windows development staging and native checks passed",
+    "Emacs headers/reference/manual release checks passed",
+    "Omnivox docs-check and paired links passed after retaining the old plan anchor",
+    "Matched matrix: 8192 completed requests; 2048 applied lane reloads"
+  ],
+  "limitations": [
+    "Null output only; no acoustic onset or stop-to-silence",
+    "No native macOS or native Windows Emacs qualification",
+    "Owner loss, blocked forwarding and reboot reconciliation not qualified by this slice"
+  ]
+}

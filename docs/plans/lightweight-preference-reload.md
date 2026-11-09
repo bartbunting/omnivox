@@ -2,7 +2,7 @@
 
 - Status: Investigation completed on 2026-11-10. Resident punctuation reload is implemented and passed development screening.
   Complete host preference reload has also passed development screening.
-  Ordinary retained recovery is implemented in the paired client; emergency startup awaits its separate decision. Deployment and platform qualification
+  Ordinary retained recovery and explicit minimal emergency startup are implemented in the paired client. Deployment and platform qualification
   remain separate; the staged investigation evidence is preserved unchanged.
 - Scope: Independent host preference reload on ordinary owned workers, followed
   by measured recovery improvements.
@@ -131,7 +131,9 @@ isolation, cancellation and compatibility constraints. The report identifies the
 scope precisely. ADR 0017 records the accepted preference-contract change and links the exact
 accepted session records retained in the evidence archive.
 
-## Next recovery experiment and proposed emergency boundary
+<a id="next-recovery-experiment-and-proposed-emergency-boundary"></a>
+
+## Emergency recovery under ADR 0018
 
 Ordinary recovery already accepts a verified retained startup and can bypass a
 broken current configuration or active pointer. It still needs readable retained
@@ -150,11 +152,11 @@ records successful Linux and WSL-to-Windows restoration after lost replies and
 notification completion during foreground recovery. This does not repair lost authority
 or establish the separate emergency boundary.
 
-The remaining availability problem is startup when management records are damaged
-or cannot be written. A proposed emergency mode would use bundled eSpeak and a
-minimal in-memory startup, bypassing preference files, optional discovery and
-managed-library metadata. It would have an actual native owner and bounded lifetime,
-but no managed asset load or permission to retire existing claims. Old pins,
+The minimal emergency path now addresses startup when management records are damaged
+or cannot be written. It uses bundled eSpeak and a minimal in-memory startup,
+bypassing preference files, optional discovery and managed-library metadata.
+It has an actual native owner and bounded queues, but no managed asset load or
+permission to release existing claims. Old pins,
 transactions and evidence remain intact for subsequent management repair. Losing
 voice selection, rate and other preferences is acceptable on this explicit route.
 
@@ -166,18 +168,20 @@ Owner/worker combined failure needs its own native tests; reuse the session guar
 protections where useful without importing coordinated preference commits or adding
 a speech forwarding hop. No required external service manager is proposed.
 
-The smallest discriminating tests are: corrupt current settings with a valid
-retained startup; deny management writes while a healthy worker speaks; then
-exercise a minimal owned startup with no management reads/writes after verified
-old native retirement. Record first usable speech, blackout, cleanup completion
-and retained asset claims separately. Stop the emergency implementation if native
-authority cannot be established; do not turn an availability target into invented
-cleanup evidence. Simultaneous loss of every native authority may still require
-an OS recovery boundary and must be stated honestly.
+The completed discriminating tests corrupt current settings with a valid
+retained startup, deny management writes while a healthy worker speaks, and
+exercise minimal owned startup with no management reads/writes after verified
+old native retirement. Source events, command completion, a source-level recovery
+gap bound and retained asset claims are recorded separately; acoustic blackout
+remains unmeasured. Missing native authority still blocks replacement.
+Simultaneous loss of every native authority may require an OS recovery boundary;
+the minimal-startup results do not establish that boundary.
 
-This emergency contract is proposed, not accepted or implemented. ADR 0017
-explicitly excludes a new emergency mechanism; 0007 and 0014/0015 retain blocking
-rules for damaged history and missing cleanup evidence. A separate approved ADR
-is required to distinguish emergency speech admission from managed-asset recovery
-while retaining those protections. The reload delivery and ordinary retained
-startup experiments do not depend on that decision.
+[ADR 0018](../adr/0018-minimal-emergency-speech.md) accepts the separate emergency
+contract and its implementation scope. The [native/client evidence](../benchmarks/2026-11-10-emergency-speech.md)
+records minimal startup and transient native proof when a durable receipt cannot
+be written. It does not qualify owner/guard combined failure, blocked forwarding
+or automatic reboot reconciliation. Next, isolate the owner-input/output failure
+experiment and compare an independent lifecycle channel/retained native guard
+against the current owner. Keep that work off ordinary speech transport; do not
+import global preference commits or relax asset exclusion to improve recovery.
