@@ -80,6 +80,10 @@ claim that an older client prepared its workers together.
 resident preparation task started successfully. Unowned and remote workers omit
 it and reject these requests. Negotiate independently on each connection.
 No new transport, token, forwarding process or executable launch is needed.
+`host_preferences_reload_v1`, advertised alongside it, additionally enables
+`reload_host_preferences_v1` for punctuation, `speech.capital_pitch`,
+`speech.max_chunk_words` and `speech.defaults`. Negotiate the wider capability;
+never silently substitute punctuation-only reload.
 
 Version-1 requests are strict: duplicate/unknown fields are rejected. Status has
 only the ordinary envelope; reload adds the worker incarnation, next operation
@@ -89,6 +93,7 @@ configuration.
 ```json
 {"protocol_version":1,"request_id":20,"type":"host_preferences_status_v1"}
 {"protocol_version":1,"request_id":21,"type":"reload_punctuation_v1","incarnation":"WORKER_UUID","sequence":1,"expected_revision":0}
+{"protocol_version":1,"request_id":22,"type":"reload_host_preferences_v1","incarnation":"WORKER_UUID","sequence":2,"expected_revision":1}
 ```
 
 Status returns `type: "host_preferences_status_v1"` with these required fields:
@@ -98,12 +103,22 @@ Status returns `type: "host_preferences_status_v1"` with these required fields:
 | `incarnation` | UUID for this worker's live preference state; changes on restart. |
 | `configuration_file` | Native canonical destination selected at startup, including a not-yet-created file. Compare editor targets locally; never send it back as file-reading authority. |
 | `startup_activation_id` | Immutable consumed launch identity. |
-| `revision` | Unsigned 64-bit live punctuation revision, initially zero. |
+| `revision` | Unsigned 64-bit live host preference revision, initially zero. |
 | `punctuation_sha256` | SHA-256 of compact JSON for the complete current resolved tables/profiles. |
 | `startup_punctuation_sha256` | The initial policy hash, retained across reload. |
-| `last_operation` | Null, or `{sequence, expected_revision, outcome, reason}`; reason is nullable. |
+| `host_preferences_sha256` | Complete installed host policy hash; present with `host_preferences_reload_v1`. |
+| `startup_host_preferences_sha256` | Complete initial host policy hash; present with `host_preferences_reload_v1`. |
+| `last_operation` | Null, or `{scope, sequence, expected_revision, outcome, reason}`; reason is nullable. With wider reload support, `scope` is `punctuation` or `host`. |
 
-The reload response has `type: "reload_punctuation_v1"`, requested `sequence`,
+The complete host hash is SHA-256 of compact JSON for the ordered four-element
+array `[resolved punctuation tables, saved defaults, capital pitch, chunk limit]`.
+Struct fields use their wire order and profile/override maps use sorted keys.
+It excludes transient client choices, native identity and operation metadata.
+This additive status extension is negotiated by `host_preferences_reload_v1`;
+clients accept additional status fields. Punctuation-only older experimental peers
+lack the complete host hash and operation scope.
+
+Each reload response echoes its request `type`, with requested `sequence`,
 `outcome` and `state` (the same status fields, without its envelope/type).
 An accepted operation first reports `preparing`, then `pending` after capture,
 and finally `applied`, `unchanged` or `rejected`. Query status until terminal.
@@ -111,8 +126,9 @@ A client deadline means unknown/pending; it neither cancels nor rolls back work.
 
 Operations start at sequence one and must advance by exactly one from the last
 accepted operation, with the current revision and incarnation. An identical retry
-of the last sequence/expected-revision pair returns its retained outcome without
-recapturing files. Other old/skipped sequences, stale revision or wrong incarnation
+of the last scope/sequence/expected-revision tuple returns its retained outcome without
+recapturing files. A retry using the same sequence for another scope is stale. Other old/skipped
+sequences, stale revision or wrong incarnation
 return `stale`. A new operation during preparation/pending returns `busy`.
 Rejected and unchanged operations consume their sequence; only changed content
 increments the policy revision. Neither identity wraps. Only the last operation
@@ -121,16 +137,24 @@ is retained: status is observation, not a durable transaction history.
 Preparation reads the worker's selected files off admission using captured native
 environment and pinned managed assets. It does not reread a mutable active pointer,
 construct engines or publish history. Invalid/unreadable configuration, effective
-changes outside punctuation, or removal of the currently selected profile reject
-the operation and retain working policy. The existing configuration, snapshot and
+engine/routing/output changes, or removal of the currently selected profile reject
+the entire operation and retain working policy. Punctuation-only reload also
+rejects changes to any other host preference compared with the currently installed
+policy, including after an earlier full host reload. No mixed edit is silently
+partially installed. The existing configuration, snapshot and
 policy size limits apply; only one preparation/candidate may be pending.
 
 Installation swaps a complete immutable policy at a clean command boundary.
 Admitted requests keep their earlier coherent snapshots. Multipart assembly and
 queued legacy text preserve their existing boundary; dispatch or Stop can release
 a pending installation. Ongoing playback need not drain. Voice, rate and selected
-profile remain unchanged. Reset retains installed tables. Retained-startup recovery
-can restore old punctuation; an explicit fresh restart captures saved files.
+profile remain unchanged. Full host reload installs capital pitch and chunking
+for subsequent requests and replaces the saved baseline used by Reset; it does
+not overwrite current voice, rate, pitch, volumes, split-caps, character scale or
+punctuation selection. This is true even when a current value happens to equal
+its old default. Reset retains installed host policy and restores its updated
+saved defaults. Retained-startup recovery can restore older preferences; an
+explicit fresh restart captures saved files.
 
 Replies use a bounded 16-record background queue. A blocked reader can lose a
 management reply; it cannot make this reload handler wait. File I/O, hashing and
@@ -147,7 +171,7 @@ may select a profile from each worker's own descriptor; older workers retain the
 matching-catalogue contract. Missing profiles still use the client's saved fallback.
 
 `engine_configuration_status_v1` continues to acknowledge consumed startup,
-including its initial host preferences. It does not prove current live punctuation.
+including its initial host preferences. It does not prove current live host preferences.
 Native cleanup, asset exclusion and managed Apply proofs are unchanged. See
 [ADR 0017](../adr/0017-independent-host-preference-reload.md).
 

@@ -355,9 +355,11 @@ release does not implement version 2.
 
 The limit applies after text preparation to ordinary, immediate, preview and
 structured speech. Sentence and clause boundaries remain preferred. It is one
-host setting shared across engines, frozen for both workers and their recovery.
-Client resets retain it; there is no runtime command or environment override.
-Edits require a deliberate restart. `--dump-wav` remains a single whole-text
+host setting shared across engines. Supporting local owned workers can install
+it independently through [host preference reload](../protocols/control.md#independent-local-punctuation-reload).
+Client resets retain the installed limit; there is no ordinary per-utterance
+command or environment override. Older workers require a deliberate restart.
+Retained-startup recovery may restore the earlier limit. `--dump-wav` remains a single whole-text
 diagnostic synthesis. Larger windows can reach the unchanged per-window
 timeline-action limit sooner; this option never relaxes action, PCM, text-byte,
 cancellation or silence limits. See [text chunking](text-chunking.md).
@@ -404,9 +406,12 @@ At startup, built-in values are replaced by saved defaults, then by supplied CLI
 speech options. Later client commands retain priority. `tts_reset` restores the
 saved speech defaults, not CLI overrides or the latest client settings, while
 retaining the configured chunk limit. It still stops speech and clears pending
-work and temporary delays. It does not reread configuration. Both lanes and
-recovery retain the same frozen defaults; file edits require deliberate restart.
-Audio routing restores the effective startup destination described below.
+work and temporary delays. It does not reread configuration. Supporting owned
+workers can reload the saved baseline independently without overwriting current
+client choices. New defaults take effect on Reset; changing an ordinary current
+setting still uses its existing command. Older workers require restart, and
+retained-startup recovery may restore older defaults. Audio routing restores the
+effective startup destination described below and is outside host reload.
 
 `--check` and `--dump-wav` use saved voice/rate/pitch/speech gain from the same
 capture used for engine selection. Explicit CLI settings override them; a nonempty
@@ -449,9 +454,10 @@ not multiplied by the current pitch. `"off"` preserves ordinary pitch, whereas
 support and bounds; these values do not promise equal acoustic changes.
 
 Ordinary speech, exact WAV diagnostics, previews and word/sentence capitalization
-actions do not receive this isolated-letter cue. Both lanes, reset and recovery
-retain the complete captured policy; applying file edits requires a deliberate
-restart. See [ADR 0009](../adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct).
+actions do not receive this isolated-letter cue. Host preference reload installs
+one complete policy per worker for subsequent requests; Reset retains it.
+Workers may temporarily differ, and retained-startup recovery may restore the
+older policy. Older workers require a deliberate restart. See [ADR 0009](../adr/0009-local-speech-preferences.md#keep-speech-defaults-and-host-policy-distinct).
 
 ### Audio output settings
 

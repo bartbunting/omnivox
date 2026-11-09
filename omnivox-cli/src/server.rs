@@ -3792,6 +3792,7 @@ fn handle_command(
                             &mut response.response
                         {
                             features.push(omnivox_tts::host_preferences::FEATURE.into());
+                            features.push(omnivox_tts::host_preferences::RELOAD_FEATURE.into());
                         }
                     }
                     write_control_response(&response);

@@ -161,7 +161,9 @@ class RemoteServiceTests(unittest.TestCase):
 
     def test_host_preferences_remain_local_to_owned_workers(self):
         peer = self.connect()
-        self.assertNotIn("host_preferences_v1", peer.control("capabilities")["features"])
+        features = peer.control("capabilities")["features"]
+        self.assertNotIn("host_preferences_v1", features)
+        self.assertNotIn("host_preferences_reload_v1", features)
         self.assertEqual(peer.control("host_preferences_status_v1", 2)["type"], "error")
         # A rejected management command leaves ordinary speech/control usable.
         self.assertEqual(peer.control("inventory", 3)["type"], "inventory")

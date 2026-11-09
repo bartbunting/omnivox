@@ -261,9 +261,11 @@ The remaining configuration work is:
 - **Lightweight preference reload:** [ADR 0017](adr/0017-independent-host-preference-reload.md)
   accepts independent per-worker installation while retaining coherent requests
   and native ownership. The [resident punctuation delivery](benchmarks/2026-11-10-resident-reload.md)
-  adds local stdio reload/status and paired client integration. The
-  [plan](plans/lightweight-preference-reload.md) tracks remaining qualification,
-  later host preferences and recovery hardening.
+  adds local stdio reload/status and paired client integration; the
+  [wider host preference delivery](benchmarks/2026-11-10-host-preferences.md)
+  adds capital pitch, chunking and saved Reset defaults. The
+  [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
+  qualification and recovery hardening.
 - **Retained session work:** preserve the accepted session experiment at
   `7879419`, including native cleanup guards and managed activation. Its global
   preference commit is no longer required for ordinary reload. Reuse proven

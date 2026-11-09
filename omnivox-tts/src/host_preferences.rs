@@ -2,6 +2,14 @@
 use serde::{Deserialize, Serialize};
 
 pub const FEATURE: &str = "host_preferences_v1";
+pub const RELOAD_FEATURE: &str = "host_preferences_reload_v1";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Scope {
+    Punctuation,
+    Host,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -26,6 +34,7 @@ pub enum Outcome {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Operation {
+    pub scope: Scope,
     pub sequence: u64,
     pub expected_revision: u64,
     pub outcome: Outcome,
@@ -41,6 +50,8 @@ pub struct Status {
     pub revision: u64,
     pub punctuation_sha256: String,
     pub startup_punctuation_sha256: String,
+    pub host_preferences_sha256: String,
+    pub startup_host_preferences_sha256: String,
     pub last_operation: Option<Operation>,
 }
 
@@ -60,14 +71,17 @@ mod tests {
     #[test]
     fn local_reload_envelopes_reject_paths_extensions_and_duplicate_keys() {
         let valid = r#"{"protocol_version":1,"request_id":4,"type":"reload_punctuation_v1","incarnation":"worker","sequence":1,"expected_revision":0}"#;
-        assert!(decode_request(&STANDARD.encode(valid)).is_ok());
-        for extra in [
-            r#", "path":"/elsewhere""#,
-            r#", "sequence":2"#,
-            r#", "expected_revision":null"#,
-        ] {
-            let modified = format!("{}{extra}}}", valid.strip_suffix('}').unwrap());
-            assert!(decode_request(&STANDARD.encode(modified)).is_err());
+        for kind in ["reload_punctuation_v1", "reload_host_preferences_v1"] {
+            let valid = valid.replace("reload_punctuation_v1", kind);
+            assert!(decode_request(&STANDARD.encode(&valid)).is_ok());
+            for extra in [
+                r#", "path":"/elsewhere""#,
+                r#", "sequence":2"#,
+                r#", "expected_revision":null"#,
+            ] {
+                let modified = format!("{}{extra}}}", valid.strip_suffix('}').unwrap());
+                assert!(decode_request(&STANDARD.encode(modified)).is_err());
+            }
         }
         assert!(decode_request(&STANDARD.encode(r#"{"protocol_version":1,"request_id":5,"type":"host_preferences_status_v1","path":"/elsewhere"}"#)).is_err());
     }

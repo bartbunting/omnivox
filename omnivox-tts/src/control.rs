@@ -68,6 +68,7 @@ pub enum ControlRequest {
     EngineConfigurationStatusV1,
     HostPreferencesStatusV1,
     ReloadPunctuationV1(crate::host_preferences::ReloadPunctuation),
+    ReloadHostPreferencesV1(crate::host_preferences::ReloadPunctuation),
     GetPunctuationProfilesV1,
     SetPunctuationProfileV1 {
         profile: String,
@@ -223,6 +224,7 @@ pub enum ControlResponse {
     EngineConfigurationStatusV1(crate::engine_configuration::EngineConfigurationStatus),
     HostPreferencesStatusV1(crate::host_preferences::Status),
     ReloadPunctuationV1(crate::host_preferences::ReloadResult),
+    ReloadHostPreferencesV1(crate::host_preferences::ReloadResult),
     VoiceParametersExplainedV1(crate::voice_explanation::ExplanationResponse),
     EngineParametersV1 {
         engine_id: String,
@@ -380,6 +382,7 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
             | ControlRequest::EngineConfigurationStatusV1
             | ControlRequest::HostPreferencesStatusV1
             | ControlRequest::ReloadPunctuationV1(_)
+            | ControlRequest::ReloadHostPreferencesV1(_)
             | ControlRequest::GetPunctuationProfilesV1
             | ControlRequest::SetPunctuationProfileV1 { .. }
             | ControlRequest::GetEngineParametersV1(_)
@@ -395,6 +398,7 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
         ControlRequest::EngineConfigurationStatusV1
             | ControlRequest::HostPreferencesStatusV1
             | ControlRequest::ReloadPunctuationV1(_)
+            | ControlRequest::ReloadHostPreferencesV1(_)
             | ControlRequest::GetPunctuationProfilesV1
             | ControlRequest::SetPunctuationProfileV1 { .. }
     ) {
@@ -402,7 +406,9 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
             serde_json::from_slice(&bytes).map_err(ControlCodecError::InvalidJson)?;
         let count = match request.request {
             ControlRequest::SetPunctuationProfileV1 { .. } => 4,
-            ControlRequest::ReloadPunctuationV1(_) => 6,
+            ControlRequest::ReloadPunctuationV1(_) | ControlRequest::ReloadHostPreferencesV1(_) => {
+                6
+            }
             _ => 3,
         };
         if value.as_object().is_none_or(|fields| fields.len() != count) {
@@ -556,7 +562,8 @@ pub fn process_control_request_with_configuration(
             ControlRequest::GetPunctuationProfilesV1
             | ControlRequest::SetPunctuationProfileV1 { .. }
             | ControlRequest::HostPreferencesStatusV1
-            | ControlRequest::ReloadPunctuationV1(_) => error_response(
+            | ControlRequest::ReloadPunctuationV1(_)
+            | ControlRequest::ReloadHostPreferencesV1(_) => error_response(
                 Some(request.request_id),
                 ControlErrorCode::UnsupportedOperation,
                 "punctuation profile operations require a live speech worker".into(),

@@ -8,10 +8,12 @@ The [decision index](adr/README.md) explains architectural choices;
 [the roadmap](ROADMAP.md) tracks future work. Accepted design,
 implemented behavior, native qualification and published releases are distinct.
 
-This experimental branch implements independent punctuation reload on ordinary
+This experimental branch implements independent host preference reload on ordinary
 local owned workers under [ADR 0017](adr/0017-independent-host-preference-reload.md).
 It uses the existing stdio control connection and a bounded resident preparation
-task. Immutable request policy, native ownership and cancellation remain intact;
+task for punctuation, capital pitch, chunking and saved Reset defaults. Reload
+preserves current client choices. Immutable request policy, native ownership and
+cancellation remain intact;
 live policy status is separate from consumed startup identity. Preference reload
 requires neither durable management writes nor cross-stream convergence. The
 [control contract](protocols/control.md#independent-local-punctuation-reload) and

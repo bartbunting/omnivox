@@ -1,0 +1,6 @@
+{
+  "omnivox_base": "45feca24733d4e1d2aec7cab786d27f9da776602",
+  "emacsvox_base": "8a7b2e852bfef1acdcdf22110ca299b1db5d7860",
+  "linux_payload": "/home/bart/src/omnivox-lightweight-reload/target/host-preferences/payload",
+  "windows_runtime": "cdbbcb7fc4882572"
+}

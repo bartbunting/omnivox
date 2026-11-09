@@ -1,9 +1,11 @@
 # Lightweight preference reload: investigation result and next delivery
 
 - Status: Investigation completed on 2026-11-10. Resident punctuation reload is implemented and passed development screening.
-  Broader host preferences and recovery are the next authorized slices. Deployment and platform qualification
+  Complete host preference reload has also passed development screening.
+  Ordinary recovery is in progress; emergency startup is awaiting its separate decision. Deployment and platform qualification
   remain separate; the staged investigation evidence is preserved unchanged.
-- Scope: Independent punctuation reload on ordinary owned workers.
+- Scope: Independent host preference reload on ordinary owned workers, followed
+  by measured recovery improvements.
 - Evidence: [Measurements and verdict](../benchmarks/2026-11-10-lightweight-reload.md).
 - Navigation: [Roadmap](../ROADMAP.md#host-configuration-follow-up),
   [architecture](../ARCHITECTURE.md), [decisions](../adr/README.md).
@@ -68,7 +70,7 @@ No new socket, token exchange, forwarding process or executable invocation is
 needed per reload. Requests never supply paths, executable definitions or uploaded
 configuration. Remote and unowned workers cannot acquire file-reading authority.
 
-Each worker reports its immutable startup identity and current punctuation revision
+Each worker reports its immutable startup identity and current host preference revision
 separately. Reload has bounded operation identity, observable pending/terminal
 state and safe retry; stale operations cannot replay an obsolete candidate. A
 successful reload swaps a precomputed immutable policy at a safe request boundary.
@@ -90,8 +92,10 @@ protections remain applicable. No earlier accepted text was silently rewritten.
    Use a WSL-compatible local control channel and resident preparation: native
    Windows functionality passed, but direct loopback was unavailable and fresh
    candidate process startup took about 233 ms in the recorded setup.
-2. Deliver punctuation with independent foreground/notification results. Then
-   evaluate capital cues, chunking and saved defaults individually. A mixed edit
+2. Punctuation delivery passed; capital cues, chunking and saved Reset defaults
+   now use the same bounded path with explicit wider capability negotiation.
+   Native and client qualification of that extension passed; its
+   [report](../benchmarks/2026-11-10-host-preferences.md) preserves the results. A mixed edit
    must be rejected or accurately classified; no silent partial installation.
    Preserve per-request coherence and temporary client choices.
 3. Improve ordinary and emergency recovery separately, reusing the session
@@ -126,3 +130,44 @@ protections from 0007, 0014 and 0015, along with 0001, 0003, 0004 and 0006's
 isolation, cancellation and compatibility constraints. The report identifies the
 scope precisely. ADR 0017 records the accepted preference-contract change and links the exact
 accepted session records retained in the evidence archive.
+
+## Next recovery experiment and proposed emergency boundary
+
+Ordinary recovery already accepts a verified retained startup and can bypass a
+broken current configuration or active pointer. It still needs readable retained
+metadata and writable owner records. Explicit Emacs restart currently prepares
+fresh settings; automatic speaker recovery can use the retained reference.
+First measure both routes with real engines and expose the existing safe retained
+route without changing native or managed-asset authority.
+
+The remaining availability problem is startup when management records are damaged
+or cannot be written. A proposed emergency mode would use bundled eSpeak and a
+minimal in-memory startup, bypassing preference files, optional discovery and
+managed-library metadata. It would have an actual native owner and bounded lifetime,
+but no managed asset load or permission to retire existing claims. Old pins,
+transactions and evidence remain intact for subsequent management repair. Losing
+voice selection, rate and other preferences is acceptable on this explicit route.
+
+Do not admit emergency replacement over uncertain old output. Require actual
+retirement evidence from a still-authoritative native owner, or a separately
+qualified OS/reboot boundary that proves the old output process cannot survive.
+Saved PIDs, absent locks and damaged journals confer no signalling authority.
+Owner/worker combined failure needs its own native tests; reuse the session guard
+protections where useful without importing coordinated preference commits or adding
+a speech forwarding hop. No required external service manager is proposed.
+
+The smallest discriminating tests are: corrupt current settings with a valid
+retained startup; deny management writes while a healthy worker speaks; then
+exercise a minimal owned startup with no management reads/writes after verified
+old native retirement. Record first usable speech, blackout, cleanup completion
+and retained asset claims separately. Stop the emergency implementation if native
+authority cannot be established; do not turn an availability target into invented
+cleanup evidence. Simultaneous loss of every native authority may still require
+an OS recovery boundary and must be stated honestly.
+
+This emergency contract is proposed, not accepted or implemented. ADR 0017
+explicitly excludes a new emergency mechanism; 0007 and 0014/0015 retain blocking
+rules for damaged history and missing cleanup evidence. A separate approved ADR
+is required to distinguish emergency speech admission from managed-asset recovery
+while retaining those protections. The reload delivery and ordinary retained
+startup experiments do not depend on that decision.
