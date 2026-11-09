@@ -186,6 +186,14 @@ either missing proof or a surviving unresponsive worker. The output-held case
 can have valid durable proof despite its undelivered reply. None of these results
 establishes automatic reboot reconciliation.
 
+Preparing the actual emergency owner before retirement now removes the separate
+capability process. The [matched comparison](../benchmarks/2026-11-10-deferred-start.md)
+shows WSL-to-Windows median recovery falling from 579 to 393 ms and the source-gap
+bound from 415 to 190 ms, with old speech preserved through preparation. Native
+creation remains gated on actual old retirement, and immediate prelaunch
+verification remains. Linux improves too; these are source timings, not acoustic
+or owner-loss qualification.
+
 Next, extract an independent lifecycle channel and retained native guard under
 0018, preserving ordinary speech forwarding depth. Start with one worker and
 actual transient cleanup proof, then qualify helper survival, partial transfer,

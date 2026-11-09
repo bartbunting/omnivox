@@ -107,6 +107,11 @@ pub enum Reply {
         activation_id: Option<String>,
         native_retirement_version: u32,
         emergency: bool,
+        deferred_start_version: u32,
+        prepared: bool,
+    },
+    Started {
+        worker: String,
     },
     Retired {
         worker: String,

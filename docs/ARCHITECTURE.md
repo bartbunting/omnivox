@@ -289,6 +289,16 @@ refuses replacement after owner loss without cleanup evidence. It still depends
 on valid retained startup records and writable owner storage; see the
 [recovery evidence](benchmarks/2026-11-10-retained-recovery.md).
 
+Explicit minimal emergency startup uses bundled eSpeak, built-in preferences and
+in-memory ownership under [ADR 0018](adr/0018-minimal-emergency-speech.md). The
+client prepares its actual replacement owner while old speech continues, then
+releases one native attempt after verified old tree/I/O retirement. Preparation
+creates no engine or output connection. It avoids management-state dependencies
+without releasing old asset claims or treating missing native evidence as cleanup;
+see the [contract](reference/engine-startup-snapshot.md#explicit-minimal-emergency-startup)
+and [timing evidence](benchmarks/2026-11-10-deferred-start.md). Independent guard
+integration remains necessary for blocked forwarding and owner loss.
+
 ## Voice identity, routing and tuning
 
 A physical voice is `(engine_id, voice_id)`. A logical voice holds ordered

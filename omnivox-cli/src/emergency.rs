@@ -8,6 +8,20 @@ pub fn worker() -> bool {
     std::env::var_os("OMNIVOX_EMERGENCY_WORKER").is_some()
 }
 
+/// Opt-in startup spans; never instruments ordinary speech admission.
+pub fn timed<T>(stage: &str, work: impl FnOnce() -> T) -> T {
+    if std::env::var_os("OMNIVOX_STARTUP_TIMING").as_deref() != Some(OsStr::new("1")) {
+        return work();
+    }
+    let start = std::time::Instant::now();
+    let result = work();
+    eprintln!(
+        "OMNIVOX-STARTUP {}",
+        serde_json::json!({"pid": std::process::id(), "stage": stage, "elapsed_us": start.elapsed().as_micros()})
+    );
+    result
+}
+
 fn retain_environment(name: &OsStr) -> bool {
     let name = name.to_string_lossy().to_ascii_uppercase();
     !name.starts_with('=')

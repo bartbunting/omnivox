@@ -1,0 +1,800 @@
+{
+  "summary": {
+    "legacy": {
+      "n": 8,
+      "total_ms": {
+        "median": 579.0060000000001,
+        "min": 555.569,
+        "max": 604.815
+      },
+      "before_retirement_ms": {
+        "median": 190.7655,
+        "min": 182.75,
+        "max": 198.07
+      },
+      "retirement_ms": {
+        "median": 12.417000000000002,
+        "min": 11.820999999999998,
+        "max": 17.506
+      },
+      "after_retirement_ms": {
+        "median": 375.73050000000006,
+        "min": 347.75699999999995,
+        "max": 398.98100000000005
+      },
+      "source_gap_upper_bound_ms": {
+        "median": 414.604,
+        "min": 383.743,
+        "max": 437.882
+      },
+      "notification_source_ms": {
+        "median": 17.522,
+        "min": 16.8,
+        "max": 18.354
+      },
+      "notification_complete_ms": {
+        "median": 17.642,
+        "min": 16.91,
+        "max": 18.464
+      }
+    },
+    "deferred": {
+      "n": 8,
+      "total_ms": {
+        "median": 392.55600000000004,
+        "min": 352.032,
+        "max": 404.675
+      },
+      "before_retirement_ms": {
+        "median": 225.1765,
+        "min": 186.506,
+        "max": 237.325
+      },
+      "retirement_ms": {
+        "median": 12.439499999999995,
+        "min": 11.705999999999989,
+        "max": 18.72399999999999
+      },
+      "after_retirement_ms": {
+        "median": 153.466,
+        "min": 144.74,
+        "max": 182.805
+      },
+      "source_gap_upper_bound_ms": {
+        "median": 189.8245,
+        "min": 183.454,
+        "max": 223.32
+      },
+      "notification_source_ms": {
+        "median": 17.2345,
+        "min": 16.786,
+        "max": 21.118
+      },
+      "notification_complete_ms": {
+        "median": 17.369500000000002,
+        "min": 16.891,
+        "max": 21.28
+      }
+    }
+  },
+  "rows": [
+    {
+      "pair": 0,
+      "variant": "legacy",
+      "warmup": true,
+      "profiled": false,
+      "total_ms": 585.099,
+      "before_retirement_ms": 187.028,
+      "retirement_ms": 12.016999999999996,
+      "after_retirement_ms": 386.0540000000001,
+      "source_gap_upper_bound_ms": 424.021,
+      "notification_source_ms": 17.865000000000002,
+      "notification_complete_ms": 18.026000000000003,
+      "startup_spans": []
+    },
+    {
+      "pair": 0,
+      "variant": "deferred",
+      "warmup": true,
+      "profiled": false,
+      "total_ms": 394.553,
+      "before_retirement_ms": 222.596,
+      "retirement_ms": 12.109999999999985,
+      "after_retirement_ms": 159.847,
+      "source_gap_upper_bound_ms": 195.556,
+      "notification_source_ms": 18.961,
+      "notification_complete_ms": 19.07,
+      "startup_spans": []
+    },
+    {
+      "pair": 1,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 404.675,
+      "before_retirement_ms": 237.325,
+      "retirement_ms": 13.125,
+      "after_retirement_ms": 154.22500000000002,
+      "source_gap_upper_bound_ms": 191.989,
+      "notification_source_ms": 16.97,
+      "notification_complete_ms": 17.133000000000003,
+      "startup_spans": []
+    },
+    {
+      "pair": 1,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 567.181,
+      "before_retirement_ms": 185.416,
+      "retirement_ms": 11.881,
+      "after_retirement_ms": 369.884,
+      "source_gap_upper_bound_ms": 405.904,
+      "notification_source_ms": 17.269,
+      "notification_complete_ms": 17.413,
+      "startup_spans": []
+    },
+    {
+      "pair": 2,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 564.98,
+      "before_retirement_ms": 186.672,
+      "retirement_ms": 11.820999999999998,
+      "after_retirement_ms": 366.487,
+      "source_gap_upper_bound_ms": 402.172,
+      "notification_source_ms": 18.354,
+      "notification_complete_ms": 18.464,
+      "startup_spans": []
+    },
+    {
+      "pair": 2,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 391.182,
+      "before_retirement_ms": 225.245,
+      "retirement_ms": 12.74199999999999,
+      "after_retirement_ms": 153.19500000000002,
+      "source_gap_upper_bound_ms": 190.105,
+      "notification_source_ms": 18.192999999999998,
+      "notification_complete_ms": 18.307,
+      "startup_spans": []
+    },
+    {
+      "pair": 3,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 395.65,
+      "before_retirement_ms": 225.629,
+      "retirement_ms": 16.28400000000002,
+      "after_retirement_ms": 153.73699999999997,
+      "source_gap_upper_bound_ms": 194.628,
+      "notification_source_ms": 21.118,
+      "notification_complete_ms": 21.28,
+      "startup_spans": []
+    },
+    {
+      "pair": 3,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 604.815,
+      "before_retirement_ms": 198.07,
+      "retirement_ms": 12.742000000000019,
+      "after_retirement_ms": 394.00300000000004,
+      "source_gap_upper_bound_ms": 431.295,
+      "notification_source_ms": 17.805,
+      "notification_complete_ms": 17.921,
+      "startup_spans": []
+    },
+    {
+      "pair": 4,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 602.589,
+      "before_retirement_ms": 191.336,
+      "retirement_ms": 12.271999999999991,
+      "after_retirement_ms": 398.98100000000005,
+      "source_gap_upper_bound_ms": 437.882,
+      "notification_source_ms": 17.349999999999998,
+      "notification_complete_ms": 17.517,
+      "startup_spans": []
+    },
+    {
+      "pair": 4,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 352.032,
+      "before_retirement_ms": 186.506,
+      "retirement_ms": 11.752999999999986,
+      "after_retirement_ms": 153.773,
+      "source_gap_upper_bound_ms": 189.544,
+      "notification_source_ms": 17.661,
+      "notification_complete_ms": 17.808999999999997,
+      "startup_spans": []
+    },
+    {
+      "pair": 5,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 381.955,
+      "before_retirement_ms": 225.108,
+      "retirement_ms": 11.705999999999989,
+      "after_retirement_ms": 145.141,
+      "source_gap_upper_bound_ms": 183.454,
+      "notification_source_ms": 17.155,
+      "notification_complete_ms": 17.313000000000002,
+      "startup_spans": []
+    },
+    {
+      "pair": 5,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 596.02,
+      "before_retirement_ms": 190.195,
+      "retirement_ms": 12.444000000000017,
+      "after_retirement_ms": 393.381,
+      "source_gap_upper_bound_ms": 429.429,
+      "notification_source_ms": 17.97,
+      "notification_complete_ms": 18.241,
+      "startup_spans": []
+    },
+    {
+      "pair": 6,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 555.569,
+      "before_retirement_ms": 195.356,
+      "retirement_ms": 12.456000000000017,
+      "after_retirement_ms": 347.75699999999995,
+      "source_gap_upper_bound_ms": 383.743,
+      "notification_source_ms": 16.8,
+      "notification_complete_ms": 16.91,
+      "startup_spans": []
+    },
+    {
+      "pair": 6,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 367.904,
+      "before_retirement_ms": 204.44,
+      "retirement_ms": 18.72399999999999,
+      "after_retirement_ms": 144.74,
+      "source_gap_upper_bound_ms": 186.762,
+      "notification_source_ms": 16.786,
+      "notification_complete_ms": 16.891,
+      "startup_spans": []
+    },
+    {
+      "pair": 7,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 403.278,
+      "before_retirement_ms": 208.514,
+      "retirement_ms": 11.959000000000003,
+      "after_retirement_ms": 182.805,
+      "source_gap_upper_bound_ms": 223.32,
+      "notification_source_ms": 17.085,
+      "notification_complete_ms": 17.195,
+      "startup_spans": []
+    },
+    {
+      "pair": 7,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 579.042,
+      "before_retirement_ms": 182.75,
+      "retirement_ms": 17.506,
+      "after_retirement_ms": 378.78600000000006,
+      "source_gap_upper_bound_ms": 419.931,
+      "notification_source_ms": 17.506,
+      "notification_complete_ms": 17.634,
+      "startup_spans": []
+    },
+    {
+      "pair": 8,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 578.97,
+      "before_retirement_ms": 193.905,
+      "retirement_ms": 12.389999999999986,
+      "after_retirement_ms": 372.67500000000007,
+      "source_gap_upper_bound_ms": 409.277,
+      "notification_source_ms": 17.537999999999997,
+      "notification_complete_ms": 17.65,
+      "startup_spans": []
+    },
+    {
+      "pair": 8,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": false,
+      "total_ms": 393.93,
+      "before_retirement_ms": 229.665,
+      "retirement_ms": 12.137,
+      "after_retirement_ms": 152.12800000000001,
+      "source_gap_upper_bound_ms": 188.142,
+      "notification_source_ms": 17.314,
+      "notification_complete_ms": 17.426000000000002,
+      "startup_spans": []
+    },
+    {
+      "pair": 9,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": true,
+      "total_ms": 375.987,
+      "before_retirement_ms": 213.513,
+      "retirement_ms": 12.105999999999995,
+      "after_retirement_ms": 150.36800000000002,
+      "source_gap_upper_bound_ms": 186.044,
+      "notification_source_ms": 17.512,
+      "notification_complete_ms": 17.625,
+      "startup_spans": [
+        {
+          "function": "make-process",
+          "depth": 1,
+          "start_ms": 0.03647804260253906,
+          "ms": 0.3616809844970703,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 2,
+          "start_ms": 0.4286766052246094,
+          "ms": 212.94593811035156,
+          "command": "describe"
+        },
+        {
+          "function": "omnivox-library--owner",
+          "depth": 1,
+          "start_ms": 0.4172325134277344,
+          "ms": 212.9838466644287,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--prepare-emergency",
+          "depth": 0,
+          "start_ms": 0.022649765014648438,
+          "ms": 213.38129043579102,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 1,
+          "start_ms": 213.42158317565918,
+          "ms": 12.091398239135742,
+          "command": "retire-native"
+        },
+        {
+          "function": "omnivox-library--retire-for-emergency",
+          "depth": 0,
+          "start_ms": 213.4075164794922,
+          "ms": 12.237787246704102,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 1,
+          "start_ms": 225.65507888793945,
+          "ms": 71.85792922973633,
+          "command": "start-emergency"
+        },
+        {
+          "function": "omnivox-library--release-emergency",
+          "depth": 0,
+          "start_ms": 225.64935684204102,
+          "ms": 71.87843322753906,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 2,
+          "start_ms": 297.5606918334961,
+          "ms": 0.47516822814941406,
+          "command": "describe"
+        },
+        {
+          "function": "omnivox-library--owner",
+          "depth": 1,
+          "start_ms": 297.55640029907227,
+          "ms": 0.4944801330566406,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--control",
+          "depth": 2,
+          "start_ms": 298.05779457092285,
+          "ms": 62.01744079589844,
+          "command": "capabilities"
+        },
+        {
+          "function": "omnivox-library--control",
+          "depth": 2,
+          "start_ms": 360.0945472717285,
+          "ms": 0.5083084106445312,
+          "command": "engine_configuration_status_v1"
+        },
+        {
+          "function": "omnivox-library--acknowledge-engines",
+          "depth": 1,
+          "start_ms": 298.0542182922363,
+          "ms": 62.55483627319336,
+          "command": null
+        },
+        {
+          "function": "tts-make-process",
+          "depth": 0,
+          "start_ms": 297.5325584411621,
+          "ms": 63.08150291442871,
+          "command": null
+        },
+        {
+          "function": "voice-setup",
+          "depth": 0,
+          "start_ms": 360.63504219055176,
+          "ms": 1.4164447784423828,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--wait-for-recovered-speech",
+          "depth": 0,
+          "start_ms": 362.0572090148926,
+          "ms": 13.822555541992188,
+          "command": null
+        }
+      ]
+    },
+    {
+      "pair": 9,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": true,
+      "total_ms": 559.456,
+      "before_retirement_ms": 187.473,
+      "retirement_ms": 12.155999999999977,
+      "after_retirement_ms": 359.827,
+      "source_gap_upper_bound_ms": 395.598,
+      "notification_source_ms": 16.897000000000002,
+      "notification_complete_ms": 17.006,
+      "startup_spans": [
+        {
+          "function": "make-process",
+          "depth": 1,
+          "start_ms": 0.028133392333984375,
+          "ms": 0.3006458282470703,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--emergency-supported",
+          "depth": 0,
+          "start_ms": 0.02193450927734375,
+          "ms": 187.33453750610352,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 1,
+          "start_ms": 187.39032745361328,
+          "ms": 12.140989303588867,
+          "command": "retire-native"
+        },
+        {
+          "function": "omnivox-library--retire-for-emergency",
+          "depth": 0,
+          "start_ms": 187.36910820007324,
+          "ms": 12.286663055419922,
+          "command": null
+        },
+        {
+          "function": "make-process",
+          "depth": 1,
+          "start_ms": 199.68223571777344,
+          "ms": 0.4062652587890625,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 2,
+          "start_ms": 200.12855529785156,
+          "ms": 280.1675796508789,
+          "command": "describe"
+        },
+        {
+          "function": "omnivox-library--owner",
+          "depth": 1,
+          "start_ms": 200.1209259033203,
+          "ms": 280.20644187927246,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--control",
+          "depth": 2,
+          "start_ms": 480.33833503723145,
+          "ms": 60.98008155822754,
+          "command": "capabilities"
+        },
+        {
+          "function": "omnivox-library--control",
+          "depth": 2,
+          "start_ms": 541.3358211517334,
+          "ms": 0.49042701721191406,
+          "command": "engine_configuration_status_v1"
+        },
+        {
+          "function": "omnivox-library--acknowledge-engines",
+          "depth": 1,
+          "start_ms": 480.3323745727539,
+          "ms": 61.49935722351074,
+          "command": null
+        },
+        {
+          "function": "tts-make-process",
+          "depth": 0,
+          "start_ms": 199.6603012084961,
+          "ms": 342.1761989593506,
+          "command": null
+        },
+        {
+          "function": "voice-setup",
+          "depth": 0,
+          "start_ms": 541.8570041656494,
+          "ms": 1.4142990112304688,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--wait-for-recovered-speech",
+          "depth": 0,
+          "start_ms": 543.2758331298828,
+          "ms": 16.07966423034668,
+          "command": null
+        }
+      ]
+    },
+    {
+      "pair": 10,
+      "variant": "legacy",
+      "warmup": false,
+      "profiled": true,
+      "total_ms": 538.723,
+      "before_retirement_ms": 175.089,
+      "retirement_ms": 11.665999999999997,
+      "after_retirement_ms": 351.96799999999996,
+      "source_gap_upper_bound_ms": 387.415,
+      "notification_source_ms": 17.593,
+      "notification_complete_ms": 17.706,
+      "startup_spans": [
+        {
+          "function": "make-process",
+          "depth": 1,
+          "start_ms": 0.030517578125,
+          "ms": 0.3600120544433594,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--emergency-supported",
+          "depth": 0,
+          "start_ms": 0.023603439331054688,
+          "ms": 174.93844032287598,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 1,
+          "start_ms": 175.0051975250244,
+          "ms": 11.651992797851562,
+          "command": "retire-native"
+        },
+        {
+          "function": "omnivox-library--retire-for-emergency",
+          "depth": 0,
+          "start_ms": 174.9734878540039,
+          "ms": 11.819839477539062,
+          "command": null
+        },
+        {
+          "function": "make-process",
+          "depth": 1,
+          "start_ms": 186.81931495666504,
+          "ms": 0.35572052001953125,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 2,
+          "start_ms": 187.21485137939453,
+          "ms": 271.8312740325928,
+          "command": "describe"
+        },
+        {
+          "function": "omnivox-library--owner",
+          "depth": 1,
+          "start_ms": 187.20698356628418,
+          "ms": 271.8665599822998,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--control",
+          "depth": 2,
+          "start_ms": 459.08260345458984,
+          "ms": 62.74223327636719,
+          "command": "capabilities"
+        },
+        {
+          "function": "omnivox-library--control",
+          "depth": 2,
+          "start_ms": 521.8422412872314,
+          "ms": 0.5252361297607422,
+          "command": "engine_configuration_status_v1"
+        },
+        {
+          "function": "omnivox-library--acknowledge-engines",
+          "depth": 1,
+          "start_ms": 459.0780735015869,
+          "ms": 63.304901123046875,
+          "command": null
+        },
+        {
+          "function": "tts-make-process",
+          "depth": 0,
+          "start_ms": 186.798095703125,
+          "ms": 335.5903625488281,
+          "command": null
+        },
+        {
+          "function": "voice-setup",
+          "depth": 0,
+          "start_ms": 522.4087238311768,
+          "ms": 1.4295578002929688,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--wait-for-recovered-speech",
+          "depth": 0,
+          "start_ms": 523.8430500030518,
+          "ms": 14.778375625610352,
+          "command": null
+        }
+      ]
+    },
+    {
+      "pair": 10,
+      "variant": "deferred",
+      "warmup": false,
+      "profiled": true,
+      "total_ms": 404.148,
+      "before_retirement_ms": 235.99,
+      "retirement_ms": 12.512,
+      "after_retirement_ms": 155.64600000000002,
+      "source_gap_upper_bound_ms": 192.046,
+      "notification_source_ms": 17.247999999999998,
+      "notification_complete_ms": 17.360999999999997,
+      "startup_spans": [
+        {
+          "function": "make-process",
+          "depth": 1,
+          "start_ms": 0.0400543212890625,
+          "ms": 0.4112720489501953,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 2,
+          "start_ms": 0.48804283142089844,
+          "ms": 235.34464836120605,
+          "command": "describe"
+        },
+        {
+          "function": "omnivox-library--owner",
+          "depth": 1,
+          "start_ms": 0.47469139099121094,
+          "ms": 235.38470268249512,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--prepare-emergency",
+          "depth": 0,
+          "start_ms": 0.025033950805664062,
+          "ms": 235.83745956420898,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 1,
+          "start_ms": 235.88132858276367,
+          "ms": 12.498617172241211,
+          "command": "retire-native"
+        },
+        {
+          "function": "omnivox-library--retire-for-emergency",
+          "depth": 0,
+          "start_ms": 235.86535453796387,
+          "ms": 12.641191482543945,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 1,
+          "start_ms": 248.51489067077637,
+          "ms": 79.0867805480957,
+          "command": "start-emergency"
+        },
+        {
+          "function": "omnivox-library--release-emergency",
+          "depth": 0,
+          "start_ms": 248.51036071777344,
+          "ms": 79.10537719726562,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--request",
+          "depth": 2,
+          "start_ms": 327.64744758605957,
+          "ms": 0.35190582275390625,
+          "command": "describe"
+        },
+        {
+          "function": "omnivox-library--owner",
+          "depth": 1,
+          "start_ms": 327.64410972595215,
+          "ms": 0.3676414489746094,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--control",
+          "depth": 2,
+          "start_ms": 328.0186653137207,
+          "ms": 59.3111515045166,
+          "command": "capabilities"
+        },
+        {
+          "function": "omnivox-library--control",
+          "depth": 2,
+          "start_ms": 387.3460292816162,
+          "ms": 0.5044937133789062,
+          "command": "engine_configuration_status_v1"
+        },
+        {
+          "function": "omnivox-library--acknowledge-engines",
+          "depth": 1,
+          "start_ms": 328.014612197876,
+          "ms": 59.84163284301758,
+          "command": null
+        },
+        {
+          "function": "tts-make-process",
+          "depth": 0,
+          "start_ms": 327.6197910308838,
+          "ms": 60.2412223815918,
+          "command": null
+        },
+        {
+          "function": "voice-setup",
+          "depth": 0,
+          "start_ms": 387.88318634033203,
+          "ms": 1.5552043914794922,
+          "command": null
+        },
+        {
+          "function": "omnivox-library--wait-for-recovered-speech",
+          "depth": 0,
+          "start_ms": 389.44339752197266,
+          "ms": 14.580249786376953,
+          "command": null
+        }
+      ]
+    }
+  ]
+}

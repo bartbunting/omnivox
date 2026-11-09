@@ -271,6 +271,8 @@ The remaining configuration work is:
   [Minimal emergency speech](benchmarks/2026-11-10-emergency-speech.md), accepted
   under [0018](adr/0018-minimal-emergency-speech.md), separates emergency admission
   from damaged management state while retaining native proof and old claims.
+  [Prepared emergency startup](benchmarks/2026-11-10-deferred-start.md) reduces
+  recovery time and the measured source gap by preparing before old retirement.
   The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
   qualification and recovery hardening.
 - **Retained session work:** preserve the accepted session experiment at

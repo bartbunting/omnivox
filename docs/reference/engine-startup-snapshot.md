@@ -209,6 +209,23 @@ when packaging stores it separately, as in Emacsvox's Windows runtime. Otherwise
 data must be beside the executable. Each option occurs at most once. Missing data
 fails; the engine does not fall through to environment, build or system data.
 
+Optional `--prepare` constructs and verifies the minimal startup without creating
+a worker, initializing an engine or opening output. Its `owner` reply advertises
+`deferred_start_version: 1`, `prepared: true` and `retired: false`. The selected
+bundled data must be present. This permits preparation while old speech remains
+available; it does not promise that subsequent engine/output initialization will
+succeed. The client must still verify old native retirement before release.
+
+The identity-bound `start-emergency` owner request consumes the prepared attempt
+before native creation. A successful `started` reply names the same `worker`;
+it acknowledges launch, not usable speech. Engine registration and client
+initialization remain necessary. Retrying a lost reply observes the same attempt;
+it never launches another worker. Retirement cancels an unreleased preparation,
+and a failed or retired attempt cannot be released again. Executable/startup
+verification is repeated immediately before native launch. Failed preparation
+can be discarded without native cleanup because it has created no native child;
+after any possible release, actual cleanup proof is mandatory.
+
 The owner constructs a bounded in-memory snapshot with only eSpeak eligible and
 no helper definitions or managed assets. It strips Omnivox and legacy speech
 preference overrides from the child environment, retaining host I/O variables
@@ -248,7 +265,12 @@ recovery boundary remain separate work under
 [ADR 0018](../adr/0018-minimal-emergency-speech.md).
 
 The paired client exposes `tts-emergency-start` for the foreground lane, preserves
-its healthy peer and uses its original launcher context. The launcher resolves
+its healthy peer and uses its original launcher context. It prepares the actual
+replacement owner before retiring old speech and then reuses that process,
+eliminating a separate capability executable invocation. It requires the deferred
+capability for this route; an older runtime rejects `--prepare` before native
+initialization and working old speech is preserved. Ordinary speech compatibility
+and the immediate native emergency entry remain unchanged. The launcher resolves
 only executable and matching data references, bypassing optional preference
 conversion and disk logging. Managed Apply rejects an emergency participant.
 Repeated `tts-recover` retains minimal mode; `tts-restart` deliberately attempts
@@ -259,6 +281,10 @@ replacement must finish or cancel before emergency replacement; damaged persiste
 history alone does not impose this live-operation exclusion.
 The [evidence report](../benchmarks/2026-11-10-emergency-speech.md)
 separates native source timing, client response and unavailable acoustic checks.
+The [deferred-start comparison](../benchmarks/2026-11-10-deferred-start.md) measures
+the preparation/release increment. Opt-in `OMNIVOX_STARTUP_TIMING=1` emits owner
+startup spans on stderr; it does not instrument speech admission. WSL callers
+must explicitly pass this diagnostic variable through `WSLENV`.
 
 ## Remote workstation ownership
 

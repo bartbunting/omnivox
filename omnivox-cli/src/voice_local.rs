@@ -34,14 +34,23 @@ pub fn run(args: &[String]) -> Result<()> {
     if args[0] == "--emergency-owner" {
         let mut output = None;
         let mut data = None;
-        for pair in args[1..].chunks(2) {
-            match pair {
-                [flag, value] if flag == "--audio-output" && output.is_none() => output = Some(value.as_str()),
-                [flag, value] if flag == "--espeak-data" && data.is_none() => data = Some(Path::new(value)),
-                _ => anyhow::bail!("emergency startup accepts --audio-output device|null|pulse and --espeak-data PATH once each"),
+        let mut prepared = false;
+        let mut options = args[1..].iter();
+        while let Some(flag) = options.next() {
+            match flag.as_str() {
+                "--prepare" if !prepared => prepared = true,
+                "--audio-output" if output.is_none() => {
+                    output = Some(options.next().context("missing emergency output")?.as_str());
+                }
+                "--espeak-data" if data.is_none() => {
+                    data = Some(Path::new(
+                        options.next().context("missing emergency data path")?,
+                    ));
+                }
+                _ => anyhow::bail!("invalid or repeated emergency startup option"),
             }
         }
-        return owner(None, Some((output.unwrap_or("device"), data)));
+        return owner(None, Some((output.unwrap_or("device"), data)), prepared);
     }
     anyhow::ensure!(
         args.len() == 1,
@@ -58,7 +67,7 @@ pub fn run(args: &[String]) -> Result<()> {
     if args[0] == "--voice-library-service" {
         service(host)
     } else {
-        owner(Some(host), None)
+        owner(Some(host), None, false)
     }
 }
 
@@ -364,7 +373,7 @@ impl Worker {
         output: &Arc<Mutex<io::Stdout>>,
         slot: &mut Option<Self>,
     ) -> Result<()> {
-        startup.verify()?;
+        crate::emergency::timed("verify-executable-and-startup", || startup.verify())?;
         let tree = platform::Tree::for_speech()?;
         let mut command = Command::new(&startup.executable.path);
         command.args(&startup.arguments);
@@ -379,8 +388,7 @@ impl Worker {
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
         platform::configure_speech(&mut command);
-        let child = command
-            .spawn()
+        let child = crate::emergency::timed("spawn-worker", || command.spawn())
             .context("could not start owned speech worker")?;
         *slot = Some(Self {
             child,
@@ -431,11 +439,11 @@ impl Worker {
                     Ok(())
                 })?,
         );
-        worker.child.stdin = Some(
+        worker.child.stdin = Some(crate::emergency::timed("send-owned-startup", || {
             receiver
                 .recv_timeout(Duration::from_secs(10))
-                .context("owned worker startup transmission did not complete")??,
-        );
+                .context("owned worker startup transmission did not complete")?
+        })?);
         Ok(())
     }
     fn cleanup(&mut self) -> Result<()> {
@@ -485,7 +493,11 @@ impl Drop for Worker {
         }
     }
 }
-fn owner(host: Option<Host>, emergency_output: Option<(&str, Option<&Path>)>) -> Result<()> {
+fn owner(
+    host: Option<Host>,
+    emergency_output: Option<(&str, Option<&Path>)>,
+    deferred: bool,
+) -> Result<()> {
     platform::initialize()?; // Dedicated owner; never an ordinary speech worker.
     let worker_id = local::new_uuid()?;
     let output = Arc::new(Mutex::new(io::stdout()));
@@ -494,13 +506,28 @@ fn owner(host: Option<Host>, emergency_output: Option<(&str, Option<&Path>)>) ->
     let mut digest = String::new();
     let mut configuration = None;
     let mut activation_id = None;
+    let mut prepared = None;
     let start = (|| -> Result<()> {
         if let Some((output_backend, data)) = emergency_output {
-            let startup = crate::emergency::startup(output_backend, data)?;
+            let startup = crate::emergency::timed("prepare-emergency-startup", || {
+                crate::emergency::startup(output_backend, data)
+            })?;
             activation_id = startup
                 .engines
                 .as_ref()
                 .map(|snapshot| snapshot.activation_id().to_owned());
+            if deferred {
+                // No native child or output connection exists during preparation.
+                // Check the selected data before the client retires working speech.
+                let parent =
+                    data.unwrap_or_else(|| Path::new(&startup.executable.path).parent().unwrap());
+                anyhow::ensure!(
+                    parent.join("espeak-ng-data/phontab").is_file(),
+                    "emergency speech requires its selected bundled eSpeak data"
+                );
+                prepared = Some(startup);
+                return Ok(());
+            }
             return Worker::spawn(&startup, &output, &mut worker);
         }
         let host = host
@@ -587,13 +614,42 @@ fn owner(host: Option<Host>, emergency_output: Option<(&str, Option<&Path>)>) ->
                         startup: path.to_string_lossy().into(),
                         startup_sha256: digest.clone(),
                         configuration: configuration.clone(),
-                        retired: worker.as_ref().is_none_or(|worker| worker.cleaned),
+                        retired: prepared.is_none()
+                            && worker.as_ref().is_none_or(|worker| worker.cleaned),
                         startup_error: startup_error.clone(),
                         activation_id: activation_id.clone(),
                         native_retirement_version: 1,
                         emergency: emergency_output.is_some(),
+                        deferred_start_version: 1,
+                        prepared: prepared.is_some(),
                     }),
+                    "start-emergency" if deferred && request.worker == worker_id => {
+                        if let Some(startup) = prepared.take() {
+                            // Consume the single attempt before native creation. Retrying
+                            // a lost reply can observe it but never launch another worker.
+                            if let Err(error) = Worker::spawn(&startup, &output, &mut worker) {
+                                startup_error = Some(format!("{error:#}"));
+                                if let Err(cleanup_error) = cleanup(&mut worker) {
+                                    eprintln!(
+                                        "Deferred startup cleanup unconfirmed: {cleanup_error:#}"
+                                    );
+                                }
+                            }
+                        }
+                        if let Some(error) = &startup_error {
+                            Err(anyhow::anyhow!(
+                                "deferred emergency startup failed: {error}"
+                            ))
+                        } else if worker.as_ref().is_some_and(|worker| !worker.cleaned) {
+                            Ok(Reply::Started {
+                                worker: worker_id.clone(),
+                            })
+                        } else {
+                            Err(anyhow::anyhow!("emergency start was cancelled or retired"))
+                        }
+                    }
                     "retire-native" if request.worker == worker_id => {
+                        prepared.take();
                         let result = cleanup(&mut worker);
                         if worker.as_ref().is_none_or(|worker| worker.cleaned) {
                             // Native proof survives a failed management write. Keep this
@@ -610,15 +666,18 @@ fn owner(host: Option<Host>, emergency_output: Option<(&str, Option<&Path>)>) ->
                             result.map(|()| unreachable!("cleanup succeeded without native proof"))
                         }
                     }
-                    "retire" if request.worker == worker_id => match cleanup(&mut worker) {
-                        Ok(()) => {
-                            retired = true;
-                            Ok(Reply::Retired {
-                                worker: worker_id.clone(),
-                            })
+                    "retire" if request.worker == worker_id => {
+                        prepared.take();
+                        match cleanup(&mut worker) {
+                            Ok(()) => {
+                                retired = true;
+                                Ok(Reply::Retired {
+                                    worker: worker_id.clone(),
+                                })
+                            }
+                            Err(error) => Err(error),
                         }
-                        Err(error) => Err(error),
-                    },
+                    }
                     _ => Err(anyhow::anyhow!(
                         "unsupported request or wrong native worker identity"
                     )),

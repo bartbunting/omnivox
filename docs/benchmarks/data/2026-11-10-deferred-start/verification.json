@@ -1,0 +1,29 @@
+{
+  "archive_members_read": 608,
+  "locked_workspace": {
+    "passed": 1213,
+    "ignored": 2
+  },
+  "clippy": "locked CLI/TTS all targets with piper passed",
+  "client_core": {
+    "passed": 1066,
+    "skipped": 18,
+    "failed": 0
+  },
+  "compiled_recovery_tests": 20,
+  "windows_full_development_staging": "passed; isolated Temp runtime 0ee8352d7961bea6",
+  "native_preparation_linux": "passed",
+  "native_preparation_windows": "passed",
+  "paired_comparisons": "8 measured pairs, 1 warmup pair, 2 profiled pairs per platform; all functional checks passed",
+  "old_runtime_linux_and_windows": "actual compiled client preserves main and notification speech",
+  "linux_piper_compiled": "passed",
+  "format": "passed",
+  "documentation": "both repositories and paired links passed",
+  "limits": [
+    "null/source output only",
+    "native macOS unavailable",
+    "native Windows Emacs unavailable",
+    "Windows Piper absent",
+    "owner/guard failure not fixed by deferred startup"
+  ]
+}
