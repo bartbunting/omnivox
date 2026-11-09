@@ -91,6 +91,7 @@ pub enum Reply {
         punctuation_profiles_configuration_version: u32,
         engine_settings_version: u32,
         removal_version: u32,
+        retirement_receipts_version: u32,
         catalogue_providers: Vec<String>,
         root: String,
         target_id: String,
@@ -107,6 +108,11 @@ pub enum Reply {
     },
     Retired {
         worker: String,
+    },
+    RetirementStatus {
+        worker: String,
+        startup_sha256: String,
+        retired: bool,
     },
     Snapshot {
         startup: String,
@@ -278,6 +284,7 @@ impl Host {
             punctuation_profiles_configuration_version: 1,
             engine_settings_version: 1,
             removal_version: 1,
+            retirement_receipts_version: 1,
             catalogue_providers: vec![
                 "piper".into(),
                 "flite".into(),

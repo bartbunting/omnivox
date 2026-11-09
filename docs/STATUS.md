@@ -19,6 +19,8 @@ checks, client and performance qualification separately. The
 adds capital pitch, chunking and saved Reset defaults with the same independent
 boundary. Paired [retained recovery](benchmarks/2026-11-10-retained-recovery.md)
 handles confirmed native worker failure without replacing the healthy peer.
+[Receipt reconciliation](benchmarks/2026-11-10-retirement-receipts.md) restores
+speech after lost replies while preserving the damaged/missing-evidence boundary.
 Emergency recovery, acoustic timing and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.

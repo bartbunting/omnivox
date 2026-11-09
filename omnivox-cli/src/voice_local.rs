@@ -91,6 +91,19 @@ fn service(host: Host) -> Result<()> {
         let result = (|| -> Result<Reply> {
             match request.command.as_str() {
                 "host" => Ok(host.reply()),
+                "retirement-status" if activation.is_none() => {
+                    let retired = omnivox_tts::voice_library::retention::retirement_confirmed(
+                        &host,
+                        &request.worker,
+                        Path::new(&request.startup),
+                        &request.startup_sha256,
+                    )?;
+                    Ok(Reply::RetirementStatus {
+                        worker: request.worker,
+                        startup_sha256: request.startup_sha256,
+                        retired,
+                    })
+                }
                 "engine-settings-review" | "engine-settings-save" | "engine-settings-add"
                     if activation.is_none() =>
                 {

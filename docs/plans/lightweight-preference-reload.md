@@ -141,9 +141,13 @@ confirmed native retirement during automatic speech and character delivery.
 [Native recovery evidence](../benchmarks/2026-11-10-retained-recovery.md) covers
 Linux Flite/Piper and WSL-to-Windows Flite with malformed saved settings. This
 ordinary route retains the native and managed-asset contracts. Lost retirement
-reply testing found that the owner exits after persisting its receipt: add a
-read-only native verification query for that existing proof under ADR 0007.
-Missing or damaged proof must still block. This does not repair lost authority
+reply testing found that the owner exits after persisting its receipt. The
+[receipt verification increment](../reference/engine-startup-snapshot.md#reconcile-an-existing-retirement-receipt)
+now exposes that exact proof under ADR 0007, and the paired client retains the
+original host context for reconciliation. Missing or damaged proof still blocks. The
+[native qualification report](../benchmarks/2026-11-10-retirement-receipts.md)
+records successful Linux and WSL-to-Windows restoration after lost replies and
+notification completion during foreground recovery. This does not repair lost authority
 or establish the separate emergency boundary.
 
 The remaining availability problem is startup when management records are damaged

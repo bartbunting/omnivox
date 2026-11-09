@@ -43,7 +43,11 @@ scheduling and playback. Native libraries never move into the Emacs client.
 
 The local `--voice-library-owner` path gates a worker behind established native
 job/process-group ownership, captures exact startup configuration and acknowledges
-retirement only after its tree and output reader exit. The local management
+retirement only after its tree and output reader exit. Its durable receipt can
+be verified by the local service after a lost reply, using the exact worker,
+host path and startup hash; see
+[receipt reconciliation](reference/engine-startup-snapshot.md#reconcile-an-existing-retirement-receipt).
+The local management
 service coordinates installation and Apply; it is separate from speech admission.
 See [local activation](guides/voice-management.md#local-provider).
 

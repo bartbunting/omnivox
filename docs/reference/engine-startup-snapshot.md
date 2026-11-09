@@ -214,3 +214,36 @@ The UUID remains a configuration identity and does not attest executable bytes.
 `tools/test_remote_service.py` covers actual lane acknowledgements, changed local
 files, recovery after total disconnect, and fresh-session validation. Its opt-in
 Emacs acceptance also checks independent recovery and deliberate restart.
+
+### Reconcile an existing retirement receipt
+
+The local management service advertises `retirement_receipts_version: 1` in its
+`host` reply. A client may then send `command: "retirement-status"` with its
+positive `request_id`, the original owner `worker` UUID, native `startup` path
+and `startup_sha256`. This command is available only outside a managed activation;
+it is not part of the speech control or remote protocol.
+
+The path must be exactly this host's `sessions/WORKER_UUID.json`. The service
+opens the existing retention lock without creating a replacement, rejects busy
+storage, and verifies the bounded startup bytes against the supplied SHA-256.
+It then inspects only the corresponding `.retired` receipt. Version 1, state
+`retired` and the exact snapshot digest must match. A `.prepared` record is never
+retirement evidence. Missing retirement evidence yields `retired: false`;
+missing or changed startup, malformed receipt, changed identity/path, linked files
+and missing or busy locking state yield an error. No record is repaired or removed.
+
+The correlated `retirement_status` reply carries `worker`, `startup_sha256` and
+the Boolean `retired`. A client must match the worker and digest and require
+`true` before acknowledging cleanup. The native owner writes this durable receipt
+only after its tree and pipe tasks finish, before its final reply and exit. The
+query therefore reconciles lost replies under
+[ADR 0007](../adr/0007-managed-voice-lifecycle.md); process exit or an absent lock
+is still insufficient evidence.
+
+Inspection neither loads engines nor rehashes executable/assets: it establishes
+past native retirement from the exact persisted proof. A subsequent owner still
+performs its normal startup and asset verification and publishes its own retention
+record before opening the native gate. The query does not depend on current
+preference files or the active pointer, but still requires a usable host identity,
+retained snapshot, receipt and existing writable retention lock. It is ordinary
+reconciliation, not emergency startup through damaged management state.

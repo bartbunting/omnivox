@@ -6,6 +6,13 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+### Added
+
+- Independent local preference reload for punctuation, capital pitch, chunking
+  and saved Reset defaults, preserving current speech and temporary client choices.
+- Exact native retirement-receipt verification for recovery after a lost owner
+  reply. Missing or damaged cleanup evidence remains blocking.
+
 ### Fixed
 
 - Bound synthesis and cancellation writes when a speech helper stops reading
